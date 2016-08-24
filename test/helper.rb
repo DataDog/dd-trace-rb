@@ -7,3 +7,8 @@ require 'tracer'
 def get_test_tracer()
   return Datadog::Tracer.new
 end
+
+
+class Writer
+
+end

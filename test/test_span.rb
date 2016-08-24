@@ -28,4 +28,16 @@ class SpanTest < Minitest::Test
     assert_equal(span.name, 'my.op')
   end
 
+  def test_span_block()
+    start = Time.now.utc
+    span = Datadog::Span.new(nil, 'my.op').trace do |s|
+      assert_equal(s.name, 'my.op')
+      assert_equal(s.end_time, nil)
+    end
+
+    assert span.end_time != nil
+    assert span.end_time < Time.now.utc
+    assert span.end_time > start
+  end
+
 end

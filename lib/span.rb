@@ -19,6 +19,15 @@ module Datadog
       @end_time = nil
     end
 
+
+    def trace()
+      if block_given?
+        yield(self)
+      end
+      self.finish()
+      return self
+    end
+
     # Mark the span finished at the current time and submit it.
     def finish()
       self.finish_at(Time.now.utc)
