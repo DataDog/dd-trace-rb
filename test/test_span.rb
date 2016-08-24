@@ -40,4 +40,17 @@ class SpanTest < Minitest::Test
     assert span.end_time > start
   end
 
+  def test_span_block_error()
+    start = Time.now.utc
+    span = Datadog::Span.new(nil, 'my.op').trace do |s|
+      1/0
+    end
+
+    assert_equal(span.error, 1)
+    assert span.end_time != nil
+    assert span.end_time < Time.now.utc
+    assert span.end_time > start
+  end
+
+
 end
