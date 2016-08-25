@@ -1,6 +1,8 @@
 
 require 'span'
 require 'local'
+require 'writer'
+
 
 
 module Datadog
@@ -10,7 +12,7 @@ module Datadog
     attr_reader :writer
 
     def initialize(options={})
-      @writer = options[:writer]
+      @writer = options[:writer] || Datadog::Writer.new("localhost", "7777")
       @buffer = Datadog::SpanBuffer.new()
 
       @spans = []
