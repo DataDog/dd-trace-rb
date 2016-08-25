@@ -11,7 +11,7 @@ module Datadog
 
     attr_accessor :name, :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
-                  :meta, :error
+                  :meta, :status
 
     def initialize(tracer, name, options={})
       @tracer = tracer
@@ -22,7 +22,7 @@ module Datadog
       @trace_id = options[:trace_id] || @span_id
 
       @meta = {}
-      @error = 0
+      @status = 0
 
       @start_time = Time.now.utc
       @end_time = nil
@@ -33,17 +33,21 @@ module Datadog
         yield(self)
       rescue Exception => e
         self.set_error(e)
-        raise e
+        raise
       ensure
-        return self.finish()
+        self.finish()
       end
+    end
+
+    def get_tag(k)
+      return @meta[k]
     end
 
     def set_error(e)
       if e != nil
-        @error = 1
-        @meta["error.msg"] = e.to_s
-        @meta["error.type"] = e.class
+        @status = 1
+        @meta["error.msg"] = e.message
+        @meta["error.type"] = e.class.to_s
         @meta["error.stack"] = e.backtrace.join("\n")
       end
     end
