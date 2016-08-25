@@ -4,19 +4,21 @@ require 'minitest/autorun'
 require 'tracer'
 
 
+# Return a test tracer instance with a faux writer.
 def get_test_tracer()
   return Datadog::Tracer.new({:writer => FauxWriter.new})
 end
 
 
+# FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter
 
   def initialize()
     @buff = []
   end
 
-  def write(span)
-    @buff << span
+  def write(spans)
+    @buff.concat(spans)
   end
 
   def spans()
@@ -25,4 +27,13 @@ class FauxWriter
     return buff
   end
 
+end
+
+# Return a hash mapping the given spans by name.
+def spans_by_name(spans)
+  n = {}
+  spans.each do |s|
+    n[s.name] = s
+  end
+  return n
 end

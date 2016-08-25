@@ -9,13 +9,18 @@ module Datadog
 
   class Span
 
-    attr_accessor :name, :start_time, :end_time,
+    attr_accessor :name, :service, :resource,
+                  :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
-                  :meta, :status
+                  :meta, :status, :parent
 
+    # Create a new span linked to the given tracer.
     def initialize(tracer, name, options={})
       @tracer = tracer
+
       @name = name
+      @service = options[:service]
+      @resource = options[:resource] || name
 
       @span_id = Datadog::next_id()
       @parent_id = options[:parent_id] || 0
@@ -24,13 +29,17 @@ module Datadog
       @meta = {}
       @status = 0
 
+      @parent = nil
+
       @start_time = Time.now.utc
       @end_time = nil
     end
 
     def trace()
       begin
-        yield(self)
+        if block_given?
+          yield(self)
+        end
       rescue Exception => e
         self.set_error(e)
         raise
@@ -39,10 +48,16 @@ module Datadog
       end
     end
 
-    def get_tag(k)
-      return @meta[k]
+    def set_tag(key, value)
+      return @meta[key] = value
     end
 
+    # Return the tag wth the given key, nil if it doesn't exist.
+    def get_tag(key)
+      return @meta[key]
+    end
+
+    # Mark the span with the given error.
     def set_error(e)
       if e != nil
         @status = 1
@@ -73,10 +88,20 @@ module Datadog
       return "Span(name:#{@name},sid:#{@span_id},tid:#{@trace_id},pid:#{@parent_id})"
     end
 
+    def set_parent(parent)
+      @parent = parent
+      if parent != nil
+        @trace_id = parent.trace_id
+        @parent_id = parent.span_id
+        @service = @service || parent.service
+      end
+    end
+
   end
 
   @@id_range = (0..2**64-1)
 
+  # Return a span id.
   def self.next_id()
     return rand(@@id_range)
   end
