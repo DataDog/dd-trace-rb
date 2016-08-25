@@ -2,6 +2,7 @@ require 'minitest'
 require 'minitest/autorun'
 
 require 'tracer'
+require 'span'
 
 
 # Return a test tracer instance with a faux writer.
@@ -18,6 +19,9 @@ class FauxWriter
   end
 
   def write(spans)
+    # Ensure all of our test spans can be encoded to catch weird errors.
+    Datadog::encode_spans(spans)
+
     @buff.concat(spans)
   end
 

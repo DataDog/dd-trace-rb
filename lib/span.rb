@@ -1,8 +1,7 @@
+
+require 'json'
 require 'time'
-require 'ext/errors'
-require 'ext/errors'
-require 'ext/errors'
-require 'ext/errors'
+
 
 
 module Datadog
@@ -88,6 +87,7 @@ module Datadog
       return "Span(name:#{@name},sid:#{@span_id},tid:#{@trace_id},pid:#{@parent_id})"
     end
 
+    # Set this span's parent, inheriting any properties not explicitly set.
     def set_parent(parent)
       @parent = parent
       if parent != nil
@@ -95,6 +95,25 @@ module Datadog
         @parent_id = parent.span_id
         @service = @service || parent.service
       end
+    end
+
+    def to_hash()
+      h = {
+        :span_id => @span_id,
+        :parent_id => @parent_id,
+        :trace_id => @trace_id,
+        :name => @name,
+        :service => @service,
+        :resource => @resource,
+        :type => "FIXME",
+      }
+
+      if @start_time != nil && @end_time != nil
+        h[:start] = (@start_time.to_f * 1e9).to_i
+        h[:duration] = ((@end_time - @start_time) * 1e9).to_i
+      end
+
+      return h
     end
 
   end
@@ -105,5 +124,12 @@ module Datadog
   def self.next_id()
     return rand(@@id_range)
   end
+
+  # Encode the given set of spans.
+  def self.encode_spans(spans)
+    hashes = spans.map{|s| s.to_hash()}
+    return JSON.dump(hashes)
+  end
+
 
 end
