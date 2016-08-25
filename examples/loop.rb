@@ -1,13 +1,11 @@
 
 require "tracer"
 
-tracer = Datadog::Tracer.new()
 
 
-urls = ["/home", "/login", "/logout"]
 
-while true do
-
+def trace(tracer)
+  urls = ["/home", "/login", "/logout"]
   resource = urls.sample()
   tracer.trace("web.request", :service=>"web", :resource=>resource) do
     sleep rand(0..1.0)
@@ -17,10 +15,21 @@ while true do
     end
 
     tracer.trace("web.template") do
-      sleep rand(0..1.0)
+      r = rand(0..1.0)
+      if r < 0.25
+        1/0
+      end
     end
   end
+rescue ZeroDivisionError => e
+  puts  "error #{e}"
+end
 
+
+tracer = Datadog::Tracer.new()
+while true do
+  trace(tracer)
+  sleep 0.1
   puts 'loop'
 
 end
