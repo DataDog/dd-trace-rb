@@ -106,6 +106,8 @@ module Datadog
         :service => @service,
         :resource => @resource,
         :type => "FIXME",
+        :meta => @meta,
+        :error => @status,
       }
 
       if @start_time != nil && @end_time != nil
