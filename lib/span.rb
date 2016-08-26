@@ -39,7 +39,7 @@ module Datadog
         if block_given?
           yield(self)
         end
-      rescue Exception => e
+      rescue StandardError => e
         self.set_error(e)
         raise
       ensure
@@ -120,11 +120,11 @@ module Datadog
 
   end
 
-  @@id_range = (0..2**64-1)
+  @@max_id = 2**64-1
 
   # Return a span id.
   def self.next_id()
-    return rand(@@id_range)
+    return rand(@@max_id)
   end
 
   # Encode the given set of spans.

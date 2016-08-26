@@ -18,6 +18,8 @@ class SpanTest < Minitest::Test
     assert span.parent_id == 0
     assert span.trace_id == span.span_id
     assert_equal(span.name, 'my.op')
+    assert span.span_id != 0
+    assert span.trace_id != 0
   end
 
   def test_span_with_parent()

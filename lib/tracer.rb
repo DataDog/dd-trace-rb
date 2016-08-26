@@ -47,11 +47,8 @@ module Datadog
     end
 
     def write(spans)
-      if !@writer.nil?
-        @writer.write(spans)
-      end
+      @writer.write(spans) unless @writer.nil?
     end
 
   end
-
 end
