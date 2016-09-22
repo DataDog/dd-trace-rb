@@ -8,11 +8,11 @@ def trace(tracer)
 
   # rake web request.
   tracer.trace("web.request", :service=>"web", :resource=>resource) do
-    sleep rand(0..1.0)
+    sleep rand(0..0.1)
 
     # fake query.
     tracer.trace("db.query", :service=>"db") do
-      sleep rand(0..1.0)
+      sleep rand(0..0.1)
     end
 
     # fake template.
@@ -32,8 +32,8 @@ def run()
   tracer = Datadog::Tracer.new()
   loop do
     trace(tracer)
-    sleep 0.1
-    puts 'loop'
+    sleep 0.0001
+    puts "traced #{tracer.writer.stats()}"
   end
 end
 

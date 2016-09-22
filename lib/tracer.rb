@@ -4,7 +4,6 @@ require 'local'
 require 'writer'
 
 
-
 module Datadog
 
   class Tracer
@@ -12,9 +11,12 @@ module Datadog
     attr_reader :writer
 
     def initialize(options={})
-      @writer = options[:writer] || Datadog::Writer.new("localhost", "7777")
-      @buffer = Datadog::SpanBuffer.new()
 
+      # buffers and sends completed traces.
+      @writer = options[:writer] || Datadog::Writer.new()
+
+      # store thes the active thread in the current span.
+      @buffer = Datadog::SpanBuffer.new()
       @spans = []
     end
 
