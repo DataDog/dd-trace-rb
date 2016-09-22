@@ -10,8 +10,8 @@ class TraceBufferTest < Minitest::Test
     buffer.push(3)
     buffer.push(4)
     out = buffer.pop()
-    assert out.length == 3
-    assert out.include? 4
+    assert_equal(out.length, 3)
+    assert out.include?(4)
   end
 
   def test_trace_buffer()
@@ -29,7 +29,7 @@ class TraceBufferTest < Minitest::Test
     out = buffer.pop()
     assert !out.nil?
     expected = (0..thread_count-1).to_a
-    assert out.sort == expected
+    assert_equal(out.sort, expected)
   end
 
 end
