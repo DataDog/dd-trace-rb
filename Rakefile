@@ -1,4 +1,4 @@
-require "bundler/gem_tasks"
+require 'bundler/gem_tasks'
 require 'rubocop/rake_task'
 require 'rake/testtask'
 
@@ -11,4 +11,4 @@ RuboCop::RakeTask.new(:rubocop) do |t|
   t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
 end
 
-task :default => :test
+task default: :test
