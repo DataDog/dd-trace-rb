@@ -26,8 +26,12 @@ module Datadog
       @buffer.set(span)
 
       # now delete the called block to it
+      # TODO[manu]: could be interesting to avoid a span.trace()?
+      # I think that having just a tracer.trace() is enough and it
+      # ensures that the internal is readable.
       return span.trace(&Proc.new) if block_given?
       span.trace
+      span
     end
 
     def record(span)
