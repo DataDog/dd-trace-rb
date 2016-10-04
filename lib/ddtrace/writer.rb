@@ -26,13 +26,12 @@ module Datadog
     # flush will trigger a flush to the server.
     def flush
       traces = @trace_buffer.pop
-      unless traces.empty?
-        spans = traces.flatten
-        # FIXME[matt] submit as an array of traces or a flat array of spans?
-        #
-        @transport.write(spans)          # FIXME matt: if there's an error, requeue
-        @traces_flushed += traces.length # FIXME matt: synchornize?
-      end
+      return if traces.empty?
+
+      spans = traces.flatten
+      # FIXME[matt] submit as an array of traces or a flat array of spans?
+      @transport.write(spans)          # FIXME matt: if there's an error, requeue
+      @traces_flushed += traces.length # FIXME matt: synchornize?
     end
 
     # write will queue the trace for submission to the api.

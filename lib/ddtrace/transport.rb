@@ -1,6 +1,8 @@
 require 'net/http'
 
 module Datadog
+  # Transport class that handles the spans delivery to the
+  # local trace-agent
   class Transport
     def initialize(host, port)
       @http = Net::HTTP.new(host, port)

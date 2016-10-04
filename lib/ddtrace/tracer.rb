@@ -3,6 +3,8 @@ require 'ddtrace/local'
 require 'ddtrace/writer'
 
 module Datadog
+  # Tracer class that records and creates spans related to a
+  # compositions of logical units of work.
   class Tracer
     attr_reader :writer
 
@@ -24,23 +26,19 @@ module Datadog
       @buffer.set(span)
 
       # now delete the called block to it
-      if block_given?
-        return span.trace(&Proc.new)
-      else
-        return span.trace
-      end
+      return span.trace(&Proc.new) if block_given?
+      span.trace
     end
 
     def record(span)
       @spans << span
-
       parent = span.parent
       @buffer.set(parent)
-      if parent.nil?
-        spans = @spans
-        @spans = []
-        write(spans)
-      end
+
+      return unless parent.nil?
+      spans = @spans
+      @spans = []
+      write(spans)
     end
 
     def write(spans)

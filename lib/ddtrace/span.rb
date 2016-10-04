@@ -1,8 +1,13 @@
 require 'json'
 require 'time'
 
+# Datadog namespace
 module Datadog
+  # Span model that defines a logical unit of work that
+  # composes a complete trace.
   class Span
+    MAX_ID = 2**64 - 1
+
     attr_accessor :name, :service, :resource,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
@@ -49,12 +54,11 @@ module Datadog
 
     # Mark the span with the given error.
     def set_error(e)
-      unless e.nil?
-        @status = 1
-        @meta['error.msg'] = e.message
-        @meta['error.type'] = e.class.to_s
-        @meta['error.stack'] = e.backtrace.join("\n")
-      end
+      return if e.nil?
+      @status = 1
+      @meta['error.msg'] = e.message
+      @meta['error.type'] = e.class.to_s
+      @meta['error.stack'] = e.backtrace.join("\n")
     end
 
     # Mark the span finished at the current time and submit it.
@@ -79,11 +83,10 @@ module Datadog
     # Set this span's parent, inheriting any properties not explicitly set.
     def set_parent(parent)
       @parent = parent
-      unless parent.nil?
-        @trace_id = parent.trace_id
-        @parent_id = parent.span_id
-        @service ||= parent.service
-      end
+      return if parent.nil?
+      @trace_id = parent.trace_id
+      @parent_id = parent.span_id
+      @service ||= parent.service
     end
 
     def to_hash
@@ -108,11 +111,9 @@ module Datadog
     end
   end
 
-  @@max_id = 2**64 - 1
-
-  # Return a span id.
+  # Return a span id
   def self.next_id
-    rand(@@max_id)
+    rand(Datadog::Span::MAX_ID)
   end
 
   # Encode the given set of spans.
