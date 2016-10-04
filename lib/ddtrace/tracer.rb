@@ -1,30 +1,25 @@
-
 require 'ddtrace/span'
 require 'ddtrace/local'
 require 'ddtrace/writer'
 
-
 module Datadog
-
   class Tracer
-
     attr_reader :writer
 
-    def initialize(options={})
-
+    def initialize(options = {})
       # buffers and sends completed traces.
-      @writer = options[:writer] || Datadog::Writer.new()
+      @writer = options[:writer] || Datadog::Writer.new
 
       # store thes the active thread in the current span.
-      @buffer = Datadog::SpanBuffer.new()
+      @buffer = Datadog::SpanBuffer.new
       @spans = []
     end
 
-    def trace(name, options={})
+    def trace(name, options = {})
       span = Span.new(self, name, options)
 
       # set up inheritance
-      parent = @buffer.get()
+      parent = @buffer.get
       span.set_parent(parent)
       @buffer.set(span)
 
@@ -32,7 +27,7 @@ module Datadog
       if block_given?
         return span.trace(&Proc.new)
       else
-        return span.trace()
+        return span.trace
       end
     end
 
@@ -44,13 +39,12 @@ module Datadog
       if parent.nil?
         spans = @spans
         @spans = []
-        self.write(spans)
+        write(spans)
       end
     end
 
     def write(spans)
       @writer.write(spans) unless @writer.nil?
     end
-
   end
 end

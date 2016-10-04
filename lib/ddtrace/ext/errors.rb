@@ -1,10 +1,7 @@
-
 module Datadog
-
   module Errors
-    MSG = "error.msg"
-    TYPE = "error.type"
-    STACK = "error.stack"
+    MSG = 'error.msg'.freeze
+    TYPE = 'error.type'.freeze
+    STACK = 'error.stack'.freeze
   end
-
 end
