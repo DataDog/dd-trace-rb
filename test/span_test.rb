@@ -1,5 +1,5 @@
 require 'helper'
-require 'span'
+require 'ddtrace/span'
 
 class SpanTest < Minitest::Test
 

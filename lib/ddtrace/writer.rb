@@ -1,6 +1,6 @@
 
 
-require 'transport'
+require 'ddtrace/transport'
 
 module Datadog
 

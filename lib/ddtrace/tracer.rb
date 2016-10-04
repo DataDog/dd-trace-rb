@@ -1,7 +1,7 @@
 
-require 'span'
-require 'local'
-require 'writer'
+require 'ddtrace/span'
+require 'ddtrace/local'
+require 'ddtrace/writer'
 
 
 module Datadog
