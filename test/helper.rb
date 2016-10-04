@@ -4,33 +4,29 @@ require 'minitest/autorun'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
 
-
 # Return a test tracer instance with a faux writer.
-def get_test_tracer()
-  return Datadog::Tracer.new({:writer => FauxWriter.new})
+def get_test_tracer
+  Datadog::Tracer.new(writer: FauxWriter.new)
 end
-
 
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter
-
-  def initialize()
+  def initialize
     @buff = []
   end
 
   def write(spans)
     # Ensure all of our test spans can be encoded to catch weird errors.
-    Datadog::encode_spans(spans)
+    Datadog.encode_spans(spans)
 
     @buff.concat(spans)
   end
 
-  def spans()
+  def spans
     buff = @buff
     @buff = []
-    return buff
+    buff
   end
-
 end
 
 # Return a hash mapping the given spans by name.
@@ -39,5 +35,5 @@ def spans_by_name(spans)
   spans.each do |s|
     n[s.name] = s
   end
-  return n
+  n
 end
