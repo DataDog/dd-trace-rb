@@ -1,7 +1,7 @@
 
 
 require 'helper'
-require 'tracer'
+require 'ddtrace/tracer'
 
 
 class TracerTest < Minitest::Test

@@ -1,5 +1,5 @@
 
-require "tracer"
+require "ddtrace/tracer"
 
 # Generate a fake trace with the given tracer.
 def trace(tracer)

@@ -1,8 +1,8 @@
 require 'minitest'
 require 'minitest/autorun'
 
-require 'tracer'
-require 'span'
+require 'ddtrace/tracer'
+require 'ddtrace/span'
 
 
 # Return a test tracer instance with a faux writer.
