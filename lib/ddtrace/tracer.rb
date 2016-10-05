@@ -6,7 +6,7 @@ module Datadog
   # Tracer class that records and creates spans related to a
   # compositions of logical units of work.
   class Tracer
-    attr_reader :writer
+    attr_reader :writer, :buffer
 
     def initialize(options = {})
       # buffers and sends completed traces.
