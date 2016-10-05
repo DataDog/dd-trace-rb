@@ -36,12 +36,16 @@ module Datadog
     end
 
     def trace
+      # yield the span if a block is given
       yield(self) if block_given?
     rescue StandardError => e
       set_error(e)
       raise
     ensure
-      finish()
+      # call the finish only if a block is given; this ensures
+      # that a call to tracer.trace() without a block, returns
+      # a span that should be manually finished.
+      finish() if block_given?
     end
 
     def set_tag(key, value)

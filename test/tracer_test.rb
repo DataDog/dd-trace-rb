@@ -18,7 +18,10 @@ class TracerTest < Minitest::Test
 
   def test_trace_no_block
     tracer = get_test_tracer
-    tracer.trace('something')
+    span = tracer.trace('something')
+
+    assert !span.nil?
+    assert_equal(span.name, 'something')
   end
 
   def test_trace_error
@@ -62,5 +65,11 @@ class TracerTest < Minitest::Test
     assert_equal(a.service, 'parent')
     assert_equal(b.service, 'parent')
     assert_equal(c.service, 'other')
+  end
+
+  def test_trace_no_block_not_finished
+    tracer = get_test_tracer
+    span = tracer.trace('something')
+    assert_equal(span.end_time, nil)
   end
 end
