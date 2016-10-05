@@ -8,7 +8,7 @@ module Datadog
   class Span
     MAX_ID = 2**64 - 1
 
-    attr_accessor :name, :service, :resource,
+    attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
                   :meta, :status, :parent
@@ -20,6 +20,7 @@ module Datadog
       @name = name
       @service = options.fetch(:service, nil)
       @resource = options.fetch(:resource, name)
+      @span_type = options.fetch(:span_type, nil)
 
       @span_id = Datadog.next_id()
       @parent_id = options.fetch(:parent_id, 0)
@@ -103,7 +104,7 @@ module Datadog
         name: @name,
         service: @service,
         resource: @resource,
-        type: 'FIXME',
+        type: @span_type,
         meta: @meta,
         error: @status
       }
