@@ -36,7 +36,6 @@ module Datadog
     end
 
     def trace
-      # yield the span if a block is given
       yield(self) if block_given?
     rescue StandardError => e
       set_error(e)
