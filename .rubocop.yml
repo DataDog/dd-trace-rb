@@ -23,3 +23,6 @@ Style/AccessorMethodName:
 
 Style/MethodCallParentheses:
   Enabled: false
+
+Style/RescueModifier:
+  Enabled: false
