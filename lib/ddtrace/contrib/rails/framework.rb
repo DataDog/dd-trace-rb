@@ -4,6 +4,7 @@ require 'ddtrace/contrib/rails/core_extensions'
 require 'ddtrace/contrib/rails/action_controller'
 require 'ddtrace/contrib/rails/action_view'
 require 'ddtrace/contrib/rails/active_record'
+require 'ddtrace/contrib/rails/active_support'
 
 module Datadog
   module Instrument
@@ -32,6 +33,9 @@ module Datadog
         ActiveSupport::Notifications.subscribe('render_partial.action_view', &method(:render_partial))
         ActiveSupport::Notifications.subscribe('sql.active_record', &method(:sql))
         ActiveSupport::Notifications.subscribe('process_action.action_controller', &method(:process_action))
+        ActiveSupport::Notifications.subscribe('cache_read.active_support', &method(:cache_read))
+        ActiveSupport::Notifications.subscribe('cache_write.active_support', &method(:cache_write))
+        ActiveSupport::Notifications.subscribe('cache_delete.active_support', &method(:cache_delete))
       end
     end
   end
