@@ -2,7 +2,8 @@ module Datadog
   module Instrument
     # some stuff
     module RailsFramework
-      def sql(_name, start, finish, _id, payload)
+      def self.sql(_name, start, finish, _id, payload)
+        tracer = Rails.configuration.datadog_trace[:tracer]
         adapter_name = ActiveRecord::Base.connection.adapter_name.downcase
         span = tracer.trace("#{adapter_name}.query", service: 'defaultdb', type: 'db')
         span.span_type = 'sql'

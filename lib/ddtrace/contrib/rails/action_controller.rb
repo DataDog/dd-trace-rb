@@ -3,10 +3,12 @@ module Datadog
     # some stuff
     module RailsFramework
       def self.start_processing(*)
+        tracer = Rails.configuration.datadog_trace[:tracer]
         tracer.trace('rails.request', service: 'rails-app', type: 'web')
       end
 
       def self.process_action(_name, start, finish, _id, payload)
+        tracer = Rails.configuration.datadog_trace[:tracer]
         span = tracer.buffer.get
         span.resource = "#{payload[:controller]}##{payload[:action]}"
         span.set_tag('http.url', payload[:path])

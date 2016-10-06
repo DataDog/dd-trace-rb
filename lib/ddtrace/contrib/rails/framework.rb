@@ -1,5 +1,10 @@
 require 'ddtrace/tracer'
 
+require 'ddtrace/contrib/rails/core_extensions'
+require 'ddtrace/contrib/rails/action_controller'
+require 'ddtrace/contrib/rails/action_view'
+require 'ddtrace/contrib/rails/active_record'
+
 module Datadog
   module Instrument
     # some stuff
@@ -20,6 +25,13 @@ module Datadog
         # TODO[manu]: set default service details
 
         # auto-instrument the code
+        ActiveSupport::Notifications.subscribe('start_processing.action_controller', &method(:start_processing))
+        ActiveSupport::Notifications.subscribe('start_render_template.action_view', &method(:start_render_template))
+        ActiveSupport::Notifications.subscribe('start_render_partial.action_view', &method(:start_render_partial))
+        ActiveSupport::Notifications.subscribe('render_template.action_view', &method(:render_template))
+        ActiveSupport::Notifications.subscribe('render_partial.action_view', &method(:render_partial))
+        ActiveSupport::Notifications.subscribe('sql.active_record', &method(:sql))
+        ActiveSupport::Notifications.subscribe('process_action.action_controller', &method(:process_action))
       end
     end
   end
