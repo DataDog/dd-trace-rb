@@ -20,3 +20,6 @@ Metrics/MethodLength:
 # honors this rule.
 Style/AccessorMethodName:
   Enabled: false
+
+Style/MethodCallParentheses:
+  Enabled: false

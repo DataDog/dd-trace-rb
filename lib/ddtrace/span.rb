@@ -18,12 +18,12 @@ module Datadog
       @tracer = tracer
 
       @name = name
-      @service = options[:service]
-      @resource = options[:resource] || name
+      @service = options.fetch(:service, nil)
+      @resource = options.fetch(:resource, name)
 
-      @span_id = Datadog.next_id
-      @parent_id = options[:parent_id] || 0
-      @trace_id = options[:trace_id] || @span_id
+      @span_id = Datadog.next_id()
+      @parent_id = options.fetch(:parent_id, 0)
+      @trace_id = options.fetch(:trace_id, @span_id)
 
       @meta = {}
       @status = 0
@@ -40,7 +40,7 @@ module Datadog
       set_error(e)
       raise
     ensure
-      finish
+      finish()
     end
 
     def set_tag(key, value)
@@ -82,8 +82,8 @@ module Datadog
 
     # Set this span's parent, inheriting any properties not explicitly set.
     def set_parent(parent)
-      @parent = parent
       return if parent.nil?
+      @parent = parent
       @trace_id = parent.trace_id
       @parent_id = parent.span_id
       @service ||= parent.service

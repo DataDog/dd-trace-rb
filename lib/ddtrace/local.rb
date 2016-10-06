@@ -15,9 +15,9 @@ module Datadog
 
     # Pop the current active span.
     def pop
-      s = get
+      span = get()
       set(nil)
-      s
+      span
     end
   end
 end

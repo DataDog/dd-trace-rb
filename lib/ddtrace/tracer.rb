@@ -10,10 +10,10 @@ module Datadog
 
     def initialize(options = {})
       # buffers and sends completed traces.
-      @writer = options[:writer] || Datadog::Writer.new
+      @writer = options.fetch(:writer, Datadog::Writer.new())
 
       # store thes the active thread in the current span.
-      @buffer = Datadog::SpanBuffer.new
+      @buffer = Datadog::SpanBuffer.new()
       @spans = []
     end
 
@@ -21,16 +21,16 @@ module Datadog
       span = Span.new(self, name, options)
 
       # set up inheritance
-      parent = @buffer.get
+      parent = @buffer.get()
       span.set_parent(parent)
       @buffer.set(span)
 
       # now delete the called block to it
-      # TODO[manu]: could be interesting to avoid a span.trace()?
-      # I think that having just a tracer.trace() is enough and it
-      # ensures that the internal is readable.
+      # TODO[manu]: this part must be refactored and merged with span.trace()
+      # span.trace call is mandatory and we should return the span when it's
+      # finished.
       return span.trace(&Proc.new) if block_given?
-      span.trace
+      span.trace()
       span
     end
 
