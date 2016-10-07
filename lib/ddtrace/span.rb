@@ -1,8 +1,13 @@
 require 'json'
 require 'time'
 
+# Datadog namespace
 module Datadog
+  # Span model that defines a logical unit of work that
+  # composes a complete trace.
   class Span
+    MAX_ID = 2**64 - 1
+
     attr_accessor :name, :service, :resource,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
@@ -13,12 +18,12 @@ module Datadog
       @tracer = tracer
 
       @name = name
-      @service = options[:service]
-      @resource = options[:resource] || name
+      @service = options.fetch(:service, nil)
+      @resource = options.fetch(:resource, name)
 
-      @span_id = Datadog.next_id
-      @parent_id = options[:parent_id] || 0
-      @trace_id = options[:trace_id] || @span_id
+      @span_id = Datadog.next_id()
+      @parent_id = options.fetch(:parent_id, 0)
+      @trace_id = options.fetch(:trace_id, @span_id)
 
       @meta = {}
       @status = 0
@@ -35,7 +40,7 @@ module Datadog
       set_error(e)
       raise
     ensure
-      finish
+      finish()
     end
 
     def set_tag(key, value)
@@ -49,12 +54,11 @@ module Datadog
 
     # Mark the span with the given error.
     def set_error(e)
-      unless e.nil?
-        @status = 1
-        @meta['error.msg'] = e.message
-        @meta['error.type'] = e.class.to_s
-        @meta['error.stack'] = e.backtrace.join("\n")
-      end
+      return if e.nil?
+      @status = 1
+      @meta['error.msg'] = e.message
+      @meta['error.type'] = e.class.to_s
+      @meta['error.stack'] = e.backtrace.join("\n")
     end
 
     # Mark the span finished at the current time and submit it.
@@ -77,9 +81,14 @@ module Datadog
     end
 
     # Set this span's parent, inheriting any properties not explicitly set.
+    # If the parent is nil, set the span zero values.
     def set_parent(parent)
       @parent = parent
-      unless parent.nil?
+
+      if parent.nil?
+        @trace_id = @span_id
+        @parent_id = 0
+      else
         @trace_id = parent.trace_id
         @parent_id = parent.span_id
         @service ||= parent.service
@@ -108,11 +117,9 @@ module Datadog
     end
   end
 
-  @@max_id = 2**64 - 1
-
-  # Return a span id.
+  # Return a span id
   def self.next_id
-    rand(@@max_id)
+    rand(Datadog::Span::MAX_ID)
   end
 
   # Encode the given set of spans.

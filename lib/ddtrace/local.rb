@@ -1,6 +1,7 @@
 require 'thread'
 
 module Datadog
+  # Buffer used to store active spans
   class SpanBuffer
     # Set the current active span.
     def set(span)
@@ -14,9 +15,9 @@ module Datadog
 
     # Pop the current active span.
     def pop
-      s = get
+      span = get()
       set(nil)
-      s
+      span
     end
   end
 end
