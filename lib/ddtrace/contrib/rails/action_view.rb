@@ -1,3 +1,5 @@
+require 'ddtrace/contrib/rails/utils'
+
 module Datadog
   module Contrib
     module Rails
@@ -45,7 +47,7 @@ module Datadog
           # finish the tracing and update the execution time
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.buffer.get
-          # TODO: this should be normalized someway
+          template_name = Datadog::Utils.normalize_template_name(payload.fetch(:identifier))
           span.set_tag('rails.template_name', payload.fetch(:identifier))
           span.set_tag('rails.layout', payload.fetch(:layout))
           span.start_time = start
@@ -59,8 +61,8 @@ module Datadog
           # finish the tracing and update the execution time
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.buffer.get
-          # TODO: this should be normalized someway
-          span.set_tag('rails.template_name', payload.fetch(:identifier))
+          template_name = Datadog::Utils.normalize_template_name(payload.fetch(:identifier))
+          span.set_tag('rails.template_name', template_name)
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e

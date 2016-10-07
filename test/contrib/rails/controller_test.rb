@@ -16,7 +16,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span.name, 'rails.render_template')
     assert_equal(span.span_type, nil)
     assert_equal(span.resource, 'rails.render_template')
-    assert_equal(span.get_tag('rails.template_name'), 'tracing/index.html.erb')
+    assert_equal(span.get_tag('rails.template_name'), 'index.html.erb')
     assert_equal(span.get_tag('rails.layout'), 'layouts/application')
     assert span.to_hash[:duration] > 0
   end
@@ -37,7 +37,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.span_type, nil)
     assert_equal(span_partial.resource, 'rails.render_partial')
-    assert_equal(span_partial.get_tag('rails.template_name'), 'partials/_body.html.erb')
+    assert_equal(span_partial.get_tag('rails.template_name'), '_body.html.erb')
     assert_equal(span_partial.parent, span_template)
 
     assert span_template.to_hash[:duration] > 0
