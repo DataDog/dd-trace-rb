@@ -1,4 +1,5 @@
 require 'net/http'
+require 'ddtrace/encoding'
 
 module Datadog
   # Transport class that handles the spans delivery to the
@@ -10,7 +11,7 @@ module Datadog
     end
 
     def write(spans)
-      out = Datadog.encode_spans(spans)
+      out = Datadog::Encoding.encode_spans(spans)
 
       request = Net::HTTP::Post.new('/spans', @headers)
       request.body = out

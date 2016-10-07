@@ -1,6 +1,7 @@
 require 'minitest'
 require 'minitest/autorun'
 
+require 'ddtrace/encoding'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
 
@@ -17,7 +18,7 @@ class FauxWriter
 
   def write(spans)
     # Ensure all of our test spans can be encoded to catch weird errors.
-    Datadog.encode_spans(spans)
+    Datadog::Encoding.encode_spans(spans)
 
     @buff.concat(spans)
   end

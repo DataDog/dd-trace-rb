@@ -1,4 +1,3 @@
-require 'json'
 require 'time'
 
 # Datadog namespace
@@ -124,11 +123,5 @@ module Datadog
   # Return a span id
   def self.next_id
     rand(Datadog::Span::MAX_ID)
-  end
-
-  # Encode the given set of spans.
-  def self.encode_spans(spans)
-    hashes = spans.map(&:to_hash)
-    JSON.dump(hashes)
   end
 end
