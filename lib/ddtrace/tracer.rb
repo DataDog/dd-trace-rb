@@ -1,5 +1,5 @@
 require 'ddtrace/span'
-require 'ddtrace/local'
+require 'ddtrace/buffer'
 require 'ddtrace/writer'
 
 module Datadog
