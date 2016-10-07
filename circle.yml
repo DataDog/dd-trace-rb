@@ -1,0 +1,18 @@
+machine:
+  environment:
+    ALL_VERSIONS: 2.3.1,2.2.5
+
+dependencies:
+  override:
+    - rvm get head
+    - rvm install $ALL_VERSIONS
+    - rvm $ALL_VERSIONS --verbose do gem install bundler
+    - rvm $ALL_VERSIONS --verbose do bundle install
+    - rvm $ALL_VERSIONS --verbose do appraisal install
+
+test:
+  override:
+    - rvm 2.3.1 --verbose do rake rubocop
+    - rvm $ALL_VERSIONS --verbose do rake test
+    - rvm $ALL_VERSIONS --verbose do appraisal rails-4 rake rails
+    - rvm $ALL_VERSIONS --verbose do appraisal rails-5 rake rails
