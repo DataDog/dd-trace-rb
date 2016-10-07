@@ -29,6 +29,41 @@ class SpanTest < Minitest::Test
     assert_equal(span.name, 'my.op')
   end
 
+  def test_span_set_parent
+    parent = Datadog::Span.new(nil, 'parent.span')
+    child = Datadog::Span.new(nil, 'child.span')
+
+    child.set_parent(parent)
+    assert_equal(child.parent, parent)
+    assert_equal(child.trace_id, parent.trace_id)
+    assert_equal(child.parent_id, parent.span_id)
+    assert_equal(child.service, parent.service)
+  end
+
+  def test_span_set_parent_keep_service
+    parent = Datadog::Span.new(nil, 'parent.span', service: 'webapp')
+    child = Datadog::Span.new(nil, 'child.span', service: 'defaultdb')
+
+    child.set_parent(parent)
+    assert_equal(child.parent, parent)
+    assert_equal(child.trace_id, parent.trace_id)
+    assert_equal(child.parent_id, parent.span_id)
+    refute_equal(child.service, 'webapp')
+    assert_equal(child.service, 'defaultdb')
+  end
+
+  def test_span_set_parent_nil
+    parent = Datadog::Span.new(nil, 'parent.span', service: 'webapp')
+    child = Datadog::Span.new(nil, 'child.span', service: 'defaultdb')
+
+    child.set_parent(parent)
+    child.set_parent(nil)
+    assert_equal(child.parent, nil)
+    assert_equal(child.trace_id, child.span_id)
+    assert_equal(child.parent_id, 0)
+    assert_equal(child.service, 'defaultdb')
+  end
+
   def test_span_block
     start = Time.now.utc
     span = nil

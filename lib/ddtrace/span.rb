@@ -81,12 +81,18 @@ module Datadog
     end
 
     # Set this span's parent, inheriting any properties not explicitly set.
+    # If the parent is nil, set the span zero values.
     def set_parent(parent)
-      return if parent.nil?
       @parent = parent
-      @trace_id = parent.trace_id
-      @parent_id = parent.span_id
-      @service ||= parent.service
+
+      if parent.nil?
+        @trace_id = @span_id
+        @parent_id = 0
+      else
+        @trace_id = parent.trace_id
+        @parent_id = parent.span_id
+        @service ||= parent.service
+      end
     end
 
     def to_hash
