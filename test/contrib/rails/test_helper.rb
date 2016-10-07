@@ -10,7 +10,7 @@ logger.level = Logger::INFO
 
 # Rails settings
 ENV['RAILS_ENV'] = 'test'
-ENV['DATABASE_URL'] = 'sqlite3://localhost/:memory:'
+ENV['DATABASE_URL'] = 'sqlite3::memory:'
 
 # switch Rails import according to installed
 # version; this is controlled with Appraisals
