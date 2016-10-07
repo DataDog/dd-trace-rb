@@ -1,6 +1,7 @@
 require 'bundler/gem_tasks'
 require 'rubocop/rake_task'
 require 'rake/testtask'
+require 'appraisal'
 
 Rake::TestTask.new(:test) do |task|
   task.libs << %w(test lib)
