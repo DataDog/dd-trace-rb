@@ -1,3 +1,5 @@
+require 'ddtrace/ext/sql'
+
 module Datadog
   module Contrib
     module Rails
@@ -13,10 +15,12 @@ module Datadog
         def self.sql(_name, start, finish, _id, payload)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           adapter_name = ::ActiveRecord::Base.connection.adapter_name.downcase
-          span = tracer.trace("#{adapter_name}.query", service: 'defaultdb', type: 'db')
-          span.span_type = 'sql'
+          span_type = Datadog::Ext::SQL::TYPE
+
+          span = tracer.trace("#{adapter_name}.query", service: adapter_name, span_type: span_type)
+          span.span_type = Datadog::Ext::SQL::TYPE
+          span.set_tag(Datadog::Ext::SQL::QUERY, payload.fetch(:sql))
           span.set_tag('rails.db.vendor', adapter_name)
-          span.set_tag('sql.query', payload.fetch(:sql))
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e
