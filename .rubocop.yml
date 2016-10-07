@@ -29,3 +29,6 @@ Style/RescueModifier:
 
 Style/NumericLiterals:
   Enabled: false
+
+Style/ParameterLists:
+  Enabled: false

@@ -48,7 +48,7 @@ module Datadog
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.buffer.get
           template_name = Datadog::Utils.normalize_template_name(payload.fetch(:identifier))
-          span.set_tag('rails.template_name', payload.fetch(:identifier))
+          span.set_tag('rails.template_name', template_name)
           span.set_tag('rails.layout', payload.fetch(:layout))
           span.start_time = start
           span.finish_at(finish)

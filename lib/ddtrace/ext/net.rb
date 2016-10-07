@@ -1,8 +1,8 @@
 module Datadog
   module Ext
     module NET
-      TARGET_HOST = 'out.host'
-      TARGET_PORT = 'out.port'
+      TARGET_HOST = 'out.host'.freeze
+      TARGET_PORT = 'out.port'.freeze
     end
   end
 end

@@ -1,7 +1,7 @@
 module Datadog
   module Ext
     module CACHE
-      TYPE = 'cache'
+      TYPE = 'cache'.freeze
     end
   end
 end

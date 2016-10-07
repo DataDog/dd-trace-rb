@@ -1,8 +1,8 @@
 module Datadog
   module Ext
     module SQL
-      TYPE = 'sql'
-      QUERY = 'sql.query'
+      TYPE = 'sql'.freeze
+      QUERY = 'sql.query'.freeze
     end
   end
 end

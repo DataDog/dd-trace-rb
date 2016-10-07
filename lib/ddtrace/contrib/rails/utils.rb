@@ -1,4 +1,5 @@
 module Datadog
+  # common utilities for Rails
   module Utils
     # in Rails the template name includes the full folder path
     # and it's better to avoid storing such information
