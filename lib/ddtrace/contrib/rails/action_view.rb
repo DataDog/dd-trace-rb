@@ -46,7 +46,7 @@ module Datadog
         def self.render_template(_name, start, finish, _id, payload)
           # finish the tracing and update the execution time
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          span = tracer.buffer.get
+          span = tracer.active_span
           template_name = Datadog::Utils.normalize_template_name(payload.fetch(:identifier))
           span.set_tag('rails.template_name', template_name)
           span.set_tag('rails.layout', payload.fetch(:layout))
@@ -60,7 +60,7 @@ module Datadog
         def self.render_partial(_name, start, finish, _id, payload)
           # finish the tracing and update the execution time
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          span = tracer.buffer.get
+          span = tracer.active_span
           template_name = Datadog::Utils.normalize_template_name(payload.fetch(:identifier))
           span.set_tag('rails.template_name', template_name)
           span.start_time = start

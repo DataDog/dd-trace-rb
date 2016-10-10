@@ -29,7 +29,7 @@ module Datadog
 
         def self.process_action(_name, start, finish, _id, payload)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          span = tracer.buffer.get
+          span = tracer.active_span
           span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
           span.set_tag(Datadog::Ext::HTTP::URL, payload.fetch(:path))
           span.set_tag(Datadog::Ext::HTTP::METHOD, payload.fetch(:method))
