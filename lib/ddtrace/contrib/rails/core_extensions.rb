@@ -2,7 +2,7 @@ module Datadog
   # some stuff
   module RendererExtension
     def render_template(*args)
-      ActiveSupport::Notifications.instrument 'start_render_template.action_view', this: :data
+      ActiveSupport::Notifications.instrument 'start_render_template.action_view'
       super(*args)
     end
   end
@@ -10,7 +10,7 @@ module Datadog
   # some stuff
   module PartialRendererExtension
     def render_partial(*args)
-      ActiveSupport::Notifications.instrument 'start_render_partial.action_view', this: :data
+      ActiveSupport::Notifications.instrument 'start_render_partial.action_view'
       super(*args)
     end
   end
