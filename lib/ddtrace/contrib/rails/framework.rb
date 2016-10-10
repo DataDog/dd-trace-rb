@@ -26,6 +26,8 @@ module Datadog
         # TODO[manu]: set default service details
 
         # auto-instrument the code
+        logger = Logger.new(STDOUT)
+        logger.info 'Detected Rails >= 3.x. Enabling auto-instrumentation for core components.'
         ActiveSupport::Notifications.subscribe('start_processing.action_controller') { |*args| start_processing(*args) }
         ActiveSupport::Notifications.subscribe('start_render_template.action_view') { |*args| start_render_template(*args) }
         ActiveSupport::Notifications.subscribe('start_render_partial.action_view') { |*args| start_render_partial(*args) }
