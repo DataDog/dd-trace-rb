@@ -6,10 +6,11 @@
 # ```
 #   config.gem 'ddtrace'
 # ```
-require 'ddtrace/contrib/rails/framework'
 
 if defined?(Rails::VERSION)
   if Rails::VERSION::MAJOR.to_i >= 3
+    require 'ddtrace/contrib/rails/framework'
+
     module Datadog
       # some stuff
       class Railtie < Rails::Railtie
