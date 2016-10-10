@@ -22,6 +22,7 @@ if defined?(Rails::VERSION)
   else
     logger = Logger.new(STDOUT)
     logger.warn 'Detected a Rails version < 3.x.'\
-        'This version is not supported and the auto-instrumentation for core components will be disabled.'
+        'This version is not supported and the'\
+        'auto-instrumentation for core components will be disabled.'
   end
 end
