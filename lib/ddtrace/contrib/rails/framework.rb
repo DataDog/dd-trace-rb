@@ -26,16 +26,16 @@ module Datadog
         # TODO[manu]: set default service details
 
         # auto-instrument the code
-        ActiveSupport::Notifications.subscribe('start_processing.action_controller', &method(:start_processing))
-        ActiveSupport::Notifications.subscribe('start_render_template.action_view', &method(:start_render_template))
-        ActiveSupport::Notifications.subscribe('start_render_partial.action_view', &method(:start_render_partial))
-        ActiveSupport::Notifications.subscribe('render_template.action_view', &method(:render_template))
-        ActiveSupport::Notifications.subscribe('render_partial.action_view', &method(:render_partial))
-        ActiveSupport::Notifications.subscribe('sql.active_record', &method(:sql))
-        ActiveSupport::Notifications.subscribe('process_action.action_controller', &method(:process_action))
-        ActiveSupport::Notifications.subscribe('cache_read.active_support', &method(:cache_read))
-        ActiveSupport::Notifications.subscribe('cache_write.active_support', &method(:cache_write))
-        ActiveSupport::Notifications.subscribe('cache_delete.active_support', &method(:cache_delete))
+        ActiveSupport::Notifications.subscribe('start_processing.action_controller') { |*args| start_processing(*args) }
+        ActiveSupport::Notifications.subscribe('start_render_template.action_view') { |*args| start_render_template(*args) }
+        ActiveSupport::Notifications.subscribe('start_render_partial.action_view') { |*args| start_render_partial(*args) }
+        ActiveSupport::Notifications.subscribe('render_template.action_view') { |*args| render_template(*args) }
+        ActiveSupport::Notifications.subscribe('render_partial.action_view') { |*args| render_partial(*args) }
+        ActiveSupport::Notifications.subscribe('sql.active_record') { |*args| sql(*args) }
+        ActiveSupport::Notifications.subscribe('process_action.action_controller') { |*args| process_action(*args) }
+        ActiveSupport::Notifications.subscribe('cache_read.active_support') { |*args| cache_read(*args) }
+        ActiveSupport::Notifications.subscribe('cache_write.active_support') { |*args| cache_write(*args) }
+        ActiveSupport::Notifications.subscribe('cache_delete.active_support') { |*args| cache_delete(*args) }
       end
     end
   end
