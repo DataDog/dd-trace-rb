@@ -12,10 +12,10 @@ if defined?(Rails::VERSION)
     require 'ddtrace/contrib/rails/framework'
 
     module Datadog
-      # some stuff
+      # TODO[manu]: write docs
       class Railtie < Rails::Railtie
         initializer 'ddtrace.instrument' do |app|
-          Datadog::Instrument::RailsFramework.init_plugin(config: app.config)
+          Datadog::Contrib::Rails::Framework.init_plugin(config: app.config)
         end
       end
     end

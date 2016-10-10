@@ -1,5 +1,5 @@
 module Datadog
-  # some stuff
+  # TODO[manu]: write docs
   module RendererExtension
     def render_template(*args)
       ActiveSupport::Notifications.instrument 'start_render_template.action_view'
@@ -7,7 +7,7 @@ module Datadog
     end
   end
 
-  # some stuff
+  # TODO[manu]: write docs
   module PartialRendererExtension
     def render_partial(*args)
       ActiveSupport::Notifications.instrument 'start_render_partial.action_view'
@@ -17,12 +17,12 @@ module Datadog
 end
 
 module ActionView
-  # some stuff
+  # TODO[manu]: write docs
   class Renderer
     prepend Datadog::RendererExtension
   end
 
-  # some stuff
+  # TODO[manu]: write docs
   class PartialRenderer
     prepend Datadog::PartialRendererExtension
   end
