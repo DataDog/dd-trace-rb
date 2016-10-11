@@ -1,3 +1,4 @@
+require 'logger'
 require 'ddtrace/span'
 require 'ddtrace/buffer'
 require 'ddtrace/writer'
@@ -7,6 +8,18 @@ module Datadog
   # compositions of logical units of work.
   class Tracer
     attr_reader :writer
+
+    # global, memoized, lazy initialized instance of a logger
+    # TODO[manu]: used only to have a common way to log things among
+    # the tracer. Don't know if users may want to replace the internal
+    # logger with their own
+    def self.log
+      if !defined? @logger
+        @logger = Logger.new(STDOUT)
+        @logger.level = Logger::INFO
+      end
+      @logger
+    end
 
     def initialize(options = {})
       # buffers and sends completed traces.
