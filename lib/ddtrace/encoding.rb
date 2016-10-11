@@ -8,5 +8,9 @@ module Datadog
       hashes = spans.map(&:to_hash)
       JSON.dump(hashes)
     end
+
+    def self.encode_services(services)
+      JSON.dump(services)
+    end
   end
 end

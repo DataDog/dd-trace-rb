@@ -1,6 +1,5 @@
 require 'thread'
 require 'net/http'
-require 'ddtrace'
 
 module Datadog
   # Transport class that handles the spans delivery to the
