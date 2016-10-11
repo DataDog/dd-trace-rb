@@ -82,4 +82,13 @@ class TracerTest < Minitest::Test
     tracer.set_service_info('rest-api', 'rails', 'web')
     assert_equal(tracer.services['rest-api'], 'app' => 'rails', 'app_type' => 'web')
   end
+
+  def test_disabled_tracer
+    tracer = get_test_tracer
+    tracer.enabled = false
+    tracer.trace('something').finish()
+
+    spans = tracer.writer.spans()
+    assert_equal(spans.length, 0)
+  end
 end

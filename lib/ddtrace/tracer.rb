@@ -10,6 +10,7 @@ module Datadog
   # compositions of logical units of work.
   class Tracer
     attr_reader :writer, :services
+    attr_accessor :enabled
 
     # global, memoized, lazy initialized instance of a logger
     # TODO[manu]: used only to have a common way to log things among
@@ -24,10 +25,8 @@ module Datadog
     end
 
     def initialize(options = {})
-      # buffers and sends completed traces.
+      @enabled = options.fetch(:enabled, true)
       @writer = options.fetch(:writer, Datadog::Writer.new)
-
-      # store thes the active thread in the current span.
       @buffer = Datadog::SpanBuffer.new()
 
       @mutex = Mutex.new
@@ -82,7 +81,8 @@ module Datadog
     end
 
     def write(spans)
-      @writer.write(spans, @services) unless @writer.nil?
+      return if @writer.nil? || !@enabled
+      @writer.write(spans, @services)
     end
 
     def active_span
