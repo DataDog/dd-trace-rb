@@ -11,4 +11,9 @@ class TracingTest < ActionController::TestCase
     tracer = Rails.configuration.datadog_trace[:tracer]
     assert tracer
   end
+
+  test 'a default service is properly set' do
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    assert_equal(tracer.services, 'rails-app' => { 'app' => 'rails', 'app_type' => 'web' })
+  end
 end

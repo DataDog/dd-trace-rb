@@ -1,4 +1,5 @@
 require 'ddtrace/tracer'
+require 'ddtrace/ext/app_types'
 
 require 'ddtrace/contrib/rails/core_extensions'
 require 'ddtrace/contrib/rails/action_controller'
@@ -21,16 +22,22 @@ module Datadog
             tracer: Datadog::Tracer.new()
           }
 
-          # merge and update Rails configurations
+          # merge default configurations with users settings
           user_config = config[:config].datadog_trace rescue {}
           datadog_config = default_config.merge(user_config)
+
+          # set default service details
+          datadog_config[:tracer].set_service_info(
+            datadog_config[:default_service],
+            'rails',
+            Datadog::Ext::AppTypes::WEB
+          )
+
+          # update global configurations
           ::Rails.configuration.datadog_trace = datadog_config
 
-          # TODO[manu]: set default service details
-
           # auto-instrument the code
-          logger = Logger.new(STDOUT)
-          logger.info 'Detected Rails >= 3.x. Enabling auto-instrumentation for core components.'
+          Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components.')
           Datadog::Contrib::Rails::ActionController.instrument()
           Datadog::Contrib::Rails::ActionView.instrument()
           Datadog::Contrib::Rails::ActiveRecord.instrument()
