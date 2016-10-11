@@ -25,6 +25,7 @@ module Datadog
           # merge default configurations with users settings
           user_config = config[:config].datadog_trace rescue {}
           datadog_config = default_config.merge(user_config)
+          datadog_config[:tracer].enabled = datadog_config[:enabled]
 
           # set default service details
           datadog_config[:tracer].set_service_info(
@@ -36,12 +37,14 @@ module Datadog
           # update global configurations
           ::Rails.configuration.datadog_trace = datadog_config
 
-          # auto-instrument the code
-          Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components.')
-          Datadog::Contrib::Rails::ActionController.instrument()
-          Datadog::Contrib::Rails::ActionView.instrument()
-          Datadog::Contrib::Rails::ActiveRecord.instrument()
-          Datadog::Contrib::Rails::ActiveSupport.instrument()
+          if datadog_config[:enabled]
+            # auto-instrument the code
+            Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components.')
+            Datadog::Contrib::Rails::ActionController.instrument()
+            Datadog::Contrib::Rails::ActionView.instrument()
+            Datadog::Contrib::Rails::ActiveRecord.instrument()
+            Datadog::Contrib::Rails::ActiveSupport.instrument()
+          end
         end
       end
     end
