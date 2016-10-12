@@ -30,16 +30,10 @@ module Datadog
           # auto-instrument the code
           logger = Logger.new(STDOUT)
           logger.info 'Detected Rails >= 3.x. Enabling auto-instrumentation for core components.'
-          ::ActiveSupport::Notifications.subscribe('start_processing.action_controller') { |*args| ActionControllerSubscriber.start_processing(*args) }
-          ::ActiveSupport::Notifications.subscribe('start_render_template.action_view') { |*args| ActionViewSubscriber.start_render_template(*args) }
-          ::ActiveSupport::Notifications.subscribe('start_render_partial.action_view') { |*args| ActionViewSubscriber.start_render_partial(*args) }
-          ::ActiveSupport::Notifications.subscribe('render_template.action_view') { |*args| ActionViewSubscriber.render_template(*args) }
-          ::ActiveSupport::Notifications.subscribe('render_partial.action_view') { |*args| ActionViewSubscriber.render_partial(*args) }
-          ::ActiveSupport::Notifications.subscribe('sql.active_record') { |*args| ActiveRecordSubscriber.sql(*args) }
-          ::ActiveSupport::Notifications.subscribe('process_action.action_controller') { |*args| ActionControllerSubscriber.process_action(*args) }
-          ::ActiveSupport::Notifications.subscribe('cache_read.active_support') { |*args| ActiveSupportSubscriber.cache_read(*args) }
-          ::ActiveSupport::Notifications.subscribe('cache_write.active_support') { |*args| ActiveSupportSubscriber.cache_write(*args) }
-          ::ActiveSupport::Notifications.subscribe('cache_delete.active_support') { |*args| ActiveSupportSubscriber.cache_delete(*args) }
+          Datadog::Contrib::Rails::ActionController.instrument()
+          Datadog::Contrib::Rails::ActionView.instrument()
+          Datadog::Contrib::Rails::ActiveRecord.instrument()
+          Datadog::Contrib::Rails::ActiveSupport.instrument()
         end
       end
     end

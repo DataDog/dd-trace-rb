@@ -2,7 +2,14 @@ module Datadog
   module Contrib
     module Rails
       # TODO[manu]: write docs
-      module ActiveRecordSubscriber
+      module ActiveRecord
+        def self.instrument
+          # subscribe when the active record query has been processed
+          ::ActiveSupport::Notifications.subscribe('sql.active_record') do |*args|
+            sql(*args)
+          end
+        end
+
         def self.sql(_name, start, finish, _id, payload)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           adapter_name = ::ActiveRecord::Base.connection.adapter_name.downcase

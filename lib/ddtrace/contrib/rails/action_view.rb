@@ -2,7 +2,29 @@ module Datadog
   module Contrib
     module Rails
       # TODO[manu]: write docs
-      module ActionViewSubscriber
+      module ActionView
+        def self.instrument
+          # subscribe when the template rendering starts
+          ::ActiveSupport::Notifications.subscribe('start_render_template.action_view') do |*args|
+            start_render_template(*args)
+          end
+
+          # subscribe when the partial rendering starts
+          ::ActiveSupport::Notifications.subscribe('start_render_partial.action_view') do |*args|
+            start_render_partial(*args)
+          end
+
+          # subscribe when the template rendering has been processed
+          ::ActiveSupport::Notifications.subscribe('render_template.action_view') do |*args|
+            render_template(*args)
+          end
+
+          # subscribe when the partial rendering has been processed
+          ::ActiveSupport::Notifications.subscribe('render_partial.action_view') do |*args|
+            render_partial(*args)
+          end
+        end
+
         def self.start_render_template(*)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           tracer.trace('rails.render_template')

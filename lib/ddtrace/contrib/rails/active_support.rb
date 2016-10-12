@@ -2,7 +2,24 @@ module Datadog
   module Contrib
     module Rails
       # TODO[manu]: write docs
-      module ActiveSupportSubscriber
+      module ActiveSupport
+        def self.instrument
+          # subscribe when a cache read has been processed
+          ::ActiveSupport::Notifications.subscribe('cache_read.active_support') do |*args|
+            cache_read(*args)
+          end
+
+          # subscribe when a cache write has been processed
+          ::ActiveSupport::Notifications.subscribe('cache_write.active_support') do |*args|
+            cache_write(*args)
+          end
+
+          # subscribe when a cache delete has been processed
+          ::ActiveSupport::Notifications.subscribe('cache_delete.active_support') do |*args|
+            cache_delete(*args)
+          end
+        end
+
         def self.cache_read(_name, start, finish, _id, payload)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.trace('rails.cache')

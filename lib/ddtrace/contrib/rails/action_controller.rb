@@ -2,7 +2,19 @@ module Datadog
   module Contrib
     module Rails
       # TODO[manu]: write docs
-      module ActionControllerSubscriber
+      module ActionController
+        def self.instrument
+          # subscribe when the request processing starts
+          ::ActiveSupport::Notifications.subscribe('start_processing.action_controller') do |*args|
+            start_processing(*args)
+          end
+
+          # subscribe when the request processing has been completed
+          ::ActiveSupport::Notifications.subscribe('process_action.action_controller') do |*args|
+            process_action(*args)
+          end
+        end
+
         def self.start_processing(*)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           tracer.trace('rails.request', service: 'rails-app', type: 'web')
