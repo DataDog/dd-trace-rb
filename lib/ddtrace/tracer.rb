@@ -56,7 +56,7 @@ module Datadog
     end
 
     def active_span
-      @buffer.get
+      @buffer.get()
     end
   end
 end
