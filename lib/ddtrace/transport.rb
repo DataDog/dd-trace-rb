@@ -20,8 +20,10 @@ module Datadog
       request = Net::HTTP::Post.new(url, @headers)
       request.body = data
 
-      response = Net::HTTP.start(url.host, url.port, read_timeout: TIMEOUT) { |http| http.request(request) }
+      response = Net::HTTP.start(@hostname, @port, read_timeout: TIMEOUT) { |http| http.request(request) }
       handle_response(response)
+    rescue StandarError => e
+      Datadog::Tracer.log.error(e.message)
     end
 
     def informational?(code)
@@ -48,7 +50,7 @@ module Datadog
     # or do something more complex to recover from a possible error. This
     # function is handled within the HTTP mutex.synchronize so it's thread-safe.
     def handle_response(response)
-      status_code = response.code
+      status_code = response.code.to_i
 
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
@@ -57,6 +59,8 @@ module Datadog
       elsif server_error?(status_code)
         Datadog::Tracer.log.error("Server error: #{response.message}")
       end
+    rescue StandardError => e
+      Datadog::Tracer.log.error(e.message)
     end
   end
 end
