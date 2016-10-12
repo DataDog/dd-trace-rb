@@ -6,11 +6,13 @@ module Datadog
   # local trace-agent. The class wraps a Net:HTTP instance
   # so that the Transport is thread-safe.
   class HTTPTransport
-    def initialize(host, port)
-      @headers = { 'Content-Type' => 'text/json' }
+    # seconds before the transport timeout
+    TIMEOUT = 1
 
-      @mutex = Mutex.new
-      @http = Net::HTTP.new(host, port)
+    def initialize(hostname, port)
+      @headers = { 'Content-Type' => 'text/json' }
+      @hostname = hostname
+      @port = port
     end
 
     # send data to the trace-agent; the method is thread-safe
@@ -18,10 +20,8 @@ module Datadog
       request = Net::HTTP::Post.new(url, @headers)
       request.body = data
 
-      @mutex.synchronize do
-        response = @http.request(request)
-        handle_response(response)
-      end
+      response = Net::HTTP.start(url.host, url.port, read_timeout: TIMEOUT) { |http| http.request(request) }
+      handle_response(response)
     end
 
     def informational?(code)

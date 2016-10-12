@@ -62,10 +62,8 @@ module Datadog
       # if we have a client error?
       @transport.send(SPANS_ENDPOINT, spans)
 
-      @mutex.synchronize do
-        # TODO[all]: is it really required? it's a number that will grow indefinitely
-        @traces_flushed += traces.length()
-      end
+      # TODO[all]: is it really required? it's a number that will grow indefinitely
+      @traces_flushed += traces.length()
     end
 
     # flush services to the trace-agent
