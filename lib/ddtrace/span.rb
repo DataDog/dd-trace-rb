@@ -1,4 +1,3 @@
-require 'json'
 require 'time'
 
 # Datadog namespace
@@ -33,18 +32,6 @@ module Datadog
 
       @start_time = Time.now.utc
       @end_time = nil
-    end
-
-    def trace
-      yield(self) if block_given?
-    rescue StandardError => e
-      set_error(e)
-      raise
-    ensure
-      # call the finish only if a block is given; this ensures
-      # that a call to tracer.trace() without a block, returns
-      # a span that should be manually finished.
-      finish() if block_given?
     end
 
     def set_tag(key, value)
@@ -124,11 +111,5 @@ module Datadog
   # Return a span id
   def self.next_id
     rand(Datadog::Span::MAX_ID)
-  end
-
-  # Encode the given set of spans.
-  def self.encode_spans(spans)
-    hashes = spans.map(&:to_hash)
-    JSON.dump(hashes)
   end
 end

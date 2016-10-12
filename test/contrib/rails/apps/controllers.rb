@@ -8,22 +8,25 @@ class TracingController < ActionController::Base
   self.view_paths = [
     ActionView::FixtureResolver.new(
       'layouts/application.html.erb' => '<%= yield %>',
-      'tracing/index.html.erb' => 'Hello from index.html.erb',
-      'tracing/partial.html.erb' => 'Hello from <%= render "partials/body.html.erb" %>',
-      'tracing/full.html.erb' => '<% @articles.each do |article| %><% end %>',
-      'partials/_body.html.erb' => 'body.html.erb'
+      'views/tracing/index.html.erb' => 'Hello from index.html.erb',
+      'views/tracing/partial.html.erb' => 'Hello from <%= render "views/tracing/body.html.erb" %>',
+      'views/tracing/full.html.erb' => '<% @articles.each do |article| %><% end %>',
+      'views/tracing/_body.html.erb' => '_body.html.erb partial'
     )
   ]
 
   def index
+    render 'views/tracing/index.html.erb'
   end
 
   def partial
+    render 'views/tracing/partial.html.erb'
   end
 
   def full
     @articles = Article.all
     @value = Rails.cache.read('empty-key')
+    render 'views/tracing/full.html.erb'
   end
 end
 

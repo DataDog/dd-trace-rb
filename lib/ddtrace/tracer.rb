@@ -1,13 +1,12 @@
 require 'ddtrace/span'
-require 'ddtrace/local'
+require 'ddtrace/buffer'
 require 'ddtrace/writer'
 
 module Datadog
   # Tracer class that records and creates spans related to a
   # compositions of logical units of work.
   class Tracer
-    # TODO[manu]: buffer reader must be removed later
-    attr_reader :writer, :buffer
+    attr_reader :writer
 
     def initialize(options = {})
       # buffers and sends completed traces.
@@ -26,12 +25,18 @@ module Datadog
       span.set_parent(parent)
       @buffer.set(span)
 
-      # now delete the called block to it
-      # TODO[manu]: this part must be refactored and merged with span.trace()
-      # span.trace call is mandatory and we should return the span when it's
-      # finished.
-      return span.trace(&Proc.new) if block_given?
-      span.trace()
+      # call the finish only if a block is given; this ensures
+      # that a call to tracer.trace() without a block, returns
+      # a span that should be manually finished.
+      begin
+        yield(span) if block_given?
+      rescue StandardError => e
+        span.set_error(e)
+        raise
+      ensure
+        span.finish() if block_given?
+      end
+
       span
     end
 
@@ -48,6 +53,10 @@ module Datadog
 
     def write(spans)
       @writer.write(spans) unless @writer.nil?
+    end
+
+    def active_span
+      @buffer.get()
     end
   end
 end

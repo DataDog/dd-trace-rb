@@ -6,14 +6,15 @@ class TracerTest < Minitest::Test
     tracer = get_test_tracer
 
     tracer.trace('something') do |s|
+      assert_equal(s.name, 'something')
       assert_equal(s.end_time, nil)
-      sleep 0.1
     end
 
     spans = tracer.writer.spans()
     assert_equal(spans.length, 1)
     span = spans[0]
     assert_equal(span.name, 'something')
+    assert span.to_hash[:duration] > 0
   end
 
   def test_trace_no_block
@@ -37,8 +38,11 @@ class TracerTest < Minitest::Test
     spans = tracer.writer.spans()
     assert_equal(spans.length, 1)
     span = spans[0]
+    assert !span.end_time.nil?
     assert_equal(span.name, 'something')
+    assert_equal(span.get_tag('error.msg'), 'divided by 0')
     assert_equal(span.get_tag('error.type'), 'ZeroDivisionError')
+    assert span.get_tag('error.stack').include?('dd-trace-rb')
   end
 
   def test_trace_child

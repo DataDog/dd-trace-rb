@@ -17,6 +17,7 @@ module Datadog
           default_config = {
             enabled: true,
             default_service: 'rails-app',
+            template_base_path: 'views/',
             tracer: Datadog::Tracer.new()
           }
 

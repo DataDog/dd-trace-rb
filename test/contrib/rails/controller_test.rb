@@ -2,6 +2,29 @@ require 'helper'
 require 'contrib/rails/test_helper'
 
 class TracingControllerTest < ActionController::TestCase
+  test 'request is properly traced' do
+    # use a dummy tracer
+    tracer = get_test_tracer
+    Rails.configuration.datadog_trace[:tracer] = tracer
+
+    # make the request and assert the proper span
+    get :index
+    assert_response :success
+    spans = tracer.writer.spans()
+    assert_equal(spans.length, 2)
+
+    span = spans[1]
+    assert_equal(span.name, 'rails.request')
+    assert_equal(span.span_type, 'http')
+    assert_equal(span.resource, 'TracingController#index')
+    assert_equal(span.get_tag('http.url'), '/')
+    assert_equal(span.get_tag('http.method'), 'GET')
+    assert_equal(span.get_tag('http.status_code'), '200')
+    assert_equal(span.get_tag('rails.route.action'), 'index')
+    assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
+    assert span.to_hash[:duration] > 0
+  end
+
   test 'template rendering is properly traced' do
     # use a dummy tracer
     tracer = get_test_tracer
@@ -37,7 +60,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.span_type, nil)
     assert_equal(span_partial.resource, 'rails.render_partial')
-    assert_equal(span_partial.get_tag('rails.template_name'), 'partials/_body.html.erb')
+    assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_body.html.erb')
     assert_equal(span_partial.parent, span_template)
 
     assert span_template.to_hash[:duration] > 0
