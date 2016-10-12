@@ -30,5 +30,5 @@ Style/RescueModifier:
 Style/NumericLiterals:
   Enabled: false
 
-Style/ParameterLists:
+Metrics/ParameterLists:
   Enabled: false
