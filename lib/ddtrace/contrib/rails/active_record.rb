@@ -24,8 +24,7 @@ module Datadog
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e
-          # TODO[manu]: better error handling
-          puts e
+          Datadog::Tracer.log.error(e.message)
         end
       end
     end

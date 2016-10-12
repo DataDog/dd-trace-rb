@@ -31,16 +31,14 @@ module Datadog
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           tracer.trace('rails.render_template')
         rescue StandardError => e
-          # TODO[manu]: better error handling
-          puts e
+          Datadog::Tracer.log.error(e.message)
         end
 
         def self.start_render_partial(*)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           tracer.trace('rails.render_partial')
         rescue StandardError => e
-          # TODO[manu]: better error handling
-          puts e
+          Datadog::Tracer.log.error(e.message)
         end
 
         def self.render_template(_name, start, finish, _id, payload)
@@ -53,8 +51,7 @@ module Datadog
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e
-          # TODO[manu]: better error handling
-          puts e
+          Datadog::Tracer.log.error(e.message)
         end
 
         def self.render_partial(_name, start, finish, _id, payload)
@@ -66,8 +63,7 @@ module Datadog
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e
-          # TODO[manu]: better error handling
-          puts e
+          Datadog::Tracer.log.error(e.message)
         end
       end
     end

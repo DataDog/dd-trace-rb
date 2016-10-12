@@ -23,8 +23,7 @@ module Datadog
           type = Datadog::Ext::HTTP::TYPE
           tracer.trace('rails.request', service: service, span_type: type)
         rescue StandardError => e
-          # TODO[manu]: better error handling
-          puts e
+          Datadog::Tracer.log.error(e.message)
         end
 
         def self.process_action(_name, start, finish, _id, payload)
@@ -39,8 +38,7 @@ module Datadog
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e
-          # TODO[manu]: better error handling
-          puts e
+          Datadog::Tracer.log.error(e.message)
         end
       end
     end
