@@ -29,14 +29,16 @@ module Datadog
 
         def self.start_render_template(*)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          tracer.trace('rails.render_template')
+          type = Datadog::Ext::HTTP::TEMPLATE
+          tracer.trace('rails.render_template', span_type: type)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
 
         def self.start_render_partial(*)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          tracer.trace('rails.render_partial')
+          type = Datadog::Ext::HTTP::TEMPLATE
+          tracer.trace('rails.render_partial', span_type: type)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
