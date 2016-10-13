@@ -1,6 +1,22 @@
 require 'helper'
 require 'contrib/rails/test_helper'
 
+# Rails 3.2 unsubscribes all render_template handlers during the TearDown
+# because it uses some subscribers to load @layouts @templates and @partials.
+# In our case, it will disable our auto-instrumentation and because this is
+# an unwanted behavior, let's reinstrument our code.
+#
+# Reference: https://github.com/rails/rails/blob/v3.2.22.5/actionpack/lib/action_controller/test_case.rb#L45
+module ActionController
+  module TemplateAssertions
+    def setup_subscriptions
+    end
+
+    def teardown_subscriptions
+    end
+  end
+end
+
 class TracingControllerTest < ActionController::TestCase
   setup do
     @original_tracer = Rails.configuration.datadog_trace[:tracer]

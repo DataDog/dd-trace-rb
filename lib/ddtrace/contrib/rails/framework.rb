@@ -44,6 +44,11 @@ module Datadog
             Datadog::Contrib::Rails::ActionView.instrument()
             Datadog::Contrib::Rails::ActiveRecord.instrument()
             Datadog::Contrib::Rails::ActiveSupport.instrument()
+
+            # by default, Rails 3 doesn't instrument automatically the cache system
+            if ::Rails::VERSION::MAJOR.to_i == 3
+              ::ActiveSupport::Cache::Store.instrument = true
+            end
           end
         end
       end

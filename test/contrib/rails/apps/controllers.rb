@@ -10,7 +10,7 @@ class TracingController < ActionController::Base
       'layouts/application.html.erb' => '<%= yield %>',
       'views/tracing/index.html.erb' => 'Hello from index.html.erb',
       'views/tracing/partial.html.erb' => 'Hello from <%= render "views/tracing/body.html.erb" %>',
-      'views/tracing/full.html.erb' => '<% @articles.each do |article| %><% end %>',
+      'views/tracing/full.html.erb' => '<% Article.all.each do |article| %><% end %>',
       'views/tracing/_body.html.erb' => '_body.html.erb partial'
     )
   ]
@@ -24,7 +24,6 @@ class TracingController < ActionController::Base
   end
 
   def full
-    @articles = Article.all
     @value = Rails.cache.read('empty-key')
     render 'views/tracing/full.html.erb'
   end
