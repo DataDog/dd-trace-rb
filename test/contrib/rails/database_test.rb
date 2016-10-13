@@ -2,14 +2,20 @@ require 'helper'
 require 'contrib/rails/test_helper'
 
 class DatabaseTracingTest < ActiveSupport::TestCase
-  test 'active record is properly traced' do
-    # use a dummy tracer
-    tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = tracer
+  setup do
+    @original_tracer = Rails.configuration.datadog_trace[:tracer]
+    @tracer = get_test_tracer
+    Rails.configuration.datadog_trace[:tracer] = @tracer
+  end
 
+  teardown do
+    Rails.configuration.datadog_trace[:tracer] = @original_tracer
+  end
+
+  test 'active record is properly traced' do
     # make the query and assert the proper spans
     Article.count
-    spans = tracer.writer.spans()
+    spans = @tracer.writer.spans()
     assert_equal(spans.length, 1)
 
     span = spans[-1]

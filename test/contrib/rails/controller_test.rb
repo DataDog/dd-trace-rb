@@ -2,15 +2,21 @@ require 'helper'
 require 'contrib/rails/test_helper'
 
 class TracingControllerTest < ActionController::TestCase
-  test 'request is properly traced' do
-    # use a dummy tracer
-    tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = tracer
+  setup do
+    @original_tracer = Rails.configuration.datadog_trace[:tracer]
+    @tracer = get_test_tracer
+    Rails.configuration.datadog_trace[:tracer] = @tracer
+  end
 
+  teardown do
+    Rails.configuration.datadog_trace[:tracer] = @original_tracer
+  end
+
+  test 'request is properly traced' do
     # make the request and assert the proper span
     get :index
     assert_response :success
-    spans = tracer.writer.spans()
+    spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
 
     span = spans[1]
@@ -26,14 +32,10 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'template rendering is properly traced' do
-    # use a dummy tracer
-    tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = tracer
-
     # render the template and assert the proper span
     get :index
     assert_response :success
-    spans = tracer.writer.spans()
+    spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
     span = spans[0]
     assert_equal(span.name, 'rails.render_template')
@@ -45,14 +47,10 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'template partial rendering is properly traced' do
-    # use a dummy tracer
-    tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = tracer
-
     # render the template and assert the proper span
     get :partial
     assert_response :success
-    spans = tracer.writer.spans()
+    spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
 
     span_template = spans[1]
@@ -68,14 +66,10 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'a full request with database access on the template' do
-    # use a dummy tracer
-    tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = tracer
-
     # render the endpoint
     get :full
     assert_response :success
-    spans = tracer.writer.spans()
+    spans = @tracer.writer.spans()
     assert_equal(spans.length, 4)
 
     # assert the spans
@@ -102,10 +96,6 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'multiple calls should not leave an unfinished span in the local thread buffer' do
-    # use a dummy tracer
-    tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = tracer
-
     get :full
     assert_response :success
     assert_equal(Thread.current[:datadog_span], nil)

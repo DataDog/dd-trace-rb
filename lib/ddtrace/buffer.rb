@@ -25,4 +25,42 @@ module Datadog
       span
     end
   end
+
+  # TraceBuffer buffers a maximum number of traces waiting
+  # to be sent to the app
+  class TraceBuffer
+    def initialize(max_size)
+      @max_size = max_size
+
+      @mutex = Mutex.new()
+      @traces = []
+    end
+
+    def push(trace)
+      @mutex.synchronize do
+        len = @traces.length()
+        if len < @max_size
+          @traces << trace
+        else
+          # drop a random one
+          @traces[rand(len)] = trace
+        end
+      end
+    end
+
+    def length
+      @mutex.synchronize do
+        return @traces.length
+      end
+    end
+
+    def pop
+      @mutex.synchronize do
+        # FIXME: reuse array?
+        traces = @traces
+        @traces = []
+        return traces
+      end
+    end
+  end
 end
