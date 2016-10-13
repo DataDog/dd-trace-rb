@@ -120,4 +120,26 @@ class TracingControllerTest < ActionController::TestCase
     assert_response :success
     assert_equal(Thread.current[:datadog_span], nil)
   end
+
+  test 'error in the controller must be traced' do
+    assert_raises ZeroDivisionError do
+      get :error
+    end
+    spans = @tracer.writer.spans()
+    assert_equal(spans.length, 1)
+
+    span = spans[0]
+    assert_equal(span.name, 'rails.request')
+    assert_equal(span.status, 1)
+    assert_equal(span.span_type, 'http')
+    assert_equal(span.resource, 'TracingController#error')
+    assert_equal(span.get_tag('http.url'), '/error')
+    assert_equal(span.get_tag('http.method'), 'GET')
+    assert_equal(span.get_tag('http.status_code'), '500')
+    assert_equal(span.get_tag('rails.route.action'), 'error')
+    assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
+    assert_equal(span.get_tag('error.type'), 'ZeroDivisionError')
+    assert_equal(span.get_tag('error.msg'), 'divided by 0')
+    assert span.to_hash[:duration] > 0
+  end
 end

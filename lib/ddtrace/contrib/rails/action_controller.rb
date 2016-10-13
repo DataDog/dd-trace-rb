@@ -1,4 +1,5 @@
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/errors'
 
 module Datadog
   module Contrib
@@ -32,9 +33,21 @@ module Datadog
           span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
           span.set_tag(Datadog::Ext::HTTP::URL, payload.fetch(:path))
           span.set_tag(Datadog::Ext::HTTP::METHOD, payload.fetch(:method))
-          span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status).to_s)
           span.set_tag('rails.route.action', payload.fetch(:action))
           span.set_tag('rails.route.controller', payload.fetch(:controller))
+
+          if payload[:exception].nil?
+            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status).to_s)
+          else
+            error = payload[:exception]
+            # TODO[manu]: it's right to have a 500? there are cases in Rails that let
+            # user to recover the error after this point?
+            span.status = 1
+            span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
+            span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, '500')
+          end
+
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e

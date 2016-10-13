@@ -23,6 +23,10 @@ class TracingController < ActionController::Base
     render 'views/tracing/partial.html.erb'
   end
 
+  def error
+    1/0
+  end
+
   def full
     @value = Rails.cache.read('empty-key')
     render 'views/tracing/full.html.erb'
@@ -33,4 +37,5 @@ Rails.application.routes.append do
   get '/' => 'tracing#index'
   get '/partial' => 'tracing#partial'
   get '/full' => 'tracing#full'
+  get '/error' => 'tracing#error'
 end
