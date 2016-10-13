@@ -2,7 +2,12 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
-class TracingControllerTest < ActionController::TestCase
+class TracerTest < ActionController::TestCase
+  setup do
+    # reinitialize the tracer with default settings
+    Datadog::Contrib::Rails::Framework.configure({})
+  end
+
   test 'correct initializer for ddtrace' do
     initializer = Rails.application.initializers.detect { |i| i.name == 'ddtrace.instrument' }
     assert initializer
