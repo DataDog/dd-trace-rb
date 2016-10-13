@@ -17,10 +17,6 @@ Metrics/AbcSize:
 Metrics/MethodLength:
   Max: 36
 
-# TODO: As refactors continue, this should drop.
-Metrics/ClassLength:
-  Max: 140
-
 # TODO: this is not compliant with the Ruby community style guide. We
 # should enable again this rule but it will change the public API because
 # we're using set_ methods. We should work on that because also Rails

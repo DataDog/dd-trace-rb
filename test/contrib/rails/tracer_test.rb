@@ -1,7 +1,8 @@
 require 'helper'
+
 require 'contrib/rails/test_helper'
 
-class TracingTest < ActionController::TestCase
+class TracingControllerTest < ActionController::TestCase
   test 'correct initializer for ddtrace' do
     initializer = Rails.application.initializers.detect { |i| i.name == 'ddtrace.instrument' }
     assert initializer

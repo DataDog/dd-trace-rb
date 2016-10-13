@@ -28,3 +28,6 @@ when '3.2.22.5'
 else
   logger.error 'A Rails app for this version is not found!'
 end
+
+# overriding Rails components for testing purposes
+require 'contrib/rails/core_extensions'
