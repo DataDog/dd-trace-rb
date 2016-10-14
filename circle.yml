@@ -5,6 +5,8 @@ machine:
 
 dependencies:
   override:
+    - gem install builder
+    - bundle install
     - rvm get head
     - rvm install $ALL_VERSIONS
     - rvm $ALL_VERSIONS --verbose do gem install bundler
@@ -22,11 +24,16 @@ test:
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails-5 rake rails
 
 deployment:
-  dev:
+  develop:
     branch: /(master)|(develop)/
+    # CircleCI is configured to provide VERSION_SUFFIX=$CIRCLE_BRANCH$CIRCLE_BUILD_NUM
     commands:
-      - S3_DIR=trace-dev rvm 2.3.1 --verbose do rake release:docs
-  unstable:
+      - S3_DIR=trace-dev rake release:docs
+      - S3_DIR=trace-dev rake release:gem
+      - cp -r ./rubygems/* $CIRCLE_ARTIFACTS
+  public:
     tag: /v[0-9]+(\.[0-9]+)*/
     commands:
-      - S3_DIR=trace rvm 2.3.1 --verbose do rake release:docs
+      - S3_DIR=trace rake release:docs
+      - S3_DIR=trace VERSION_SUFFIX= rake release:gem
+      - cp -r ./rubygems/* $CIRCLE_ARTIFACTS
