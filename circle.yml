@@ -29,4 +29,4 @@ deployment:
   unstable:
     tag: /v[0-9]+(\.[0-9]+)*/
     commands:
-      - S3_DIR=trace rake release:docs
+      - S3_DIR=trace rvm 2.3.1 --verbose do rake release:docs
