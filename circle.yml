@@ -1,6 +1,7 @@
 machine:
   environment:
-    ALL_VERSIONS: 2.3.1,2.2.5
+    ALL_VERSIONS: 2.3.1,2.2.5,2.1.10
+    RAILS5_VERSIONS: 2.3.1,2.2.5
 
 dependencies:
   override:
@@ -8,11 +9,14 @@ dependencies:
     - rvm install $ALL_VERSIONS
     - rvm $ALL_VERSIONS --verbose do gem install bundler
     - rvm $ALL_VERSIONS --verbose do bundle install
-    - rvm $ALL_VERSIONS --verbose do appraisal install
+    - rvm $RAILS5_VERSIONS --verbose do appraisal install
+    - rvm 2.1.10 --verbose do appraisal rails-3 bundle install
+    - rvm 2.1.10 --verbose do appraisal rails-4 bundle install
 
 test:
   override:
-    - rvm 2.3.1 --verbose do rake rubocop
+    - rvm 2.1.10 --verbose do rake rubocop
     - rvm $ALL_VERSIONS --verbose do rake test
+    - rvm $ALL_VERSIONS --verbose do appraisal rails-3 rake rails
     - rvm $ALL_VERSIONS --verbose do appraisal rails-4 rake rails
-    - rvm $ALL_VERSIONS --verbose do appraisal rails-5 rake rails
+    - rvm $RAILS5_VERSIONS --verbose do appraisal rails-5 rake rails
