@@ -73,11 +73,6 @@ handler function like +web.user.home+. For a SQL database, a resource would be t
 You can track thousands (not millions or billions) of unique resources per services, so prefer resources like
 +/user/home+ rather than <tt>/user/home?id=123456789</tt>.
 
-=== App
-
-The name of the code that a service is running. Some common open source examples are +postgres+, +rails+ or +redis+.
-If it’s running custom code, name it accordingly like +datadog-metrics-db+.
-
 === Span
 
 A span tracks a unit of work in a service, like querying a database or rendering a template. Spans are associated
@@ -115,8 +110,8 @@ config you can override the following defaults:
 
 The available settings are:
 
-* +enabled+: defines if the +tracer+ is enabled or not. If set to +false+, the code may be still instrumented
-  but no +span+s are sent to the local trace agent.
+* +enabled+: defines if the +tracer+ is enabled or not. If set to +false+, the code is still instrumented
+  but no spans are sent to the local trace agent.
 * +auto_instrument+: if set to false the code will not be instrumented, while the +tracer+ may be active for
   your internal usage. This could be useful if you want to use the \Rails integration, but you want to trace
   only particular functions or views
