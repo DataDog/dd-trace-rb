@@ -1,4 +1,5 @@
 require 'helper'
+
 require 'contrib/rails/test_helper'
 
 class TracingControllerTest < ActionController::TestCase
@@ -39,7 +40,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(spans.length, 2)
     span = spans[0]
     assert_equal(span.name, 'rails.render_template')
-    assert_equal(span.span_type, nil)
+    assert_equal(span.span_type, 'template')
     assert_equal(span.resource, 'rails.render_template')
     assert_equal(span.get_tag('rails.template_name'), 'tracing/index.html.erb')
     assert_equal(span.get_tag('rails.layout'), 'layouts/application')
@@ -56,7 +57,7 @@ class TracingControllerTest < ActionController::TestCase
     span_template = spans[1]
     span_partial = spans[0]
     assert_equal(span_partial.name, 'rails.render_partial')
-    assert_equal(span_partial.span_type, nil)
+    assert_equal(span_partial.span_type, 'template')
     assert_equal(span_partial.resource, 'rails.render_partial')
     assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_body.html.erb')
     assert_equal(span_partial.parent, span_template)

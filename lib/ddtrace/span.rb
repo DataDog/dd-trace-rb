@@ -1,5 +1,7 @@
 require 'time'
 
+require 'ddtrace/ext/errors'
+
 # Datadog namespace
 module Datadog
   # Span model that defines a logical unit of work that
@@ -47,9 +49,9 @@ module Datadog
     def set_error(e)
       return if e.nil?
       @status = 1
-      @meta['error.msg'] = e.message
-      @meta['error.type'] = e.class.to_s
-      @meta['error.stack'] = e.backtrace.join("\n")
+      @meta[Datadog::Ext::Errors::MSG] = e.message
+      @meta[Datadog::Ext::Errors::TYPE] = e.class.to_s
+      @meta[Datadog::Ext::Errors::STACK] = e.backtrace.join("\n")
     end
 
     # Mark the span finished at the current time and submit it.

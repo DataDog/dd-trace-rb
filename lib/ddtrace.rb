@@ -15,7 +15,8 @@ if defined?(Rails::VERSION)
       # TODO[manu]: write docs
       class Railtie < Rails::Railtie
         initializer 'ddtrace.instrument' do |app|
-          Datadog::Contrib::Rails::Framework.init_plugin(config: app.config)
+          Datadog::Contrib::Rails::Framework.configure(config: app.config)
+          Datadog::Contrib::Rails::Framework.auto_instrument()
         end
       end
     end

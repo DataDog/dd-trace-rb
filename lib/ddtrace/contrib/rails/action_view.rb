@@ -29,14 +29,16 @@ module Datadog
 
         def self.start_render_template(*)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          tracer.trace('rails.render_template')
+          type = Datadog::Ext::HTTP::TEMPLATE
+          tracer.trace('rails.render_template', span_type: type)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
 
         def self.start_render_partial(*)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          tracer.trace('rails.render_partial')
+          type = Datadog::Ext::HTTP::TEMPLATE
+          tracer.trace('rails.render_partial', span_type: type)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
@@ -48,6 +50,14 @@ module Datadog
           template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(payload.fetch(:identifier))
           span.set_tag('rails.template_name', template_name)
           span.set_tag('rails.layout', payload.fetch(:layout))
+
+          if payload[:exception]
+            error = payload[:exception]
+            span.status = 1
+            span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
+            span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+          end
+
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e
@@ -60,6 +70,14 @@ module Datadog
           span = tracer.active_span()
           template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(payload.fetch(:identifier))
           span.set_tag('rails.template_name', template_name)
+
+          if payload[:exception]
+            error = payload[:exception]
+            span.status = 1
+            span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
+            span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+          end
+
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e

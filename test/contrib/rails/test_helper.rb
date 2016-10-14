@@ -21,6 +21,13 @@ when '5.0.0.1'
   require 'contrib/rails/apps/rails5'
 when '4.2.7.1'
   require 'contrib/rails/apps/rails4'
+when '3.2.22.5'
+  ENV['DATABASE_URL'] = 'sqlite3://localhost/:memory:'
+  require 'test/unit'
+  require 'contrib/rails/apps/rails3'
 else
   logger.error 'A Rails app for this version is not found!'
 end
+
+# overriding Rails components for testing purposes
+require 'contrib/rails/core_extensions'
