@@ -23,8 +23,18 @@ end
 RDoc::Task.new(:rdoc) do |doc|
   doc.main   = 'docs/Getting_started.rdoc'
   doc.title  = 'Datadog Ruby Tracer'
-  doc.rdoc_files = FileList.new %w[lib docs/**/*.rdoc *.rdoc]
+  doc.rdoc_files = FileList.new(%w(lib docs/**/*.rdoc *.rdoc))
   doc.rdoc_dir = 'html'
+end
+
+# Deploy tasks
+S3_BUCKET = 'gems.datadoghq.com'.freeze
+S3_DIR = ENV['S3_DIR']
+
+desc 'release the docs website'
+task :'release:docs' => :rdoc do
+  raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
+  sh "aws s3 cp --recursive html/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
 end
 
 task default: :test
