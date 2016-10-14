@@ -66,10 +66,10 @@ The name of a set of processes that do the same job. Some examples are +datadog-
 
 A particular query to a service. For a web application, some examples might be a URL stem like +/user/home+ or a
 handler function like +web.user.home+. For a SQL database, a resource would be the SQL of the query itself like
-+select * from users where id = ?+.
+<tt>select * from users where id = ?</tt>.
 
 You can track thousands (not millions or billions) of unique resources per services, so prefer resources like
-+/user/home+ rather than +/user/home?id=123456789+.
++/user/home+ rather than <tt>/user/home?id=123456789</tt>.
 
 === App
 
@@ -91,9 +91,9 @@ so that any operation instrumented by the API is traced.
 
 The supported versions are:
 
-* Rails 3.2
-* Rails 4.2
-* Rails 5.0
+* \Rails 3.2
+* \Rails 4.2
+* \Rails 5.0
 
 If you're using \Rails 3 or higher, the auto-instrumentation will be automatically activated, causing +ddtrace+
 to be required during the application startup process. If you're not using +Bundler+, it's enough to require

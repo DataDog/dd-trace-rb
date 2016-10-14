@@ -23,7 +23,8 @@ end
 RDoc::Task.new(:rdoc) do |doc|
   doc.main   = 'docs/Getting_started.rdoc'
   doc.title  = 'Datadog Ruby Tracer'
-  doc.rdoc_files = FileList.new(%w(lib docs/**/*.rdoc *.rdoc))
+  # TODO[manu]: include all lib/ folder, but only when all classes' docs are ready
+  doc.rdoc_files = FileList.new(%w(lib/ddtrace/tracer.rb lib/ddtrace/span.rb docs/**/*.rdoc))
   doc.rdoc_dir = 'html'
 end
 
