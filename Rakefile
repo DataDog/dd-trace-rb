@@ -1,6 +1,7 @@
 require 'bundler/gem_tasks'
 require 'rubocop/rake_task'
 require 'rake/testtask'
+require 'rdoc/task'
 require 'appraisal'
 
 Rake::TestTask.new(:test) do |t|
@@ -17,6 +18,13 @@ end
 
 RuboCop::RakeTask.new(:rubocop) do |t|
   t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
+end
+
+RDoc::Task.new(:rdoc) do |doc|
+  doc.main   = 'docs/Getting_started.rdoc'
+  doc.title  = 'Datadog Ruby Tracer'
+  doc.rdoc_files = FileList.new %w[lib docs/**/*.rdoc *.rdoc]
+  doc.rdoc_dir = 'html'
 end
 
 task default: :test
