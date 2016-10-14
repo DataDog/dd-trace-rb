@@ -1,8 +1,8 @@
 require 'time'
 
+require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
 
-# Datadog namespace
 module Datadog
   # Span model that defines a logical unit of work that
   # composes a complete trace.
@@ -23,7 +23,7 @@ module Datadog
       @resource = options.fetch(:resource, name)
       @span_type = options.fetch(:span_type, nil)
 
-      @span_id = Datadog.next_id()
+      @span_id = Datadog::Utils.next_id()
       @parent_id = options.fetch(:parent_id, 0)
       @trace_id = options.fetch(:trace_id, @span_id)
 
@@ -108,10 +108,5 @@ module Datadog
 
       h
     end
-  end
-
-  # Return a span id
-  def self.next_id
-    rand(Datadog::Span::MAX_ID)
   end
 end
