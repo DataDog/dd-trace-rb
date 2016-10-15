@@ -26,8 +26,12 @@ On the other hand, if you're using +Bundler+, just update your +Gemfile+ as foll
     # tracing gem
     gem 'ddtrace', :source => 'http://gems.datadoghq.com/'
 
-== Quickstart
+At this point, if you are on a supported integration, you should be able to generate traffic and view
+metrics in your {dashboard}[https://app.datadoghq.com/trace].
 
+== Quickstart (Manual Instrumentation)
+
+If you aren't using a supported framework instrumentation, you may want to to manually instrument your code.
 Adding tracing to your code is very simple. As an example, let’s imagine we have a web server and we want
 to trace requests to the home page:
 
@@ -130,7 +134,8 @@ If you need to instrument custom code within your controllers, you can simply:
         @values = SomeModel.all
         @counter = Rails.cache.fetch('custom_cache_key')
 
-        # you may want to instrument this code
+        # get the Rails tracer and instrument this code
+        tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
         tracer.trace('custom.service') do
           data = Something::fetch_data()
           @objects = Something::parse_data(data)
