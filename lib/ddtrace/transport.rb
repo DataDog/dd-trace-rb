@@ -6,6 +6,8 @@ module Datadog
   # local trace-agent. The class wraps a Net:HTTP instance
   # so that the Transport is thread-safe.
   class HTTPTransport
+    attr_accessor :hostname, :port
+
     # seconds before the transport timeout
     TIMEOUT = 1
 

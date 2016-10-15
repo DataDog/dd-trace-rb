@@ -6,6 +6,8 @@ require 'ddtrace/encoding'
 module Datadog
   # Traces and services writer that periodically sends data to the trace-agent
   class Writer
+    attr_reader :transport
+
     HOSTNAME = 'localhost'.freeze
     PORT = '7777'.freeze
     SPANS_ENDPOINT = '/spans'.freeze

@@ -35,13 +35,12 @@ If you aren't using a supported framework instrumentation, you may want to to ma
 Adding tracing to your code is very simple. As an example, let’s imagine we have a web server and we want
 to trace requests to the home page:
 
+    require 'ddtrace'
     require 'sinatra'
     require 'activerecord'
 
-    require 'ddtrace/tracer'
-
-    # your generic tracer
-    tracer = Datadog::Tracer.new
+    # a generic tracer that you can use across your application
+    tracer = Datadog.tracer
 
     get '/' do
       tracer.trace('web.request') do |span|
@@ -105,11 +104,11 @@ All tracing settings are namespaced under the +Rails.configuration.datadog_trace
 config you can override the following defaults:
 
     Rails.configuration.datadog_trace = {
-       enabled: true,
-       auto_instrument: true,
-       default_service: 'rails-app',
-       template_base_path: 'views/',
-       tracer: Datadog::Tracer.new()
+      enabled: true,
+      auto_instrument: true,
+      default_service: 'rails-app',
+      template_base_path: 'views/',
+      tracer: Datadog.tracer
     }
 
 The available settings are:
@@ -135,7 +134,7 @@ If you need to instrument custom code within your controllers, you can simply:
         @counter = Rails.cache.fetch('custom_cache_key')
 
         # get the Rails tracer and instrument this code
-        tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
+        tracer = Rails.configuration.datadog_trace.fetch(:tracer)
         tracer.trace('custom.service') do
           data = Something::fetch_data()
           @objects = Something::parse_data(data)
