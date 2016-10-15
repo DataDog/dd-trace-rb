@@ -32,6 +32,37 @@ end
 S3_BUCKET = 'gems.datadoghq.com'.freeze
 S3_DIR = ENV['S3_DIR']
 
+desc 'create a new indexed repository'
+task :'release:gem' do
+  raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
+  # load existing deployed gems
+  sh "aws s3 cp --exclude 'docs/*' --recursive s3://#{S3_BUCKET}/#{S3_DIR}/ ./rubygems/"
+
+  # create folders
+  sh 'mkdir -p ./gems'
+  sh 'mkdir -p ./rubygems/gems/'
+  sh 'mkdir -p ./rubygems/quick/'
+
+  # build the gem
+  Rake::Task['build'].execute
+
+  # copy the output in the indexed folder
+  sh 'cp pkg/*.gem ./gems/'
+
+  # generate the gems index
+  sh 'gem generate_index'
+
+  # namespace everything under ./rubygems/
+  sh 'cp -r ./gems/* ./rubygems/gems/'
+  sh 'cp -r specs.* ./rubygems/'
+  sh 'cp -r latest_specs.* ./rubygems/'
+  sh 'cp -r prerelease_specs.* ./rubygems/'
+  sh 'cp -r ./quick/* ./rubygems/quick/'
+
+  # deploy a static gem registry
+  sh "aws s3 cp --recursive ./rubygems/ s3://#{S3_BUCKET}/#{S3_DIR}/"
+end
+
 desc 'release the docs website'
 task :'release:docs' => :rdoc do
   raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
