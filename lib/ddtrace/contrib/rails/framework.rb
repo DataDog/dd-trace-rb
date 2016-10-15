@@ -21,7 +21,7 @@ module Datadog
             auto_instrument: true,
             default_service: 'rails-app',
             template_base_path: 'views/',
-            tracer: Datadog::Tracer.new()
+            tracer: Datadog.tracer
           }
 
           # merge default configurations with users settings

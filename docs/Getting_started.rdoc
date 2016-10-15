@@ -35,13 +35,12 @@ If you aren't using a supported framework instrumentation, you may want to to ma
 Adding tracing to your code is very simple. As an example, let’s imagine we have a web server and we want
 to trace requests to the home page:
 
+    require 'ddtrace'
     require 'sinatra'
     require 'activerecord'
 
-    require 'ddtrace/tracer'
-
-    # your generic tracer
-    tracer = Datadog::Tracer.new
+    # a generic tracer that you can use across your application
+    tracer = Datadog.tracer
 
     get '/' do
       tracer.trace('web.request') do |span|
