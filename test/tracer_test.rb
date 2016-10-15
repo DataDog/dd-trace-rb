@@ -91,4 +91,12 @@ class TracerTest < Minitest::Test
     spans = tracer.writer.spans()
     assert_equal(spans.length, 0)
   end
+
+  def test_configure_tracer
+    tracer = get_test_tracer
+    tracer.configure(enabled: false, hostname: 'agent.datadoghq.com', port: '8888')
+    assert_equal(tracer.enabled, false)
+    assert_equal(tracer.writer.transport.hostname, 'agent.datadoghq.com')
+    assert_equal(tracer.writer.transport.port, '8888')
+  end
 end

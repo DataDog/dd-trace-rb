@@ -40,6 +40,27 @@ module Datadog
       @services = {}
     end
 
+    # Updates the current \Tracer instance, so that the tracer can be configured after the
+    # initialization. Available +options+ are:
+    #
+    # * +enabled+: set if the tracer submits or not spans to the trace agent
+    # * +hostname+: change the location of the trace agent
+    # * +port+: change the port of the trace agent
+    #
+    # For instance, if the trace agent runs in a different location, just:
+    #
+    #   tracer.configure(hostname: 'agent.service.consul', port: '8777')
+    #
+    def configure(options = {})
+      enabled = options.fetch(:enabled, nil)
+      hostname = options.fetch(:hostname, nil)
+      port = options.fetch(:port, nil)
+
+      @enabled = enabled unless enabled.nil?
+      @writer.transport.hostname = hostname unless hostname.nil?
+      @writer.transport.port = port unless port.nil?
+    end
+
     # Set the information about the given service. A valid example is:
     #
     #   tracer.set_service_info('web-application', 'rails', 'web')

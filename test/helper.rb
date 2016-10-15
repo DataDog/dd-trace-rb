@@ -2,6 +2,7 @@ require 'minitest'
 require 'minitest/autorun'
 
 require 'ddtrace/encoding'
+require 'ddtrace/transport'
 require 'ddtrace/tracer'
 require 'ddtrace/buffer'
 require 'ddtrace/span'
@@ -14,11 +15,19 @@ end
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Writer
   def initialize
+    @transport = FauxTransport.new(HOSTNAME, PORT)
     @trace_buffer = Datadog::TraceBuffer.new(10)
     @services = {}
   end
 
   def spans
     @trace_buffer.pop().flatten
+  end
+end
+
+# FauxTransport is a dummy HTTPTransport that doesn't send data to an agent.
+class FauxTransport < Datadog::HTTPTransport
+  def send
+    # noop
   end
 end
