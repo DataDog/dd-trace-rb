@@ -1,4 +1,4 @@
-require 'ddtrace/tracer'
+require 'ddtrace'
 require 'ddtrace/ext/app_types'
 
 require 'ddtrace/contrib/rails/core_extensions'
