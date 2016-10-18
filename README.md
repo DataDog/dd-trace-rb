@@ -14,10 +14,12 @@ You can find the latest documentation in the Datadog's [private repository][docs
 
 If you're using ``Bundler``, just update your ``Gemfile`` as follows:
 
+```ruby
     source 'https://rubygems.org'
 
     # tracing gem
     gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
+```
 
 ### Quickstart (manual instrumentation)
 
@@ -25,7 +27,7 @@ If you aren't using a supported framework instrumentation, you may want to to ma
 Adding tracing to your code is very simple. As an example, let’s imagine we have a web server and we want
 to trace requests to the home page:
 
-```
+```ruby
     require 'ddtrace'
     require 'sinatra'
     require 'activerecord'
@@ -58,13 +60,12 @@ to trace requests to the home page:
 ### Testing
 
 You can launch all tests using the following rake command:
-```
-  $ rake test                     # tracer tests
-  $ appraisal rails-3 rake rails  # rails 3 integration tests
-  $ appraisal rails-4 rake rails  # rails 4 integration tests
-  $ appraisal rails-5 rake rails  # rails 5 integration tests
-  $ appraisal rake rails          # tests for all rails versions
-```
+
+    $ rake test                     # tracer tests
+    $ appraisal rails-3 rake rails  # rails 3 integration tests
+    $ appraisal rails-4 rake rails  # rails 4 integration tests
+    $ appraisal rails-5 rake rails  # rails 5 integration tests
+    $ appraisal rake rails          # tests for all rails versions
 
 The test suite requires many backing services (PostgreSQL, MySQL, Redis, ...) and we're using
 ``docker`` and ``docker-compose`` to start these services in the CI.
@@ -74,9 +75,8 @@ the instructions provided by your platform. Then launch them through:
     $ docker-compose up -d
 
 We also enforce the Ruby [community-driven style guide][1] through Rubocop. Simply launch:
-```
-  $ rake rubocop
-```
+
+    $ rake rubocop
 
 [1]: https://github.com/bbatsov/ruby-style-guide
 [2]: https://www.docker.com/products/docker
