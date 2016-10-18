@@ -8,7 +8,7 @@ class TracerTest < ActionController::TestCase
     assert Rails.configuration.datadog_trace[:auto_instrument]
     assert_equal(Rails.configuration.datadog_trace[:default_service], 'rails-app')
     assert_equal(Rails.configuration.datadog_trace[:template_base_path], 'views/')
-    assert_equal(Rails.configuration.datadog_trace[:tracer], Datadog.tracer)
+    assert Rails.configuration.datadog_trace[:tracer]
   end
 
   test 'a default service is properly set' do
