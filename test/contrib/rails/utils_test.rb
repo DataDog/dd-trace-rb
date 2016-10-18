@@ -45,4 +45,24 @@ class UtilsTest < ActiveSupport::TestCase
     template_name = Datadog::Contrib::Rails::Utils.normalize_template_name({})
     assert_equal(template_name, '{}')
   end
+
+  test 'normalize adapter name for a not defined vendor' do
+    vendor = Datadog::Contrib::Rails::Utils.normalize_vendor(nil)
+    assert_equal(vendor, 'defaultdb')
+  end
+
+  test 'normalize adapter name for sqlite3' do
+    vendor = Datadog::Contrib::Rails::Utils.normalize_vendor('sqlite3')
+    assert_equal(vendor, 'sqlite')
+  end
+
+  test 'normalize adapter name for postgresql' do
+    vendor = Datadog::Contrib::Rails::Utils.normalize_vendor('postgresql')
+    assert_equal(vendor, 'postgres')
+  end
+
+  test 'normalize adapter name for an unknown vendor' do
+    vendor = Datadog::Contrib::Rails::Utils.normalize_vendor('customdb')
+    assert_equal(vendor, 'customdb')
+  end
 end
