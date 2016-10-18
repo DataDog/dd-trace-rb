@@ -22,9 +22,10 @@ if defined?(Rails::VERSION)
     require 'ddtrace/contrib/rails/framework'
 
     module Datadog
-      # TODO[manu]: write docs
+      # Run the auto instrumentation directly after the initialization of the application and
+      # after the application initializers in config/initializers are run
       class Railtie < Rails::Railtie
-        initializer 'ddtrace.instrument' do |app|
+        config.after_initialize do |app|
           Datadog::Contrib::Rails::Framework.configure(config: app.config)
           Datadog::Contrib::Rails::Framework.auto_instrument()
         end

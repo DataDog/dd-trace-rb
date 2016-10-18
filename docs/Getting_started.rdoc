@@ -101,7 +101,10 @@ to be required during the application startup process. If you're not using +Bund
 inside the +config/initializers+ folder.
 
 All tracing settings are namespaced under the +Rails.configuration.datadog_tracer+ hash and in your application
-config you can override the following defaults:
+config or your initializer file, you can override the following defaults:
+
+    # config/initializers/datadog-tracer.rb
+    # you may override only settings different from the values below
 
     Rails.configuration.datadog_trace = {
       enabled: true,
