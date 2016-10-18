@@ -10,7 +10,7 @@ logger.level = Logger::INFO
 
 # Rails settings
 ENV['RAILS_ENV'] = 'test'
-ENV['DATABASE_URL'] = 'sqlite3::memory:'
+ENV['DATABASE_URL'] = 'postgres://postgres:postgres@127.0.0.1:55432/postgres'
 
 # switch Rails import according to installed
 # version; this is controlled with Appraisals
@@ -22,7 +22,6 @@ when '5.0.0.1'
 when '4.2.7.1'
   require 'contrib/rails/apps/rails4'
 when '3.2.22.5'
-  ENV['DATABASE_URL'] = 'sqlite3://localhost/:memory:'
   require 'test/unit'
   require 'contrib/rails/apps/rails3'
 else

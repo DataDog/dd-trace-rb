@@ -22,6 +22,20 @@ module Datadog
         rescue
           return name.to_s
         end
+
+        # Return a canonical name for a type of database
+        def self.normalize_vendor(vendor)
+          case vendor
+          when nil
+            return 'defaultdb'
+          when 'sqlite3'
+            return 'sqlite'
+          when 'postgresql'
+            return 'postgres'
+          else
+            return vendor
+          end
+        end
       end
     end
   end

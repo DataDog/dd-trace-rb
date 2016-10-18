@@ -1,9 +1,16 @@
 machine:
+  services:
+    - docker
   environment:
     ALL_VERSIONS: 2.3.1,2.2.5,2.1.10
     RAILS5_VERSIONS: 2.3.1,2.2.5
 
 dependencies:
+  pre:
+    # we should use an old docker-compose because CircleCI supports
+    # only docker-engine==1.9
+    - pip install docker-compose==1.7.1
+    - docker-compose up -d | cat
   override:
     - gem install builder
     - bundle install
