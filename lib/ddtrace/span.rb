@@ -125,5 +125,30 @@ module Datadog
 
       h
     end
+
+    # Return a human readable version of the span
+    def pprint
+      h = to_hash()
+      lines = [
+        "\n",
+        "name: #{h[:name]}",
+        "id: #{h[:span_id]}",
+        "trace_id: #{h[:trace_id]}",
+        "parent_id: #{h[:parent_id]}",
+        "service: #{h[:service]}",
+        "resource: #{h[:resource]}",
+        "type: #{h[:span_type]}",
+        "start: #{h[:start_time]}",
+        "duration: #{h[:duration]}",
+        "error: #{h[:error]}",
+        'tags:'
+      ]
+
+      @meta.each do |key, value|
+        lines.push("   #{key} => #{value}")
+      end
+
+      lines.join("\n")
+    end
   end
 end

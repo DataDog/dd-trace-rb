@@ -164,7 +164,7 @@ module Datadog
       if Datadog::Tracer.debug_logging
         Datadog::Tracer.log.debug("Writing #{spans.length} spans (enabled: #{@enabled})")
         spans.each do |span|
-          Datadog::Tracer.log.debug(span.to_s)
+          Datadog::Tracer.log.debug(span.pprint())
         end
       end
 
