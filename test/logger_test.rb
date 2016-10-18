@@ -8,4 +8,22 @@ class LoggerTest < Minitest::Test
     assert Datadog::Tracer.log
     Datadog::Tracer.log.debug('a logger is here!')
   end
+
+  def test_tracer_default_debug_mode
+    # the default log level must be INFO
+    logger = Datadog::Tracer.log
+    assert_equal(logger.level, Logger::INFO)
+  end
+
+  def test_tracer_set_debug_mode
+    logger = Datadog::Tracer.log
+
+    # enable the debug mode
+    Datadog::Tracer.debug_logging = true
+    assert_equal(logger.level, Logger::DEBUG)
+
+    # revert to production mode
+    Datadog::Tracer.debug_logging = false
+    assert_equal(logger.level, Logger::INFO)
+  end
 end
