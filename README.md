@@ -66,9 +66,18 @@ You can launch all tests using the following rake command:
   $ appraisal rake rails          # tests for all rails versions
 ```
 
+The test suite requires many backing services (PostgreSQL, MySQL, Redis, ...) and we're using
+``docker`` and ``docker-compose`` to start these services in the CI.
+To launch properly the test matrix, please [install docker][2] and [docker-compose][3] using
+the instructions provided by your platform. Then launch them through:
+
+    $ docker-compose up -d
+
 We also enforce the Ruby [community-driven style guide][1] through Rubocop. Simply launch:
 ```
   $ rake rubocop
 ```
 
 [1]: https://github.com/bbatsov/ruby-style-guide
+[2]: https://www.docker.com/products/docker
+[3]: https://www.docker.com/products/docker-compose
