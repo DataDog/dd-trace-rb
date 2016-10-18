@@ -127,28 +127,27 @@ module Datadog
     end
 
     # Return a human readable version of the span
-    def pprint
-      h = to_hash()
-      lines = [
-        "\n",
-        "name: #{h[:name]}",
-        "id: #{h[:span_id]}",
-        "trace_id: #{h[:trace_id]}",
-        "parent_id: #{h[:parent_id]}",
-        "service: #{h[:service]}",
-        "resource: #{h[:resource]}",
-        "type: #{h[:span_type]}",
-        "start: #{h[:start_time]}",
-        "duration: #{h[:duration]}",
-        "error: #{h[:error]}",
-        'tags:'
-      ]
-
-      @meta.each do |key, value|
-        lines.push("   #{key} => #{value}")
+    def pretty_print(q)
+      q.group 0 do
+        q.breakable
+        q.text "Name: #{@name}\n"
+        q.text "Span ID: #{@span_id}\n"
+        q.text "Parent ID: #{@parent_id}\n"
+        q.text "Trace ID: #{@trace_id}\n"
+        q.text "Type: #{@span_type}\n"
+        q.text "Service: #{@service}\n"
+        q.text "Resource: #{@resource}\n"
+        q.text "Start: #{(@start_time.to_f * 1e9).to_i}\n"
+        q.text "End: #{(@end_time.to_f * 1e9).to_i}\n"
+        q.text "Duration: #{((@end_time - @start_time) * 1e9).to_i}\n"
+        q.text "Error: #{@status}\n"
+        q.group(2, 'Tags: [', ']') do
+          q.breakable
+          q.seplist @meta.each do |key, value|
+            q.text "#{key} => #{value}"
+          end
+        end
       end
-
-      lines.join("\n")
     end
   end
 end

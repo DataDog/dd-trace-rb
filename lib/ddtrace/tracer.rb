@@ -1,3 +1,4 @@
+require 'pp'
 require 'thread'
 require 'logger'
 
@@ -163,9 +164,7 @@ module Datadog
 
       if Datadog::Tracer.debug_logging
         Datadog::Tracer.log.debug("Writing #{spans.length} spans (enabled: #{@enabled})")
-        spans.each do |span|
-          Datadog::Tracer.log.debug(span.pprint())
-        end
+        PP.pp(spans)
       end
 
       @writer.write(spans, @services)
