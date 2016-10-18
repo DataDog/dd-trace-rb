@@ -128,6 +128,9 @@ module Datadog
 
     # Return a human readable version of the span
     def pretty_print(q)
+      start_time = (@start_time.to_f * 1e9).to_i rescue '-'
+      end_time = (@end_time.to_f * 1e9).to_i rescue '-'
+      duration = ((@end_time - @start_time) * 1e9).to_i rescue 0
       q.group 0 do
         q.breakable
         q.text "Name: #{@name}\n"
@@ -137,10 +140,10 @@ module Datadog
         q.text "Type: #{@span_type}\n"
         q.text "Service: #{@service}\n"
         q.text "Resource: #{@resource}\n"
-        q.text "Start: #{(@start_time.to_f * 1e9).to_i}\n"
-        q.text "End: #{(@end_time.to_f * 1e9).to_i}\n"
-        q.text "Duration: #{((@end_time - @start_time) * 1e9).to_i}\n"
         q.text "Error: #{@status}\n"
+        q.text "Start: #{start_time}\n"
+        q.text "End: #{end_time}\n"
+        q.text "Duration: #{duration}\n"
         q.group(2, 'Tags: [', ']') do
           q.breakable
           q.seplist @meta.each do |key, value|
