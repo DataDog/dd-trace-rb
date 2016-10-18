@@ -147,3 +147,29 @@ If you need to instrument custom code within your controllers, you can simply:
 
 With the auto instrumentation turned on, the result trace will include your span correctly nested under the
 +rails.request+ span.
+
+== Tracer debug mode
+
+If you need to check locally what traces and spans are sent after each traced block, you can enable
+a global debug mode for all tracers so that every time a trace is ready to be sent, the content will be
+printed in the +STDOUT+. To enable the debug logging, add this code anywhere before using the tracer
+for the first time:
+
+    require 'ddtrace'
+    require 'sinatra'
+    require 'activerecord'
+
+    # enable debug mode
+    Datadog::Tracer.debug_logging = true
+
+    # use the tracer as usual
+    tracer = Datadog.tracer
+
+    get '/' do
+      tracer.trace('web.request') do |span|
+        # ...
+      end
+    end
+
+Remember that the debug mode may affect your application performance and so it must not be used
+in a production environment.

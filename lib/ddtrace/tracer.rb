@@ -25,6 +25,16 @@ module Datadog
       @logger
     end
 
+    # Activate the debug mode providing more information related to tracer usage
+    def self.debug_logging=(value)
+      log.level = value ? Logger::DEBUG : Logger::INFO
+    end
+
+    # Return if the debug mode is activated or not
+    def self.debug_logging
+      log.level == Logger::DEBUG
+    end
+
     # Initialize a new \Tracer used to create, sample and submit spans that measure the
     # time of sections of code. Available +options+ are:
     #
@@ -69,6 +79,9 @@ module Datadog
         'app' => app,
         'app_type' => app_type
       }
+
+      return unless Datadog::Tracer.debug_logging
+      Datadog::Tracer.log.debug("set_service_info: service: #{service} app: #{app} type: #{app_type}")
     end
 
     # Return a +span+ that will trace an operation called +name+. You could trace your code
@@ -147,6 +160,14 @@ module Datadog
 
     def write(spans)
       return if @writer.nil? || !@enabled
+
+      if Datadog::Tracer.debug_logging
+        Datadog::Tracer.log.debug("Writing #{spans.length} spans (enabled: #{@enabled})")
+        spans.each do |span|
+          Datadog::Tracer.log.debug(span.to_s)
+        end
+      end
+
       @writer.write(spans, @services)
     end
 
