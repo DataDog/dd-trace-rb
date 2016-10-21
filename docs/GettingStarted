@@ -80,6 +80,8 @@ The supported versions are:
 * \Rails 4.2
 * \Rails 5.0
 
+Currently, only Puma is supported.  Unicorn and Passenger will be supported shortly.
+
 ==== Installation
 
 Add the tracer gem to your +Gemfile+:
