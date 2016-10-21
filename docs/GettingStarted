@@ -3,16 +3,6 @@
 _ddtrace_ is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have great visiblity into bottlenecks and troublesome requests.
 
-== Supported version
-
-The \Datadog Trace Client has been tested with the following Ruby versions:
-
-* Ruby MRI 2.1
-* Ruby MRI 2.2
-* Ruby MRI 2.3
-
-Other versions aren't yet officially supported.
-
 == Installation
 
 Install the tracer with the +gem+ command, but point to Datadog's gems repository:
@@ -26,7 +16,9 @@ On the other hand, if you're using +Bundler+, just update your +Gemfile+ as foll
     # tracing gem
     gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
 
-At this point, if you are on a supported integration, you should be able to generate traffic and view
+== Quickstart (Auto Instrumentation)
+
+If you are on a {supported integration}[#label-Integrations], you should be able to generate traffic and view
 metrics in your {dashboard}[https://app.datadoghq.com/trace].
 
 == Quickstart (Manual Instrumentation)
@@ -63,23 +55,16 @@ to trace requests to the home page:
 
 == Glossary
 
-=== Service
+[Service] The name of a set of processes that do the same job. Some examples are +datadog-web-app+ or +datadog-metrics-db+.
 
-The name of a set of processes that do the same job. Some examples are +datadog-web-app+ or +datadog-metrics-db+.
+[Resource] A particular query to a service. For a web application, some examples might be a URL stem like +/user/home+ or a
+           handler function like +web.user.home+. For a SQL database, a resource would be the SQL of the query itself like
+           <tt>select * from users where id = ?</tt>.
+           You can track thousands (not millions or billions) of unique resources per services, so prefer resources like
+           +/user/home+ rather than <tt>/user/home?id=123456789</tt>.
 
-=== Resource
-
-A particular query to a service. For a web application, some examples might be a URL stem like +/user/home+ or a
-handler function like +web.user.home+. For a SQL database, a resource would be the SQL of the query itself like
-<tt>select * from users where id = ?</tt>.
-
-You can track thousands (not millions or billions) of unique resources per services, so prefer resources like
-+/user/home+ rather than <tt>/user/home?id=123456789</tt>.
-
-=== Span
-
-A span tracks a unit of work in a service, like querying a database or rendering a template. Spans are associated
-with a service and optionally a resource. Spans have names, start times, durations and optional tags.
+[Span] A span tracks a unit of work in a service, like querying a database or rendering a template. Spans are associated
+       with a service and optionally a resource. Spans have names, start times, durations and optional tags.
 
 == Integrations
 
@@ -95,16 +80,51 @@ The supported versions are:
 * \Rails 4.2
 * \Rails 5.0
 
-If you're using \Rails 3 or higher, the auto-instrumentation will be automatically activated, causing +ddtrace+
-to be required during the application startup process. If you're not using +Bundler+, it's enough to require
-+ddtrace+ after the \Rails bootstrap process. A good place to load the auto-instrumentation is an initializer
-inside the +config/initializers+ folder.
+==== Installation
 
-All tracing settings are namespaced under the +Rails.configuration.datadog_tracer+ hash and in your application
-config or your initializer file, you can override the following defaults:
+Add the tracer gem to your +Gemfile+:
+
+    gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
+
+Now you can set your service name, simply creating an initializer file in your +config/+ folder:
 
     # config/initializers/datadog-tracer.rb
-    # you may override only settings different from the values below
+
+    Rails.configuration.datadog_trace = {
+      default_service: 'my-rails-app',
+    }
+
+If you're using \Rails 3 or higher, the auto-instrumentation will be automatically activated and no more configuration
+is required. Your application will be listed as +my-rails-app+ in your {dashboard}[https://app.datadoghq.com/trace].
+
+==== Custom Instrumentation
+
+If you need to instrument custom code within your controllers, you can simply:
+
+    class CustomController < ApplicationController
+      def index
+        # using auto instrumentation, these calls are already traced
+        @values = SomeModel.all
+        @counter = Rails.cache.fetch('custom_cache_key')
+
+        # use the global tracer to instrument your code
+        tracer = Datadog.tracer
+        tracer.trace('custom.service') do
+          data = Something::fetch_data()
+          @objects = Something::parse_data(data)
+        end
+      end
+    end
+
+With the auto instrumentation turned on, the result trace will include your span correctly nested under the
++rails.request+ span.
+
+==== Tracer Configuration
+
+All tracing settings are namespaced under the +Rails.configuration.datadog_tracer+ hash. To change the default behavior
+of the Datadog tracer, you can override the following defaults:
+
+    # config/initializers/datadog-tracer.rb
 
     Rails.configuration.datadog_trace = {
       enabled: true,
@@ -128,27 +148,7 @@ The available settings are:
 * +tracer+: is the global tracer used by the tracing application. Usually you don't need to change that value
   unless you're already using a different initialized +tracer+ somewhere else
 
-If you need to instrument custom code within your controllers, you can simply:
-
-    class CustomController < ApplicationController
-      def index
-        # if you use auto instrumentation, these calls are already traced
-        @values = SomeModel.all
-        @counter = Rails.cache.fetch('custom_cache_key')
-
-        # get the Rails tracer and instrument this code
-        tracer = Rails.configuration.datadog_trace.fetch(:tracer)
-        tracer.trace('custom.service') do
-          data = Something::fetch_data()
-          @objects = Something::parse_data(data)
-        end
-      end
-    end
-
-With the auto instrumentation turned on, the result trace will include your span correctly nested under the
-+rails.request+ span.
-
-== Tracer debug mode
+== Debug Mode
 
 If you need to check locally what traces and spans are sent after each traced block, you can enable
 a global debug mode for all tracers so that every time a trace is ready to be sent, the content will be
@@ -173,3 +173,13 @@ for the first time:
 
 Remember that the debug mode may affect your application performance and so it must not be used
 in a production environment.
+
+== Supported Versions
+
+The \Datadog Trace Client has been tested with the following Ruby versions:
+
+* Ruby MRI 2.1
+* Ruby MRI 2.2
+* Ruby MRI 2.3
+
+Other versions aren't yet officially supported.

@@ -21,10 +21,10 @@ RuboCop::RakeTask.new(:rubocop) do |t|
 end
 
 RDoc::Task.new(:rdoc) do |doc|
-  doc.main   = 'docs/Getting_started.rdoc'
+  doc.main   = 'docs/GettingStarted'
   doc.title  = 'Datadog Ruby Tracer'
   # TODO[manu]: include all lib/ folder, but only when all classes' docs are ready
-  doc.rdoc_files = FileList.new(%w(lib/ddtrace/tracer.rb lib/ddtrace/span.rb docs/**/*.rdoc))
+  doc.rdoc_files = FileList.new(%w(lib/ddtrace/tracer.rb lib/ddtrace/span.rb docs/**/*))
   doc.rdoc_dir = 'html'
 end
 
