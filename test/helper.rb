@@ -16,7 +16,7 @@ end
 class FauxWriter < Datadog::Writer
   def initialize
     @transport = FauxTransport.new(HOSTNAME, PORT)
-    @trace_buffer = Datadog::TraceBuffer.new(10)
+    @trace_buffer = Datadog::TraceBuffer.new(0)
     @services = {}
   end
 

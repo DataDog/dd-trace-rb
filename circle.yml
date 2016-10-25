@@ -29,6 +29,7 @@ test:
     - rvm $ALL_VERSIONS --verbose do appraisal rails-3 rake rails
     - rvm $ALL_VERSIONS --verbose do appraisal rails-4 rake rails
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails-5 rake rails
+    - rvm 2.3.1 --verbose do rake benchmark
 
 deployment:
   develop:
