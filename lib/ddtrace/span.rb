@@ -49,11 +49,13 @@ module Datadog
     end
 
     # Set the given key / value tag pair on the span. Keys and values
-    # must be strings (or have a proper +to_s+). A valid example is
+    # must be strings. A valid example is:
     #
     #   span.set_tag('http.method', request.method)
     def set_tag(key, value)
-      @meta[key] = value
+      @meta[key] = value.to_s
+    rescue StandardError => e
+      Datadog::Tracer.log.error("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
 
     # Return the tag wth the given key, nil if it doesn't exist.
