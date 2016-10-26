@@ -25,7 +25,7 @@ module Datadog
 
       response = Net::HTTP.start(@hostname, @port, read_timeout: TIMEOUT) { |http| http.request(request) }
       handle_response(response)
-    rescue StandarError => e
+    rescue StandardError => e
       Datadog::Tracer.log.error(e.message)
     end
 
