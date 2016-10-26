@@ -49,8 +49,6 @@ module Datadog
       @mutex = Mutex.new
       @spans = []
       @services = {}
-
-      @writer.start()
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
