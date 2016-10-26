@@ -15,19 +15,29 @@ end
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Writer
   def initialize
-    @transport = FauxTransport.new(HOSTNAME, PORT)
-    @trace_buffer = Datadog::TraceBuffer.new(0)
+    super(transport: FauxTransport.new(HOSTNAME, PORT))
+
+    # easy access to registered components
+    @spans = []
     @services = {}
   end
 
+  def write(trace, services)
+    super(trace, services)
+    @spans << trace
+    @services = services
+  end
+
   def spans
-    @trace_buffer.pop().flatten
+    spans = @spans
+    @spans = []
+    spans.flatten
   end
 end
 
 # FauxTransport is a dummy HTTPTransport that doesn't send data to an agent.
 class FauxTransport < Datadog::HTTPTransport
-  def send
+  def send(*)
     # noop
   end
 end

@@ -19,6 +19,7 @@ module Datadog
 
     # send data to the trace-agent; the method is thread-safe
     def send(url, data)
+      Datadog::Tracer.log.debug("Sending data from process: #{Process.pid}")
       request = Net::HTTP::Post.new(url, @headers)
       request.body = data
 

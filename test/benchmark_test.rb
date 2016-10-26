@@ -13,6 +13,7 @@ class TraceBufferTest < Minitest::Test
   def test_benchmark_create_traces
     # create and finish a huge number of spans with a single thread
     tracer = get_test_tracer()
+    tracer.writer.start()
 
     Benchmark.benchmark(CAPTION, 7, FORMAT, '>total:', '>avg:') do |x|
       x.report("create #{N} traces:") do
