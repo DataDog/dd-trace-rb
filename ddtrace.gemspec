@@ -18,7 +18,7 @@ have great visiblity into bottlenecks and troublesome requests.
 EOS
 
   spec.homepage = "https://github.com/DataDog/dd-trace-rb"
-  spec.license  = "MIT"
+  spec.license  = "BSD-3-Clause"
 
   # TODO[manu]: after GA, change that with rubygems.org
   if spec.respond_to?(:metadata)
