@@ -6,6 +6,7 @@ require 'ddtrace/contrib/rails/action_controller'
 require 'ddtrace/contrib/rails/action_view'
 require 'ddtrace/contrib/rails/active_record'
 require 'ddtrace/contrib/rails/active_support'
+require 'ddtrace/contrib/rails/utils'
 
 module Datadog
   module Contrib
@@ -34,6 +35,16 @@ module Datadog
             datadog_config[:default_service],
             'rails',
             Datadog::Ext::AppTypes::WEB
+          )
+
+          # set default database service details
+          adapter_name = ::ActiveRecord::Base.connection_config[:adapter]
+          adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(adapter_name)
+          database_service = datadog_config.fetch(:default_database_service, adapter_name)
+          datadog_config[:tracer].set_service_info(
+            database_service,
+            adapter_name,
+            Datadog::Ext::AppTypes::DB
           )
 
           # update global configurations

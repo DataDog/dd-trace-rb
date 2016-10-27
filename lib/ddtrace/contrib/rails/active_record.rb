@@ -20,7 +20,13 @@ module Datadog
           adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(adapter_name)
           span_type = Datadog::Ext::SQL::TYPE
 
-          span = tracer.trace("#{adapter_name}.query", resource: payload.fetch(:sql), service: adapter_name, span_type: span_type)
+          span = tracer.trace(
+            "#{adapter_name}.query",
+            resource: payload.fetch(:sql),
+            service: adapter_name,
+            span_type: span_type
+          )
+
           span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag(Datadog::Ext::SQL::QUERY, payload.fetch(:sql))
           span.set_tag('rails.db.vendor', adapter_name)
