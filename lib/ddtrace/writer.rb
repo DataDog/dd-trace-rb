@@ -10,8 +10,8 @@ module Datadog
 
     HOSTNAME = 'localhost'.freeze
     PORT = '7777'.freeze
-    SPANS_ENDPOINT = '/spans'.freeze
-    SERVICES_ENDPOINT = '/services'.freeze
+    SPANS_ENDPOINT = '/v0.2/traces'.freeze
+    SERVICES_ENDPOINT = '/v0.2/services'.freeze
 
     def initialize(options = {})
       # writer and transport parameters

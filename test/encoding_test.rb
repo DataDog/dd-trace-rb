@@ -9,25 +9,27 @@ class TracerTest < Minitest::Test
     defaults = {
       service: 'test-app',
       resource: '/traces',
-      span_type: 'web',
+      span_type: 'web'
     }
     traces << [
-        Datadog::Span.new(nil, 'client.testing', **defaults).finish(),
-        Datadog::Span.new(nil, 'client.testing', **defaults).finish()
+      Datadog::Span.new(nil, 'client.testing', **defaults).finish(),
+      Datadog::Span.new(nil, 'client.testing', **defaults).finish()
     ]
     traces << [
-        Datadog::Span.new(nil, 'client.testing', **defaults).finish(),
-        Datadog::Span.new(nil, 'client.testing', **defaults).finish()
+      Datadog::Span.new(nil, 'client.testing', **defaults).finish(),
+      Datadog::Span.new(nil, 'client.testing', **defaults).finish()
     ]
 
     to_send = Datadog::Encoding.encode_spans(traces)
 
     assert to_send.is_a? String
-    # the spans list must be flatten
-    items = JSON.load(to_send)
-    assert_equal(items.length, 4)
+    # the spans list must be a list of traces
+    items = JSON.parse(to_send)
+    assert_equal(items.length, 2)
+    assert_equal(items[0].length, 2)
+    assert_equal(items[1].length, 2)
     # each span must be properly formatted
-    span = items[0]
+    span = items[0][0]
     assert span['span_id']
     assert span['parent_id']
     assert span['trace_id']
