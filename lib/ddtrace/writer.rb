@@ -63,7 +63,7 @@ module Datadog
       # FIXME[matt]: if there's an error, requeue; the new Transport can
       # behave differently if it's a server or a client error. Don't requeue
       # if we have a client error?
-      spans = Datadog::Encoding.encode_spans(traces.flatten)
+      spans = Datadog::Encoding.encode_spans(traces)
       transport.send(SPANS_ENDPOINT, spans)
 
       # TODO[all]: is it really required? it's a number that will grow indefinitely

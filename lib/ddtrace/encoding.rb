@@ -4,7 +4,8 @@ module Datadog
   # Encoding module that encodes data for the AgentTransport
   module Encoding
     # Encode the given set of spans in JSON format
-    def self.encode_spans(spans)
+    def self.encode_spans(traces)
+      spans = traces.flatten
       hashes = spans.map(&:to_hash)
       JSON.dump(hashes)
     end
