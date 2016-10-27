@@ -27,4 +27,19 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     assert_includes(span.get_tag('sql.query'), 'SELECT COUNT(*) FROM')
     assert span.to_hash[:duration] > 0
   end
+
+  test 'doing a database call uses the proper service name if it is changed' do
+    # update database configuration
+    ::Rails.configuration.datadog_trace[:default_database_service] = 'customer-db'
+    config = { config: ::Rails.application.config }
+    Datadog::Contrib::Rails::Framework.configure(config)
+
+    # make the query and assert the proper spans
+    Article.count
+    spans = @tracer.writer.spans()
+    assert_equal(spans.length, 1)
+
+    span = spans[-1]
+    assert_equal(span.service, 'customer-db')
+  end
 end
