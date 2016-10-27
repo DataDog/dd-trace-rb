@@ -30,9 +30,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
 
   test 'doing a database call uses the proper service name if it is changed' do
     # update database configuration
-    ::Rails.configuration.datadog_trace[:default_database_service] = 'customer-db'
-    config = { config: ::Rails.application.config }
-    Datadog::Contrib::Rails::Framework.configure(config)
+    update_config(:default_database_service, 'customer-db')
 
     # make the query and assert the proper spans
     Article.count
@@ -41,5 +39,8 @@ class DatabaseTracingTest < ActiveSupport::TestCase
 
     span = spans[-1]
     assert_equal(span.service, 'customer-db')
+
+    # reset the original configuration
+    reset_config()
   end
 end

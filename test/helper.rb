@@ -41,3 +41,20 @@ class FauxTransport < Datadog::HTTPTransport
     # noop
   end
 end
+
+# update Datadog user configuration; you should pass:
+#
+# * +key+: the key that should be updated
+# * +value+: the value of the key
+def update_config(key, value)
+  ::Rails.configuration.datadog_trace[key] = value
+  config = { config: ::Rails.application.config }
+  Datadog::Contrib::Rails::Framework.configure(config)
+end
+
+# reset default configuration and replace any dummy tracer
+# with the global one
+def reset_config
+  ::Rails.configuration.datadog_trace = {}
+  Datadog::Contrib::Rails::Framework.configure({})
+end

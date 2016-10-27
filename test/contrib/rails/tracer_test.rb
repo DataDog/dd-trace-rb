@@ -10,15 +10,7 @@ class TracerTest < ActionController::TestCase
   end
 
   teardown do
-    # reset default configuration
-    Datadog::Contrib::Rails::Framework.configure({})
-  end
-
-  def update_config(key, value)
-    # update Datadog user configuration
-    ::Rails.configuration.datadog_trace[key] = value
-    config = { config: ::Rails.application.config }
-    Datadog::Contrib::Rails::Framework.configure(config)
+    reset_config()
   end
 
   test 'the configuration is correctly called' do
@@ -29,9 +21,8 @@ class TracerTest < ActionController::TestCase
     assert Rails.configuration.datadog_trace[:tracer]
   end
 
-  test 'a default service and database are properly set' do
-    Datadog::Contrib::Rails::Framework.configure({})
-    tracer = Rails.configuration.datadog_trace[:tracer]
+  test 'a default service and database should be properly set' do
+    tracer = Datadog.tracer
     assert_equal(
       tracer.services,
       'rails-app' => {
