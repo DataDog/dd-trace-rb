@@ -21,9 +21,10 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     span = spans[-1]
     assert_equal(span.name, 'postgres.query')
     assert_equal(span.span_type, 'sql')
+    assert_includes(span.resource, 'SELECT COUNT(*) FROM')
     assert_equal(span.service, 'postgres')
     assert_equal(span.get_tag('rails.db.vendor'), 'postgres')
-    assert_includes(span.get_tag('sql.query'), 'SELECT COUNT(*)')
+    assert_includes(span.get_tag('sql.query'), 'SELECT COUNT(*) FROM')
     assert span.to_hash[:duration] > 0
   end
 end
