@@ -3,6 +3,16 @@ require 'helper'
 require 'contrib/rails/test_helper'
 
 class TracerTest < ActionController::TestCase
+  setup do
+    # don't pollute the global tracer
+    @tracer = get_test_tracer
+    Rails.configuration.datadog_trace[:tracer] = @tracer
+  end
+
+  teardown do
+    reset_config()
+  end
+
   test 'the configuration is correctly called' do
     assert Rails.configuration.datadog_trace[:enabled]
     assert Rails.configuration.datadog_trace[:auto_instrument]
@@ -11,9 +21,46 @@ class TracerTest < ActionController::TestCase
     assert Rails.configuration.datadog_trace[:tracer]
   end
 
-  test 'a default service is properly set' do
-    Datadog::Contrib::Rails::Framework.configure({})
+  test 'a default service and database should be properly set' do
+    tracer = Datadog.tracer
+    assert_equal(
+      tracer.services,
+      'rails-app' => {
+        'app' => 'rails', 'app_type' => 'web'
+      },
+      'postgres' => {
+        'app' => 'postgres', 'app_type' => 'db'
+      }
+    )
+  end
+
+  test 'database service can be changed by user' do
+    update_config(:default_database_service, 'customer-db')
     tracer = Rails.configuration.datadog_trace[:tracer]
-    assert_equal(tracer.services, 'rails-app' => { 'app' => 'rails', 'app_type' => 'web' })
+
+    assert_equal(
+      tracer.services,
+      'rails-app' => {
+        'app' => 'rails', 'app_type' => 'web'
+      },
+      'customer-db' => {
+        'app' => 'postgres', 'app_type' => 'db'
+      }
+    )
+  end
+
+  test 'application service can be changed by user' do
+    update_config(:default_service, 'my-custom-app')
+    tracer = Rails.configuration.datadog_trace[:tracer]
+
+    assert_equal(
+      tracer.services,
+      'my-custom-app' => {
+        'app' => 'rails', 'app_type' => 'web'
+      },
+      'postgres' => {
+        'app' => 'postgres', 'app_type' => 'db'
+      }
+    )
   end
 end
