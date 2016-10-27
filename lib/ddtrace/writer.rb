@@ -10,8 +10,8 @@ module Datadog
 
     HOSTNAME = 'localhost'.freeze
     PORT = '7777'.freeze
-    SPANS_ENDPOINT = '/spans'.freeze
-    SERVICES_ENDPOINT = '/services'.freeze
+    SPANS_ENDPOINT = '/v0.2/traces'.freeze
+    SERVICES_ENDPOINT = '/v0.2/services'.freeze
 
     def initialize(options = {})
       # writer and transport parameters
@@ -63,7 +63,7 @@ module Datadog
       # FIXME[matt]: if there's an error, requeue; the new Transport can
       # behave differently if it's a server or a client error. Don't requeue
       # if we have a client error?
-      spans = Datadog::Encoding.encode_spans(traces.flatten)
+      spans = Datadog::Encoding.encode_spans(traces)
       transport.send(SPANS_ENDPOINT, spans)
 
       # TODO[all]: is it really required? it's a number that will grow indefinitely

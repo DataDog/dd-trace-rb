@@ -10,7 +10,7 @@ Metrics/LineLength:
 # so periodic disabling and re-running to inspect values is suggested.
 
 Metrics/AbcSize:
-  Max: 40
+  Max: 50
 
 # TODO: As refactors continue, this should drop. However, the goal of
 # 10 lines in a method may be a little lofty.
