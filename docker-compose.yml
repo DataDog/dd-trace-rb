@@ -7,3 +7,12 @@ postgres:
         - POSTGRES_DB=$TEST_POSTGRES_DB
     ports:
         - "127.0.0.1:${TEST_POSTGRES_PORT}:5432"
+
+mysql:
+    image: mysql:5.6
+    environment:
+        - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
+        - MYSQL_PASSWORD=$TEST_MYSQL_PASSWORD
+        - MYSQL_USER=$TEST_MYSQL_USER
+    ports:
+        - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
