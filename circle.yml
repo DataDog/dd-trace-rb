@@ -21,6 +21,8 @@ dependencies:
     - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do gem install bundler
     - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do bundle install
     - rvm $RAILS5_VERSIONS --verbose do appraisal install
+    - rvm $JRUBY_VERSIONS --verbose do appraisal jruby-rails-3-pg bundle install
+    - rvm $JRUBY_VERSIONS --verbose do appraisal jruby-rails-4-pg bundle install
     - rvm 2.1.10 --verbose do appraisal rails-3-pg bundle install
     - rvm 2.1.10 --verbose do appraisal rails-3-mysql2 bundle install
     - rvm 2.1.10 --verbose do appraisal rails-4-pg bundle install
@@ -36,6 +38,8 @@ test:
     - rvm $MRI_VERSIONS --verbose do appraisal rails-4-mysql2 rake rails
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails-5-pg rake rails
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails-5-mysql2 rake rails
+    - rvm $JRUBY_VERSIONS --verbose do appraisal jruby-rails-3-pg rake rails
+    - rvm $JRUBY_VERSIONS --verbose do appraisal jruby-rails-4-pg rake rails
     - rvm 2.3.1 --verbose do rake benchmark
     - rvm jruby-9.1.5.0 --verbose do rake benchmark
 
