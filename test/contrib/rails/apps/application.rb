@@ -6,7 +6,7 @@ module RailsTrace
     # common settings between all Rails versions
     def initialize(*args)
       super(*args)
-      config.cache_store = :file_store, './tmp/cache/'
+      config.cache_store = :file_store, '/tmp/ddtrace-rb/cache/'
       config.eager_load = false
       config.secret_key_base = 'not_so_secret'
     end
