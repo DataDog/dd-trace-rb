@@ -2,8 +2,9 @@ machine:
   services:
     - docker
   environment:
-    ALL_VERSIONS: 2.3.1,2.2.5,2.1.10
+    MRI_VERSIONS: 2.3.1,2.2.5,2.1.10
     RAILS5_VERSIONS: 2.3.1,2.2.5
+    JRUBY_VERSIONS: jruby-9.1.5.0
 
 dependencies:
   pre:
@@ -15,9 +16,10 @@ dependencies:
     - gem install builder
     - bundle install
     - rvm get head
-    - rvm install $ALL_VERSIONS
-    - rvm $ALL_VERSIONS --verbose do gem install bundler
-    - rvm $ALL_VERSIONS --verbose do bundle install
+    - rvm install $MRI_VERSIONS
+    - rvm install $JRUBY_VERSIONS
+    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do gem install bundler
+    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do bundle install
     - rvm $RAILS5_VERSIONS --verbose do appraisal install
     - rvm 2.1.10 --verbose do appraisal rails-3-pg bundle install
     - rvm 2.1.10 --verbose do appraisal rails-3-mysql2 bundle install
@@ -27,14 +29,15 @@ dependencies:
 test:
   override:
     - rvm 2.1.10 --verbose do rake rubocop
-    - rvm $ALL_VERSIONS --verbose do rake test
-    - rvm $ALL_VERSIONS --verbose do appraisal rails-3-pg rake rails
-    - rvm $ALL_VERSIONS --verbose do appraisal rails-3-mysql2 rake rails
-    - rvm $ALL_VERSIONS --verbose do appraisal rails-4-pg rake rails
-    - rvm $ALL_VERSIONS --verbose do appraisal rails-4-mysql2 rake rails
+    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do rake test
+    - rvm $MRI_VERSIONS --verbose do appraisal rails-3-pg rake rails
+    - rvm $MRI_VERSIONS --verbose do appraisal rails-3-mysql2 rake rails
+    - rvm $MRI_VERSIONS --verbose do appraisal rails-4-pg rake rails
+    - rvm $MRI_VERSIONS --verbose do appraisal rails-4-mysql2 rake rails
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails-5-pg rake rails
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails-5-mysql2 rake rails
     - rvm 2.3.1 --verbose do rake benchmark
+    - rvm jruby-9.1.5.0 --verbose do rake benchmark
 
 deployment:
   develop:
