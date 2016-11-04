@@ -39,7 +39,7 @@ class TracingController < ActionController::Base
   end
 
   def full
-    @value = Rails.cache.read('empty-key')
+    @value = Rails.cache.write('empty-key', 50)
     render 'views/tracing/full.html.erb'
   end
 end
