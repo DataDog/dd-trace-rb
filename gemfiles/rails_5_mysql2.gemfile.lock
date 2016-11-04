@@ -1,7 +1,7 @@
 PATH
   remote: ../
   specs:
-    ddtrace (0.1.0)
+    ddtrace (0.1.4)
 
 GEM
   remote: https://rubygems.org/
@@ -47,7 +47,7 @@ GEM
       bundler
       rake
       thor (>= 0.14.0)
-    arel (7.1.2)
+    arel (7.1.4)
     ast (2.3.0)
     builder (3.2.2)
     concurrent-ruby (1.0.2)
@@ -65,12 +65,12 @@ GEM
     mime-types-data (3.2016.0521)
     mini_portile2 (2.1.0)
     minitest (5.9.1)
+    mysql2 (0.4.5)
     nio4r (1.2.1)
     nokogiri (1.6.8.1)
       mini_portile2 (~> 2.1.0)
     parser (2.3.1.4)
       ast (~> 2.2)
-    pg (0.19.0)
     powerpack (0.1.1)
     rack (2.0.1)
     rack-test (0.6.3)
@@ -131,7 +131,7 @@ DEPENDENCIES
   bundler (~> 1.12)
   ddtrace!
   minitest (~> 5.0)
-  pg
+  mysql2
   rails (= 5.0.0.1)
   rake (~> 10.0)
   rubocop (~> 0.43)

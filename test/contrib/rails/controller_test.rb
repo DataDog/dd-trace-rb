@@ -74,12 +74,13 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(spans.length, 4)
 
     # assert the spans
+    adapter_name = get_adapter_name()
     span_cache = spans[0]
     span_database = spans[1]
     span_template = spans[2]
     span_request = spans[3]
     assert_equal(span_cache.name, 'rails.cache')
-    assert_equal(span_database.name, 'postgres.query')
+    assert_equal(span_database.name, "#{adapter_name}.query")
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_request.name, 'rails.request')
 

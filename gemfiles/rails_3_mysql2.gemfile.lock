@@ -1,7 +1,7 @@
 PATH
   remote: ../
   specs:
-    ddtrace (0.1.0)
+    ddtrace (0.1.4)
 
 GEM
   remote: https://rubygems.org/
@@ -27,6 +27,10 @@ GEM
       activesupport (= 3.2.22.5)
       arel (~> 3.0.2)
       tzinfo (~> 0.3.29)
+    activerecord-mysql-adapter (0.0.1)
+      activerecord (>= 3.2.9)
+      activesupport (>= 3.2.9)
+      mysql (>= 2.9.0)
     activeresource (3.2.22.5)
       activemodel (= 3.2.22.5)
       activesupport (= 3.2.22.5)
@@ -51,9 +55,10 @@ GEM
     mime-types (1.25.1)
     minitest (5.9.1)
     multi_json (1.12.1)
+    mysql (2.9.1)
+    mysql2 (0.3.21)
     parser (2.3.1.4)
       ast (~> 2.2)
-    pg (0.19.0)
     polyglot (0.3.5)
     power_assert (0.3.1)
     powerpack (0.1.1)
@@ -102,18 +107,19 @@ GEM
     treetop (1.4.15)
       polyglot
       polyglot (>= 0.3.1)
-    tzinfo (0.3.51)
+    tzinfo (0.3.52)
     unicode-display_width (1.1.1)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  activerecord-mysql-adapter
   appraisal (~> 2.1)
   bundler (~> 1.12)
   ddtrace!
   minitest (~> 5.0)
-  pg
+  mysql2 (= 0.3.21)
   rails (= 3.2.22.5)
   rake (~> 10.0)
   rubocop (~> 0.43)

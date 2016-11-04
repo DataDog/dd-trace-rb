@@ -12,6 +12,11 @@ def get_test_tracer
   Datadog::Tracer.new(writer: FauxWriter.new)
 end
 
+def get_adapter_name
+  adapter_name = ::ActiveRecord::Base.connection_config[:adapter]
+  Datadog::Contrib::Rails::Utils.normalize_vendor(adapter_name)
+end
+
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Writer
   def initialize
