@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    ddtrace (0.1.0)
+    ddtrace (0.1.4)
 
 GEM
   remote: https://rubygems.org/
@@ -39,4 +39,4 @@ DEPENDENCIES
   rubocop (~> 0.43)
 
 BUNDLED WITH
-   1.12.5
+   1.13.4

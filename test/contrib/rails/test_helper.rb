@@ -4,17 +4,32 @@ require 'minitest/autorun'
 
 require 'rails'
 
+# load the right adapter according to installed gem
+begin
+  require 'pg'
+  connector = 'postgres://postgres:postgres@127.0.0.1:55432/postgres'
+rescue LoadError
+  puts 'pg gem not found, trying another connector'
+end
+
+begin
+  require 'mysql2'
+  connector = 'mysql2://root:root@127.0.0.1:53306/mysql'
+rescue LoadError
+  puts 'mysql2 gem not found, trying another connector'
+end
+
 # logger
 logger = Logger.new(STDOUT)
 logger.level = Logger::INFO
 
 # Rails settings
 ENV['RAILS_ENV'] = 'test'
-ENV['DATABASE_URL'] = 'postgres://postgres:postgres@127.0.0.1:55432/postgres'
+ENV['DATABASE_URL'] = connector
 
 # switch Rails import according to installed
 # version; this is controlled with Appraisals
-logger.info "Testing against Rails #{Rails.version}"
+logger.info "Testing against Rails #{Rails.version} with connector #{connector}"
 
 case Rails.version
 when '5.0.0.1'
