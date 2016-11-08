@@ -25,7 +25,8 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     assert_equal(span.service, adapter_name)
     assert_equal(span.get_tag('rails.db.vendor'), adapter_name)
     assert_includes(span.resource, 'SELECT COUNT(*) FROM')
-    assert_includes(span.get_tag('sql.query'), 'SELECT COUNT(*) FROM')
+    # ensure that the sql.query tag is not set
+    assert_equal(span.get_tag('sql.query'), nil)
     assert span.to_hash[:duration] > 0
   end
 

@@ -28,8 +28,10 @@ module Datadog
             span_type: span_type
           )
 
+          # the span should have the query ONLY in the Resource attribute,
+          # so that the ``sql.query`` tag will be set in the agent with an
+          # obfuscated version
           span.span_type = Datadog::Ext::SQL::TYPE
-          span.set_tag(Datadog::Ext::SQL::QUERY, payload.fetch(:sql))
           span.set_tag('rails.db.vendor', adapter_name)
           span.start_time = start
           span.finish_at(finish)
