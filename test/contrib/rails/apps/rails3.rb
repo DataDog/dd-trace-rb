@@ -4,7 +4,7 @@ require 'rails/test_help'
 require 'ddtrace'
 
 class Rails3 < Rails::Application
-  config.cache_store = :memory_store
+  config.cache_store = :file_store, '/tmp/ddtrace-rb/cache/'
   config.secret_key_base = 'not_so_secret'
   config.active_support.test_order = :random
   config.active_support.deprecation = :stderr

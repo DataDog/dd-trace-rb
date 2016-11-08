@@ -5,9 +5,13 @@ class SpanTest < Minitest::Test
   def test_span_finish
     tracer = nil
     span = Datadog::Span.new(tracer, 'my.op')
+    # the start_time must be set
+    sleep(0.001)
     assert span.start_time < Time.now.utc
     assert_equal(span.end_time, nil)
     span.finish
+    # the end_time must be set
+    sleep(0.001)
     assert span.end_time < Time.now.utc
   end
 

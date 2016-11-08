@@ -76,9 +76,9 @@ so that any operation instrumented by the API is traced.
 
 The supported versions are:
 
-* \Rails 3.2
-* \Rails 4.2
-* \Rails 5.0
+* \Rails 3.2 (MRI interpreter, JRuby is experimental)
+* \Rails 4.2 (MRI interpreter, JRuby is experimental)
+* \Rails 5.0 (MRI interpreter)
 
 The currently supported web server are:
 * Puma 2.16+ and 3.6+
@@ -188,5 +188,6 @@ The \Datadog Trace Client has been tested with the following Ruby versions:
 * Ruby MRI 2.1
 * Ruby MRI 2.2
 * Ruby MRI 2.3
+* JRuby 9.1.5 (experimental)
 
 Other versions aren't yet officially supported.

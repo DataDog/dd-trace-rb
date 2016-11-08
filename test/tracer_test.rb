@@ -8,6 +8,7 @@ class TracerTest < Minitest::Test
     tracer.trace('something') do |s|
       assert_equal(s.name, 'something')
       assert_equal(s.end_time, nil)
+      sleep(0.001)
     end
 
     spans = tracer.writer.spans()
