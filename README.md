@@ -62,10 +62,13 @@ to trace requests to the home page:
 You can launch all tests using the following rake command:
 
     $ rake test                     # tracer tests
-    $ appraisal rails-3 rake rails  # rails 3 integration tests
-    $ appraisal rails-4 rake rails  # rails 4 integration tests
-    $ appraisal rails-5 rake rails  # rails 5 integration tests
-    $ appraisal rake rails          # tests for all rails versions
+    $ appraisal rake rails          # tests Rails matrix
+
+Available appraisals are:
+
+* ``rails-{3,4,5}-pg``: Rails with PostgreSQL
+* ``rails-{3,4,5}-mysql2``: Rails with MySQL
+* ``jruby-rails-{3,4}-pg``: Rails with PostgreSQL, using JRuby 9k interpreter
 
 The test suite requires many backing services (PostgreSQL, MySQL, Redis, ...) and we're using
 ``docker`` and ``docker-compose`` to start these services in the CI.
