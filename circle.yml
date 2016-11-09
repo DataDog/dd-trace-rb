@@ -9,7 +9,7 @@ machine:
 dependencies:
   cache_directories:
     # Cache Ruby binaries and gems
-    - "~/.rvm"
+    - "/opt/circleci/.rvm/"
   pre:
     # we should use an old docker-compose because CircleCI supports
     # only docker-engine==1.9
