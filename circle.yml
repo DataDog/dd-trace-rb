@@ -15,12 +15,13 @@ dependencies:
     # only docker-engine==1.9
     - pip install docker-compose==1.7.1
     - docker-compose up -d | cat
-  override:
+    # configure Ruby interpreters
     - gem install builder
     - bundle install
     - rvm get head
     - rvm install $MRI_VERSIONS
     - rvm install $JRUBY_VERSIONS
+  override:
     - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do gem install bundler
     - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do bundle install
     - rvm $RAILS5_VERSIONS --verbose do appraisal install
