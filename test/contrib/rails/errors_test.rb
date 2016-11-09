@@ -32,7 +32,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span.get_tag('error.type'), 'ZeroDivisionError')
     assert_equal(span.get_tag('error.msg'), 'divided by 0')
-    assert span.to_hash[:duration] > 0
   end
 
   test 'error in the template must be traced' do
@@ -51,7 +50,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.get_tag('rails.layout'), 'layouts/application')
     assert_equal(span_template.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_template.get_tag('error.msg'), 'divided by 0')
-    assert span_template.to_hash[:duration] > 0
 
     span_request = spans[1]
     assert_equal(span_request.name, 'rails.request')
@@ -65,7 +63,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_request.get_tag('error.msg'), 'divided by 0')
-    assert span_request.to_hash[:duration] > 0
   end
 
   test 'error in the template partials must be traced' do
@@ -83,7 +80,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_inner_error.html.erb')
     assert_equal(span_partial.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_partial.get_tag('error.msg'), 'divided by 0')
-    assert span_partial.to_hash[:duration] > 0
 
     span_template = spans[1]
     assert_equal(span_template.name, 'rails.render_template')
@@ -94,7 +90,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.get_tag('rails.layout'), 'layouts/application')
     assert_equal(span_template.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_template.get_tag('error.msg'), 'divided by 0')
-    assert span_template.to_hash[:duration] > 0
 
     span_request = spans[2]
     assert_equal(span_request.name, 'rails.request')
@@ -108,6 +103,5 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_request.get_tag('error.msg'), 'divided by 0')
-    assert span_request.to_hash[:duration] > 0
   end
 end

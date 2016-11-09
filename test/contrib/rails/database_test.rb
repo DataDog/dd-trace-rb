@@ -27,7 +27,6 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     assert_includes(span.resource, 'SELECT COUNT(*) FROM')
     # ensure that the sql.query tag is not set
     assert_equal(span.get_tag('sql.query'), nil)
-    assert span.to_hash[:duration] > 0
   end
 
   test 'doing a database call uses the proper service name if it is changed' do

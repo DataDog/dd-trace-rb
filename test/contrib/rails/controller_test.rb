@@ -29,7 +29,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span.get_tag('http.status_code'), '200')
     assert_equal(span.get_tag('rails.route.action'), 'index')
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
-    assert span.to_hash[:duration] > 0
   end
 
   test 'template rendering is properly traced' do
@@ -44,7 +43,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span.resource, 'rails.render_template')
     assert_equal(span.get_tag('rails.template_name'), 'tracing/index.html.erb')
     assert_equal(span.get_tag('rails.layout'), 'layouts/application')
-    assert span.to_hash[:duration] > 0
   end
 
   test 'template partial rendering is properly traced' do
@@ -61,9 +59,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.resource, 'rails.render_partial')
     assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_body.html.erb')
     assert_equal(span_partial.parent, span_template)
-
-    assert span_template.to_hash[:duration] > 0
-    assert span_partial.to_hash[:duration] > 0
   end
 
   test 'a full request with database access on the template' do
@@ -89,12 +84,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.parent, span_request)
     assert_equal(span_database.parent, span_template)
     assert_equal(span_cache.parent, span_request)
-
-    # assert they're finished
-    assert span_request.to_hash[:duration] > 0
-    assert span_template.to_hash[:duration] > 0
-    assert span_database.to_hash[:duration] > 0
-    assert span_cache.to_hash[:duration] > 0
   end
 
   test 'multiple calls should not leave an unfinished span in the local thread buffer' do

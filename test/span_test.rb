@@ -13,6 +13,7 @@ class SpanTest < Minitest::Test
     # the end_time must be set
     sleep(0.001)
     assert span.end_time < Time.now.utc
+    assert span.to_hash[:duration] > 0
   end
 
   def test_span_ids
