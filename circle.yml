@@ -5,19 +5,24 @@ machine:
     MRI_VERSIONS: 2.3.1,2.2.5,2.1.10
     RAILS5_VERSIONS: 2.3.1,2.2.5
     JRUBY_VERSIONS: jruby-9.1.5.0
+    JRUBY_OPTS: --dev
 
 dependencies:
+  cache_directories:
+    # Cache Ruby binaries and gems
+    - "/opt/circleci/.rvm/"
   pre:
     # we should use an old docker-compose because CircleCI supports
     # only docker-engine==1.9
     - pip install docker-compose==1.7.1
     - docker-compose up -d | cat
-  override:
+    # configure Ruby interpreters
     - gem install builder
     - bundle install
     - rvm get head
     - rvm install $MRI_VERSIONS
     - rvm install $JRUBY_VERSIONS
+  override:
     - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do gem install bundler
     - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do bundle install
     - rvm $RAILS5_VERSIONS --verbose do appraisal install
