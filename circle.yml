@@ -5,6 +5,7 @@ machine:
     MRI_VERSIONS: 2.3.1,2.2.5,2.1.10
     RAILS5_VERSIONS: 2.3.1,2.2.5
     JRUBY_VERSIONS: jruby-9.1.5.0
+    JRUBY_OPTS: --dev
 
 dependencies:
   cache_directories:
