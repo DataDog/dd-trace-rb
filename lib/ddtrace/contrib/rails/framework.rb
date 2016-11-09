@@ -21,6 +21,7 @@ module Datadog
             enabled: true,
             auto_instrument: true,
             default_service: 'rails-app',
+            default_cache_service: 'rails-cache',
             template_base_path: 'views/',
             tracer: Datadog.tracer
           }
@@ -35,6 +36,11 @@ module Datadog
             datadog_config[:default_service],
             'rails',
             Datadog::Ext::AppTypes::WEB
+          )
+          datadog_config[:tracer].set_service_info(
+            datadog_config[:default_cache_service],
+            'rails',
+            Datadog::Ext::AppTypes::CACHE
           )
 
           # set default database service details and store it in the configuration

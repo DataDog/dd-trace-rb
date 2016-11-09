@@ -31,6 +31,9 @@ class TracerTest < ActionController::TestCase
       },
       adapter_name => {
         'app' => adapter_name, 'app_type' => 'db'
+      },
+      'rails-cache' => {
+        'app' => 'rails', 'app_type' => 'cache'
       }
     )
   end
@@ -47,6 +50,9 @@ class TracerTest < ActionController::TestCase
       },
       'customer-db' => {
         'app' => adapter_name, 'app_type' => 'db'
+      },
+      'rails-cache' => {
+        'app' => 'rails', 'app_type' => 'cache'
       }
     )
   end
@@ -63,6 +69,28 @@ class TracerTest < ActionController::TestCase
       },
       adapter_name => {
         'app' => adapter_name, 'app_type' => 'db'
+      },
+      'rails-cache' => {
+        'app' => 'rails', 'app_type' => 'cache'
+      }
+    )
+  end
+
+  test 'cache service can be changed by user' do
+    update_config(:default_cache_service, 'service-cache')
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    adapter_name = get_adapter_name()
+
+    assert_equal(
+      tracer.services,
+      'rails-app' => {
+        'app' => 'rails', 'app_type' => 'web'
+      },
+      adapter_name => {
+        'app' => adapter_name, 'app_type' => 'db'
+      },
+      'service-cache' => {
+        'app' => 'rails', 'app_type' => 'cache'
       }
     )
   end

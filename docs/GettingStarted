@@ -135,6 +135,7 @@ of the Datadog tracer, you can override the following defaults:
       enabled: true,
       auto_instrument: true,
       default_service: 'rails-app',
+      default_cache_service: 'rails-cache',
       template_base_path: 'views/',
       tracer: Datadog.tracer
     }
@@ -150,6 +151,8 @@ The available settings are:
   a meaningful name
 * +default_database_service+: set the database service name used by the tracer. By default the tracer uses the
   configured adapter name, so if you're using PostgreSQL it will be simply +postgres+.
+* +default_cache_service+: set the cache service name used by the tracer. Usually this configuration must be
+  updated with a meaningful name
 * +template_base_path+: used when the template name is parsed in the auto instrumented code. If you don't store
   your templates in the +views/+ folder, you may need to change this value
 * +tracer+: is the global tracer used by the tracing application. Usually you don't need to change that value

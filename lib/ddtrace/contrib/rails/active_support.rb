@@ -24,11 +24,10 @@ module Datadog
 
         def self.trace_cache(resource, _name, start, finish, _id, payload)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          span_type = Datadog::Ext::CACHE::TYPE
+          service = ::Rails.configuration.datadog_trace.fetch(:default_cache_service)
+          type = Datadog::Ext::CACHE::TYPE
 
-          span = tracer.trace('rails.cache')
-          span.span_type = span_type
-          span.resource = resource
+          span = tracer.trace('rails.cache', service: service, span_type: type, resource: resource)
           span.set_tag('rails.cache.backend', ::Rails.configuration.cache_store)
           span.set_tag('rails.cache.key', payload.fetch(:key))
           span.start_time = start

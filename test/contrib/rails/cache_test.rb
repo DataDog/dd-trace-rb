@@ -24,6 +24,7 @@ class CacheTracingTest < ActionController::TestCase
     assert_equal(span.name, 'rails.cache')
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'GET')
+    assert_equal(span.service, 'rails-cache')
     assert_equal(span.get_tag('rails.cache.backend').to_s, '[:file_store, "/tmp/ddtrace-rb/cache/"]')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
     assert span.to_hash[:duration] > 0
@@ -38,6 +39,7 @@ class CacheTracingTest < ActionController::TestCase
     assert_equal(span.name, 'rails.cache')
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'SET')
+    assert_equal(span.service, 'rails-cache')
     assert_equal(span.get_tag('rails.cache.backend').to_s, '[:file_store, "/tmp/ddtrace-rb/cache/"]')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
     assert span.to_hash[:duration] > 0
@@ -52,8 +54,24 @@ class CacheTracingTest < ActionController::TestCase
     assert_equal(span.name, 'rails.cache')
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'DELETE')
+    assert_equal(span.service, 'rails-cache')
     assert_equal(span.get_tag('rails.cache.backend').to_s, '[:file_store, "/tmp/ddtrace-rb/cache/"]')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
     assert span.to_hash[:duration] > 0
+  end
+
+  test 'doing a cache call uses the proper service name if it is changed' do
+    # update database configuration
+    update_config(:default_cache_service, 'service-cache')
+
+    # make the cache write and assert the proper spans
+    Rails.cache.write('custom-key', 50)
+    spans = @tracer.writer.spans()
+    assert_equal(spans.length, 1)
+    span = spans.first
+    assert_equal(span.service, 'service-cache')
+
+    # reset the original configuration
+    reset_config()
   end
 end
