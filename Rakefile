@@ -48,6 +48,9 @@ task :'release:gem' do
   sh 'mkdir -p ./rubygems/gems/'
   sh 'mkdir -p ./rubygems/quick/'
 
+  # copy previous builds
+  sh 'cp ./rubygems/gems/* ./gems/'
+
   # build the gem
   Rake::Task['build'].execute
 
