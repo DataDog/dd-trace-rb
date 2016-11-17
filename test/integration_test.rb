@@ -1,0 +1,62 @@
+require 'helper'
+require 'ddtrace'
+require 'ddtrace/tracer'
+require 'thread'
+
+class TracerIntegrationTest < Minitest::Test
+  def agent_receives_span_step1(tracer)
+    sleep(2.0) # > 1 sec
+    stats = tracer.writer.stats
+    assert_equal(0, stats[:traces_flushed])
+    assert_equal(0, stats[:transport][:success])
+    assert_equal(0, stats[:transport][:client_error])
+    assert_equal(0, stats[:transport][:server_error])
+    assert_equal(0, stats[:transport][:internal_error])
+  end
+
+  def agent_receives_span_step2(tracer)
+    span = Datadog::Span.new(tracer, 'my.op')
+    span.service = 'my.service'
+    sleep(0.001)
+    span.finish()
+
+    sleep(2.0) # > 1 sec
+    stats = tracer.writer.stats
+    assert_equal(1, stats[:traces_flushed])
+    # number of successes can be 1 or 2 because services count as one flush too
+    assert_operator(1, :<=, stats[:transport][:success])
+    assert_equal(0, stats[:transport][:client_error])
+    assert_equal(0, stats[:transport][:server_error])
+    assert_equal(0, stats[:transport][:internal_error])
+
+    stats[:transport][:success]
+  end
+
+  def agent_receives_span_step3(tracer, previous_success)
+    span = Datadog::Span.new(tracer, 'my.op')
+    span.service = 'my.service'
+    sleep(0.001)
+    span.finish()
+
+    sleep(2.0) # > 1 sec
+    stats = tracer.writer.stats
+    assert_equal(2, stats[:traces_flushed])
+    assert_operator(previous_success, :<, stats[:transport][:success])
+    assert_equal(0, stats[:transport][:client_error])
+    assert_equal(0, stats[:transport][:server_error])
+    assert_equal(0, stats[:transport][:internal_error])
+  end
+
+  def test_agent_receives_span
+    # test that the agent really receives the spans
+    # this test is quite long since it waits internal buffers flush
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
+
+    tracer = Datadog::Tracer.new
+    tracer.configure(enabled: true, hostname: '127.0.0.1', port: '7777')
+
+    agent_receives_span_step1(tracer)
+    success = agent_receives_span_step2(tracer)
+    agent_receives_span_step3(tracer, success)
+  end
+end

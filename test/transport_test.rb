@@ -1,6 +1,7 @@
 require 'helper'
 
 require 'ddtrace/transport'
+require 'ddtrace/encoding'
 
 class UtilsTest < Minitest::Test
   def setup
@@ -27,5 +28,32 @@ class UtilsTest < Minitest::Test
     # a nil answer should not crash the thread
     @transport.handle_response(nil)
     assert true
+  end
+
+  def test_send
+    skip unless ENV['TEST_DATADOG_INTEGRATION']
+    traces = get_test_traces(2)
+    spans = Datadog::Encoding.encode_spans(traces)
+    code = @transport.send('/v0.2/traces', spans)
+    assert_equal true, @transport.success?(code), "transport.send failed, code: #{code}"
+  end
+
+  def test_send_server_error
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a runnning agent
+    bad_transport = Datadog::HTTPTransport.new('localhost', '8888')
+    traces = get_test_traces(2)
+    spans = Datadog::Encoding.encode_spans(traces)
+    code = bad_transport.send('/v0.2/traces', spans)
+    assert_equal true, bad_transport.server_error?(code),
+                 "transport.send did not fail (it should have failed) code: #{code}"
+  end
+
+  def test_send_404
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
+    traces = get_test_traces(2)
+    spans = Datadog::Encoding.encode_spans(traces)
+    code = @transport.send('/admin.php', spans)
+    assert_equal 404, code,
+                 "transport.send did not return 404 (it should have returned 404) code: #{code}"
   end
 end

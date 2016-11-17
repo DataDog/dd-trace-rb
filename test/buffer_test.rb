@@ -1,3 +1,5 @@
+require 'helper'
+
 require 'minitest'
 require 'minitest/autorun'
 
@@ -56,16 +58,15 @@ class TraceBufferTest < Minitest::Test
   def test_trace_buffer_pop
     # the trace buffer must return all internal traces
     buffer = Datadog::TraceBuffer.new(0)
-    span1 = Datadog::Span.new(nil, 'client.testing')
-    span2 = Datadog::Span.new(nil, 'client.testing')
-    buffer.push(span1)
-    buffer.push(span2)
+    input_traces = get_test_traces(2)
+    buffer.push(input_traces[0])
+    buffer.push(input_traces[1])
     # collect traces
-    traces = buffer.pop()
+    output_traces = buffer.pop()
     # the buffer must be empty
     assert buffer.empty?
-    assert_equal(traces.length, 2)
-    assert_includes(traces, span1)
-    assert_includes(traces, span2)
+    assert_equal(output_traces.length, 2)
+    assert_includes(output_traces, input_traces[0])
+    assert_includes(output_traces, input_traces[1])
   end
 end
