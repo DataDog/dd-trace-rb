@@ -14,12 +14,19 @@ module Datadog
   def self.tracer
     @tracer
   end
+
+  def self.tracer=(_tracer)
+    @tracer = tracer
+  end
 end
 
 # Datadog auto instrumentation for frameworks
 if defined?(Rails::VERSION)
   if Rails::VERSION::MAJOR.to_i >= 3
     require 'ddtrace/contrib/rails/framework'
+    if true # TODO[Aaditya]
+      require 'ddtrace/contrib/elasticsearch/core'
+    end
 
     module Datadog
       # Run the auto instrumentation directly after the initialization of the application and
@@ -38,3 +45,4 @@ if defined?(Rails::VERSION)
         'auto-instrumentation for core components will be disabled.'
   end
 end
+
