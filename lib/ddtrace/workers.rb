@@ -7,10 +7,13 @@ module Datadog
     # will perform a task at regular intervals. The thread can be stopped
     # with the +stop()+ method and can start with the +start()+ method.
     class AsyncTransport
-      def initialize(interval, transport, buff_size, &task)
+      def initialize(interval, transport, queues, buff_size, &task)
         @task = task
         @interval = interval
-        @buffer = TraceBuffer.new(buff_size)
+        @buffers = {}
+        queues.each do |queue|
+          @buffers[queue] = TraceBuffer.new(buff_size)
+        end
         @transport = transport
 
         @worker = nil
@@ -20,11 +23,15 @@ module Datadog
       # Callback function that executes the +send()+ method. After the exeuction,
       # it reschedules itself using the internal +TimerTask+.
       def callback
-        return if @buffer.empty?
+        l = @buffers.values.collect(&:length).reduce(:+) # skip if no data
+        return if l <= 0
 
         begin
-          items = @buffer.pop()
-          @task.call(items, @transport)
+          items = []
+          @buffers.each do |_, buffer|
+            items = buffer.pop()
+            @task.call(items, @transport)
+          end
         rescue StandardError => e
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
@@ -57,8 +64,8 @@ module Datadog
 
       # Enqueue an item in the internal buffer. This operation is thread-safe
       # because uses the +TraceBuffer+ data structure.
-      def enqueue(item)
-        @buffer.push(item)
+      def enqueue(queue, item)
+        @buffers[queue].push(item)
       end
     end
   end
