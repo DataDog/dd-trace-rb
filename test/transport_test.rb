@@ -30,11 +30,19 @@ class UtilsTest < Minitest::Test
     assert true
   end
 
-  def test_send
-    skip unless ENV['TEST_DATADOG_INTEGRATION']
+  def test_send_traces
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a runnning agent
     traces = get_test_traces(2)
-    spans = Datadog::Encoding.encode_spans(traces)
-    code = @transport.send('/v0.2/traces', spans)
+    encoded_spans = Datadog::Encoding.encode_spans(traces)
+    code = @transport.send('/v0.2/traces', encoded_spans)
+    assert_equal true, @transport.success?(code), "transport.send failed, code: #{code}"
+  end
+
+  def test_send_services
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a runnning agent
+    services = get_test_services
+    encoded_services = Datadog::Encoding.encode_services(services)
+    code = @transport.send('/v0.2/services', encoded_services)
     assert_equal true, @transport.success?(code), "transport.send failed, code: #{code}"
   end
 

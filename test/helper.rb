@@ -32,6 +32,12 @@ def get_test_traces(n)
   traces
 end
 
+# Return some test services
+def get_test_services
+  { 'rest-api' => { 'app' => 'rails', 'app_type' => 'web' },
+    'master' => { 'app' => 'postgres', 'app_type' => 'db' } }
+end
+
 def get_adapter_name
   adapter_name = ::ActiveRecord::Base.connection_config[:adapter]
   Datadog::Contrib::Rails::Utils.normalize_vendor(adapter_name)
