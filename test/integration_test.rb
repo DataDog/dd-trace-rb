@@ -5,7 +5,6 @@ require 'thread'
 
 class TracerIntegrationTest < Minitest::Test
   def agent_receives_span_step1(tracer)
-    sleep(2.0) # > 1 sec
     stats = tracer.writer.stats
     assert_equal(0, stats[:traces_flushed])
     assert_equal(0, stats[:transport][:success])
@@ -20,7 +19,12 @@ class TracerIntegrationTest < Minitest::Test
     sleep(0.001)
     span.finish()
 
-    sleep(2.0) # > 1 sec
+    # timeout after 3 seconds, waiting for 1 flush
+    30.times do
+      break if tracer.writer.stats[:traces_flushed] >= 1
+      sleep(0.1)
+    end
+
     stats = tracer.writer.stats
     assert_equal(1, stats[:traces_flushed])
     # number of successes can be 1 or 2 because services count as one flush too
@@ -38,7 +42,12 @@ class TracerIntegrationTest < Minitest::Test
     sleep(0.001)
     span.finish()
 
-    sleep(2.0) # > 1 sec
+    # timeout after 3 seconds, waiting for another flush
+    30.times do
+      break if tracer.writer.stats[:traces_flushed] >= 2
+      sleep(0.1)
+    end
+
     stats = tracer.writer.stats
     assert_equal(2, stats[:traces_flushed])
     assert_operator(previous_success, :<, stats[:transport][:success])
@@ -49,7 +58,7 @@ class TracerIntegrationTest < Minitest::Test
 
   def test_agent_receives_span
     # test that the agent really receives the spans
-    # this test is quite long since it waits internal buffers flush
+    # this test can be long since it waits internal buffers flush
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
 
     tracer = Datadog::Tracer.new
