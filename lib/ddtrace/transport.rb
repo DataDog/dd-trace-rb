@@ -15,6 +15,11 @@ module Datadog
       @headers = { 'Content-Type' => 'text/json' }
       @hostname = hostname
       @port = port
+      @mutex = Mutex.new
+      @count_success = 0
+      @count_client_error = 0
+      @count_server_error = 0
+      @count_internal_error = 0
     end
 
     # send data to the trace-agent; the method is thread-safe
@@ -27,6 +32,7 @@ module Datadog
       handle_response(response)
     rescue StandardError => e
       Datadog::Tracer.log.error(e.message)
+      500
     end
 
     def informational?(code)
@@ -57,13 +63,31 @@ module Datadog
 
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
+        @mutex.synchronize { @count_success += 1 }
       elsif client_error?(status_code)
         Datadog::Tracer.log.error("Client error: #{response.message}")
+        @mutex.synchronize { @count_client_error += 1 }
       elsif server_error?(status_code)
         Datadog::Tracer.log.error("Server error: #{response.message}")
+        @mutex.synchronize { @count_server_error += 1 }
       end
+
+      status_code
     rescue StandardError => e
       Datadog::Tracer.log.error(e.message)
+      @mutex.synchronize { @count_internal_error += 1 }
+      500
+    end
+
+    def stats
+      @mutex.synchronize do
+        {
+          success: @count_success,
+          client_error: @count_client_error,
+          server_error: @count_server_error,
+          internal_error: @count_internal_error
+        }
+      end
     end
   end
 end

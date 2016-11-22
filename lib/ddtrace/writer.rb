@@ -27,7 +27,6 @@ module Datadog
       @mutex_after_fork = Mutex.new
       @pid = nil
 
-      @mutex = Mutex.new
       @traces_flushed = 0
 
       # spawns two different workers for spans and services;
@@ -109,7 +108,7 @@ module Datadog
     def stats
       {
         traces_flushed: @traces_flushed,
-        traces_buffered: @trace_buffer.length()
+        transport: @transport.stats
       }
     end
   end

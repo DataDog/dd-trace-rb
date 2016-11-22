@@ -5,21 +5,7 @@ require 'ddtrace/encoding'
 class TracerTest < Minitest::Test
   def test_traces_encoding
     # test encoding for JSON format
-    traces = []
-    defaults = {
-      service: 'test-app',
-      resource: '/traces',
-      span_type: 'web'
-    }
-    traces << [
-      Datadog::Span.new(nil, 'client.testing', **defaults).finish(),
-      Datadog::Span.new(nil, 'client.testing', **defaults).finish()
-    ]
-    traces << [
-      Datadog::Span.new(nil, 'client.testing', **defaults).finish(),
-      Datadog::Span.new(nil, 'client.testing', **defaults).finish()
-    ]
-
+    traces = get_test_traces(2)
     to_send = Datadog::Encoding.encode_spans(traces)
 
     assert to_send.is_a? String
