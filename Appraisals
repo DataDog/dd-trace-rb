@@ -25,7 +25,7 @@ appraise "rails4-mysql2" do
   gem 'activerecord-jdbcmysql-adapter', platform: :jruby
 end
 
-if RUBY_PLATFORM != "java"
+if RUBY_VERSION >= "2.2.2" && RUBY_PLATFORM != "java"
   appraise "rails5-postgres" do
     gem "rails", "5.0.0.1"
     gem "pg", platform: :ruby
