@@ -27,13 +27,13 @@ module Datadog
         def self.normalize_vendor(vendor)
           case vendor
           when nil
-            return 'defaultdb'
+            'defaultdb'
           when 'sqlite3'
-            return 'sqlite'
+            'sqlite'
           when 'postgresql'
-            return 'postgres'
+            'postgres'
           else
-            return vendor
+            vendor
           end
         end
       end
