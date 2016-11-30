@@ -73,6 +73,13 @@ class FauxTransport < Datadog::HTTPTransport
   end
 end
 
+# Add class accessors for testing purposes
+module Datadog
+  class HTTPTransport
+    attr_accessor :traces_endpoint, :services_endpoint, :encoder, :headers
+  end
+end
+
 # update Datadog user configuration; you should pass:
 #
 # * +key+: the key that should be updated

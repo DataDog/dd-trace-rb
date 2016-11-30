@@ -75,4 +75,29 @@ class UtilsTest < Minitest::Test
     assert_equal nil, code,
                  "transport.send did not return 'nil'; code: #{code}"
   end
+
+  def test_traces_api_downgrade
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
+    traces = get_test_traces(2)
+
+    # defaults should use the Msgpack encoder
+    assert_equal true, @default_transport.encoder.is_a?(Datadog::Encoding::MsgpackEncoder),
+                 "transport doesn't use Msgpack encoder, found: #{@default_transport.encoder}"
+
+    assert_equal 'application/msgpack', @default_transport.headers['Content-Type'],
+                 "transport content-type is not msgpack, found: #{@default_transport.headers['Content-Type']}"
+
+    # make the call to a not existing endpoint (it will return 404)
+    @default_transport.traces_endpoint = '/v0.0/traces'.freeze
+    code = @default_transport.send(:traces, traces)
+
+    # HTTPTransport should downgrade the encoder and API level
+    assert_equal true, @default_transport.encoder.is_a?(Datadog::Encoding::JSONEncoder),
+                 "transport didn't downgrade the encoder, found: #{@default_transport.encoder}"
+    assert_equal 'application/json', @default_transport.headers['Content-Type'],
+                 "transport content-type is not json, found: #{@default_transport.headers['Content-Type']}"
+
+    # in any cases, the call should end with a success
+    assert_equal true, @default_transport.success?(code), "transport.send failed, code: #{code}"
+  end
 end

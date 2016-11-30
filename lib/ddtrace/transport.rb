@@ -19,7 +19,7 @@ module Datadog
       @traces_endpoint = '/v0.3/traces'.freeze
       @services_endpoint = '/v0.3/services'.freeze
       @compatibility_mode = false
-      @encoder = options.fetch(:encoder, Datadog::Encoding.get_encoder())
+      @encoder = options.fetch(:encoder, Datadog::Encoding::MsgpackEncoder.new())
 
       # overwrite the Content-type with the one chosen in the Encoder
       @headers = options.fetch(:headers, {})
@@ -38,14 +38,20 @@ module Datadog
       case endpoint
       when :services
         payload = @encoder.encode_services(data)
-        post(@services_endpoint, payload)
+        status_code = post(@services_endpoint, payload)
       when :traces
         payload = @encoder.encode_traces(data)
-        post(@traces_endpoint, payload)
+        status_code = post(@traces_endpoint, payload)
       else
         Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
-        nil
+        return nil
       end
+
+      return status_code unless downgrade?(status_code) && !@compatibility_mode
+
+      # the API endpoint is not available so we should downgrade the connection and re-try the call
+      downgrade!
+      send(endpoint, data)
     end
 
     # send data to the trace-agent; the method is thread-safe
@@ -59,6 +65,17 @@ module Datadog
     rescue StandardError => e
       Datadog::Tracer.log.error(e.message)
       500
+    end
+
+    # Downgrade the connection to a compatibility version of the HTTPTransport;
+    # this method should target a stable API that works whatever is the agent
+    # or the tracing client versions.
+    def downgrade!
+      @compatibility_mode = true
+      @traces_endpoint = '/v0.2/traces'.freeze
+      @services_endpoint = '/v0.2/services'.freeze
+      @encoder = Datadog::Encoding::JSONEncoder.new()
+      @headers['Content-Type'] = @encoder.content_type
     end
 
     def informational?(code)
@@ -81,6 +98,17 @@ module Datadog
       code.between?(500, 599)
     end
 
+    # receiving a 404 means that we're targeting an endpoint that is not available
+    # in the trace agent. Usually this means that we've an up-to-date tracing client,
+    # while running an obsolete agent.
+    # receiving a 415 means that we're using an unsupported content-type with an existing
+    # endpoint. Usually this means that we're using a newer encoder with a previous
+    # endpoint. In both cases, we're going to downgrade the transporter encoder so that
+    # it will target a stable API.
+    def downgrade?(code)
+      code == 404 || code == 415
+    end
+
     # handles the server response; here you can log the trace-agent response
     # or do something more complex to recover from a possible error. This
     # function is handled within the HTTP mutex.synchronize so it's thread-safe.
@@ -90,6 +118,8 @@ module Datadog
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
         @mutex.synchronize { @count_success += 1 }
+      elsif downgrade?(status_code)
+        Datadog::Tracer.log.debug("calling the endpoint but received #{status_code}; downgrading the API")
       elsif client_error?(status_code)
         Datadog::Tracer.log.error("Client error: #{response.message}")
         @mutex.synchronize { @count_client_error += 1 }

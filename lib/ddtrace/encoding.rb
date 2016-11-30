@@ -61,12 +61,5 @@ module Datadog
         MessagePack.pack(obj)
       end
     end
-
-    # Switching logic that choose the best encoder for the API transport.
-    # The default behavior is to use Msgpack, falling back to the Ruby
-    # built-in JSON encoder.
-    def self.get_encoder
-      JSONEncoder.new()
-    end
   end
 end
