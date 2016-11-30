@@ -9,11 +9,9 @@ if ::Rails::VERSION::MAJOR.to_i == 3
   # Reference: https://github.com/rails/rails/blob/v3.2.22.5/actionpack/lib/action_controller/test_case.rb#L45
   module ActionController
     module TemplateAssertions
-      def setup_subscriptions
-      end
+      def setup_subscriptions; end
 
-      def teardown_subscriptions
-      end
+      def teardown_subscriptions; end
     end
   end
 end
