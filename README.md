@@ -59,6 +59,11 @@ to trace requests to the home page:
 
 ### Testing
 
+Configure your environment through:
+
+    $ bundle install
+    $ appraisal install
+
 You can launch all tests using the following rake command:
 
     $ rake test                     # tracer tests
@@ -66,9 +71,11 @@ You can launch all tests using the following rake command:
 
 Available appraisals are:
 
-* ``rails-{3,4,5}-pg``: Rails with PostgreSQL
-* ``rails-{3,4,5}-mysql2``: Rails with MySQL
-* ``jruby-rails-{3,4}-pg``: Rails with PostgreSQL, using JRuby 9k interpreter
+* ``rails{3,4,5}-postgres``: Rails with PostgreSQL
+* ``rails{3,4,5}-mysql2``: Rails with MySQL
+
+jRuby includes only Rails 3.x and 4.x because the current implementation of jdbc drivers, don't support
+ActiveRecord 5.x.
 
 The test suite requires many backing services (PostgreSQL, MySQL, Redis, ...) and we're using
 ``docker`` and ``docker-compose`` to start these services in the CI.

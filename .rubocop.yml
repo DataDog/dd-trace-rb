@@ -36,5 +36,8 @@ Style/NumericLiterals:
 Metrics/ClassLength:
   Max: 120
 
+Metrics/BlockLength:
+  Max: 42
+
 Metrics/ParameterLists:
   Enabled: false

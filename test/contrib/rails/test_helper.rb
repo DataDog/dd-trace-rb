@@ -26,6 +26,13 @@ rescue LoadError
   puts 'jdbc-postgres gem not found, trying another connector'
 end
 
+begin
+  require 'activerecord-jdbcmysql-adapter'
+  connector = 'mysql2://root:root@127.0.0.1:53306/mysql'
+rescue LoadError
+  puts 'jdbc-mysql gem not found, trying another connector'
+end
+
 # logger
 logger = Logger.new(STDOUT)
 logger.level = Logger::INFO

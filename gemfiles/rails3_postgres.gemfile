@@ -2,7 +2,9 @@
 
 source "https://rubygems.org"
 
-gem "rails", "4.2.7.1"
+gem "test-unit"
+gem "rails", "3.2.22.5"
+gem "pg", :platform => :ruby
 gem "activerecord-jdbcpostgresql-adapter", :platform => :jruby
 
 gemspec :path => "../"
