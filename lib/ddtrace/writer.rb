@@ -1,9 +1,7 @@
-require 'time'
 require 'ddtrace/buffer'
 require 'ddtrace/transport'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
-require 'ddtrace/span'
 
 module Datadog
   # Traces and services writer that periodically sends data to the trace-agent
@@ -28,6 +26,7 @@ module Datadog
       @pid = nil
 
       @traces_flushed = 0
+      @services_flushed = 0
 
       # one worker for both services and traces, each have their own queues
       @worker = nil
@@ -36,13 +35,14 @@ module Datadog
     # spawns two different workers for spans and services;
     # they share the same transport which is thread-safe
     def start
-      @next_send_services = Time.now
+      @trace_handler = ->(items, transport) { send_spans(items, transport) }
+      @service_handler = ->(items, transport) { send_services(items, transport) }
       @worker = Datadog::Workers::AsyncTransport.new(@span_interval,
+                                                     @service_interval,
                                                      @transport,
-                                                     [:traces, :services],
-                                                     @buff_size) do |items, transport|
-        send(items, transport)
-      end
+                                                     @buff_size,
+                                                     @trace_handler,
+                                                     @service_handler)
 
       @worker.start()
     end
@@ -53,40 +53,37 @@ module Datadog
       @worker = nil
     end
 
-    # flush spans to the trace-agent, handles both spans & services
-    def send(items, transport)
-      return if items.empty?
-      if items[0].instance_of? Array
-        send_spans(items, transport)
-      elsif items[0].instance_of? Hash
-        if Time.now >= @next_send_services
-          send_services(items, transport)
-          @next_send_services = Time.now + @service_interval
-        else
-          @worker.enqueue(:services, items)
-        end
-      end
-    end
-
     # flush spans to the trace-agent, handles spans only
     def send_spans(traces, transport)
-      # FIXME[matt]: if there's an error, requeue; the new Transport can
-      # behave differently if it's a server or a client error. Don't requeue
-      # if we have a client error?
-      transport.send(:traces, traces)
+      return true if traces.empty?
+
+      spans = Datadog::Encoding.encode_spans(traces)
+      code = transport.send(SPANS_ENDPOINT, spans)
+
+      if transport.server_error? code # requeue on server error, skip on success or client error
+        traces[0..@buff_size].each do |trace|
+          @worker.enqueue_trace trace
+        end
+        return false
+      end
 
       @traces_flushed += traces.length()
+      true
     end
 
     # flush services to the trace-agent, handles services only
     def send_services(services, transport)
-      # extract the services dictionary and keep it in the task queue for the next call,
-      # so that even if we have communication problems (i.e. the trace agent isn't started yet) we
-      # can resend the payload every +services_interval+ seconds
-      services = services[0]
-      @worker.enqueue(:services, services)
+      return true if services.empty?
 
-      transport.send(:services, services)
+      encoded_services = Datadog::Encoding.encode_services(services)
+      code = transport.send(SERVICES_ENDPOINT, encoded_services)
+      if transport.server_error? code # requeue on server error, skip on success or client error
+        @worker.enqueue_service services
+        return false
+      end
+
+      @services_flushed += 1
+      true
     end
 
     # enqueue the trace for submission to the API
@@ -108,14 +105,15 @@ module Datadog
         end
       end
 
-      @worker.enqueue(:traces, trace)
-      @worker.enqueue(:services, services)
+      @worker.enqueue_trace(trace)
+      @worker.enqueue_service(services)
     end
 
     # stats returns a dictionary of stats about the writer.
     def stats
       {
         traces_flushed: @traces_flushed,
+        services_flushed: @services_flushed,
         transport: @transport.stats
       }
     end

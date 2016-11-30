@@ -1,3 +1,5 @@
+require 'time'
+
 require 'ddtrace/buffer'
 
 module Datadog
@@ -7,36 +9,55 @@ module Datadog
     # will perform a task at regular intervals. The thread can be stopped
     # with the +stop()+ method and can start with the +start()+ method.
     class AsyncTransport
-      def initialize(interval, transport, queues, buff_size, &task)
-        @task = task
-        @interval = interval
-        @buffers = {}
-        queues.each do |queue|
-          @buffers[queue] = TraceBuffer.new(buff_size)
-        end
+      def initialize(span_interval, service_interval, transport, buff_size, trace_task, service_task)
+        @trace_task = trace_task
+        @service_task = service_task
+        @span_interval = span_interval
+        @service_interval = service_interval
+        @trace_buffer = TraceBuffer.new(buff_size)
+        @service_buffer = TraceBuffer.new(buff_size)
         @transport = transport
 
         @worker = nil
         @run = true
       end
 
-      # Callback function that executes the +send()+ method. After the exeuction,
-      # it reschedules itself using the internal +TimerTask+.
-      def callback
-        l = @buffers.values.collect(&:length).reduce(:+) # skip if no data
-        return if l <= 0
+      # Callback function that process traces and executes the +send_traces()+ method.
+      def callback_traces
+        return if @trace_buffer.empty?
 
         begin
-          items = []
-          @buffers.each do |_, buffer|
-            items = buffer.pop()
-            @task.call(items, @transport)
+          traces = @trace_buffer.pop()
+          @trace_task.call(traces, @transport)
+        rescue StandardError => e
+          # ensures that the thread will not die because of an exception.
+          # TODO[manu]: findout the reason and reschedule the send if it's not
+          # a fatal exception
+          Datadog::Tracer.log.error("Error during traces flush: dropped #{items.length} items. Cause: #{e}")
+        end
+      end
+
+      # Callback function that process traces and executes the +send_services()+ method.
+      def callback_services
+        return if @service_buffer.empty?
+
+        begin
+          services = @service_buffer.pop()
+          # pick up the latest services hash (this is a FIFO list)
+          # that is different from what we sent before.
+          different = services.inject(false) { |acc, elem| elem != @last_flushed_services ? elem : acc }
+          if different
+            if @service_task.call(different, @transport)
+              @last_flushed_services = different.clone
+            end
+          else
+            Datadog::Tracer.log.debug('No new different services, skipping flush.')
           end
         rescue StandardError => e
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
           # a fatal exception
-          Datadog::Tracer.log.error("Error during the flush: dropped #{items.length} items. Cause: #{e}")
+          Datadog::Tracer.log.error("Error during services flush: dropped #{items.length} items. Cause: #{e}")
         end
       end
 
@@ -45,9 +66,17 @@ module Datadog
         @run = true
         @worker = Thread.new() do
           Datadog::Tracer.log.debug("Starting thread in the process: #{Process.pid}")
+          @last_flushed_services = nil
+          next_send_services = Time.now
+
+          # this loop assumes spans are flushed more often than services
           while @run
-            callback
-            sleep(@interval)
+            callback_traces
+            if Time.now >= next_send_services
+              next_send_services = Time.now + @service_interval
+              callback_services
+            end
+            sleep(@span_interval)
           end
         end
       end
@@ -62,10 +91,17 @@ module Datadog
         @worker.join(10)
       end
 
-      # Enqueue an item in the internal buffer. This operation is thread-safe
+      # Enqueue an item in the trace internal buffer. This operation is thread-safe
       # because uses the +TraceBuffer+ data structure.
-      def enqueue(queue, item)
-        @buffers[queue].push(item)
+      def enqueue_trace(trace)
+        @trace_buffer.push(trace)
+      end
+
+      # Enqueue an item in the service internal buffer. This operation is thread-safe
+      # because uses the +TraceBuffer+ data structure.
+      def enqueue_service(service)
+        return if service == {} # no use to send this, not worth it
+        @service_buffer.push(service)
       end
     end
   end
