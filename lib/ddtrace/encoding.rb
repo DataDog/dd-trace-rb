@@ -1,4 +1,5 @@
 require 'json'
+require 'msgpack'
 
 module Datadog
   # Encoding module that encodes data for the AgentTransport
@@ -46,6 +47,18 @@ module Datadog
 
       def encode(obj)
         JSON.dump(obj)
+      end
+    end
+
+    # Encoder for the Msgpack format
+    class MsgpackEncoder < Encoder
+      def initialize
+        Datadog::Tracer.log.debug('using Msgpack encoder')
+        @content_type = 'application/msgpack'
+      end
+
+      def encode(obj)
+        MessagePack.pack(obj)
       end
     end
 

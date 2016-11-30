@@ -7,7 +7,9 @@ class UtilsTest < Minitest::Test
   def setup
     # set the transport and temporary disable the logger to prevent
     # spam in the tests output
-    @transport = Datadog::HTTPTransport.new('localhost', '7777')
+    @default_transport = Datadog::HTTPTransport.new('localhost', '7777')
+    @transport_json = Datadog::HTTPTransport.new('localhost', '7777', encoder: Datadog::Encoding::JSONEncoder.new())
+    @transport_msgpack = Datadog::HTTPTransport.new('localhost', '7777', encoder: Datadog::Encoding::MsgpackEncoder.new())
     @original_level = Datadog::Tracer.log.level
     Datadog::Tracer.log.level = Logger::FATAL
   end
@@ -20,28 +22,40 @@ class UtilsTest < Minitest::Test
   def test_handle_response
     # a response must be handled as expected
     response = Net::HTTPResponse.new(1.0, 200, 'OK')
-    @transport.handle_response(response)
+    @default_transport.handle_response(response)
     assert true
   end
 
   def test_handle_response_nil
     # a nil answer should not crash the thread
-    @transport.handle_response(nil)
+    @default_transport.handle_response(nil)
     assert true
   end
 
   def test_send_traces
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a runnning agent
     traces = get_test_traces(2)
-    code = @transport.send(:traces, traces)
-    assert_equal true, @transport.success?(code), "transport.send failed, code: #{code}"
+
+    # JSON encoding
+    code = @transport_json.send(:traces, traces)
+    assert_equal true, @transport_json.success?(code), "transport.send failed, code: #{code}"
+
+    # Msgpack encoding
+    code = @transport_msgpack.send(:traces, traces)
+    assert_equal true, @transport_msgpack.success?(code), "transport.send failed, code: #{code}"
   end
 
   def test_send_services
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a runnning agent
     services = get_test_services()
-    code = @transport.send(:services, services)
-    assert_equal true, @transport.success?(code), "transport.send failed, code: #{code}"
+
+    # JSON encoding
+    code = @transport_json.send(:services, services)
+    assert_equal true, @transport_json.success?(code), "transport.send failed, code: #{code}"
+
+    # Msgpack encoding
+    code = @transport_msgpack.send(:services, services)
+    assert_equal true, @transport_msgpack.success?(code), "transport.send failed, code: #{code}"
   end
 
   def test_send_server_error
@@ -56,7 +70,8 @@ class UtilsTest < Minitest::Test
   def test_send_router
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
     traces = get_test_traces(2)
-    code = @transport.send(:admin, traces)
+
+    code = @default_transport.send(:admin, traces)
     assert_equal nil, code,
                  "transport.send did not return 'nil'; code: #{code}"
   end
