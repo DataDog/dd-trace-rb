@@ -74,7 +74,7 @@ module Datadog
       services = services[0]
       @service_worker.enqueue(services)
 
-      transport.send(:traces, services)
+      transport.send(:services, services)
     end
 
     # enqueue the trace for submission to the API
