@@ -3,10 +3,11 @@ require 'ddtrace/span'
 require 'ddtrace/encoding'
 
 class TracerTest < Minitest::Test
-  def test_traces_encoding
+  def test_traces_encoding_json
     # test encoding for JSON format
+    encoder = Datadog::Encoding::JSONEncoder.new()
     traces = get_test_traces(2)
-    to_send = Datadog::Encoding.encode_spans(traces)
+    to_send = encoder.encode_traces(traces)
 
     assert to_send.is_a? String
     # the spans list must be a list of traces

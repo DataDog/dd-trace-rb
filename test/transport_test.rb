@@ -33,16 +33,14 @@ class UtilsTest < Minitest::Test
   def test_send_traces
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a runnning agent
     traces = get_test_traces(2)
-    encoded_spans = Datadog::Encoding.encode_spans(traces)
-    code = @transport.send('/v0.2/traces', encoded_spans)
+    code = @transport.send(:traces, traces)
     assert_equal true, @transport.success?(code), "transport.send failed, code: #{code}"
   end
 
   def test_send_services
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a runnning agent
-    services = get_test_services
-    encoded_services = Datadog::Encoding.encode_services(services)
-    code = @transport.send('/v0.2/services', encoded_services)
+    services = get_test_services()
+    code = @transport.send(:services, services)
     assert_equal true, @transport.success?(code), "transport.send failed, code: #{code}"
   end
 
@@ -50,18 +48,16 @@ class UtilsTest < Minitest::Test
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a runnning agent
     bad_transport = Datadog::HTTPTransport.new('localhost', '8888')
     traces = get_test_traces(2)
-    spans = Datadog::Encoding.encode_spans(traces)
-    code = bad_transport.send('/v0.2/traces', spans)
+    code = bad_transport.send(:traces, traces)
     assert_equal true, bad_transport.server_error?(code),
                  "transport.send did not fail (it should have failed) code: #{code}"
   end
 
-  def test_send_404
+  def test_send_router
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
     traces = get_test_traces(2)
-    spans = Datadog::Encoding.encode_spans(traces)
-    code = @transport.send('/admin.php', spans)
-    assert_equal 404, code,
-                 "transport.send did not return 404 (it should have returned 404) code: #{code}"
+    code = @transport.send(:admin, traces)
+    assert_equal nil, code,
+                 "transport.send did not return 'nil'; code: #{code}"
   end
 end
