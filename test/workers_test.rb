@@ -198,6 +198,7 @@ class WorkersServiceTest < WorkersTest
     @tracer.set_service_info('my.other.service', 'golang', 'api')
     @tracer.set_service_info('my.yet.other.service', 'postgresql', 'sql')
 
+    # need to generate a trace else service info does not make it to the queue
     span = Datadog::Span.new(@tracer, 'my.op')
     span.service = 'my.service'
     sleep(0.001)
@@ -205,14 +206,10 @@ class WorkersServiceTest < WorkersTest
 
     sleep(2 * SERVICE_INTERVAL) # wait long enough so that a flush happens
 
+    # nothing happens (500 ERROR...)
     assert_equal(1, @writer.stats[:services_flushed], 'wrong number of services flushed')
 
     @transport.helper_error_mode! false # now responding 200 OK
-
-    span = Datadog::Span.new(@tracer, 'my.op')
-    span.service = 'my.service'
-    sleep(0.001)
-    span.finish()
 
     (20 * SERVICE_INTERVAL).times do
       break if @writer.stats[:services_flushed] >= 2
