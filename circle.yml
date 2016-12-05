@@ -44,6 +44,7 @@ test:
     - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal rails4-mysql2 rake rails
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake rails
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake rails
+    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal elasticsearch rake elasticsearch
     - rvm 2.3.1 --verbose do rake benchmark
     - rvm jruby-9.1.5.0 --verbose do rake benchmark
 
