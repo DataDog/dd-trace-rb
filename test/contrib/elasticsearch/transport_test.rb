@@ -12,7 +12,7 @@ class ESTracingTest < Minitest::Test
     # state might be influenced by former tests. OTOH current implementation
     # uses hardcoded Datadog.tracer, so there's no real shortcut.
     @tracer = Datadog.tracer
-    client = Elasticsearch::Client.new
+    client = Elasticsearch::Client.new url: 'http://127.0.0.1:49200'
     @client = client
   end
 

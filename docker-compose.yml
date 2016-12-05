@@ -16,3 +16,8 @@ mysql:
         - MYSQL_USER=$TEST_MYSQL_USER
     ports:
         - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
+
+elasticsearch:
+    image: elasticsearch:5.0
+    ports:
+        - "127.0.0.1:${TEST_ELASTICSEARCH_PORT}:9200"
