@@ -1,10 +1,10 @@
 require 'time'
 require 'helper'
-require 'elasticsearch/transport'
-require 'ddtrace'
 require 'contrib/elasticsearch/test_helper'
+require 'ddtrace'
 
 class ESTracingTest < Minitest::Test
+  ELASTICSEARCH_SERVER = 'http://127.0.0.1:49200'.freeze
   def setup
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
 
@@ -13,7 +13,10 @@ class ESTracingTest < Minitest::Test
     # state might be influenced by former tests. OTOH current implementation
     # uses hardcoded Datadog.tracer, so there's no real shortcut.
     @tracer = Datadog.tracer
-    client = Elasticsearch::Client.new url: 'http://127.0.0.1:49200'
+
+    # wait until it's really running, docker-compose can be slow
+    wait_http_server ELASTICSEARCH_SERVER, 60
+    client = Elasticsearch::Client.new url: ELASTICSEARCH_SERVER
     @client = client
   end
 
