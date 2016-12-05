@@ -24,9 +24,7 @@ end
 if defined?(Rails::VERSION)
   if Rails::VERSION::MAJOR.to_i >= 3
     require 'ddtrace/contrib/rails/framework'
-    if true # TODO[Aaditya]
-      require 'ddtrace/contrib/elasticsearch/core'
-    end
+    require 'ddtrace/contrib/elasticsearch/core' # TODO[Aaditya] only if elasticsearch here, with right version
 
     module Datadog
       # Run the auto instrumentation directly after the initialization of the application and
@@ -45,4 +43,3 @@ if defined?(Rails::VERSION)
         'auto-instrumentation for core components will be disabled.'
   end
 end
-

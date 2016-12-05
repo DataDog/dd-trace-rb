@@ -160,6 +160,7 @@ module Datadog
     def active_span
       @buffer.get()
     end
+
     # stats returns a dictionary of stats about the writer.
     def stats
       {
