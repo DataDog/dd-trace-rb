@@ -1,7 +1,5 @@
 require 'uri'
-require 'ddtrace'
 require 'ddtrace/ext/app_types'
-require 'elasticsearch/transport'
 
 URL = 'elasticsearch.url'.freeze
 METHOD = 'elasticsearch.method'.freeze

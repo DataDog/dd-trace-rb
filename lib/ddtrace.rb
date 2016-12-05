@@ -24,7 +24,6 @@ end
 if defined?(Rails::VERSION)
   if Rails::VERSION::MAJOR.to_i >= 3
     require 'ddtrace/contrib/rails/framework'
-    require 'ddtrace/contrib/elasticsearch/core' # TODO[Aaditya] only if elasticsearch here, with right version
 
     module Datadog
       # Run the auto instrumentation directly after the initialization of the application and
@@ -41,5 +40,11 @@ if defined?(Rails::VERSION)
     logger.warn 'Detected a Rails version < 3.x.'\
         'This version is not supported yet and the'\
         'auto-instrumentation for core components will be disabled.'
+  end
+end
+
+if defined?(Elasticsearch::Transport::VERSION)
+  if Gem::Version.new(Elasticsearch::Transport::VERSION) > Gem::Version.new('1.0.0')
+    require 'ddtrace/contrib/elasticsearch/core'
   end
 end
