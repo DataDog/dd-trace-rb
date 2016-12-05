@@ -18,7 +18,11 @@ mysql:
         - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
 
 elasticsearch:
-    image: elasticsearch:5.0
+    # Note: ES 5.0 dies with error:
+    # max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
+    # see https://github.com/docker-library/elasticsearch/issues/98 for details
+    # For now, just rely on a 2.X server.
+    image: elasticsearch:2.4
     ports:
         - "127.0.0.1:${TEST_ELASTICSEARCH_REST_PORT}:9200"
         - "127.0.0.1:${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
