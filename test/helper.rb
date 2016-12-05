@@ -95,9 +95,19 @@ class SpyTransport < Datadog::HTTPTransport
     @helper_sent = { 200 => {}, 500 => {} }
     @helper_mutex = Mutex.new
     @helper_error_mode = false
+    @helper_encoder = Datadog::Encoding::JSONEncoder.new() # easiest to inspect
   end
 
   def send(endpoint, data)
+    case endpoint
+    when :services
+      data = @helper_encoder.encode_services(data)
+    when :traces
+      data = @helper_encoder.encode_traces(data)
+    else
+      data = nil
+    end
+
     @helper_mutex.synchronize do
       code = @helper_error_mode ? 500 : 200
       @helper_sent[code][endpoint] = [] unless @helper_sent[code].key? endpoint

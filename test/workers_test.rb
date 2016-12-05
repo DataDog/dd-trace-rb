@@ -62,7 +62,7 @@ class WorkersSpanTest < WorkersTest
     refute_nil(dump[200], 'no data for 200 OK')
     refute_nil(dump[500], 'no data for 500 OK')
     assert_equal(dump[500], {}, '500 ERROR')
-    dumped_traces = dump[200]['/v0.2/traces']
+    dumped_traces = dump[200][:traces]
     refute_nil(dumped_traces, 'no 200 OK data for default traces endpoint')
     # unmarshalling data
     assert_equal(1, dumped_traces.length, 'there should be one and only one payload')
@@ -117,7 +117,7 @@ class WorkersSpanTest < WorkersTest
     assert_equal(2, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
 
     dump = @transport.helper_dump
-    dumped_traces = dump[500]['/v0.2/traces']
+    dumped_traces = dump[500][:traces]
     assert_operator(1, :<=, dumped_traces.length, 'there should have been errors on traces endpoint')
   end
 end
@@ -163,7 +163,7 @@ class WorkersServiceTest < WorkersTest
     refute_nil(dump[200], 'no data for 200 OK')
     refute_nil(dump[500], 'no data for 500 OK')
     assert_equal(dump[500], {}, '500 ERROR')
-    dumped_services = dump[200]['/v0.2/services']
+    dumped_services = dump[200][:services]
     refute_nil(dumped_services, 'no 200 OK data for default services endpoint')
     # unmarshalling data
     assert_equal(1, dumped_services.length, 'there should be one and only one payload')
@@ -219,7 +219,7 @@ class WorkersServiceTest < WorkersTest
     assert_equal(2, @writer.stats[:services_flushed], 'wrong number of services flushed')
 
     dump = @transport.helper_dump
-    dumped_services = dump[500]['/v0.2/services']
+    dumped_services = dump[500][:services]
     assert_operator(1, :<=, dumped_services.length, 'there should have been errors on services endpoint')
   end
 end

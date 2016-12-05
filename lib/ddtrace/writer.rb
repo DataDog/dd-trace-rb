@@ -57,8 +57,7 @@ module Datadog
     def send_spans(traces, transport)
       return true if traces.empty?
 
-      spans = Datadog::Encoding.encode_spans(traces)
-      code = transport.send(SPANS_ENDPOINT, spans)
+      code = transport.send(:traces, traces)
 
       if transport.server_error? code # requeue on server error, skip on success or client error
         traces[0..@buff_size].each do |trace|
@@ -75,8 +74,7 @@ module Datadog
     def send_services(services, transport)
       return true if services.empty?
 
-      encoded_services = Datadog::Encoding.encode_services(services)
-      code = transport.send(SERVICES_ENDPOINT, encoded_services)
+      code = transport.send(:services, services)
       if transport.server_error? code # requeue on server error, skip on success or client error
         @worker.enqueue_service services
         return false
