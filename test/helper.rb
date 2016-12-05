@@ -99,14 +99,12 @@ class SpyTransport < Datadog::HTTPTransport
   end
 
   def send(endpoint, data)
-    case endpoint
-    when :services
-      data = @helper_encoder.encode_services(data)
-    when :traces
-      data = @helper_encoder.encode_traces(data)
-    else
-      data = nil
-    end
+    data = case endpoint
+           when :services
+             @helper_encoder.encode_services(data)
+           when :traces
+             @helper_encoder.encode_traces(data)
+           end
 
     @helper_mutex.synchronize do
       code = @helper_error_mode ? 500 : 200
