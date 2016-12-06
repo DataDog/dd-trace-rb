@@ -7,7 +7,7 @@ class TracerTest < Minitest::Test
 
     tracer.trace('something') do |s|
       assert_equal(s.name, 'something')
-      assert_equal(s.end_time, nil)
+      assert_nil(s.end_time)
       sleep(0.001)
     end
 
@@ -31,7 +31,7 @@ class TracerTest < Minitest::Test
 
     assert_raises ZeroDivisionError do
       tracer.trace('something') do |s|
-        assert_equal(s.end_time, nil)
+        assert_nil(s.end_time)
         1 / 0
       end
     end
@@ -75,7 +75,7 @@ class TracerTest < Minitest::Test
   def test_trace_no_block_not_finished
     tracer = get_test_tracer
     span = tracer.trace('something')
-    assert_equal(span.end_time, nil)
+    assert_nil(span.end_time)
   end
 
   def test_set_service_info

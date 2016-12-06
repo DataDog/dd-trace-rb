@@ -8,7 +8,7 @@ class SpanTest < Minitest::Test
     # the start_time must be set
     sleep(0.001)
     assert span.start_time < Time.now.utc
-    assert_equal(span.end_time, nil)
+    assert_nil(span.end_time)
     span.finish
     # the end_time must be set
     sleep(0.001)
@@ -42,7 +42,8 @@ class SpanTest < Minitest::Test
     assert_equal(child.parent, parent)
     assert_equal(child.trace_id, parent.trace_id)
     assert_equal(child.parent_id, parent.span_id)
-    assert_equal(child.service, parent.service)
+    assert_nil(child.service)
+    assert_nil(parent.service)
   end
 
   def test_span_set_parent_keep_service
@@ -63,7 +64,7 @@ class SpanTest < Minitest::Test
 
     child.set_parent(parent)
     child.set_parent(nil)
-    assert_equal(child.parent, nil)
+    assert_nil(child.parent)
     assert_equal(child.trace_id, child.span_id)
     assert_equal(child.parent_id, 0)
     assert_equal(child.service, 'defaultdb')
