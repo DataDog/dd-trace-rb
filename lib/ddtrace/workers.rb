@@ -19,7 +19,7 @@ module Datadog
         @transport = transport
 
         @worker = nil
-        @run = true
+        @run = false
       end
 
       # Callback function that process traces and executes the +send_traces()+ method.
@@ -63,6 +63,7 @@ module Datadog
 
       # Start the timer execution.
       def start
+        return if @run
         @run = true
         @worker = Thread.new() do
           Datadog::Tracer.log.debug("Starting thread in the process: #{Process.pid}")
