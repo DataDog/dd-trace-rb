@@ -26,55 +26,62 @@ module Datadog
       @pid = nil
 
       @traces_flushed = 0
+      @services_flushed = 0
 
-      # spawns two different workers for spans and services;
-      # they share the same transport which is thread-safe
-      @trace_worker = nil
-      @service_worker = nil
+      # one worker for both services and traces, each have their own queues
+      @worker = nil
     end
 
     # spawns two different workers for spans and services;
     # they share the same transport which is thread-safe
     def start
-      @trace_worker = Datadog::Workers::AsyncTransport.new(@span_interval, @transport, @buff_size) do |items, transport|
-        send_spans(items, transport)
-      end
-      @service_worker = Datadog::Workers::AsyncTransport.new(@service_interval, @transport, 1) do |items, transport|
-        send_services(items, transport)
-      end
+      @trace_handler = ->(items, transport) { send_spans(items, transport) }
+      @service_handler = ->(items, transport) { send_services(items, transport) }
+      @worker = Datadog::Workers::AsyncTransport.new(@span_interval,
+                                                     @service_interval,
+                                                     @transport,
+                                                     @buff_size,
+                                                     @trace_handler,
+                                                     @service_handler)
 
-      @trace_worker.start()
-      @service_worker.start()
+      @worker.start()
     end
 
     # stops both workers for spans and services.
     def stop
-      @trace_worker.stop()
-      @trace_worker = nil
-      @service_worker.stop()
-      @service_worker = nil
+      @worker.stop()
+      @worker = nil
     end
 
-    # flush spans to the trace-agent
+    # flush spans to the trace-agent, handles spans only
     def send_spans(traces, transport)
-      # FIXME[matt]: if there's an error, requeue; the new Transport can
-      # behave differently if it's a server or a client error. Don't requeue
-      # if we have a client error?
-      transport.send(:traces, traces)
+      return true if traces.empty?
 
-      # TODO[all]: is it really required? it's a number that will grow indefinitely
+      code = transport.send(:traces, traces)
+
+      if transport.server_error? code # requeue on server error, skip on success or client error
+        traces[0..@buff_size].each do |trace|
+          @worker.enqueue_trace trace
+        end
+        return false
+      end
+
       @traces_flushed += traces.length()
+      true
     end
 
-    # flush services to the trace-agent
+    # flush services to the trace-agent, handles services only
     def send_services(services, transport)
-      # extract the services dictionary and keep it in the task queue for the next call,
-      # so that even if we have communication problems (i.e. the trace agent isn't started yet) we
-      # can resend the payload every +services_interval+ seconds
-      services = services[0]
-      @service_worker.enqueue(services)
+      return true if services.empty?
 
-      transport.send(:services, services)
+      code = transport.send(:services, services)
+      if transport.server_error? code # requeue on server error, skip on success or client error
+        @worker.enqueue_service services
+        return false
+      end
+
+      @services_flushed += 1
+      true
     end
 
     # enqueue the trace for submission to the API
@@ -96,14 +103,15 @@ module Datadog
         end
       end
 
-      @trace_worker.enqueue(trace)
-      @service_worker.enqueue(services)
+      @worker.enqueue_trace(trace)
+      @worker.enqueue_service(services)
     end
 
     # stats returns a dictionary of stats about the writer.
     def stats
       {
         traces_flushed: @traces_flushed,
+        services_flushed: @services_flushed,
         transport: @transport.stats
       }
     end

@@ -72,8 +72,7 @@ class UtilsTest < Minitest::Test
     traces = get_test_traces(2)
 
     code = @default_transport.send(:admin, traces)
-    assert_equal nil, code,
-                 "transport.send did not return 'nil'; code: #{code}"
+    assert_nil code, "transport.send did not return 'nil'; code: #{code}"
   end
 
   def test_traces_api_downgrade
