@@ -40,3 +40,7 @@ end
 appraise "elasticsearch" do
   gem "elasticsearch-transport"
 end
+
+appraise "redis" do
+  gem "redis"
+end

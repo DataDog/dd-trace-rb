@@ -44,7 +44,13 @@ if defined?(Rails::VERSION)
 end
 
 if defined?(Elasticsearch::Transport::VERSION)
-  if Gem::Version.new(Elasticsearch::Transport::VERSION) > Gem::Version.new('1.0.0')
+  if Gem::Version.new(Elasticsearch::Transport::VERSION) >= Gem::Version.new('1.0.0')
     require 'ddtrace/contrib/elasticsearch/core'
+  end
+end
+
+if defined?(Redis::VERSION)
+  if Gem::Version.new(Redis::VERSION) >= Gem::Version.new('3.0.0')
+    require 'ddtrace/contrib/redis/core'
   end
 end

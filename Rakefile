@@ -7,7 +7,10 @@ require 'appraisal'
 Rake::TestTask.new(:test) do |t|
   t.libs << %w(test lib)
   t.test_files = FileList['test/**/*_test.rb'].reject do |path|
-    path.include?('rails') || path.include?('elasticsearch') || path.include?('benchmark')
+    path.include?('rails') ||
+      path.include?('elasticsearch') ||
+      path.include?('redis') ||
+      path.include?('benchmark')
   end
 end
 
@@ -19,6 +22,11 @@ end
 Rake::TestTask.new(:elasticsearch) do |t|
   t.libs << %w(test lib)
   t.test_files = FileList['test/contrib/elasticsearch/**/*_test.rb']
+end
+
+Rake::TestTask.new(:redis) do |t|
+  t.libs << %w(test lib)
+  t.test_files = FileList['test/contrib/redis/**/*_test.rb']
 end
 
 Rake::TestTask.new(:benchmark) do |t|

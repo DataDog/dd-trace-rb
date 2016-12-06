@@ -26,3 +26,8 @@ elasticsearch:
     ports:
         - "127.0.0.1:${TEST_ELASTICSEARCH_REST_PORT}:9200"
         - "127.0.0.1:${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
+
+redis:
+    image: redis:3.0
+    ports:
+        - "127.0.0.1:${TEST_REDIS_PORT}:6379"
