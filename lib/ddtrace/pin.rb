@@ -33,16 +33,18 @@ module Datadog
 
     def onto(obj)
       unless obj.respond_to? :datadog_pin=
-                             obj.instance_exec do
-               def datadog_pin=(pin)
-                   @datadpg_pin=pin
-               end
+        obj.instance_exec do
+          def datadog_pin=(pin)
+            Datadog::Tracer.log.debug('Set pin #{pin.service} on #{obj.class}.')
+            @datadog_pin = pin
+          end
         end
       end
 
       unless obj.respond_to? :datadog_pin
         obj.instance_exec do
           def datadog_pin
+            Datadog::Tracer.log.debug('Get pin from #{obj.class}.')
             return @datadog_pin
           end
         end
