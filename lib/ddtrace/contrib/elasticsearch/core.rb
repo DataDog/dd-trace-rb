@@ -29,8 +29,7 @@ module Datadog
           stem = full_url.path
           params = full_url.query
           response = nil
-          tracer = Datadog.tracer
-          tracer.trace('elasticsearch.query') do |span|
+          pin.tracer.trace('elasticsearch.query') do |span|
             span.service = pin.service
             span.span_type = Datadog::Ext::AppTypes::DB
 
@@ -40,6 +39,7 @@ module Datadog
 
             # TODO[Aaditya] set body as metadata on get request
             # TODO[Aaditya] properly quantize resource
+            span.resource = "#{method} #{stem}"
 
             response = super(*args)
           end
