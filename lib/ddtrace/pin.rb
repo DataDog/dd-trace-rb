@@ -27,7 +27,7 @@ module Datadog
     end
 
     def enabled?
-      return @tracer.enabled? if @tracer
+      return @tracer.enabled if @tracer
       false
     end
 
