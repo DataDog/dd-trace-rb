@@ -1,7 +1,6 @@
 require 'time'
-require 'helper'
 require 'contrib/redis/test_helper'
-require 'ddtrace'
+require 'helper'
 
 class RedisSetGetTest < Minitest::Test
   REDIS_HOST = '127.0.0.1'.freeze

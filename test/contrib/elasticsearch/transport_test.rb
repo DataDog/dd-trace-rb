@@ -1,7 +1,7 @@
 require 'time'
-require 'helper'
 require 'contrib/elasticsearch/test_helper'
 require 'ddtrace'
+require 'helper'
 
 class ESTracingTest < Minitest::Test
   ELASTICSEARCH_SERVER = 'http://127.0.0.1:49200'.freeze
