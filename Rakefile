@@ -19,14 +19,9 @@ Rake::TestTask.new(:rails) do |t|
   t.test_files = FileList['test/contrib/rails/**/*_test.rb']
 end
 
-Rake::TestTask.new(:elasticsearch) do |t|
+Rake::TestTask.new(:contrib) do |t|
   t.libs << %w(test lib)
-  t.test_files = FileList['test/contrib/elasticsearch/**/*_test.rb']
-end
-
-Rake::TestTask.new(:redis) do |t|
-  t.libs << %w(test lib)
-  t.test_files = FileList['test/contrib/redis/**/*_test.rb']
+  t.test_files = FileList['test/contrib/elasticsearch/**/*_test.rb'] << FileList['test/contrib/redis/**/*_test.rb']
 end
 
 Rake::TestTask.new(:benchmark) do |t|

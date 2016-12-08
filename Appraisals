@@ -37,10 +37,7 @@ if RUBY_VERSION >= "2.2.2" && RUBY_PLATFORM != "java"
   end
 end
 
-appraise "elasticsearch" do
+appraise "contrib" do
   gem "elasticsearch-transport"
-end
-
-appraise "redis" do
   gem "redis"
 end
