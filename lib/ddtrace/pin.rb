@@ -54,5 +54,9 @@ module Datadog
 
       obj.datadog_pin = self
     end
+
+    def to_s
+      "Pin(service:#{@service},app:#{@app},app_type:#{@app_type},name:#{@name})"
+    end
   end
 end

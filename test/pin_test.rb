@@ -17,6 +17,15 @@ class PinTest < Minitest::Test
     assert_equal('anapp', got.app)
   end
 
+  def test_to_s
+    pin = Datadog::Pin.new('abc', app: 'anapp', app_type: 'db')
+    assert_equal('abc', pin.service)
+    assert_equal('anapp', pin.app)
+    assert_equal('db', pin.app_type)
+    repr = pin.to_s
+    assert_equal('Pin(service:abc,app:anapp,app_type:db,name:)', repr)
+  end
+
   def test_pin_accessor
     a = '' # using String, but really, any object should fit
 
