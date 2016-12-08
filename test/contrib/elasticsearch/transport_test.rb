@@ -21,11 +21,11 @@ class ESTransportTest < Minitest::Test
     assert_equal(200, response.status, 'bad response status')
     spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
-    span=spans[0]
+    span = spans[0]
     assert_equal('elasticsearch.query', span.name)
     assert_equal('elasticsearch', span.service)
-    assert_equal('GET _cluster/health',span.resource)
-    assert_equal('GET',span.get_tag('elasticsearch.method'))
-    assert_equal('_cluster/health',span.get_tag('elasticsearch.url'))
+    assert_equal('GET _cluster/health', span.resource)
+    assert_equal('GET', span.get_tag('elasticsearch.method'))
+    assert_equal('_cluster/health', span.get_tag('elasticsearch.url'))
   end
 end
