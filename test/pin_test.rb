@@ -35,4 +35,9 @@ class PinTest < Minitest::Test
     got = a.datadog_pin
     assert_equal('abc', got.service)
   end
+
+  def test_enabled
+    pin = Datadog::Pin.new('abc')
+    assert_equal(true, pin.enabled?)
+  end
 end

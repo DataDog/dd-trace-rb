@@ -1,4 +1,5 @@
 require 'uri'
+require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 
 URL = 'elasticsearch.url'.freeze
@@ -7,12 +8,21 @@ TOOK = 'elasticsearch.took'.freeze
 PARAMS = 'elasticsearch.params'.freeze
 BODY = 'elasticsearch.body'.freeze
 
+DEFAULTSERVICE = 'elasticsearch'.freeze
+
 module Datadog
   module Contrib
     module Elasticsearch
       # Elastic Search integration.
       module TracedClient
+        def initialize(*args)
+          pin = Datadog::Pin.new(DEFAULTSERVICE, app: 'elasticsearch', app_type: 'db')
+          pin.onto(self)
+          super(*args)
+        end
+
         def perform_request(*args)
+          pin = Datadog::Pin.get_from(self)
           method = args[0]
           full_url = URI.parse(args[1])
 
@@ -21,7 +31,7 @@ module Datadog
           response = nil
           tracer = Datadog.tracer
           tracer.trace('elasticsearch.query') do |span|
-            span.service = 'FIXME'
+            span.service = pin.service
             span.span_type = Datadog::Ext::AppTypes::DB
 
             span.set_tag(METHOD, method)

@@ -26,7 +26,7 @@ module Datadog
       @tracer = params.fetch(:tracer, Datadog.tracer)
     end
 
-    def enabled
+    def enabled?
       return @tracer.enabled? if @tracer
       false
     end
