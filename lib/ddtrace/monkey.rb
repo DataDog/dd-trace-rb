@@ -7,6 +7,13 @@ module Datadog
   module Monkey
     @patched = []
     @autopatch_modules = { elasticsearch: true, redis: true }
+    # Patchers should expose 2 methods:
+    # - patch, which applies our patch if needed. Should be idempotent,
+    #   can be call twice but should just do nothing the second time.
+    # - patched?, which returns true if the module has been succesfully
+    #   patched (patching might have failed if requirements were not here)
+    @patchers = { elasticsearch: Datadog::Contrib::Elasticsearch::Patch,
+                  redis: Datadog::Contrib::Redis::Patch }
     @mutex = Mutex.new
 
     module_function
@@ -21,14 +28,9 @@ module Datadog
 
     def patch_module(m)
       @mutex.synchronize do
-        case m
-        when :elasticsearch
-          Datadog::Contrib::Elasticsearch::Patch.patch
-        when :redis
-          Datadog::Contrib::Redis::Patch.patch
-        else
-          raise "Unsupported module '#{k}'"
-        end
+        patcher = @patchers[m]
+        raise 'Unsupported module #{m}' unless patcher
+        patcher.patch
       end
     end
 
@@ -40,14 +42,10 @@ module Datadog
 
     def get_patched_modules
       patched = autopatch_modules
-      autopatch_modules.each do |k, _|
-        case k
-        when :elasticsearch
-          patched[k] = Datadog::Contrib::Elasticsearch::Patch.patched?
-        when :redis
-          patched[k] = Datadog::Contrib::Redis::Patch.patched?
-        else
-          raise "Unsupported module '#{k}'"
+      @autopatch_modules.each do |k, v|
+        if v
+          patcher = @patchers[k]
+          patched[k] = patcher.patched? if patcher
         end
       end
       patched
