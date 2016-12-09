@@ -1,14 +1,15 @@
+require 'ddtrace/contrib/autopatch'
 module Datadog
   # Monkey is used for monkey-patching 3rd party libs.
-  class Monkey
-    def self.patch_all
-      require 'ddtrace/contrib/elasticsearch/core' if \
-              defined?(Elasticsearch::Transport::VERSION) && \
-              Gem::Version.new(Elasticsearch::Transport::VERSION) >= Gem::Version.new('1.0.0')
+  module Monkey
+    module_function
 
-      require 'ddtrace/contrib/redis/core' if \
-              defined?(Redis::VERSION) && \
-              Gem::Version.new(Redis::VERSION) >= Gem::Version.new('3.0.0')
+    def patch_all
+      Datadog::Contrib::Autopatch.autopatch
+    end
+
+    def get_patched_modules
+      Datadog::Contrib::Autopatch.get_patched_modules
     end
   end
 end

@@ -1,4 +1,3 @@
-require 'uri'
 require 'ddtrace/ext/app_types'
 
 module Datadog

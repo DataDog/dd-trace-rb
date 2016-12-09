@@ -1,3 +1,4 @@
+require 'ddtrace/pin'
 require 'ddtrace/tracer'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.

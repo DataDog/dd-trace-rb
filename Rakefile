@@ -7,10 +7,7 @@ require 'appraisal'
 Rake::TestTask.new(:test) do |t|
   t.libs << %w(test lib)
   t.test_files = FileList['test/**/*_test.rb'].reject do |path|
-    path.include?('rails') ||
-      path.include?('elasticsearch') ||
-      path.include?('redis') ||
-      path.include?('benchmark')
+    path.include?('contrib')
   end
 end
 
@@ -21,7 +18,14 @@ end
 
 Rake::TestTask.new(:contrib) do |t|
   t.libs << %w(test lib)
-  t.test_files = FileList['test/contrib/elasticsearch/**/*_test.rb'] << FileList['test/contrib/redis/**/*_test.rb']
+  t.test_files = FileList['test/contrib/**/*_test.rb'].reject do |path|
+    path.include?('rails') || path.include?('autopatch_test.rb')
+  end
+end
+
+Rake::TestTask.new(:autopatch) do |t|
+  t.libs << %w(test lib)
+  t.test_files = FileList['test/contrib/autopatch_test.rb']
 end
 
 Rake::TestTask.new(:benchmark) do |t|
