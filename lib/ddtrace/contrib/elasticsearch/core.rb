@@ -3,18 +3,18 @@ require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 require 'json'
 
-URL = 'elasticsearch.url'.freeze
-METHOD = 'elasticsearch.method'.freeze
-PARAMS = 'elasticsearch.params'.freeze
-BODY = 'elasticsearch.body'.freeze
-
-DEFAULTSERVICE = 'elasticsearch'.freeze
-SPAN_TYPE = 'elasticsearch'.freeze
-
 module Datadog
   module Contrib
     module Elasticsearch
-      # Elastic Search integration.
+      URL = 'elasticsearch.url'.freeze
+      METHOD = 'elasticsearch.method'.freeze
+      PARAMS = 'elasticsearch.params'.freeze
+      BODY = 'elasticsearch.body'.freeze
+
+      DEFAULTSERVICE = 'elasticsearch'.freeze
+      SPAN_TYPE = 'elasticsearch'.freeze
+
+      # Datadog APM Elastic Search integration.
       module TracedClient
         def initialize(*args)
           pin = Datadog::Pin.new(DEFAULTSERVICE, app: 'elasticsearch', app_type: Datadog::Ext::AppTypes::DB)
