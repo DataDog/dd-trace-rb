@@ -25,7 +25,65 @@ class ESTransportTest < Minitest::Test
     assert_equal('elasticsearch.query', span.name)
     assert_equal('elasticsearch', span.service)
     assert_equal('GET _cluster/health', span.resource)
-    assert_equal('GET', span.get_tag('elasticsearch.method'))
     assert_equal('_cluster/health', span.get_tag('elasticsearch.url'))
+    assert_equal('GET', span.get_tag('elasticsearch.method'))
+    assert_nil(span.get_tag('elasticsearch.params'))
+    assert_nil(span.get_tag('elasticsearch.body'))
+  end
+
+  def roundtrip_put
+    response = @client.perform_request 'PUT', '/my/thing/1', { refresh: true }, data1: 'D1', data2: 'D2'
+    assert_operator(200, :<=, response.status, 'bad response status')
+    assert_operator(201, :>=, response.status, 'bad response status')
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('elasticsearch.query', span.name)
+    assert_equal('elasticsearch', span.service)
+    assert_equal('PUT /my/thing/1', span.resource)
+    assert_equal('/my/thing/1', span.get_tag('elasticsearch.url'))
+    assert_equal('PUT', span.get_tag('elasticsearch.method'))
+    assert_equal("{\"refresh\":true\}", span.get_tag('elasticsearch.params'))
+    assert_equal('{"data1":"D1","data2":"D2"}', span.get_tag('elasticsearch.body'))
+  end
+
+  def roundtrip_get
+    response = @client.perform_request 'GET', '/my/thing/1'
+    assert_equal(200, response.status, 'bad response status')
+    body = response.body
+    assert_kind_of(Hash, body, 'bad response body')
+    assert_equal('my', body['_index'])
+    assert_equal('thing', body['_type'])
+    assert_equal('1', body['_id'])
+    assert_equal(true, body['found'])
+    assert_equal({ 'data1' => 'D1', 'data2' => 'D2' }, body['_source'])
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('elasticsearch.query', span.name)
+    assert_equal('elasticsearch', span.service)
+    assert_equal('GET /my/thing/1', span.resource)
+    assert_equal('/my/thing/1', span.get_tag('elasticsearch.url'))
+    assert_equal('GET', span.get_tag('elasticsearch.method'))
+    assert_nil(span.get_tag('elasticsearch.params'))
+    assert_nil(span.get_tag('elasticsearch.body'))
+  end
+
+  def test_roundtrip
+    roundtrip_put
+    roundtrip_get
+  end
+
+  def test_pin_override
+    pin = Datadog::Pin.get_from(@client)
+    pin.name = 'foo'
+    pin.service = 'bar'
+    response = @client.perform_request 'GET', '_cluster/health'
+    assert_equal(200, response.status, 'bad response status')
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('foo', span.name)
+    assert_equal('bar', span.service)
   end
 end

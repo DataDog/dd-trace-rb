@@ -1,14 +1,15 @@
 require 'uri'
 require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
+require 'json'
 
 URL = 'elasticsearch.url'.freeze
 METHOD = 'elasticsearch.method'.freeze
-TOOK = 'elasticsearch.took'.freeze
 PARAMS = 'elasticsearch.params'.freeze
 BODY = 'elasticsearch.body'.freeze
 
 DEFAULTSERVICE = 'elasticsearch'.freeze
+SPAN_TYPE = 'elasticsearch'.freeze
 
 module Datadog
   module Contrib
@@ -16,7 +17,7 @@ module Datadog
       # Elastic Search integration.
       module TracedClient
         def initialize(*args)
-          pin = Datadog::Pin.new(DEFAULTSERVICE, app: 'elasticsearch', app_type: 'db')
+          pin = Datadog::Pin.new(DEFAULTSERVICE, app: 'elasticsearch', app_type: Datadog::Ext::AppTypes::DB)
           pin.onto(self)
           super(*args)
         end
@@ -24,20 +25,22 @@ module Datadog
         def perform_request(*args)
           pin = Datadog::Pin.get_from(self)
           method = args[0]
-          full_url = URI.parse(args[1])
+          path = args[1]
+          params = args[2]
+          body = args[3]
+          full_url = URI.parse(path)
 
           stem = full_url.path
-          params = full_url.query
           response = nil
-          pin.tracer.trace('elasticsearch.query') do |span|
+          pin.tracer.trace(pin.name ? pin.name : 'elasticsearch.query') do |span|
             span.service = pin.service
-            span.span_type = Datadog::Ext::AppTypes::DB
+            span.span_type = SPAN_TYPE
 
             span.set_tag(METHOD, method)
             span.set_tag(URL, stem)
-            span.set_tag(PARAMS, params)
+            span.set_tag(PARAMS, JSON.generate(params)) if params
+            span.set_tag(BODY, JSON.generate(body)) if body
 
-            # TODO[Aaditya] set body as metadata on get request
             # TODO[Aaditya] properly quantize resource
             span.resource = "#{method} #{stem}"
 
