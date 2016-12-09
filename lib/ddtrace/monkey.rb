@@ -1,6 +1,10 @@
 require 'thread'
-require 'ddtrace/contrib/elasticsearch/patch'
-require 'ddtrace/contrib/redis/patch'
+
+# We import all patchers for every module we support, but this is fine
+# because patchers do not include any 3rd party module nor even our
+# patching code, which is required on demand, when patching.
+require 'ddtrace/contrib/elasticsearch/patcher'
+require 'ddtrace/contrib/redis/patcher'
 
 module Datadog
   # Monkey is used for monkey-patching 3rd party libs.
@@ -12,8 +16,8 @@ module Datadog
     #   can be call twice but should just do nothing the second time.
     # - patched?, which returns true if the module has been succesfully
     #   patched (patching might have failed if requirements were not here)
-    @patchers = { elasticsearch: Datadog::Contrib::Elasticsearch::Patch,
-                  redis: Datadog::Contrib::Redis::Patch }
+    @patchers = { elasticsearch: Datadog::Contrib::Elasticsearch::Patcher,
+                  redis: Datadog::Contrib::Redis::Patcher }
     @mutex = Mutex.new
 
     module_function

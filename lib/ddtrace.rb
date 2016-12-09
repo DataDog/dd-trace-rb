@@ -1,3 +1,4 @@
+require 'ddtrace/monkey'
 require 'ddtrace/pin'
 require 'ddtrace/tracer'
 
