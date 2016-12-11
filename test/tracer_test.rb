@@ -5,11 +5,14 @@ class TracerTest < Minitest::Test
   def test_trace
     tracer = get_test_tracer
 
-    tracer.trace('something') do |s|
+    ret = tracer.trace('something') do |s|
       assert_equal(s.name, 'something')
       assert_nil(s.end_time)
       sleep(0.001)
+      :return_val
     end
+
+    assert_equal(ret, :return_val)
 
     spans = tracer.writer.spans()
     assert_equal(spans.length, 1)

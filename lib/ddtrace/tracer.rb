@@ -124,16 +124,18 @@ module Datadog
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
       # a span that should be manually finished.
-      begin
-        yield(span) if block_given?
-      rescue StandardError => e
-        span.set_error(e)
-        raise
-      ensure
-        span.finish() if block_given?
+      if block_given?
+        begin
+          yield(span)
+        rescue StandardError => e
+          span.set_error(e)
+          raise
+        ensure
+          span.finish()
+        end
+      else
+        span
       end
-
-      span
     end
 
     # Record the given finished span in the +spans+ list. When a +span+ is recorded, it will be sent
