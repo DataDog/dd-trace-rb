@@ -17,8 +17,12 @@ class RedisSetGetTest < Minitest::Test
     set_response = @redis.set 'FOO', 'bar'
     assert_equal 'OK', set_response
     spans = @tracer.writer.spans()
-    assert_equal(1, spans.length)
+    assert_equal(2, spans.length)
     span = spans[0]
+    assert_equal('redis.connect', span.name)
+    assert_equal('redis', span.service)
+    assert_equal('127.0.0.1:46379', span.resource)
+    span = spans[1]
     assert_equal('redis.command', span.name)
     assert_equal('redis', span.service)
     assert_equal('set FOO bar', span.resource)
