@@ -17,9 +17,10 @@ module Datadog
             begin
               require 'ddtrace/contrib/redis/core'
               ::Redis.prepend Datadog::Contrib::Redis::TracedRedis
+              ::Redis::Client.prepend Datadog::Contrib::Redis::TracedRedisClient
               @patched = true
             rescue StandardError => e
-              Datadog::Tracer.error("Unable to apply Redis integration: #{e}")
+              Datadog::Tracer.log.error("Unable to apply Redis integration: #{e}")
             end
           end
           @patched

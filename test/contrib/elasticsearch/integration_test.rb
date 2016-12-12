@@ -21,6 +21,7 @@ class ESIntegrationTest < Minitest::Test
   end
 
   def test_perform_request
+    sleep(1.5) # make sure there's nothing pending
     already_flushed = @tracer.writer.stats[:traces_flushed]
     response = @client.perform_request 'GET', '_cluster/health'
     assert_equal(200, response.status, 'bad response status')

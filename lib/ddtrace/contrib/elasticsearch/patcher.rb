@@ -19,7 +19,7 @@ module Datadog
               ::Elasticsearch::Transport::Client.prepend Datadog::Contrib::Elasticsearch::TracedClient
               @patched = true
             rescue StandardError => e
-              Datadog::Tracer.error("Unable to apply Elastic Search integration: #{e}")
+              Datadog::Tracer.log.error("Unable to apply Elastic Search integration: #{e}")
             end
           end
           @patched

@@ -2,7 +2,7 @@ require 'time'
 require 'contrib/redis/test_helper'
 require 'helper'
 
-class RedisSetGetTest < Minitest::Test
+class RedisIntegrationTest < Minitest::Test
   REDIS_HOST = '127.0.0.1'.freeze
   REDIS_PORT = 46379
   def setup
@@ -18,6 +18,7 @@ class RedisSetGetTest < Minitest::Test
   end
 
   def test_setget
+    sleep(1.5) # make sure there's nothing pending
     already_flushed = @tracer.writer.stats[:traces_flushed]
     set_response = @redis.set 'FOO', 'bar'
     assert_equal 'OK', set_response
