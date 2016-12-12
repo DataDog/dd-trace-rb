@@ -53,12 +53,3 @@ module Datadog
     end
   end
 end
-
-module Elasticsearch
-  module Transport
-    # Auto-patching of Transport::Client with our tracing wrappers.
-    class Client
-      prepend Datadog::Contrib::Elasticsearch::TracedClient
-    end
-  end
-end

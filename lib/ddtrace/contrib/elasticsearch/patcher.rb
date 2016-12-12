@@ -13,9 +13,14 @@ module Datadog
         # patch applies our patch if needed
         def patch
           if !@patched && (defined?(::Elasticsearch::Transport::VERSION) && \
-                                  Gem::Version.new(::Elasticsearch::Transport::VERSION) >= Gem::Version.new('1.0.0'))
-            require 'ddtrace/contrib/elasticsearch/core' # here, patching happens
-            @patched = true
+                           Gem::Version.new(::Elasticsearch::Transport::VERSION) >= Gem::Version.new('1.0.0'))
+            begin
+              require 'ddtrace/contrib/elasticsearch/core'
+              ::Elasticsearch::Transport::Client.prepend Datadog::Contrib::Elasticsearch::TracedClient
+              @patched = true
+            rescue StandardError => e
+              Datadog::Tracer.error("Unable to apply Elastic Search integration: #{e}")
+            end
           end
           @patched
         end

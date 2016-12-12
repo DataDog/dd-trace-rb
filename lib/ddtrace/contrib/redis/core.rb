@@ -76,8 +76,3 @@ module Datadog
     end
   end
 end
-
-# Auto-patching of Redis with our tracing wrappers.
-class Redis
-  prepend Datadog::Contrib::Redis::TracedRedis
-end
