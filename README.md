@@ -21,7 +21,7 @@ If you're using ``Bundler``, just update your ``Gemfile`` as follows:
     gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
 ```
 
-### Quickstart (manual instrumentation)
+### Rails Quickstart (manual instrumentation)
 
 If you aren't using a supported framework instrumentation, you may want to to manually instrument your code.
 Adding tracing to your code is very simple. As an example, let’s imagine we have a web server and we want
@@ -55,6 +55,26 @@ to trace requests to the home page:
     end
 ```
 
+### Redis Quickstart
+
+By default, our monkey-patching is not active, you need to call it.
+This ultimately allows you to enable or disable tracing on a per-library basis.
+
+The example below shows the Redis case, but any other non-rails library
+should work the same way:
+
+```ruby
+
+    require 'ddtrace'
+    require 'redis'
+
+    Datadog::Monkey.patch_all # you need to explicitely patch it
+
+    # now do your Redis stuff, eg:
+    redis = Redis.new
+    redis.set 'foo', 'bar' # traced!
+```
+
 ## Development
 
 ### Testing
@@ -66,13 +86,16 @@ Configure your environment through:
 
 You can launch all tests using the following rake command:
 
-    $ rake test                     # tracer tests
-    $ appraisal rake rails          # tests Rails matrix
+    $ rake test                       # tracer tests
+    $ appraisal rake rails            # tests Rails matrix
+    $ appraisal contrib rake contrib  # tests other contrib libraries (Redis, ...)
+    $ appraisal contrib rake monkey   # tests monkey patching
 
 Available appraisals are:
 
 * ``rails{3,4,5}-postgres``: Rails with PostgreSQL
 * ``rails{3,4,5}-mysql2``: Rails with MySQL
+* ``contrib``: Other contrib libraries (Redis, ...)
 
 jRuby includes only Rails 3.x and 4.x because the current implementation of jdbc drivers, don't support
 ActiveRecord 5.x.

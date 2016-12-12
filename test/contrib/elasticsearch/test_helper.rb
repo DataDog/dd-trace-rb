@@ -1,7 +1,7 @@
 require 'time'
 require 'net/http'
+require 'ddtrace'
 require 'elasticsearch/transport'
-require 'ddtrace/monkey'
 
 Datadog::Monkey.patch_all
 
