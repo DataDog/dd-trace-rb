@@ -48,7 +48,7 @@ module Datadog
           pin.tracer.trace(pin.name ? pin.name : 'redis.pipeline') do |span|
             span.service = pin.service
             span.span_type = SPAN_TYPE
-            commands = *args.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
+            commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
             span.resource = commands.join("\n")
 
             response = super(*args)
