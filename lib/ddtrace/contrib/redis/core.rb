@@ -7,6 +7,8 @@ module Datadog
       DEFAULTSERVICE = 'redis'.freeze
       SPAN_TYPE = 'redis'.freeze
 
+      DRIVER = 'redis.driver'.freeze
+
       # TracedRedis is a wrapper so that caller can pin on parent object without knowing about client member.
       module TracedRedis
         def datadog_pin=(pin)
@@ -64,6 +66,7 @@ module Datadog
             span.service = pin.service
             span.span_type = SPAN_TYPE
             span.resource = "#{host}:#{port}"
+            span.set_tag DRIVER, driver
 
             response = super(*args)
           end

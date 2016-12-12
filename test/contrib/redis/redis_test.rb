@@ -8,7 +8,7 @@ class RedisSetGetTest < Minitest::Test
   def setup
     @tracer = get_test_tracer
 
-    @redis = Redis.new(host: REDIS_HOST, port: REDIS_PORT)
+    @redis = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
     pin = Datadog::Pin.get_from(@redis)
     pin.tracer = @tracer
   end
@@ -20,6 +20,7 @@ class RedisSetGetTest < Minitest::Test
     assert_equal('redis.connect', span.name)
     assert_equal('redis', span.service)
     assert_equal('127.0.0.1:46379', span.resource)
+    assert_equal('Redis::Connection::Ruby', span.get_tag('redis.driver'))
   end
 
   def roundtrip_set

@@ -40,4 +40,5 @@ end
 appraise "contrib" do
   gem "elasticsearch-transport"
   gem "redis"
+  gem "hiredis"
 end
