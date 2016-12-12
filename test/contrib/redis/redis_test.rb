@@ -103,4 +103,23 @@ class RedisSetGetTest < Minitest::Test
       assert_operator(3, :<=, span.get_tag('error.stack').length)
     end
   end
+
+  def test_quantize
+    @drivers.each do |d, driver|
+      driver.set 'K', 'x' * 10000
+      response = driver.get 'K'
+      assert_equal('x' * 10000, response)
+      spans = @tracer.writer.spans()
+      assert_operator(2, :<=, spans.length)
+      check_connect_span(d, spans[0]) if spans.length >= 3
+      span = spans[-2]
+      assert_equal('redis.command', span.name)
+      assert_equal('redis', span.service)
+      assert_equal('set K ' + 'x' * 97 + '...', span.resource)
+      span = spans[-1]
+      assert_equal('redis.command', span.name)
+      assert_equal('redis', span.service)
+      assert_equal('get K', span.resource)
+    end
+  end
 end
