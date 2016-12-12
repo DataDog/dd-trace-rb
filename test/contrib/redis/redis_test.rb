@@ -81,4 +81,26 @@ class RedisSetGetTest < Minitest::Test
       assert_equal("set v1 0\nset v2 0\nincr v1\nincr v2\nincr v2", span.resource)
     end
   end
+
+  def test_error
+    @drivers.each do |d, driver|
+      begin
+        driver.call 'THIS_IS_NOT_A_REDIS_FUNC', 'THIS_IS_NOT_A_VALID_ARG'
+      rescue StandardError => e
+        assert_kind_of(Redis::CommandError, e)
+        assert_equal("ERR unknown command 'THIS_IS_NOT_A_REDIS_FUNC'", e.to_s)
+      end
+      spans = @tracer.writer.spans()
+      assert_operator(1, :<=, spans.length)
+      check_connect_span(d, spans[0]) if spans.length >= 2
+      span = spans[-1]
+      assert_equal('redis.command', span.name)
+      assert_equal('redis', span.service)
+      assert_equal('THIS_IS_NOT_A_REDIS_FUNC THIS_IS_NOT_A_VALID_ARG', span.resource)
+      assert_equal(1, span.status, 'this span should be flagged as an error')
+      assert_equal("ERR unknown command 'THIS_IS_NOT_A_REDIS_FUNC'", span.get_tag('error.msg'))
+      assert_equal('Redis::CommandError', span.get_tag('error.type'))
+      assert_operator(3, :<=, span.get_tag('error.stack').length)
+    end
+  end
 end
