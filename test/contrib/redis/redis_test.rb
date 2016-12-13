@@ -16,33 +16,17 @@ class RedisSetGetTest < Minitest::Test
     end
   end
 
-  def check_connect_span(d, span)
-    # we don't know when connection is going to happen, when
-    # there's a suspicion it happened (typically, one extra span)
-    # check the instrumentation is OK with this func.
-    assert_equal('redis.connect', span.name)
-    assert_equal('redis', span.service)
-    assert_equal('127.0.0.1:46379:0', span.resource)
-    case d
-    when :ruby
-      assert_equal('Redis::Connection::Ruby', span.get_tag('redis.driver'))
-    when :hiredis
-      assert_equal('Redis::Connection::Hiredis', span.get_tag('redis.driver'))
-    end
-  end
-
   def check_common_tags(span)
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('46379', span.get_tag('out.port'))
     assert_equal('0', span.get_tag('out.redis_db'))
   end
 
-  def roundtrip_set(d, driver)
+  def roundtrip_set(_d, driver)
     set_response = driver.set 'FOO', 'bar'
     assert_equal 'OK', set_response
     spans = @tracer.writer.spans()
     assert_operator(1, :<=, spans.length)
-    check_connect_span(d, spans[0]) if spans.length >= 2
     span = spans[-1]
     check_common_tags(span)
     assert_equal('redis.command', span.name)
@@ -92,7 +76,7 @@ class RedisSetGetTest < Minitest::Test
   end
 
   def test_error
-    @drivers.each do |d, driver|
+    @drivers.each do |_d, driver|
       begin
         driver.call 'THIS_IS_NOT_A_REDIS_FUNC', 'THIS_IS_NOT_A_VALID_ARG'
       rescue StandardError => e
@@ -101,7 +85,6 @@ class RedisSetGetTest < Minitest::Test
       end
       spans = @tracer.writer.spans()
       assert_operator(1, :<=, spans.length)
-      check_connect_span(d, spans[0]) if spans.length >= 2
       span = spans[-1]
       check_common_tags(span)
       assert_equal('redis.command', span.name)
@@ -115,13 +98,12 @@ class RedisSetGetTest < Minitest::Test
   end
 
   def test_quantize
-    @drivers.each do |d, driver|
+    @drivers.each do |_d, driver|
       driver.set 'K', 'x' * 10000
       response = driver.get 'K'
       assert_equal('x' * 10000, response)
       spans = @tracer.writer.spans()
       assert_operator(2, :<=, spans.length)
-      check_connect_span(d, spans[0]) if spans.length >= 3
       span = spans[-2]
       check_common_tags(span)
       assert_equal('redis.command', span.name)

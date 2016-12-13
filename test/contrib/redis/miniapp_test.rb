@@ -14,18 +14,18 @@ class RedisMiniAppTest < Minitest::Test
     assert_equal(0, span.parent_id)
   end
 
-  def check_span_connect(span, parent_id, trace_id)
-    assert_equal('redis.connect', span.name)
+  def check_span_command1(span, parent_id, trace_id)
+    assert_equal('redis.command', span.name)
     assert_equal('redis', span.service)
-    assert_equal('127.0.0.1:46379:0', span.resource)
+    assert_equal('get data1', span.resource)
     assert_equal(parent_id, span.parent_id)
     assert_equal(trace_id, span.trace_id)
   end
 
-  def check_span_command(span, parent_id, trace_id)
+  def check_span_command2(span, parent_id, trace_id)
     assert_equal('redis.command', span.name)
     assert_equal('redis', span.service)
-    assert_equal('get data', span.resource)
+    assert_equal("set data2 something\nget data2", span.resource)
     assert_equal(parent_id, span.parent_id)
     assert_equal(trace_id, span.trace_id)
   end
@@ -42,15 +42,20 @@ class RedisMiniAppTest < Minitest::Test
     tracer.trace('publish') do |span|
       span.service = 'webapp'
       span.resource = '/index'
-      redis.get 'data'
+      redis.get 'data1'
+      redis.pipelined do
+        redis.set 'data2', 'something'
+        redis.get 'data2'
+      end
     end
 
     spans = tracer.writer.spans
 
-    # here we should get 3 spans, with spans[0] child of spans[1] child of spans[2]
+    # here we should get 3 spans, with spans[2] being the parent of others
     assert_equal(3, spans.length)
     check_span_publish spans[2]
-    check_span_command spans[1], spans[2].span_id, spans[2].span_id
-    check_span_connect spans[0], spans[1].span_id, spans[2].span_id
+    trace_id = spans[2].span_id
+    check_span_command2 spans[1], trace_id, trace_id
+    check_span_command1 spans[0], trace_id, trace_id
   end
 end

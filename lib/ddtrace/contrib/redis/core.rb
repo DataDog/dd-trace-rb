@@ -66,24 +66,6 @@ module Datadog
 
           response
         end
-
-        def connect(*args)
-          pin = Datadog::Pin.get_from(self)
-          return super(*args) unless pin
-
-          response = nil
-          pin.tracer.trace(pin.name ? pin.name : 'redis.connect') do |span|
-            span.service = pin.service
-            span.span_type = Datadog::Ext::Redis::TYPE
-            span.resource = "#{host}:#{port}:#{db}"
-            Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
-            span.set_tag DRIVER, driver
-
-            response = super(*args)
-          end
-
-          response
-        end
       end
     end
   end
