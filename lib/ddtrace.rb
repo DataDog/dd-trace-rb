@@ -46,4 +46,4 @@ if defined?(Rails::VERSION)
 end
 
 # Autopatching non-Rails contribs if env var is set
-Datadog::Monkey.patch_all if 'true' == ENV['DATADOG_TRACE_AUTOPATCH']
+Datadog::Monkey.patch_all if 'true' == ENV['DATADOG_TRACE_AUTOPATCH'].to_s

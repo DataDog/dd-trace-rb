@@ -1,9 +1,6 @@
 require 'minitest'
 require 'minitest/autorun'
 require 'ddtrace'
-require 'ddtrace/monkey'
-require 'ddtrace/contrib/elasticsearch/patcher'
-require 'ddtrace/contrib/redis/patcher'
 require 'elasticsearch/transport'
 require 'redis'
 

@@ -7,7 +7,10 @@ require 'appraisal'
 Rake::TestTask.new(:test) do |t|
   t.libs << %w(test lib)
   t.test_files = FileList['test/**/*_test.rb'].reject do |path|
-    path.include?('contrib') || path.include?('benchmark') || path.include?('monkey_test.rb')
+    path.include?('contrib') ||
+      path.include?('benchmark') ||
+      path.include?('monkey_test.rb') ||
+      path.include?('autopatch_test.rb')
   end
 end
 
@@ -19,13 +22,20 @@ end
 Rake::TestTask.new(:contrib) do |t|
   t.libs << %w(test lib)
   t.test_files = FileList['test/contrib/**/*_test.rb'].reject do |path|
-    path.include?('rails') || path.include?('monkey_test.rb')
+    path.include?('rails') ||
+      path.include?('monkey_test.rb') ||
+      path.include?('autopatch_test.rb')
   end
 end
 
 Rake::TestTask.new(:monkey) do |t|
   t.libs << %w(test lib)
   t.test_files = FileList['test/monkey_test.rb']
+end
+
+Rake::TestTask.new(:autopatch) do |t|
+  t.libs << %w(test lib)
+  t.test_files = FileList['test/autopatch_test.rb']
 end
 
 Rake::TestTask.new(:benchmark) do |t|
