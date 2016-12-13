@@ -57,7 +57,11 @@ to trace requests to the home page:
 
 ### Redis Quickstart
 
-By default, our monkey-patching is not active, you need to call it.
+By default, our monkey-patching is not active, you need to either:
+
+- set the env var `DATADOG_TRACE_AUTOPATCH=true`
+- explicitly activate it by calling `Datadog::Monkey.patch_all` or `Datadog::Monkey.patch_module`
+
 This ultimately allows you to enable or disable tracing on a per-library basis.
 
 The example below shows the Redis case, but any other non-rails library
