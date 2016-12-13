@@ -22,13 +22,19 @@ class RedisSetGetTest < Minitest::Test
     # check the instrumentation is OK with this func.
     assert_equal('redis.connect', span.name)
     assert_equal('redis', span.service)
-    assert_equal('127.0.0.1:46379', span.resource)
+    assert_equal('127.0.0.1:46379:0', span.resource)
     case d
     when :ruby
       assert_equal('Redis::Connection::Ruby', span.get_tag('redis.driver'))
     when :hiredis
       assert_equal('Redis::Connection::Hiredis', span.get_tag('redis.driver'))
     end
+  end
+
+  def check_common_tags(span)
+    assert_equal('127.0.0.1', span.get_tag('out.host'))
+    assert_equal('46379', span.get_tag('out.port'))
+    assert_equal('0', span.get_tag('out.redis_db'))
   end
 
   def roundtrip_set(d, driver)
@@ -38,6 +44,7 @@ class RedisSetGetTest < Minitest::Test
     assert_operator(1, :<=, spans.length)
     check_connect_span(d, spans[0]) if spans.length >= 2
     span = spans[-1]
+    check_common_tags(span)
     assert_equal('redis.command', span.name)
     assert_equal('redis', span.service)
     assert_equal('set FOO bar', span.resource)
@@ -49,6 +56,7 @@ class RedisSetGetTest < Minitest::Test
     spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
     span = spans[0]
+    check_common_tags(span)
     assert_equal('redis.command', span.name)
     assert_equal('redis', span.service)
     assert_equal('get FOO', span.resource)
@@ -76,6 +84,7 @@ class RedisSetGetTest < Minitest::Test
       assert_operator(1, :<=, spans.length)
       check_connect_span(d, spans[0]) if spans.length >= 2
       span = spans[-1]
+      check_common_tags(span)
       assert_equal('redis.pipeline', span.name)
       assert_equal('redis', span.service)
       assert_equal("set v1 0\nset v2 0\nincr v1\nincr v2\nincr v2", span.resource)
@@ -94,6 +103,7 @@ class RedisSetGetTest < Minitest::Test
       assert_operator(1, :<=, spans.length)
       check_connect_span(d, spans[0]) if spans.length >= 2
       span = spans[-1]
+      check_common_tags(span)
       assert_equal('redis.command', span.name)
       assert_equal('redis', span.service)
       assert_equal('THIS_IS_NOT_A_REDIS_FUNC THIS_IS_NOT_A_VALID_ARG', span.resource)
@@ -113,10 +123,12 @@ class RedisSetGetTest < Minitest::Test
       assert_operator(2, :<=, spans.length)
       check_connect_span(d, spans[0]) if spans.length >= 3
       span = spans[-2]
+      check_common_tags(span)
       assert_equal('redis.command', span.name)
       assert_equal('redis', span.service)
       assert_equal('set K ' + 'x' * 97 + '...', span.resource)
       span = spans[-1]
+      check_common_tags(span)
       assert_equal('redis.command', span.name)
       assert_equal('redis', span.service)
       assert_equal('get K', span.resource)

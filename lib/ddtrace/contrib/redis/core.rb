@@ -1,11 +1,11 @@
 require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/redis/tags'
 require 'ddtrace/contrib/redis/quantize'
 
 module Datadog
   module Contrib
     module Redis
       DEFAULTSERVICE = 'redis'.freeze
-      SPAN_TYPE = 'redis'.freeze
 
       DRIVER = 'redis.driver'.freeze
 
@@ -35,8 +35,10 @@ module Datadog
           response = nil
           pin.tracer.trace(pin.name ? pin.name : 'redis.command') do |span|
             span.service = pin.service
-            span.span_type = SPAN_TYPE
+            span.span_type = Datadog::Ext::Redis::TYPE
             span.resource = Datadog::Contrib::Redis::Quantize.format_command_args(*args)
+            span.set_tag(Datadog::Ext::Redis::RAWCMD, span.resource)
+            Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
             response = super(*args)
           end
@@ -49,9 +51,11 @@ module Datadog
           response = nil
           pin.tracer.trace(pin.name ? pin.name : 'redis.pipeline') do |span|
             span.service = pin.service
-            span.span_type = SPAN_TYPE
+            span.span_type = Datadog::Ext::Redis::TYPE
             commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
             span.resource = commands.join("\n")
+            span.set_tag(Datadog::Ext::Redis::RAWCMD, span.resource)
+            Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
             response = super(*args)
           end
@@ -64,8 +68,9 @@ module Datadog
           response = nil
           pin.tracer.trace(pin.name ? pin.name : 'redis.connect') do |span|
             span.service = pin.service
-            span.span_type = SPAN_TYPE
-            span.resource = "#{host}:#{port}"
+            span.span_type = Datadog::Ext::Redis::TYPE
+            span.resource = "#{host}:#{port}:#{db}"
+            Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
             span.set_tag DRIVER, driver
 
             response = super(*args)
