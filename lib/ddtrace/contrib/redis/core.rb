@@ -30,9 +30,9 @@ module Datadog
           super(*args)
         end
 
-        def call(*args)
+        def call(*args, &block)
           pin = Datadog::Pin.get_from(self)
-          return super(*args) unless pin
+          return super(*args, &block) unless pin
 
           response = nil
           pin.tracer.trace('redis.command') do |span|
@@ -42,15 +42,15 @@ module Datadog
             span.set_tag(Datadog::Ext::Redis::RAWCMD, span.resource)
             Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
-            response = super(*args)
+            response = super(*args, &block)
           end
 
           response
         end
 
-        def call_pipeline(*args)
+        def call_pipeline(*args, &block)
           pin = Datadog::Pin.get_from(self)
-          return super(*args) unless pin
+          return super(*args, &block) unless pin
 
           response = nil
           pin.tracer.trace('redis.command') do |span|
@@ -61,7 +61,7 @@ module Datadog
             span.set_tag(Datadog::Ext::Redis::RAWCMD, span.resource)
             Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
-            response = super(*args)
+            response = super(*args, &block)
           end
 
           response
