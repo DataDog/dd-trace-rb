@@ -76,14 +76,13 @@ class ESTransportTest < Minitest::Test
 
   def test_pin_override
     pin = Datadog::Pin.get_from(@client)
-    pin.name = 'foo'
     pin.service = 'bar'
     response = @client.perform_request 'GET', '_cluster/health'
     assert_equal(200, response.status, 'bad response status')
     spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
     span = spans[0]
-    assert_equal('foo', span.name)
+    assert_equal('elasticsearch.query', span.name)
     assert_equal('bar', span.service)
   end
 end

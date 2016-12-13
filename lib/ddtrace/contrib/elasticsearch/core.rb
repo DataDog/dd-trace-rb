@@ -11,13 +11,13 @@ module Datadog
       PARAMS = 'elasticsearch.params'.freeze
       BODY = 'elasticsearch.body'.freeze
 
-      DEFAULTSERVICE = 'elasticsearch'.freeze
+      SERVICE = 'elasticsearch'.freeze
       SPAN_TYPE = 'elasticsearch'.freeze
 
       # Datadog APM Elastic Search integration.
       module TracedClient
         def initialize(*args)
-          pin = Datadog::Pin.new(DEFAULTSERVICE, app: 'elasticsearch', app_type: Datadog::Ext::AppTypes::DB)
+          pin = Datadog::Pin.new(SERVICE, app: 'elasticsearch', app_type: Datadog::Ext::AppTypes::DB)
           pin.onto(self)
           super(*args)
         end
@@ -32,7 +32,7 @@ module Datadog
 
           stem = full_url.path
           response = nil
-          pin.tracer.trace(pin.name ? pin.name : 'elasticsearch.query') do |span|
+          pin.tracer.trace('elasticsearch.query') do |span|
             span.service = pin.service
             span.span_type = SPAN_TYPE
 
