@@ -85,7 +85,7 @@ class RedisSetGetTest < Minitest::Test
       check_connect_span(d, spans[0]) if spans.length >= 2
       span = spans[-1]
       check_common_tags(span)
-      assert_equal('redis.pipeline', span.name)
+      assert_equal('redis.command', span.name)
       assert_equal('redis', span.service)
       assert_equal("set v1 0\nset v2 0\nincr v1\nincr v2\nincr v2", span.resource)
     end

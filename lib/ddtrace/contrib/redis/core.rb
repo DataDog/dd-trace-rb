@@ -5,7 +5,7 @@ require 'ddtrace/contrib/redis/quantize'
 module Datadog
   module Contrib
     module Redis
-      DEFAULTSERVICE = 'redis'.freeze
+      SERVICE = 'redis'.freeze
 
       DRIVER = 'redis.driver'.freeze
 
@@ -25,15 +25,17 @@ module Datadog
       # Datadog APM Redis integration.
       module TracedRedisClient
         def initialize(*args)
-          pin = Datadog::Pin.new(DEFAULTSERVICE, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
+          pin = Datadog::Pin.new(SERVICE, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
           pin.onto(self)
           super(*args)
         end
 
         def call(*args)
           pin = Datadog::Pin.get_from(self)
+          return super(*args) unless pin
+
           response = nil
-          pin.tracer.trace(pin.name ? pin.name : 'redis.command') do |span|
+          pin.tracer.trace('redis.command') do |span|
             span.service = pin.service
             span.span_type = Datadog::Ext::Redis::TYPE
             span.resource = Datadog::Contrib::Redis::Quantize.format_command_args(*args)
@@ -48,8 +50,10 @@ module Datadog
 
         def call_pipeline(*args)
           pin = Datadog::Pin.get_from(self)
+          return super(*args) unless pin
+
           response = nil
-          pin.tracer.trace(pin.name ? pin.name : 'redis.pipeline') do |span|
+          pin.tracer.trace('redis.command') do |span|
             span.service = pin.service
             span.span_type = Datadog::Ext::Redis::TYPE
             commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
@@ -65,6 +69,8 @@ module Datadog
 
         def connect(*args)
           pin = Datadog::Pin.get_from(self)
+          return super(*args) unless pin
+
           response = nil
           pin.tracer.trace(pin.name ? pin.name : 'redis.connect') do |span|
             span.service = pin.service

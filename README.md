@@ -68,7 +68,7 @@ should work the same way:
     require 'ddtrace'
     require 'redis'
 
-    Datadog::Monkey.patch_all # you need to explicitely patch it
+    Datadog::Monkey.patch_all # you need to explicitly patch it
 
     # now do your Redis stuff, eg:
     redis = Redis.new
