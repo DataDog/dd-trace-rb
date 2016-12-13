@@ -114,7 +114,7 @@ class WorkersSpanTest < WorkersTest
       sleep(0.1)
     end
 
-    assert_equal(2, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
+    assert_operator(2, :<=, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
 
     dump = @transport.helper_dump
     dumped_traces = dump[500][:traces]

@@ -7,7 +7,7 @@ require 'appraisal'
 Rake::TestTask.new(:test) do |t|
   t.libs << %w(test lib)
   t.test_files = FileList['test/**/*_test.rb'].reject do |path|
-    path.include?('contrib') || path.include?('monkey_test.rb')
+    path.include?('contrib') || path.include?('benchmark') || path.include?('monkey_test.rb')
   end
 end
 
