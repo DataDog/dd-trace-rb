@@ -28,6 +28,6 @@ class RedisIntegrationTest < Minitest::Test
       break if @tracer.writer.stats[:traces_flushed] >= already_flushed + 2
       sleep(0.1)
     end
-    assert_equal(already_flushed + 2, @tracer.writer.stats[:traces_flushed])
+    assert_operator(already_flushed + 2, :<=, @tracer.writer.stats[:traces_flushed])
   end
 end
