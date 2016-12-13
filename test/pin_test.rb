@@ -17,6 +17,14 @@ class PinTest < Minitest::Test
     assert_equal('anapp', got.app)
   end
 
+  def test_pin_get_from
+    a = [0, nil, self] # get_from should be callable on anything
+
+    a.each do |x|
+      assert_nil(Datadog::Pin.get_from(x))
+    end
+  end
+
   def test_to_s
     pin = Datadog::Pin.new('abc', app: 'anapp', app_type: 'db')
     assert_equal('abc', pin.service)
