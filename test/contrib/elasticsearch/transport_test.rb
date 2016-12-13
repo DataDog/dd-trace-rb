@@ -40,7 +40,7 @@ class ESTransportTest < Minitest::Test
     span = spans[0]
     assert_equal('elasticsearch.query', span.name)
     assert_equal('elasticsearch', span.service)
-    assert_equal('PUT /my/thing/1', span.resource)
+    assert_equal('PUT /my/thing/?', span.resource)
     assert_equal('/my/thing/1', span.get_tag('elasticsearch.url'))
     assert_equal('PUT', span.get_tag('elasticsearch.method'))
     assert_equal("{\"refresh\":true\}", span.get_tag('elasticsearch.params'))
@@ -62,7 +62,7 @@ class ESTransportTest < Minitest::Test
     span = spans[0]
     assert_equal('elasticsearch.query', span.name)
     assert_equal('elasticsearch', span.service)
-    assert_equal('GET /my/thing/1', span.resource)
+    assert_equal('GET /my/thing/?', span.resource)
     assert_equal('/my/thing/1', span.get_tag('elasticsearch.url'))
     assert_equal('GET', span.get_tag('elasticsearch.method'))
     assert_nil(span.get_tag('elasticsearch.params'))

@@ -2,6 +2,7 @@ require 'uri'
 require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 require 'json'
+require 'ddtrace/contrib/elasticsearch/quantize'
 
 module Datadog
   module Contrib
@@ -30,19 +31,19 @@ module Datadog
           body = args[3]
           full_url = URI.parse(path)
 
-          stem = full_url.path
+          url = full_url.path
           response = nil
           pin.tracer.trace('elasticsearch.query') do |span|
             span.service = pin.service
             span.span_type = SPAN_TYPE
 
             span.set_tag(METHOD, method)
-            span.set_tag(URL, stem)
+            span.set_tag(URL, url)
             span.set_tag(PARAMS, JSON.generate(params)) if params
             span.set_tag(BODY, JSON.generate(body)) if body
 
-            # TODO[Aaditya] properly quantize resource
-            span.resource = "#{method} #{stem}"
+            quantized_url = Datadog::Contrib::Elasticsearch::Quantize.format_url(url)
+            span.resource = "#{method} #{quantized_url}"
 
             response = super(*args)
           end
