@@ -2,6 +2,9 @@ require 'time'
 require 'contrib/redis/test_helper'
 require 'helper'
 
+# RedisMiniAppTest tests and shows what you would typically do
+# in a custom application, which is already traced. It shows
+# how to have Redis spans be children of application spans.
 class RedisMiniAppTest < Minitest::Test
   REDIS_HOST = '127.0.0.1'.freeze
   REDIS_PORT = 46379

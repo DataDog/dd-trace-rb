@@ -1,6 +1,5 @@
 require 'time'
 require 'contrib/elasticsearch/test_helper'
-require 'ddtrace'
 require 'helper'
 
 class ESIntegrationTest < Minitest::Test
@@ -8,10 +7,7 @@ class ESIntegrationTest < Minitest::Test
   def setup
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
 
-    # Here we use the default tracer, on one hand it forces us to have
-    # a real agent and checkup the tracer state before / after because its
-    # state might be influenced by former tests. OTOH current implementation
-    # uses hardcoded Datadog.tracer, so there's no real shortcut.
+    # Here we use the default tracer (to make a real integration test)
     @tracer = Datadog.tracer
 
     # wait until it's really running, docker-compose can be slow

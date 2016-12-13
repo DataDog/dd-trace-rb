@@ -3,10 +3,10 @@ module Datadog
     module Elasticsearch
       # Quantize contains ES-specific resource quantization tools.
       module Quantize
-        ID_REGEXP = %r{/\/([0-9]+)([\/\?]|$)/}
+        ID_REGEXP = %r{\/([0-9]+)([\/\?]|$)}
         ID_PLACEHOLDER = '/?\2'.freeze
 
-        INDEX_REGEXP = %r{/[0-9]{2,}/}
+        INDEX_REGEXP = /[0-9]{2,}/
         INDEX_PLACEHOLDER = '?'.freeze
 
         module_function
