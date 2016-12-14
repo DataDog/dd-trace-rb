@@ -16,7 +16,7 @@ module Datadog
   end
 
   # TODO[christian]: write docs
-  module CacheExtension
+  module CacheStoreExtension
     def read(*args)
       ActiveSupport::Notifications.instrument('start_cache_read.active_support')
       super(*args)
@@ -48,7 +48,9 @@ end
 
 module ActiveSupport
   # TODO[christian]: write docs
-  class Cache
-    prepend Datadog::CacheExtension
+  module Cache
+    class Store
+      prepend Datadog::CacheStoreExtension
+    end
   end
 end
