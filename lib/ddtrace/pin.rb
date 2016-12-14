@@ -17,13 +17,13 @@ module Datadog
     attr_accessor :name
     attr_accessor :tracer
 
-    def initialize(service, params = {})
+    def initialize(service, app: nil, tags: nil, app_type: nil, tracer: Datadog.tracer)
       @service = service
-      @app = params[:app]
-      @tags = params[:tags]
-      @app_type = params[:app_type]
+      @app = app
+      @tags = tags
+      @app_type = app_type
       @name = nil # this would rarely be overriden as it's really span-specific
-      @tracer = params.fetch(:tracer, Datadog.tracer)
+      @tracer = tracer
     end
 
     def enabled?
