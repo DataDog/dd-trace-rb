@@ -13,12 +13,15 @@ module Datadog
   #   span = Datadog.tracer.trace('web.request')
   #   span.finish()
   #
+  # If you want to override the default tracer, the recommended way
+  # is to "pin" your own tracer onto your traced component:
+  #
+  #   tracer = Datadog::Tracer.new
+  #   pin = Datadog::Pin.get_from(mypatchcomponent)
+  #   pin.tracer = tracer
+
   def self.tracer
     @tracer
-  end
-
-  def self.tracer=(_tracer)
-    @tracer = tracer
   end
 end
 
