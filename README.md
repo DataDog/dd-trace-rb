@@ -69,8 +69,8 @@ should work the same way:
 
 ```ruby
 
-    require 'ddtrace'
     require 'redis'
+    require 'ddtrace'
 
     Datadog::Monkey.patch_all # you need to explicitly patch it
 
