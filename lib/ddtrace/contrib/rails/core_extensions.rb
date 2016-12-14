@@ -14,6 +14,24 @@ module Datadog
       super(*args)
     end
   end
+
+  # TODO[christian]: write docs
+  module CacheExtension
+    def read(*args)
+      ActiveSupport::Notifications.instrument('start_cache_read.active_support')
+      super(*args)
+    end
+
+    def write(*args)
+      ActiveSupport::Notifications.instrument('start_cache_write.active_support')
+      super(*args)
+    end
+
+    def delete(*args)
+      ActiveSupport::Notifications.instrument('start_cache_delete.active_support')
+      super(*args)
+    end
+  end
 end
 
 module ActionView
@@ -25,5 +43,12 @@ module ActionView
   # TODO[manu]: write docs
   class PartialRenderer
     prepend Datadog::PartialRendererExtension
+  end
+end
+
+module ActiveSupport
+  # TODO[christian]: write docs
+  class Cache
+    prepend Datadog::CacheExtension
   end
 end
