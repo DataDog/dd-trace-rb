@@ -47,8 +47,9 @@ module ActionView
 end
 
 module ActiveSupport
-  # TODO[christian]: write docs
+  # Cache module (generic/rails)
   module Cache
+    # Store is the class used to set & get data from cache.
     class Store
       prepend Datadog::CacheStoreExtension
     end
