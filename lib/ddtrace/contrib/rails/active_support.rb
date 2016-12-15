@@ -37,10 +37,11 @@ module Datadog
           end
         end
 
-        def self.start_trace_cache(*)
+        def self.start_trace_cache(_resource, *_args)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
+          service = ::Rails.configuration.datadog_trace.fetch(:default_cache_service)
           type = Datadog::Ext::CACHE::TYPE
-          tracer.trace('rails.cache', span_type: type)
+          tracer.trace('rails.cache', service: service, span_type: type)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
@@ -49,10 +50,18 @@ module Datadog
           # finish the tracing and update the execution time
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.active_span()
-          span.service = ::Rails.configuration.datadog_trace.fetch(:default_cache_service)
+          return unless span
           span.resource = resource
           span.set_tag('rails.cache.backend', ::Rails.configuration.cache_store)
           span.set_tag('rails.cache.key', payload.fetch(:key))
+
+          if payload[:exception]
+            error = payload[:exception]
+            span.status = 1
+            span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
+            span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+          end
+
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e

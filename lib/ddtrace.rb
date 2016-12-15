@@ -25,6 +25,9 @@ module Datadog
   end
 end
 
+# Autopatching non-Rails contribs if env var is set
+Datadog::Monkey.patch_all if 'true' == ENV['DATADOG_TRACE_AUTOPATCH'].to_s
+
 # Datadog auto instrumentation for frameworks
 if defined?(Rails::VERSION)
   if Rails::VERSION::MAJOR.to_i >= 3
@@ -47,6 +50,3 @@ if defined?(Rails::VERSION)
         'auto-instrumentation for core components will be disabled.'
   end
 end
-
-# Autopatching non-Rails contribs if env var is set
-Datadog::Monkey.patch_all if 'true' == ENV['DATADOG_TRACE_AUTOPATCH'].to_s

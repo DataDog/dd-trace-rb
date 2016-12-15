@@ -35,6 +35,14 @@ if RUBY_VERSION >= "2.2.2" && RUBY_PLATFORM != "java"
     gem "rails", "5.0.0.1"
     gem "mysql2", platform: :ruby
   end
+
+  appraise "rails5-postgres-redis" do
+    gem "rails", "5.0.0.1"
+    gem "pg", platform: :ruby
+    gem "redis"
+    gem "redis-store"
+    gem "redis-rails"
+  end
 end
 
 appraise "contrib" do
