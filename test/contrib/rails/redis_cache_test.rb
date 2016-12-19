@@ -1,6 +1,8 @@
-ENV['DATADOG_TRACE_AUTOPATCH'] = 'true'
 ENV['DATADOG_TEST_REDIS_CACHE_HOST'] = '127.0.0.1'
 ENV['DATADOG_TEST_REDIS_CACHE_PORT'] = '46379'
+
+# TODO: get rid of this
+require 'redis-rails'
 
 require 'helper'
 require 'contrib/rails/test_helper'

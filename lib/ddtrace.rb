@@ -39,6 +39,7 @@ if defined?(Rails::VERSION)
       class Railtie < Rails::Railtie
         config.after_initialize do |app|
           Datadog::Contrib::Rails::Framework.configure(config: app.config)
+          Datadog::Contrib::Rails::Framework.monkey_patch_redis()
           Datadog::Contrib::Rails::Framework.auto_instrument()
         end
       end
