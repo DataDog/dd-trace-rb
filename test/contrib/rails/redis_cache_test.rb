@@ -2,11 +2,8 @@ ENV['DATADOG_TRACE_AUTOPATCH'] = 'true'
 ENV['DATADOG_TEST_REDIS_CACHE_HOST'] = '127.0.0.1'
 ENV['DATADOG_TEST_REDIS_CACHE_PORT'] = '46379'
 
-require 'redis-activesupport'
 require 'helper'
 require 'contrib/rails/test_helper'
-
-# require 'redis-activesupport'
 
 class RedisCacheTracingTest < ActionController::TestCase
   setup do
@@ -14,6 +11,7 @@ class RedisCacheTracingTest < ActionController::TestCase
     @tracer = get_test_tracer
     Rails.configuration.datadog_trace[:tracer] = @tracer
     pin = Datadog::Pin.get_from(Rails.cache.data)
+    refute_nil(pin, 'unable to get pin from Redis connection')
     pin.tracer = @tracer
   end
 

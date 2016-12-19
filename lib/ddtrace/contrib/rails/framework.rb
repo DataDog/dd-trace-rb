@@ -8,6 +8,13 @@ require 'ddtrace/contrib/rails/active_record' if defined?(::ActiveRecord)
 require 'ddtrace/contrib/rails/active_support'
 require 'ddtrace/contrib/rails/utils'
 
+begin
+  # early loading of redis-activesupport for later monkey patching
+  require 'redis-activesupport'
+rescue
+  Datadog::Tracer.log.debug('no redis support')
+end
+
 module Datadog
   module Contrib
     # TODO[manu]: write docs
@@ -18,6 +25,7 @@ module Datadog
         DEFAULT_CONFIG = {
           enabled: true,
           auto_instrument: true,
+          auto_instrument_redis: true,
           default_service: 'rails-app',
           default_cache_service: 'rails-cache',
           template_base_path: 'views/',
@@ -29,11 +37,6 @@ module Datadog
 
         # configure Datadog settings
         def self.configure(config)
-          # Force autopatching now, this is the right place because
-          # all requirements should be here but objects, such as caches,
-          # are not instanciated yet.
-          Datadog::Monkey.autopatch_module(:redis)
-
           # tracer defaults
           # merge default configurations with users settings
           user_config = config[:config].datadog_trace rescue {}
@@ -76,6 +79,14 @@ module Datadog
 
           # update global configurations
           ::Rails.configuration.datadog_trace = datadog_config
+
+          # Monkey patching needs to be done early enough so that
+          patch_redis()
+        end
+
+        def self.patch_redis
+          return unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
+          Datadog::Monkey.patch_module(:redis)
         end
 
         # automatically instrument all Rails component
@@ -91,6 +102,8 @@ module Datadog
           return unless ::Rails::VERSION::MAJOR.to_i == 3
           ::ActiveSupport::Cache::Store.instrument = true
         end
+
+        private_class_method :patch_redis
       end
     end
   end
