@@ -42,6 +42,7 @@ if RUBY_VERSION >= "2.2.2" && RUBY_PLATFORM != "java"
     gem "redis"
     gem "redis-store"
     gem "redis-rails"
+    gem "redis-activesupport"
   end
 end
 

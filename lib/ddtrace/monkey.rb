@@ -30,12 +30,20 @@ module Datadog
       patch @autopatch_modules
     end
 
+    def autopatch_all
+      patch_all if 'true' == ENV['DATADOG_TRACE_AUTOPATCH'].to_s
+    end
+
     def patch_module(m)
       @mutex.synchronize do
         patcher = @patchers[m]
         raise 'Unsupported module #{m}' unless patcher
         patcher.patch
       end
+    end
+
+    def autopatch_module(m)
+      patch_module(m) if 'true' == ENV['DATADOG_TRACE_AUTOPATCH'].to_s
     end
 
     def patch(modules)

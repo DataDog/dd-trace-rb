@@ -26,7 +26,7 @@ module Datadog
 end
 
 # Autopatching non-Rails contribs if env var is set
-Datadog::Monkey.patch_all if 'true' == ENV['DATADOG_TRACE_AUTOPATCH'].to_s
+Datadog::Monkey.autopatch_all
 
 # Datadog auto instrumentation for frameworks
 if defined?(Rails::VERSION)

@@ -7,5 +7,6 @@ gem "pg", :platform => :ruby
 gem "redis"
 gem "redis-store"
 gem "redis-rails"
+gem "redis-activesupport"
 
 gemspec :path => "../"

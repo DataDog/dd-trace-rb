@@ -29,6 +29,11 @@ module Datadog
 
         # configure Datadog settings
         def self.configure(config)
+          # Force autopatching now, this is the right place because
+          # all requirements should be here but objects, such as caches,
+          # are not instanciated yet.
+          Datadog::Monkey.autopatch_module(:redis)
+
           # tracer defaults
           # merge default configurations with users settings
           user_config = config[:config].datadog_trace rescue {}

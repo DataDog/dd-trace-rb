@@ -80,7 +80,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.name, 'rails.request')
 
     # assert the parenting
-    assert_equal(span_request.parent, nil)
+    assert_nil(span_request.parent)
     assert_equal(span_template.parent, span_request)
     assert_equal(span_database.parent, span_template)
     assert_equal(span_cache.parent, span_request)
@@ -89,10 +89,10 @@ class TracingControllerTest < ActionController::TestCase
   test 'multiple calls should not leave an unfinished span in the local thread buffer' do
     get :full
     assert_response :success
-    assert_equal(Thread.current[:datadog_span], nil)
+    assert_nil(Thread.current[:datadog_span])
 
     get :full
     assert_response :success
-    assert_equal(Thread.current[:datadog_span], nil)
+    assert_nil(Thread.current[:datadog_span])
   end
 end
