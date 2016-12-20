@@ -1,8 +1,11 @@
 ENV['DATADOG_TEST_REDIS_CACHE_HOST'] = '127.0.0.1'
 ENV['DATADOG_TEST_REDIS_CACHE_PORT'] = '46379'
 
-# TODO: get rid of this
-require 'redis-rails'
+# It's important that there's *NO* "require 'redis-rails'" or
+# even "require 'redis'" here. Because people using Rails do not
+# include those headers themselves, instead they rely on the
+# framework to do it for them. So it should work smoothly without
+# including anything.
 
 require 'helper'
 require 'contrib/rails/test_helper'

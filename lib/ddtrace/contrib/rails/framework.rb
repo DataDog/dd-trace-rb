@@ -74,8 +74,8 @@ module Datadog
           ::Rails.configuration.datadog_trace = datadog_config
         end
 
-        def self.monkey_patch_redis
-          return unless ::Rails.configuration.datadog_trace[:monkey_patch_redis]
+        def self.auto_instrument_redis
+          return unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
           Datadog::Monkey.patch_module(:redis)
         end
 

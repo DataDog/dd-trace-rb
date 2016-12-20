@@ -90,10 +90,10 @@ Configure your environment through:
 
 You can launch all tests using the following rake command:
 
-    $ rake test                       # tracer tests
-    $ appraisal rake rails            # tests Rails matrix
-    $ appraisal contrib rake contrib  # tests other contrib libraries (Redis, ...)
-    $ appraisal contrib rake monkey   # tests monkey patching
+    $ rake test                                     # tracer tests
+    $ appraisal rails<version>-<database>rake rails # tests Rails matrix
+    $ appraisal contrib rake contrib                # tests other contrib libraries (Redis, ...)
+    $ appraisal contrib rake monkey                 # tests monkey patching
 
 Available appraisals are:
 
