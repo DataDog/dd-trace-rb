@@ -53,6 +53,7 @@ when '4.2.7.1'
 when '3.2.22.5'
   require 'test/unit'
   require 'contrib/rails/apps/rails3'
+  require 'contrib/rails/core_extensions'
 else
   logger.error 'A Rails app for this version is not found!'
 end
