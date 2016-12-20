@@ -75,7 +75,7 @@ module Datadog
         end
 
         def self.auto_instrument_redis
-          if defined? ::Rails.cache && ::Rails.cache.data
+          if (defined? ::Rails.cache) && ::Rails.cache.respond_to?(:data)
             pin = Datadog::Pin.get_from(::Rails.cache.data)
             if pin
               pin.tracer = nil unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
