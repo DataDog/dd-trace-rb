@@ -14,21 +14,22 @@ module Datadog
     module Rails
       # TODO[manu]: write docs
       module Framework
+        # the default configuration
+        DEFAULT_CONFIG = {
+          enabled: true,
+          auto_instrument: true,
+          default_service: 'rails-app',
+          default_cache_service: 'rails-cache',
+          template_base_path: 'views/',
+          tracer: Datadog.tracer
+        }.freeze
+
         # configure Datadog settings
         def self.configure(config)
           # tracer defaults
-          default_config = {
-            enabled: true,
-            auto_instrument: true,
-            default_service: 'rails-app',
-            default_cache_service: 'rails-cache',
-            template_base_path: 'views/',
-            tracer: Datadog.tracer
-          }
-
           # merge default configurations with users settings
           user_config = config[:config].datadog_trace rescue {}
-          datadog_config = default_config.merge(user_config)
+          datadog_config = DEFAULT_CONFIG.merge(user_config)
           datadog_config[:tracer].enabled = datadog_config[:enabled]
 
           # set default service details
