@@ -75,12 +75,12 @@ module Datadog
         end
 
         def self.auto_instrument_redis
-          Datadog::Tracer.log.info('instrumenting redis')
+          Datadog::Tracer.log.debug('instrumenting redis')
           return unless (defined? ::Rails.cache) && ::Rails.cache.respond_to?(:data)
-          Datadog::Tracer.log.info('redis cache exists')
+          Datadog::Tracer.log.debug('redis cache exists')
           pin = Datadog::Pin.get_from(::Rails.cache.data)
           return unless pin
-          Datadog::Tracer.log.info('pin exists')
+          Datadog::Tracer.log.debug('redis cache pin is set')
           pin.tracer = nil unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
         end
 

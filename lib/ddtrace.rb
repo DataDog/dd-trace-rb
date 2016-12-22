@@ -44,6 +44,8 @@ if defined?(Rails::VERSION)
     require 'ddtrace/contrib/rails/framework'
 
     Datadog::Monkey.patch_module(:redis) # does nothing if redis is not loaded
+    Datadog::RailsPatcher.patch_renderer()
+    Datadog::RailsPatcher.patch_cache_store()
 
     module Datadog
       # Run the auto instrumentation directly after the initialization of the application and
@@ -56,6 +58,7 @@ if defined?(Rails::VERSION)
         end
       end
     end
+    require 'ddtrace/contrib/rails/core_extensions'
   else
     logger = Logger.new(STDOUT)
     logger.warn 'Detected a Rails version < 3.x.'\

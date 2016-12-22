@@ -75,6 +75,3 @@ module Datadog
     end
   end
 end
-
-Datadog::RailsPatcher.patch_renderer
-Datadog::RailsPatcher.patch_cache_store
