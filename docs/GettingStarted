@@ -137,7 +137,10 @@ of the Datadog tracer, you can override the following defaults:
       default_service: 'rails-app',
       default_cache_service: 'rails-cache',
       template_base_path: 'views/',
-      tracer: Datadog.tracer
+      tracer: Datadog.tracer,
+      debug: false,
+      trace_agent_hostname: 'localhost',
+      trace_agent_port: 7777
     }
 
 The available settings are:
@@ -155,6 +158,9 @@ The available settings are:
   your templates in the +views/+ folder, you may need to change this value
 * +tracer+: is the global tracer used by the tracing application. Usually you don't need to change that value
   unless you're already using a different initialized +tracer+ somewhere else
+* +debug+: set to true to enable debug logging.
+* +trace_agent_hostname+: set the hostname of the trace agent.
+* +trace_agent_port+: set the port the trace agent is listening on.
 
 == Debug Mode
 
