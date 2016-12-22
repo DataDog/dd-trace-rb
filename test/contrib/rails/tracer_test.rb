@@ -19,6 +19,9 @@ class TracerTest < ActionController::TestCase
     assert_equal(Rails.configuration.datadog_trace[:default_service], 'rails-app')
     assert_equal(Rails.configuration.datadog_trace[:template_base_path], 'views/')
     assert Rails.configuration.datadog_trace[:tracer]
+    assert !Rails.configuration.datadog_trace[:debug]
+    assert_equal(Rails.configuration.datadog_trace[:trace_agent_hostname], Datadog::Writer::HOSTNAME)
+    assert_equal(Rails.configuration.datadog_trace[:trace_agent_port], Datadog::Writer::PORT)
   end
 
   test 'a default service and database should be properly set' do
@@ -93,5 +96,21 @@ class TracerTest < ActionController::TestCase
         'app' => 'rails', 'app_type' => 'cache'
       }
     )
+  end
+
+  test 'debug logging can be changed by the user' do
+    update_config(:debug, true)
+
+    assert_equal(Datadog::Tracer.debug_logging, true)
+  end
+
+  test 'tracer agent address can be changed by the user' do
+    update_config(:trace_agent_hostname, 'example.com')
+    update_config(:trace_agent_port, 42)
+
+    tracer = Rails.configuration.datadog_trace[:tracer]
+
+    assert_equal(tracer.writer.transport.hostname, 'example.com')
+    assert_equal(tracer.writer.transport.port, 42)
   end
 end

@@ -21,7 +21,10 @@ module Datadog
           default_service: 'rails-app',
           default_cache_service: 'rails-cache',
           template_base_path: 'views/',
-          tracer: Datadog.tracer
+          tracer: Datadog.tracer,
+          debug: false,
+          trace_agent_hostname: Datadog::Writer::HOSTNAME,
+          trace_agent_port: Datadog::Writer::PORT
         }.freeze
 
         # configure Datadog settings
@@ -31,6 +34,15 @@ module Datadog
           user_config = config[:config].datadog_trace rescue {}
           datadog_config = DEFAULT_CONFIG.merge(user_config)
           datadog_config[:tracer].enabled = datadog_config[:enabled]
+
+          # set debug logging
+          Datadog::Tracer.debug_logging = datadog_config[:debug]
+
+          # set the address of the trace agent
+          datadog_config[:tracer].configure(
+            hostname: datadog_config[:trace_agent_hostname],
+            port: datadog_config[:trace_agent_port]
+          )
 
           # set default service details
           datadog_config[:tracer].set_service_info(
