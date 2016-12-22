@@ -14,6 +14,3 @@ end
 require 'contrib/rails/apps/controllers'
 Rails3.initialize!
 require 'contrib/rails/apps/models'
-
-# TODO[christian]: remove this, it's required for tests to pass, could hide some bug
-require 'contrib/rails/core_extensions'
