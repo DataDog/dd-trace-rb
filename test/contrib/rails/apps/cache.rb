@@ -4,8 +4,10 @@ end
 
 def get_cache
   # Rails3 does not define data as an accessor, we need it for our tests
-  unless ::ActiveSupport::Cache::RedisStore.method_defined?(:data)
-    ::ActiveSupport::Cache::RedisStore.prepend RedisStoreDataAccessor
+  if defined?(::ActiveSupport::Cache::RedisStore)
+    unless ::ActiveSupport::Cache::RedisStore.method_defined?(:data)
+      ::ActiveSupport::Cache::RedisStore.prepend RedisStoreDataAccessor
+    end
   end
 
   cache = nil
