@@ -12,6 +12,11 @@ module Datadog
             start_trace_cache('GET', *args)
           end
 
+          # subscribe when a cache fetch starts being processed
+          ::ActiveSupport::Notifications.subscribe('start_cache_fetch.active_support') do |*args|
+            start_trace_cache('GET', *args)
+          end
+
           # subscribe when a cache write starts being processed
           ::ActiveSupport::Notifications.subscribe('start_cache_write.active_support') do |*args|
             start_trace_cache('SET', *args)
@@ -49,8 +54,14 @@ module Datadog
         end
 
         def self.start_trace_cache(resource, *_args)
+          key = get_key(resource)
+          # This is mostly to trap the case of fetch/read. In some cases the framework
+          # will call fetch but fetch won't call read. In some cases read can be called
+          # alone. And in some cases they are nested. In all cases we want to have one
+          # and only one span.
+          return if Thread.current[key]
           create_span(::Rails.configuration.datadog_trace.fetch(:tracer))
-          Thread.current[get_key(resource)] = true
+          Thread.current[key] = true
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end

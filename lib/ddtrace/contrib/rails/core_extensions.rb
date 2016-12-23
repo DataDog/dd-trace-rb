@@ -24,12 +24,21 @@ module Datadog
     end
   end
 
+  # CacheStoreFetchExtension contains a new fetch function that notifies
+  # the framework of a fetch, then calls fetch.
+  module CacheStoreFetchExtension
+    # It might seem redundant to instrument both read and fetch since
+    # fetch very often calls read. But there's no garantee of this, in
+    # some cases fetch can call directly read_entry without calling read.
+    def fetch(*args)
+      ActiveSupport::Notifications.instrument('start_cache_fetch.active_support')
+      super(*args)
+    end
+  end
+
   # CacheWriteReadExtension contains a new read function that notifies
   # the framework of a write, then calls write.
   module CacheStoreWriteExtension
-    # TODO[christian]: fix bug, this is not overloaded in the case of Redis,
-    # because it's another write that is used, see here:
-    # https://github.com/redis-store/redis-activesupport/blob/master/lib/active_support/cache/redis_store.rb#L57
     def write(*args)
       ActiveSupport::Notifications.instrument('start_cache_write.active_support')
       super(*args)
@@ -63,14 +72,17 @@ module Datadog
       # https://github.com/redis-store/redis-activesupport/blob/master/lib/active_support/cache/redis_store.rb
 
       { read: Datadog::CacheStoreReadExtension,
+        fetch: Datadog::CacheStoreFetchExtension,
         write: Datadog::CacheStoreWriteExtension,
         delete: Datadog::CacheStoreDeleteExtension }.each do |k, v|
-        if defined?(::ActiveSupport::Cache::RedisStore) &&
-           ::ActiveSupport::Cache::RedisStore.instance_methods(false).include?(k)
-          ::ActiveSupport::Cache::RedisStore.prepend v
-        else
-          ::ActiveSupport::Cache::Store.prepend v
-        end
+        c = if defined?(::ActiveSupport::Cache::RedisStore) &&
+               ::ActiveSupport::Cache::RedisStore.instance_methods(false).include?(k)
+              ::ActiveSupport::Cache::RedisStore
+            else
+              ::ActiveSupport::Cache::Store
+            end
+        Datadog::Tracer.log.debug("monkey patching #{c}.#{k} with #{v}.#{k}")
+        c.prepend v
       end
     end
   end
