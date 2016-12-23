@@ -4,7 +4,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/rails/core_extensions'
 require 'ddtrace/contrib/rails/action_controller'
 require 'ddtrace/contrib/rails/action_view'
-require 'ddtrace/contrib/rails/active_record'
+require 'ddtrace/contrib/rails/active_record' if defined?(::ActiveRecord)
 require 'ddtrace/contrib/rails/active_support'
 require 'ddtrace/contrib/rails/utils'
 
@@ -57,15 +57,17 @@ module Datadog
           )
 
           # set default database service details and store it in the configuration
-          adapter_name = ::ActiveRecord::Base.connection_config[:adapter]
-          adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(adapter_name)
-          database_service = datadog_config.fetch(:default_database_service, adapter_name)
-          datadog_config[:default_database_service] = database_service
-          datadog_config[:tracer].set_service_info(
-            database_service,
-            adapter_name,
-            Datadog::Ext::AppTypes::DB
-          )
+          if defined?(::ActiveRecord)
+            adapter_name = ::ActiveRecord::Base.connection_config[:adapter]
+            adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(adapter_name)
+            database_service = datadog_config.fetch(:default_database_service, adapter_name)
+            datadog_config[:default_database_service] = database_service
+            datadog_config[:tracer].set_service_info(
+              database_service,
+              adapter_name,
+              Datadog::Ext::AppTypes::DB
+            )
+          end
 
           # update global configurations
           ::Rails.configuration.datadog_trace = datadog_config
@@ -77,7 +79,7 @@ module Datadog
           Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components.')
           Datadog::Contrib::Rails::ActionController.instrument()
           Datadog::Contrib::Rails::ActionView.instrument()
-          Datadog::Contrib::Rails::ActiveRecord.instrument()
+          Datadog::Contrib::Rails::ActiveRecord.instrument() if defined?(::ActiveRecord)
           Datadog::Contrib::Rails::ActiveSupport.instrument()
 
           # by default, Rails 3 doesn't instrument the cache system
