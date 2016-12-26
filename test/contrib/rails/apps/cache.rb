@@ -10,14 +10,6 @@ def get_cache
     end
   end
 
-  cache = nil
-  redis_host = ENV['DATADOG_TEST_REDIS_CACHE_HOST']
-  redis_port = ENV['DATADOG_TEST_REDIS_CACHE_PORT']
-  if redis_host && redis_port
-    puts "using redis cache on #{redis_host}:#{redis_port}"
-    cache = :redis_store, { host: redis_host, port: redis_port }
-  else
-    cache = :file_store, '/tmp/ddtrace-rb/cache/'
-  end
-  cache
+  return :redis_store, { url: ENV['REDIS_URL'] } if ENV['REDIS_URL']
+  [:file_store, '/tmp/ddtrace-rb/cache/']
 end

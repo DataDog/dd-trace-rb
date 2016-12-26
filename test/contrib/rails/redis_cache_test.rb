@@ -1,5 +1,4 @@
-ENV['DATADOG_TEST_REDIS_CACHE_HOST'] = '127.0.0.1'
-ENV['DATADOG_TEST_REDIS_CACHE_PORT'] = '46379'
+ENV['REDIS_URL'] = 'redis://127.0.0.1:46379'
 
 # It's important that there's *NO* "require 'redis-rails'" or
 # even "require 'redis'" here. Because people using Rails do not
@@ -41,7 +40,7 @@ class RedisCacheTracingTest < ActionController::TestCase
       assert_equal(span.span_type, 'cache')
       assert_equal(span.resource, 'GET')
       assert_equal(span.service, 'rails-cache')
-      assert_equal(span.get_tag('rails.cache.backend').to_s, '[:redis_store, {:host=>"127.0.0.1", :port=>"46379"}]')
+      assert_equal(span.get_tag('rails.cache.backend').to_s, '[:redis_store, {:url=>"redis://127.0.0.1:46379"}]')
       assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
       span = spans[-2]
       assert_equal(span.name, 'redis.command')
@@ -64,7 +63,7 @@ class RedisCacheTracingTest < ActionController::TestCase
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'SET')
     assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, '[:redis_store, {:host=>"127.0.0.1", :port=>"46379"}]')
+    assert_equal(span.get_tag('rails.cache.backend').to_s, '[:redis_store, {:url=>"redis://127.0.0.1:46379"}]')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
     span = spans[-2]
     assert_equal(span.name, 'redis.command')
@@ -86,7 +85,7 @@ class RedisCacheTracingTest < ActionController::TestCase
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'DELETE')
     assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, '[:redis_store, {:host=>"127.0.0.1", :port=>"46379"}]')
+    assert_equal(span.get_tag('rails.cache.backend').to_s, '[:redis_store, {:url=>"redis://127.0.0.1:46379"}]')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
     span = spans[-2]
     assert_equal(span.name, 'redis.command')
