@@ -30,9 +30,9 @@ module Datadog
     # It might seem redundant to instrument both read and fetch since
     # fetch very often calls read. But there's no garantee of this, in
     # some cases fetch can call directly read_entry without calling read.
-    def fetch(*args)
+    def fetch(*args, &block)
       ActiveSupport::Notifications.instrument('start_cache_fetch.active_support')
-      super(*args)
+      super(*args, &block)
     end
   end
 
