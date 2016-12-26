@@ -28,12 +28,6 @@ module Datadog
           pin = Datadog::Pin.new(SERVICE, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
           pin.onto(self)
           super(*args)
-          begin
-            # raise "hello"
-          rescue => exception
-            puts exception.backtrace
-            raise # always reraise
-          end
         end
 
         def call(*args, &block)

@@ -21,7 +21,7 @@ If you're using ``Bundler``, just update your ``Gemfile`` as follows:
     gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
 ```
 
-### Rails Quickstart (manual instrumentation)
+### Quickstart (manual instrumentation)
 
 If you aren't using a supported framework instrumentation, you may want to to manually instrument your code.
 Adding tracing to your code is very simple. As an example, let’s imagine we have a web server and we want
@@ -55,7 +55,7 @@ to trace requests to the home page:
     end
 ```
 
-### Redis Quickstart
+### Monkey patching
 
 By default, our monkey-patching is not active, you need to either:
 
