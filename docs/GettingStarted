@@ -134,6 +134,7 @@ of the Datadog tracer, you can override the following defaults:
     Rails.configuration.datadog_trace = {
       enabled: true,
       auto_instrument: true,
+      auto_instrument_redis: true,
       default_service: 'rails-app',
       default_cache_service: 'rails-cache',
       template_base_path: 'views/',
@@ -150,6 +151,8 @@ The available settings are:
 * +auto_instrument+: if set to false the code will not be instrumented, while the +tracer+ may be active for
   your internal usage. This could be useful if you want to use the \Rails integration, but you want to trace
   only particular functions or views
+* +auto_instrument_redis+: if set to false \Redis calls will not be traced as such. Calls to cache will
+  still be instrumented but you will not have the detail of low-level \Redis calls.
 * +default_service+: set the service name used when tracing application requests. Defaults to +rails-app+
 * +default_database_service+: set the database service name used when tracing database activity. Defaults to the
   current adapter name, so if you're using PostgreSQL it will be +postgres+.
@@ -161,6 +164,155 @@ The available settings are:
 * +debug+: set to true to enable debug logging.
 * +trace_agent_hostname+: set the hostname of the trace agent.
 * +trace_agent_port+: set the port the trace agent is listening on.
+
+=== Redis
+
+The \Redis integration will trace simple calls as well as pipelines.
+
+    require 'redis'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:redis) # you need to explicitly patch it
+
+    # now do your Redis stuff, eg:
+    redis = Redis.new
+    redis.set 'foo', 'bar' # traced!
+
+The \patch_module allows you to enable tracing on a per-library basis.
+If you want to enable tracing for all supported integrations, you can simply
+use \patch_all eg:
+
+    require 'redis'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_all # enables all available integrations
+
+    # now do your Redis stuff, eg:
+    redis = Redis.new
+    redis.set 'foo', 'bar' # traced!
+
+=== Elastic Search
+
+The \Elasticsearch integration will trace any call to \perform_request
+in the \Client object:
+
+    require 'elasticsearch/transport'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:elasticsearch) # you need to explicitly patch it
+
+    # now do your Elastic Search stuff, eg:
+    client = Elasticsearch::Client.new url: 'http://127.0.0.1:9200'
+    response = client.perform_request 'GET', '_cluster/health'
+
+The \patch_module allows you to enable tracing on a per-library basis.
+If you want to enable tracing for all supported integrations, you can simply
+use \patch_all eg:
+
+    require 'elasticsearch/transport'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_all # enables all available integrations
+
+    # now do your Elastic Search stuff, eg:
+    client = Elasticsearch::Client.new url: 'http://127.0.0.1:9200'
+    response = client.perform_request 'GET', '_cluster/health'
+
+== Monkey Patching
+
+=== Patching methods
+
+Integrations such as \Redis or \Elasticsearch use monkey patching.
+
+The available methods are:
+
+* +autopatch_modules+: returns a \Hash of all modules available for monkey patching,
+  the key is the name of the module and the value \true or \false. If it is \true,
+  a call to \patch_all will enable the module, if it is \false, it will do nothing.
+* +patch_all+: patches all modules which are supported. Make sure all the necessary
+  calls to \require have been done before this is alled, else monkey patching will
+  not work.
+* +patch_module+: patches a single module, regardless of its settings in the
+  \autopatch_modules list.
+* +patch+: patches some modules, you should pass a hash like the one returned
+  by \autopatch_modules
+* +get_patched_modules+: returns the list of patched modules, a module has been
+  correctly patched only if it is in this hash, with a value set to \true.
+
+Example:
+
+    require 'ddtrace'
+
+    puts Datadog::Monkey::autopatch_modules                  # lists all modules available for monkey patching
+    Datadog::Monkey.patch_module(:redis)                     # patch only one module
+    Datadog::Monkey.patch(elasticsearch: false, redis: true) # patch redis, but not elasticsearch
+    Datadog::Monkey.patch_all                                # patch all the available modules
+    puts Datadog::Monkey::get_patched_modules                # tells wether modules are patched or not
+
+It is safe to call \patch_all, \patch_module or \patch several times.
+Make sure the library you want to patch is imported before you call \patch_module.
+In doubt, check with \get_patched_modules.
+Once a module is patched, it is not possible to unpatch it.
+
+=== Patch Info (PIN)
+
+The Patch Info, AKA \Pin object, gives you control on the integration.
+
+It has one class method:
+
+* +get_from+: returns the Pin object which has been pinned onto some random
+  object. It is safe to call \get_from on any object, but it might return \nil.
+
+Some instance methods:
+
+* +enabled?+: wether tracing is enabled for this object
+* +onto+: applies the patch information to some random object. It is the companion
+  function of \get_from.
+
+Accessors:
+
+* +service+: service, you should typically set some meaningfull value for this.
+* +app+: application name
+* +tags+: optional tags
+* +app_type+: application type
+* +name+: span name
+* +tracer+: the tracer object used for tracing
+
+By default, a traced integration such as \Redis or \Elasticsearch carries a \Pin object. Eg:
+
+    require 'redis'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_all
+
+    redis = Redis.new
+    pin = Datadog::Pin.get_from(redis)
+    pin.service = 'my-redis-cache'
+    puts redis.get 'my-key' # this will be traced as belonging to 'my-redis-cache' service
+    pin.tracer = nil
+    puts pin.enabled?       # false
+    puts redis.get 'my-key' # this won't be traced, tracing has been disabled now
+
+You can use this object to instrument your own code:
+
+    require 'ddtrace'
+    require 'ddtrace/ext/app_types'
+
+    class MyWebSite
+      def initialize
+        pin = Datadog::Pin.new('my-web-site', app_type: Datadog::Ext::AppTypes::WEB)
+        Datadog::Pin.onto(self)
+      end
+
+      def serve(something)
+        pin = Datadog::Pin.get_from(self)
+        pin.tracer.trace('serve') do |span|
+          span.resource = something
+          span.service = pin.service
+          # serve something here
+        end
+      end
+    end
 
 == Debug Mode
 
