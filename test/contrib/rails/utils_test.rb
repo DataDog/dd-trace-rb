@@ -19,7 +19,7 @@ class UtilsTest < ActiveSupport::TestCase
 
   test 'normalize_template_name_nil' do
     template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(nil)
-    assert_equal(template_name, nil)
+    assert_nil(template_name)
   end
 
   test 'normalize_template_name_not_a_path' do

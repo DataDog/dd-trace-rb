@@ -18,6 +18,7 @@ module Datadog
         DEFAULT_CONFIG = {
           enabled: true,
           auto_instrument: true,
+          auto_instrument_redis: true,
           default_service: 'rails-app',
           default_cache_service: 'rails-cache',
           template_base_path: 'views/',
@@ -71,6 +72,16 @@ module Datadog
 
           # update global configurations
           ::Rails.configuration.datadog_trace = datadog_config
+        end
+
+        def self.auto_instrument_redis
+          Datadog::Tracer.log.debug('instrumenting redis')
+          return unless (defined? ::Rails.cache) && ::Rails.cache.respond_to?(:data)
+          Datadog::Tracer.log.debug('redis cache exists')
+          pin = Datadog::Pin.get_from(::Rails.cache.data)
+          return unless pin
+          Datadog::Tracer.log.debug('redis cache pin is set')
+          pin.tracer = nil unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
         end
 
         # automatically instrument all Rails component

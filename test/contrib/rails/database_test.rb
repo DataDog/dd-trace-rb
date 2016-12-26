@@ -26,7 +26,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     assert_equal(span.get_tag('rails.db.vendor'), adapter_name)
     assert_includes(span.resource, 'SELECT COUNT(*) FROM')
     # ensure that the sql.query tag is not set
-    assert_equal(span.get_tag('sql.query'), nil)
+    assert_nil(span.get_tag('sql.query'))
   end
 
   test 'doing a database call uses the proper service name if it is changed' do

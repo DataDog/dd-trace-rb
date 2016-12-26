@@ -1,12 +1,13 @@
 require 'rails/all'
 require 'rails/test_help'
+require 'contrib/rails/apps/cache'
 
 module RailsTrace
   class TestApplication < Rails::Application
     # common settings between all Rails versions
     def initialize(*args)
       super(*args)
-      config.cache_store = :file_store, '/tmp/ddtrace-rb/cache/'
+      config.cache_store = get_cache
       config.eager_load = false
       config.secret_key_base = 'not_so_secret'
     end

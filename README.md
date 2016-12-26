@@ -55,6 +55,29 @@ to trace requests to the home page:
     end
 ```
 
+### Monkey patching
+
+By default, our monkey-patching is not active, you need to
+explicitly activate it by calling `Datadog::Monkey.patch_all` 
+or `Datadog::Monkey.patch_module`
+
+This ultimately allows you to enable or disable tracing on a per-library basis.
+
+The example below shows the Redis case, but any other non-rails library
+should work the same way:
+
+```ruby
+
+    require 'redis'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_all # you need to explicitly patch it
+
+    # now do your Redis stuff, eg:
+    redis = Redis.new
+    redis.set 'foo', 'bar' # traced!
+```
+
 ## Development
 
 ### Testing
@@ -66,13 +89,16 @@ Configure your environment through:
 
 You can launch all tests using the following rake command:
 
-    $ rake test                     # tracer tests
-    $ appraisal rake rails          # tests Rails matrix
+    $ rake test                                     # tracer tests
+    $ appraisal rails<version>-<database>rake rails # tests Rails matrix
+    $ appraisal contrib rake contrib                # tests other contrib libraries (Redis, ...)
+    $ appraisal contrib rake monkey                 # tests monkey patching
 
 Available appraisals are:
 
 * ``rails{3,4,5}-postgres``: Rails with PostgreSQL
 * ``rails{3,4,5}-mysql2``: Rails with MySQL
+* ``contrib``: Other contrib libraries (Redis, ...)
 
 jRuby includes only Rails 3.x and 4.x because the current implementation of jdbc drivers, don't support
 ActiveRecord 5.x.
