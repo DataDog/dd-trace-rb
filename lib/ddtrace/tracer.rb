@@ -161,13 +161,6 @@ module Datadog
       @buffer.get()
     end
 
-    # stats returns a dictionary of stats about the writer.
-    def stats
-      {
-        spans: @spans.length()
-      }
-    end
-
     def write(spans)
       return if @writer.nil? || !@enabled
 
