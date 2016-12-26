@@ -25,22 +25,18 @@ module Datadog
   end
 end
 
-begin
-  # We include 'redis-rails' here if it's available, doing it later
-  # (typically in initialize callback) does not work, it does not
-  # get loaded in the right context.
-  require 'redis-rails'
-  Datadog::Tracer.log.info("'redis-rails' module found, datadog redis integration is available")
-rescue LoadError
-  Datadog::Tracer.log.info("no 'redis-rails' module found, datadog redis integration is not available")
-end
-
-# Autopatching non-Rails contribs if env var is set
-Datadog::Monkey.autopatch_all
-
 # Datadog auto instrumentation for frameworks
 if defined?(Rails::VERSION)
   if Rails::VERSION::MAJOR.to_i >= 3
+    begin
+      # We include 'redis-rails' here if it's available, doing it later
+      # (typically in initialize callback) does not work, it does not
+      # get loaded in the right context.
+      require 'redis-rails'
+      Datadog::Tracer.log.info("'redis-rails' module found, datadog redis integration is available")
+    rescue LoadError
+      Datadog::Tracer.log.info("no 'redis-rails' module found, datadog redis integration is not available")
+    end
     require 'ddtrace/contrib/rails/framework'
 
     Datadog::Monkey.patch_module(:redis) # does nothing if redis is not loaded

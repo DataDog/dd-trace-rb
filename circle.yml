@@ -49,7 +49,6 @@ test:
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake railsredis
     - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal contrib rake contrib
     - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal contrib rake monkey
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal contrib rake autopatch
     - rvm 2.3.1 --verbose do rake benchmark
     - rvm jruby-9.1.5.0 --verbose do rake benchmark
 
