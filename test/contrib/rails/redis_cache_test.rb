@@ -53,6 +53,44 @@ class RedisCacheTracingTest < ActionController::TestCase
     end
   end
 
+  test 'cache.fetch() is properly traced and handles blocks' do
+    Rails.cache.delete('custom-key')
+    @tracer.writer.spans() # empty spans
+
+    # value does not exist, fetch should both store it and return it
+    value = Rails.cache.fetch('custom-key') do
+      51
+    end
+    assert_equal(51, value)
+
+    spans = @tracer.writer.spans()
+    assert_equal(4, spans.length)
+
+    assert_equal(spans[-1].name, 'rails.cache')
+    assert_equal(spans[-1].resource, 'SET')
+    assert_equal(spans[-2].name, 'redis.command')
+    assert_equal(spans[-3].name, 'rails.cache')
+    assert_equal(spans[-3].resource, 'GET')
+    assert_equal(spans[-4].name, 'redis.command')
+
+    # check that the value is really updated, and persistent
+    value = Rails.cache.read('custom-key')
+    @tracer.writer.spans() # empty spans
+    assert_equal(value, 51)
+
+    # if value exists, fetch returns it and does no update
+    value = Rails.cache.fetch('custom-key') do
+      52
+    end
+    assert_equal(51, value)
+
+    spans = @tracer.writer.spans()
+    assert_equal(2, spans.length)
+
+    assert_equal(spans[-1].name, 'rails.cache')
+    assert_equal(spans[-2].name, 'redis.command')
+  end
+
   test 'cache.write() is properly traced' do
     # use the cache and assert the proper span
     Rails.cache.write('custom-key', 50)
