@@ -30,29 +30,33 @@ module Datadog
         def self.process_action(_name, start, finish, _id, payload)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.active_span()
+          return unless span
 
-          span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
-          span.set_tag(Datadog::Ext::HTTP::URL, payload.fetch(:path))
-          span.set_tag(Datadog::Ext::HTTP::METHOD, payload.fetch(:method))
-          span.set_tag('rails.route.action', payload.fetch(:action))
-          span.set_tag('rails.route.controller', payload.fetch(:controller))
+          begin
+            span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
+            span.set_tag(Datadog::Ext::HTTP::URL, payload.fetch(:path))
+            span.set_tag(Datadog::Ext::HTTP::METHOD, payload.fetch(:method))
+            span.set_tag('rails.route.action', payload.fetch(:action))
+            span.set_tag('rails.route.controller', payload.fetch(:controller))
 
-          if payload[:exception].nil?
-            # [christian] in some cases :status is not defined,
-            # rather than firing an error, simply acknowledge we don't know it.
-            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status, '?').to_s)
-          else
-            error = payload[:exception]
-            # TODO[manu]: it's right to have a 500? there are cases in Rails that let
-            # user to recover the error after this point?
-            span.status = 1
-            span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
-            span.set_tag(Datadog::Ext::Errors::MSG, error[1])
-            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, '500')
+            if payload[:exception].nil?
+              # [christian] in some cases :status is not defined,
+              # rather than firing an error, simply acknowledge we don't know it.
+              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status, '?').to_s)
+            else
+              error = payload[:exception]
+              # TODO[manu]: it's right to have a 500? there are cases in Rails that let
+              # user to recover the error after this point?
+              span.status = 1
+              span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
+              span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, '500')
+            end
+
+          ensure
+            span.start_time = start
+            span.finish_at(finish)
           end
-
-          span.start_time = start
-          span.finish_at(finish)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end

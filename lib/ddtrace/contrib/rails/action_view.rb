@@ -47,19 +47,24 @@ module Datadog
           # finish the tracing and update the execution time
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.active_span()
-          template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(payload.fetch(:identifier))
-          span.set_tag('rails.template_name', template_name)
-          span.set_tag('rails.layout', payload.fetch(:layout))
+          return unless span
 
-          if payload[:exception]
-            error = payload[:exception]
-            span.status = 1
-            span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
-            span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+          begin
+            template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(payload.fetch(:identifier))
+            span.set_tag('rails.template_name', template_name)
+            span.set_tag('rails.layout', payload.fetch(:layout))
+
+            if payload[:exception]
+              error = payload[:exception]
+              span.status = 1
+              span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
+              span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+            end
+
+          ensure
+            span.start_time = start
+            span.finish_at(finish)
           end
-
-          span.start_time = start
-          span.finish_at(finish)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
@@ -68,18 +73,23 @@ module Datadog
           # finish the tracing and update the execution time
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.active_span()
-          template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(payload.fetch(:identifier))
-          span.set_tag('rails.template_name', template_name)
+          return unless span
 
-          if payload[:exception]
-            error = payload[:exception]
-            span.status = 1
-            span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
-            span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+          begin
+            template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(payload.fetch(:identifier))
+            span.set_tag('rails.template_name', template_name)
+
+            if payload[:exception]
+              error = payload[:exception]
+              span.status = 1
+              span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
+              span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+            end
+
+          ensure
+            span.start_time = start
+            span.finish_at(finish)
           end
-
-          span.start_time = start
-          span.finish_at(finish)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
