@@ -86,6 +86,11 @@ module Datadog
       self
     end
 
+    # Return whether the span is finished or not.
+    def finished?
+      !@end_time.nil?
+    end
+
     # Return a string representation of the span.
     def to_s
       "Span(name:#{@name},sid:#{@span_id},tid:#{@trace_id},pid:#{@parent_id})"

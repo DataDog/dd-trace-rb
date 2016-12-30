@@ -75,6 +75,21 @@ class TracerTest < Minitest::Test
     assert_equal(c.service, 'other')
   end
 
+  def test_trace_child_finishing_after_parent
+    tracer = get_test_tracer
+
+    t1 = tracer.trace('t1')
+    t1_child = tracer.trace('t1_child')
+    assert_equal(t1_child.parent, t1)
+
+    t1.finish
+    t1_child.finish
+
+    t2 = tracer.trace('t2')
+
+    assert_nil(t2.parent)
+  end
+
   def test_trace_no_block_not_finished
     tracer = get_test_tracer
     span = tracer.trace('something')
