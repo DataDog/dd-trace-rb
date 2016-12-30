@@ -145,6 +145,9 @@ module Datadog
       @mutex.synchronize do
         @spans << span
         parent = span.parent
+        # Bubble up until we find a non-finished parent. This is necessary for
+        # the case when the parent finished after its parent.
+        parent = parent.parent while !parent.nil? && parent.finished?
         @buffer.set(parent)
 
         return unless parent.nil?
