@@ -30,6 +30,7 @@ module Datadog
         def self.process_action(_name, start, finish, _id, payload)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.active_span()
+
           span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
           span.set_tag(Datadog::Ext::HTTP::URL, payload.fetch(:path))
           span.set_tag(Datadog::Ext::HTTP::METHOD, payload.fetch(:method))
@@ -37,7 +38,9 @@ module Datadog
           span.set_tag('rails.route.controller', payload.fetch(:controller))
 
           if payload[:exception].nil?
-            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status).to_s)
+            # [christian] in some cases :status is not defined,
+            # rather than firing an error, simply acknowledge we don't know it.
+            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status, '?').to_s)
           else
             error = payload[:exception]
             # TODO[manu]: it's right to have a 500? there are cases in Rails that let
