@@ -27,23 +27,41 @@ module Datadog
           end
         end
 
+        def self.get_key(f)
+          'datadog_actionview_' + f
+        end
+
         def self.start_render_template(*)
+          key = get_key('render_template')
+          return if Thread.current[key]
+
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           type = Datadog::Ext::HTTP::TEMPLATE
           tracer.trace('rails.render_template', span_type: type)
+
+          Thread.current[key] = true
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
 
         def self.start_render_partial(*)
+          key = get_key('render_partial')
+          return if Thread.current[key]
+
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           type = Datadog::Ext::HTTP::TEMPLATE
           tracer.trace('rails.render_partial', span_type: type)
+
+          Thread.current[key] = true
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
 
         def self.render_template(_name, start, finish, _id, payload)
+          key = get_key('render_template')
+          return unless Thread.current[key]
+          Thread.current[key] = false
+
           # finish the tracing and update the execution time
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.active_span()
@@ -70,6 +88,10 @@ module Datadog
         end
 
         def self.render_partial(_name, start, finish, _id, payload)
+          key = get_key('render_partial')
+          return unless Thread.current[key]
+          Thread.current[key] = false
+
           # finish the tracing and update the execution time
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.active_span()
