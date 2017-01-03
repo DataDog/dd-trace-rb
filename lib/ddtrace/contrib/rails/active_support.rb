@@ -86,20 +86,24 @@ module Datadog
           end
           span = tracer.active_span()
           return unless span
-          # finish the tracing and update the execution time
-          span.resource = resource
-          span.set_tag('rails.cache.backend', ::Rails.configuration.cache_store)
-          span.set_tag('rails.cache.key', payload.fetch(:key))
 
-          if payload[:exception]
-            error = payload[:exception]
-            span.status = 1
-            span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
-            span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+          begin
+            # finish the tracing and update the execution time
+            span.resource = resource
+            span.set_tag('rails.cache.backend', ::Rails.configuration.cache_store)
+            span.set_tag('rails.cache.key', payload.fetch(:key))
+
+            if payload[:exception]
+              error = payload[:exception]
+              span.status = 1
+              span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
+              span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+            end
+
+          ensure
+            span.start_time = start
+            span.finish_at(finish)
           end
-
-          span.start_time = start
-          span.finish_at(finish)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
