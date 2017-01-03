@@ -59,15 +59,19 @@ module Datadog
 
           # set default database service details and store it in the configuration
           if defined?(::ActiveRecord)
-            adapter_name = ::ActiveRecord::Base.connection_config[:adapter]
-            adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(adapter_name)
-            database_service = datadog_config.fetch(:default_database_service, adapter_name)
-            datadog_config[:default_database_service] = database_service
-            datadog_config[:tracer].set_service_info(
-              database_service,
-              adapter_name,
-              Datadog::Ext::AppTypes::DB
-            )
+            begin
+              conn_cfg = ::ActiveRecord::Base.connection_config()
+              adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(conn_cfg[:adapter])
+              database_service = datadog_config.fetch(:default_database_service, adapter_name)
+              datadog_config[:default_database_service] = database_service
+              datadog_config[:tracer].set_service_info(
+                database_service,
+                adapter_name,
+                Datadog::Ext::AppTypes::DB
+              )
+            rescue StandardError => e
+              Datadog::Tracer.log.info("cannot configuring database service (#{e}), skipping activerecord instrumentation")
+            end
           end
 
           # update global configurations
