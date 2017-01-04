@@ -6,6 +6,8 @@ module Datadog
     module Rails
       # TODO[manu]: write docs
       module ActionController
+        KEY = 'datadog_actioncontroller'.freeze
+
         def self.instrument
           # subscribe when the request processing starts
           ::ActiveSupport::Notifications.subscribe('start_processing.action_controller') do |*args|
@@ -19,15 +21,22 @@ module Datadog
         end
 
         def self.start_processing(*)
+          return if Thread.current[KEY]
+
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           service = ::Rails.configuration.datadog_trace.fetch(:default_service)
           type = Datadog::Ext::HTTP::TYPE
           tracer.trace('rails.request', service: service, span_type: type)
+
+          Thread.current[KEY] = true
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
 
         def self.process_action(_name, start, finish, _id, payload)
+          return unless Thread.current[KEY]
+          Thread.current[KEY] = false
+
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           span = tracer.active_span()
           return unless span
