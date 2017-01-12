@@ -57,12 +57,3 @@ when '3.2.22.5'
 else
   logger.error 'A Rails app for this version is not found!'
 end
-
-# Enables the auto-instrumentation
-Rails.configuration.datadog_trace = {
-  enabled: true,
-  auto_instrument: true,
-  auto_instrument_redis: true
-}
-
-require 'ddtrace'

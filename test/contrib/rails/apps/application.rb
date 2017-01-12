@@ -16,6 +16,15 @@ module RailsTrace
     # initializes the application and runs all migrations;
     # the require order is important
     def test_config
+      # Enables the auto-instrumentation
+      Rails.configuration.datadog_trace = {
+        enabled: true,
+        auto_instrument: true,
+        auto_instrument_redis: true
+      }
+      require 'ddtrace'
+
+      # Initialize the Rails application
       require 'contrib/rails/apps/controllers'
       initialize!
       require 'contrib/rails/apps/models'
