@@ -16,6 +16,8 @@ On the other hand, if you're using +Bundler+, just update your +Gemfile+ as foll
     # tracing gem
     gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
 
+If you're using the Ruby on Rails framework, you need to configure the auto-instrumentation with an {extra step}[#label-Auto+Instrumentation].
+
 == Quickstart (Auto Instrumentation)
 
 If you are on a {supported integration}[#label-Integrations], you should be able to generate traffic and view
@@ -85,7 +87,7 @@ The currently supported web server are:
 * Unicorn 4.8+ and 5.1+
 * Passenger 5.0 (experimental)
 
-==== Installation
+==== Auto Instrumentation
 
 Add the tracer gem to your +Gemfile+:
 
