@@ -91,16 +91,17 @@ Add the tracer gem to your +Gemfile+:
 
     gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
 
-Now you can set your service name, simply creating an initializer file in your +config/+ folder:
+To enable the Rails auto-instrumentation, you must create an initializer file in your +config/+ folder:
 
     # config/initializers/datadog-tracer.rb
 
     Rails.configuration.datadog_trace = {
-      default_service: 'my-rails-app',
+      auto_instrument: true,
+      auto_instrument_redis: true,
+      default_service: 'my-rails-app'
     }
 
-If you're using \Rails 3 or higher, the auto-instrumentation will be automatically activated and no more configuration
-is required. Your application will be listed as +my-rails-app+ in your {dashboard}[https://app.datadoghq.com/trace].
+If you're using \Rails 3 or higher, your application will be listed as +my-rails-app+ in your {dashboard}[https://app.datadoghq.com/trace].
 
 ==== Custom Instrumentation
 
@@ -133,8 +134,8 @@ of the Datadog tracer, you can override the following defaults:
 
     Rails.configuration.datadog_trace = {
       enabled: true,
-      auto_instrument: true,
-      auto_instrument_redis: true,
+      auto_instrument: false,
+      auto_instrument_redis: false,
       default_service: 'rails-app',
       default_cache_service: 'rails-cache',
       template_base_path: 'views/',
@@ -146,13 +147,12 @@ of the Datadog tracer, you can override the following defaults:
 
 The available settings are:
 
-* +enabled+: defines if the +tracer+ is enabled or not. If set to +false+, the code is still instrumented
-  but no spans are sent to the local trace agent.
-* +auto_instrument+: if set to false the code will not be instrumented, while the +tracer+ may be active for
-  your internal usage. This could be useful if you want to use the \Rails integration, but you want to trace
-  only particular functions or views
-* +auto_instrument_redis+: if set to false \Redis calls will not be traced as such. Calls to cache will
-  still be instrumented but you will not have the detail of low-level \Redis calls.
+* +enabled+: defines if the +tracer+ is enabled or not. If set to +false+ the code could be still instrumented
+  because of other settings, but no spans are sent to the local trace agent.
+* +auto_instrument+: if set to +true+ the code will be automatically instrumented. You may change this value
+  with a condition, to enable the auto-instrumentation only for particular environments (production, staging, etc...).
+* +auto_instrument_redis+: if set to +true+ \Redis calls will be traced as such. Calls to Redis cache may be
+  still instrumented but you will not have the detail of low-level \Redis calls.
 * +default_service+: set the service name used when tracing application requests. Defaults to +rails-app+
 * +default_database_service+: set the database service name used when tracing database activity. Defaults to the
   current adapter name, so if you're using PostgreSQL it will be +postgres+.

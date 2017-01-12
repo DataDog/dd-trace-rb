@@ -6,7 +6,7 @@ class RedisSetGetTest < Minitest::Test
   REDIS_HOST = '127.0.0.1'.freeze
   REDIS_PORT = 46379
   def setup
-    @tracer = get_test_tracer
+    @tracer = get_test_tracer()
 
     @drivers = {}
     [:ruby, :hiredis].each do |d|

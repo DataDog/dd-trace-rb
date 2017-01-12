@@ -14,11 +14,13 @@ module Datadog
     module Rails
       # TODO[manu]: write docs
       module Framework
-        # the default configuration
+        # default configurations for the Rails integration; by default
+        # the Datadog.tracer is enabled, while the Rails auto instrumentation
+        # is kept disabled.
         DEFAULT_CONFIG = {
           enabled: true,
-          auto_instrument: true,
-          auto_instrument_redis: true,
+          auto_instrument: false,
+          auto_instrument_redis: false,
           default_service: 'rails-app',
           default_cache_service: 'rails-cache',
           template_base_path: 'views/',
