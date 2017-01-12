@@ -2,8 +2,6 @@ require 'rails/all'
 require 'rails/test_help'
 require 'contrib/rails/apps/cache'
 
-require 'ddtrace'
-
 class Rails3 < Rails::Application
   config.cache_store = get_cache
   config.secret_key_base = 'not_so_secret'

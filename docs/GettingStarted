@@ -132,9 +132,9 @@ of the Datadog tracer, you can override the following defaults:
     # config/initializers/datadog-tracer.rb
 
     Rails.configuration.datadog_trace = {
-      enabled: true,
-      auto_instrument: true,
-      auto_instrument_redis: true,
+      enabled: Rails.env.production?,
+      auto_instrument: Rails.env.production?,
+      auto_instrument_redis: Rails.env.production?,
       default_service: 'rails-app',
       default_cache_service: 'rails-cache',
       template_base_path: 'views/',
@@ -164,6 +164,21 @@ The available settings are:
 * +debug+: set to true to enable debug logging.
 * +trace_agent_hostname+: set the hostname of the trace agent.
 * +trace_agent_port+: set the port the trace agent is listening on.
+
+By default, the tracer is enabled only if Rails is executed with +RAILS_ENV=production+. If the tracer should
+be enabled in different configurations, you may need to change your initializer to:
+
+    # config/initializers/datadog-tracer.rb
+
+    # enable/disable the tracer with a condition
+    tracing_state = Rails.env.production? || Rails.env.staging?
+
+    Rails.configuration.datadog_trace = {
+      enabled: tracing_state,
+      auto_instrument: tracing_state,
+      auto_instrument_redis: tracing_state,
+      # ... other settings if you may have
+    }
 
 === Redis
 
