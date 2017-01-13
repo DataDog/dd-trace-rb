@@ -94,6 +94,12 @@ module Datadog
         def self.auto_instrument
           return unless ::Rails.configuration.datadog_trace[:auto_instrument]
           Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components.')
+
+          # patch Rails core components
+          Datadog::RailsPatcher.patch_renderer()
+          Datadog::RailsPatcher.patch_cache_store()
+
+          # instrumenting Rails framework
           Datadog::Contrib::Rails::ActionController.instrument()
           Datadog::Contrib::Rails::ActionView.instrument()
           Datadog::Contrib::Rails::ActiveRecord.instrument() if defined?(::ActiveRecord)
