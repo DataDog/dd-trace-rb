@@ -25,6 +25,8 @@ module Datadog
 
         def perform_request(*args)
           pin = Datadog::Pin.get_from(self)
+          return super(*args) unless pin && pin.tracer
+
           method = args[0]
           path = args[1]
           params = args[2]
