@@ -24,7 +24,7 @@ Metrics/MethodLength:
 Style/AccessorMethodName:
   Enabled: false
 
-Style/MethodCallParentheses:
+Style/MethodCallWithoutArgsParentheses:
   Enabled: false
 
 Style/RescueModifier:
