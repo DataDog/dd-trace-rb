@@ -22,13 +22,18 @@ module Datadog
           super(*args)
         end
 
+        # rubocop:disable Metrics/CyclomaticComplexity
         def request(req, body = nil, &block) # :yield: +response+
+          # we don't want to trace our own call to the API (they use net/http)
+          path = req.path.to_s
+          return super(req, body, &block) if path.end_with?(pin.tracer.writer.transport.traces_endpoint) ||
+                                             path.end_with?(pin.tracer.writer.transport.services_endpoint)
+
           pin = Datadog::Pin.get_from(self)
           return super(req, body, &block) unless pin && pin.tracer
 
-          # Request calls itself in some cases. We don't want a "shotgun effect" and
-          # trace one logical call twice, so if we detect NAME is calling NAME,
-          # we only keep the outer, encapsulating call.
+          # we don't want a "shotgun" effect with two nested traces for one
+          # logical get, and request is likely to call itself recursively
           active = pin.tracer.active_span()
           return super(req, body, &block) if active && (active.name == NAME)
 
@@ -36,7 +41,7 @@ module Datadog
             span.service = pin.service
             span.span_type = Datadog::Ext::HTTP::TYPE
 
-            span.resource = req.path
+            span.resource = path
             # *NOT* filling Datadog::Ext::HTTP::URL as it's already in resource.
             # The agent can then decide to quantize the URL and store the original,
             # untouched data in http.url but the client should not send redundant fields.
@@ -44,7 +49,7 @@ module Datadog
             response = super(req, body, &block)
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
 
-            return response
+            response
           end
         end
       end
