@@ -62,7 +62,7 @@ module Datadog
             remove_method :call
             def call(*args, &block)
               pin = Datadog::Pin.get_from(self)
-              return call_without_datadog(*args, &block) unless pin
+              return call_without_datadog(*args, &block) unless pin && pin.tracer
 
               response = nil
               pin.tracer.trace('redis.command') do |span|
@@ -82,7 +82,7 @@ module Datadog
             remove_method :call_pipeline
             def call_pipeline(*args, &block)
               pin = Datadog::Pin.get_from(self)
-              return call_pipeline_without_datadog(*args, &block) unless pin
+              return call_pipeline_without_datadog(*args, &block) unless pin && pin.tracer
 
               response = nil
               pin.tracer.trace('redis.command') do |span|
