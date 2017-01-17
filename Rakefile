@@ -26,11 +26,10 @@ Rake::TestTask.new(:railsredis) do |t|
   t.test_files = FileList['test/contrib/rails/**/*redis*_test.rb']
 end
 
-Rake::TestTask.new(:contrib) do |t|
-  t.libs << %w(test lib)
-  t.test_files = FileList['test/contrib/**/*_test.rb'].reject do |path|
-    path.include?('rails') ||
-      path.include?('monkey_test.rb')
+[:elasticsearch, :http, :redis].each do |contrib|
+  Rake::TestTask.new(contrib) do |t|
+    t.libs << %w(test lib)
+    t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
   end
 end
 
