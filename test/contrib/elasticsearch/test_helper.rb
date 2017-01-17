@@ -3,7 +3,7 @@ require 'net/http'
 require 'ddtrace'
 require 'elasticsearch/transport'
 
-Datadog::Monkey.patch_all
+Datadog::Monkey.patch_module(:elasticsearch)
 
 def wait_http_server(server, delay)
   delay.times do

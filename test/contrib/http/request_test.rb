@@ -47,7 +47,6 @@ class HTTPRequestTest < Minitest::Test
     assert_equal('/my/thing/42', span.resource)
     assert_nil(span.get_tag('http.url'))
     assert_equal('POST', span.get_tag('http.method'))
-    assert_equal('200', span.get_tag('http.status_code'))
   end
 
   def test_404
