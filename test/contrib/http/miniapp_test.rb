@@ -27,15 +27,17 @@ class HTTPMiniAppTest < Minitest::Test
   end
 
   def check_span_get(span, parent_id, trace_id)
-    assert_equal('request', span.name)
-    assert_equal('http', span.service)
-    assert_equal('GET _cluster/health', span.resource)
+    assert_equal('http.request', span.name)
+    assert_equal('net/http', span.service)
+    assert_equal('_cluster/health', span.resource)
+    assert_nil(span.get_tag('http.url'))
+    assert_equal('GET', span.get_tag('http.method'))
+    assert_equal('200', span.get_tag('http.status_code'))
     assert_equal(parent_id, span.parent_id)
     assert_equal(trace_id, span.trace_id)
   end
 
   def test_miniapp
-    return
     client = Net::HTTP.new(ELASTICSEARCH_HOST, ELASTICSEARCH_PORT)
 
     tracer = get_test_tracer # get a ref to the app tracer
@@ -47,7 +49,7 @@ class HTTPMiniAppTest < Minitest::Test
       span.resource = '/index'
       2.times do
         response = client.get('_cluster/health')
-        assert_not_nil(response)
+        refute_nil(response)
       end
     end
 
