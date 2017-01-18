@@ -7,6 +7,9 @@ require 'json'
 class HTTPRequestTest < Minitest::Test
   ELASTICSEARCH_HOST = '127.0.0.1'.freeze
   ELASTICSEARCH_PORT = 49200
+  ELASTICSEARCH_SERVER = ('http://' +
+                          HTTPIntegrationTest::ELASTICSEARCH_HOST + ':' +
+                          HTTPIntegrationTest::ELASTICSEARCH_PORT.to_s).freeze
 
   def setup
     @tracer = get_test_tracer
@@ -61,6 +64,28 @@ class HTTPRequestTest < Minitest::Test
     assert_nil(span.get_tag('http.url'))
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('404', span.get_tag('http.status_code'))
+  end
+
+  def test_pin_block_call
+    Net::HTTP.start(ELASTICSEARCH_HOST, ELASTICSEARCH_PORT) do |http|
+      pin = Datadog::Pin.get_from(http)
+      refute_nil(pin)
+      pin.tracer = @tracer
+
+      request = Net::HTTP::Get.new '/_cluster/health'
+      response = http.request request
+      assert_kind_of(Net::HTTPResponse, response)
+
+      spans = @tracer.writer.spans()
+      assert_equal(1, spans.length)
+      span = spans[0]
+      assert_equal('http.request', span.name)
+      assert_equal('net/http', span.service)
+      assert_equal('/_cluster/health', span.resource)
+      assert_nil(span.get_tag('http.url'))
+      assert_equal('GET', span.get_tag('http.method'))
+      assert_equal('200', span.get_tag('http.status_code'))
+    end
   end
 
   def test_pin_override
