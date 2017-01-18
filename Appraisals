@@ -64,4 +64,6 @@ appraise "contrib" do
   gem "elasticsearch-transport"
   gem "redis"
   gem "hiredis"
+  gem "rack-test"
+  gem "sinatra"
 end

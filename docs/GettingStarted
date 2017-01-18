@@ -167,6 +167,49 @@ The available settings are:
 * +trace_agent_hostname+: set the hostname of the trace agent.
 * +trace_agent_port+: set the port the trace agent is listening on.
 
+=== Sinatra
+
+The Sinatra integration traces requests and template rendering. The
+integration is based on the +Datadog::Contrib::Sinatra::Tracer+ extension.
+
+We currently support Sinatra >= 1.4.0.
+
+==== Setup
+
+Add the tracer gem to your +Gemfile+:
+
+    gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
+
+Make sure you import +ddtrace+ and +ddtrace/contrib/sinatra/tracer+ after
+either +sinatra+ or +sinatra/base+:
+
+    require 'sinatra'
+    require 'ddtrace'
+    require 'ddtrace/contrib/sinatra/tracer'
+
+The tracing extension will be automatically activated.
+
+==== Configuration
+
+To modify the default configuration, use the
++settings.datadog_tracer.configure+ method. For example, to change the default
+service name and activate the debug mode:
+
+    configure do
+      settings.datadog_tracer.configure default_service: 'my-app', debug: true
+    end
+
+The available settings are:
+
+* +enabled+: define if the +tracer+ is enabled or not. If set to +false+, the code is still instrumented
+  but no spans are sent to the local trace agent.
+* +default_service+: set the service name used when tracing application requests. Defaults to +sinatra+
+* +tracer+: set the tracer to use. Usually you don't need to change that value
+  unless you're already using a different initialized tracer somewhere else
+* +debug+: set to +true+ to enable debug logging.
+* +trace_agent_hostname+: set the hostname of the trace agent.
+* +trace_agent_port+: set the port the trace agent is listening on.
+
 === Redis
 
 The \Redis integration will trace simple calls as well as pipelines.
