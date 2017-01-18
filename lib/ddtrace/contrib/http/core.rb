@@ -24,13 +24,13 @@ module Datadog
 
         # rubocop:disable Metrics/CyclomaticComplexity
         def request(req, body = nil, &block) # :yield: +response+
+          pin = Datadog::Pin.get_from(self)
+          return super(req, body, &block) unless pin && pin.tracer
+
           # we don't want to trace our own call to the API (they use net/http)
           path = req.path.to_s
           return super(req, body, &block) if path.end_with?(pin.tracer.writer.transport.traces_endpoint) ||
                                              path.end_with?(pin.tracer.writer.transport.services_endpoint)
-
-          pin = Datadog::Pin.get_from(self)
-          return super(req, body, &block) unless pin && pin.tracer
 
           # we don't want a "shotgun" effect with two nested traces for one
           # logical get, and request is likely to call itself recursively
