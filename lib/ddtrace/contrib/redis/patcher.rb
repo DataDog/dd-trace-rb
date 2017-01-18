@@ -1,9 +1,5 @@
 # requirements should be kept minimal as Patcher is a shared requirement.
 
-require 'ddtrace/ext/app_types'
-require 'ddtrace/contrib/redis/tags'
-require 'ddtrace/contrib/redis/quantize'
-
 module Datadog
   module Contrib
     module Redis
@@ -22,6 +18,11 @@ module Datadog
           if !@patched && (defined?(::Redis::VERSION) && \
                            Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('3.0.0'))
             begin
+              # do not require these by default, but only when actually patching
+              require 'ddtrace/ext/app_types'
+              require 'ddtrace/contrib/redis/tags'
+              require 'ddtrace/contrib/redis/quantize'
+
               patch_redis()
               patch_redis_client()
 
