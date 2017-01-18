@@ -103,7 +103,7 @@ To enable the Rails auto-instrumentation, you must create an initializer file in
       default_service: 'my-rails-app'
     }
 
-If you're using \Rails 3 or higher, your application will be listed as +my-rails-app+ in your {dashboard}[https://app.datadoghq.com/trace].
+If you're using \Rails 3 or higher, your application will be listed as +my-rails-app+ in your service list.
 
 ==== Custom Instrumentation
 
