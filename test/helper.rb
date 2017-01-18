@@ -155,6 +155,12 @@ end
 # reset default configuration and replace any dummy tracer
 # with the global one
 def reset_config
-  ::Rails.configuration.datadog_trace = {}
-  Datadog::Contrib::Rails::Framework.configure({})
+  ::Rails.configuration.datadog_trace = {
+    enabled: true,
+    auto_instrument: true,
+    auto_instrument_redis: true
+  }
+
+  config = { config: ::Rails.application.config }
+  Datadog::Contrib::Rails::Framework.configure(config)
 end

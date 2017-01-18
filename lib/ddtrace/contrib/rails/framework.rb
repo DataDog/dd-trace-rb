@@ -14,11 +14,16 @@ module Datadog
     module Rails
       # TODO[manu]: write docs
       module Framework
+        # get Rails operation mode; Rails ships with 'production' as a default
+        # environment to set the entire application in production mode. This should
+        # be a reasonable default to disable the tracer in other environments.
+        PRODUCTION_MODE = ::Rails.env.production?
+
         # the default configuration
         DEFAULT_CONFIG = {
-          enabled: true,
-          auto_instrument: true,
-          auto_instrument_redis: true,
+          enabled: PRODUCTION_MODE,
+          auto_instrument: PRODUCTION_MODE,
+          auto_instrument_redis: PRODUCTION_MODE,
           default_service: 'rails-app',
           default_cache_service: 'rails-cache',
           template_base_path: 'views/',
