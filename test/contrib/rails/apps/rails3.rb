@@ -11,6 +11,13 @@ class Rails3 < Rails::Application
   config.active_support.deprecation = :stderr
 end
 
+# Enables the auto-instrumentation for the testing application
+Rails.configuration.datadog_trace = {
+  auto_instrument: true,
+  auto_instrument_redis: true
+}
+
+# Initialize the Rails application
 require 'contrib/rails/apps/controllers'
 Rails3.initialize!
 require 'contrib/rails/apps/models'

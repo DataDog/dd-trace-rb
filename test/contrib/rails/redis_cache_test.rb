@@ -12,7 +12,7 @@ require 'contrib/rails/test_helper'
 class RedisCacheTracingTest < ActionController::TestCase
   setup do
     @original_tracer = Rails.configuration.datadog_trace[:tracer]
-    @tracer = get_test_tracer
+    @tracer = get_test_tracer()
     Rails.configuration.datadog_trace[:tracer] = @tracer
     assert_equal(true, Rails.cache.respond_to?(:data), "cache '#{Rails.cache}' has no data")
     pin = Datadog::Pin.get_from(Rails.cache.data)

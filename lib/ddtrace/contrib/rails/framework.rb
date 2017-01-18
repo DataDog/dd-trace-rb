@@ -14,11 +14,13 @@ module Datadog
     module Rails
       # TODO[manu]: write docs
       module Framework
-        # the default configuration
+        # default configurations for the Rails integration; by default
+        # the Datadog.tracer is enabled, while the Rails auto instrumentation
+        # is kept disabled.
         DEFAULT_CONFIG = {
           enabled: true,
-          auto_instrument: true,
-          auto_instrument_redis: true,
+          auto_instrument: false,
+          auto_instrument_redis: false,
           default_service: 'rails-app',
           default_cache_service: 'rails-cache',
           template_base_path: 'views/',
@@ -92,6 +94,12 @@ module Datadog
         def self.auto_instrument
           return unless ::Rails.configuration.datadog_trace[:auto_instrument]
           Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components.')
+
+          # patch Rails core components
+          Datadog::RailsPatcher.patch_renderer()
+          Datadog::RailsPatcher.patch_cache_store()
+
+          # instrumenting Rails framework
           Datadog::Contrib::Rails::ActionController.instrument()
           Datadog::Contrib::Rails::ActionView.instrument()
           Datadog::Contrib::Rails::ActiveRecord.instrument() if defined?(::ActiveRecord)
