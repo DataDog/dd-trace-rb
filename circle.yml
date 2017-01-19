@@ -37,20 +37,21 @@ dependencies:
 test:
   override:
     - rvm 2.1.10 --verbose do rake rubocop
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do rake test
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal rails3-postgres rake rails
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal rails3-mysql2 rake rails
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal rails4-postgres rake rails
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal rails4-mysql2 rake rails
+# Disabled because of a Java incompatibility
+# TODO: integration tests should run with the master branch of the agent
+    - rvm $MRI_VERSIONS --verbose do rake test
+    - rvm $MRI_VERSIONS --verbose do appraisal rails3-postgres rake rails
+    - rvm $MRI_VERSIONS --verbose do appraisal rails3-mysql2 rake rails
+    - rvm $MRI_VERSIONS --verbose do appraisal rails4-postgres rake rails
+    - rvm $MRI_VERSIONS --verbose do appraisal rails4-mysql2 rake rails
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake rails
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake rails
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal rails3-postgres-redis rake railsredis
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal rails4-postgres-redis rake railsredis
+    - rvm $MRI_VERSIONS --verbose do appraisal rails3-postgres-redis rake railsredis
+    - rvm $MRI_VERSIONS --verbose do appraisal rails4-postgres-redis rake railsredis
     - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake railsredis
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal contrib rake contrib
-    - rvm $MRI_VERSIONS,$JRUBY_VERSIONS --verbose do appraisal contrib rake monkey
+    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake contrib
+    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake monkey
     - rvm 2.3.1 --verbose do rake benchmark
-    - rvm jruby-9.1.5.0 --verbose do rake benchmark
 
 deployment:
   develop:
