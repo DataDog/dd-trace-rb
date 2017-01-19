@@ -4,38 +4,42 @@ require 'rake/testtask'
 require 'rdoc/task'
 require 'appraisal'
 
-Rake::TestTask.new(:test) do |t|
-  t.libs << %w(test lib)
-  t.test_files = FileList['test/**/*_test.rb'].reject do |path|
-    path.include?('contrib') ||
-      path.include?('benchmark') ||
-      path.include?('redis') ||
-      path.include?('monkey_test.rb')
-  end
-end
+namespace :test do
+  task all: [:main, :rails, :railsredis, :elasticsearch, :http, :redis, :monkey]
 
-Rake::TestTask.new(:rails) do |t|
-  t.libs << %w(test lib)
-  t.test_files = FileList['test/contrib/rails/**/*_test.rb'].reject do |path|
-    path.include?('redis')
-  end
-end
-
-Rake::TestTask.new(:railsredis) do |t|
-  t.libs << %w(test lib)
-  t.test_files = FileList['test/contrib/rails/**/*redis*_test.rb']
-end
-
-[:elasticsearch, :http, :redis].each do |contrib|
-  Rake::TestTask.new(contrib) do |t|
+  Rake::TestTask.new(:main) do |t|
     t.libs << %w(test lib)
-    t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
+    t.test_files = FileList['test/**/*_test.rb'].reject do |path|
+      path.include?('contrib') ||
+        path.include?('benchmark') ||
+        path.include?('redis') ||
+        path.include?('monkey_test.rb')
+    end
   end
-end
 
-Rake::TestTask.new(:monkey) do |t|
-  t.libs << %w(test lib)
-  t.test_files = FileList['test/monkey_test.rb']
+  Rake::TestTask.new(:rails) do |t|
+    t.libs << %w(test lib)
+    t.test_files = FileList['test/contrib/rails/**/*_test.rb'].reject do |path|
+      path.include?('redis')
+    end
+  end
+
+  Rake::TestTask.new(:railsredis) do |t|
+    t.libs << %w(test lib)
+    t.test_files = FileList['test/contrib/rails/**/*redis*_test.rb']
+  end
+
+  [:elasticsearch, :http, :redis].each do |contrib|
+    Rake::TestTask.new(contrib) do |t|
+      t.libs << %w(test lib)
+      t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
+    end
+  end
+
+  Rake::TestTask.new(:monkey) do |t|
+    t.libs << %w(test lib)
+    t.test_files = FileList['test/monkey_test.rb']
+  end
 end
 
 Rake::TestTask.new(:benchmark) do |t|

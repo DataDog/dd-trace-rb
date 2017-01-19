@@ -38,7 +38,7 @@ dependencies:
 test:
   override:
     - rvm $EARLY_STABLE --verbose do rake rubocop
-# Disabled because of a Java incompatibility
+# Disabled $JRUBY_VERSIONS tests because of a Java incompatibility
 # TODO: integration tests should run with the master branch of the agent
     - rvm $MRI_VERSIONS --verbose do rake test
     - rvm $MRI_VERSIONS --verbose do appraisal contrib rake elasticsearch
