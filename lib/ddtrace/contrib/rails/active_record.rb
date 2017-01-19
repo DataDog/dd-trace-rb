@@ -8,6 +8,9 @@ module Datadog
       # TODO[manu]: write docs
       module ActiveRecord
         def self.instrument
+          # ActiveRecord is instrumented only if it's available
+          return unless defined?(::ActiveRecord)
+
           # subscribe when the active record query has been processed
           ::ActiveSupport::Notifications.subscribe('sql.active_record') do |*args|
             sql(*args)

@@ -4,7 +4,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/rails/core_extensions'
 require 'ddtrace/contrib/rails/action_controller'
 require 'ddtrace/contrib/rails/action_view'
-require 'ddtrace/contrib/rails/active_record' if defined?(::ActiveRecord)
+require 'ddtrace/contrib/rails/active_record'
 require 'ddtrace/contrib/rails/active_support'
 require 'ddtrace/contrib/rails/utils'
 
@@ -102,7 +102,7 @@ module Datadog
           # instrumenting Rails framework
           Datadog::Contrib::Rails::ActionController.instrument()
           Datadog::Contrib::Rails::ActionView.instrument()
-          Datadog::Contrib::Rails::ActiveRecord.instrument() if defined?(::ActiveRecord)
+          Datadog::Contrib::Rails::ActiveRecord.instrument()
           Datadog::Contrib::Rails::ActiveSupport.instrument()
 
           # by default, Rails 3 doesn't instrument the cache system
