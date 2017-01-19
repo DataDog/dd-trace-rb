@@ -2,6 +2,7 @@
 
 module Datadog
   module Contrib
+    # Datadog Net/HTTP integration.
     module HTTP
       URL = 'http.url'.freeze
       METHOD = 'http.method'.freeze
@@ -10,6 +11,30 @@ module Datadog
       NAME = 'http.request'.freeze
       APP = 'net/http'.freeze
       SERVICE = 'net/http'.freeze
+
+      module_function
+
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
+      def should_skip_tracing?(req, path, transport, pin)
+        # we don't want to trace our own call to the API (they use net/http)
+        # when we know the host & port (from the URI) we use it, else (most-likely
+        # called with a block) rely on the URL at the end.
+        if req.uri
+          if req.uri.host.to_s == transport.hostname.to_s &&
+             req.uri.port.to_i == transport.port.to_i
+            return true
+          end
+        elsif path.end_with?(transport.traces_endpoint) ||
+              path.end_with?(transport.services_endpoint)
+          return true
+        end
+        # we don't want a "shotgun" effect with two nested traces for one
+        # logical get, and request is likely to call itself recursively
+        active = pin.tracer.active_span()
+        return true if active && (active.name == NAME)
+        false
+      end
 
       # Patcher enables patching of 'net/http' module.
       # This is used in monkey.rb to automatically apply patches
@@ -42,7 +67,6 @@ module Datadog
           @patched
         end
 
-        # rubocop:disable Metrics/CyclomaticComplexity
         def patch_http
           ::Net::HTTP.class_eval do
             alias_method :initialize_without_datadog, :initialize
@@ -56,21 +80,14 @@ module Datadog
 
             alias_method :request_without_datadog, :request
             remove_method :request
-
             def request(req, body = nil, &block) # :yield: +response+
               pin = Datadog::Pin.get_from(self)
               return request_without_datadog(req, body, &block) unless pin && pin.tracer
 
-              # we don't want to trace our own call to the API (they use net/http)
               path = req.path.to_s
+              transport = pin.tracer.writer.transport
               return request_without_datadog(req, body, &block) if
-                path.end_with?(pin.tracer.writer.transport.traces_endpoint) ||
-                path.end_with?(pin.tracer.writer.transport.services_endpoint)
-
-              # we don't want a "shotgun" effect with two nested traces for one
-              # logical get, and request is likely to call itself recursively
-              active = pin.tracer.active_span()
-              return request_without_datadog(req, body, &block) if active && (active.name == NAME)
+                Datadog::Contrib::HTTP.should_skip_tracing?(req, path, transport, pin)
 
               pin.tracer.trace(NAME) do |span|
                 span.service = pin.service
