@@ -44,10 +44,6 @@ module Datadog
           ::ActiveSupport::Notifications.subscribe('cache_delete.active_support') do |*args|
             trace_cache('DELETE', *args)
           end
-
-          # by default, Rails 3 doesn't instrument the cache system
-          return unless ::Rails::VERSION::MAJOR.to_i == 3
-          ::ActiveSupport::Cache::Store.instrument = true
         end
 
         def self.create_span(tracer)
