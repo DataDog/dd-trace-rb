@@ -50,6 +50,7 @@ module Datadog
             begin
               require 'uri'
               require 'ddtrace/pin'
+              require 'ddtrace/monkey'
               require 'ddtrace/ext/app_types'
               require 'ddtrace/ext/http'
               require 'ddtrace/ext/net'
@@ -73,7 +74,9 @@ module Datadog
         def patch_http
           ::Net::HTTP.class_eval do
             alias_method :initialize_without_datadog, :initialize
-            remove_method :initialize
+            Datadog::Monkey.without_warnings do
+              remove_method :initialize
+            end
 
             def initialize(*args)
               pin = Datadog::Pin.new(SERVICE, app: APP, app_type: Datadog::Ext::AppTypes::WEB)

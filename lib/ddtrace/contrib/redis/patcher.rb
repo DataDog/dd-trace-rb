@@ -19,6 +19,7 @@ module Datadog
                            Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('3.0.0'))
             begin
               # do not require these by default, but only when actually patching
+              require 'ddtrace/monkey'
               require 'ddtrace/ext/app_types'
               require 'ddtrace/contrib/redis/tags'
               require 'ddtrace/contrib/redis/quantize'
@@ -52,7 +53,10 @@ module Datadog
         def patch_redis_client
           ::Redis::Client.class_eval do
             alias_method :initialize_without_datadog, :initialize
-            remove_method :initialize
+            Datadog::Monkey.without_warnings do
+              remove_method :initialize
+            end
+
             def initialize(*args)
               pin = Datadog::Pin.new(SERVICE, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)

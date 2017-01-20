@@ -58,5 +58,17 @@ module Datadog
       end
       patched
     end
+
+    def without_warnings
+      # This is typically used when monkey patching functions such as
+      # intialize, which Ruby advices you not to. Use cautiously.
+      v = $VERBOSE
+      $VERBOSE = nil
+      begin
+        yield
+      ensure
+        $VERBOSE = v
+      end
+    end
   end
 end
