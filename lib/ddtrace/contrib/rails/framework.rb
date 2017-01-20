@@ -95,19 +95,11 @@ module Datadog
           return unless ::Rails.configuration.datadog_trace[:auto_instrument]
           Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components.')
 
-          # patch Rails core components
-          Datadog::RailsPatcher.patch_renderer()
-          Datadog::RailsPatcher.patch_cache_store()
-
           # instrumenting Rails framework
           Datadog::Contrib::Rails::ActionController.instrument()
           Datadog::Contrib::Rails::ActionView.instrument()
           Datadog::Contrib::Rails::ActiveRecord.instrument()
           Datadog::Contrib::Rails::ActiveSupport.instrument()
-
-          # by default, Rails 3 doesn't instrument the cache system
-          return unless ::Rails::VERSION::MAJOR.to_i == 3
-          ::ActiveSupport::Cache::Store.instrument = true
         end
       end
     end

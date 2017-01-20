@@ -6,6 +6,9 @@ module Datadog
       # TODO[manu]: write docs
       module ActionView
         def self.instrument
+          # patch Rails core components
+          Datadog::RailsPatcher.patch_renderer()
+
           # subscribe when the template rendering starts
           ::ActiveSupport::Notifications.subscribe('start_render_template.action_view') do |*args|
             start_render_template(*args)

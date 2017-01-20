@@ -7,6 +7,9 @@ module Datadog
       # TODO[manu]: write docs
       module ActiveSupport
         def self.instrument
+          # patch Rails core components
+          Datadog::RailsPatcher.patch_cache_store()
+
           # subscribe when a cache read starts being processed
           ::ActiveSupport::Notifications.subscribe('start_cache_read.active_support') do |*args|
             start_trace_cache('GET', *args)
@@ -41,6 +44,10 @@ module Datadog
           ::ActiveSupport::Notifications.subscribe('cache_delete.active_support') do |*args|
             trace_cache('DELETE', *args)
           end
+
+          # by default, Rails 3 doesn't instrument the cache system
+          return unless ::Rails::VERSION::MAJOR.to_i == 3
+          ::ActiveSupport::Cache::Store.instrument = true
         end
 
         def self.create_span(tracer)
