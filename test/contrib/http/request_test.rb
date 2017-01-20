@@ -36,6 +36,7 @@ class HTTPRequestTest < Minitest::Test
     assert_nil(span.get_tag('http.url'))
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
+    assert_equal(0, span.status, 'this should not be an error')
   end
 
   def test_post_request
@@ -50,6 +51,9 @@ class HTTPRequestTest < Minitest::Test
     assert_equal('/my/thing/42', span.resource)
     assert_nil(span.get_tag('http.url'))
     assert_equal('POST', span.get_tag('http.method'))
+    assert_equal('127.0.0.1', span.get_tag('out.host'))
+    assert_equal('49200', span.get_tag('out.port'))
+    assert_equal(0, span.status, 'this should not be an error')
   end
 
   def test_404
@@ -64,6 +68,10 @@ class HTTPRequestTest < Minitest::Test
     assert_nil(span.get_tag('http.url'))
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('404', span.get_tag('http.status_code'))
+    assert_equal('127.0.0.1', span.get_tag('out.host'))
+    assert_equal('49200', span.get_tag('out.port'))
+    assert_equal(1, span.status, 'this should be an error (404)')
+    assert_equal('Net::HTTPNotFound', span.get_tag('error.type'))
   end
 
   def test_pin_block_call
@@ -85,6 +93,8 @@ class HTTPRequestTest < Minitest::Test
       assert_nil(span.get_tag('http.url'))
       assert_equal('GET', span.get_tag('http.method'))
       assert_equal('200', span.get_tag('http.status_code'))
+      assert_equal('127.0.0.1', span.get_tag('out.host'))
+      assert_equal('49200', span.get_tag('out.port'))
     end
   end
 

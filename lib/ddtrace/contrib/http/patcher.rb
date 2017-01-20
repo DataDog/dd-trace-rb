@@ -16,7 +16,7 @@ module Datadog
 
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
-      def should_skip_tracing?(req, path, transport, pin)
+      def should_skip_tracing?(req, address, port, transport, pin)
         # we don't want to trace our own call to the API (they use net/http)
         # when we know the host & port (from the URI) we use it, else (most-likely
         # called with a block) rely on the URL at the end.
@@ -25,8 +25,9 @@ module Datadog
              req.uri.port.to_i == transport.port.to_i
             return true
           end
-        elsif path.end_with?(transport.traces_endpoint) ||
-              path.end_with?(transport.services_endpoint)
+        elsif address && port &&
+              address.to_s == transport.hostname.to_s &&
+              port.to_i == transport.port.to_i
           return true
         end
         # we don't want a "shotgun" effect with two nested traces for one
@@ -51,6 +52,7 @@ module Datadog
               require 'ddtrace/pin'
               require 'ddtrace/ext/app_types'
               require 'ddtrace/ext/http'
+              require 'ddtrace/ext/net'
 
               patch_http()
 
@@ -67,6 +69,7 @@ module Datadog
           @patched
         end
 
+        # rubocop:disable Metrics/MethodLength
         def patch_http
           ::Net::HTTP.class_eval do
             alias_method :initialize_without_datadog, :initialize
@@ -84,22 +87,35 @@ module Datadog
               pin = Datadog::Pin.get_from(self)
               return request_without_datadog(req, body, &block) unless pin && pin.tracer
 
-              path = req.path.to_s
               transport = pin.tracer.writer.transport
               return request_without_datadog(req, body, &block) if
-                Datadog::Contrib::HTTP.should_skip_tracing?(req, path, transport, pin)
+                Datadog::Contrib::HTTP.should_skip_tracing?(req, @address, @port, transport, pin)
 
               pin.tracer.trace(NAME) do |span|
                 span.service = pin.service
                 span.span_type = Datadog::Ext::HTTP::TYPE
 
-                span.resource = path
+                span.resource = req.path
                 # *NOT* filling Datadog::Ext::HTTP::URL as it's already in resource.
                 # The agent can then decide to quantize the URL and store the original,
                 # untouched data in http.url but the client should not send redundant fields.
                 span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
                 response = request_without_datadog(req, body, &block)
                 span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
+                if req.uri
+                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, req.uri.host)
+                  span.set_tag(Datadog::Ext::NET::TARGET_PORT, req.uri.port.to_s)
+                else
+                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, @address)
+                  span.set_tag(Datadog::Ext::NET::TARGET_PORT, @port.to_s)
+                end
+
+                case response.code.to_i / 100
+                when 4
+                  span.set_error(response)
+                when 5
+                  span.set_error(response)
+                end
 
                 response
               end
