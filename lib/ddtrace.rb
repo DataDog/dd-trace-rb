@@ -40,9 +40,9 @@ if defined?(Rails::VERSION)
             # (typically in initialize callback) does not work, it does not
             # get loaded in the right context.
             require 'redis-rails'
-            Datadog::Tracer.log.info("'redis-rails' module found, datadog redis integration is available")
+            Datadog::Tracer.log.debug("'redis-rails' module found, Datadog 'redis-rails' integration is available")
           rescue LoadError
-            Datadog::Tracer.log.info("no 'redis-rails' module found, datadog redis integration is not available")
+            Datadog::Tracer.log.debug("'redis-rails' module not found, Datadog 'redis-rails' integration is disabled")
           end
 
           Datadog::Monkey.patch_module(:redis)
