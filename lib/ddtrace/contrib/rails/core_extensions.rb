@@ -54,6 +54,15 @@ module Datadog
     end
   end
 
+  # CacheInstrumentExtension prepends the instrument function that Rails 3.x uses
+  # to know if the underlying cache should be instrumented or not. By default,
+  # we force that instrumentation if the Rails application is auto instrumented.
+  module CacheInstrumentExtension
+    def instrument
+      true
+    end
+  end
+
   # RailsPatcher contains function to patch the Rails libraries.
   module RailsPatcher
     module_function
@@ -84,6 +93,14 @@ module Datadog
         Datadog::Tracer.log.debug("monkey patching #{c}.#{k} with #{v}.#{k}")
         c.prepend v
       end
+
+      # by default, Rails 3 doesn't instrument the cache system so we should turn it on
+      # using the ActiveSupport::Cache::Store.instrument= function. Unfortunately, early
+      # versions of Rails use a Thread.current store that is not compatible with some
+      # application servers like Passenger.
+      # More details: https://github.com/rails/rails/blob/v3.2.22.5/activesupport/lib/active_support/cache.rb#L175-L177
+      return unless ::Rails::VERSION::MAJOR.to_i == 3
+      ::ActiveSupport::Cache::Store.singleton_class.prepend Datadog::CacheInstrumentExtension
     end
   end
 end
