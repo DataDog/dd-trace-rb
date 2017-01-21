@@ -59,9 +59,9 @@ module Datadog
             Datadog::Ext::AppTypes::CACHE
           )
 
-          # set default database service details and store it in the configuration
           if defined?(::ActiveRecord)
             begin
+              # set default database service details and store it in the configuration
               conn_cfg = ::ActiveRecord::Base.connection_config()
               adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(conn_cfg[:adapter])
               database_service = datadog_config.fetch(:default_database_service, adapter_name)
@@ -72,7 +72,7 @@ module Datadog
                 Datadog::Ext::AppTypes::DB
               )
             rescue StandardError => e
-              Datadog::Tracer.log.info("cannot configuring database service (#{e}), skipping activerecord instrumentation")
+              Datadog::Tracer.log.warn("Unable to get database config (#{e}), skipping ActiveRecord instrumentation")
             end
           end
 
@@ -81,19 +81,21 @@ module Datadog
         end
 
         def self.auto_instrument_redis
-          Datadog::Tracer.log.debug('instrumenting redis')
+          # configure Redis PIN
           return unless (defined? ::Rails.cache) && ::Rails.cache.respond_to?(:data)
-          Datadog::Tracer.log.debug('redis cache exists')
           pin = Datadog::Pin.get_from(::Rails.cache.data)
           return unless pin
-          Datadog::Tracer.log.debug('redis cache pin is set')
+
+          # enable Redis instrumentation if activated
           pin.tracer = nil unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
+          return unless pin.tracer
+          Datadog::Tracer.log.debug("'redis' module found, Datadog 'redis' integration is available")
         end
 
         # automatically instrument all Rails component
         def self.auto_instrument
           return unless ::Rails.configuration.datadog_trace[:auto_instrument]
-          Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components.')
+          Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components')
 
           # instrumenting Rails framework
           Datadog::Contrib::Rails::ActionController.instrument()
