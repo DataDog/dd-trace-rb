@@ -34,9 +34,8 @@ EOS
 
   spec.add_dependency "msgpack"
 
-  spec.add_development_dependency "bundler", "~> 1.12"
-  spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "rubocop", "~> 0.43"
-  spec.add_development_dependency "minitest", "~> 5.0"
+  spec.add_development_dependency "rake", "~> 12.0"
+  spec.add_development_dependency "rubocop", "~> 0.47"
+  spec.add_development_dependency "minitest", "~> 5.10"
   spec.add_development_dependency "appraisal", "~> 2.1"
 end

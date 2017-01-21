@@ -2,8 +2,11 @@ machine:
   services:
     - docker
   environment:
-    MRI_VERSIONS: 2.3.1,2.2.5,2.1.10
-    RAILS5_VERSIONS: 2.3.1,2.2.5
+    LAST_STABLE: 2.4.0
+    EARLY_STABLE: 2.1.10
+    MRI_VERSIONS: 2.4.0,2.3.3,2.2.6,2.1.10
+    RAILS_VERSIONS: 2.3.3,2.2.6,2.1.10
+    RAILS5_VERSIONS: 2.3.3,2.2.6
     AGENT_BUILD_PATH: "/home/ubuntu/agent"
     TEST_DATADOG_INTEGRATION: 1
 
@@ -27,28 +30,29 @@ dependencies:
     - cd $AGENT_BUILD_PATH && docker build -t datadog/trace-agent .
     - docker run -d -e DD_API_KEY=invalid_key_but_this_is_fine -e DD_BIND_HOST=0.0.0.0 -p 127.0.0.1:7777:7777 datadog/trace-agent
   override:
+    - rvm $MRI_VERSIONS --verbose do gem update --system
     - rvm $MRI_VERSIONS --verbose do gem install bundler
     - rvm $MRI_VERSIONS --verbose do bundle install
     - rvm $MRI_VERSIONS --verbose do appraisal install
 
 test:
   override:
-    - rvm 2.1.10 --verbose do rake rubocop
+    - rvm $EARLY_STABLE --verbose do rake rubocop
 # Disabled because of a Java incompatibility
 # TODO: integration tests should run with the master branch of the agent
     - rvm $MRI_VERSIONS --verbose do rake test
-    - rvm $MRI_VERSIONS --verbose do appraisal rails3-postgres rake rails
-    - rvm $MRI_VERSIONS --verbose do appraisal rails3-mysql2 rake rails
-    - rvm $MRI_VERSIONS --verbose do appraisal rails4-postgres rake rails
-    - rvm $MRI_VERSIONS --verbose do appraisal rails4-mysql2 rake rails
-    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake rails
-    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake rails
-    - rvm $MRI_VERSIONS --verbose do appraisal rails3-postgres-redis rake railsredis
-    - rvm $MRI_VERSIONS --verbose do appraisal rails4-postgres-redis rake railsredis
-    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake railsredis
     - rvm $MRI_VERSIONS --verbose do appraisal contrib rake contrib
     - rvm $MRI_VERSIONS --verbose do appraisal contrib rake monkey
-    - rvm 2.3.1 --verbose do rake benchmark
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails3-mysql2 rake rails
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres rake rails
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres-redis rake railsredis
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails4-mysql2 rake rails
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres rake rails
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres-redis rake railsredis
+    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake rails
+    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake rails
+    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake railsredis
+    - rvm $LAST_STABLE --verbose do rake benchmark
 
 deployment:
   develop:
