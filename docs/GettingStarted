@@ -85,7 +85,7 @@ The supported versions are:
 The currently supported web server are:
 * Puma 2.16+ and 3.6+
 * Unicorn 4.8+ and 5.1+
-* Passenger 5.0 (experimental)
+* Passenger 5.0+
 
 ==== Auto Instrumentation
 
