@@ -20,9 +20,8 @@ EOS
   spec.homepage = "https://github.com/DataDog/dd-trace-rb"
   spec.license  = "BSD-3-Clause"
 
-  # TODO[manu]: after GA, change that with rubygems.org
   if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = "http://localhost:8808"
+    spec.metadata['allowed_push_host'] = "https://rubygems.org"
   else
     raise "RubyGems 2.0 or newer is required to protect against public gem pushes."
   end
