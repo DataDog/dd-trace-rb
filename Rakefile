@@ -5,7 +5,7 @@ require 'rdoc/task'
 require 'appraisal'
 
 namespace :test do
-  task all: [:main, :rails, :railsredis, :elasticsearch, :http, :redis, :monkey]
+  task all: [:main, :rails, :railsredis, :elasticsearch, :http, :redis, :sinatra, :monkey]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w(test lib)
@@ -29,7 +29,7 @@ namespace :test do
     t.test_files = FileList['test/contrib/rails/**/*redis*_test.rb']
   end
 
-  [:elasticsearch, :http, :redis].each do |contrib|
+  [:elasticsearch, :http, :redis, :sinatra].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
       t.libs << %w(test lib)
       t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]

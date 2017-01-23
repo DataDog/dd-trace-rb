@@ -45,6 +45,7 @@ test:
     - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:elasticsearch
     - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http
     - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis
+    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra
     - rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres rake test:rails
     - rvm $RAILS_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails
     - rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres rake test:rails
