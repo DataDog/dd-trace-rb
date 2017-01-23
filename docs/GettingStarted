@@ -7,21 +7,21 @@ databases and microservices so that developers have great visiblity into bottlen
 
 Install the tracer with the +gem+ command, but point to Datadog's gems repository:
 
-    $ gem install ddtrace --source http://gems.datadoghq.com/trace/
+    $ gem install ddtrace
 
 On the other hand, if you're using +Bundler+, just update your +Gemfile+ as follows:
 
     source 'https://rubygems.org'
 
     # tracing gem
-    gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
+    gem 'ddtrace'
 
 If you're using the Ruby on Rails framework, you need to configure the auto-instrumentation with an {extra step}[#label-Auto+Instrumentation].
 
 == Quickstart (Auto Instrumentation)
 
 If you are on a {supported integration}[#label-Integrations], you should be able to generate traffic and view
-metrics in your {dashboard}[https://app.datadoghq.com/trace].
+metrics listed in your service list.
 
 == Quickstart (Manual Instrumentation)
 
