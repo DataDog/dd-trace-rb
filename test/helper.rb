@@ -13,6 +13,7 @@ module Datadog
     attr_accessor :trace_handler, :service_handler, :worker
   end
   class Tracer
+    remove_method :writer
     attr_accessor :writer
   end
   module Workers
@@ -138,6 +139,8 @@ end
 # Add class accessors for testing purposes
 module Datadog
   class HTTPTransport
+    remove_method :traces_endpoint
+    remove_method :services_endpoint
     attr_accessor :traces_endpoint, :services_endpoint, :encoder, :headers
   end
 end
