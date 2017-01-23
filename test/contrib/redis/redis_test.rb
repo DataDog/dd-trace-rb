@@ -22,7 +22,7 @@ class RedisSetGetTest < Minitest::Test
     assert_equal('0', span.get_tag('out.redis_db'))
   end
 
-  def roundtrip_set(_d, driver)
+  def roundtrip_set(driver, service)
     set_response = driver.set 'FOO', 'bar'
     assert_equal 'OK', set_response
     spans = @tracer.writer.spans()
@@ -30,11 +30,11 @@ class RedisSetGetTest < Minitest::Test
     span = spans[-1]
     check_common_tags(span)
     assert_equal('redis.command', span.name)
-    assert_equal('redis', span.service)
+    assert_equal(service, span.service)
     assert_equal('set FOO bar', span.resource)
   end
 
-  def roundtrip_get(_d, driver)
+  def roundtrip_get(driver, service)
     get_response = driver.get 'FOO'
     assert_equal 'bar', get_response
     spans = @tracer.writer.spans()
@@ -42,14 +42,14 @@ class RedisSetGetTest < Minitest::Test
     span = spans[0]
     check_common_tags(span)
     assert_equal('redis.command', span.name)
-    assert_equal('redis', span.service)
+    assert_equal(service, span.service)
     assert_equal('get FOO', span.resource)
   end
 
   def test_roundtrip
-    @drivers.each do |d, driver|
-      roundtrip_set d, driver
-      roundtrip_get d, driver
+    @drivers.each do |_d, driver|
+      roundtrip_set driver, 'redis'
+      roundtrip_get driver, 'redis'
     end
   end
 
@@ -114,6 +114,21 @@ class RedisSetGetTest < Minitest::Test
       assert_equal('redis.command', span.name)
       assert_equal('redis', span.service)
       assert_equal('get K', span.resource)
+    end
+  end
+
+  def test_service_name
+    drivers = {}
+    %w(foo bar).each do |service_name|
+      @drivers[service_name] = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
+      pin = Datadog::Pin.get_from(@drivers[service_name])
+      pin.tracer = @tracer
+      pin.service = service_name
+    end
+
+    drivers.each do |service_name, driver|
+      roundtrip_set driver, service_name
+      roundtrip_get driver, service_name
     end
   end
 end

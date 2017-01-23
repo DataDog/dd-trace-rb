@@ -9,6 +9,7 @@ module Datadog
   # so that the Transport is thread-safe.
   class HTTPTransport
     attr_accessor :hostname, :port
+    attr_reader :traces_endpoint, :services_endpoint
 
     # seconds before the transport timeout
     TIMEOUT = 1

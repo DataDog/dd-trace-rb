@@ -1,9 +1,5 @@
 # requirements should be kept minimal as Patcher is a shared requirement.
 
-require 'ddtrace/ext/app_types'
-require 'ddtrace/contrib/redis/tags'
-require 'ddtrace/contrib/redis/quantize'
-
 module Datadog
   module Contrib
     module Redis
@@ -22,6 +18,12 @@ module Datadog
           if !@patched && (defined?(::Redis::VERSION) && \
                            Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('3.0.0'))
             begin
+              # do not require these by default, but only when actually patching
+              require 'ddtrace/monkey'
+              require 'ddtrace/ext/app_types'
+              require 'ddtrace/contrib/redis/tags'
+              require 'ddtrace/contrib/redis/quantize'
+
               patch_redis()
               patch_redis_client()
 
@@ -51,7 +53,10 @@ module Datadog
         def patch_redis_client
           ::Redis::Client.class_eval do
             alias_method :initialize_without_datadog, :initialize
-            remove_method :initialize
+            Datadog::Monkey.without_warnings do
+              remove_method :initialize
+            end
+
             def initialize(*args)
               pin = Datadog::Pin.new(SERVICE, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
@@ -62,7 +67,7 @@ module Datadog
             remove_method :call
             def call(*args, &block)
               pin = Datadog::Pin.get_from(self)
-              return call_without_datadog(*args, &block) unless pin
+              return call_without_datadog(*args, &block) unless pin && pin.tracer
 
               response = nil
               pin.tracer.trace('redis.command') do |span|
@@ -82,7 +87,7 @@ module Datadog
             remove_method :call_pipeline
             def call_pipeline(*args, &block)
               pin = Datadog::Pin.get_from(self)
-              return call_pipeline_without_datadog(*args, &block) unless pin
+              return call_pipeline_without_datadog(*args, &block) unless pin && pin.tracer
 
               response = nil
               pin.tracer.trace('redis.command') do |span|

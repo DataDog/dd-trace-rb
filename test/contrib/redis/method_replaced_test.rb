@@ -26,6 +26,8 @@ class RedisMethodReplacedTest < Minitest::Test
   end
 
   def test_main
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
+
     redis = Redis.new(host: REDIS_HOST, port: REDIS_PORT)
     redis.call(['ping', 'hello world'])
   end

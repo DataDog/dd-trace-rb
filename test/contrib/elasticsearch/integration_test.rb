@@ -12,8 +12,7 @@ class ESIntegrationTest < Minitest::Test
 
     # wait until it's really running, docker-compose can be slow
     wait_http_server ELASTICSEARCH_SERVER, 60
-    client = Elasticsearch::Client.new url: ELASTICSEARCH_SERVER
-    @client = client
+    @client = Elasticsearch::Client.new url: ELASTICSEARCH_SERVER
   end
 
   def test_perform_request

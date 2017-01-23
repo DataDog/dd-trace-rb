@@ -180,19 +180,6 @@ The \Redis integration will trace simple calls as well as pipelines.
     redis = Redis.new
     redis.set 'foo', 'bar' # traced!
 
-The \patch_module allows you to enable tracing on a per-library basis.
-If you want to enable tracing for all supported integrations, you can simply
-use \patch_all eg:
-
-    require 'redis'
-    require 'ddtrace'
-
-    Datadog::Monkey.patch_all # enables all available integrations
-
-    # now do your Redis stuff, eg:
-    redis = Redis.new
-    redis.set 'foo', 'bar' # traced!
-
 === Elastic Search
 
 The \Elasticsearch integration will trace any call to \perform_request
@@ -207,18 +194,26 @@ in the \Client object:
     client = Elasticsearch::Client.new url: 'http://127.0.0.1:9200'
     response = client.perform_request 'GET', '_cluster/health'
 
-The \patch_module allows you to enable tracing on a per-library basis.
-If you want to enable tracing for all supported integrations, you can simply
-use \patch_all eg:
+Note that if you enable both \Elasticsearch and \Net/HTTP integrations then
+for each call, two spans are created, one for \Elasctisearch and one for \Net/HTTP.
+This typically happens if you call \patch_all to enable all integrations by default.
 
-    require 'elasticsearch/transport'
+=== Net/HTTP
+
+The \Net/HTTP integration will trace any HTTP call using the standard lib
+\Net::HTTP module.
+
+    require 'net/http'
     require 'ddtrace'
 
-    Datadog::Monkey.patch_all # enables all available integrations
+    Datadog::Monkey.patch_module(:http) # you need to explicitly patch it
 
-    # now do your Elastic Search stuff, eg:
-    client = Elasticsearch::Client.new url: 'http://127.0.0.1:9200'
-    response = client.perform_request 'GET', '_cluster/health'
+    Net::HTTP.start('127.0.0.1', 8080) do |http|
+      request = Net::HTTP::Get.new '/index'
+      response = http.request request
+    end
+
+    content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 
 == Monkey Patching
 
@@ -232,7 +227,7 @@ The available methods are:
   the key is the name of the module and the value \true or \false. If it is \true,
   a call to \patch_all will enable the module, if it is \false, it will do nothing.
 * +patch_all+: patches all modules which are supported. Make sure all the necessary
-  calls to \require have been done before this is alled, else monkey patching will
+  calls to \require have been done before this is called, else monkey patching will
   not work.
 * +patch_module+: patches a single module, regardless of its settings in the
   \autopatch_modules list.

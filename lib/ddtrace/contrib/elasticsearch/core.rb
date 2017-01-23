@@ -17,14 +17,16 @@ module Datadog
 
       # Datadog APM Elastic Search integration.
       module TracedClient
-        def initialize(*args)
+        def initialize(*)
           pin = Datadog::Pin.new(SERVICE, app: 'elasticsearch', app_type: Datadog::Ext::AppTypes::DB)
           pin.onto(self)
-          super(*args)
+          super
         end
 
         def perform_request(*args)
           pin = Datadog::Pin.get_from(self)
+          return super unless pin && pin.tracer
+
           method = args[0]
           path = args[1]
           params = args[2]

@@ -58,7 +58,7 @@ to trace requests to the home page:
 ### Monkey patching
 
 By default, our monkey-patching is not active, you need to
-explicitly activate it by calling `Datadog::Monkey.patch_all` 
+explicitly activate it by calling `Datadog::Monkey.patch_all`
 or `Datadog::Monkey.patch_module`
 
 This ultimately allows you to enable or disable tracing on a per-library basis.
@@ -87,12 +87,12 @@ Configure your environment through:
     $ bundle install
     $ appraisal install
 
-You can launch all tests using the following rake command:
+You can launch tests using the following rake command:
 
-    $ rake test                                     # tracer tests
-    $ appraisal rails<version>-<database>rake rails # tests Rails matrix
-    $ appraisal contrib rake contrib                # tests other contrib libraries (Redis, ...)
-    $ appraisal contrib rake monkey                 # tests monkey patching
+    $ rake test:main                                     # tracer tests
+    $ appraisal rails<version>-<database>rake test:rails # tests Rails matrix
+    $ appraisal contrib rake test:redis                  # tests Redis integration
+    $ appraisal contrib rake test:monkey                 # tests monkey patching
 
 Available appraisals are:
 
