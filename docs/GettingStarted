@@ -76,17 +76,6 @@ The \Rails integration will trace requests, database calls, templates rendering 
 operations. The integration makes use of the Active Support Instrumentation, listening to the Notification API
 so that any operation instrumented by the API is traced.
 
-The supported versions are:
-
-* \Rails 3.2 (MRI interpreter, JRuby is experimental)
-* \Rails 4.2 (MRI interpreter, JRuby is experimental)
-* \Rails 5.0 (MRI interpreter)
-
-The currently supported web server are:
-* Puma 2.16+ and 3.6+
-* Unicorn 4.8+ and 5.1+
-* Passenger 5.0+
-
 ==== Auto Instrumentation
 
 Add the tracer gem to your +Gemfile+:
@@ -171,8 +160,6 @@ The available settings are:
 
 The Sinatra integration traces requests and template rendering. The
 integration is based on the +Datadog::Contrib::Sinatra::Tracer+ extension.
-
-We currently support Sinatra >= 1.4.0.
 
 ==== Setup
 
@@ -391,3 +378,20 @@ The \Datadog Trace Client has been tested with the following Ruby versions:
 * JRuby 9.1.5 (experimental)
 
 Other versions aren't yet officially supported.
+
+=== Rails support
+
+The supported versions are:
+
+* \Rails 3.2 (MRI interpreter, JRuby is experimental)
+* \Rails 4.2 (MRI interpreter, JRuby is experimental)
+* \Rails 5.0 (MRI interpreter)
+
+The currently supported web server are:
+* Puma 2.16+ and 3.6+
+* Unicorn 4.8+ and 5.1+
+* Passenger 5.0+
+
+=== Sinatra support
+
+Currently we are supporting Sinatra >= 1.4.0.
