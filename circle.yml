@@ -40,19 +40,20 @@ test:
     - rvm $EARLY_STABLE --verbose do rake rubocop
 # Disabled $JRUBY_VERSIONS tests because of a Java incompatibility
 # TODO: integration tests should run with the master branch of the agent
-    - rvm $MRI_VERSIONS --verbose do rake test
-    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake elasticsearch
-    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake http
-    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake redis
-    - rvm $MRI_VERSIONS --verbose do appraisal rails3-postgres rake rails
-    - rvm $MRI_VERSIONS --verbose do appraisal rails3-mysql2 rake rails
-    - rvm $MRI_VERSIONS --verbose do appraisal rails4-postgres rake rails
-    - rvm $MRI_VERSIONS --verbose do appraisal rails4-mysql2 rake rails
-    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake rails
-    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake rails
-    - rvm $MRI_VERSIONS --verbose do appraisal rails3-postgres-redis rake railsredis
-    - rvm $MRI_VERSIONS --verbose do appraisal rails4-postgres-redis rake railsredis
-    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake railsredis
+    - rvm $MRI_VERSIONS --verbose do rake test:main
+    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:monkey
+    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:elasticsearch
+    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http
+    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres rake test:rails
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres rake test:rails
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails
+    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:rails
+    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake test:rails
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres-redis rake test:railsredis
+    - rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis
+    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis
     - rvm $LAST_STABLE --verbose do rake benchmark
 
 deployment:
