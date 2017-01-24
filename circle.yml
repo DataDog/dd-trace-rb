@@ -19,9 +19,12 @@ dependencies:
     # only docker-engine==1.9
     - pip install docker-compose==1.7.1
     - docker-compose up -d | cat
-    # configure Ruby interpreters
+    # installing dev dependencies
+    - gem update --system
     - gem install builder
+    - gem update bundler
     - bundle install
+    # configure Ruby interpreters
     - rvm get head
     - rvm install $MRI_VERSIONS
     # prepare and run the trace agent
