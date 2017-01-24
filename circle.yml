@@ -2,6 +2,7 @@ machine:
   services:
     - docker
   environment:
+    # FIXME: Disabled $JRUBY_VERSIONS tests because of a Java incompatibility
     LAST_STABLE: 2.4.0
     EARLY_STABLE: 2.1.10
     MRI_VERSIONS: 2.4.0,2.3.3,2.2.6,2.1.10
@@ -19,9 +20,12 @@ dependencies:
     # only docker-engine==1.9
     - pip install docker-compose==1.7.1
     - docker-compose up -d | cat
-    # configure Ruby interpreters
+    # installing dev dependencies
+    - gem update --system
     - gem install builder
+    - gem update bundler
     - bundle install
+    # configure Ruby interpreters
     - rvm get head
     - rvm install $MRI_VERSIONS
     # prepare and run the trace agent
@@ -38,24 +42,9 @@ dependencies:
 test:
   override:
     - rvm $EARLY_STABLE --verbose do rake rubocop
-# Disabled $JRUBY_VERSIONS tests because of a Java incompatibility
-# TODO: integration tests should run with the master branch of the agent
-    - rvm $MRI_VERSIONS --verbose do rake test:main
-    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:monkey
-    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:elasticsearch
-    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http
-    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis
-    - rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra
-    - rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres rake test:rails
-    - rvm $RAILS_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails
-    - rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres rake test:rails
-    - rvm $RAILS_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails
-    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:rails
-    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake test:rails
-    - rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres-redis rake test:railsredis
-    - rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis
-    - rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis
-    - rvm $LAST_STABLE --verbose do rake benchmark
+    # TODO: integration tests should run with the master branch of the agent
+    - rake ci:
+        parallel: true
 
 deployment:
   develop:

@@ -103,4 +103,33 @@ task :'release:docs' => :rdoc do
   sh "aws s3 cp --recursive html/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
 end
 
+desc 'CI dependent task; it runs all parallel tests'
+task :ci do
+  # CircleCI uses this environment to store the node index (starting from 0)
+  # check: https://circleci.com/docs/parallel-manual-setup/#env-splitting
+  case ENV['CIRCLE_NODE_INDEX'].to_i
+  when 0
+    sh 'rvm $MRI_VERSIONS --verbose do rake test:main'
+    sh 'rvm $LAST_STABLE --verbose do rake benchmark'
+  when 1
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:monkey'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:elasticsearch'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
+  when 2
+    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres rake test:rails'
+    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails'
+    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres rake test:rails'
+    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:rails'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake test:rails'
+    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres-redis rake test:railsredis'
+    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis'
+  else
+    puts 'Too many workers than parallel tasks'
+  end
+end
+
 task default: :test
