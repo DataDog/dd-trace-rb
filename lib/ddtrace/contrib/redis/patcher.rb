@@ -74,7 +74,6 @@ module Datadog
                 span.service = pin.service
                 span.span_type = Datadog::Ext::Redis::TYPE
                 span.resource = Datadog::Contrib::Redis::Quantize.format_command_args(*args)
-                span.set_tag(Datadog::Ext::Redis::RAWCMD, span.resource)
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
                 response = call_without_datadog(*args, &block)
@@ -95,7 +94,6 @@ module Datadog
                 span.span_type = Datadog::Ext::Redis::TYPE
                 commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
                 span.resource = commands.join("\n")
-                span.set_tag(Datadog::Ext::Redis::RAWCMD, span.resource)
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
                 response = call_pipeline_without_datadog(*args, &block)
