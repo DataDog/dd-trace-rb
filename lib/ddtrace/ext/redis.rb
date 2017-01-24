@@ -9,8 +9,6 @@ module Datadog
 
       # standard tags
       RAWCMD = 'redis.raw_command'.freeze
-      ARGS_LEN = 'redis.args_length'.freeze
-      PIPELINE_LEN = 'redis.pipeline_length'.freeze
     end
   end
 end
