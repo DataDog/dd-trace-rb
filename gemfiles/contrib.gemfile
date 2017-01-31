@@ -5,5 +5,7 @@ source "https://rubygems.org"
 gem "elasticsearch-transport"
 gem "redis"
 gem "hiredis"
+gem "rack-test"
+gem "sinatra"
 
 gemspec :path => "../"

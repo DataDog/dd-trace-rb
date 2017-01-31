@@ -12,13 +12,17 @@ You can find the latest documentation in the Datadog's [private repository][docs
 
 ### Install
 
+Install the Ruby client with the ``gem`` command:
+
+    gem install ddtrace
+
 If you're using ``Bundler``, just update your ``Gemfile`` as follows:
 
 ```ruby
     source 'https://rubygems.org'
 
     # tracing gem
-    gem 'ddtrace', :source => 'http://gems.datadoghq.com/trace/'
+    gem 'ddtrace'
 ```
 
 ### Quickstart (manual instrumentation)
