@@ -21,14 +21,14 @@ module Datadog
     def self.log
       unless defined? @logger
         @logger = Logger.new(STDOUT)
-        @logger.level = Logger::INFO
+        @logger.level = Logger::WARN
       end
       @logger
     end
 
     # Activate the debug mode providing more information related to tracer usage
     def self.debug_logging=(value)
-      log.level = value ? Logger::DEBUG : Logger::INFO
+      log.level = value ? Logger::DEBUG : Logger::WARN
     end
 
     # Return if the debug mode is activated or not
