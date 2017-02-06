@@ -12,6 +12,10 @@ module Datadog
   class Span
     # The max value for a \Span identifier
     MAX_ID = 2**64 - 1
+    # A default value for service. One should really override this one
+    # for non-root spans which have a parent. However, root spans without
+    # a service would be invalid and rejected.
+    DEFAULT_SERVICE = 'ruby'.freeze
 
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
