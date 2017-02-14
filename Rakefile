@@ -1,8 +1,9 @@
 require 'bundler/gem_tasks'
+require 'ddtrace/version'
 require 'rubocop/rake_task'
 require 'rake/testtask'
-require 'rdoc/task'
 require 'appraisal'
+require 'yard'
 
 namespace :test do
   task all: [:main, :rails, :railsredis, :elasticsearch, :http, :redis, :sinatra, :monkey]
@@ -51,12 +52,8 @@ RuboCop::RakeTask.new(:rubocop) do |t|
   t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
 end
 
-RDoc::Task.new(:rdoc) do |doc|
-  doc.main   = 'docs/GettingStarted'
-  doc.title  = 'Datadog Ruby Tracer'
-  # TODO[manu]: include all lib/ folder, but only when all classes' docs are ready
-  doc.rdoc_files = FileList.new(%w(lib/ddtrace/tracer.rb lib/ddtrace/span.rb docs/**/*))
-  doc.rdoc_dir = 'html'
+YARD::Rake::YardocTask.new(:docs) do |t|
+  t.options += ['--title', "ddtrace #{Datadog::VERSION::STRING} documentation"]
 end
 
 # Deploy tasks
@@ -98,9 +95,9 @@ task :'release:gem' do
 end
 
 desc 'release the docs website'
-task :'release:docs' => :rdoc do
+task :'release:docs' => :docs do
   raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
-  sh "aws s3 cp --recursive html/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
+  sh "aws s3 cp --recursive doc/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
 end
 
 desc 'CI dependent task; it runs all parallel tests'
