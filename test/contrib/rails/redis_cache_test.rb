@@ -40,7 +40,7 @@ class RedisCacheTracingTest < ActionController::TestCase
       assert_equal(span.span_type, 'cache')
       assert_equal(span.resource, 'GET')
       assert_equal(span.service, 'rails-cache')
-      assert_equal(span.get_tag('rails.cache.backend').to_s, '[:redis_store, {:url=>"redis://127.0.0.1:46379"}]')
+      assert_equal(span.get_tag('rails.cache.backend').to_s, 'redis_store')
       assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
       span = spans[-2]
       assert_equal(span.name, 'redis.command')
@@ -101,7 +101,7 @@ class RedisCacheTracingTest < ActionController::TestCase
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'SET')
     assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, '[:redis_store, {:url=>"redis://127.0.0.1:46379"}]')
+    assert_equal(span.get_tag('rails.cache.backend').to_s, 'redis_store')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
     span = spans[-2]
     assert_equal(span.name, 'redis.command')
@@ -123,7 +123,7 @@ class RedisCacheTracingTest < ActionController::TestCase
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'DELETE')
     assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, '[:redis_store, {:url=>"redis://127.0.0.1:46379"}]')
+    assert_equal(span.get_tag('rails.cache.backend').to_s, 'redis_store')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
     span = spans[-2]
     assert_equal(span.name, 'redis.command')
