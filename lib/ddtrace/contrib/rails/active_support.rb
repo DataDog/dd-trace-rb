@@ -93,7 +93,9 @@ module Datadog
           begin
             # finish the tracing and update the execution time
             span.resource = resource
-            span.set_tag('rails.cache.backend', ::Rails.configuration.cache_store)
+            # discard parameters from the cache_store configuration
+            store, = *Array.wrap(::Rails.configuration.cache_store).flatten
+            span.set_tag('rails.cache.backend', store)
             span.set_tag('rails.cache.key', payload.fetch(:key))
 
             if payload[:exception]

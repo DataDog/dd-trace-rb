@@ -25,7 +25,7 @@ class CacheTracingTest < ActionController::TestCase
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'GET')
     assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, '[:file_store, "/tmp/ddtrace-rb/cache/"]')
+    assert_equal(span.get_tag('rails.cache.backend').to_s, 'file_store')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
   end
 
@@ -39,7 +39,7 @@ class CacheTracingTest < ActionController::TestCase
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'SET')
     assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, '[:file_store, "/tmp/ddtrace-rb/cache/"]')
+    assert_equal(span.get_tag('rails.cache.backend').to_s, 'file_store')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
   end
 
@@ -53,7 +53,7 @@ class CacheTracingTest < ActionController::TestCase
     assert_equal(span.span_type, 'cache')
     assert_equal(span.resource, 'DELETE')
     assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, '[:file_store, "/tmp/ddtrace-rb/cache/"]')
+    assert_equal(span.get_tag('rails.cache.backend').to_s, 'file_store')
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
   end
 
