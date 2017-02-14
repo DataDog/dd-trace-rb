@@ -37,4 +37,5 @@ EOS
   spec.add_development_dependency "rubocop", "~> 0.47"
   spec.add_development_dependency "minitest", "~> 5.10"
   spec.add_development_dependency "appraisal", "~> 2.1"
+  spec.add_development_dependency "yard", "~> 0.9"
 end
