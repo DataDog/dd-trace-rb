@@ -3,72 +3,30 @@
 _ddtrace_ is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have great visiblity into bottlenecks and troublesome requests.
 
-== Installation
+== Install the gem
 
-Install the tracer with the +gem+ command:
-
-    $ gem install ddtrace
-
-On the other hand, if you're using +Bundler+, just update your +Gemfile+ as follows:
+Install the tracing client, adding the following gem in your +Gemfile+:
 
     source 'https://rubygems.org'
 
     # tracing gem
     gem 'ddtrace'
 
-If you're using the Ruby on Rails framework, you need to configure the auto-instrumentation with an {extra step}[#label-Auto+Instrumentation].
+If you're not using +Bundler+ to manage your dependencies, you can install +ddtrace+ with:
 
-== Quickstart (Auto Instrumentation)
+    gem install ddtrace
 
-If you are on a {supported integration}[#label-Integrations], you should be able to generate traffic and view
-metrics listed in your service list.
+We strongly suggest pinning the version of the library you deploy.
 
-== Quickstart (Manual Instrumentation)
+== Quickstart
 
-If you aren't using a supported framework instrumentation, you may want to to manually instrument your code.
-Adding tracing to your code is very simple. As an example, let’s imagine we have a web server and we want
-to trace requests to the home page:
+The easiest way to get started with the tracing client is to instrument your web application. +ddtrace+ gem
+provides auto instrumentation for the following web frameworks:
 
-    require 'ddtrace'
-    require 'sinatra'
-    require 'activerecord'
+* {Ruby on Rails}[#label-Ruby+on+Rails]
+* {Sinatra}[#label-Sinatra]
 
-    # a generic tracer that you can use across your application
-    tracer = Datadog.tracer
-
-    get '/' do
-      tracer.trace('web.request') do |span|
-        # set some span metadata
-        span.service = 'my-web-site'
-        span.resource = '/'
-        span.set_tag('http.method', request.request_method)
-
-        # trace the activerecord call
-        tracer.trace('posts.fetch') do
-          @posts = Posts.order(created_at: :desc).limit(10)
-        end
-
-        # trace the template rendering
-        tracer.trace('template.render') do
-          erb :index
-        end
-      end
-    end
-
-== Glossary
-
-[Service] The name of a set of processes that do the same job. Some examples are +datadog-web-app+ or +datadog-metrics-db+.
-
-[Resource] A particular query to a service. For a web application, some examples might be a URL stem like +/user/home+ or a
-           handler function like +web.user.home+. For a SQL database, a resource would be the SQL of the query itself like
-           <tt>select * from users where id = ?</tt>.
-           You can track thousands (not millions or billions) of unique resources per services, so prefer resources like
-           +/user/home+ rather than <tt>/user/home?id=123456789</tt>.
-
-[Span] A span tracks a unit of work in a service, like querying a database or rendering a template. Spans are associated
-       with a service and optionally a resource. Spans have names, start times, durations and optional tags.
-
-== Integrations
+== Web Frameworks
 
 === Ruby on \Rails
 
@@ -76,13 +34,7 @@ The \Rails integration will trace requests, database calls, templates rendering 
 operations. The integration makes use of the Active Support Instrumentation, listening to the Notification API
 so that any operation instrumented by the API is traced.
 
-==== Auto Instrumentation
-
-Add the tracer gem to your +Gemfile+:
-
-    gem 'ddtrace'
-
-To enable the Rails auto-instrumentation, you must create an initializer file in your +config/+ folder:
+To enable the Rails auto instrumentation, create an initializer file in your +config/+ folder:
 
     # config/initializers/datadog-tracer.rb
 
@@ -94,29 +46,7 @@ To enable the Rails auto-instrumentation, you must create an initializer file in
 
 If you're using \Rails 3 or higher, your application will be listed as +my-rails-app+ in your service list.
 
-==== Custom Instrumentation
-
-If you need to instrument custom code within your controllers, you can simply:
-
-    class CustomController < ApplicationController
-      def index
-        # using auto instrumentation, these calls are already traced
-        @values = SomeModel.all
-        @counter = Rails.cache.fetch('custom_cache_key')
-
-        # use the global tracer to instrument your code
-        tracer = Datadog.tracer
-        tracer.trace('custom.service') do
-          data = Something::fetch_data()
-          @objects = Something::parse_data(data)
-        end
-      end
-    end
-
-With the auto instrumentation turned on, the result trace will include your span correctly nested under the
-+rails.request+ span.
-
-==== Tracer Configuration
+==== Configure the tracer with initializers
 
 All tracing settings are namespaced under the +Rails.configuration.datadog_tracer+ hash. To change the default behavior
 of the Datadog tracer, you can override the following defaults:
@@ -128,6 +58,7 @@ of the Datadog tracer, you can override the following defaults:
       auto_instrument: false,
       auto_instrument_redis: false,
       default_service: 'rails-app',
+      default_database_service: 'postgresql',
       default_cache_service: 'rails-cache',
       template_base_path: 'views/',
       tracer: Datadog.tracer,
@@ -136,7 +67,7 @@ of the Datadog tracer, you can override the following defaults:
       trace_agent_port: 7777
     }
 
-The available settings are:
+Available settings are:
 
 * +enabled+: defines if the +tracer+ is enabled or not. If set to +false+ the code could be still instrumented
   because of other settings, but no spans are sent to the local trace agent.
@@ -158,35 +89,32 @@ The available settings are:
 
 === Sinatra
 
-The Sinatra integration traces requests and template rendering. The
-integration is based on the +Datadog::Contrib::Sinatra::Tracer+ extension.
+The Sinatra integration traces requests and template rendering. The integration is based on the
++Datadog::Contrib::Sinatra::Tracer+ extension.
 
-==== Setup
-
-Add the tracer gem to your +Gemfile+:
-
-    gem 'ddtrace'
-
-Make sure you import +ddtrace+ and +ddtrace/contrib/sinatra/tracer+ after
+To start using the tracing client, make sure you import +ddtrace+ and +ddtrace/contrib/sinatra/tracer+ after
 either +sinatra+ or +sinatra/base+:
 
     require 'sinatra'
     require 'ddtrace'
     require 'ddtrace/contrib/sinatra/tracer'
 
+    get '/' do
+      'Hello world!'
+    end
+
 The tracing extension will be automatically activated.
 
-==== Configuration
+==== Configure the tracer
 
-To modify the default configuration, use the
-+settings.datadog_tracer.configure+ method. For example, to change the default
-service name and activate the debug mode:
+To modify the default configuration, use the +settings.datadog_tracer.configure+ method. For example,
+to change the default service name and activate the debug mode:
 
     configure do
       settings.datadog_tracer.configure default_service: 'my-app', debug: true
     end
 
-The available settings are:
+Available settings are:
 
 * +enabled+: define if the +tracer+ is enabled or not. If set to +false+, the code is still instrumented
   but no spans are sent to the local trace agent.
@@ -196,6 +124,8 @@ The available settings are:
 * +debug+: set to +true+ to enable debug logging.
 * +trace_agent_hostname+: set the hostname of the trace agent.
 * +trace_agent_port+: set the port the trace agent is listening on.
+
+== Other libraries
 
 === Redis
 
@@ -245,7 +175,39 @@ The \Net/HTTP integration will trace any HTTP call using the standard lib
 
     content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 
-== Monkey Patching
+== Advanced usage
+
+=== Manual Instrumentation
+
+If you aren't using a supported framework instrumentation, you may want to to manually instrument your code.
+Adding tracing to your code is very simple. As an example, let’s imagine we have a web server and we want
+to trace requests to the home page:
+
+    require 'ddtrace'
+    require 'sinatra'
+    require 'activerecord'
+
+    # a generic tracer that you can use across your application
+    tracer = Datadog.tracer
+
+    get '/' do
+      tracer.trace('web.request') do |span|
+        # set some span metadata
+        span.service = 'my-web-site'
+        span.resource = '/'
+        span.set_tag('http.method', request.request_method)
+
+        # trace the activerecord call
+        tracer.trace('posts.fetch') do
+          @posts = Posts.order(created_at: :desc).limit(10)
+        end
+
+        # trace the template rendering
+        tracer.trace('template.render') do
+          erb :index
+        end
+      end
+    end
 
 === Patching methods
 
@@ -341,7 +303,7 @@ You can use this object to instrument your own code:
       end
     end
 
-== Debug Mode
+=== Debug Mode
 
 If you need to check locally what traces and spans are sent after each traced block, you can enable
 a global debug mode for all tracers so that every time a trace is ready to be sent, the content will be
@@ -367,7 +329,9 @@ for the first time:
 Remember that the debug mode may affect your application performance and so it must not be used
 in a production environment.
 
-== Supported Versions
+=== Supported Versions
+
+==== Ruby interpreters
 
 The \Datadog Trace Client has been tested with the following Ruby versions:
 
@@ -379,7 +343,7 @@ The \Datadog Trace Client has been tested with the following Ruby versions:
 
 Other versions aren't yet officially supported.
 
-=== Rails support
+==== Ruby on Rails versions
 
 The supported versions are:
 
@@ -392,6 +356,19 @@ The currently supported web server are:
 * Unicorn 4.8+ and 5.1+
 * Passenger 5.0+
 
-=== Sinatra support
+==== Sinatra versions
 
 Currently we are supporting Sinatra >= 1.4.0.
+
+=== Glossary
+
+[Service] The name of a set of processes that do the same job. Some examples are +datadog-web-app+ or +datadog-metrics-db+.
+
+[Resource] A particular query to a service. For a web application, some examples might be a URL stem like +/user/home+ or a
+           handler function like +web.user.home+. For a SQL database, a resource would be the SQL of the query itself like
+           <tt>select * from users where id = ?</tt>.
+           You can track thousands (not millions or billions) of unique resources per services, so prefer resources like
+           +/user/home+ rather than <tt>/user/home?id=123456789</tt>.
+
+[Span] A span tracks a unit of work in a service, like querying a database or rendering a template. Spans are associated
+       with a service and optionally a resource. Spans have names, start times, durations and optional tags.
