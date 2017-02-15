@@ -85,9 +85,7 @@ module Datadog
         end
 
         # rubocop:disable Metrics/AbcSize
-        # rubocop:disable Metrics/CyclomaticComplexity
         # rubocop:disable Metrics/MethodLength
-        # rubocop:disable Metrics/PerceivedComplexity
         def self.registered(app)
           ::Sinatra::Base.module_eval do
             def render(engine, data, *)
