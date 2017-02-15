@@ -36,20 +36,28 @@ module Datadog
           url = full_url.path
           response = nil
           pin.tracer.trace('elasticsearch.query') do |span|
-            span.service = pin.service
-            span.span_type = SPAN_TYPE
+            begin
+              span.service = pin.service
+              span.span_type = SPAN_TYPE
 
-            span.set_tag(METHOD, method)
-            span.set_tag(URL, url)
-            span.set_tag(PARAMS, JSON.generate(params)) if params
-            span.set_tag(BODY, JSON.generate(body)) if body
+              # load JSON for the following fields unless they're already strings
+              params = JSON.generate(params) if params && !params.is_a?(String)
+              body = JSON.generate(body) if body && !body.is_a?(String)
 
-            quantized_url = Datadog::Contrib::Elasticsearch::Quantize.format_url(url)
-            span.resource = "#{method} #{quantized_url}"
+              span.set_tag(METHOD, method)
+              span.set_tag(URL, url)
+              span.set_tag(PARAMS, params) if params
+              span.set_tag(BODY, body) if body
 
-            response = super(*args)
+              quantized_url = Datadog::Contrib::Elasticsearch::Quantize.format_url(url)
+              span.resource = "#{method} #{quantized_url}"
+            rescue StandardError => e
+              Datadog::Tracer.log.error(e.message)
+            ensure
+              # the call is still executed
+              response = super(*args)
+            end
           end
-
           response
         end
       end

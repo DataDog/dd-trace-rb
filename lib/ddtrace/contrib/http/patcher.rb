@@ -14,8 +14,6 @@ module Datadog
 
       module_function
 
-      # rubocop:disable Metrics/CyclomaticComplexity
-      # rubocop:disable Metrics/PerceivedComplexity
       def should_skip_tracing?(req, address, port, transport, pin)
         # we don't want to trace our own call to the API (they use net/http)
         # when we know the host & port (from the URI) we use it, else (most-likely

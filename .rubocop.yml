@@ -41,3 +41,9 @@ Metrics/BlockLength:
 
 Metrics/ParameterLists:
   Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Max: 15
+
+Metrics/PerceivedComplexity:
+  Max: 15
