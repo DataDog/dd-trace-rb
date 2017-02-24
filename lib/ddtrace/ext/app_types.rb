@@ -4,6 +4,7 @@ module Datadog
       WEB = 'web'.freeze
       DB = 'db'.freeze
       CACHE = 'cache'.freeze
+      WORKER = 'worker'.freeze
     end
   end
 end
