@@ -175,6 +175,47 @@ Net::HTTP module.
 
     content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 
+### Sidekiq
+
+The Sidekiq integration is a server-side middleware which will trace job
+executions. It can be added as any other Sidekiq middleware:
+
+    require 'sidekiq'
+    require 'ddtrace'
+    require 'ddtrace/contrib/sidekiq/tracer'
+
+    Sidekiq.configure_server do |config|
+      config.server_middleware do |chain|
+        chain.add(Datadog::Contrib::Sidekiq::Tracer, debug: true)
+      end
+    end
+
+#### Configure the tracer
+
+To modify the default configuration, simply pass arguments to the middleware.
+For example, to change the default service name and activate the debug mode:
+
+    Sidekiq.configure_server do |config|
+      config.server_middleware do |chain|
+        chain.add(Datadog::Contrib::Sidekiq::Tracer,
+                  default_service: 'my_app', debug: true)
+      end
+    end
+
+Available settings are:
+
+* ``enabled``: define if the ``tracer`` is enabled or not. If set to
+  ``false``, the code is still instrumented but no spans are sent to the local
+  trace agent.
+* ``default_service``: set the service name used when tracing application
+  requests. Defaults to ``sidekiq``.
+* ``tracer``: set the tracer to use. Usually you don't need to change that
+  value unless you're already using a different initialized tracer somewhere
+  else.
+* ``debug``: set to ``true`` to enable debug logging.
+* ``trace_agent_hostname``: set the hostname of the trace agent.
+* ``trace_agent_port``: set the port the trace agent is listening on.
+
 ## Advanced usage
 
 ### Manual Instrumentation
@@ -359,6 +400,10 @@ The currently supported web server are:
 #### Sinatra versions
 
 Currently we are supporting Sinatra >= 1.4.0.
+
+#### Sidekiq versions
+
+Currently we are supporting Sidekiq >= 4.0.0.
 
 ### Glossary
 

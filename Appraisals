@@ -66,4 +66,5 @@ appraise "contrib" do
   gem "hiredis"
   gem "rack-test"
   gem "sinatra"
+  gem "sidekiq"
 end

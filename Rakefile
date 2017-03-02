@@ -6,7 +6,7 @@ require 'appraisal'
 require 'yard'
 
 namespace :test do
-  task all: [:main, :rails, :railsredis, :elasticsearch, :http, :redis, :sinatra, :monkey]
+  task all: [:main, :rails, :railsredis, :elasticsearch, :http, :redis, :sidekiq, :sinatra, :monkey]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w(test lib)
@@ -30,7 +30,7 @@ namespace :test do
     t.test_files = FileList['test/contrib/rails/**/*redis*_test.rb']
   end
 
-  [:elasticsearch, :http, :redis, :sinatra].each do |contrib|
+  [:elasticsearch, :http, :redis, :sinatra, :sidekiq].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
       t.libs << %w(test lib)
       t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
@@ -49,6 +49,7 @@ Rake::TestTask.new(:benchmark) do |t|
 end
 
 RuboCop::RakeTask.new(:rubocop) do |t|
+  t.options << ['-D']
   t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
 end
 
@@ -114,6 +115,7 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
   when 2
     sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres rake test:rails'
     sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails'

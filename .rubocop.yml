@@ -47,3 +47,6 @@ Metrics/CyclomaticComplexity:
 
 Metrics/PerceivedComplexity:
   Max: 15
+
+Lint/UnusedMethodArgument:
+    Enabled: false
