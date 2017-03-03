@@ -35,7 +35,7 @@ dependencies:
     - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do gem update --system
     - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do gem install bundler
     - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do bundle install
-    - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do appraisal install
+    - rvm $MRI_VERSIONS --verbose do appraisal install
     - rvm $MRI_VERSIONS --verbose do gem install rubocop
 
 test:
