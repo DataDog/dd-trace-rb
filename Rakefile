@@ -137,7 +137,7 @@ task :ci do
     sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres-redis rake test:railsredis'
     sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis'
-  when 3
+    # [FIXME:christian] use consistent //-ism for this
     sh 'rvm $OLD_VERSIONS --verbose do rake test:main'
     sh 'rvm $OLD_VERSIONS --verbose do appraisal contrib rake test:monkey'
     sh 'rvm $OLD_VERSIONS --verbose do appraisal contrib rake test:elasticsearch'
