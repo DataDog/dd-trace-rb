@@ -5,6 +5,7 @@ machine:
     # FIXME: Disabled $JRUBY_VERSIONS tests because of a Java incompatibility
     LAST_STABLE: 2.4.0
     EARLY_STABLE: 2.1.10
+    OLD_VERSIONS: 2.0.0,1.9.3
     MRI_VERSIONS: 2.4.0,2.3.3,2.2.6,2.1.10
     RAILS_VERSIONS: 2.3.3,2.2.6,2.1.10
     RAILS5_VERSIONS: 2.3.3,2.2.6
@@ -27,12 +28,14 @@ dependencies:
     - bundle install
     # configure Ruby interpreters
     - rvm get head
-    - rvm install $MRI_VERSIONS
+    - rvm install $MRI_VERSIONS,$OLD_VERSIONS
+    # run the agent
+    - docker run -d -e DD_API_KEY=invalid_key_but_this_is_fine -e DD_BIND_HOST=0.0.0.0 -e DD_APM_ENABLED=true -p 127.0.0.1:8126:8126 -p 127.0.0.1:7777:7777 datadog/docker-dd-agent
   override:
-    - rvm $MRI_VERSIONS --verbose do gem update --system
-    - rvm $MRI_VERSIONS --verbose do gem install bundler
-    - rvm $MRI_VERSIONS --verbose do bundle install
-    - rvm $MRI_VERSIONS --verbose do appraisal install
+    - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do gem update --system
+    - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do gem install bundler
+    - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do bundle install
+    - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do appraisal install
 
 test:
   override:

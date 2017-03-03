@@ -135,6 +135,8 @@ task :ci do
     sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres-redis rake test:railsredis'
     sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis'
+  when 3
+    sh 'rvm $OLD_VERSIONS --verbose do rake test:main'
   else
     puts 'Too many workers than parallel tasks'
   end
