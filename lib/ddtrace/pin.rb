@@ -17,13 +17,14 @@ module Datadog
     attr_accessor :name
     attr_accessor :tracer
 
-    def initialize(service, app: nil, tags: nil, app_type: nil, tracer: Datadog.tracer)
+    # [ruby19] named parameters would be more idiomatic here, but would break backward compatibility
+    def initialize(service, options={app: nil, tags: nil, app_type: nil, tracer: Datadog.tracer})
       @service = service
-      @app = app
-      @tags = tags
-      @app_type = app_type
+      @app = options[:app]
+      @tags = options[:tags]
+      @app_type = options[:app_type]
       @name = nil # this would rarely be overriden as it's really span-specific
-      @tracer = tracer
+      @tracer = options[:tracer]
     end
 
     def enabled?
