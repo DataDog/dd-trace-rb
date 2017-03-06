@@ -1,6 +1,6 @@
 require 'bundler/gem_tasks'
 require 'ddtrace/version'
-require 'rubocop/rake_task' if RUBY_VERSION.to_i >= 2
+require 'rubocop/rake_task' if RUBY_VERSION >= '2.1.0'
 require 'rake/testtask'
 require 'appraisal'
 require 'yard'
@@ -54,7 +54,7 @@ Rake::TestTask.new(:benchmark) do |t|
   t.test_files = FileList['test/benchmark_test.rb']
 end
 
-if RUBY_VERSION.to_i >= 2
+if RUBY_VERSION >= '2.1.0'
   RuboCop::RakeTask.new(:rubocop) do |t|
     t.options << ['-D']
     t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']

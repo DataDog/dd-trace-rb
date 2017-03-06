@@ -34,7 +34,7 @@ EOS
   spec.add_dependency 'msgpack'
 
   spec.add_development_dependency 'rake', '~> 12.0'
-  spec.add_development_dependency('rubocop', '~> 0.47') if RUBY_VERSION >= '2.0.0.'
+  spec.add_development_dependency('rubocop', '~> 0.47') if RUBY_VERSION >= '2.1.0'
   spec.add_development_dependency 'minitest', '~> 5.10'
   spec.add_development_dependency 'appraisal', '~> 2.1'
   spec.add_development_dependency 'yard', '~> 0.9'
