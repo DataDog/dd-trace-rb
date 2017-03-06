@@ -144,7 +144,6 @@ task :ci do
     sh 'rvm $OLD_VERSIONS --verbose do appraisal contrib rake test:http'
     sh 'rvm $OLD_VERSIONS --verbose do appraisal contrib rake test:redis'
     sh 'rvm $OLD_VERSIONS --verbose do appraisal contrib rake test:sinatra'
-    sh 'rvm $OLD_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
   else
     puts 'Too many workers than parallel tasks'
   end
