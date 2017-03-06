@@ -49,7 +49,7 @@ class UtilsTest < Minitest::Test
     # test that the agent can decoder properly our metrics
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
 
-	# one trace with two spans
+    # one trace with two spans
     traces = get_test_traces(2)
 
     # set some metrics to the trace

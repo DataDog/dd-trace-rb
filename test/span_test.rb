@@ -90,7 +90,7 @@ class SpanTest < Minitest::Test
       'b' => -12.0,
       'c' => 12.134,
       'd' => 1231543543265475686787869123.0,
-      'e' => 12.34,
+      'e' => 12.34
     }
     assert_equal(expected, h[:metrics])
   end
