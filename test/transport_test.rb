@@ -7,9 +7,9 @@ class UtilsTest < Minitest::Test
   def setup
     # set the transport and temporary disable the logger to prevent
     # spam in the tests output
-    @default_transport = Datadog::HTTPTransport.new('localhost', '7777')
-    @transport_json = Datadog::HTTPTransport.new('localhost', '7777', encoder: Datadog::Encoding::JSONEncoder.new())
-    @transport_msgpack = Datadog::HTTPTransport.new('localhost', '7777', encoder: Datadog::Encoding::MsgpackEncoder.new())
+    @default_transport = Datadog::HTTPTransport.new('localhost', '8126')
+    @transport_json = Datadog::HTTPTransport.new('localhost', '8126', encoder: Datadog::Encoding::JSONEncoder.new())
+    @transport_msgpack = Datadog::HTTPTransport.new('localhost', '8126', encoder: Datadog::Encoding::MsgpackEncoder.new())
     @original_level = Datadog::Tracer.log.level
     Datadog::Tracer.log.level = Logger::FATAL
   end

@@ -64,7 +64,7 @@ of the Datadog tracer, you can override the following defaults:
       tracer: Datadog.tracer,
       debug: false,
       trace_agent_hostname: 'localhost',
-      trace_agent_port: 7777
+      trace_agent_port: 8126
     }
 
 Available settings are:

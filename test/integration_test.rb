@@ -72,7 +72,7 @@ class TracerIntegrationTest < Minitest::Test
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
 
     tracer = Datadog::Tracer.new
-    tracer.configure(enabled: true, hostname: '127.0.0.1', port: '7777')
+    tracer.configure(enabled: true, hostname: '127.0.0.1', port: '8126')
 
     agent_receives_span_step1(tracer)
     success = agent_receives_span_step2(tracer)

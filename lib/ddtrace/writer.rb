@@ -9,7 +9,7 @@ module Datadog
     attr_reader :transport
 
     HOSTNAME = 'localhost'.freeze
-    PORT = '7777'.freeze
+    PORT = '8126'.freeze
 
     def initialize(options = {})
       # writer and transport parameters
