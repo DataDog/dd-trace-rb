@@ -6,7 +6,7 @@ require 'ddtrace/version'
 Gem::Specification.new do |spec|
   spec.name                  = 'ddtrace'
   spec.version               = "#{Datadog::VERSION::STRING}#{ENV['VERSION_SUFFIX']}"
-  spec.required_ruby_version = '>= 1.9.1'
+  spec.required_ruby_version = '>= 1.8.7'
   spec.authors               = ['Datadog, Inc.']
   spec.email                 = ['dev@datadoghq.com']
 
@@ -33,7 +33,7 @@ EOS
 
   spec.add_dependency 'msgpack'
 
-  spec.add_development_dependency 'rake', '~> 12.0'
+  spec.add_development_dependency 'rake', '~> 10.5'
   spec.add_development_dependency('rubocop', '~> 0.47') if RUBY_VERSION >= '2.1.0'
   spec.add_development_dependency 'minitest', '~> 5.10'
   spec.add_development_dependency 'appraisal', '~> 2.1'
