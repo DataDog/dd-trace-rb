@@ -35,7 +35,7 @@ module Datadog
           @cfg = DEFAULT_CFG.dup()
         end
 
-        def configure(**args)
+        def configure(args = {})
           args.each do |name, value|
             self[name] = value
           end
