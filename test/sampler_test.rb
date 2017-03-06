@@ -3,6 +3,14 @@ require 'helper'
 require 'ddtrace/sampler'
 
 class SamplerTest < Minitest::Test
+  def setup
+    Datadog::Tracer.log.level = Logger::FATAL
+  end
+
+  def teardown
+    Datadog::Tracer.log.level = Logger::WARN
+  end
+
   def test_all_sampler
     spans = [Datadog::Span.new(nil, '', trace_id: 1),
              Datadog::Span.new(nil, '', trace_id: 2),

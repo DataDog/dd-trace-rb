@@ -1,7 +1,5 @@
-
 require 'contrib/sinatra/tracer_test_base'
 
-# rubocop:disable Metrics/ClassLength
 class TracerTest < TracerTestBase
   class TracerTestApp < Sinatra::Application
     configure do

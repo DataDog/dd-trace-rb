@@ -236,12 +236,15 @@ to trace requests to the home page:
         # set some span metadata
         span.service = 'my-web-site'
         span.resource = '/'
-        span.set_tag('http.method', request.request_method)
 
         # trace the activerecord call
         tracer.trace('posts.fetch') do
           @posts = Posts.order(created_at: :desc).limit(10)
         end
+
+        # add some attributes and metrics
+        span.set_tag('http.method', request.request_method)
+        span.set_metric('posts.count', len(@posts))
 
         # trace the template rendering
         tracer.trace('template.render') do

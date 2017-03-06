@@ -69,4 +69,41 @@ class SpanTest < Minitest::Test
     assert_equal(child.parent_id, 0)
     assert_equal(child.service, 'defaultdb')
   end
+
+  def test_get_valid_metric
+    span = Datadog::Span.new(nil, 'test.span')
+    span.set_metric('a', 10)
+    assert_equal(10.0, span.get_metric('a'))
+  end
+
+  def test_set_valid_metrics
+    # metrics must be converted to float values
+    span = Datadog::Span.new(nil, 'test.span')
+    span.set_metric('a', 0)
+    span.set_metric('b', -12)
+    span.set_metric('c', 12.134)
+    span.set_metric('d', 1231543543265475686787869123)
+    span.set_metric('e', '12.34')
+    h = span.to_hash
+    expected = {
+      'a' => 0.0,
+      'b' => -12.0,
+      'c' => 12.134,
+      'd' => 1231543543265475686787869123.0,
+      'e' => 12.34
+    }
+    assert_equal(expected, h[:metrics])
+  end
+
+  def test_invalid_metrics
+    # invalid values must be discarded
+    span = Datadog::Span.new(nil, 'test.span')
+    span.set_metric('a', nil)
+    span.set_metric('b', {})
+    span.set_metric('c', [])
+    span.set_metric('d', span)
+    span.set_metric('e', 'a_string')
+    h = span.to_hash
+    assert_equal({}, h[:metrics])
+  end
 end

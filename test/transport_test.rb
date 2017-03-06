@@ -45,6 +45,26 @@ class UtilsTest < Minitest::Test
     assert_equal true, @transport_msgpack.success?(code), "transport.send failed, code: #{code}"
   end
 
+  def test_agent_decodes_float_metrics
+    # test that the agent can decoder properly our metrics
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
+
+    # one trace with two spans
+    traces = get_test_traces(2)
+
+    # set some metrics to the trace
+    traces[0][0].set_metric('a', 10.0)
+    traces[0][1].set_metric('b', 1231543543265475686787869123.0)
+
+    # JSON encoding
+    code = @transport_json.send(:traces, traces)
+    assert_equal true, @transport_json.success?(code), "transport.send failed, code: #{code}"
+
+    # Msgpack encoding
+    code = @transport_msgpack.send(:traces, traces)
+    assert_equal true, @transport_msgpack.success?(code), "transport.send failed, code: #{code}"
+  end
+
   def test_send_services
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a runnning agent
     services = get_test_services()
