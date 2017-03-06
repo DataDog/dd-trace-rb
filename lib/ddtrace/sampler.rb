@@ -1,4 +1,3 @@
-
 module Datadog
   # \Sampler performs client-side trace sampling.
   class Sampler
