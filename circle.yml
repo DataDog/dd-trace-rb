@@ -5,7 +5,7 @@ machine:
     # FIXME: Disabled $JRUBY_VERSIONS tests because of a Java incompatibility
     LAST_STABLE: 2.4.0
     EARLY_STABLE: 2.1.10
-    OLD_VERSIONS: 1.9.3,1.8.7-p374
+    OLD_VERSIONS: 1.9.3
     MRI_VERSIONS: 2.4.0,2.3.3,2.2.6,2.1.10,2.0.0
     RAILS_VERSIONS: 2.3.3,2.2.6,2.1.10
     RAILS5_VERSIONS: 2.3.3,2.2.6
