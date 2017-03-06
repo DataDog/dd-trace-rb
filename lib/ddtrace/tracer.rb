@@ -5,6 +5,7 @@ require 'logger'
 require 'ddtrace/span'
 require 'ddtrace/buffer'
 require 'ddtrace/writer'
+require 'ddtrace/sampler'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -13,7 +14,7 @@ module Datadog
   # Even though the request may require multiple resources and machines to handle the request, all
   # of these function calls and sub-requests would be encapsulated within a single trace.
   class Tracer
-    attr_reader :writer, :services
+    attr_reader :writer, :sampler, :services
     attr_accessor :enabled
 
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
@@ -44,6 +45,8 @@ module Datadog
     def initialize(options = {})
       @enabled = options.fetch(:enabled, true)
       @writer = options.fetch(:writer, Datadog::Writer.new)
+      @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
+
       @buffer = Datadog::SpanBuffer.new()
 
       @mutex = Mutex.new
@@ -66,10 +69,12 @@ module Datadog
       enabled = options.fetch(:enabled, nil)
       hostname = options.fetch(:hostname, nil)
       port = options.fetch(:port, nil)
+      sampler = options.fetch(:sampler, nil)
 
       @enabled = enabled unless enabled.nil?
       @writer.transport.hostname = hostname unless hostname.nil?
       @writer.transport.port = port unless port.nil?
+      @sampler = sampler unless sampler.nil?
     end
 
     # Set the information about the given service. A valid example is:
@@ -121,6 +126,13 @@ module Datadog
       span.set_parent(parent)
       @buffer.set(span)
 
+      # sampling
+      if parent.nil?
+        @sampler.sample(span)
+      else
+        span.sampled = span.parent.sampled
+      end
+
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
       # a span that should be manually finished.
@@ -155,7 +167,7 @@ module Datadog
         @spans = []
       end
 
-      return if spans.empty?
+      return if spans.empty? || !span.sampled
       write(spans)
     end
 

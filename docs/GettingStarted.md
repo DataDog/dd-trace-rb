@@ -370,6 +370,18 @@ for the first time:
 Remember that the debug mode may affect your application performance and so it must not be used
 in a production environment.
 
+### Sampling
+
+`ddtrace` can perform trace sampling. While the trace agent already samples
+traces to reduce bandwidth usage, client sampling reduces performance
+overhead.
+
+`Datadog::RateSampler` samples a ratio of the traces. For example:
+
+    # Sample rate is between 0 (nothing sampled) to 1 (everything sampled).
+    sampler = Datadog::RateSampler.new(0.5) # sample 50% of the traces
+    Datadog.tracer.configure(sampler: sampler)
+
 ### Supported Versions
 
 #### Ruby interpreters

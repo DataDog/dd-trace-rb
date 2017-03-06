@@ -16,7 +16,7 @@ module Datadog
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
-                  :status, :parent
+                  :status, :parent, :sampled
 
     # Create a new span linked to the given tracer. Call the <tt>finish()</tt> method once the
     # tracer operation is over or use the <tt>finish_at(time)</tt> helper to close the span with the
@@ -40,9 +40,11 @@ module Datadog
       @trace_id = options.fetch(:trace_id, @span_id)
 
       @meta = {}
+      @metrics = {}
       @status = 0
 
       @parent = nil
+      @sampled = true
 
       @start_time = Time.now.utc
       @end_time = nil
@@ -58,9 +60,20 @@ module Datadog
       Datadog::Tracer.log.error("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
 
-    # Return the tag wth the given key, nil if it doesn't exist.
+    # Return the tag with the given key, nil if it doesn't exist.
     def get_tag(key)
       @meta[key]
+    end
+
+    # Set the given key / value metric pair on the span. Keys must be string.
+    # Values must be floating point numbers.
+    def set_metric(key, value)
+      @metrics[key] = value
+    end
+
+    # Return the metric with the given key, nil if it doesn't exist.
+    def get_metric(key)
+      @metrics[key]
     end
 
     # Mark the span with the given error.
@@ -122,6 +135,7 @@ module Datadog
         resource: @resource,
         type: @span_type,
         meta: @meta,
+        metrics: @metrics,
         error: @status
       }
 
@@ -151,9 +165,15 @@ module Datadog
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
         q.text "Duration: #{duration}\n"
-        q.group(2, 'Tags: [', ']') do
+        q.group(2, 'Tags: [', "]\n") do
           q.breakable
           q.seplist @meta.each do |key, value|
+            q.text "#{key} => #{value}"
+          end
+        end
+        q.group(2, 'Metrics: [', ']') do
+          q.breakable
+          q.seplist @metrics.each do |key, value|
             q.text "#{key} => #{value}"
           end
         end
