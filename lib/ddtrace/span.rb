@@ -57,7 +57,7 @@ module Datadog
     def set_tag(key, value)
       @meta[key] = value.to_s
     rescue StandardError => e
-      Datadog::Tracer.log.error("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+      Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
 
     # Return the tag with the given key, nil if it doesn't exist.
@@ -68,7 +68,11 @@ module Datadog
     # Set the given key / value metric pair on the span. Keys must be string.
     # Values must be floating point numbers.
     def set_metric(key, value)
+      # enforce that the value is a floating point number
+      value = Float(value)
       @metrics[key] = value
+    rescue StandardError => e
+      Datadog::Tracer.log.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
     end
 
     # Return the metric with the given key, nil if it doesn't exist.
