@@ -87,10 +87,19 @@ module Datadog
           Datadog::Monkey.patch_module(:redis)
 
           # reload the cache store if it's available and it's using Redis
-          return unless (defined? ::Rails.cache) && ::Rails.cache.respond_to?(:data) && defined?(::Redis::Rails)
+          return unless defined?(::ActiveSupport::Cache::RedisStore) &&
+                        defined?(::Rails.cache) &&
+                        ::Rails.cache.is_a?(::ActiveSupport::Cache::RedisStore)
           Datadog::Tracer.log.debug('Enabling auto-instrumentation for redis-rails connector')
+
+          # backward compatibility: Rails 3.x doesn't have `cache=` method
           cache_store = ::Rails.configuration.cache_store
-          ::Rails.cache = ::ActiveSupport::Cache.lookup_store(cache_store)
+          cache_instance = ::ActiveSupport::Cache.lookup_store(cache_store)
+          if ::Rails::VERSION::MAJOR.to_i == 3
+            silence_warnings { Object.const_set 'RAILS_CACHE', cache_instance }
+          elsif ::Rails::VERSION::MAJOR.to_i > 3
+            ::Rails.cache = cache_instance
+          end
         end
 
         # automatically instrument all Rails component

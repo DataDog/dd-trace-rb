@@ -11,11 +11,14 @@ require 'contrib/rails/test_helper'
 
 class RedisCacheTracingTest < ActionController::TestCase
   setup do
+    # switch Rails with a dummy tracer
     @original_tracer = Rails.configuration.datadog_trace[:tracer]
     @tracer = get_test_tracer()
     Rails.configuration.datadog_trace[:tracer] = @tracer
-    assert_equal(true, Rails.cache.respond_to?(:data), "cache '#{Rails.cache}' has no data")
-    pin = Datadog::Pin.get_from(Rails.cache.data)
+
+    # get the Redis pin accessing private methods (only Rails 3.x)
+    client = Rails.cache.instance_variable_get(:@data)
+    pin = Datadog::Pin.get_from(client)
     refute_nil(pin, 'unable to get pin from Redis connection')
     pin.tracer = @tracer
   end
