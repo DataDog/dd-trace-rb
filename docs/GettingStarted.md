@@ -186,7 +186,7 @@ executions. It can be added as any other Sidekiq middleware:
 
     Sidekiq.configure_server do |config|
       config.server_middleware do |chain|
-        chain.add(Datadog::Contrib::Sidekiq::Tracer, debug: true)
+        chain.add(Datadog::Contrib::Sidekiq::Tracer)
       end
     end
 
@@ -216,24 +216,15 @@ Available settings are:
 * ``trace_agent_hostname``: set the hostname of the trace agent.
 * ``trace_agent_port``: set the port the trace agent is listening on.
 
-#### Sidekiq with Rails
+If you're using Sidekiq along with [Ruby on Rails](#label-Ruby+on+Rails) auto-instrumentation,
+the Sidekiq middleware will re-use the Rails configuration defined in the initializer file before
+giving precedence to the middleware settings. Inherited configurations are:
 
-If Sidekiq is used along with Rails, it can re-use Rails configurations to
-change the tracer behavior. Auto-instrumentation must follow [Ruby on Rails](#label-Ruby+on+Rails)
-guidelines, and your initializer may be updated in this way:
-
-    # config/initializers/datadog-tracer.rb
-
-    Rails.configuration.datadog_trace = {
-      enabled: false,
-      auto_instrument: true,
-      auto_instrument_redis: true,
-      default_service: 'my-rails-app',
-      sidekiq_service: 'my-sidekiq'
-    }
-
-If you want to force different settings despite the Rails initializer, the Sidekiq
-[middleware configuration](#label-Configure+the+tracer+middleware) will take precedence.
+* ``enabled``
+* ``tracer``
+* ``debug``
+* ``trace_agent_hostname``
+* ``trace_agent_port``
 
 ## Advanced usage
 
