@@ -1,6 +1,8 @@
 module Datadog
   module Contrib
     module ActiveRecord
+      # Patcher enables patching of 'active_record' module.
+      # This is used in monkey.rb to manually apply patches
       module Patcher
         @patched = false
 
@@ -42,7 +44,9 @@ module Datadog
         end
 
         def self.adapter_name
-          @adapter_name ||= Datadog::Contrib::Rails::Utils.normalize_vendor(::ActiveRecord::Base.connection_config[:adapter])
+          @adapter_name ||= Datadog::Contrib::Rails::Utils.normalize_vendor(
+            ::ActiveRecord::Base.connection_config[:adapter]
+          )
         end
 
         def self.tracer

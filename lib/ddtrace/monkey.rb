@@ -8,7 +8,6 @@ require 'ddtrace/contrib/elasticsearch/patcher'
 require 'ddtrace/contrib/http/patcher'
 require 'ddtrace/contrib/redis/patcher'
 
-
 module Datadog
   # Monkey is used for monkey-patching 3rd party libs.
   module Monkey
