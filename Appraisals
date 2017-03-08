@@ -1,14 +1,8 @@
 if RUBY_VERSION < '2.4.0'
-  if RUBY_VERSION >= '2.1.0'
+  if RUBY_VERSION >= '1.9.1'
     appraise 'rails3-postgres' do
       gem 'test-unit'
       gem 'rails', '3.2.22.5'
-      gem 'pg', platform: :ruby
-      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-    end
-
-    appraise 'rails4-postgres' do
-      gem 'rails', '4.2.7.1'
       gem 'pg', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
     end
@@ -21,18 +15,26 @@ if RUBY_VERSION < '2.4.0'
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
     end
 
-    appraise 'rails4-mysql2' do
-      gem 'rails', '4.2.7.1'
-      gem 'mysql2', platform: :ruby
-      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
-    end
-
     appraise 'rails3-postgres-redis' do
       gem 'test-unit'
       gem 'rails', '3.2.22.5'
       gem 'pg', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
+    end
+  end
+
+  if RUBY_VERSION >= '2.1.10'
+    appraise 'rails4-postgres' do
+      gem 'rails', '4.2.7.1'
+      gem 'pg', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+    end
+
+    appraise 'rails4-mysql2' do
+      gem 'rails', '4.2.7.1'
+      gem 'mysql2', platform: :ruby
+      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
     end
 
     appraise 'rails4-postgres-redis' do
@@ -88,5 +90,7 @@ appraise 'contrib' do
   gem 'hiredis'
   gem 'rack-test'
   gem 'sinatra'
-  gem 'sidekiq'
+  if RUBY_VERSION >= '2.0.0'
+    gem 'sidekiq'
+  end
 end
