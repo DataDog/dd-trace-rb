@@ -193,12 +193,14 @@ executions. It can be added as any other Sidekiq middleware:
 #### Configure the tracer middleware
 
 To modify the default configuration, simply pass arguments to the middleware.
-For example, to change the default service name and activate the debug mode:
+For example, to change the default service name:
 
     Sidekiq.configure_server do |config|
       config.server_middleware do |chain|
-        chain.add(Datadog::Contrib::Sidekiq::Tracer,
-                  sidekiq_service: 'my_app', debug: true)
+        chain.add(
+          Datadog::Contrib::Sidekiq::Tracer,
+          sidekiq_service: 'sidekiq-notifications'
+        )
       end
     end
 
