@@ -10,6 +10,8 @@ class MonkeyTest < Minitest::Test
     assert_equal({ elasticsearch: true, http: true, redis: true, active_record: false }, Datadog::Monkey.autopatch_modules)
   end
 
+  # rubocop:disable Metrics/AbcSize
+  # rubocop:disable Metrics/LineLength
   def test_patch_module
     # because of this test, this should be a separate rake task,
     # else the module could have been already imported in some other test
