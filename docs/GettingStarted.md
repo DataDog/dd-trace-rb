@@ -190,7 +190,7 @@ executions. It can be added as any other Sidekiq middleware:
       end
     end
 
-#### Configure the tracer
+#### Configure the tracer middleware
 
 To modify the default configuration, simply pass arguments to the middleware.
 For example, to change the default service name and activate the debug mode:
@@ -198,7 +198,7 @@ For example, to change the default service name and activate the debug mode:
     Sidekiq.configure_server do |config|
       config.server_middleware do |chain|
         chain.add(Datadog::Contrib::Sidekiq::Tracer,
-                  default_service: 'my_app', debug: true)
+                  sidekiq_service: 'my_app', debug: true)
       end
     end
 
@@ -207,7 +207,7 @@ Available settings are:
 * ``enabled``: define if the ``tracer`` is enabled or not. If set to
   ``false``, the code is still instrumented but no spans are sent to the local
   trace agent.
-* ``default_service``: set the service name used when tracing application
+* ``sidekiq_service``: set the service name used when tracing application
   requests. Defaults to ``sidekiq``.
 * ``tracer``: set the tracer to use. Usually you don't need to change that
   value unless you're already using a different initialized tracer somewhere
@@ -215,6 +215,25 @@ Available settings are:
 * ``debug``: set to ``true`` to enable debug logging.
 * ``trace_agent_hostname``: set the hostname of the trace agent.
 * ``trace_agent_port``: set the port the trace agent is listening on.
+
+#### Sidekiq with Rails
+
+If Sidekiq is used along with Rails, it can re-use Rails configurations to
+change the tracer behavior. Auto-instrumentation must follow [Ruby on Rails](#label-Ruby+on+Rails)
+guidelines, and your initializer may be updated in this way:
+
+    # config/initializers/datadog-tracer.rb
+
+    Rails.configuration.datadog_trace = {
+      enabled: false,
+      auto_instrument: true,
+      auto_instrument_redis: true,
+      default_service: 'my-rails-app',
+      sidekiq_service: 'my-sidekiq'
+    }
+
+If you want to force different settings despite the Rails initializer, the Sidekiq
+[middleware configuration](#label-Configure+the+tracer+middleware) will take precedence.
 
 ## Advanced usage
 
