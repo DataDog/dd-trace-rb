@@ -92,5 +92,10 @@ appraise 'contrib' do
   gem 'hiredis'
   gem 'rack-test'
   gem 'sinatra'
-  gem 'sidekiq' if RUBY_VERSION >= '2.0.0'
+end
+
+if RUBY_VERSION >= '2.0.0'
+  appraise 'sidekiq' do
+    gem 'sidekiq'
+  end
 end

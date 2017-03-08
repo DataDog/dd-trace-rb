@@ -123,9 +123,6 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails3-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $SIDEKIQ_VERSIONS --verbose do appraisal sidekiq rake test:sidekiq'
   when 2
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails'
@@ -134,9 +131,13 @@ task :ci do
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
+    # Test Rails3/Sidekiq with Rails4 versions as Sidekiq requires >= 2.0 and Rails3 should support 1.9
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails3-postgres-sidekiq rake test:railssidekiq'
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake test:rails'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:rails'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railssidekiq'
   else
     puts 'Too many workers than parallel tasks'
   end
