@@ -19,9 +19,9 @@ module Datadog
     def patch_renderer_render_template
       ::ActionView::Renderer.class_eval do
         alias_method :render_template_without_datadog, :render_template
-        def render_template(*args)
+        def render_template(*args, &block)
           ActiveSupport::Notifications.instrument('start_render_template.action_view')
-          render_template_without_datadog(*args)
+          render_template_without_datadog(*args, &block)
         end
       end
     end
@@ -29,9 +29,9 @@ module Datadog
     def patch_renderer_render_partial
       ::ActionView::PartialRenderer.class_eval do
         alias_method :render_partial_without_datadog, :render_partial
-        def render_partial(*args)
+        def render_partial(*args, &block)
           ActiveSupport::Notifications.instrument('start_render_partial.action_view')
-          render_partial_without_datadog(*args)
+          render_partial_without_datadog(*args, &block)
         end
       end
     end
@@ -55,9 +55,9 @@ module Datadog
     def patch_cache_store_read
       cache_store_class(:read).class_eval do
         alias_method :read_without_datadog, :read
-        def read(*args)
+        def read(*args, &block)
           ActiveSupport::Notifications.instrument('start_cache_read.active_support')
-          read_without_datadog(*args)
+          read_without_datadog(*args, &block)
         end
       end
     end
@@ -65,9 +65,9 @@ module Datadog
     def patch_cache_store_fetch
       cache_store_class(:fetch).class_eval do
         alias_method :fetch_without_datadog, :fetch
-        def fetch(*args)
+        def fetch(*args, &block)
           ActiveSupport::Notifications.instrument('start_cache_fetch.active_support')
-          fetch_without_datadog(*args)
+          fetch_without_datadog(*args, &block)
         end
       end
     end
@@ -75,9 +75,9 @@ module Datadog
     def patch_cache_store_write
       cache_store_class(:write).class_eval do
         alias_method :write_without_datadog, :write
-        def write(*args)
+        def write(*args, &block)
           ActiveSupport::Notifications.instrument('start_cache_write.active_support')
-          write_without_datadog(*args)
+          write_without_datadog(*args, &block)
         end
       end
     end
@@ -85,9 +85,9 @@ module Datadog
     def patch_cache_store_delete
       cache_store_class(:delete).class_eval do
         alias_method :delete_without_datadog, :delete
-        def delete(*args)
+        def delete(*args, &block)
           ActiveSupport::Notifications.instrument('start_cache_delete.active_support')
-          delete_without_datadog(*args)
+          delete_without_datadog(*args, &block)
         end
       end
     end
