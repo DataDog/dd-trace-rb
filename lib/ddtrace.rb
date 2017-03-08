@@ -31,24 +31,9 @@ if defined?(Rails::VERSION)
     require 'ddtrace/contrib/rails/framework'
 
     module Datadog
-      # Run the auto instrumentation directly after the initialization of the application and
-      # after the application initializers in config/initializers are run
+      # Run the auto instrumentation directly after initializers in
+      # `config/initializers` are executed
       class Railtie < Rails::Railtie
-        config.before_configuration do
-          begin
-            # We include 'redis-rails' here if it's available, doing it later
-            # (typically in initialize callback) does not work, it does not
-            # get loaded in the right context.
-            require 'redis-rails'
-            Datadog::Tracer.log.debug("'redis-rails' module found, Datadog 'redis-rails' integration is available")
-          rescue LoadError
-            Datadog::Tracer.log.debug("'redis-rails' module not found, Datadog 'redis-rails' integration is disabled")
-          end
-
-          Datadog::Monkey.patch_module(:redis)
-        end
-
-        # we do actions
         config.after_initialize do |app|
           Datadog::Contrib::Rails::Framework.configure(config: app.config)
           Datadog::Contrib::Rails::Framework.auto_instrument()

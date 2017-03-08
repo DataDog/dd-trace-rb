@@ -80,21 +80,32 @@ module Datadog
         end
 
         def self.auto_instrument_redis
-          # configure Redis PIN
-          return unless (defined? ::Rails.cache) && ::Rails.cache.respond_to?(:data)
-          pin = Datadog::Pin.get_from(::Rails.cache.data)
-          return unless pin
+          return unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
+          Datadog::Tracer.log.debug('Enabling auto-instrumentation for Redis client')
 
-          # enable Redis instrumentation if activated
-          pin.tracer = nil unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
-          return unless pin.tracer
-          Datadog::Tracer.log.debug("'redis' module found, Datadog 'redis' integration is available")
+          # patch the Redis library and reload the CacheStore if it was using Redis
+          Datadog::Monkey.patch_module(:redis)
+
+          # reload the cache store if it's available and it's using Redis
+          return unless defined?(::ActiveSupport::Cache::RedisStore) &&
+                        defined?(::Rails.cache) &&
+                        ::Rails.cache.is_a?(::ActiveSupport::Cache::RedisStore)
+          Datadog::Tracer.log.debug('Enabling auto-instrumentation for redis-rails connector')
+
+          # backward compatibility: Rails 3.x doesn't have `cache=` method
+          cache_store = ::Rails.configuration.cache_store
+          cache_instance = ::ActiveSupport::Cache.lookup_store(cache_store)
+          if ::Rails::VERSION::MAJOR.to_i == 3
+            silence_warnings { Object.const_set 'RAILS_CACHE', cache_instance }
+          elsif ::Rails::VERSION::MAJOR.to_i > 3
+            ::Rails.cache = cache_instance
+          end
         end
 
         # automatically instrument all Rails component
         def self.auto_instrument
           return unless ::Rails.configuration.datadog_trace[:auto_instrument]
-          Datadog::Tracer.log.info('Detected Rails >= 3.x. Enabling auto-instrumentation for core components')
+          Datadog::Tracer.log.debug('Enabling auto-instrumentation for core components')
 
           # instrumenting Rails framework
           Datadog::Contrib::Rails::ActionController.instrument()

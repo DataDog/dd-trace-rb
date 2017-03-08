@@ -1,11 +1,12 @@
 require 'rails/all'
 require 'rails/test_help'
-require 'contrib/rails/apps/cache'
 
 require 'ddtrace'
 
 class Rails3 < Rails::Application
-  config.cache_store = get_cache
+  redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
+  file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
+  config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
   config.secret_key_base = 'not_so_secret'
   config.active_support.test_order = :random
   config.active_support.deprecation = :stderr

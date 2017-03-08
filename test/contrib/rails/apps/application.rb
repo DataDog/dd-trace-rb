@@ -1,6 +1,5 @@
 require 'rails/all'
 require 'rails/test_help'
-require 'contrib/rails/apps/cache'
 
 require 'ddtrace'
 
@@ -9,7 +8,9 @@ module RailsTrace
     # common settings between all Rails versions
     def initialize(*args)
       super(*args)
-      config.cache_store = get_cache
+      redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
+      file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
+      config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
       config.eager_load = false
       config.secret_key_base = 'not_so_secret'
     end
