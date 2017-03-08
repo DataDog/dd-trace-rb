@@ -5,10 +5,11 @@ machine:
     # FIXME: Disabled $JRUBY_VERSIONS tests because of a Java incompatibility
     LAST_STABLE: 2.4.0
     EARLY_STABLE: 2.1.10
-    OLD_VERSIONS: 1.9.3
-    MRI_VERSIONS: 2.4.0,2.3.3,2.2.6,2.1.10,2.0.0
-    RAILS_VERSIONS: 2.3.3,2.2.6,2.1.10
-    RAILS5_VERSIONS: 2.3.3,2.2.6
+    MRI_VERSIONS: 2.4.0,2.3.3,2.2.6,2.1.10,2.0.0,1.9.3
+    SIDEKIQ_VERSIONS: 2.3.3,2.2.6,2.1.10,2.0.0
+    RAILS3_VERSIONS: 2.3.3,2.2.6,2.1.10,2.0.0,1.9.3
+    RAILS4_VERSIONS: 2.3.3,2.2.6,2.1.10,2.0.0
+    RAILS5_VERSIONS: 2.4.0,2.3.3,2.2.6
     AGENT_BUILD_PATH: "/home/ubuntu/agent"
     TEST_DATADOG_INTEGRATION: 1
 
@@ -28,12 +29,12 @@ dependencies:
     - bundle install
     # configure Ruby interpreters
     - rvm get head
-    - rvm install $MRI_VERSIONS,$OLD_VERSIONS
+    - rvm install $MRI_VERSIONS
   override:
-    - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do gem update --system
-    - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do gem install bundler
-    - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do bundle install
-    - rvm $MRI_VERSIONS,$OLD_VERSIONS --verbose do appraisal install
+    - rvm $MRI_VERSIONS --verbose do gem update --system
+    - rvm $MRI_VERSIONS --verbose do gem install bundler
+    - rvm $MRI_VERSIONS --verbose do bundle install
+    - rvm $MRI_VERSIONS --verbose do appraisal install
 
 test:
   override:
