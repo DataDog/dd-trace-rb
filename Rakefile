@@ -21,13 +21,19 @@ namespace :test do
   Rake::TestTask.new(:rails) do |t|
     t.libs << %w(test lib)
     t.test_files = FileList['test/contrib/rails/**/*_test.rb'].reject do |path|
-      path.include?('redis')
+      path.include?('redis') ||
+        path.include?('sidekiq')
     end
   end
 
   Rake::TestTask.new(:railsredis) do |t|
     t.libs << %w(test lib)
     t.test_files = FileList['test/contrib/rails/**/*redis*_test.rb']
+  end
+
+  Rake::TestTask.new(:railssidekiq) do |t|
+    t.libs << %w(test lib)
+    t.test_files = FileList['test/contrib/rails/**/*sidekiq*_test.rb']
   end
 
   [:elasticsearch, :http, :redis, :sinatra, :sidekiq].each do |contrib|
@@ -116,6 +122,9 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
+    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres-sidekiq rake test:railssidekiq'
+    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railssidekiq'
   when 2
     sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres rake test:rails'
     sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails'

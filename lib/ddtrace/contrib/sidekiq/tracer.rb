@@ -1,4 +1,3 @@
-
 require 'sidekiq/api'
 
 require 'ddtrace/ext/app_types'
@@ -10,41 +9,55 @@ if sidekiq_vs < sidekiq_min_vs
         + "(supporting versions >=#{sidekiq_min_vs})"
 end
 
-Datadog::Tracer.log.info("activating instrumentation for sidekiq #{sidekiq_vs}")
+Datadog::Tracer.log.debug("Activating instrumentation for Sidekiq '#{sidekiq_vs}'")
 
 module Datadog
   module Contrib
     module Sidekiq
-      # Middleware is a Sidekiq server-side middleware which traces executed
-      # jobs.
+      DEFAULT_CONFIG = {
+        enabled: true,
+        sidekiq_service: 'sidekiq',
+        tracer: Datadog.tracer,
+        debug: false,
+        trace_agent_hostname: Datadog::Writer::HOSTNAME,
+        trace_agent_port: Datadog::Writer::PORT
+      }.freeze
+
+      # Middleware is a Sidekiq server-side middleware which traces executed jobs
       class Tracer
         def initialize(options)
-          @enabled = options.fetch(:enabled, true)
-          @default_service = options.fetch(:default_service, 'sidekiq')
-          @tracer = options.fetch(:tracer, Datadog.tracer)
-          @debug = options.fetch(:debug, false)
-          @trace_agent_hostname = options.fetch(:trace_agent_hostname,
-                                                Datadog::Writer::HOSTNAME)
-          @trace_agent_port = options.fetch(:trace_agent_port,
-                                            Datadog::Writer::PORT)
+          # check if Rails configuration is available and use it to override
+          # Sidekiq defaults
+          rails_config = ::Rails.configuration.datadog_trace rescue {}
+          base_config = DEFAULT_CONFIG.merge(rails_config)
+          user_config = base_config.merge(options)
+          @tracer = user_config[:tracer]
+          @sidekiq_service = user_config[:sidekiq_service]
 
-          Datadog::Tracer.debug_logging = @debug
+          # set Tracer status
+          @tracer.enabled = user_config[:enabled]
+          Datadog::Tracer.debug_logging = user_config[:debug]
 
-          @tracer.enabled = @enabled
-          @tracer.set_service_info(@default_service, 'sidekiq',
-                                   Datadog::Ext::AppTypes::WORKER)
+          # configure the Tracer instance
+          @tracer.configure(
+            hostname: user_config[:trace_agent_hostname],
+            port: user_config[:trace_agent_port]
+          )
+
+          # configure Sidekiq service
+          @tracer.set_service_info(
+            @sidekiq_service,
+            'sidekiq',
+            Datadog::Ext::AppTypes::WORKER
+          )
         end
 
         def call(worker, job, queue)
-          return yield unless @enabled
-
-          @tracer.trace('sidekiq.job',
-                        service: @default_service, span_type: 'job') do |span|
+          @tracer.trace('sidekiq.job', service: @sidekiq_service, span_type: 'job') do |span|
             span.resource = job['class']
             span.set_tag('sidekiq.job.id', job['jid'])
             span.set_tag('sidekiq.job.retry', job['retry'])
             span.set_tag('sidekiq.job.queue', job['queue'])
-
             yield
           end
         end

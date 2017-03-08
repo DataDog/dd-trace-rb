@@ -186,19 +186,21 @@ executions. It can be added as any other Sidekiq middleware:
 
     Sidekiq.configure_server do |config|
       config.server_middleware do |chain|
-        chain.add(Datadog::Contrib::Sidekiq::Tracer, debug: true)
+        chain.add(Datadog::Contrib::Sidekiq::Tracer)
       end
     end
 
-#### Configure the tracer
+#### Configure the tracer middleware
 
 To modify the default configuration, simply pass arguments to the middleware.
-For example, to change the default service name and activate the debug mode:
+For example, to change the default service name:
 
     Sidekiq.configure_server do |config|
       config.server_middleware do |chain|
-        chain.add(Datadog::Contrib::Sidekiq::Tracer,
-                  default_service: 'my_app', debug: true)
+        chain.add(
+          Datadog::Contrib::Sidekiq::Tracer,
+          sidekiq_service: 'sidekiq-notifications'
+        )
       end
     end
 
@@ -207,7 +209,7 @@ Available settings are:
 * ``enabled``: define if the ``tracer`` is enabled or not. If set to
   ``false``, the code is still instrumented but no spans are sent to the local
   trace agent.
-* ``default_service``: set the service name used when tracing application
+* ``sidekiq_service``: set the service name used when tracing application
   requests. Defaults to ``sidekiq``.
 * ``tracer``: set the tracer to use. Usually you don't need to change that
   value unless you're already using a different initialized tracer somewhere
@@ -215,6 +217,16 @@ Available settings are:
 * ``debug``: set to ``true`` to enable debug logging.
 * ``trace_agent_hostname``: set the hostname of the trace agent.
 * ``trace_agent_port``: set the port the trace agent is listening on.
+
+If you're using Sidekiq along with [Ruby on Rails](#label-Ruby+on+Rails) auto-instrumentation,
+the Sidekiq middleware will re-use the Rails configuration defined in the initializer file before
+giving precedence to the middleware settings. Inherited configurations are:
+
+* ``enabled``
+* ``tracer``
+* ``debug``
+* ``trace_agent_hostname``
+* ``trace_agent_port``
 
 ## Advanced usage
 
