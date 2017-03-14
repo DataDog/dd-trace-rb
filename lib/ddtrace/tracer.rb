@@ -52,6 +52,7 @@ module Datadog
       @mutex = Mutex.new
       @spans = []
       @services = {}
+      @tags = {}
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
@@ -88,6 +89,17 @@ module Datadog
 
       return unless Datadog::Tracer.debug_logging
       Datadog::Tracer.log.debug("set_service_info: service: #{service} app: #{app} type: #{app_type}")
+    end
+
+    # Set the given key / value tag pair at the tracer level. These tags will be
+    # appended to each span created by the tracer. Keys and values must be strings.
+    # A valid example is:
+    #
+    #   tracer.set_tag('env', 'prod')
+    def set_tag(key, value)
+      @tags[key] = value.to_s
+    rescue StandardError => e
+      Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
 
     # Return a +span+ that will trace an operation called +name+. You could trace your code
