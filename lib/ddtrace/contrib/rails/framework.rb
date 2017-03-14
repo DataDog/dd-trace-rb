@@ -27,7 +27,7 @@ module Datadog
           debug: false,
           trace_agent_hostname: Datadog::Writer::HOSTNAME,
           trace_agent_port: Datadog::Writer::PORT,
-          env: Rails.env
+          env: ::Rails.env
         }.freeze
 
         # configure Datadog settings
