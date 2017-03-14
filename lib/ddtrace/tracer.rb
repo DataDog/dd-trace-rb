@@ -138,9 +138,7 @@ module Datadog
       span.set_parent(parent)
       @buffer.set(span)
 
-      unless @tags.empty?
-        @tags.each { |k, v| span.set_tag(k, v) }
-      end
+      @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
 
       # sampling
       if parent.nil?

@@ -22,6 +22,7 @@ class TracerTest < ActionController::TestCase
     assert !Rails.configuration.datadog_trace[:debug]
     assert_equal(Rails.configuration.datadog_trace[:trace_agent_hostname], Datadog::Writer::HOSTNAME)
     assert_equal(Rails.configuration.datadog_trace[:trace_agent_port], Datadog::Writer::PORT)
+    assert_equal(Rails.configuration.datadog_trace[:env], 'test')
   end
 
   test 'a default service and database should be properly set' do
@@ -112,5 +113,13 @@ class TracerTest < ActionController::TestCase
 
     assert_equal(tracer.writer.transport.hostname, 'example.com')
     assert_equal(tracer.writer.transport.port, 42)
+  end
+
+  test 'tracer environment can be changed by the user' do
+    update_config(:env, 'dev')
+
+    tracer = Rails.configuration.datadog_trace[:tracer]
+
+    assert_equal(tracer.tags['env'], 'dev')
   end
 end
