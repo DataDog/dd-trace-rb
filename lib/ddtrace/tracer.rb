@@ -14,7 +14,7 @@ module Datadog
   # Even though the request may require multiple resources and machines to handle the request, all
   # of these function calls and sub-requests would be encapsulated within a single trace.
   class Tracer
-    attr_reader :writer, :sampler, :services
+    attr_reader :writer, :sampler, :services, :tags
     attr_accessor :enabled
 
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
