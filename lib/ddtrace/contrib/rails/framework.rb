@@ -26,7 +26,8 @@ module Datadog
           tracer: Datadog.tracer,
           debug: false,
           trace_agent_hostname: Datadog::Writer::HOSTNAME,
-          trace_agent_port: Datadog::Writer::PORT
+          trace_agent_port: Datadog::Writer::PORT,
+          env: ::Rails.env
         }.freeze
 
         # configure Datadog settings
@@ -52,11 +53,14 @@ module Datadog
             'rails',
             Datadog::Ext::AppTypes::WEB
           )
+
           datadog_config[:tracer].set_service_info(
             datadog_config[:default_cache_service],
             'rails',
             Datadog::Ext::AppTypes::CACHE
           )
+
+          datadog_config[:tracer].set_tag('env', datadog_config[:env])
 
           if defined?(::ActiveRecord)
             begin
