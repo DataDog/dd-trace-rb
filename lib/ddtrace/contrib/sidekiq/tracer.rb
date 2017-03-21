@@ -25,7 +25,7 @@ module Datadog
 
       # Middleware is a Sidekiq server-side middleware which traces executed jobs
       class Tracer
-        def initialize(options)
+        def initialize(options = {})
           # check if Rails configuration is available and use it to override
           # Sidekiq defaults
           rails_config = ::Rails.configuration.datadog_trace rescue {}
