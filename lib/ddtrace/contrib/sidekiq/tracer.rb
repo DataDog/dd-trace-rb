@@ -54,7 +54,14 @@ module Datadog
 
         def call(worker, job, queue)
           @tracer.trace('sidekiq.job', service: @sidekiq_service, span_type: 'job') do |span|
-            span.resource = job['class']
+            if job['wrapped']
+              # If class is wrapping something else, the interesting resource info
+              # is the underlying, wrapped class, and not the wrapper.
+              span.resource = job['wrapped']
+              span.set_tag('sidekiq.job.wrapper', job['class'])
+            else
+              span.resource = job['class']
+            end
             span.set_tag('sidekiq.job.id', job['jid'])
             span.set_tag('sidekiq.job.retry', job['retry'])
             span.set_tag('sidekiq.job.queue', job['queue'])
