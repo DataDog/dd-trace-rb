@@ -73,4 +73,35 @@ class RailsSidekiqTest < ActionController::TestCase
     assert_equal('agent1.example.com', @tracer.writer.transport.hostname)
     assert_equal('7777', @tracer.writer.transport.port)
   end
+
+  test 'Sidekiq middleware sends spans with the correct metadata' do
+    # configure Rails
+    update_config(:sidekiq_service, 'rails-sidekiq')
+
+    # add Sidekiq middleware
+    Sidekiq::Testing.server_middleware do |chain|
+      chain.add(Datadog::Contrib::Sidekiq::Tracer, tracer: @tracer)
+    end
+
+    sleep(1)
+    @tracer.writer.spans() # empty test queue
+
+    # do something to force middleware execution
+    EmptyWorker.perform_async()
+
+    spans = []
+    30.times do
+      spans = @tracer.writer.spans()
+      break if spans
+      sleep(0.1)
+    end
+
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('sidekiq.job', span.name)
+    assert_equal('RailsSidekiqTest::EmptyWorker', span.resource)
+    assert_match(/([0-9][a-f]){24}/, span.get_tag('sidekiq.job.id'))
+    assert_equal('true', 'sidekiq.job.retry')
+    assert_equal('default', span.get_tag('sidekiq.job.queue'))
+  end
 end
