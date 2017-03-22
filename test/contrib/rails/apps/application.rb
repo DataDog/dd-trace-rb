@@ -11,6 +11,7 @@ module RailsTrace
       redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
       file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
+      config.active_job.queue_adapter = :sidekiq if ENV['USE_SIDEKIQ']
       config.eager_load = false
       config.secret_key_base = 'not_so_secret'
     end

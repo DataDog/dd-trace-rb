@@ -1,6 +1,10 @@
 # This module tests the right integration between Sidekiq and
 # Rails. Functionality tests for Rails and Sidekiq must go
 # in their testing modules.
+
+ENV['USE_SIDEKIQ'] = 'true'
+RAILS_VERSION_FOR_ACTIVE_JOB = '4.2'.freeze
+
 require 'helper'
 require 'sidekiq/testing'
 require 'contrib/rails/test_helper'
@@ -34,6 +38,15 @@ class RailsSidekiqTest < ActionController::TestCase
     include Sidekiq::Worker
 
     def perform(); end
+  end
+
+  if Rails::VERSION::STRING >= RAILS_VERSION_FOR_ACTIVE_JOB
+    require 'active_job'
+
+    # ActiveJob test job
+    class EmptyJob < ActiveJob::Base
+      def perform(); end
+    end
   end
 
   test 'Sidekiq middleware uses Rails configuration if available' do
@@ -83,16 +96,15 @@ class RailsSidekiqTest < ActionController::TestCase
       chain.add(Datadog::Contrib::Sidekiq::Tracer, tracer: @tracer)
     end
 
-    sleep(1)
     @tracer.writer.spans() # empty test queue
 
     # do something to force middleware execution
     EmptyWorker.perform_async()
 
     spans = []
-    30.times do
+    100.times do
       spans = @tracer.writer.spans()
-      break if spans
+      break unless spans.empty?
       sleep(0.1)
     end
 
@@ -100,8 +112,42 @@ class RailsSidekiqTest < ActionController::TestCase
     span = spans[0]
     assert_equal('sidekiq.job', span.name)
     assert_equal('RailsSidekiqTest::EmptyWorker', span.resource)
-    assert_match(/([0-9][a-f]){24}/, span.get_tag('sidekiq.job.id'))
-    assert_equal('true', 'sidekiq.job.retry')
+    assert_nil(span.get_tag('sidekiq.job.wrapper'))
+    assert_match(/([0-9]|[a-f]){24}/, span.get_tag('sidekiq.job.id'))
+    assert_equal('true', span.get_tag('sidekiq.job.retry'))
+    assert_equal('default', span.get_tag('sidekiq.job.queue'))
+  end
+
+  test 'Active job using Sidekiq sends spans with the correct metadata' do
+    return if Rails::VERSION::STRING < RAILS_VERSION_FOR_ACTIVE_JOB
+
+    # configure Rails
+    update_config(:sidekiq_service, 'rails-sidekiq')
+
+    # add Sidekiq middleware
+    Sidekiq::Testing.server_middleware do |chain|
+      chain.add(Datadog::Contrib::Sidekiq::Tracer, tracer: @tracer)
+    end
+
+    @tracer.writer.spans() # empty test queue
+
+    # do something to force middleware execution
+    EmptyJob.perform_now()
+
+    spans = []
+    100.times do
+      spans = @tracer.writer.spans()
+      break unless spans.empty?
+      sleep(0.1)
+    end
+
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('sidekiq.job', span.name)
+    assert_equal('RailsSidekiqTest::EmptyJob', span.resource)
+    assert_equal('TODO', span.resource, span.get_tag('sidekiq.job.wrapper'))
+    assert_match(/([0-9]|[a-f]){24}/, span.get_tag('sidekiq.job.id'))
+    assert_equal('true', span.get_tag('sidekiq.job.retry'))
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
   end
 end
