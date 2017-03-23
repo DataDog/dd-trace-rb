@@ -403,6 +403,9 @@ overhead.
 
 The Datadog Trace Client has been tested with the following Ruby versions:
 
+* Ruby MRI 1.9.1 (experimental)
+* Ruby MRI 1.9.3
+* Ruby MRI 2.0
 * Ruby MRI 2.1
 * Ruby MRI 2.2
 * Ruby MRI 2.3

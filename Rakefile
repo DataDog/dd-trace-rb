@@ -1,6 +1,6 @@
 require 'bundler/gem_tasks'
 require 'ddtrace/version'
-require 'rubocop/rake_task'
+require 'rubocop/rake_task' if RUBY_VERSION >= '2.1.0'
 require 'rake/testtask'
 require 'appraisal'
 require 'yard'
@@ -54,9 +54,11 @@ Rake::TestTask.new(:benchmark) do |t|
   t.test_files = FileList['test/benchmark_test.rb']
 end
 
-RuboCop::RakeTask.new(:rubocop) do |t|
-  t.options << ['-D']
-  t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
+if RUBY_VERSION >= '2.1.0'
+  RuboCop::RakeTask.new(:rubocop) do |t|
+    t.options << ['-D']
+    t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
+  end
 end
 
 YARD::Rake::YardocTask.new(:docs) do |t|
@@ -121,20 +123,21 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
-    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railssidekiq'
+    sh 'rvm $SIDEKIQ_VERSIONS --verbose do appraisal contrib-sidekiq rake test:sidekiq'
   when 2
-    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres rake test:rails'
-    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails'
-    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres rake test:rails'
-    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:rails'
+    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails'
+    sh 'rvm $RAILS3_PG_VERSIONS --verbose do appraisal rails3-postgres rake test:rails'
+    sh 'rvm $RAILS3_PG_VERSIONS --verbose do appraisal rails3-postgres-redis rake test:railsredis'
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails'
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:rails'
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
+    # Test Rails3/Sidekiq with Rails4 versions (3 vs 4) as Sidekiq requires >= 2.0 and Rails3 should support 1.9
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails3-postgres-sidekiq rake test:railssidekiq'
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake test:rails'
-    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails3-postgres-redis rake test:railsredis'
-    sh 'rvm $RAILS_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:rails'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railssidekiq'
   else
     puts 'Too many workers than parallel tasks'
   end

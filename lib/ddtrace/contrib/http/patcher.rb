@@ -18,7 +18,7 @@ module Datadog
         # we don't want to trace our own call to the API (they use net/http)
         # when we know the host & port (from the URI) we use it, else (most-likely
         # called with a block) rely on the URL at the end.
-        if req.uri
+        if req.respond_to?(:uri) && req.uri
           if req.uri.host.to_s == transport.hostname.to_s &&
              req.uri.port.to_i == transport.port.to_i
             return true
@@ -103,7 +103,7 @@ module Datadog
                 span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
                 response = request_without_datadog(req, body, &block)
                 span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
-                if req.uri
+                if req.respond_to?(:uri) && req.uri
                   span.set_tag(Datadog::Ext::NET::TARGET_HOST, req.uri.host)
                   span.set_tag(Datadog::Ext::NET::TARGET_PORT, req.uri.port.to_s)
                 else
