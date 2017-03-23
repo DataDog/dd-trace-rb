@@ -51,15 +51,17 @@ module Datadog
             if payload[:exception].nil?
               # [christian] in some cases :status is not defined,
               # rather than firing an error, simply acknowledge we don't know it.
-              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status, '?').to_s)
+              status = payload.fetch(:status, '?').to_s
+              span.status = 1 if status.starts_with?('50')
+              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
             else
               error = payload[:exception]
-              # TODO[manu]: it's right to have a 500? there are cases in Rails that let
-              # user to recover the error after this point?
               span.status = 1
               span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
               span.set_tag(Datadog::Ext::Errors::MSG, error[1])
-              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, '500')
+              # [manu,christian]: it's right to have a 500? there are cases in Rails that let
+              # user to recover the error after this point?
+              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status, '500').to_s)
             end
 
           ensure
