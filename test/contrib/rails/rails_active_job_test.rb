@@ -64,12 +64,7 @@ class RailsActiveJobTest < ActionController::TestCase
     # do something
     EmptyWorker.perform_async()
 
-    spans = []
-    50.times do
-      spans = @tracer.writer.spans()
-      break unless spans.empty?
-      sleep 0.1
-    end
+    spans = @tracer.writer.spans()
 
     assert_equal(1, spans.length)
     span = spans[0]
@@ -90,12 +85,7 @@ class RailsActiveJobTest < ActionController::TestCase
     # do something
     EmptyJob.perform_later()
 
-    spans = []
-    50.times do
-      spans = @tracer.writer.spans()
-      break unless spans.empty?
-      sleep 0.1
-    end
+    spans = @tracer.writer.spans()
 
     assert_equal(1, spans.length)
     span = spans[0]
