@@ -72,7 +72,7 @@ class RailsActiveJobTest < ActionController::TestCase
     assert_equal('RailsActiveJobTest::EmptyWorker', span.resource,
                  'resource should be class doing the job')
     assert_nil(span.get_tag('sidekiq.job.wrapper'))
-    assert_match(/([0-9]|[a-f]){24}/, span.get_tag('sidekiq.job.id'),
+    assert_match(/[0-9a-f]{24}/, span.get_tag('sidekiq.job.id'),
                  'Job ID should be a 96-bit integer')
     assert_equal('true', span.get_tag('sidekiq.job.retry'))
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
@@ -94,7 +94,7 @@ class RailsActiveJobTest < ActionController::TestCase
                  'resource should be the actual working class, doing the job')
     assert_equal('ActiveJob::QueueAdapters::SidekiqAdapter::JobWrapper', span.get_tag('sidekiq.job.wrapper'),
                  'wrapper should be the wrapping class, from Active Job')
-    assert_match(/([0-9]|[a-f]){24}/, span.get_tag('sidekiq.job.id'),
+    assert_match(/[0-9a-f]{24}/, span.get_tag('sidekiq.job.id'),
                  'Job ID should be a 96-bit integer')
     assert_equal('true', span.get_tag('sidekiq.job.retry'))
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
