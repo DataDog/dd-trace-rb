@@ -95,4 +95,41 @@ class TracingControllerTest < ActionController::TestCase
     assert_response :success
     assert_nil(Thread.current[:datadog_span])
   end
+
+  test 'error should be trapped and reported as such' do
+    err = false
+    begin
+      get :error
+    rescue
+      err = true
+    end
+    assert_equal(true, err, 'should have raised an error')
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('rails.request', span.name)
+    assert_equal(1, span.status, 'span should be flagged as an error')
+    assert_equal('ZeroDivisionError', span.get_tag('error.type'), 'type should contain the class name of the error')
+    assert_equal('divided by 0', span.get_tag('error.msg'), 'msg should state we tried to divided by 0')
+    assert_match(/ddtrace/, span.get_tag('error.stack'), 'stack should contain the call stack when error was raised')
+    assert_equal('500', span.get_tag('http.status_code'), 'status should be 500 error by default')
+  end
+
+  test 'http error code should be trapped and reported as such, even with no exception' do
+    get :soft_error
+
+    spans = @tracer.writer.spans()
+    if Rails::VERSION::MAJOR.to_i >= 5
+      assert_equal(1, spans.length)
+    else
+      assert_equal(2, spans.length, 'legacy code (rails <= 4) uses render with a status, so there is an extra render span')
+    end
+    span = spans[spans.length - 1]
+    assert_equal('rails.request', span.name)
+    assert_equal(1, span.status, 'span should be flagged as an error')
+    assert_nil(span.get_tag('error.type'), 'type should be undefined')
+    assert_nil(span.get_tag('error.msg'), 'msg should be empty')
+    assert_match(/ddtrace/, span.get_tag('error.stack'), 'stack should contain the call stack when error was raised')
+    assert_equal('520', span.get_tag('http.status_code'), 'status should be 520 Web server is returning an unknown error')
+  end
 end

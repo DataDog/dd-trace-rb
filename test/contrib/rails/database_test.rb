@@ -24,7 +24,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     assert_equal(span.span_type, 'sql')
     assert_equal(span.service, adapter_name)
     assert_equal(span.get_tag('rails.db.vendor'), adapter_name)
-    assert_equal(span.get_tag('rails.db.cached'), nil)
+    assert_nil(span.get_tag('rails.db.cached'))
     assert_includes(span.resource, 'SELECT COUNT(*) FROM')
     # ensure that the sql.query tag is not set
     assert_nil(span.get_tag('sql.query'))
