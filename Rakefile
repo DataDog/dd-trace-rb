@@ -115,7 +115,7 @@ task :ci do
   # check: https://circleci.com/docs/parallel-manual-setup/#env-splitting
   case ENV['CIRCLE_NODE_INDEX'].to_i
   when 0
-    sh 'rvm $MRI_VERSIONS --verbose do rake test:main'
+    sh 'rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do rake test:main'
     sh 'rvm $LAST_STABLE --verbose do rake benchmark'
   when 1
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:monkey'
@@ -123,11 +123,17 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
-    sh 'rvm $SIDEKIQ_VERSIONS --verbose do appraisal contrib-sidekiq rake test:sidekiq'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:monkey'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:elasticsearch'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:http'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:redis'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sinatra'
+    sh 'rvm $SIDEKIQ_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sidekiq'
   when 2
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails3-mysql2 rake test:rails'
-    sh 'rvm $RAILS3_PG_VERSIONS --verbose do appraisal rails3-postgres rake test:rails'
-    sh 'rvm $RAILS3_PG_VERSIONS --verbose do appraisal rails3-postgres-redis rake test:railsredis'
+    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails3-postgres rake test:rails'
+    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails3-postgres-redis rake test:railsredis'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'

@@ -130,7 +130,6 @@ class SpyTransport < Datadog::HTTPTransport
   # - then arrays contain, as a FIFO, all the data passed to send(endpoint, data)
   def helper_dump
     @helper_mutex.synchronize do
-      # rubocop:disable Security/MarshalLoad
       return Marshal.load(Marshal.dump(@helper_sent))
     end
   end

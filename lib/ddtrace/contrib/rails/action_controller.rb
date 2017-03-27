@@ -67,7 +67,6 @@ module Datadog
               # user to recover the error after this point?
               span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status, '500').to_s)
             end
-
           ensure
             span.start_time = start
             span.finish_at(finish)

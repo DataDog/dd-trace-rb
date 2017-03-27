@@ -23,6 +23,7 @@ module Datadog
           return name.to_s
         end
 
+        # TODO: Consider moving this out of Rails.
         # Return a canonical name for a type of database
         def self.normalize_vendor(vendor)
           case vendor
