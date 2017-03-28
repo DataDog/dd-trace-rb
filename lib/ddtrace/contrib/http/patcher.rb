@@ -96,10 +96,10 @@ module Datadog
                 span.service = pin.service
                 span.span_type = Datadog::Ext::HTTP::TYPE
 
-                span.resource = req.path
-                # *NOT* filling Datadog::Ext::HTTP::URL as it's already in resource.
-                # The agent can then decide to quantize the URL and store the original,
-                # untouched data in http.url but the client should not send redundant fields.
+                span.resource = req.method
+                # Using the method as a resource, as URL/path can trigger
+                # a possibly infinite number of resources.
+                span.set_tag(Datadog::Ext::HTTP::URL, req.path)
                 span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
                 response = request_without_datadog(req, body, &block)
                 span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
