@@ -48,7 +48,7 @@ module Datadog
 
     def get_patched_modules
       patched = autopatch_modules
-      @autopatch_modules.each do |k, v|
+      @patchers.each do |k, v|
         @mutex.synchronize do
           if v
             patcher = @patchers[k]

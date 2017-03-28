@@ -81,7 +81,6 @@ module Datadog
               span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
               span.set_tag(Datadog::Ext::Errors::MSG, error[1])
             end
-
           ensure
             span.start_time = start
             span.finish_at(finish)
@@ -110,7 +109,6 @@ module Datadog
               span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
               span.set_tag(Datadog::Ext::Errors::MSG, error[1])
             end
-
           ensure
             span.start_time = start
             span.finish_at(finish)

@@ -9,18 +9,18 @@ if RUBY_VERSION < '2.4.0'
     end
   end
 
-  if RUBY_VERSION >= '2.0.0'
+  if RUBY_VERSION >= '1.9.1'
     appraise 'rails3-postgres' do
       gem 'test-unit'
       gem 'rails', '3.2.22.5'
-      gem 'pg', platform: :ruby
+      gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
     end
 
     appraise 'rails3-postgres-redis' do
       gem 'test-unit'
       gem 'rails', '3.2.22.5'
-      gem 'pg', platform: :ruby
+      gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
     end
@@ -28,7 +28,7 @@ if RUBY_VERSION < '2.4.0'
     appraise 'rails3-postgres-sidekiq' do
       gem 'test-unit'
       gem 'rails', '3.2.22.5'
-      gem 'pg', platform: :ruby
+      gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sidekiq'
     end
@@ -87,16 +87,25 @@ if RUBY_VERSION < '2.4.0'
   end
 end
 
-appraise 'contrib' do
-  gem 'elasticsearch-transport'
-  gem 'redis'
-  gem 'hiredis'
-  gem 'rack-test'
-  gem 'sinatra'
-end
-
-if RUBY_VERSION >= '2.0.0'
-  appraise 'contrib-sidekiq' do
+if RUBY_VERSION >= '2.2.2'
+  appraise 'contrib' do
+    gem 'elasticsearch-transport'
+    gem 'redis'
+    gem 'hiredis'
+    gem 'rack-test'
+    gem 'sinatra'
+    gem 'activerecord'
     gem 'sidekiq'
+  end
+else
+  appraise 'contrib-old' do
+    gem 'elasticsearch-transport'
+    gem 'redis'
+    gem 'hiredis'
+    gem 'rack-test', '0.6.2'
+    gem 'rack', '1.4.7'
+    gem 'sinatra', '1.4.5'
+    gem 'activerecord', '3.2.22.5'
+    gem 'sidekiq', '4.0.0'
   end
 end
