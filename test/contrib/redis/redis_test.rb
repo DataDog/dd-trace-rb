@@ -50,7 +50,7 @@ class RedisTest < Minitest::Test
     @drivers.each do |_d, driver|
       pin = Datadog::Pin.get_from(driver)
       refute_nil(pin)
-      assert_equal('cache', pin.app_type)
+      assert_equal('db', pin.app_type)
       roundtrip_set driver, 'redis'
       roundtrip_get driver, 'redis'
     end
