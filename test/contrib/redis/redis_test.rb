@@ -2,7 +2,7 @@ require 'time'
 require 'contrib/redis/test_helper'
 require 'helper'
 
-class RedisSetGetTest < Minitest::Test
+class RedisTest < Minitest::Test
   REDIS_HOST = '127.0.0.1'.freeze
   REDIS_PORT = 46379
   def setup
@@ -48,6 +48,9 @@ class RedisSetGetTest < Minitest::Test
 
   def test_roundtrip
     @drivers.each do |_d, driver|
+      pin = Datadog::Pin.get_from(driver)
+      refute_nil(pin)
+      assert_equal('cache', pin.app_type)
       roundtrip_set driver, 'redis'
       roundtrip_get driver, 'redis'
     end
@@ -120,15 +123,21 @@ class RedisSetGetTest < Minitest::Test
   def test_service_name
     drivers = {}
     %w[foo bar].each do |service_name|
-      @drivers[service_name] = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
-      pin = Datadog::Pin.get_from(@drivers[service_name])
+      drivers[service_name] = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
+      pin = Datadog::Pin.get_from(drivers[service_name])
       pin.tracer = @tracer
       pin.service = service_name
     end
 
+    @tracer.writer.services() # empty queue
     drivers.each do |service_name, driver|
+      @tracer.set_service_info("redis-#{service_name}", 'redis', Datadog::Ext::AppTypes::CACHE)
       roundtrip_set driver, service_name
       roundtrip_get driver, service_name
     end
+    services = @tracer.writer.services()
+    assert_equal(2, services.length)
+    assert_equal({ 'app' => 'redis', 'app_type' => 'cache' }, services['redis-foo'])
+    assert_equal({ 'app' => 'redis', 'app_type' => 'cache' }, services['redis-bar'])
   end
 end

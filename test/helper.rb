@@ -80,6 +80,12 @@ class FauxWriter < Datadog::Writer
     @spans = []
     spans.flatten
   end
+
+  def services
+    services = @services
+    @services = []
+    services
+  end
 end
 
 # FauxTransport is a dummy HTTPTransport that doesn't send data to an agent.
