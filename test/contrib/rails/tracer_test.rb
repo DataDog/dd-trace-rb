@@ -144,5 +144,11 @@ class TracerTest < ActionController::TestCase
     update_config(:tags, 'env' => 'bar')
     tracer = Rails.configuration.datadog_trace[:tracer]
     assert_equal(tracer.tags['env'], 'dev')
+
+    # env is not valid but tags is set
+    update_config(:env, nil)
+    update_config(:tags, 'env' => 'bar')
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    assert_equal(tracer.tags['env'], 'bar')
   end
 end
