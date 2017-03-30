@@ -14,7 +14,7 @@ module Datadog
   # Even though the request may require multiple resources and machines to handle the request, all
   # of these function calls and sub-requests would be encapsulated within a single trace.
   class Tracer
-    attr_reader :writer, :sampler, :services
+    attr_reader :writer, :sampler, :services, :tags
     attr_accessor :enabled
 
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
@@ -52,6 +52,7 @@ module Datadog
       @mutex = Mutex.new
       @spans = []
       @services = {}
+      @tags = {}
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
@@ -90,6 +91,15 @@ module Datadog
       Datadog::Tracer.log.debug("set_service_info: service: #{service} app: #{app} type: #{app_type}")
     end
 
+    # Set the given key / value tag pair at the tracer level. These tags will be
+    # appended to each span created by the tracer. Keys and values must be strings.
+    # A valid example is:
+    #
+    #   tracer.set_tags('env' => 'prod', 'component' => 'core')
+    def set_tags(tags)
+      @tags.update(tags)
+    end
+
     # Return a +span+ that will trace an operation called +name+. You could trace your code
     # using a <tt>do-block</tt> like:
     #
@@ -125,6 +135,8 @@ module Datadog
       parent = @buffer.get()
       span.set_parent(parent)
       @buffer.set(span)
+
+      @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
 
       # sampling
       if parent.nil?

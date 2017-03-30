@@ -102,6 +102,21 @@ class TracerTest < Minitest::Test
     assert_equal(tracer.services['rest-api'], 'app' => 'rails', 'app_type' => 'web')
   end
 
+  def test_set_tags
+    tracer = get_test_tracer
+    tracer.set_tags('env' => 'test', 'component' => 'core')
+    assert_equal(tracer.tags['env'], 'test')
+    assert_equal(tracer.tags['component'], 'core')
+  end
+
+  def test_trace_global_tags
+    tracer = get_test_tracer
+    tracer.set_tags('env' => 'test', 'component' => 'core')
+    span = tracer.trace('something')
+    assert_equal(span.get_tag('env'), 'test')
+    assert_equal(span.get_tag('component'), 'core')
+  end
+
   def test_disabled_tracer
     tracer = get_test_tracer
     tracer.enabled = false
