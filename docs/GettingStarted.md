@@ -65,7 +65,8 @@ of the Datadog tracer, you can override the following defaults:
       debug: false,
       trace_agent_hostname: 'localhost',
       trace_agent_port: 8126,
-      env: Rails.env
+      env: Rails.env,
+      tags: {}
     }
 
 Available settings are:
@@ -88,6 +89,7 @@ Available settings are:
 * ``trace_agent_hostname``: set the hostname of the trace agent.
 * ``trace_agent_port``: set the port the trace agent is listening on.
 * ``env``: set the environment. Defaults to the Rails environment
+* ``tags``: set global tags that should be applied to all spans. Defaults to an empty hash
 
 ### Sinatra
 

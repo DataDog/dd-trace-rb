@@ -23,6 +23,7 @@ class TracerTest < ActionController::TestCase
     assert_equal(Rails.configuration.datadog_trace[:trace_agent_hostname], Datadog::Writer::HOSTNAME)
     assert_equal(Rails.configuration.datadog_trace[:trace_agent_port], Datadog::Writer::PORT)
     assert_equal(Rails.configuration.datadog_trace[:env], 'test')
+    assert_equal(Rails.configuration.datadog_trace[:tags], {})
   end
 
   test 'a default service and database should be properly set' do
@@ -121,5 +122,14 @@ class TracerTest < ActionController::TestCase
     tracer = Rails.configuration.datadog_trace[:tracer]
 
     assert_equal(tracer.tags['env'], 'dev')
+  end
+
+  test 'tracer global tags can be changed by the user' do
+    update_config(:tags, 'component' => 'api', 'section' => 'users')
+
+    tracer = Rails.configuration.datadog_trace[:tracer]
+
+    assert_equal(tracer.tags['component'], 'api')
+    assert_equal(tracer.tags['section'], 'users')
   end
 end
