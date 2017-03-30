@@ -60,7 +60,7 @@ module Datadog
             Datadog::Ext::AppTypes::CACHE
           )
 
-          datadog_config[:tracer].set_tag('env', datadog_config[:env])
+          datadog_config[:tracer].set_tags('env' => datadog_config[:env])
 
           if defined?(::ActiveRecord)
             begin

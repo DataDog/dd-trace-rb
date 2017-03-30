@@ -95,11 +95,9 @@ module Datadog
     # appended to each span created by the tracer. Keys and values must be strings.
     # A valid example is:
     #
-    #   tracer.set_tag('env', 'prod')
-    def set_tag(key, value)
-      @tags[key] = value.to_s
-    rescue StandardError => e
-      Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+    #   tracer.set_tags('env' => 'prod', 'component' => 'core')
+    def set_tags(tags)
+      @tags.update(tags)
     end
 
     # Return a +span+ that will trace an operation called +name+. You could trace your code
