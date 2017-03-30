@@ -49,8 +49,8 @@ module Datadog
           )
 
           # set default tracer tags
-          datadog_config[:tracer].set_tags('env' => datadog_config[:env])
           datadog_config[:tracer].set_tags(datadog_config[:tags])
+          datadog_config[:tracer].set_tags('env' => datadog_config[:env])
 
           # set default service details
           datadog_config[:tracer].set_service_info(

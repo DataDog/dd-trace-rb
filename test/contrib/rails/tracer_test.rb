@@ -132,4 +132,17 @@ class TracerTest < ActionController::TestCase
     assert_equal(tracer.tags['component'], 'api')
     assert_equal(tracer.tags['section'], 'users')
   end
+
+  test 'tracer env setting has precedence over tags setting' do
+    # default case
+    update_config(:tags, 'env' => 'foo')
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    assert_equal(tracer.tags['env'], 'test')
+
+    # explicit set
+    update_config(:env, 'dev')
+    update_config(:tags, 'env' => 'bar')
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    assert_equal(tracer.tags['env'], 'dev')
+  end
 end
