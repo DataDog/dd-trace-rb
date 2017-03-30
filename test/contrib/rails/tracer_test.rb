@@ -23,6 +23,7 @@ class TracerTest < ActionController::TestCase
     assert_equal(Rails.configuration.datadog_trace[:trace_agent_hostname], Datadog::Writer::HOSTNAME)
     assert_equal(Rails.configuration.datadog_trace[:trace_agent_port], Datadog::Writer::PORT)
     assert_equal(Rails.configuration.datadog_trace[:env], 'test')
+    assert_equal(Rails.configuration.datadog_trace[:tags], {})
   end
 
   test 'a default service and database should be properly set' do
@@ -121,5 +122,33 @@ class TracerTest < ActionController::TestCase
     tracer = Rails.configuration.datadog_trace[:tracer]
 
     assert_equal(tracer.tags['env'], 'dev')
+  end
+
+  test 'tracer global tags can be changed by the user' do
+    update_config(:tags, 'component' => 'api', 'section' => 'users')
+
+    tracer = Rails.configuration.datadog_trace[:tracer]
+
+    assert_equal(tracer.tags['component'], 'api')
+    assert_equal(tracer.tags['section'], 'users')
+  end
+
+  test 'tracer env setting has precedence over tags setting' do
+    # default case
+    update_config(:tags, 'env' => 'foo')
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    assert_equal(tracer.tags['env'], 'test')
+
+    # explicit set
+    update_config(:env, 'dev')
+    update_config(:tags, 'env' => 'bar')
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    assert_equal(tracer.tags['env'], 'dev')
+
+    # env is not valid but tags is set
+    update_config(:env, nil)
+    update_config(:tags, 'env' => 'bar')
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    assert_equal(tracer.tags['env'], 'bar')
   end
 end
