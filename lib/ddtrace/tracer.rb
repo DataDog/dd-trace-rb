@@ -4,6 +4,7 @@ require 'logger'
 
 require 'ddtrace/span'
 require 'ddtrace/buffer'
+require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
 
@@ -21,10 +22,24 @@ module Datadog
     # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
     def self.log
       unless defined? @logger
-        @logger = Logger.new(STDOUT)
+        @logger = Datadog::Logger.new(STDOUT)
         @logger.level = Logger::WARN
       end
       @logger
+    end
+
+    # Override the default logger with a custom one.
+    def self.log=(logger)
+      return nil unless logger
+      return nil unless logger.respond_to? :methods
+      return nil unless logger.respond_to? :error
+      if logger.respond_to? :methods
+        unimplemented = Logger.new(STDOUT).methods - logger.methods
+        if unimplemented.length > 0
+          logger.error("logger #{logger} does not implement #{unimplemented}")
+        end
+      end
+      @logger = logger
     end
 
     # Activate the debug mode providing more information related to tracer usage

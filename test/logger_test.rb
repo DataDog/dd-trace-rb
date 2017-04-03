@@ -7,6 +7,7 @@ class LoggerTest < Minitest::Test
     # a logger must be available by default
     assert Datadog::Tracer.log
     Datadog::Tracer.log.debug('a logger is here!')
+    Datadog::Tracer.log.info() { 'flash info' } # &block syntax
   end
 
   def test_tracer_default_debug_mode
