@@ -9,5 +9,6 @@ gem "rack-test"
 gem "sinatra"
 gem "activerecord"
 gem "sidekiq"
+gem "activerecord"
 
 gemspec :path => "../"
