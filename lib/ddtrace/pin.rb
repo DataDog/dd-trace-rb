@@ -33,7 +33,6 @@ module Datadog
     end
 
     def onto(obj)
-      # rubocop:disable Lint/NestedMethodDefinition
       unless obj.respond_to? :datadog_pin=
         obj.instance_exec do
           def datadog_pin=(pin)
@@ -51,7 +50,6 @@ module Datadog
           end
         end
       end
-      # rubocop:enable Lint/NestedMethodDefinition
 
       obj.datadog_pin = self
     end

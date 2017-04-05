@@ -11,7 +11,7 @@ namespace :test do
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :monkey]
 
   Rake::TestTask.new(:main) do |t|
-    t.libs << %w(test lib)
+    t.libs << %w[test lib]
     t.test_files = FileList['test/**/*_test.rb'].reject do |path|
       path.include?('contrib') ||
         path.include?('benchmark') ||
@@ -21,7 +21,7 @@ namespace :test do
   end
 
   Rake::TestTask.new(:rails) do |t|
-    t.libs << %w(test lib)
+    t.libs << %w[test lib]
     t.test_files = FileList['test/contrib/rails/**/*_test.rb'].reject do |path|
       path.include?('redis') ||
         path.include?('sidekiq') ||
@@ -30,35 +30,35 @@ namespace :test do
   end
 
   Rake::TestTask.new(:railsredis) do |t|
-    t.libs << %w(test lib)
+    t.libs << %w[test lib]
     t.test_files = FileList['test/contrib/rails/**/*redis*_test.rb']
   end
 
   Rake::TestTask.new(:railssidekiq) do |t|
-    t.libs << %w(test lib)
+    t.libs << %w[test lib]
     t.test_files = FileList['test/contrib/rails/**/*sidekiq*_test.rb']
   end
 
   Rake::TestTask.new(:railsactivejob) do |t|
-    t.libs << %w(test lib)
+    t.libs << %w[test lib]
     t.test_files = FileList['test/contrib/rails/**/*active_job*_test.rb']
   end
 
   [:elasticsearch, :http, :redis, :sinatra, :sidekiq].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
-      t.libs << %w(test lib)
+      t.libs << %w[test lib]
       t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
     end
   end
 
   Rake::TestTask.new(:monkey) do |t|
-    t.libs << %w(test lib)
+    t.libs << %w[test lib]
     t.test_files = FileList['test/monkey_test.rb']
   end
 end
 
 Rake::TestTask.new(:benchmark) do |t|
-  t.libs << %w(test lib)
+  t.libs << %w[test lib]
   t.test_files = FileList['test/benchmark_test.rb']
 end
 

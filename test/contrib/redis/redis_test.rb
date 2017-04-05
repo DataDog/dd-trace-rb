@@ -119,7 +119,7 @@ class RedisSetGetTest < Minitest::Test
 
   def test_service_name
     drivers = {}
-    %w(foo bar).each do |service_name|
+    %w[foo bar].each do |service_name|
       @drivers[service_name] = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
       pin = Datadog::Pin.get_from(@drivers[service_name])
       pin.tracer = @tracer
