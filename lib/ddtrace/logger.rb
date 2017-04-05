@@ -13,6 +13,9 @@ module Datadog
     end
 
     def add(severity, message = nil, progname = nil, &block)
+      return super unless debug?
+
+      # We are in debug mode, add stack trace to help debugging
       where = ''
       c = caller
       where = "(#{c[1]}) " if c.length > 1
@@ -25,6 +28,7 @@ module Datadog
         super(severity, message, "#{where}#{progname}")
       end
     end
+
     alias log add
   end
 end

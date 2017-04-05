@@ -35,7 +35,7 @@ module Datadog
       return nil unless logger.respond_to? :error
       if logger.respond_to? :methods
         unimplemented = Logger.new(STDOUT).methods - logger.methods
-        if unimplemented.length > 0
+        unless unimplemented.empty?
           logger.error("logger #{logger} does not implement #{unimplemented}")
         end
       end
