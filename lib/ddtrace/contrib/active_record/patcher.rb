@@ -54,7 +54,12 @@ module Datadog
         end
 
         def self.database_service
-          @database_service ||= datadog_trace.fetch(:default_database_service, adapter_name)
+          @database_service ||= datadog_trace.fetch(:default_database_service, adapter_name())
+          if @database_service
+            tracer().set_service_info(@database_service, 'sinatra',
+                                      Datadog::Ext::AppTypes::DB)
+          end
+          @database_service
         end
 
         def self.sql(_name, start, finish, _id, payload)
