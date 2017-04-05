@@ -107,4 +107,22 @@ class LoggerTest < Minitest::Test
 
     Datadog::Tracer.log = default_log
   end
+
+  def test_tracer_logger_override_refuse
+    default_log = Datadog::Tracer.log
+
+    buf = StringIO.new
+
+    buf_log = Datadog::Logger.new(buf)
+
+    Datadog::Tracer.log = buf_log
+    Datadog::Tracer.log.level = ::Logger::DEBUG
+
+    Datadog::Tracer.log = nil
+    assert_equal(buf_log, Datadog::Tracer.log)
+    Datadog::Tracer.log = "this won't work"
+    assert_equal(buf_log, Datadog::Tracer.log)
+
+    Datadog::Tracer.log = default_log
+  end
 end
