@@ -61,7 +61,7 @@ module Datadog
             def initialize(*args)
               pin = Datadog::Pin.new(SERVICE, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
-              if pin.tracer && pin.service && pin.app && pin.app_type
+              if pin.tracer && pin.service
                 pin.tracer.set_service_info(pin.service, pin.app, pin.app_type)
               end
               initialize_without_datadog(*args)
