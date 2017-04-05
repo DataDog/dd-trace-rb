@@ -22,7 +22,7 @@ module Datadog
               patch_active_record()
 
               @patched = true
-            rescue
+            rescue => e
               Datadog::Tracer.log.error("Unable to apply Active Record integration: #{e}")
             end
           end
