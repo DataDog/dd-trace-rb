@@ -181,6 +181,8 @@ module Datadog
     # Record the given finished span in the +spans+ list. When a +span+ is recorded, it will be sent
     # to the Datadog trace agent as soon as the trace is finished.
     def record(span)
+      span.service ||= Datadog::Span::DEFAULT_SERVICE
+
       spans = []
       @mutex.synchronize do
         @spans << span
