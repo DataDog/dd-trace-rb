@@ -2,11 +2,12 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
-class TracingControllerTest < ActionController::TestCase
+class TracingDefaultServiceTest < ActionController::TestCase
   setup do
     @original_tracer = Rails.configuration.datadog_trace[:tracer]
     @tracer = get_test_tracer
     Rails.configuration.datadog_trace[:tracer] = @tracer
+    update_config(:tracer, @tracer)
   end
 
   teardown do
@@ -25,6 +26,6 @@ class TracingControllerTest < ActionController::TestCase
     span = spans[0]
     assert_equal('web.request', span.name)
     assert_equal('/index', span.resource, '/index')
-    assert_equal('rake_test_loader', span.service) # [TODO:christian] fix this test, this should be rails-app
+    assert_equal('rails-app', span.service, 'service name should reflect this is a Rails application')
   end
 end
