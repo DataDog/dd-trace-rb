@@ -32,6 +32,7 @@ module Datadog
         }.freeze
 
         # configure Datadog settings
+        # rubocop:disable Metrics/MethodLength
         def self.configure(config)
           # tracer defaults
           # merge default configurations with users settings
@@ -64,6 +65,10 @@ module Datadog
             'rails',
             Datadog::Ext::AppTypes::CACHE
           )
+
+          # By default, default service would be guessed from the script
+          # being executed, but here we know better, get it from Rails config.
+          datadog_config[:tracer].default_service = datadog_config[:default_service]
 
           if defined?(::ActiveRecord)
             begin
