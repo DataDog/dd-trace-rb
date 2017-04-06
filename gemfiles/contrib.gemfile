@@ -7,7 +7,9 @@ gem "redis"
 gem "hiredis"
 gem "rack-test"
 gem "sinatra"
+gem 'sqlite3'
 gem "activerecord"
 gem "sidekiq"
+gem "activerecord"
 
 gemspec :path => "../"

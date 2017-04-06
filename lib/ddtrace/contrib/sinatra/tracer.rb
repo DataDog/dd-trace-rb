@@ -67,7 +67,7 @@ module Datadog
         end
 
         def enabled?
-          @cfg[:enabled] && @cfg[:tracer]
+          @cfg[:enabled] && !@cfg[:tracer].nil?
         end
       end
 

@@ -2,16 +2,6 @@ require 'contrib/sinatra/tracer_test_base'
 
 class TracerTest < TracerTestBase
   class TracerTestApp < Sinatra::Application
-    configure do
-      writer = FauxWriter.new()
-      tracer = Datadog::Tracer.new(writer: writer)
-
-      settings.datadog_tracer.configure(tracer: tracer, enabled: true)
-
-      set :datadog_test_writer, writer
-      set :datadog_test_tracer, tracer
-    end
-
     get '/request' do
       'hello world'
     end
@@ -46,8 +36,12 @@ class TracerTest < TracerTestBase
   end
 
   def setup
-    @writer = app().settings.datadog_test_writer
-    @writer.spans() # clear trace buffer
+    @writer = FauxWriter.new()
+    app().set :datadog_test_writer, @writer
+
+    tracer = Datadog::Tracer.new(writer: @writer)
+    app().settings.datadog_tracer.configure(tracer: tracer, enabled: true)
+
     super
   end
 

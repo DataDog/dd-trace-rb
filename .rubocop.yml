@@ -55,3 +55,7 @@ Lint/UnusedMethodArgument:
 Style/SymbolArray:
   Enabled: false
 
+# Simple conditionals are perfectly fine, and more readable for multiline
+# expressions.
+Style/GuardClause:
+  Enabled: false
