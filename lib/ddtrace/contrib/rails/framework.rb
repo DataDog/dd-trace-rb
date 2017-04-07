@@ -27,7 +27,7 @@ module Datadog
           debug: false,
           trace_agent_hostname: Datadog::Writer::HOSTNAME,
           trace_agent_port: Datadog::Writer::PORT,
-          env: ::Rails.env,
+          env: nil,
           tags: {}
         }.freeze
 
@@ -51,6 +51,7 @@ module Datadog
 
           # set default tracer tags
           datadog_config[:tracer].set_tags(datadog_config[:tags])
+
           datadog_config[:tracer].set_tags('env' => datadog_config[:env]) if datadog_config[:env]
 
           # set default service details
