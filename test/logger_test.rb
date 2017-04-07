@@ -45,21 +45,25 @@ class LoggerTest < Minitest::Test
     Datadog::Tracer.log.debug('never to be seen')
     Datadog::Tracer.log.warn('careful here')
     Datadog::Tracer.log.error() { 'this does not work' }
-    Datadog::Tracer.log.error('mmm') { 'neither does this' }
+    Datadog::Tracer.log.error('foo') { 'neither does this' }
+    Datadog::Tracer.log.progname = 'bar'
+    Datadog::Tracer.log.add(Logger::WARN, 'add some warning')
 
     lines = buf.string.lines
 
     # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
-    assert_equal(3, lines.length, 'there should be 3 log messages') if lines.respond_to? :length
+    assert_equal(4, lines.length, 'there should be 4 log messages') if lines.respond_to? :length
     i = 0
     lines.each do |l|
       case i
       when 0
-        assert_match(/W,.*WARN -- ddtrace: careful here/, l)
+        assert_match(/W,.*WARN -- ddtrace: \[ddtrace\] careful here/, l)
       when 1
-        assert_match(/E,.*ERROR -- ddtrace: this does not work/, l)
+        assert_match(/E,.*ERROR -- ddtrace: \[ddtrace\] this does not work/, l)
       when 2
-        assert_match(/E,.*ERROR -- mmm: neither does this/, l)
+        assert_match(/E,.*ERROR -- foo: \[ddtrace\] neither does this/, l)
+      when 3
+        assert_match(/W,.*WARN -- bar: \[bar\] add some warning/, l)
       end
       i += 1
     end
@@ -87,18 +91,18 @@ class LoggerTest < Minitest::Test
     lines = buf.string.lines
 
     # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
-    assert_equal(2, lines.length, 'there should be 3 log messages') if lines.respond_to? :length
+    assert_equal(2, lines.length, 'there should be 2 log messages') if lines.respond_to? :length
     i = 0
     lines.each do |l|
       case i
       when 0
         assert_match(
-          /D,.*DEBUG -- ddtrace: \(.*logger_test.rb\:.*test_tracer_logger_override_debug.*\) detailed things/,
+          /D,.*DEBUG -- ddtrace: \[ddtrace\] \(.*logger_test.rb\:.*test_tracer_logger_override_debug.*\) detailed things/,
           l
         )
       when 1
         assert_match(
-          /I,.*INFO -- ddtrace: \(.*logger_test.rb\:.*test_tracer_logger_override_debug.*\) more detailed info/,
+          /I,.*INFO -- ddtrace: \[ddtrace\] \(.*logger_test.rb\:.*test_tracer_logger_override_debug.*\) more detailed info/,
           l
         )
       end
