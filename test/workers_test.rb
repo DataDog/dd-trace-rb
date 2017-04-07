@@ -120,6 +120,41 @@ class WorkersSpanTest < WorkersTest
     dumped_traces = dump[500][:traces]
     assert_operator(1, :<=, dumped_traces.length, 'there should have been errors on traces endpoint')
   end
+
+  # test that a default service is provided if none has been given at all
+  def test_span_default_service
+    span = Datadog::Span.new(@tracer, 'my.op')
+    sleep(0.001)
+    span.finish()
+
+    (20 * SPAN_INTERVAL).times do
+      break if @writer.stats[:traces_flushed] >= 1
+      sleep(0.1)
+    end
+
+    assert_equal(1, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
+    dump = @transport.helper_dump
+    dumped_traces = dump[200][:traces]
+    refute_nil(dumped_traces, 'no 200 OK data for default traces endpoint')
+    # unmarshalling data
+    assert_equal(1, dumped_traces.length, 'there should be one and only one payload')
+    assert_kind_of(String, dumped_traces[0])
+    payload = JSON.parse(dumped_traces[0])
+    assert_kind_of(Array, payload)
+    assert_equal(1, payload.length, 'there should be one trace in the payload')
+    trace = payload[0]
+    assert_kind_of(Array, trace)
+    assert_equal(1, trace.length, 'there should be one span in the trace')
+    span = trace[0]
+    assert_kind_of(Hash, span)
+    # checking content
+    assert_equal(0, span['parent_id'], 'a root span should have no parent')
+    assert_equal(0, span['error'], 'there should be explicitely no error')
+    assert_equal(span['trace_id'], span['span_id'], 'a root span should have equal trace_id and span_id')
+    # now the whole purpose of this test: check we have a 'ruby' service by default,
+    # which should be guessed from the script being executed.
+    assert_equal('rake_test_loader', span['service'], 'wrong service')
+  end
 end
 
 class WorkersServiceTest < WorkersTest

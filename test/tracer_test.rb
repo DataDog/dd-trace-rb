@@ -133,4 +133,13 @@ class TracerTest < Minitest::Test
     assert_equal(tracer.writer.transport.hostname, 'agent.datadoghq.com')
     assert_equal(tracer.writer.transport.port, '8888')
   end
+
+  def test_default_service
+    tracer = get_test_tracer
+    assert_equal('rake_test_loader', tracer.default_service)
+    old_service = tracer.default_service
+    tracer.default_service = 'foo-bar'
+    assert_equal('foo-bar', tracer.default_service)
+    tracer.default_service = old_service
+  end
 end

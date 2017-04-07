@@ -1,6 +1,7 @@
 require 'pp'
 require 'thread'
 require 'logger'
+require 'pathname'
 
 require 'ddtrace/span'
 require 'ddtrace/buffer'
@@ -17,6 +18,7 @@ module Datadog
   class Tracer
     attr_reader :writer, :sampler, :services, :tags
     attr_accessor :enabled
+    attr_writer :default_service
 
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
     # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
@@ -107,6 +109,20 @@ module Datadog
       Datadog::Tracer.log.debug("set_service_info: service: #{service} app: #{app} type: #{app_type}")
     end
 
+    # A default value for service. One should really override this one
+    # for non-root spans which have a parent. However, root spans without
+    # a service would be invalid and rejected.
+    def default_service
+      return @default_service if @default_service
+      begin
+        @default_service = File.basename($PROGRAM_NAME, '.*')
+      rescue => e
+        Datadog::Tracer.log.error("unable to guess default service: #{e}")
+        @default_service = 'ruby'.freeze
+      end
+      @default_service
+    end
+
     # Set the given key / value tag pair at the tracer level. These tags will be
     # appended to each span created by the tracer. Keys and values must be strings.
     # A valid example is:
@@ -181,6 +197,8 @@ module Datadog
     # Record the given finished span in the +spans+ list. When a +span+ is recorded, it will be sent
     # to the Datadog trace agent as soon as the trace is finished.
     def record(span)
+      span.service ||= default_service
+
       spans = []
       @mutex.synchronize do
         @spans << span
