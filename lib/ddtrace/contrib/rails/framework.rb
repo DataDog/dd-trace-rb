@@ -27,11 +27,13 @@ module Datadog
           debug: false,
           trace_agent_hostname: Datadog::Writer::HOSTNAME,
           trace_agent_port: Datadog::Writer::PORT,
-          env: ::Rails.env,
+          use_rails_env: false,
+          env: nil,
           tags: {}
         }.freeze
 
         # configure Datadog settings
+        # rubocop:disable Metrics/MethodLength
         def self.configure(config)
           # tracer defaults
           # merge default configurations with users settings
@@ -50,6 +52,12 @@ module Datadog
 
           # set default tracer tags
           datadog_config[:tracer].set_tags(datadog_config[:tags])
+
+          # guess env from rails only if explicitly asked to do so, this to avoid
+          # env being set by default to unexpected value for users preferring the
+          # default empty "env:" value (just, not using env)
+          datadog_config[:env] = ::Rails.env if datadog_config[:use_rails_env]
+
           datadog_config[:tracer].set_tags('env' => datadog_config[:env]) if datadog_config[:env]
 
           # set default service details

@@ -22,8 +22,8 @@ class TracerTest < ActionController::TestCase
     assert !Rails.configuration.datadog_trace[:debug]
     assert_equal(Rails.configuration.datadog_trace[:trace_agent_hostname], Datadog::Writer::HOSTNAME)
     assert_equal(Rails.configuration.datadog_trace[:trace_agent_port], Datadog::Writer::PORT)
-    assert_equal(Rails.configuration.datadog_trace[:env], 'test')
-    assert_equal(Rails.configuration.datadog_trace[:tags], {})
+    assert_nil(Rails.configuration.datadog_trace[:env], 'no env should be set by default')
+    assert_equal(Rails.configuration.datadog_trace[:tags], {}, 'no tags should be set by default')
   end
 
   test 'a default service and database should be properly set' do
@@ -133,22 +133,39 @@ class TracerTest < ActionController::TestCase
     assert_equal(tracer.tags['section'], 'users')
   end
 
-  test 'tracer env setting has precedence over tags setting' do
+  test 'trails env, tracer env, and env tag setting precedence' do
     # default case
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    assert_nil(tracer.tags['env'])
+
+    # asking magic guess from Rails value
+    update_config(:use_rails_env, true)
     update_config(:tags, 'env' => 'foo')
     tracer = Rails.configuration.datadog_trace[:tracer]
     assert_equal(tracer.tags['env'], 'test')
 
     # explicit set
+    update_config(:use_rails_env, false)
     update_config(:env, 'dev')
     update_config(:tags, 'env' => 'bar')
     tracer = Rails.configuration.datadog_trace[:tracer]
     assert_equal(tracer.tags['env'], 'dev')
 
     # env is not valid but tags is set
+    update_config(:use_rails_env, false)
     update_config(:env, nil)
     update_config(:tags, 'env' => 'bar')
     tracer = Rails.configuration.datadog_trace[:tracer]
     assert_equal(tracer.tags['env'], 'bar')
+
+    # env is set but we ask for Rails to override it (corner case...)
+    update_config(:use_rails_env, true)
+    update_config(:env, 'foo')
+    update_config(:tags, 'env' => 'bar')
+    tracer = Rails.configuration.datadog_trace[:tracer]
+    assert_equal(tracer.tags['env'], 'test')
+
+    # return to default
+    update_config(:use_rails_env, false)
   end
 end
