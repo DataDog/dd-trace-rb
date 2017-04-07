@@ -88,7 +88,7 @@ Available settings are:
 * ``debug``: set to true to enable debug logging.
 * ``trace_agent_hostname``: set the hostname of the trace agent.
 * ``trace_agent_port``: set the port the trace agent is listening on.
-* ``env``: set the environment. Rails users may to set it to ``Rails.env`` to use their application settings.
+* ``env``: set the environment. Rails users may set it to ``Rails.env`` to use their application settings.
 * ``tags``: set global tags that should be applied to all spans. Defaults to an empty hash
 
 ### Sinatra

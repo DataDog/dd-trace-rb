@@ -133,7 +133,7 @@ class TracerTest < ActionController::TestCase
     assert_equal(tracer.tags['section'], 'users')
   end
 
-  test 'trails env, tracer env, and env tag setting precedence' do
+  test 'tracer env and env tag setting precedence' do
     # default case
     tracer = Rails.configuration.datadog_trace[:tracer]
     assert_nil(tracer.tags['env'])
