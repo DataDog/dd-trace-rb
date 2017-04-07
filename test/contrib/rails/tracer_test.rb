@@ -138,8 +138,8 @@ class TracerTest < ActionController::TestCase
     tracer = Rails.configuration.datadog_trace[:tracer]
     assert_nil(tracer.tags['env'])
 
-    # asking magic guess from Rails value
-    update_config(:use_rails_env, true)
+    # use the Rails value
+    update_config(:env, ::Rails.env)
     update_config(:tags, 'env' => 'foo')
     tracer = Rails.configuration.datadog_trace[:tracer]
     assert_equal(tracer.tags['env'], 'test')
@@ -157,15 +157,5 @@ class TracerTest < ActionController::TestCase
     update_config(:tags, 'env' => 'bar')
     tracer = Rails.configuration.datadog_trace[:tracer]
     assert_equal(tracer.tags['env'], 'bar')
-
-    # env is set but we ask for Rails to override it (corner case...)
-    update_config(:use_rails_env, true)
-    update_config(:env, 'foo')
-    update_config(:tags, 'env' => 'bar')
-    tracer = Rails.configuration.datadog_trace[:tracer]
-    assert_equal(tracer.tags['env'], 'test')
-
-    # return to default
-    update_config(:use_rails_env, false)
   end
 end
