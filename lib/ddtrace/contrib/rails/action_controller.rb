@@ -62,7 +62,7 @@ module Datadog
               span.status = 1
               span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
               span.set_tag(Datadog::Ext::Errors::MSG, error[1])
-              span.set_tag(Datadog::Ext::Errors::STACK, caller().join('\n'))
+              span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
               # [manu,christian]: it's right to have a 500? there are cases in Rails that let
               # user to recover the error after this point?
               span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status, '500').to_s)
