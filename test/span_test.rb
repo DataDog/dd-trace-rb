@@ -16,6 +16,53 @@ class SpanTest < Minitest::Test
     assert span.to_hash[:duration] > 0
   end
 
+  def test_span_finish_once
+    # calling finish() multiple times doesn't have any effect
+    span = Datadog::Span.new(nil, 'span.test')
+    sleep(0.001)
+    span.finish()
+    # the end_time must be set
+    end_time = span.end_time
+    sleep(0.001)
+    span.finish()
+    assert_equal(span.end_time, end_time)
+  end
+
+  def test_span_finish_at
+    # finish_at must set the right time
+    span = Datadog::Span.new(nil, 'span.test')
+    now = Time.now.utc
+    # wait 0.01s but set the end time before the wait
+    sleep(0.01)
+    span.finish_at(now)
+
+    # we must have a span duration lesser than the wait time
+    assert_equal(span.end_time, now)
+  end
+
+  def test_span_finish_at_once
+    # calling finish_at() multiple times doesn't have any effect
+    span = Datadog::Span.new(nil, 'span.test')
+    now = Time.now.utc
+    # wait 0.01s but set the end time before the wait
+    sleep(0.01)
+    span.finish_at(now)
+
+    # call finish_at again doesn't change the time
+    span.finish_at(Time.now.utc)
+    assert_equal(span.end_time, now)
+  end
+
+  def test_span_finished
+    # ensure the helper return the Span status
+    span = Datadog::Span.new(nil, 'span.test')
+    assert !span.finished?
+
+    # now the span must be finished
+    span.finish()
+    assert span.finished?
+  end
+
   def test_span_ids
     span = Datadog::Span.new(nil, 'my.op')
     assert span.span_id
