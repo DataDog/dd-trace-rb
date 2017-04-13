@@ -112,6 +112,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal('ZeroDivisionError', span.get_tag('error.type'), 'type should contain the class name of the error')
     assert_equal('divided by 0', span.get_tag('error.msg'), 'msg should state we tried to divided by 0')
     assert_match(/ddtrace/, span.get_tag('error.stack'), 'stack should contain the call stack when error was raised')
+    assert_match(/\n/, span.get_tag('error.stack'), 'stack should have multiple lines')
     assert_equal('500', span.get_tag('http.status_code'), 'status should be 500 error by default')
   end
 

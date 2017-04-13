@@ -153,4 +153,22 @@ class SpanTest < Minitest::Test
     h = span.to_hash
     assert_equal({}, h[:metrics])
   end
+
+  def test_set_error
+    span = Datadog::Span.new(nil, 'test.span')
+    error = RuntimeError.new('Something broke!')
+    error.set_backtrace(['list', 'of', 'calling', 'methods'])
+    displayed_backtrace = <<-BACKTRACE.chomp
+list
+of
+calling
+methods
+BACKTRACE
+
+    span.set_error(error)
+
+    assert_equal('Something broke!', span.get_tag('error.msg'))
+    assert_equal('RuntimeError', span.get_tag('error.type'))
+    assert_equal(displayed_backtrace, span.get_tag('error.stack'))
+  end
 end
