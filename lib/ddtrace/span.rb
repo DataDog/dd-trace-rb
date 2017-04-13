@@ -90,17 +90,19 @@ module Datadog
     end
 
     # Mark the span finished at the current time and submit it.
-    def finish
-      finish_at(Time.now.utc)
+    def finish(finish_time = nil)
+      return if finished?
+
+      @end_time = finish_time.nil? ? Time.now.utc : finish_time
+      @tracer.record(self) unless @tracer.nil?
+      self
     end
 
-    # Mark the span finished at the given time and submit it.
-    def finish_at(end_time)
-      @end_time = end_time
-
-      @tracer.record(self) unless @tracer.nil?
-
-      self
+    # Proxy function that flag a span as finished with the given
+    # timestamp. This function is used for retro-compatibility.
+    # DEPRECATED: remove this function in the next release
+    def finish_at(finish_time)
+      finish(finish_time)
     end
 
     # Return whether the span is finished or not.
