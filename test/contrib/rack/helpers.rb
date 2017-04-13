@@ -2,10 +2,9 @@ require 'helper'
 require 'ddtrace'
 require 'ddtrace/contrib/rack/middlewares'
 
-require 'test/unit'
 require 'rack/test'
 
-class RackBaseTest < Test::Unit::TestCase
+class RackBaseTest < Minitest::Test
   include Rack::Test::Methods
 
   def app

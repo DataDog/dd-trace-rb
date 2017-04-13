@@ -105,7 +105,7 @@ class TracerTest < RackBaseTest
   def test_request_middleware_exception
     # ensure the Rack request is properly traced even if
     # there is an exception
-    assert_raise do
+    assert_raises do
       get '/exception/'
     end
 
@@ -121,7 +121,7 @@ class TracerTest < RackBaseTest
     assert_equal('/exception/', span.get_tag('http.url'))
     assert_equal('StandardError', span.get_tag('error.type'))
     assert_equal('Unable to process the request', span.get_tag('error.msg'))
-    assert_not_nil(span.get_tag('error.stack'))
+    refute_nil(span.get_tag('error.stack'))
     assert_equal(1, span.status)
     assert_nil(span.parent)
   end
@@ -181,11 +181,11 @@ class CustomTracerTest < RackBaseTest
   end
 end
 
-class RackBaseTest < Test::Unit::TestCase
+class RackBaseTest < Minitest::Test
   def test_middleware_builder_defaults
     # by default it should have a Tracer and a service
     middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {})
-    assert_not_nil(middleware)
+    refute_nil(middleware)
     assert_equal(middleware.instance_eval { @tracer }, Datadog.tracer)
     assert_equal(middleware.instance_eval { @service }, 'rack-app')
   end
@@ -194,7 +194,7 @@ class RackBaseTest < Test::Unit::TestCase
     # it should set the tracer and the service
     tracer = get_test_tracer()
     middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {}, tracer: tracer, default_service: 'custom-rack')
-    assert_not_nil(middleware)
+    refute_nil(middleware)
     assert_equal(middleware.instance_eval { @tracer }, tracer)
     assert_equal(middleware.instance_eval { @service }, 'custom-rack')
   end
