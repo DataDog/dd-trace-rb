@@ -86,7 +86,7 @@ module Datadog
       @status = 1
       @meta[Datadog::Ext::Errors::MSG] = e.message if e.respond_to?(:message) && e.message
       @meta[Datadog::Ext::Errors::TYPE] = e.class.to_s
-      @meta[Datadog::Ext::Errors::STACK] = e.backtrace.join('\n') if e.respond_to?(:backtrace) && e.backtrace
+      @meta[Datadog::Ext::Errors::STACK] = e.backtrace.join("\n") if e.respond_to?(:backtrace) && e.backtrace
     end
 
     # Mark the span finished at the current time and submit it.
