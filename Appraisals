@@ -92,9 +92,9 @@ end
 if RUBY_VERSION >= '2.2.2'
   appraise 'contrib' do
     gem 'elasticsearch-transport'
+    gem 'rack'
     gem 'redis'
     gem 'hiredis'
-    gem 'rack-test'
     gem 'sinatra'
     gem 'sqlite3'
     gem 'activerecord'
@@ -105,7 +105,6 @@ else
     gem 'elasticsearch-transport'
     gem 'redis'
     gem 'hiredis'
-    gem 'rack-test', '0.6.2'
     gem 'rack', '1.4.7'
     gem 'sinatra', '1.4.5'
     gem 'sqlite3'
