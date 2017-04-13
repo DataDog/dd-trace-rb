@@ -13,19 +13,24 @@ module Datadog
     end
 
     def add(severity, message = nil, progname = nil, &block)
-      return super unless debug?
+      where = ''
 
       # We are in debug mode, add stack trace to help debugging
-      where = ''
-      c = caller
-      where = "(#{c[1]}) " if c.length > 1
+      if debug?
+        c = caller
+        where = "(#{c[1]}) " if c.length > 1
+      end
 
-      if block_given?
-        super(severity, message, progname) do
-          "#{where}#{yield}"
+      if message.nil?
+        if block_given?
+          super(severity, message, progname) do
+            "[#{self.progname}] #{where}#{yield}"
+          end
+        else
+          super(severity, message, "[#{self.progname}] #{where}#{progname}")
         end
       else
-        super(severity, message, "#{where}#{progname}")
+        super(severity, "[#{self.progname}] #{where}#{message}")
       end
     end
 
