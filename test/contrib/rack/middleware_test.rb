@@ -145,3 +145,57 @@ class TracerTest < RackBaseTest
     assert_nil(span.parent)
   end
 end
+
+class CustomTracerTest < RackBaseTest
+  def app
+    tracer = @tracer
+    service = 'custom-rack'
+
+    Rack::Builder.new do
+      use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer, default_service: service
+
+      map '/' do
+        run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
+      end
+    end
+  end
+
+  def test_request_middleware_custom_service
+    # ensure the Rack request is properly traced
+    get '/'
+    assert last_response.ok?
+
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('rack.request', span.name)
+    assert_equal('http', span.span_type)
+    assert_equal('custom-rack', span.service)
+    assert_equal('rack.request', span.resource)
+    assert_equal('GET', span.get_tag('http.method'))
+    assert_equal('200', span.get_tag('http.status_code'))
+    assert_equal('/', span.get_tag('http.url'))
+    assert_equal(0, span.status)
+    assert_nil(span.parent)
+  end
+end
+
+class RackBaseTest < Test::Unit::TestCase
+  def test_middleware_builder_defaults
+    # by default it should have a Tracer and a service
+    middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {})
+    assert_not_nil(middleware)
+    assert_equal(middleware.instance_eval { @tracer }, Datadog.tracer)
+    assert_equal(middleware.instance_eval { @service }, 'rack-app')
+  end
+
+  def test_middleware_builder
+    # it should set the tracer and the service
+    tracer = get_test_tracer()
+    middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {}, tracer: tracer, default_service: 'custom-rack')
+    assert_not_nil(middleware)
+    assert_equal(middleware.instance_eval { @tracer }, tracer)
+    assert_equal(middleware.instance_eval { @service }, 'custom-rack')
+  end
+end
