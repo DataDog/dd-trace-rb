@@ -126,7 +126,7 @@ class TracingControllerTest < ActionDispatch::IntegrationTest
     assert_equal(1, span.status, 'span should be flagged as an error')
     assert_nil(span.get_tag('error.type'), 'type should be undefined')
     assert_nil(span.get_tag('error.msg'), 'msg should be empty')
-    assert_match(/ddtrace/, span.get_tag('error.stack'), 'stack should contain the call stack when error was raised')
+    assert_nil(span.get_tag('error.stack'), 'stack should be empty')
     assert_equal('520', span.get_tag('http.status_code'), 'status should be 520 Web server is returning an unknown error')
   end
 end
