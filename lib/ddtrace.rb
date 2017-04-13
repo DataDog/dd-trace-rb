@@ -34,20 +34,12 @@ if defined?(Rails::VERSION)
       # Run the auto instrumentation directly after initializers in
       # `config/initializers` are executed
       class Railtie < Rails::Railtie
-        # TODO[manu]: with the current configuration this is the only way to
-        # "disable" auto instrumentation by bypassing the tracing middleware
-        # code; this part must be updated because it still change users
-        # applications
-        options = {}
-        config.app_middleware.insert_before 0, Datadog::Contrib::Rack::TraceMiddleware, options
+        config.app_middleware.insert_before 0, Datadog::Contrib::Rack::TraceMiddleware
 
         config.after_initialize do |app|
           Datadog::Contrib::Rails::Framework.configure(config: app.config)
           Datadog::Contrib::Rails::Framework.auto_instrument()
           Datadog::Contrib::Rails::Framework.auto_instrument_redis()
-
-          # override Rack Middleware configurations with Rails
-          options.update(::Rails.configuration.datadog_trace)
         end
       end
     end
