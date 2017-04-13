@@ -4,9 +4,9 @@
 
 ## Documentation
 
-You can find the latest documentation in the Datadog's [private repository][docs]
+You can find the latest documentation on [rubydoc.info][docs]
 
-[docs]: http://gems.datadoghq.com/trace/docs/
+[docs]: http://www.rubydoc.info/github/DataDog/dd-trace-rb/
 
 ## Getting started
 
@@ -25,6 +25,12 @@ If you're using ``Bundler``, just update your ``Gemfile`` as follows:
     gem 'ddtrace'
 ```
 
+To use a development/preview version, use:
+
+```ruby
+    gem 'ddtrace', :github => 'DataDog/dd-trace-rb', :branch => 'foo/bar'
+```
+
 ### Quickstart (manual instrumentation)
 
 If you aren't using a supported framework instrumentation, you may want to to manually instrument your code.
@@ -34,7 +40,7 @@ to trace requests to the home page:
 ```ruby
     require 'ddtrace'
     require 'sinatra'
-    require 'activerecord'
+    require 'active_record'
 
     # a generic tracer that you can use across your application
     tracer = Datadog.tracer
@@ -59,28 +65,29 @@ to trace requests to the home page:
     end
 ```
 
-### Monkey patching
+### Quickstart (integration)
 
-By default, our monkey-patching is not active, you need to
-explicitly activate it by calling `Datadog::Monkey.patch_all`
-or `Datadog::Monkey.patch_module`
-
-This ultimately allows you to enable or disable tracing on a per-library basis.
-
-The example below shows the Redis case, but any other non-rails library
-should work the same way:
+Instead of doing the above manually, whenever an integration is available,
+you can activate it. The example above would become:
 
 ```ruby
-
-    require 'redis'
     require 'ddtrace'
+    require 'sinatra'
+    require 'active_record'
 
-    Datadog::Monkey.patch_all # you need to explicitly patch it
+    Datadog::Monkey.patch_all # explicitly activate monkey patching
 
-    # now do your Redis stuff, eg:
-    redis = Redis.new
-    redis.set 'foo', 'bar' # traced!
+    # now write your code naturally, it's traced automatically
+    get '/' do
+      @posts = Posts.order(created_at: :desc).limit(10)
+      erb :index
+    end
 ```
+
+To know if a given framework or lib is supported by our client,
+please consult our [integrations][contrib] list.
+
+[contrib]: http://www.rubydoc.info/github/DataDog/dd-trace-rb/Datadog/Contrib
 
 ## Development
 
@@ -91,21 +98,31 @@ Configure your environment through:
     $ bundle install
     $ appraisal install
 
-You can launch tests using the following rake command:
+You can launch tests using the following Rake commands:
 
-    $ rake test:main                                     # tracer tests
-    $ appraisal rails<version>-<database>rake test:rails # tests Rails matrix
-    $ appraisal contrib rake test:redis                  # tests Redis integration
-    $ appraisal contrib rake test:monkey                 # tests monkey patching
+    $ rake test:main                                      # tracer tests
+    $ appraisal rails<version>-<database> rake test:rails # tests Rails matrix
+    $ appraisal contrib rake test:redis                   # tests Redis integration
+    ...
+
+Run ``rake --tasks`` for the list of available Rake tasks.
 
 Available appraisals are:
 
-* ``rails{3,4,5}-postgres``: Rails with PostgreSQL
-* ``rails{3,4,5}-mysql2``: Rails with MySQL
-* ``contrib``: Other contrib libraries (Redis, ...)
-
-jRuby includes only Rails 3.x and 4.x because the current implementation of jdbc drivers, don't support
-ActiveRecord 5.x.
+* ``contrib``: default for integrations
+* ``contrib-old``: default for integrations, with version suited for old Ruby (possibly unmaintained) versions
+* ``rails3-mysql2``: Rails3 with Mysql
+* ``rails3-postgres``: Rails 3 with Postgres
+* ``rails3-postgres-redis``: Rails 3 with Postgres and Redis
+* ``rails3-postgres-sidekiq``: Rails 3 with Postgres and Sidekiq
+* ``rails4-mysql2``: Rails4 with Mysql
+* ``rails4-postgres``: Rails 4 with Postgres
+* ``rails4-postgres-redis``: Rails 4 with Postgres and Redis
+* ``rails4-postgres-sidekiq``: Rails 4 with Postgres and Sidekiq
+* ``rails5-mysql2``: Rails5 with Mysql
+* ``rails5-postgres``: Rails 5 with Postgres
+* ``rails5-postgres-redis``: Rails 5 with Postgres and Redis
+* ``rails5-postgres-sidekiq``: Rails 5 with Postgres and Sidekiq
 
 The test suite requires many backing services (PostgreSQL, MySQL, Redis, ...) and we're using
 ``docker`` and ``docker-compose`` to start these services in the CI.

@@ -21,9 +21,14 @@ We strongly suggest pinning the version of the library you deploy.
 ## Quickstart
 
 The easiest way to get started with the tracing client is to instrument your web application. ``ddtrace`` gem
-provides auto instrumentation for the following web frameworks:
+provides auto instrumentation for the following web frameworks and libraries:
 
+* [Active Record](#label-Active+Record)
+* [Elastic Search](#label-Elastic+Search)
+* [Net/HTTP](#label-Net/HTTP)
+* [Redis](#label-Redis)
 * [Ruby on Rails](#label-Ruby+on+Rails)
+* [Sidekiq](#label-Sidekiq)
 * [Sinatra](#label-Sinatra)
 
 ## Web Frameworks
@@ -138,11 +143,29 @@ The Redis integration will trace simple calls as well as pipelines.
     require 'redis'
     require 'ddtrace'
 
-    Datadog::Monkey.patch_module(:redis) # you need to explicitly patch it
+    Datadog::Monkey.patch_module(:redis) # explicitly patch it
 
     # now do your Redis stuff, eg:
     redis = Redis.new
     redis.set 'foo', 'bar' # traced!
+
+### Active Record
+
+Most of the time, Active Record is set up as part of a web framework (Rails, Sinatra...)
+however it can be set up alone:
+
+    require 'tmpdir'
+    require 'sqlite3'
+    require 'active_record'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:active_record) # explicitly patch it
+
+    Dir::Tmpname.create(['test', '.sqlite']) do |db|
+      conn = ActiveRecord::Base.establish_connection(adapter: 'sqlite3',
+                                                     database: db)
+      conn.connection.execute('SELECT 42') # traced!
+    end
 
 ### Elastic Search
 
@@ -152,7 +175,7 @@ in the ``Client`` object:
     require 'elasticsearch/transport'
     require 'ddtrace'
 
-    Datadog::Monkey.patch_module(:elasticsearch) # you need to explicitly patch it
+    Datadog::Monkey.patch_module(:elasticsearch) # explicitly patch it
 
     # now do your Elastic Search stuff, eg:
     client = Elasticsearch::Client.new url: 'http://127.0.0.1:9200'
@@ -170,7 +193,7 @@ Net::HTTP module.
     require 'net/http'
     require 'ddtrace'
 
-    Datadog::Monkey.patch_module(:http) # you need to explicitly patch it
+    Datadog::Monkey.patch_module(:http) # explicitly patch it
 
     Net::HTTP.start('127.0.0.1', 8080) do |http|
       request = Net::HTTP::Get.new '/index'
@@ -242,7 +265,7 @@ to trace requests to the home page:
 
     require 'ddtrace'
     require 'sinatra'
-    require 'activerecord'
+    require 'active_record'
 
     # a generic tracer that you can use across your application
     tracer = Datadog.tracer
@@ -372,7 +395,7 @@ for the first time:
 
     require 'ddtrace'
     require 'sinatra'
-    require 'activerecord'
+    require 'active_record'
 
     # enable debug mode
     Datadog::Tracer.debug_logging = true
