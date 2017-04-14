@@ -56,11 +56,11 @@ module Datadog
         end
 
         def self.database_service
-          if defined?(::Sinatra)
-            @database_service ||= datadog_trace.fetch(:default_database_service, adapter_name())
-          else
-            @database_service ||= adapter_name()
-          end
+          @database_service ||= if defined?(::Sinatra)
+                                  datadog_trace.fetch(:default_database_service, adapter_name())
+                                else
+                                  adapter_name()
+                                end
           if @database_service
             tracer().set_service_info(@database_service, 'sinatra',
                                       Datadog::Ext::AppTypes::DB)

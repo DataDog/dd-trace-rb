@@ -136,19 +136,6 @@ Available settings are:
 
 ## Other libraries
 
-### Redis
-
-The Redis integration will trace simple calls as well as pipelines.
-
-    require 'redis'
-    require 'ddtrace'
-
-    Datadog::Monkey.patch_module(:redis) # explicitly patch it
-
-    # now do your Redis stuff, eg:
-    redis = Redis.new
-    redis.set 'foo', 'bar' # traced!
-
 ### Active Record
 
 Most of the time, Active Record is set up as part of a web framework (Rails, Sinatra...)
@@ -201,6 +188,19 @@ Net::HTTP module.
     end
 
     content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
+
+### Redis
+
+The Redis integration will trace simple calls as well as pipelines.
+
+    require 'redis'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:redis) # explicitly patch it
+
+    # now do your Redis stuff, eg:
+    redis = Redis.new
+    redis.set 'foo', 'bar' # traced!
 
 ### Sidekiq
 
