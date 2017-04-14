@@ -12,7 +12,7 @@ class TracerTest < RackBaseTest
     span = spans[0]
     assert_equal('rack.request', span.name)
     assert_equal('http', span.span_type)
-    assert_equal('rack-app', span.service)
+    assert_equal('rack', span.service)
     assert_equal('rack.request', span.resource)
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
@@ -32,7 +32,7 @@ class TracerTest < RackBaseTest
     span = spans[0]
     assert_equal('rack.request', span.name)
     assert_equal('http', span.span_type)
-    assert_equal('rack-app', span.service)
+    assert_equal('rack', span.service)
     assert_equal('rack.request', span.resource)
     assert_equal('POST', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
@@ -52,7 +52,7 @@ class TracerTest < RackBaseTest
     span = spans[0]
     assert_equal('rack.request', span.name)
     assert_equal('http', span.span_type)
-    assert_equal('rack-app', span.service)
+    assert_equal('rack', span.service)
     assert_equal('rack.request', span.resource)
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
@@ -72,7 +72,7 @@ class TracerTest < RackBaseTest
     span = spans[0]
     assert_equal('rack.request', span.name)
     assert_equal('http', span.span_type)
-    assert_equal('rack-app', span.service)
+    assert_equal('rack', span.service)
     assert_equal('rack.request', span.resource)
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('404', span.get_tag('http.status_code'))
@@ -93,7 +93,7 @@ class TracerTest < RackBaseTest
     span = spans[0]
     assert_equal('rack.request', span.name)
     assert_equal('http', span.span_type)
-    assert_equal('rack-app', span.service)
+    assert_equal('rack', span.service)
     assert_equal('rack.request', span.resource)
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('400', span.get_tag('http.status_code'))
@@ -115,7 +115,7 @@ class TracerTest < RackBaseTest
     span = spans[0]
     assert_equal('rack.request', span.name)
     assert_equal('http', span.span_type)
-    assert_equal('rack-app', span.service)
+    assert_equal('rack', span.service)
     assert_equal('rack.request', span.resource)
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('/exception/', span.get_tag('http.url'))
@@ -137,7 +137,7 @@ class TracerTest < RackBaseTest
     span = spans[0]
     assert_equal('rack.request', span.name)
     assert_equal('http', span.span_type)
-    assert_equal('rack-app', span.service)
+    assert_equal('rack', span.service)
     assert_equal('GET /app/', span.resource)
     assert_equal('GET_V2', span.get_tag('http.method'))
     assert_equal('/app/static/', span.get_tag('http.url'))
@@ -187,7 +187,7 @@ class RackBaseTest < Minitest::Test
     middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {})
     refute_nil(middleware)
     assert_equal(middleware.instance_eval { @tracer }, Datadog.tracer)
-    assert_equal(middleware.instance_eval { @service }, 'rack-app')
+    assert_equal(middleware.instance_eval { @service }, 'rack')
   end
 
   def test_middleware_builder
