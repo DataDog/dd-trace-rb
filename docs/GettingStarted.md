@@ -64,8 +64,9 @@ of the Datadog tracer, you can override the following defaults:
       auto_instrument: false,
       auto_instrument_redis: false,
       default_service: 'rails-app',
-      default_database_service: 'postgresql',
+      default_controller_service: 'rails-controller',
       default_cache_service: 'rails-cache',
+      default_database_service: 'postgresql',
       template_base_path: 'views/',
       tracer: Datadog.tracer,
       debug: false,
@@ -84,9 +85,10 @@ Available settings are:
 * ``auto_instrument_redis``: if set to ``true`` Redis calls will be traced as such. Calls to Redis cache may be
   still instrumented but you will not have the detail of low-level Redis calls.
 * ``default_service``: set the service name used when tracing application requests. Defaults to ``rails-app``
+* ``default_controller_service``: set the service name used when tracing a Rails action controller. Defaults to ``rails-controller``
+* ``default_cache_service``: set the cache service name used when tracing cache activity. Defaults to ``rails-cache``
 * ``default_database_service``: set the database service name used when tracing database activity. Defaults to the
   current adapter name, so if you're using PostgreSQL it will be ``postgres``.
-* ``default_cache_service``: set the cache service name used when tracing cache activity. Defaults to ``rails-cache``
 * ``template_base_path``: used when the template name is parsed in the auto instrumented code. If you don't store
   your templates in the ``views/`` folder, you may need to change this value
 * ``tracer``: is the global tracer used by the tracing application. Usually you don't need to change that value
