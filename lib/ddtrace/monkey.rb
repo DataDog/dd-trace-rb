@@ -37,7 +37,7 @@ module Datadog
     def patch_module(m)
       @mutex.synchronize do
         patcher = @patchers[m]
-        raise 'Unsupported module #{m}' unless patcher
+        raise "Unsupported module #{m}" unless patcher
         patcher.patch
       end
     end

@@ -18,6 +18,7 @@ module Datadog
             begin
               require 'ddtrace/contrib/rails/utils'
               require 'ddtrace/ext/sql'
+              require 'ddtrace/ext/app_types'
 
               patch_active_record()
 
@@ -50,11 +51,16 @@ module Datadog
         end
 
         def self.tracer
+          return Datadog.tracer unless datadog_trace
           @tracer ||= datadog_trace.fetch(:tracer)
         end
 
         def self.database_service
-          @database_service ||= datadog_trace.fetch(:default_database_service, adapter_name())
+          if defined?(::Sinatra)
+            @database_service ||= datadog_trace.fetch(:default_database_service, adapter_name())
+          else
+            @database_service ||= adapter_name()
+          end
           if @database_service
             tracer().set_service_info(@database_service, 'sinatra',
                                       Datadog::Ext::AppTypes::DB)

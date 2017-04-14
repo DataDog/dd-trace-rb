@@ -15,8 +15,8 @@ module Datadog
     def add(severity, message = nil, progname = nil, &block)
       where = ''
 
-      # We are in debug mode, add stack trace to help debugging
-      if debug?
+      # We are in debug mode, or this is an error, add stack trace to help debugging
+      if debug? || severity >= ::Logger::ERROR
         c = caller
         where = "(#{c[1]}) " if c.length > 1
       end
