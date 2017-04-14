@@ -1,6 +1,8 @@
 require 'ddtrace/ext/app_types'
 
+require 'ddtrace/contrib/grape/endpoint'
 require 'ddtrace/contrib/rack/middlewares'
+
 require 'ddtrace/contrib/rails/core_extensions'
 require 'ddtrace/contrib/rails/action_controller'
 require 'ddtrace/contrib/rails/action_view'
@@ -24,6 +26,7 @@ module Datadog
           default_service: 'rails-app',
           default_controller_service: 'rails-controller',
           default_cache_service: 'rails-cache',
+          default_grape_service: 'grape',
           template_base_path: 'views/',
           tracer: Datadog.tracer,
           debug: false,
@@ -73,6 +76,12 @@ module Datadog
             datadog_config[:default_cache_service],
             'rails',
             Datadog::Ext::AppTypes::CACHE
+          )
+
+          datadog_config[:tracer].set_service_info(
+            datadog_config[:default_grape_service],
+            'rails',
+            Datadog::Ext::AppTypes::WEB
           )
 
           # By default, default service would be guessed from the script
@@ -133,6 +142,7 @@ module Datadog
           Datadog::Contrib::Rails::ActionView.instrument()
           Datadog::Contrib::Rails::ActiveRecord.instrument()
           Datadog::Contrib::Rails::ActiveSupport.instrument()
+          Datadog::Contrib::Grape::Endpoint.instrument()
         end
       end
     end
