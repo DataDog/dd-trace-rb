@@ -424,6 +424,67 @@ overhead.
     sampler = Datadog::RateSampler.new(0.5) # sample 50% of the traces
     Datadog.tracer.configure(sampler: sampler)
 
+### Distributed Tracing
+
+To trace requests across hosts, the spans on the secondary hosts must be linked together by setting ``trace_id`` and ``parent_id``:
+
+    def request_on_secondary_host(parent_trace_id, parent_span_id)
+        tracer.trace('web.request') do |span|
+           span.parent_id = parent_span_id
+           span.trace_id = parent_trace_id
+
+           # perform user code
+        end
+    end
+
+Users can pass along the ``parent_trace_id`` and ``parent_span_id`` via whatever method best matches the RPC framework.
+
+Below is an example using Net/HTTP and Sinatra, where we bypass the integrations to demo how distributed tracing works.
+
+On the client:
+
+    require 'net/http'
+    require 'ddtrace'
+
+    # Do *not* monkey patch here, we do it "manually", to demo the feature
+    # Datadog::Monkey.patch_module(:http)
+
+    uri = URI('http://localhost:4567/')
+
+    Datadog.tracer.trace('web.call') do |span|
+      req = Net::HTTP::Get.new(uri)
+      req['x-ddtrace-parent_trace_id'] = span.trace_id.to_s
+      req['x-ddtrace-parent_span_id'] = span.span_id.to_s
+
+      response = Net::HTTP.start(uri.hostname, uri.port) do |http|
+        http.request(req)
+      end
+
+      puts response.body
+    end
+
+On the server:
+
+    require 'sinatra'
+    require 'ddtrace'
+
+    # Do *not* use Sinatra integration, we do it "manually", to demo the feature
+    # require 'ddtrace/contrib/sinatra/tracer'
+
+    get '/' do
+      parent_trace_id = request.env['HTTP_X_DDTRACE_PARENT_TRACE_ID']
+      parent_span_id = request.env['HTTP_X_DDTRACE_PARENT_SPAN_ID']
+
+      Datadog.tracer.trace('web.work') do |span|
+         if parent_trace_id && parent_span_id
+           span.trace_id = parent_trace_id.to_i
+           span.parent_id = parent_span_id.to_i
+         end
+
+        'Hello world!'
+      end
+    end
+
 ### Supported Versions
 
 #### Ruby interpreters
