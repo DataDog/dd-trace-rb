@@ -28,7 +28,7 @@ If you're using ``Bundler``, just update your ``Gemfile`` as follows:
 To use a development/preview version, use:
 
 ```ruby
-    gem 'ddtrace', :github => 'DataDog/dd-trace-rb', :branch => 'foo/bar'
+    gem 'ddtrace', :github => 'DataDog/dd-trace-rb', :branch => 'me/my-feature-branch'
 ```
 
 ### Quickstart (manual instrumentation)
@@ -75,7 +75,7 @@ you can activate it. The example above would become:
     require 'sinatra'
     require 'active_record'
 
-    Datadog::Monkey.patch_all # explicitly activate monkey patching
+    Datadog::Monkey.patch_all # monkey patch all available integrations
 
     # now write your code naturally, it's traced automatically
     get '/' do
