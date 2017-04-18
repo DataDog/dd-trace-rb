@@ -28,6 +28,7 @@ class LoggerTest < Minitest::Test
     assert_equal(logger.level, Logger::WARN)
   end
 
+  # rubocop:disable Metrics/MethodLength
   def test_tracer_logger_override
     default_log = Datadog::Tracer.log
 
@@ -59,9 +60,15 @@ class LoggerTest < Minitest::Test
       when 0
         assert_match(/W,.*WARN -- ddtrace: \[ddtrace\] careful here/, l)
       when 1
-        assert_match(/E,.*ERROR -- ddtrace: \[ddtrace\] this does not work/, l)
+        assert_match(
+          /E,.*ERROR -- ddtrace: \[ddtrace\] \(.*logger_test.rb\:.*test_tracer_logger_override.*\) this does not work/,
+          l
+        )
       when 2
-        assert_match(/E,.*ERROR -- foo: \[ddtrace\] neither does this/, l)
+        assert_match(
+          /E,.*ERROR -- foo: \[ddtrace\] \(.*logger_test.rb\:.*test_tracer_logger_override.*\) neither does this/,
+          l
+        )
       when 3
         assert_match(/W,.*WARN -- bar: \[bar\] add some warning/, l)
       end

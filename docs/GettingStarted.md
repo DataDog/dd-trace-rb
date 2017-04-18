@@ -21,9 +21,14 @@ We strongly suggest pinning the version of the library you deploy.
 ## Quickstart
 
 The easiest way to get started with the tracing client is to instrument your web application. ``ddtrace`` gem
-provides auto instrumentation for the following web frameworks:
+provides auto instrumentation for the following web frameworks and libraries:
 
+* [Active Record](#label-Active+Record)
+* [Elastic Search](#label-Elastic+Search)
+* [Net/HTTP](#label-Net/HTTP)
+* [Redis](#label-Redis)
 * [Ruby on Rails](#label-Ruby+on+Rails)
+* [Sidekiq](#label-Sidekiq)
 * [Sinatra](#label-Sinatra)
 
 ## Web Frameworks
@@ -131,18 +136,23 @@ Available settings are:
 
 ## Other libraries
 
-### Redis
+### Active Record
 
-The Redis integration will trace simple calls as well as pipelines.
+Most of the time, Active Record is set up as part of a web framework (Rails, Sinatra...)
+however it can be set up alone:
 
-    require 'redis'
+    require 'tmpdir'
+    require 'sqlite3'
+    require 'active_record'
     require 'ddtrace'
 
-    Datadog::Monkey.patch_module(:redis) # you need to explicitly patch it
+    Datadog::Monkey.patch_module(:active_record) # explicitly patch it
 
-    # now do your Redis stuff, eg:
-    redis = Redis.new
-    redis.set 'foo', 'bar' # traced!
+    Dir::Tmpname.create(['test', '.sqlite']) do |db|
+      conn = ActiveRecord::Base.establish_connection(adapter: 'sqlite3',
+                                                     database: db)
+      conn.connection.execute('SELECT 42') # traced!
+    end
 
 ### Elastic Search
 
@@ -152,7 +162,7 @@ in the ``Client`` object:
     require 'elasticsearch/transport'
     require 'ddtrace'
 
-    Datadog::Monkey.patch_module(:elasticsearch) # you need to explicitly patch it
+    Datadog::Monkey.patch_module(:elasticsearch) # explicitly patch it
 
     # now do your Elastic Search stuff, eg:
     client = Elasticsearch::Client.new url: 'http://127.0.0.1:9200'
@@ -170,7 +180,7 @@ Net::HTTP module.
     require 'net/http'
     require 'ddtrace'
 
-    Datadog::Monkey.patch_module(:http) # you need to explicitly patch it
+    Datadog::Monkey.patch_module(:http) # explicitly patch it
 
     Net::HTTP.start('127.0.0.1', 8080) do |http|
       request = Net::HTTP::Get.new '/index'
@@ -178,6 +188,19 @@ Net::HTTP module.
     end
 
     content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
+
+### Redis
+
+The Redis integration will trace simple calls as well as pipelines.
+
+    require 'redis'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:redis) # explicitly patch it
+
+    # now do your Redis stuff, eg:
+    redis = Redis.new
+    redis.set 'foo', 'bar' # traced!
 
 ### Sidekiq
 
@@ -242,7 +265,7 @@ to trace requests to the home page:
 
     require 'ddtrace'
     require 'sinatra'
-    require 'activerecord'
+    require 'active_record'
 
     # a generic tracer that you can use across your application
     tracer = Datadog.tracer
@@ -372,7 +395,7 @@ for the first time:
 
     require 'ddtrace'
     require 'sinatra'
-    require 'activerecord'
+    require 'active_record'
 
     # enable debug mode
     Datadog::Tracer.debug_logging = true
@@ -400,6 +423,67 @@ overhead.
     # Sample rate is between 0 (nothing sampled) to 1 (everything sampled).
     sampler = Datadog::RateSampler.new(0.5) # sample 50% of the traces
     Datadog.tracer.configure(sampler: sampler)
+
+### Distributed Tracing
+
+To trace requests across hosts, the spans on the secondary hosts must be linked together by setting ``trace_id`` and ``parent_id``:
+
+    def request_on_secondary_host(parent_trace_id, parent_span_id)
+        tracer.trace('web.request') do |span|
+           span.parent_id = parent_span_id
+           span.trace_id = parent_trace_id
+
+           # perform user code
+        end
+    end
+
+Users can pass along the ``parent_trace_id`` and ``parent_span_id`` via whatever method best matches the RPC framework.
+
+Below is an example using Net/HTTP and Sinatra, where we bypass the integrations to demo how distributed tracing works.
+
+On the client:
+
+    require 'net/http'
+    require 'ddtrace'
+
+    # Do *not* monkey patch here, we do it "manually", to demo the feature
+    # Datadog::Monkey.patch_module(:http)
+
+    uri = URI('http://localhost:4567/')
+
+    Datadog.tracer.trace('web.call') do |span|
+      req = Net::HTTP::Get.new(uri)
+      req['x-ddtrace-parent_trace_id'] = span.trace_id.to_s
+      req['x-ddtrace-parent_span_id'] = span.span_id.to_s
+
+      response = Net::HTTP.start(uri.hostname, uri.port) do |http|
+        http.request(req)
+      end
+
+      puts response.body
+    end
+
+On the server:
+
+    require 'sinatra'
+    require 'ddtrace'
+
+    # Do *not* use Sinatra integration, we do it "manually", to demo the feature
+    # require 'ddtrace/contrib/sinatra/tracer'
+
+    get '/' do
+      parent_trace_id = request.env['HTTP_X_DDTRACE_PARENT_TRACE_ID']
+      parent_span_id = request.env['HTTP_X_DDTRACE_PARENT_SPAN_ID']
+
+      Datadog.tracer.trace('web.work') do |span|
+         if parent_trace_id && parent_span_id
+           span.trace_id = parent_trace_id.to_i
+           span.parent_id = parent_span_id.to_i
+         end
+
+        'Hello world!'
+      end
+    end
 
 ### Supported Versions
 
