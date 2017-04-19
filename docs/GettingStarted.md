@@ -412,6 +412,23 @@ for the first time:
 Remember that the debug mode may affect your application performance and so it must not be used
 in a production environment.
 
+### Environment and tags
+
+By default, the trace agent (not this library, but the program running in
+the background collecting data from various clients) uses the tags
+set in the agent config file, see our
+[environments tutorial](https://app.datadoghq.com/apm/docs/tutorials/environments) for details.
+
+These values can be overridden at the tracer level:
+
+    Datadog.tracer.set_tags('env' => 'prod', 'component' => 'core')
+
+This enables you to set this value on a per tracer basis, so you can have
+for example several applications reporting for different environments on the same host.
+
+Ultimately, tags can be set per span, but `env` should typically be the same
+for all spans belonging to a given trace.
+
 ### Sampling
 
 `ddtrace` can perform trace sampling. While the trace agent already samples
