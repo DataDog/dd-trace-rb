@@ -59,7 +59,7 @@ module Datadog
           # set default service details
           datadog_config[:tracer].set_service_info(
             datadog_config[:default_service],
-            'rails',
+            'rack',
             Datadog::Ext::AppTypes::WEB
           )
 
