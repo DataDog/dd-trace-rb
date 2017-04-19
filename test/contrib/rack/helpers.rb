@@ -7,6 +7,7 @@ require 'rack/test'
 class RackBaseTest < Minitest::Test
   include Rack::Test::Methods
 
+  # rubocop:disable Metrics/MethodLength
   def app
     tracer = @tracer
 
@@ -25,6 +26,10 @@ class RackBaseTest < Minitest::Test
         run(proc { |_env| raise StandardError, 'Unable to process the request' })
       end
 
+      map '/500/' do
+        run(proc { |_env| [500, { 'Content-Type' => 'text/html' }, 'KO'] })
+      end
+
       map '/app/' do
         run(proc do |env|
           # this should be considered a web framework that can alter
@@ -36,6 +41,29 @@ class RackBaseTest < Minitest::Test
           request_span.set_tag('http.url', '/app/static/')
 
           [200, { 'Content-Type' => 'text/html' }, 'OK']
+        end)
+      end
+
+      map '/app/500/' do
+        run(proc do |env|
+          # this should be considered a web framework that can alter
+          # the request span after routing / controller processing
+          request_span = env[:datadog_rack_request_span]
+          request_span.status = 1
+          request_span.set_tag('error.stack', 'Handled exception')
+
+          [500, { 'Content-Type' => 'text/html' }, 'OK']
+        end)
+      end
+
+      map '/app/500/no_status/' do
+        run(proc do |env|
+          # this should be considered a web framework that can alter
+          # the request span after routing / controller processing
+          request_span = env[:datadog_rack_request_span]
+          request_span.set_tag('error.stack', 'Handled exception')
+
+          [500, { 'Content-Type' => 'text/html' }, 'OK']
         end)
       end
     end.to_app

@@ -1,5 +1,6 @@
 require 'contrib/rack/helpers'
 
+# rubocop:disable Metrics/ClassLength
 class TracerTest < RackBaseTest
   def test_request_middleware_get
     # ensure the Rack request is properly traced
@@ -141,8 +142,76 @@ class TracerTest < RackBaseTest
     assert_equal('rack', span.service)
     assert_equal('GET /app/', span.resource)
     assert_equal('GET_V2', span.get_tag('http.method'))
+    assert_equal('201', span.get_tag('http.status_code'))
     assert_equal('/app/static/', span.get_tag('http.url'))
     assert_equal(0, span.status)
+    assert_nil(span.parent)
+  end
+
+  def test_request_middleware_500
+    # ensure that a Rack application that returns 500 without
+    # raising an Exception is properly identified as an error
+    get '/500/'
+    assert last_response.status == 500
+
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('rack.request', span.name)
+    assert_equal('http', span.span_type)
+    assert_equal('rack', span.service)
+    assert_equal('GET 500', span.resource)
+    assert_equal('GET', span.get_tag('http.method'))
+    assert_equal('500', span.get_tag('http.status_code'))
+    assert_equal('/500/', span.get_tag('http.url'))
+    refute_nil(span.get_tag('error.stack'))
+    assert_equal(1, span.status)
+    assert_nil(span.parent)
+  end
+
+  def test_request_middleware_500_handled
+    # ensure that a Rack application that returns 500 and that
+    # handles the exception properly, is identified as an error
+    get '/app/500/'
+    assert last_response.status == 500
+
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('rack.request', span.name)
+    assert_equal('http', span.span_type)
+    assert_equal('rack', span.service)
+    assert_equal('GET 500', span.resource)
+    assert_equal('GET', span.get_tag('http.method'))
+    assert_equal('500', span.get_tag('http.status_code'))
+    assert_equal('/app/500/', span.get_tag('http.url'))
+    assert_equal(1, span.status)
+    assert_equal('Handled exception', span.get_tag('error.stack'))
+    assert_nil(span.parent)
+  end
+
+  def test_request_middleware_500_handled_without_status
+    # ensure that a Rack application that returns 500 and that
+    # handles the exception without setting the Span status,
+    # is identified as an error
+    get '/app/500/no_status/'
+    assert last_response.status == 500
+
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('rack.request', span.name)
+    assert_equal('http', span.span_type)
+    assert_equal('rack', span.service)
+    assert_equal('GET 500', span.resource)
+    assert_equal('GET', span.get_tag('http.method'))
+    assert_equal('500', span.get_tag('http.status_code'))
+    assert_equal('/app/500/no_status/', span.get_tag('http.url'))
+    assert_equal(1, span.status)
+    assert_equal('Handled exception', span.get_tag('error.stack'))
     assert_nil(span.parent)
   end
 end

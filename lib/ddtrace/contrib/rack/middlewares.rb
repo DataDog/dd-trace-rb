@@ -65,6 +65,17 @@ module Datadog
           request_span.set_tag('http.method', request.request_method) if request_span.get_tag('http.method').nil?
           request_span.set_tag('http.url', request.path_info) if request_span.get_tag('http.url').nil?
           request_span.set_tag('http.status_code', status) if request_span.get_tag('http.status_code').nil? && status
+
+          # detect if the status code is a 5xx and flag the request span as an error
+          # unless it has been already set by the underlying framework
+          if status.to_s.start_with?('5') && request_span.status.zero?
+            request_span.status = 1
+            # in any case we don't touch the stacktrace if it has been set
+            if request_span.get_tag(Datadog::Ext::Errors::STACK).nil?
+              request_span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
+            end
+          end
+
           request_span.finish()
 
           [status, headers, response]
