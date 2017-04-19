@@ -421,7 +421,7 @@ set in the agent config file, see our
 
 These values can be overridden at the tracer level:
 
-    Datadog.tracer.set_tags('env' => 'prod', 'component' => 'core')
+    Datadog.tracer.set_tags('env' => 'prod')
 
 This enables you to set this value on a per tracer basis, so you can have
 for example several applications reporting for different environments on the same host.
