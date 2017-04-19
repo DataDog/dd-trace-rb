@@ -3,13 +3,13 @@
 source "https://rubygems.org"
 
 gem "elasticsearch-transport"
+gem "rack"
+gem "rack-test"
 gem "redis"
 gem "hiredis"
-gem "rack-test"
 gem "sinatra"
-gem 'sqlite3'
+gem "sqlite3"
 gem "activerecord"
 gem "sidekiq"
-gem "activerecord"
 
 gemspec :path => "../"

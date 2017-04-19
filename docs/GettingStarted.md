@@ -23,13 +23,14 @@ We strongly suggest pinning the version of the library you deploy.
 The easiest way to get started with the tracing client is to instrument your web application. ``ddtrace`` gem
 provides auto instrumentation for the following web frameworks and libraries:
 
+* [Ruby on Rails](#label-Ruby+on+Rails)
+* [Sidekiq](#label-Sidekiq)
+* [Sinatra](#label-Sinatra)
+* [Rack](#label-Rack)
 * [Active Record](#label-Active+Record)
 * [Elastic Search](#label-Elastic+Search)
 * [Net/HTTP](#label-Net/HTTP)
 * [Redis](#label-Redis)
-* [Ruby on Rails](#label-Ruby+on+Rails)
-* [Sidekiq](#label-Sidekiq)
-* [Sinatra](#label-Sinatra)
 
 ## Web Frameworks
 
@@ -133,6 +134,43 @@ Available settings are:
 * ``debug``: set to ``true`` to enable debug logging.
 * ``trace_agent_hostname``: set the hostname of the trace agent.
 * ``trace_agent_port``: set the port the trace agent is listening on.
+
+### Rack
+
+The Rack integration provides a middleware that traces all requests before they reach the underlying framework
+or application. It responds to the Rack minimal interface, providing reasonable values that can be
+retrieved at the Rack level.
+To start using the middleware in your generic Rack application, add it to your ``config.ru``:
+
+    # config.ru example
+    use Datadog::Contrib::Rack::TraceMiddleware
+
+    app = proc do |env|
+      [ 200, {'Content-Type' => 'text/plain'}, "OK" ]
+    end
+
+    run app
+
+#### Configure the tracer
+
+To modify the default middleware configuration, you can use middleware options as follows:
+
+    # config.ru example
+    use Datadog::Contrib::Rack::TraceMiddleware default_service: 'rack-stack'
+
+    app = proc do |env|
+      [ 200, {'Content-Type' => 'text/plain'}, "OK" ]
+    end
+
+    run app
+
+Available settings are:
+
+* ``tracer`` (default: ``Datadog.tracer``): set the tracer to use. Usually you don't need to change that value
+  unless you're already using a different initialized tracer somewhere else. If you need to change some
+  configurations such as the ``hostname``, use the [Tracer#configure](Datadog/Tracer.html#configure-instance_method)
+  method before adding the middleware
+* ``default_service`` (default: ``rack``): set the service name used when the Rack request is traced
 
 ## Other libraries
 
