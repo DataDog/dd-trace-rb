@@ -54,7 +54,7 @@ module Datadog
               status = payload.fetch(:status, '?').to_s
               if status.starts_with?('5')
                 span.status = 1
-                span.set_tag(Datadog::Ext::Errors::STACK, caller().join('\n'))
+                span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
               end
               span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
             else
