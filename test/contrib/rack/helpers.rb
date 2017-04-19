@@ -29,7 +29,7 @@ class RackBaseTest < Minitest::Test
         run(proc do |env|
           # this should be considered a web framework that can alter
           # the request span after routing / controller processing
-          request_span = env[:datadog_request_span]
+          request_span = env[:datadog_rack_request_span]
           request_span.resource = 'GET /app/'
           request_span.set_tag('http.method', 'GET_V2')
           request_span.set_tag('http.status_code', 201)

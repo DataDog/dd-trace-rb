@@ -44,7 +44,7 @@ module Datadog
             resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE
           )
-          request.env[:datadog_request_span] = request_span
+          request.env[:datadog_rack_request_span] = request_span
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
