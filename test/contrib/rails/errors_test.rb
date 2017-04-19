@@ -2,7 +2,7 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
-class TracingControllerTest < ActionController::TestCase
+class TracingControllerTest < ActionDispatch::IntegrationTest
   setup do
     @original_tracer = Rails.configuration.datadog_trace[:tracer]
     @tracer = get_test_tracer
@@ -14,9 +14,9 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'error in the controller must be traced' do
-    assert_raises ZeroDivisionError do
-      get :error
-    end
+    get '/error'
+    assert_response :error
+
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 1)
 
@@ -35,9 +35,9 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'error in the template must be traced' do
-    assert_raises ::ActionView::Template::Error do
-      get :error_template
-    end
+    get '/error_template'
+    assert_response :error
+
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
 
@@ -66,9 +66,9 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'error in the template partials must be traced' do
-    assert_raises ::ActionView::Template::Error do
-      get :error_partial
-    end
+    get '/error_partial'
+    assert_response :error
+
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
 

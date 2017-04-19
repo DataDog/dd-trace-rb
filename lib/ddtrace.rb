@@ -29,11 +29,14 @@ end
 if defined?(Rails::VERSION)
   if Rails::VERSION::MAJOR.to_i >= 3
     require 'ddtrace/contrib/rails/framework'
+    require 'ddtrace/contrib/rails/middleware'
 
     module Datadog
       # Run the auto instrumentation directly after initializers in
       # `config/initializers` are executed
       class Railtie < Rails::Railtie
+        config.app_middleware.use(Datadog::Contrib::Rails::Middleware)
+
         config.after_initialize do |app|
           Datadog::Contrib::Rails::Framework.configure(config: app.config)
           Datadog::Contrib::Rails::Framework.auto_instrument()
