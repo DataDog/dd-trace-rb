@@ -36,13 +36,14 @@ module Datadog
           # get the current Rack request
           request = ::Rack::Request.new(env)
 
-          # start a new request span and attach it to the current Rack environment
-          # Note: the resource is not set because Rack doesn't have a built-in
-          # router; because of that, we can't assume here what is the best
-          # representation for this trace, so we attach the span in the Rack env
-          # so that the underlying Rack App can provide and set more details
-          # TODO: set a lesser generic resource like `GET (STATUS_CODE)`
-          request_span = @tracer.trace('rack.request', service: @service, span_type: Datadog::Ext::HTTP::TYPE)
+          # start a new request span and attach it to the current Rack environment;
+          # we must ensure that the span `resource` is set later
+          request_span = @tracer.trace(
+            'rack.request',
+            service: @service,
+            resource: nil,
+            span_type: Datadog::Ext::HTTP::TYPE
+          )
           request.env[:datadog_request_span] = request_span
 
           # call the rest of the stack
@@ -54,12 +55,17 @@ module Datadog
           request_span.set_error(e)
           raise e
         ensure
-          # we must close the request_span and set the span fields if they aren't already set
-          # by the underlying framework or application
-          request_span.finish()
+          # Rack is a really low level interface and it doesn't provide any
+          # advanced functionality like routers. Because of that, we assume that
+          # the underlying framework or application has more knowledge about
+          # the result for this request; `resource` and `tags` are expected to
+          # be set in another level but if they're missing, reasonable defaults
+          # are used.
+          request_span.resource = "#{request.request_method} #{status}".strip unless request_span.resource
           request_span.set_tag('http.method', request.request_method) if request_span.get_tag('http.method').nil?
-          request_span.set_tag('http.status_code', status) if request_span.get_tag('http.status_code').nil?
           request_span.set_tag('http.url', request.path_info) if request_span.get_tag('http.url').nil?
+          request_span.set_tag('http.status_code', status) if request_span.get_tag('http.status_code').nil? && status
+          request_span.finish()
 
           [status, headers, response]
         end
