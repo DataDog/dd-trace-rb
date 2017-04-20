@@ -2,7 +2,7 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
-class TracingControllerTest < ActionDispatch::IntegrationTest
+class TracingControllerTest < ActionController::TestCase
   setup do
     @original_tracer = Rails.configuration.datadog_trace[:tracer]
     @tracer = get_test_tracer
@@ -15,7 +15,7 @@ class TracingControllerTest < ActionDispatch::IntegrationTest
 
   test 'request is properly traced' do
     # make the request and assert the proper span
-    get '/'
+    get :index
     assert_response :success
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
@@ -33,7 +33,7 @@ class TracingControllerTest < ActionDispatch::IntegrationTest
 
   test 'template rendering is properly traced' do
     # render the template and assert the proper span
-    get '/'
+    get :index
     assert_response :success
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
@@ -47,7 +47,7 @@ class TracingControllerTest < ActionDispatch::IntegrationTest
 
   test 'template partial rendering is properly traced' do
     # render the template and assert the proper span
-    get '/partial'
+    get :partial
     assert_response :success
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
@@ -63,7 +63,7 @@ class TracingControllerTest < ActionDispatch::IntegrationTest
 
   test 'a full request with database access on the template' do
     # render the endpoint
-    get '/full'
+    get :full
     assert_response :success
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 4)
@@ -87,19 +87,23 @@ class TracingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'multiple calls should not leave an unfinished span in the local thread buffer' do
-    get '/full'
+    get :full
     assert_response :success
     assert_nil(Thread.current[:datadog_span])
 
-    get '/full'
+    get :full
     assert_response :success
     assert_nil(Thread.current[:datadog_span])
   end
 
   test 'error should be trapped and reported as such' do
-    get '/error'
-    assert_response :error
-
+    err = false
+    begin
+      get :error
+    rescue
+      err = true
+    end
+    assert_equal(true, err, 'should have raised an error')
     spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
     span = spans[0]
@@ -113,7 +117,7 @@ class TracingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'http error code should be trapped and reported as such, even with no exception' do
-    get '/soft_error'
+    get :soft_error
 
     spans = @tracer.writer.spans()
     if Rails::VERSION::MAJOR.to_i >= 5
