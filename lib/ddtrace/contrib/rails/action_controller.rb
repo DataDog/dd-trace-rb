@@ -24,9 +24,9 @@ module Datadog
           return if Thread.current[KEY]
 
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          service = ::Rails.configuration.datadog_trace.fetch(:default_service)
+          service = ::Rails.configuration.datadog_trace.fetch(:default_controller_service)
           type = Datadog::Ext::HTTP::TYPE
-          tracer.trace('rails.request', service: service, span_type: type)
+          tracer.trace('rails.action_controller', service: service, span_type: type)
 
           Thread.current[KEY] = true
         rescue StandardError => e
@@ -42,9 +42,14 @@ module Datadog
           return unless span
 
           begin
-            span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
-            span.set_tag(Datadog::Ext::HTTP::URL, payload.fetch(:path))
-            span.set_tag(Datadog::Ext::HTTP::METHOD, payload.fetch(:method))
+            resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
+            span.resource = resource
+
+            # set the parent resource if it's a `rack.request` span
+            if !span.parent.nil? && span.parent.name == 'rack.request'
+              span.parent.resource = resource
+            end
+
             span.set_tag('rails.route.action', payload.fetch(:action))
             span.set_tag('rails.route.controller', payload.fetch(:controller))
 
@@ -56,16 +61,12 @@ module Datadog
                 span.status = 1
                 span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
               end
-              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
             else
               error = payload[:exception]
               span.status = 1
               span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
               span.set_tag(Datadog::Ext::Errors::MSG, error[1])
               span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
-              # [manu,christian]: it's right to have a 500? there are cases in Rails that let
-              # user to recover the error after this point?
-              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, payload.fetch(:status, '500').to_s)
             end
           ensure
             span.start_time = start

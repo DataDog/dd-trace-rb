@@ -21,12 +21,9 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(spans.length, 2)
 
     span = spans[1]
-    assert_equal(span.name, 'rails.request')
+    assert_equal(span.name, 'rails.action_controller')
     assert_equal(span.span_type, 'http')
     assert_equal(span.resource, 'TracingController#index')
-    assert_equal(span.get_tag('http.url'), '/')
-    assert_equal(span.get_tag('http.method'), 'GET')
-    assert_equal(span.get_tag('http.status_code'), '200')
     assert_equal(span.get_tag('rails.route.action'), 'index')
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
   end
@@ -77,7 +74,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_cache.name, 'rails.cache')
     assert_equal(span_database.name, "#{adapter_name}.query")
     assert_equal(span_template.name, 'rails.render_template')
-    assert_equal(span_request.name, 'rails.request')
+    assert_equal(span_request.name, 'rails.action_controller')
 
     # assert the parenting
     assert_nil(span_request.parent)
@@ -107,13 +104,12 @@ class TracingControllerTest < ActionController::TestCase
     spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
     span = spans[0]
-    assert_equal('rails.request', span.name)
+    assert_equal('rails.action_controller', span.name)
     assert_equal(1, span.status, 'span should be flagged as an error')
     assert_equal('ZeroDivisionError', span.get_tag('error.type'), 'type should contain the class name of the error')
     assert_equal('divided by 0', span.get_tag('error.msg'), 'msg should state we tried to divided by 0')
     assert_match(/ddtrace/, span.get_tag('error.stack'), 'stack should contain the call stack when error was raised')
     assert_match(/\n/, span.get_tag('error.stack'), 'stack should have multiple lines')
-    assert_equal('500', span.get_tag('http.status_code'), 'status should be 500 error by default')
   end
 
   test 'http error code should be trapped and reported as such, even with no exception' do
@@ -126,11 +122,10 @@ class TracingControllerTest < ActionController::TestCase
       assert_equal(2, spans.length, 'legacy code (rails <= 4) uses render with a status, so there is an extra render span')
     end
     span = spans[spans.length - 1]
-    assert_equal('rails.request', span.name)
+    assert_equal('rails.action_controller', span.name)
     assert_equal(1, span.status, 'span should be flagged as an error')
     assert_nil(span.get_tag('error.type'), 'type should be undefined')
     assert_nil(span.get_tag('error.msg'), 'msg should be empty')
     assert_match(/ddtrace/, span.get_tag('error.stack'), 'stack should contain the call stack when error was raised')
-    assert_equal('520', span.get_tag('http.status_code'), 'status should be 520 Web server is returning an unknown error')
   end
 end

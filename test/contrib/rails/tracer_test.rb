@@ -2,7 +2,8 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
-class TracerTest < ActionController::TestCase
+# rubocop:disable Metrics/ClassLength
+class TracerTest < ActionDispatch::IntegrationTest
   setup do
     # don't pollute the global tracer
     @tracer = get_test_tracer
@@ -16,7 +17,11 @@ class TracerTest < ActionController::TestCase
   test 'the configuration is correctly called' do
     assert Rails.configuration.datadog_trace[:enabled]
     assert Rails.configuration.datadog_trace[:auto_instrument]
+    assert Rails.configuration.datadog_trace[:auto_instrument_redis]
     assert_equal(Rails.configuration.datadog_trace[:default_service], 'rails-app')
+    assert_equal(Rails.configuration.datadog_trace[:default_controller_service], 'rails-controller')
+    assert_equal(Rails.configuration.datadog_trace[:default_cache_service], 'rails-cache')
+    refute_nil(Rails.configuration.datadog_trace[:default_database_service])
     assert_equal(Rails.configuration.datadog_trace[:template_base_path], 'views/')
     assert Rails.configuration.datadog_trace[:tracer]
     assert !Rails.configuration.datadog_trace[:debug]
@@ -32,6 +37,9 @@ class TracerTest < ActionController::TestCase
     assert_equal(
       tracer.services,
       'rails-app' => {
+        'app' => 'rack', 'app_type' => 'web'
+      },
+      'rails-controller' => {
         'app' => 'rails', 'app_type' => 'web'
       },
       adapter_name => {
@@ -51,6 +59,9 @@ class TracerTest < ActionController::TestCase
     assert_equal(
       tracer.services,
       'rails-app' => {
+        'app' => 'rack', 'app_type' => 'web'
+      },
+      'rails-controller' => {
         'app' => 'rails', 'app_type' => 'web'
       },
       'customer-db' => {
@@ -63,12 +74,15 @@ class TracerTest < ActionController::TestCase
   end
 
   test 'application service can be changed by user' do
-    update_config(:default_service, 'my-custom-app')
+    update_config(:default_controller_service, 'my-custom-app')
     tracer = Rails.configuration.datadog_trace[:tracer]
     adapter_name = get_adapter_name()
 
     assert_equal(
       tracer.services,
+      'rails-app' => {
+        'app' => 'rack', 'app_type' => 'web'
+      },
       'my-custom-app' => {
         'app' => 'rails', 'app_type' => 'web'
       },
@@ -89,6 +103,9 @@ class TracerTest < ActionController::TestCase
     assert_equal(
       tracer.services,
       'rails-app' => {
+        'app' => 'rack', 'app_type' => 'web'
+      },
+      'rails-controller' => {
         'app' => 'rails', 'app_type' => 'web'
       },
       adapter_name => {

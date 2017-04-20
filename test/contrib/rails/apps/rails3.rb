@@ -6,10 +6,13 @@ require 'ddtrace'
 class Rails3 < Rails::Application
   redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
   file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
+
+  config.secret_token = 'f624861242e4ccf20eacb6bb48a886da'
   config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
-  config.secret_key_base = 'not_so_secret'
   config.active_support.test_order = :random
   config.active_support.deprecation = :stderr
+  config.consider_all_requests_local = true
+  config.middleware.delete ActionDispatch::DebugExceptions
 end
 
 # Enables the auto-instrumentation for the testing application
