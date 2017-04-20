@@ -42,13 +42,13 @@ module Datadog
           return unless span
 
           begin
-            # set the parent resource if it's a `rack.request`
-            # TODO[manu]: it is possible that the direct parent is another layer
-            # of manual instrumentation; in that case we may choose to do this
-            # check with the root span using the `span` buffer directly
             resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
-            span.parent.resource = resource if span.parent.resource == 'rack.request'
             span.resource = resource
+
+            # set the parent resource if it's a `rack.request` span
+            if !span.parent.nil? && span.parent.name == 'rack.request'
+              span.parent.resource = resource
+            end
 
             span.set_tag('rails.route.action', payload.fetch(:action))
             span.set_tag('rails.route.controller', payload.fetch(:controller))

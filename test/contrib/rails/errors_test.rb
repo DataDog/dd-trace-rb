@@ -21,13 +21,10 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(spans.length, 1)
 
     span = spans[0]
-    assert_equal(span.name, 'rails.request')
+    assert_equal(span.name, 'rails.action_controller')
     assert_equal(span.status, 1)
     assert_equal(span.span_type, 'http')
     assert_equal(span.resource, 'TracingController#error')
-    assert_equal(span.get_tag('http.url'), '/error')
-    assert_equal(span.get_tag('http.method'), 'GET')
-    assert_equal(span.get_tag('http.status_code'), '500')
     assert_equal(span.get_tag('rails.route.action'), 'error')
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span.get_tag('error.type'), 'ZeroDivisionError')
@@ -52,13 +49,10 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.get_tag('error.msg'), 'divided by 0')
 
     span_request = spans[1]
-    assert_equal(span_request.name, 'rails.request')
+    assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
     assert_equal(span_request.span_type, 'http')
     assert_equal(span_request.resource, 'TracingController#error_template')
-    assert_equal(span_request.get_tag('http.url'), '/error_template')
-    assert_equal(span_request.get_tag('http.method'), 'GET')
-    assert_equal(span_request.get_tag('http.status_code'), '500')
     assert_equal(span_request.get_tag('rails.route.action'), 'error_template')
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
@@ -92,13 +86,10 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.get_tag('error.msg'), 'divided by 0')
 
     span_request = spans[2]
-    assert_equal(span_request.name, 'rails.request')
+    assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
     assert_equal(span_request.span_type, 'http')
     assert_equal(span_request.resource, 'TracingController#error_partial')
-    assert_equal(span_request.get_tag('http.url'), '/error_partial')
-    assert_equal(span_request.get_tag('http.method'), 'GET')
-    assert_equal(span_request.get_tag('http.status_code'), '500')
     assert_equal(span_request.get_tag('rails.route.action'), 'error_partial')
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
