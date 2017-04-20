@@ -57,6 +57,9 @@ class RailsSidekiqTest < ActionController::TestCase
     assert_equal(
       @tracer.services,
       'rails-app' => {
+        'app' => 'rack', 'app_type' => 'web'
+      },
+      'rails-controller' => {
         'app' => 'rails', 'app_type' => 'web'
       },
       db_adapter => {
