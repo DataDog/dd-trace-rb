@@ -13,7 +13,13 @@ module RailsTrace
       super(*args)
       redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
       file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
+
+      config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
+      config.eager_load = false
+      config.consider_all_requests_local = true
+      config.middleware.delete ActionDispatch::DebugExceptions
+
       if ENV['USE_SIDEKIQ']
         config.active_job.queue_adapter = :sidekiq
         # add Sidekiq middleware
@@ -23,8 +29,6 @@ module RailsTrace
           )
         end
       end
-      config.eager_load = false
-      config.secret_key_base = 'not_so_secret'
     end
 
     # configure the application: it loads common controllers,
