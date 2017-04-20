@@ -1,8 +1,6 @@
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 
-require 'ddtrace/contrib/grape/core_extensions'
-
 module Datadog
   module Contrib
     module Grape
@@ -10,12 +8,9 @@ module Datadog
         KEY_RUN = 'datadog_grape_endpoint_run'.freeze
         KEY_RENDER = 'datadog_grape_endpoint_render'.freeze
 
-        def self.instrument
+        def self.subscribe
           # Grape is instrumented only if it's available
-          return unless defined?(::Grape)
-
-          # patch Grape internals
-          Datadog::GrapePatcher.patch_grape()
+          return unless defined?(::Grape) and defined?(::ActiveSupport::Notifications)
 
           # subscribe when a Grape endpoint is hit
           ::ActiveSupport::Notifications.subscribe('endpoint_run.grape.start_process') do |*args|
@@ -38,9 +33,13 @@ module Datadog
         def self.endpoint_start_process(*)
           return if Thread.current[KEY_RUN]
 
+          # retrieve the tracer from the PIN object
+          pin = Datadog::Pin.get_from(::Grape)
+          return unless pin && pin.enabled?
+
           # store the beginning of a trace
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          service = ::Rails.configuration.datadog_trace.fetch(:default_grape_service)
+          tracer = pin.tracer
+          service = pin.service
           type = Datadog::Ext::HTTP::TYPE
           tracer.trace('grape.endpoint_run', service: service, span_type: type)
 
@@ -53,24 +52,27 @@ module Datadog
           return unless Thread.current[KEY_RUN]
           Thread.current[KEY_RUN] = false
 
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
+          # retrieve the tracer from the PIN object
+          pin = Datadog::Pin.get_from(::Grape)
+          return unless pin && pin.enabled?
+
+          tracer = pin.tracer
           span = tracer.active_span()
           return unless span
 
-          # TODO: check if it's really something
-          # namespace = ::Grape::Namespace.joined_space(payload[:endpoint].namespace_stackable(:namespace))
-          #
           # collect endpoint details
           api_view = payload[:endpoint].options[:for].to_s
           path = payload[:endpoint].options[:path].join('/')
           resource = "#{api_view}##{path}"
+          span.resource = resource
 
-          # set the parent resource if it's a `rack.request`
+          # set the request span resource if it's a `rack.request` span
           request_span = payload[:env][:datadog_request_span]
-          request_span.resource = resource
+          if !request_span.nil? && request_span.name == 'rack.request'
+            request_span.resource = resource
+          end
 
           # ovverride the current span with this notification values
-          span.resource = resource
           span.start_time = start
           span.set_tag('grape.route.endpoint', api_view)
           span.set_tag('grape.route.path', path)
@@ -82,9 +84,13 @@ module Datadog
         def self.endpoint_start_render(*)
           return if Thread.current[KEY_RENDER]
 
+          # retrieve the tracer from the PIN object
+          pin = Datadog::Pin.get_from(::Grape)
+          return unless pin && pin.enabled?
+
           # store the beginning of a trace
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          service = ::Rails.configuration.datadog_trace.fetch(:default_grape_service)
+          tracer = pin.tracer
+          service = pin.service
           type = Datadog::Ext::HTTP::TYPE
           tracer.trace('grape.endpoint_render', service: service, span_type: type)
 
@@ -97,7 +103,11 @@ module Datadog
           return unless Thread.current[KEY_RENDER]
           Thread.current[KEY_RENDER] = false
 
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
+          # retrieve the tracer from the PIN object
+          pin = Datadog::Pin.get_from(::Grape)
+          return unless pin && pin.enabled?
+
+          tracer = pin.tracer
           span = tracer.active_span()
           return unless span
 
@@ -108,14 +118,20 @@ module Datadog
         end
 
         def self.endpoint_run_filters(name, start, finish, id, payload)
+          # retrieve the tracer from the PIN object
+          pin = Datadog::Pin.get_from(::Grape)
+          return unless pin && pin.enabled?
+
           # safe-guard to prevent submitting empty filters
           zero_length = (finish - start) == 0
           filters = payload[:filters]
           type = payload[:type]
           return if (!filters || filters.empty?) || !type || zero_length
 
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          span = tracer.trace('grape.endpoint_run_filters', service: 'grape', span_type: 'http')
+          tracer = pin.tracer
+          service = pin.service
+          type = Datadog::Ext::HTTP::TYPE
+          span = tracer.trace('grape.endpoint_run_filters', service: service, span_type: type)
           span.start_time = start
           span.set_tag('grape.filter.type', type.to_s)
           span.finish_at(finish)
