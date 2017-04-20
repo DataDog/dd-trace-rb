@@ -33,9 +33,6 @@ module Datadog
         end
 
         def call(env)
-          # get the current Rack request
-          request = ::Rack::Request.new(env)
-
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
           request_span = @tracer.trace(
@@ -44,7 +41,7 @@ module Datadog
             resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE
           )
-          request.env[:datadog_rack_request_span] = request_span
+          env[:datadog_rack_request_span] = request_span
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
@@ -55,15 +52,22 @@ module Datadog
           request_span.set_error(e)
           raise e
         ensure
+          # the source of truth in Rack is the PATH_INFO key that holds the
+          # URL for the current request; some framework may override that
+          # value, especially during exception handling and because of that
+          # we prefer using the `REQUEST_URI` if this is available.
+          # NOTE: `REQUEST_URI` is Rails specific and may not apply for other frameworks
+          url = env['REQUEST_URI'] || env['PATH_INFO']
+
           # Rack is a really low level interface and it doesn't provide any
           # advanced functionality like routers. Because of that, we assume that
           # the underlying framework or application has more knowledge about
           # the result for this request; `resource` and `tags` are expected to
           # be set in another level but if they're missing, reasonable defaults
           # are used.
-          request_span.resource = "#{request.request_method} #{status}".strip unless request_span.resource
-          request_span.set_tag('http.method', request.request_method) if request_span.get_tag('http.method').nil?
-          request_span.set_tag('http.url', request.path_info) if request_span.get_tag('http.url').nil?
+          request_span.resource = "#{env['REQUEST_METHOD']} #{status}".strip unless request_span.resource
+          request_span.set_tag('http.method', env['REQUEST_METHOD']) if request_span.get_tag('http.method').nil?
+          request_span.set_tag('http.url', url) if request_span.get_tag('http.url').nil?
           request_span.set_tag('http.status_code', status) if request_span.get_tag('http.status_code').nil? && status
 
           # detect if the status code is a 5xx and flag the request span as an error
