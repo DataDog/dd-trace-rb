@@ -1,4 +1,4 @@
-require 'contrib/grape/helpers'
+require 'contrib/grape/app'
 
 class TracedAPITest < BaseAPITest
   def test_traced_api_success
@@ -80,13 +80,12 @@ class TracedAPITest < BaseAPITest
     assert_equal(before.parent, run)
     assert(before.to_hash[:duration] > 0.01)
 
-    assert_equal(after.name, 'grape.endpoint_run_filters')
-    assert_equal(after.span_type, 'http')
-    assert_equal(after.service, 'grape')
-    assert_equal(after.resource, 'grape.endpoint_run_filters')
-    assert_equal(after.status, 0)
-    assert_equal(after.parent, run)
-    assert(after.to_hash[:duration] > 0.01)
+    assert_equal(render.name, 'grape.endpoint_render')
+    assert_equal(render.span_type, 'http')
+    assert_equal(render.service, 'grape')
+    assert_equal(render.resource, 'grape.endpoint_render')
+    assert_equal(render.status, 0)
+    assert_equal(render.parent, run)
 
     assert_equal(after.name, 'grape.endpoint_run_filters')
     assert_equal(after.span_type, 'http')
