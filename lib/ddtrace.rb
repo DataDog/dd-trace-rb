@@ -40,7 +40,8 @@ if defined?(Rails::VERSION)
           Datadog::Contrib::Rails::Framework.configure(config: app.config)
           Datadog::Contrib::Rails::Framework.auto_instrument()
           Datadog::Contrib::Rails::Framework.auto_instrument_redis()
-          #
+          Datadog::Contrib::Rails::Framework.auto_instrument_grape()
+
           # override Rack Middleware configurations with Rails
           options.update(::Rails.configuration.datadog_trace)
         end

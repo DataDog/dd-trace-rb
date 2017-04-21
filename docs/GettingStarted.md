@@ -27,6 +27,7 @@ provides auto instrumentation for the following web frameworks and libraries:
 * [Sidekiq](#label-Sidekiq)
 * [Sinatra](#label-Sinatra)
 * [Rack](#label-Rack)
+* [Grape](#label-Grape)
 * [Active Record](#label-Active+Record)
 * [Elastic Search](#label-Elastic+Search)
 * [Net/HTTP](#label-Net/HTTP)
@@ -84,11 +85,15 @@ Available settings are:
   with a condition, to enable the auto-instrumentation only for particular environments (production, staging, etc...).
 * ``auto_instrument_redis``: if set to ``true`` Redis calls will be traced as such. Calls to Redis cache may be
   still instrumented but you will not have the detail of low-level Redis calls.
+* ``auto_instrument_grape``: if set to ``true`` and you're using a Grape application, all calls to your endpoints are
+  traced, including filters execution.
 * ``default_service``: set the service name used when tracing application requests. Defaults to ``rails-app``
 * ``default_controller_service``: set the service name used when tracing a Rails action controller. Defaults to ``rails-controller``
 * ``default_cache_service``: set the cache service name used when tracing cache activity. Defaults to ``rails-cache``
 * ``default_database_service``: set the database service name used when tracing database activity. Defaults to the
   current adapter name, so if you're using PostgreSQL it will be ``postgres``.
+* ``default_grape_service``: set the service name used when tracing a Grape application mounted in your Rails router.
+  Defaults to ``grape``
 * ``template_base_path``: used when the template name is parsed in the auto instrumented code. If you don't store
   your templates in the ``views/`` folder, you may need to change this value
 * ``tracer``: is the global tracer used by the tracing application. Usually you don't need to change that value
@@ -175,6 +180,26 @@ Available settings are:
 * ``default_service`` (default: ``rack``): set the service name used when the Rack request is traced
 
 ## Other libraries
+
+### Grape
+
+The Grape integration adds the instrumentation to Grape endpoints and filters. This integration can work side by side
+with other integrations like Rack and Rails. To activate your integration, use the ``patch_module`` function before
+defining your Grape application:
+
+    # api.rb
+    require 'grape'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:grape)
+
+    # then define your application
+    class RackTestingAPI < Grape::API
+      desc 'main endpoint'
+      get :success do
+        'Hello world!'
+      end
+    end
 
 ### Active Record
 

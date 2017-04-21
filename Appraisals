@@ -92,6 +92,7 @@ end
 if RUBY_VERSION >= '2.2.2'
   appraise 'contrib' do
     gem 'elasticsearch-transport'
+    gem 'grape'
     gem 'rack'
     gem 'rack-test'
     gem 'redis'
