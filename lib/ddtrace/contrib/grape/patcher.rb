@@ -10,6 +10,10 @@ module Datadog
 
         module_function
 
+        def patched?
+          @patched
+        end
+
         def patch
           if !@patched && defined?(::Grape)
             begin
@@ -37,11 +41,6 @@ module Datadog
             end
           end
           @patched
-        end
-
-        def unpatch
-          # TODO: implement this (revert aliasing)
-          # @patched = false
         end
 
         def patch_endpoint_run
