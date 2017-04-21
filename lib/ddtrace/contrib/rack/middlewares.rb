@@ -18,11 +18,21 @@ module Datadog
         }.freeze
 
         def initialize(app, options = {})
-          # access tracer configurations
-          user_settings = DEFAULT_CONFIG.merge(options)
+          # update options with our configuration, unless it's already available
+          options[:tracer] ||= DEFAULT_CONFIG[:tracer]
+          options[:default_service] ||= DEFAULT_CONFIG[:default_service]
+
           @app = app
-          @tracer = user_settings.fetch(:tracer)
-          @service = user_settings.fetch(:default_service)
+          @options = options
+        end
+
+        def configure
+          # ensure that the configuration is executed only once
+          return if @tracer && @service
+
+          # retrieve the current tracer and service
+          @tracer = @options.fetch(:tracer)
+          @service = @options.fetch(:default_service)
 
           # configure the Rack service
           @tracer.set_service_info(
@@ -33,6 +43,9 @@ module Datadog
         end
 
         def call(env)
+          # configure the Rack middleware once
+          configure()
+
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
           request_span = @tracer.trace(

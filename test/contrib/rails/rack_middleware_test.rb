@@ -5,6 +5,7 @@ require 'contrib/rails/test_helper'
 class FullStackTest < ActionDispatch::IntegrationTest
   setup do
     # store original tracers
+    Rails.application.app.configure()
     @rails_tracer = Rails.configuration.datadog_trace[:tracer]
     @rack_tracer = Rails.application.app.instance_variable_get :@tracer
 
