@@ -4,6 +4,7 @@ require 'ddtrace/ext/errors'
 module Datadog
   module Contrib
     module Grape
+      # rubocop:disable Metrics/ModuleLength
       # Endpoint module includes a list of subscribers to create
       # traces when a Grape endpoint is hit
       module Endpoint
@@ -62,26 +63,29 @@ module Datadog
           span = tracer.active_span()
           return unless span
 
-          # collect endpoint details
-          api_view = payload[:endpoint].options[:for].to_s
-          path = payload[:endpoint].options[:path].join('/')
-          resource = "#{api_view}##{path}"
-          span.resource = resource
+          begin
+            # collect endpoint details
+            api_view = payload[:endpoint].options[:for].to_s
+            path = payload[:endpoint].options[:path].join('/')
+            resource = "#{api_view}##{path}"
+            span.resource = resource
 
-          # set the request span resource if it's a `rack.request` span
-          request_span = payload[:env][:datadog_rack_request_span]
-          if !request_span.nil? && request_span.name == 'rack.request'
-            request_span.resource = resource
+            # set the request span resource if it's a `rack.request` span
+            request_span = payload[:env][:datadog_rack_request_span]
+            if !request_span.nil? && request_span.name == 'rack.request'
+              request_span.resource = resource
+            end
+
+            # catch thrown exceptions
+            span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+
+            # ovverride the current span with this notification values
+            span.set_tag('grape.route.endpoint', api_view)
+            span.set_tag('grape.route.path', path)
+          ensure
+            span.start_time = start
+            span.finish_at(finish)
           end
-
-          # catch thrown exceptions
-          span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
-
-          # ovverride the current span with this notification values
-          span.start_time = start
-          span.set_tag('grape.route.endpoint', api_view)
-          span.set_tag('grape.route.path', path)
-          span.finish_at(finish)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
@@ -117,10 +121,12 @@ module Datadog
           return unless span
 
           # catch thrown exceptions
-          span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
-
-          span.start_time = start
-          span.finish_at(finish)
+          begin
+            span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+          ensure
+            span.start_time = start
+            span.finish_at(finish)
+          end
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
@@ -141,12 +147,14 @@ module Datadog
           type = Datadog::Ext::HTTP::TYPE
           span = tracer.trace('grape.endpoint_run_filters', service: service, span_type: type)
 
-          # catch thrown exceptions
-          span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
-
-          span.set_tag('grape.filter.type', type.to_s)
-          span.start_time = start
-          span.finish_at(finish)
+          begin
+            # catch thrown exceptions
+            span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+            span.set_tag('grape.filter.type', type.to_s)
+          ensure
+            span.start_time = start
+            span.finish_at(finish)
+          end
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
