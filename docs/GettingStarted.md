@@ -179,6 +179,8 @@ Available settings are:
   method before adding the middleware
 * ``default_service`` (default: ``rack``): set the service name used when the Rack request is traced
 
+## Other libraries
+
 ### Grape
 
 The Grape integration adds the instrumentation to Grape endpoints and filters. This integration can work side by side
@@ -198,8 +200,6 @@ defining your Grape application:
         'Hello world!'
       end
     end
-
-## Other libraries
 
 ### Active Record
 
