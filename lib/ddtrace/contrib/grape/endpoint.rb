@@ -72,6 +72,11 @@ module Datadog
             request_span.resource = resource
           end
 
+          # catch thrown exceptions
+          if !payload[:exception_object].nil?
+            span.set_error(payload[:exception_object])
+          end
+
           # ovverride the current span with this notification values
           span.start_time = start
           span.set_tag('grape.route.endpoint', api_view)
@@ -111,6 +116,11 @@ module Datadog
           span = tracer.active_span()
           return unless span
 
+          # catch thrown exceptions
+          if !payload[:exception_object].nil?
+            span.set_error(payload[:exception_object])
+          end
+
           span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e
@@ -134,6 +144,12 @@ module Datadog
           span = tracer.trace('grape.endpoint_run_filters', service: service, span_type: type)
           span.start_time = start
           span.set_tag('grape.filter.type', type.to_s)
+
+          # catch thrown exceptions
+          if !payload[:exception_object].nil?
+            span.set_error(payload[:exception_object])
+          end
+
           span.finish_at(finish)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
