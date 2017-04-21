@@ -105,7 +105,6 @@ if RUBY_VERSION >= '2.2.2'
 else
   appraise 'contrib-old' do
     gem 'elasticsearch-transport'
-    gem 'grape'
     gem 'redis'
     gem 'hiredis'
     gem 'rack', '1.4.7'
