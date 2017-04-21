@@ -30,7 +30,7 @@ class TestingAPI < Grape::API
       sleep(0.01)
     end
 
-    desc 'Returns an error'
+    desc 'Returns a success message before and after filter processing'
     get :before_after do
       'OK'
     end
