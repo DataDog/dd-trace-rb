@@ -1,3 +1,4 @@
+require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 
 require 'ddtrace/contrib/grape/endpoint'
@@ -23,6 +24,7 @@ module Datadog
           enabled: true,
           auto_instrument: false,
           auto_instrument_redis: false,
+          auto_instrument_grape: false,
           default_service: 'rails-app',
           default_controller_service: 'rails-controller',
           default_cache_service: 'rails-cache',
@@ -78,12 +80,6 @@ module Datadog
             Datadog::Ext::AppTypes::CACHE
           )
 
-          datadog_config[:tracer].set_service_info(
-            datadog_config[:default_grape_service],
-            'rails',
-            Datadog::Ext::AppTypes::WEB
-          )
-
           # By default, default service would be guessed from the script
           # being executed, but here we know better, get it from Rails config.
           datadog_config[:tracer].default_service = datadog_config[:default_service]
@@ -132,6 +128,19 @@ module Datadog
           end
         end
 
+        def self.auto_instrument_grape
+          return unless ::Rails.configuration.datadog_trace[:auto_instrument_grape]
+
+          # patch the Grape library so that endpoints are traced
+          Datadog::Monkey.patch_module(:grape)
+
+          # update the Grape pin object
+          pin = Datadog::Pin.get_from(::Grape)
+          return unless pin && pin.enabled?
+          pin.tracer = ::Rails.configuration.datadog_trace[:tracer]
+          pin.service = ::Rails.configuration.datadog_trace[:default_grape_service]
+        end
+
         # automatically instrument all Rails component
         def self.auto_instrument
           return unless ::Rails.configuration.datadog_trace[:auto_instrument]
@@ -142,7 +151,6 @@ module Datadog
           Datadog::Contrib::Rails::ActionView.instrument()
           Datadog::Contrib::Rails::ActiveRecord.instrument()
           Datadog::Contrib::Rails::ActiveSupport.instrument()
-          Datadog::Contrib::Grape::Endpoint.instrument()
         end
       end
     end
