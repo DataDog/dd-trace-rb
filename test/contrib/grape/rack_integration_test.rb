@@ -1,5 +1,6 @@
 require 'contrib/grape/rack_app'
 
+# rubocop:disable Metrics/AbcSize
 class TracedRackAPITest < BaseRackAPITest
   def test_traced_api_with_rack
     # it should play well with the Rack integration

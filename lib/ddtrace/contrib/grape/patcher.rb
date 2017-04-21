@@ -3,8 +3,11 @@ module Datadog
     module Grape
       SERVICE = 'grape'.freeze
 
+      # Patcher that introduces more instrumentation for Grape endpoints, so that
+      # new signals are executed at the beginning of each step (filters, render and run)
       module Patcher
         @patched = false
+
         module_function
 
         def patch
@@ -55,8 +58,8 @@ module Datadog
           ::Grape::Endpoint.class_eval do
             class << self
               alias_method :generate_api_method_without_datadog, :generate_api_method
-              def generate_api_method(*args, &block)
-                method_api = generate_api_method_without_datadog(*args, &block)
+              def generate_api_method(*params, &block)
+                method_api = generate_api_method_without_datadog(*params, &block)
                 proc do |*args|
                   ::ActiveSupport::Notifications.instrument('endpoint_render.grape.start_render')
                   method_api.call(*args)

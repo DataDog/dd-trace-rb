@@ -1,5 +1,6 @@
 require 'contrib/grape/app'
 
+# rubocop:disable Metrics/AbcSize
 class TracedAPITest < BaseAPITest
   def test_traced_api_success
     # it should trace the endpoint body

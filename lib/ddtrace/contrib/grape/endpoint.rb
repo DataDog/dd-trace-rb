@@ -4,13 +4,15 @@ require 'ddtrace/ext/errors'
 module Datadog
   module Contrib
     module Grape
+      # Endpoint module includes a list of subscribers to create
+      # traces when a Grape endpoint is hit
       module Endpoint
         KEY_RUN = 'datadog_grape_endpoint_run'.freeze
         KEY_RENDER = 'datadog_grape_endpoint_render'.freeze
 
         def self.subscribe
           # Grape is instrumented only if it's available
-          return unless defined?(::Grape) and defined?(::ActiveSupport::Notifications)
+          return unless defined?(::Grape) && defined?(::ActiveSupport::Notifications)
 
           # subscribe when a Grape endpoint is hit
           ::ActiveSupport::Notifications.subscribe('endpoint_run.grape.start_process') do |*args|
@@ -73,9 +75,7 @@ module Datadog
           end
 
           # catch thrown exceptions
-          if !payload[:exception_object].nil?
-            span.set_error(payload[:exception_object])
-          end
+          span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
 
           # ovverride the current span with this notification values
           span.start_time = start
@@ -117,9 +117,7 @@ module Datadog
           return unless span
 
           # catch thrown exceptions
-          if !payload[:exception_object].nil?
-            span.set_error(payload[:exception_object])
-          end
+          span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
 
           span.start_time = start
           span.finish_at(finish)
@@ -133,7 +131,7 @@ module Datadog
           return unless pin && pin.enabled?
 
           # safe-guard to prevent submitting empty filters
-          zero_length = (finish - start) == 0
+          zero_length = (finish - start).zero?
           filters = payload[:filters]
           type = payload[:type]
           return if (!filters || filters.empty?) || !type || zero_length
@@ -142,14 +140,12 @@ module Datadog
           service = pin.service
           type = Datadog::Ext::HTTP::TYPE
           span = tracer.trace('grape.endpoint_run_filters', service: service, span_type: type)
-          span.start_time = start
-          span.set_tag('grape.filter.type', type.to_s)
 
           # catch thrown exceptions
-          if !payload[:exception_object].nil?
-            span.set_error(payload[:exception_object])
-          end
+          span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
 
+          span.set_tag('grape.filter.type', type.to_s)
+          span.start_time = start
           span.finish_at(finish)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
