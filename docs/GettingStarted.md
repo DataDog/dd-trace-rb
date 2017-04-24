@@ -52,6 +52,7 @@ To enable the Rails auto instrumentation, create an initializer file in your ``c
     }
 
 If you're using Rails 3 or higher, your application will be listed as ``my-rails-app`` in your service list.
+To integrate Rails instrumentation with third-party libraries such as Grape, please check the available settings below.
 
 #### Configure the tracer with initializers
 
@@ -64,6 +65,7 @@ of the Datadog tracer, you can override the following defaults:
       enabled: true,
       auto_instrument: false,
       auto_instrument_redis: false,
+      auto_instrument_grape: false,
       default_service: 'rails-app',
       default_controller_service: 'rails-controller',
       default_cache_service: 'rails-cache',
