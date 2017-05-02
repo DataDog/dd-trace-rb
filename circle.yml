@@ -32,7 +32,7 @@ dependencies:
     - rvm get head
     - rvm install $MRI_VERSIONS
   override:
-    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do gem update --system
+    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do gem update --system=2.6.11
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do gem install bundler
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do bundle install
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do appraisal install
