@@ -24,7 +24,7 @@ dependencies:
     - pip install docker-compose==1.7.1
     - docker-compose up -d | cat
     # installing dev dependencies
-    - gem update --system
+    - gem update --system=2.6.11
     - gem install builder
     - gem update bundler
     - bundle install
