@@ -23,15 +23,15 @@ We strongly suggest pinning the version of the library you deploy.
 The easiest way to get started with the tracing client is to instrument your web application. ``ddtrace`` gem
 provides auto instrumentation for the following web frameworks and libraries:
 
-* [Ruby on Rails](#label-Ruby+on+Rails)
-* [Sidekiq](#label-Sidekiq)
-* [Sinatra](#label-Sinatra)
-* [Rack](#label-Rack)
-* [Grape](#label-Grape)
-* [Active Record](#label-Active+Record)
-* [Elastic Search](#label-Elastic+Search)
-* [Net/HTTP](#label-Net/HTTP)
-* [Redis](#label-Redis)
+* [Ruby on Rails](#Ruby_on_Rails)
+* [Sidekiq](#Sidekiq)
+* [Sinatra](#Sinatra)
+* [Rack](#Rack)
+* [Grape](#Grape)
+* [Active Record](#Active_Record)
+* [Elastic Search](#Elastic_Search)
+* [Net/HTTP](#Net_HTTP)
+* [Redis](#Redis)
 
 ## Web Frameworks
 
