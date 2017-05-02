@@ -24,7 +24,7 @@ dependencies:
     - pip install docker-compose==1.7.1
     - docker-compose up -d | cat
     # installing dev dependencies
-    - gem update --system
+    - gem update --system=2.6.11
     - gem install builder
     - gem update bundler
     - bundle install
@@ -32,7 +32,7 @@ dependencies:
     - rvm get head
     - rvm install $MRI_VERSIONS
   override:
-    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do gem update --system
+    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do gem update --system=2.6.11
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do gem install bundler
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do bundle install
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do appraisal install
