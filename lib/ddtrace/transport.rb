@@ -14,6 +14,9 @@ module Datadog
     # seconds before the transport timeout
     TIMEOUT = 1
 
+    # header containing the number of traces in a payload
+    TRACE_COUNT_HEADER = 'X-Datadog-Trace-Count'.freeze
+
     def initialize(hostname, port, options = {})
       @hostname = hostname
       @port = port
@@ -41,8 +44,9 @@ module Datadog
         payload = @encoder.encode_services(data)
         status_code = post(@services_endpoint, payload)
       when :traces
+        count = data.length
         payload = @encoder.encode_traces(data)
-        status_code = post(@traces_endpoint, payload)
+        status_code = post(@traces_endpoint, payload, count)
       else
         Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
         return nil
@@ -56,9 +60,11 @@ module Datadog
     end
 
     # send data to the trace-agent; the method is thread-safe
-    def post(url, data)
+    def post(url, data, count = nil)
       Datadog::Tracer.log.debug("Sending data from process: #{Process.pid}")
-      request = Net::HTTP::Post.new(url, @headers)
+      headers = count.nil? ? {} : { TRACE_COUNT_HEADER => count.to_s }
+      headers = headers.merge(@headers)
+      request = Net::HTTP::Post.new(url, headers)
       request.body = data
 
       response = Net::HTTP.start(@hostname, @port, read_timeout: TIMEOUT) { |http| http.request(request) }
