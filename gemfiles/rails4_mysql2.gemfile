@@ -3,7 +3,7 @@
 source "https://rubygems.org"
 
 gem "rails", "4.2.7.1"
-gem "mysql2", :platform => :ruby
-gem "activerecord-jdbcmysql-adapter", :platform => :jruby
+gem "mysql2", platform: :ruby
+gem "activerecord-jdbcmysql-adapter", platform: :jruby
 
-gemspec :path => "../"
+gemspec path: "../"

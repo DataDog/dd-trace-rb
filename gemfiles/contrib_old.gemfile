@@ -12,4 +12,4 @@ gem "sqlite3"
 gem "activerecord", "3.2.22.5"
 gem "sidekiq", "4.0.0"
 
-gemspec :path => "../"
+gemspec path: "../"
