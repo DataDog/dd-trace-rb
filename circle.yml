@@ -2,7 +2,6 @@ machine:
   services:
     - docker
   environment:
-    # FIXME: Disabled $JRUBY_VERSIONS tests because of a Java incompatibility
     LAST_STABLE: 2.4.0
     EARLY_STABLE: 2.2.6
     MRI_VERSIONS: 2.4.0,2.3.3,2.2.6
@@ -11,6 +10,7 @@ machine:
     RAILS3_VERSIONS: 2.3.3,2.2.6,2.1.10,2.0.0,1.9.3
     RAILS4_VERSIONS: 2.3.3,2.2.6,2.1.10
     RAILS5_VERSIONS: 2.3.3,2.2.6
+    JRUBY_VERSIONS: jruby-9.1.5.0
     AGENT_BUILD_PATH: "/home/ubuntu/agent"
     TEST_DATADOG_INTEGRATION: 1
 
@@ -30,11 +30,12 @@ dependencies:
     - bundle install
     # configure Ruby interpreters
     - rvm get head
-    - rvm install $MRI_VERSIONS
+    - rvm install $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS
   override:
-    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do gem update --system=2.6.11
-    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do gem install bundler
-    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do bundle install
+    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do gem update --system=2.6.11
+    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS $JRUBY_VERSIONS --verbose do gem install bundler
+    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do bundle install
+    # [FIXME] appraisal does not work with jruby (problem with native ext, eg sqlite3)
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do appraisal install
 
 test:

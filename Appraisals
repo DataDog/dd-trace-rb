@@ -1,4 +1,4 @@
-if RUBY_VERSION < '2.4.0'
+if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
   if RUBY_VERSION >= '1.9.1'
     appraise 'rails3-mysql2' do
       gem 'test-unit'
@@ -63,7 +63,7 @@ if RUBY_VERSION < '2.4.0'
     end
   end
 
-  if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
+  if RUBY_VERSION >= '2.2.2'
     appraise 'rails5-mysql2' do
       gem 'rails', '5.0.1'
       gem 'mysql2', platform: :ruby
@@ -89,7 +89,7 @@ if RUBY_VERSION < '2.4.0'
   end
 end
 
-if RUBY_VERSION >= '2.2.2'
+if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
   appraise 'contrib' do
     gem 'elasticsearch-transport'
     gem 'grape'
