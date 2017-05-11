@@ -171,3 +171,11 @@ def reset_config
   config = { config: ::Rails.application.config }
   Datadog::Contrib::Rails::Framework.configure(config)
 end
+
+def test_repeat
+  # threading model is different on Java, we need to wait for a longer time
+  # (like: be over 10 seconds to make sure handle the case "a flush just happened
+  # a few milliseconds ago")
+  return 300 if RUBY_PLATFORM == 'java'
+  30
+end
