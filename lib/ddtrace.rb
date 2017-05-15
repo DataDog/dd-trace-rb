@@ -50,11 +50,7 @@ if defined?(Rails::VERSION)
         # This is required because the middleware stack is frozen after
         # the initialization and so it's too late to add our tracing
         # functionalities.
-        initializer :datadog_config, before: :build_middleware_stack do |app|
-          app.config.middleware.insert_before(
-            0, Datadog::Contrib::Rack::TraceMiddleware, options
-          )
-        end
+        config.app_middleware.insert_before(0, Datadog::Contrib::Rack::TraceMiddleware, options)
       end
     end
   else
