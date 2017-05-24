@@ -209,8 +209,24 @@ module Datadog
         @buffer.set(parent)
 
         return unless parent.nil?
-        spans = @spans
-        @spans = []
+
+        # In general, all spans within the buffer belong to the same trace.
+        # But in heavily multithreaded contexts and/or when using lots of callbacks
+        # hooks and other non-linear programming style, one can technically
+        # end up in different situations. So we only extract the spans which
+        # are associated to the root span that just finished, and save the
+        # others for later.
+        trace_spans = []
+        alien_spans = []
+        @spans.each do |s|
+          if s.trace_id == span.trace_id
+            trace_spans << s
+          else
+            alien_spans << s
+          end
+        end
+        spans = trace_spans
+        @spans = alien_spans
       end
 
       return if spans.empty? || !span.sampled
