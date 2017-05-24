@@ -165,7 +165,7 @@ To start using the middleware in your generic Rack application, add it to your `
 To modify the default middleware configuration, you can use middleware options as follows:
 
     # config.ru example
-    use Datadog::Contrib::Rack::TraceMiddleware default_service: 'rack-stack'
+    use Datadog::Contrib::Rack::TraceMiddleware, default_service: 'rack-stack'
 
     app = proc do |env|
       [ 200, {'Content-Type' => 'text/plain'}, "OK" ]
