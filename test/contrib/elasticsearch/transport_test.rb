@@ -61,7 +61,7 @@ class ESTransportTest < Minitest::Test
     assert_equal('PUT /my/thing/?', span.resource)
     assert_equal('/my/thing/1', span.get_tag('elasticsearch.url'))
     assert_equal('PUT', span.get_tag('elasticsearch.method'))
-    assert_equal('200', span.get_tag('http.status_code'))
+    assert_equal('201', span.get_tag('http.status_code'))
     assert_equal("{\"refresh\":true\}", span.get_tag('elasticsearch.params'))
     assert_equal('{"data1":"D1","data2":"D2"}', span.get_tag('elasticsearch.body'))
   end
