@@ -90,6 +90,7 @@ module Datadog
                 ensure
                   # the call is still executed
                   response = perform_request_without_datadog(*args)
+                  span.set_tag('http.status_code', response.status)
                 end
               end
               response

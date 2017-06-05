@@ -16,6 +16,10 @@ class ESTransportTest < Minitest::Test
     pin.tracer = @tracer
   end
 
+  def teardown
+    @client.perform_request 'DELETE', '*'
+  end
+
   def test_perform_request
     response = @client.perform_request 'GET', '_cluster/health'
     assert_equal(200, response.status, 'bad response status')
@@ -27,14 +31,14 @@ class ESTransportTest < Minitest::Test
     assert_equal('GET _cluster/health', span.resource)
     assert_equal('_cluster/health', span.get_tag('elasticsearch.url'))
     assert_equal('GET', span.get_tag('elasticsearch.method'))
+    assert_equal('200', span.get_tag('http.status_code'))
     assert_nil(span.get_tag('elasticsearch.params'))
     assert_nil(span.get_tag('elasticsearch.body'))
   end
 
   def test_perform_request_with_encoded_body
     response = @client.perform_request 'PUT', '/my/thing/1', { refresh: true }, '{"data1":"D1","data2":"D2"}'
-    assert_operator(200, :<=, response.status, 'bad response status')
-    assert_operator(201, :>=, response.status, 'bad response status')
+    assert_equal(201, response.status, 'bad response status')
     spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
     span = spans[0]
@@ -43,14 +47,14 @@ class ESTransportTest < Minitest::Test
     assert_equal('PUT /my/thing/?', span.resource)
     assert_equal('/my/thing/1', span.get_tag('elasticsearch.url'))
     assert_equal('PUT', span.get_tag('elasticsearch.method'))
+    assert_equal('201', span.get_tag('http.status_code'))
     assert_equal("{\"refresh\":true\}", span.get_tag('elasticsearch.params'))
     assert_equal('{"data1":"D1","data2":"D2"}', span.get_tag('elasticsearch.body'))
   end
 
   def roundtrip_put
     response = @client.perform_request 'PUT', '/my/thing/1', { refresh: true }, data1: 'D1', data2: 'D2'
-    assert_operator(200, :<=, response.status, 'bad response status')
-    assert_operator(201, :>=, response.status, 'bad response status')
+    assert_equal(201, response.status, 'bad response status')
     spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
     span = spans[0]
@@ -59,6 +63,7 @@ class ESTransportTest < Minitest::Test
     assert_equal('PUT /my/thing/?', span.resource)
     assert_equal('/my/thing/1', span.get_tag('elasticsearch.url'))
     assert_equal('PUT', span.get_tag('elasticsearch.method'))
+    assert_equal('201', span.get_tag('http.status_code'))
     assert_equal("{\"refresh\":true\}", span.get_tag('elasticsearch.params'))
     assert_equal('{"data1":"D1","data2":"D2"}', span.get_tag('elasticsearch.body'))
   end
