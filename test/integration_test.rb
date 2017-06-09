@@ -22,13 +22,13 @@ class TracerIntegrationTest < Minitest::Test
     span.finish()
 
     # timeout after 3 seconds, waiting for 1 flush
-    30.times do
+    test_repeat.times do
       break if tracer.writer.stats[:traces_flushed] >= 1
       sleep(0.1)
     end
 
     # timeout after 3 seconds, waiting for 1 flush
-    30.times do
+    test_repeat.times do
       break if tracer.writer.stats[:services_flushed] >= 1
       sleep(0.1)
     end
@@ -52,7 +52,7 @@ class TracerIntegrationTest < Minitest::Test
     span.finish()
 
     # timeout after 3 seconds, waiting for another flush
-    30.times do
+    test_repeat.times do
       break if tracer.writer.stats[:traces_flushed] >= 2
       sleep(0.1)
     end

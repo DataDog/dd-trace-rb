@@ -123,10 +123,9 @@ task :ci do
   # check: https://circleci.com/docs/parallel-manual-setup/#env-splitting
   case ENV['CIRCLE_NODE_INDEX'].to_i
   when 0
-    sh 'rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do rake test:main'
+    sh 'rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do rake test:main'
     sh 'rvm $LAST_STABLE --verbose do rake benchmark'
   when 1
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:monkey'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:elasticsearch'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis'

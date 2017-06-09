@@ -12,7 +12,7 @@ class ConcurrentTest < Minitest::Test
       # and the instant the root span is done.
       sleep delay
     end
-    @tracer.writer.spans()
+    @tracer.writer.trace0_spans()
   end
 
   def test_parallel_tasks
