@@ -479,6 +479,20 @@ for the first time:
 Remember that the debug mode may affect your application performance and so it must not be used
 in a production environment.
 
+### Using a custom logger
+
+By default, all logs are processed by the default Ruby logger.
+Typically, when using Rails, you should see the messages in your application log file.
+Datadog client log messages are marked with ``[ddtrace]`` so you should be able
+to isolate them from other messages.
+
+Additionally, it is possible to override the default logger and replace it by a
+custom one. This is done using the ``log`` attribute of the tracer.
+
+    f = File.new("my-custom.log", "w+")           # Log messages should go there
+    Datadog::Tracer.log = Logger.new(f)           # Overriding the default tracer
+    Datadog::Tracer.log.info { "this is typically called by tracing code" }
+
 ### Environment and tags
 
 By default, the trace agent (not this library, but the program running in
