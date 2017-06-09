@@ -81,6 +81,14 @@ class FauxWriter < Datadog::Writer
     spans.flatten
   end
 
+  def trace0_spans
+    return [] unless @spans
+    return [] if @spans.empty?
+    spans = @spans[0]
+    @spans = @spans[1..@spans.size]
+    spans
+  end
+
   def services
     services = @services
     @services = []
