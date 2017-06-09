@@ -489,10 +489,9 @@ to isolate them from other messages.
 Additionally, it is possible to override the default logger and replace it by a
 custom one. This is done using the ``log`` attribute of the tracer.
 
-    buf = StringIO.new                            # Log messages should go there
-    Datadog::Tracer.log = Logger.new(buf)         # Overriding the default tracer
+    f = File.new("my-custom.log", "w+")           # Log messages should go there
+    Datadog::Tracer.log = Logger.new(f)           # Overriding the default tracer
     Datadog::Tracer.log.info { "this is typically called by tracing code" }
-    puts buf.string                               # Print all our custom log content
 
 ### Environment and tags
 
