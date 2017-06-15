@@ -9,6 +9,12 @@ require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
 
+# Default tags used when initializing the tracer
+DEFAULT_TAGS = {
+	'lang' => 'ruby',
+	'lang.version' => RUBY_VERSION,
+}
+
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
   # A \Tracer keeps track of the time spent by an application processing a single operation. For
@@ -70,7 +76,7 @@ module Datadog
       @mutex = Mutex.new
       @spans = []
       @services = {}
-      @tags = {}
+      @tags = DEFAULT_TAGS
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
