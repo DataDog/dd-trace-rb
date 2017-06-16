@@ -105,6 +105,8 @@ class TracerTest < Minitest::Test
   def test_set_tags
     tracer = get_test_tracer
     tracer.set_tags('env' => 'test', 'component' => 'core')
+    assert_equal(tracer.tags['lang'], 'ruby')
+    assert_equal(tracer.tags['lang.version'], RUBY_VERSION)
     assert_equal(tracer.tags['env'], 'test')
     assert_equal(tracer.tags['component'], 'core')
   end

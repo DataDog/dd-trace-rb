@@ -20,6 +20,12 @@ module Datadog
     attr_accessor :enabled
     attr_writer :default_service
 
+    # Default tags used when initializing the tracer
+    DEFAULT_TAGS = {
+      'lang' => 'ruby',
+      'lang.version' => RUBY_VERSION
+    }.freeze
+
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
     # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
     def self.log
@@ -70,7 +76,7 @@ module Datadog
       @mutex = Mutex.new
       @spans = []
       @services = {}
-      @tags = {}
+      @tags = {}.merge(DEFAULT_TAGS)
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
