@@ -11,9 +11,9 @@ require 'ddtrace/sampler'
 
 # Default tags used when initializing the tracer
 DEFAULT_TAGS = {
-	'lang' => 'ruby',
-	'lang.version' => RUBY_VERSION,
-}
+  'lang' => 'ruby',
+  'lang.version' => RUBY_VERSION
+}.freeze
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
