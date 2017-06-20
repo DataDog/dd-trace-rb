@@ -46,14 +46,22 @@ module Datadog
           # configure the Rack middleware once
           configure()
 
-          # start a new request span and attach it to the current Rack environment;
-          # we must ensure that the span `resource` is set later
-          request_span = @tracer.trace(
-            'rack.request',
+          trace_options = {
             service: @service,
             resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE
-          )
+          }
+
+          # Merge distributed trace ids if present
+          unless env['HTTP_X_DDTRACE_PARENT_TRACE_ID'].nil? || env['HTTP_X_DDTRACE_PARENT_SPAN_ID'].nil?
+            trace_options[:parent_id] = env['HTTP_X_DDTRACE_PARENT_SPAN_ID'].to_i
+            trace_options[:trace_id] = env['HTTP_X_DDTRACE_PARENT_TRACE_ID'].to_i
+          end
+
+          # start a new request span and attach it to the current Rack environment;
+          # we must ensure that the span `resource` is set later
+          request_span = @tracer.trace('rack.request', trace_options)
+
           env[:datadog_rack_request_span] = request_span
 
           # call the rest of the stack
