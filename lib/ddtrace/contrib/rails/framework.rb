@@ -25,6 +25,7 @@ module Datadog
           auto_instrument: false,
           auto_instrument_redis: false,
           auto_instrument_grape: false,
+          services_prefix: nil,
           default_service: 'rails-app',
           default_controller_service: 'rails-controller',
           default_cache_service: 'rails-cache',
@@ -83,6 +84,9 @@ module Datadog
           # By default, default service would be guessed from the script
           # being executed, but here we know better, get it from Rails config.
           datadog_config[:tracer].default_service = datadog_config[:default_service]
+
+          # We also want to allow rails to set the services_prefix
+          datadog_config[:tracer].services_prefix = datadog_config[:services_prefix]
 
           if defined?(::ActiveRecord)
             begin

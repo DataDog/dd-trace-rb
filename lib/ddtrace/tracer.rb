@@ -18,6 +18,7 @@ module Datadog
   class Tracer
     attr_reader :writer, :sampler, :services, :tags
     attr_accessor :enabled
+    attr_accessor :services_prefix
     attr_writer :default_service
 
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
@@ -100,13 +101,19 @@ module Datadog
     #
     #   tracer.set_service_info('web-application', 'rails', 'web')
     def set_service_info(service, app, app_type)
-      @services[service] = {
+      service_key = if services_prefix && service.start_with?(services_prefix)
+        service
+      else
+        "#{services_prefix}#{service}"
+      end
+
+      @services[service_key] = {
         'app' => app,
         'app_type' => app_type
       }
 
       return unless Datadog::Tracer.debug_logging
-      Datadog::Tracer.log.debug("set_service_info: service: #{service} app: #{app} type: #{app_type}")
+      Datadog::Tracer.log.debug("set_service_info: service: #{service_key} app: #{app} type: #{app_type}")
     end
 
     # A default value for service. One should really override this one
