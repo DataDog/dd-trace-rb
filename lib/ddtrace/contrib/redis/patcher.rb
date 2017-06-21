@@ -4,7 +4,6 @@ module Datadog
   module Contrib
     module Redis
       SERVICE = 'redis'.freeze
-      DRIVER = 'redis.driver'.freeze
 
       # Patcher enables patching of 'redis' module.
       # This is used in monkey.rb to automatically apply patches
