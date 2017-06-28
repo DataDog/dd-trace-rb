@@ -16,7 +16,7 @@ module Datadog
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
-                  :status, :parent, :sampled
+                  :status, :parent, :sampled, :context
 
     # Create a new span linked to the given tracer. Call the <tt>finish()</tt> method once the
     # tracer operation is over or use the <tt>finish_at(time)</tt> helper to close the span with the
@@ -27,6 +27,7 @@ module Datadog
     # * +span_type+: the type of the span (such as +http+, +db+ and so on)
     # * +parent_id+: the identifier of the parent span
     # * +trace_id+: the identifier of the root span for this trace
+    # * +context+: the context of the span
     def initialize(tracer, name, options = {})
       @tracer = tracer
 
@@ -38,6 +39,8 @@ module Datadog
       @span_id = Datadog::Utils.next_id()
       @parent_id = options.fetch(:parent_id, 0)
       @trace_id = options.fetch(:trace_id, @span_id)
+
+      @context = options.fetch(:context, nil)
 
       @meta = {}
       @metrics = {}

@@ -21,6 +21,9 @@ module Datadog
       attr_accessor :transport
     end
   end
+  class Context
+    attr_accessor :trace
+  end
 end
 
 # Return a test tracer instance with a faux writer.
