@@ -35,6 +35,7 @@ module Datadog
     def add_span(span)
       @mutex.synchronize do
         @current_span = span
+        @sampled = span.sampled
         @trace << span
         span.context = self
       end
@@ -67,6 +68,12 @@ module Datadog
     def finished?
       @mutex.synchronize do
         return is_finished
+      end
+    end
+
+    def sampled?
+      @mutex.synchronize do
+        return @sampled
       end
     end
 
