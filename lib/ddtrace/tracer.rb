@@ -6,7 +6,6 @@ require 'pathname'
 require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/provider'
-require 'ddtrace/buffer'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
@@ -67,7 +66,7 @@ module Datadog
       @writer = options.fetch(:writer, Datadog::Writer.new)
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
 
-      @buffer = Datadog::SpanBuffer.new()
+      @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
 
       @mutex = Mutex.new
       @spans = []
@@ -166,9 +165,11 @@ module Datadog
       span = Span.new(self, name, options)
 
       # set up inheritance
-      parent = @buffer.get()
+      @provider ||= Datadog::DefaultContextProvider.new
+      ctx = @provider.context
+      parent = ctx.current_span
       span.set_parent(parent)
-      @buffer.set(span)
+      ctx.add_span(span)
 
       @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
 
@@ -199,40 +200,12 @@ module Datadog
     # Record the given finished span in the +spans+ list. When a +span+ is recorded, it will be sent
     # to the Datadog trace agent as soon as the trace is finished.
     def record(span)
-      span.service ||= default_service
-
-      spans = []
-      @mutex.synchronize do
-        @spans << span
-        parent = span.parent
-        # Bubble up until we find a non-finished parent. This is necessary for
-        # the case when the parent finished after its parent.
-        parent = parent.parent while !parent.nil? && parent.finished?
-        @buffer.set(parent)
-
-        return unless parent.nil?
-
-        # In general, all spans within the buffer belong to the same trace.
-        # But in heavily multithreaded contexts and/or when using lots of callbacks
-        # hooks and other non-linear programming style, one can technically
-        # end up in different situations. So we only extract the spans which
-        # are associated to the root span that just finished, and save the
-        # others for later.
-        trace_spans = []
-        alien_spans = []
-        @spans.each do |s|
-          if s.trace_id == span.trace_id
-            trace_spans << s
-          else
-            alien_spans << s
-          end
-        end
-        spans = trace_spans
-        @spans = alien_spans
-      end
-
-      return if spans.empty? || !span.sampled
-      write(spans)
+      return if @provider.nil?
+      context = @provider.context
+      return if context.nil?
+      span.service ||= default_service # spans without a service would be dropped
+      trace, sampled = context.get
+      write(trace) if !trace.nil? && !trace.empty? && sampled
     end
 
     # Return the current active span or +nil+.

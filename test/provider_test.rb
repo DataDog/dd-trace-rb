@@ -8,16 +8,16 @@ class ProviderTest < Minitest::Test
 
     ctx = provider.context
     assert_kind_of(Datadog::Context, ctx)
-    ctx2=provider.context
-    assert_equal(ctx,ctx2)
+    ctx2 = provider.context
+    assert_equal(ctx, ctx2)
 
     span = Datadog::Span.new(nil, 'an.action')
     ctx.add_span(span)
     assert_equal(1, ctx.trace.length)
-    span_check=ctx.trace[0]
+    span_check = ctx.trace[0]
     assert_equal('an.action', span_check.name)
     assert_equal(ctx, span.context)
 
-    assert_equal(ctx,ctx2)
+    assert_equal(ctx, ctx2)
   end
 end

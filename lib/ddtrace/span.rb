@@ -97,7 +97,14 @@ module Datadog
       return if finished?
 
       @end_time = finish_time.nil? ? Time.now.utc : finish_time
-      @tracer.record(self) unless @tracer.nil?
+      return self if @tracer.nil? || @context.nil?
+
+      begin
+        @context.close_span(self)
+        @tracer.record(self)
+      rescue StandardError =>e
+        Datadog::Tracer.log.debug("error recording finished trace: #{e}")
+      end
       self
     end
 

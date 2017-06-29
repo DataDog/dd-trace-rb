@@ -55,7 +55,7 @@ module Datadog
           opened_spans = @trace.length - @finished_spans
           tracer.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
           @trace.each do |s|
-            tracer.log.debug("unfinished span: #{s}") unless s.is_finished
+            tracer.log.debug("unfinished span: #{s}") unless s._is_finished
           end
         end
       end
@@ -67,7 +67,7 @@ module Datadog
 
     def finished?
       @mutex.synchronize do
-        return is_finished
+        return _is_finished
       end
     end
 
@@ -79,7 +79,7 @@ module Datadog
 
     def get
       @mutex.synchronize do
-        return nil, nil unless is_finished
+        return nil, nil unless _is_finished
 
         trace = @trace
         sampled = @sampled
@@ -105,7 +105,7 @@ module Datadog
       Thread.current[:datadog_context] = ctx
     end
 
-    def get()
+    def get
       Thread.current[:datadog_context] ||= Datadog::Context.new
     end
   end

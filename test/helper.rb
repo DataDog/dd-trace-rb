@@ -4,7 +4,6 @@ require 'minitest/autorun'
 require 'ddtrace/encoding'
 require 'ddtrace/transport'
 require 'ddtrace/tracer'
-require 'ddtrace/buffer'
 require 'ddtrace/span'
 
 # Give access to otherwise private members
