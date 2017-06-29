@@ -1,4 +1,4 @@
-module DataDog
+module Datadog
   # DefaultContextProvider is a default context provider that retrieves
   # all contexts from the current thread-local storage. It is suitable for
   # synchronous programming.
@@ -7,7 +7,7 @@ module DataDog
       @context = Datadog::ThreadLocalContext.new
     end
 
-    def call
+    def context
       @context.get()
     end
   end

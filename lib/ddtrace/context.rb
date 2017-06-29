@@ -105,7 +105,7 @@ module Datadog
       Thread.current[:datadog_context] = ctx
     end
 
-    def get(ctx)
+    def get()
       Thread.current[:datadog_context] ||= Datadog::Context.new
     end
   end

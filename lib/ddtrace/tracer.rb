@@ -5,6 +5,7 @@ require 'pathname'
 
 require 'ddtrace/span'
 require 'ddtrace/context'
+require 'ddtrace/provider'
 require 'ddtrace/buffer'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
