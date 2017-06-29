@@ -162,11 +162,13 @@ module Datadog
     #   parent2.finish()
     #
     def trace(name, options = {})
-      span = Span.new(self, name, options)
-
-      # set up inheritance
       @provider ||= Datadog::DefaultContextProvider.new
       ctx = @provider.context
+
+      opts = { context: ctx }.merge(options)
+      span = Span.new(self, name, opts)
+
+      # set up inheritance
       parent = ctx.current_span
       span.set_parent(parent)
       ctx.add_span(span)

@@ -16,7 +16,8 @@ module Datadog
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
-                  :status, :parent, :sampled, :context
+                  :status, :parent, :sampled,
+                  :tracer, :context
 
     # Create a new span linked to the given tracer. Call the <tt>finish()</tt> method once the
     # tracer operation is over or use the <tt>finish_at(time)</tt> helper to close the span with the

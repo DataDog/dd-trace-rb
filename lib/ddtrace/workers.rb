@@ -98,8 +98,7 @@ module Datadog
         @trace_buffer.push(trace)
       end
 
-      # Enqueue an item in the service internal buffer. This operation is thread-safe
-      # because uses the +TraceBuffer+ data structure.
+      # Enqueue an item in the service internal buffer. This operation is thread-safe.
       def enqueue_service(service)
         return if service == {} # no use to send this, not worth it
         @service_buffer.push(service)

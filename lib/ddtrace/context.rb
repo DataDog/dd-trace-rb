@@ -48,10 +48,9 @@ module Datadog
         # in other cases, this is just broken and one should rely
         # on per-instrumentation code to retrieve handle parent/child relations.
         @current_span = span.parent
-
         return if span.tracer.nil?
-        return unless span.tracer.debug_logging
-        if span.parent.nil? && !finished?
+        return unless Datadog::Tracer.debug_logging
+        if span.parent.nil? && !_is_finished
           opened_spans = @trace.length - @finished_spans
           tracer.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
           @trace.each do |s|
@@ -83,7 +82,7 @@ module Datadog
 
         trace = @trace
         sampled = @sampled
-        reset
+        _reset
         return trace, sampled
       end
     end
