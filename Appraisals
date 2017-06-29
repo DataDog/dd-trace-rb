@@ -84,7 +84,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'rails', '5.0.1'
       gem 'pg', platform: :ruby
       gem 'sidekiq'
-      gem "activejob"
+      gem 'activejob'
     end
   end
 end
