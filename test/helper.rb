@@ -14,6 +14,7 @@ module Datadog
   class Tracer
     remove_method :writer
     attr_accessor :writer
+    attr_reader :provider
   end
   module Workers
     class AsyncTransport
@@ -21,7 +22,7 @@ module Datadog
     end
   end
   class Context
-    attr_accessor :trace
+    attr_accessor :trace, :sampled, :finished_spans, :current_span
   end
 end
 

@@ -16,6 +16,7 @@ module Datadog
   # example, a trace can be used to track the entire time spent processing a complicated web request.
   # Even though the request may require multiple resources and machines to handle the request, all
   # of these function calls and sub-requests would be encapsulated within a single trace.
+  # rubocop:disable Metrics/ClassLength
   class Tracer
     attr_reader :writer, :sampler, :services, :tags
     attr_accessor :enabled
@@ -67,6 +68,7 @@ module Datadog
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
 
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
+      @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
       @mutex = Mutex.new
       @spans = []
@@ -133,6 +135,46 @@ module Datadog
       @tags.update(tags)
     end
 
+    # OT spec: def start_span(operation_name, child_of: nil, references: nil, start_time: Time.now, tags: nil)
+    def start_span(name, options = {})
+      child_of = options.fetch('child_of', nil) # can be context or span
+      service = options.fetch('service', nil)
+      resource = options.fetch('resource', nil)
+      span_type = options.fetch('span_type', nil)
+      start_time = options.fetch('start_time', Time.now.utc)
+      tags = options.fetch('tags', {})
+
+      unless child_of.nil?
+        if child_of.is_a?(Datadog::Context)
+          ctx = child_of
+          parent = ctx.current_span
+        end
+        parent = child_of if child_of.is_a?(Datadog::Span)
+      end
+      ctx ||= @provider.context
+      parent ||= ctx.current_span
+      opts = {
+        context: ctx,
+        service: service,
+        resource: resource,
+        span_type: span_type,
+        start_time: start_time
+      }
+      if parent.nil?
+        # root span
+        span = Span.new(name, opts)
+        @sampler.sample(span)
+      else
+        # child span
+        opts.merge(trace_id: parent.trace_id, parent_id: parent.span_id)
+        span = Span.new(name, opts)
+        span.parent = parent
+        span.sampled = parent.sampled
+      end
+      tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
+      @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
+    end
+
     # Return a +span+ that will trace an operation called +name+. You could trace your code
     # using a <tt>do-block</tt> like:
     #
@@ -162,25 +204,19 @@ module Datadog
     #   parent2.finish()
     #
     def trace(name, options = {})
-      @provider ||= Datadog::DefaultContextProvider.new
-      ctx = @provider.context
+      service = options.fetch('service', nil)
+      resource = options.fetch('resource', nil)
+      span_type = options.fetch('span_type', nil)
+      start_time = options.fetch('start_time', Time.now.utc)
+      tags = options.fetch('tags', {})
 
-      opts = { context: ctx }.merge(options)
-      span = Span.new(self, name, opts)
-
-      # set up inheritance
-      parent = ctx.current_span
-      span.set_parent(parent)
-      ctx.add_span(span)
-
-      @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
-
-      # sampling
-      if parent.nil?
-        @sampler.sample(span)
-      else
-        span.sampled = span.parent.sampled
-      end
+      span = start_span(name,
+                        child_of: @provider.context,
+                        service: service,
+                        resource: resource,
+                        span_type: span_type,
+                        start_time: start_time,
+                        tags: tags)
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns

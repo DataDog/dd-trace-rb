@@ -103,7 +103,7 @@ module Datadog
       begin
         @context.close_span(self)
         @tracer.record(self)
-      rescue StandardError =>e
+      rescue StandardError => e
         Datadog::Tracer.log.debug("error recording finished trace: #{e}")
       end
       self

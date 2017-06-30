@@ -87,6 +87,14 @@ module Datadog
       end
     end
 
+    # Return a string representation of the context.
+    def to_s
+      @mutex.synchronize do
+        # rubocop:disable Metrics/LineLength
+        "Context(trace.length:#{@trace.length},sampled:#{@sampled},finished_spans:#{@finished_spans},current_span:#{@current_span})"
+      end
+    end
+
     private :_reset
     private :_is_finished
   end

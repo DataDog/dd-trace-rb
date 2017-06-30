@@ -165,14 +165,15 @@ class WorkersServiceTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    sleep(2 * SERVICE_INTERVAL)
-
-    (20 * SPAN_INTERVAL).times do
+    (20 * SPAN_INTERVAL).times do |i|
+      puts "#{i}: #{@tracer.provider.context}\n"
       break if @writer.stats[:traces_flushed] >= 1
       sleep(0.1)
     end
 
+    puts @tracer.provider.context
     assert_equal(1, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
+    sleep(2 * SERVICE_INTERVAL)
     assert_equal(0, @writer.stats[:services_flushed], 'wrong number of services flushed')
   end
 
