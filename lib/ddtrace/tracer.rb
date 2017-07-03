@@ -162,17 +162,19 @@ module Datadog
       }
       if parent.nil?
         # root span
-        span = Span.new(name, opts)
+        span = Span.new(self, name, opts)
         @sampler.sample(span)
       else
         # child span
         opts.merge(trace_id: parent.trace_id, parent_id: parent.span_id)
-        span = Span.new(name, opts)
+        span = Span.new(self, name, opts)
         span.parent = parent
         span.sampled = parent.sampled
       end
       tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
       @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
+      ctx.add_span(span)
+      span
     end
 
     # Return a +span+ that will trace an operation called +name+. You could trace your code
@@ -243,7 +245,8 @@ module Datadog
       return if context.nil?
       span.service ||= default_service # spans without a service would be dropped
       trace, sampled = context.get
-      write(trace) if !trace.nil? && !trace.empty? && sampled
+      ready = !trace.nil? && !trace.empty? && sampled
+      write(trace) if ready
     end
 
     # Return the current active span or +nil+.
