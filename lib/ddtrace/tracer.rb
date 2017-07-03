@@ -140,6 +140,7 @@ module Datadog
     end
 
     # OT spec: def start_span(operation_name, child_of: nil, references: nil, start_time: Time.now, tags: nil)
+    # rubocop:disable Metrics/MethodLength
     def start_span(name, options = {})
       child_of = options.fetch(:child_of, nil) # can be context or span
       service = options.fetch(:service, nil)
@@ -171,7 +172,8 @@ module Datadog
       else
         # child span
         opts[:service] ||= parent.service
-        opts.merge!(trace_id: parent.trace_id, parent_id: parent.span_id)
+        opts[:trace_id] = parent.trace_id
+        opts[:parent_id] = parent.span_id
         span = Span.new(self, name, opts)
         span.parent = parent
         span.sampled = parent.sampled

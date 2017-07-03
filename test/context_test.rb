@@ -120,35 +120,31 @@ class ContextTest < Minitest::Test
     tracer = get_test_tracer
     ctx = Datadog::Context.new
 
-    n=100
-    threads=[]
-    spans=[]
-    mutex=Mutex.new
+    n = 100
+    threads = []
+    spans = []
+    mutex = Mutex.new
 
     n.times do |i|
       threads << Thread.new do
-        span=Datadog::Span.new(tracer, "test.op#{i}")
+        span = Datadog::Span.new(tracer, "test.op#{i}")
         ctx.add_span(span)
         mutex.synchronize do
           spans << span
         end
       end
     end
-    threads.each do |t|
-      t.join
-    end
+    threads.each(&:join)
 
     assert_equal(n, ctx.trace.length)
 
-    threads=[]
+    threads = []
     spans.each do |span|
       threads << Thread.new do
         ctx.close_span(span)
       end
     end
-    threads.each do |t|
-      t.join
-    end
+    threads.each(&:join)
 
     trace, sampled = ctx.get
 
@@ -180,22 +176,22 @@ class ThreadLocalContextTest < Minitest::Test
     local_ctx.set ctx
     ctx2 = local_ctx.get
 
-    assert_equal(ctx,ctx2)
+    assert_equal(ctx, ctx2)
   end
 
   def test_multiple_threads_multiple_context
     tracer = get_test_tracer
     local_ctx = Datadog::ThreadLocalContext.new
 
-    n=100
-    threads=[]
-    spans=[]
-    mutex=Mutex.new
+    n = 100
+    threads = []
+    spans = []
+    mutex = Mutex.new
 
     n.times do |i|
       threads << Thread.new do
-        span=Datadog::Span.new(tracer, "test.op#{i}")
-        ctx=local_ctx.get
+        span = Datadog::Span.new(tracer, "test.op#{i}")
+        ctx = local_ctx.get
         ctx.add_span(span)
         assert_equal(1, ctx.trace.length)
         mutex.synchronize do
@@ -203,23 +199,19 @@ class ThreadLocalContextTest < Minitest::Test
         end
       end
     end
-    threads.each do |t|
-      t.join
-    end
+    threads.each(&:join)
 
     # the main instance should have an empty Context
     # because it has not been used in this thread
     ctx = local_ctx.get
     assert_equal(0, ctx.trace.length)
 
-    threads=[]
+    threads = []
     spans.each do |span|
       threads << Thread.new do
         ctx.close_span(span)
       end
     end
-    threads.each do |t|
-      t.join
-    end
+    threads.each(&:join)
   end
 end

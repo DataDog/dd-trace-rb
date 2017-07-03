@@ -165,7 +165,7 @@ class WorkersServiceTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    (20 * SPAN_INTERVAL).times do |i|
+    (20 * SPAN_INTERVAL).times do |_i|
       break if @writer.stats[:traces_flushed] >= 1
       sleep(0.1)
     end
