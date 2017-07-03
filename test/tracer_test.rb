@@ -123,7 +123,7 @@ class TracerTest < Minitest::Test
     tracer.trace('something').finish()
 
     spans = tracer.writer.spans()
-    assert_equal(spans.length, 0)
+    assert_equal(0, spans.length)
   end
 
   def test_configure_tracer
@@ -141,5 +141,28 @@ class TracerTest < Minitest::Test
     tracer.default_service = 'foo-bar'
     assert_equal('foo-bar', tracer.default_service)
     tracer.default_service = old_service
+  end
+
+  def test_trace_all_args
+    tracer = get_test_tracer
+
+    yesterday = Time.now.utc - 24 * 60 * 60
+    tracer.trace('op',
+                 service: 'special-service',
+                 resource: 'extra-resource',
+                 span_type: 'my-type',
+                 start_time: yesterday,
+                 tags: { 'tag1' => 'value1', 'tag2' => 'value2' }) do
+    end
+
+    spans = tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('special-service', span.service)
+    assert_equal('extra-resource', span.resource)
+    assert_equal('my-type', span.span_type)
+    assert_equal(yesterday, span.start_time)
+    assert_equal('value1', span.meta.fetch('tag1', nil))
+    assert_equal('value2', span.meta.fetch('tag2', nil))
   end
 end
