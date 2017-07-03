@@ -38,8 +38,8 @@ class ConcurrentTest < Minitest::Test
     assert_equal(300, traces.length)
     traces.each do |trace|
       assert_equal(2, trace.length)
-      sub = trace[0]
-      root = trace[1]
+      trace.sort! { |a, b| a.name <=> b.name }
+      root, sub = trace
       assert_equal('a-root-task', root.name)
       assert_equal('a-sub-task', sub.name)
       assert_equal(root.trace_id, root.span_id)

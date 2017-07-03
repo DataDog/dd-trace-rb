@@ -57,6 +57,10 @@ module Datadog
       log.level == Logger::DEBUG
     end
 
+    def call_context
+      @provider.context
+    end
+
     # Initialize a new \Tracer used to create, sample and submit spans that measure the
     # time of sections of code. Available +options+ are:
     #
@@ -137,12 +141,12 @@ module Datadog
 
     # OT spec: def start_span(operation_name, child_of: nil, references: nil, start_time: Time.now, tags: nil)
     def start_span(name, options = {})
-      child_of = options.fetch('child_of', nil) # can be context or span
-      service = options.fetch('service', nil)
-      resource = options.fetch('resource', nil)
-      span_type = options.fetch('span_type', nil)
-      start_time = options.fetch('start_time', Time.now.utc)
-      tags = options.fetch('tags', {})
+      child_of = options.fetch(:child_of, nil) # can be context or span
+      service = options.fetch(:service, nil)
+      resource = options.fetch(:resource, nil)
+      span_type = options.fetch(:span_type, nil)
+      start_time = options.fetch(:start_time, Time.now.utc)
+      tags = options.fetch(:tags, {})
 
       unless child_of.nil?
         if child_of.is_a?(Datadog::Context)
@@ -151,7 +155,7 @@ module Datadog
         end
         parent = child_of if child_of.is_a?(Datadog::Span)
       end
-      ctx ||= @provider.context
+      ctx ||= call_context
       parent ||= ctx.current_span
       opts = {
         context: ctx,
@@ -166,7 +170,8 @@ module Datadog
         @sampler.sample(span)
       else
         # child span
-        opts.merge(trace_id: parent.trace_id, parent_id: parent.span_id)
+        opts[:service] ||= parent.service
+        opts.merge!(trace_id: parent.trace_id, parent_id: parent.span_id)
         span = Span.new(self, name, opts)
         span.parent = parent
         span.sampled = parent.sampled
@@ -206,14 +211,14 @@ module Datadog
     #   parent2.finish()
     #
     def trace(name, options = {})
-      service = options.fetch('service', nil)
-      resource = options.fetch('resource', nil)
-      span_type = options.fetch('span_type', nil)
-      start_time = options.fetch('start_time', Time.now.utc)
-      tags = options.fetch('tags', {})
+      service = options.fetch(:service, nil)
+      resource = options.fetch(:resource, nil)
+      span_type = options.fetch(:span_time, nil)
+      start_time = options.fetch(:start_time, Time.now.utc)
+      tags = options.fetch(:tags, {})
 
       span = start_span(name,
-                        child_of: @provider.context,
+                        child_of: call_context,
                         service: service,
                         resource: resource,
                         span_type: span_type,
@@ -241,7 +246,7 @@ module Datadog
     # to the Datadog trace agent as soon as the trace is finished.
     def record(span)
       return if @provider.nil?
-      context = @provider.context
+      context = call_context
       return if context.nil?
       span.service ||= default_service # spans without a service would be dropped
       trace, sampled = context.get
