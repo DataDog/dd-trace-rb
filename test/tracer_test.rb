@@ -1,6 +1,7 @@
 require 'helper'
 require 'ddtrace/tracer'
 
+# rubocop:disable Metrics/ClassLength
 class TracerTest < Minitest::Test
   def test_trace
     tracer = get_test_tracer
@@ -145,6 +146,7 @@ class TracerTest < Minitest::Test
 
   def test_trace_all_args
     tracer = get_test_tracer
+    tracer.set_tags('env' => 'test', 'temp' => 'cool')
 
     yesterday = Time.now.utc - 24 * 60 * 60
     tracer.trace('op',
@@ -162,7 +164,29 @@ class TracerTest < Minitest::Test
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
     assert_equal(yesterday, span.start_time)
-    assert_equal('value1', span.meta.fetch('tag1', nil))
-    assert_equal('value2', span.meta.fetch('tag2', nil))
+    assert_equal({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' }, span.meta)
+  end
+
+  def test_start_span_all_args
+    tracer = get_test_tracer
+    tracer.set_tags('env' => 'test', 'temp' => 'cool')
+
+    yesterday = Time.now.utc - 24 * 60 * 60
+    span = tracer.start_span('op',
+                             service: 'special-service',
+                             resource: 'extra-resource',
+                             span_type: 'my-type',
+                             start_time: yesterday,
+                             tags: { 'tag1' => 'value1', 'tag2' => 'value2' })
+    span.finish
+
+    spans = tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('special-service', span.service)
+    assert_equal('extra-resource', span.resource)
+    assert_equal('my-type', span.span_type)
+    assert_equal(yesterday, span.start_time)
+    assert_equal({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' }, span.meta)
   end
 end

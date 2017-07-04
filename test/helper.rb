@@ -24,6 +24,9 @@ module Datadog
   class Context
     attr_accessor :trace, :sampled, :finished_spans, :current_span
   end
+  class Span
+    attr_accessor :meta
+  end
 end
 
 # Return a test tracer instance with a faux writer.

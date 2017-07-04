@@ -50,7 +50,7 @@ module Datadog
       @parent = nil
       @sampled = true
 
-      @start_time = Time.now.utc
+      @start_time = options.fetch(:start_time, Time.now.utc)
       @end_time = nil
     end
 

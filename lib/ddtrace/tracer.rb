@@ -215,7 +215,7 @@ module Datadog
     def trace(name, options = {})
       service = options.fetch(:service, nil)
       resource = options.fetch(:resource, nil)
-      span_type = options.fetch(:span_time, nil)
+      span_type = options.fetch(:span_type, nil)
       start_time = options.fetch(:start_time, Time.now.utc)
       tags = options.fetch(:tags, {})
 
