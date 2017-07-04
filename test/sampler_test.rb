@@ -81,7 +81,7 @@ class SamplerTest < Minitest::Test
     tracer = get_test_tracer()
     tracer.configure(sampler: Datadog::RateSampler.new(0.5))
 
-    nb_spans = 1000
+    nb_spans = 10000
     nb_spans.times do
       span = tracer.trace('test', trace_id: prng.rand(Datadog::Span::MAX_ID))
       span.finish()

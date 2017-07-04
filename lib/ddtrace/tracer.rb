@@ -120,7 +120,7 @@ module Datadog
     # for non-root spans which have a parent. However, root spans without
     # a service would be invalid and rejected.
     def default_service
-      return @default_service if @default_service
+      return @default_service if instance_variable_defined?(:@default_service) && @default_service
       begin
         @default_service = File.basename($PROGRAM_NAME, '.*')
       rescue => e
