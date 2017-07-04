@@ -226,7 +226,9 @@ class TracerTest < Minitest::Test
 
     mutex = Mutex.new
 
+    @thread_span = nil
     @thread_ctx = nil
+
     thread = Thread.new do
       mutex.synchronize do
         @thread_span = tracer.start_span('a')
@@ -236,7 +238,7 @@ class TracerTest < Minitest::Test
 
     1000.times do
       mutex.synchronize do
-        break unless @thread_ctx.nil?
+        break unless @thread_ctx.nil? || @thread_span.nil?
         sleep 0.001
       end
     end
@@ -250,10 +252,11 @@ class TracerTest < Minitest::Test
       span.finish
     end
 
-    thread.join
     mutex.synchronize do
       @thread_span.finish
     end
+
+    thread.join
 
     @thread_span = nil
     @thread_ctx = nil
