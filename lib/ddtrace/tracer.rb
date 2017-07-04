@@ -244,13 +244,13 @@ module Datadog
       end
     end
 
-    # Record the given finished span in the +spans+ list. When a +span+ is recorded, it will be sent
-    # to the Datadog trace agent as soon as the trace is finished.
-    def record(span)
-      return if @provider.nil?
-      context = call_context
+    # Record the given +context+. For compatibility with previous versions,
+    # +context+ can also be a span. It is similar to the +child_of+ argument,
+    # method will figure out what to do, submitting a +span+ for recording
+    # is like trying to record its +context+.
+    def record(context)
+      context = context.context if context.is_a?(Datadog::Span)
       return if context.nil?
-      span.service ||= default_service # spans without a service would be dropped
       trace, sampled = context.get
       ready = !trace.nil? && !trace.empty? && sampled
       write(trace) if ready

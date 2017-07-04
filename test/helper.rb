@@ -69,6 +69,7 @@ end
 class FauxWriter < Datadog::Writer
   def initialize
     super(transport: FauxTransport.new(HOSTNAME, PORT))
+    @mutex = Mutex.new
 
     # easy access to registered components
     @spans = []
@@ -76,29 +77,39 @@ class FauxWriter < Datadog::Writer
   end
 
   def write(trace, services)
-    super(trace, services)
-    @spans << trace
-    @services = services
+    @mutex.synchronize do
+      super(trace, services)
+      @spans << trace
+      @services = services
+    end
   end
 
   def spans
-    spans = @spans
-    @spans = []
-    spans.flatten
+    @mutex.synchronize do
+      spans = @spans
+      @spans = []
+      spans.flatten!
+      # sort the spans to avoid test flakiness
+      spans.sort! { |a, b| a.name <=> b.name }
+    end
   end
 
   def trace0_spans
-    return [] unless @spans
-    return [] if @spans.empty?
-    spans = @spans[0]
-    @spans = @spans[1..@spans.size]
-    spans
+    @mutex.synchronize do
+      return [] unless @spans
+      return [] if @spans.empty?
+      spans = @spans[0]
+      @spans = @spans[1..@spans.size]
+      spans
+    end
   end
 
   def services
-    services = @services
-    @services = []
-    services
+    @mutex.synchronize do
+      services = @services
+      @services = []
+      services
+    end
   end
 end
 

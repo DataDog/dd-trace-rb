@@ -60,7 +60,6 @@ class TracerTest < Minitest::Test
     end
 
     spans = tracer.writer.spans()
-    spans.sort! { |a, b| a.name <=> b.name }
     assert_equal(spans.length, 3)
     a, b, c = spans
     assert_equal(a.name, 'a')
@@ -188,5 +187,76 @@ class TracerTest < Minitest::Test
     assert_equal('my-type', span.span_type)
     assert_equal(yesterday, span.start_time)
     assert_equal({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' }, span.meta)
+  end
+
+  def test_start_span_child_of_span
+    tracer = get_test_tracer
+
+    root = tracer.start_span('a')
+    root.finish
+
+    spans = tracer.writer.spans()
+    assert_equal(1, spans.length)
+    a = spans[0]
+
+    tracer.trace('b') do
+      span = tracer.start_span('c', child_of: root)
+      span.finish
+    end
+
+    spans = tracer.writer.spans()
+    assert_equal(2, spans.length)
+    b, c = spans
+
+    refute_equal(a.trace_id, b.trace_id, 'a and b do not belong to the same trace')
+    refute_equal(b.trace_id, c.trace_id, 'b and c do not belong to the same trace')
+    assert_equal(a.trace_id, c.trace_id, 'a and c belong to the same trace')
+    assert_equal(a.span_id, c.parent_id, 'a is the parent of c')
+  end
+
+  def test_start_span_child_of_context
+    tracer = get_test_tracer
+
+    mutex = Mutex.new
+
+    @thread_ctx = nil
+    thread = Thread.new do
+      mutex.synchronize do
+        @thread_span = tracer.start_span('a')
+        @thread_ctx = tracer.call_context
+      end
+    end
+
+    1000.times do
+      mutex.synchronize do
+        break unless @thread_ctx.nil?
+        sleep 0.001
+      end
+    end
+
+    mutex.synchronize do
+      refute_equal(@thread_ctx, tracer.call_context, 'thread context is different')
+    end
+
+    tracer.trace('b') do
+      span = tracer.start_span('c', child_of: @thread_ctx)
+      span.finish
+    end
+
+    thread.join
+    mutex.synchronize do
+      @thread_span.finish
+    end
+
+    @thread_span = nil
+    @thread_ctx = nil
+
+    spans = tracer.writer.spans()
+    assert_equal(3, spans.length)
+    a, b, c = spans
+    refute_equal(a.trace_id, b.trace_id, 'a and b do not belong to the same trace')
+    refute_equal(b.trace_id, c.trace_id, 'b and c do not belong to the same trace')
+    assert_equal(a.trace_id, c.trace_id, 'a and c belong to the same trace')
+    assert_equal(a.span_id, c.parent_id, 'a is the parent of c')
   end
 end

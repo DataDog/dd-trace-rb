@@ -100,6 +100,8 @@ module Datadog
       @end_time = finish_time.nil? ? Time.now.utc : finish_time
       return self if @tracer.nil? || @context.nil?
 
+      @service ||= @tracer.default_service unless @tracer.nil? # spans without a service would be dropped
+
       begin
         @context.close_span(self)
         @tracer.record(self)
