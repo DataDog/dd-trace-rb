@@ -20,7 +20,7 @@ class TracingControllerTest < ActionController::TestCase
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
 
-    span = spans[1]
+    span = spans[0]
     assert_equal(span.name, 'rails.action_controller')
     assert_equal(span.span_type, 'http')
     assert_equal(span.resource, 'TracingController#index')
@@ -34,7 +34,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_response :success
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
-    span = spans[0]
+    span = spans[1]
     assert_equal(span.name, 'rails.render_template')
     assert_equal(span.span_type, 'template')
     assert_equal(span.resource, 'rails.render_template')
@@ -49,8 +49,7 @@ class TracingControllerTest < ActionController::TestCase
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
 
-    span_template = spans[1]
-    span_partial = spans[0]
+    _, span_partial, span_template = spans
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.span_type, 'template')
     assert_equal(span_partial.resource, 'rails.render_partial')
@@ -65,12 +64,10 @@ class TracingControllerTest < ActionController::TestCase
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 4)
 
+    span_database, span_request, span_cache, span_template = spans
+
     # assert the spans
     adapter_name = get_adapter_name()
-    span_cache = spans[0]
-    span_database = spans[1]
-    span_template = spans[2]
-    span_request = spans[3]
     assert_equal(span_cache.name, 'rails.cache')
     assert_equal(span_database.name, "#{adapter_name}.query")
     assert_equal(span_template.name, 'rails.render_template')

@@ -31,11 +31,11 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # get spans
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 5)
-    request_span = spans[4]
-    controller_span = spans[3]
-    render_span = spans[2]
-    database_span = spans[1]
-    cache_span = spans[0]
+
+    # spans are sorted alphabetically, and ... controller names start
+    # either by m or p (MySQL or PostGreSQL) so the database span is always
+    # the first one. Would fail with an adaptateur named z-something.
+    database_span, request_span, controller_span, cache_span, render_span = spans
 
     assert_equal(request_span.name, 'rack.request')
     assert_equal(request_span.span_type, 'http')
@@ -81,8 +81,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # get spans
     spans = @tracer.writer.spans()
     assert_equal(2, spans.length)
-    request_span = spans[1]
-    controller_span = spans[0]
+    request_span, controller_span = spans
 
     assert_equal(controller_span.name, 'rails.action_controller')
     assert_equal(controller_span.status, 1)

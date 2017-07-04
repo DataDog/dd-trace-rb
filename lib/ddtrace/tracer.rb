@@ -140,13 +140,8 @@ module Datadog
     end
 
     # OT spec: def start_span(operation_name, child_of: nil, references: nil, start_time: Time.now, tags: nil)
-    # rubocop:disable Metrics/MethodLength
     def start_span(name, options = {})
       child_of = options.fetch(:child_of, nil) # can be context or span
-      service = options.fetch(:service, nil)
-      resource = options.fetch(:resource, nil)
-      span_type = options.fetch(:span_type, nil)
-      start_time = options.fetch(:start_time, Time.now.utc)
       tags = options.fetch(:tags, {})
 
       unless child_of.nil?
@@ -159,12 +154,9 @@ module Datadog
       ctx ||= call_context
       parent ||= ctx.current_span
       opts = {
-        context: ctx,
-        service: service,
-        resource: resource,
-        span_type: span_type,
-        start_time: start_time
+        context: ctx
       }
+      opts.merge!(options)
       if parent.nil?
         # root span
         span = Span.new(self, name, opts)
@@ -213,19 +205,9 @@ module Datadog
     #   parent2.finish()
     #
     def trace(name, options = {})
-      service = options.fetch(:service, nil)
-      resource = options.fetch(:resource, nil)
-      span_type = options.fetch(:span_type, nil)
-      start_time = options.fetch(:start_time, Time.now.utc)
-      tags = options.fetch(:tags, {})
-
-      span = start_span(name,
-                        child_of: call_context,
-                        service: service,
-                        resource: resource,
-                        span_type: span_type,
-                        start_time: start_time,
-                        tags: tags)
+      opts = { child_of: call_context }
+      opts.merge!(options)
+      span = start_span(name, opts)
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
