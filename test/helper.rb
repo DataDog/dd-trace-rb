@@ -22,6 +22,7 @@ module Datadog
     end
   end
   class Context
+    remove_method :current_span
     attr_accessor :trace, :sampled, :finished_spans, :current_span
   end
   class Span

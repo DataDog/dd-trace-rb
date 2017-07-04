@@ -1,6 +1,7 @@
 require 'helper'
 require 'ddtrace'
 require 'ddtrace/tracer'
+require 'stringio'
 require 'thread'
 require 'webrick'
 
@@ -8,7 +9,13 @@ class TraceCountHeaderTest < Minitest::Test
   TEST_PORT = 6218
 
   def setup
-    @server = WEBrick::HTTPServer.new Port: TEST_PORT
+    @log_buf = StringIO.new
+    log = WEBrick::Log.new @log_buf
+    access_log = [
+      [@log_buf, WEBrick::AccessLog::COMBINED_LOG_FORMAT]
+    ]
+
+    @server = WEBrick::HTTPServer.new Port: TEST_PORT, Logger: log, AccessLog: access_log
 
     @server.mount_proc '/' do |req, res|
       res.body = '{}'
