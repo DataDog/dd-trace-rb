@@ -155,7 +155,7 @@ class SpanTest < Minitest::Test
   end
 
   def test_set_error
-    # rubocop:disable Style/IndentHeredoc
+    # rubocop:disable Layout/IndentHeredoc
     span = Datadog::Span.new(nil, 'test.span')
     error = RuntimeError.new('Something broke!')
     error.set_backtrace(%w[list of calling methods])
