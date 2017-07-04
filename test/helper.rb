@@ -91,7 +91,13 @@ class FauxWriter < Datadog::Writer
       @spans = []
       spans.flatten!
       # sort the spans to avoid test flakiness
-      spans.sort! { |a, b| a.name <=> b.name }
+      spans.sort! do |a, b|
+        if a.name == b.name
+          a.resource <=> b.resource
+        else
+          a.name <=> b.name
+        end
+      end
     end
   end
 

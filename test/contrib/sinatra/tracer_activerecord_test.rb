@@ -37,23 +37,25 @@ class TracerActiveRecordTest < TracerTestBase
     assert_equal(200, last_response.status)
 
     spans = @writer.spans()
-    assert_equal(2, spans.length)
+    assert_operator(2, :<=, spans.length,
+                    'there should be at least 2 spans (span like "PRAGMA foreign_keys = ON" could appear)')
 
-    span = spans[0]
-    assert_equal('sqlite', span.service)
-    assert_equal('SELECT 42', span.resource)
-    assert_equal('sqlite', span.get_tag('active_record.db.vendor'))
-    assert_equal(Datadog::Ext::SQL::TYPE, span.span_type)
-    assert_equal(0, span.status)
-    assert_equal(spans[1], span.parent)
+    sinatra_span = spans[0]
+    sqlite_span = spans[spans.length - 1]
 
-    span = spans[1]
-    assert_equal('sinatra', span.service)
-    assert_equal('POST /request', span.resource)
-    assert_equal('POST', span.get_tag(Datadog::Ext::HTTP::METHOD))
-    assert_equal('/request', span.get_tag(Datadog::Ext::HTTP::URL))
-    assert_equal(Datadog::Ext::HTTP::TYPE, span.span_type)
-    assert_equal(0, span.status)
-    assert_nil(span.parent)
+    assert_equal('sqlite', sqlite_span.service)
+    assert_equal('SELECT 42', sqlite_span.resource)
+    assert_equal('sqlite', sqlite_span.get_tag('active_record.db.vendor'))
+    assert_equal(Datadog::Ext::SQL::TYPE, sqlite_span.span_type)
+    assert_equal(0, sqlite_span.status)
+    assert_equal(sinatra_span, sqlite_span.parent)
+
+    assert_equal('sinatra', sinatra_span.service)
+    assert_equal('POST /request', sinatra_span.resource)
+    assert_equal('POST', sinatra_span.get_tag(Datadog::Ext::HTTP::METHOD))
+    assert_equal('/request', sinatra_span.get_tag(Datadog::Ext::HTTP::URL))
+    assert_equal(Datadog::Ext::HTTP::TYPE, sinatra_span.span_type)
+    assert_equal(0, sinatra_span.status)
+    assert_nil(sinatra_span.parent)
   end
 end

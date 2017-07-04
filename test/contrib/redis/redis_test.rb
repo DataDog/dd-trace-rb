@@ -107,16 +107,15 @@ class RedisTest < Minitest::Test
       assert_equal('x' * 10000, response)
       spans = @tracer.writer.spans()
       assert_operator(2, :<=, spans.length)
-      span = spans[-2]
-      check_common_tags(span)
-      assert_equal('redis.command', span.name)
-      assert_equal('redis', span.service)
-      assert_equal('set K ' + 'x' * 97 + '...', span.resource)
-      span = spans[-1]
-      check_common_tags(span)
-      assert_equal('redis.command', span.name)
-      assert_equal('redis', span.service)
-      assert_equal('get K', span.resource)
+      get, set = spans[-2..-1]
+      check_common_tags(set)
+      assert_equal('redis.command', set.name)
+      assert_equal('redis', set.service)
+      assert_equal('set K ' + 'x' * 97 + '...', set.resource)
+      check_common_tags(get)
+      assert_equal('redis.command', get.name)
+      assert_equal('redis', get.service)
+      assert_equal('get K', get.resource)
     end
   end
 
