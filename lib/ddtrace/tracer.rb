@@ -258,7 +258,7 @@ module Datadog
 
     # Return the current active span or +nil+.
     def active_span
-      @buffer.get()
+      call_context.current_span
     end
 
     def write(spans)

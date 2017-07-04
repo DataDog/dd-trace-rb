@@ -143,6 +143,13 @@ class TracerTest < Minitest::Test
     tracer.default_service = old_service
   end
 
+  def test_active_span
+    tracer = get_test_tracer
+    span = tracer.trace('something')
+    assert_equal(span, tracer.active_span, 'current span is active')
+    assert_equal(false, tracer.active_span.finished?)
+  end
+
   def test_trace_all_args
     tracer = get_test_tracer
     tracer.set_tags('env' => 'test', 'temp' => 'cool')
