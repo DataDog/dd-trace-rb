@@ -20,13 +20,14 @@ class CacheTracingTest < ActionController::TestCase
 
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
-    span = spans[-1]
-    assert_equal(span.name, 'rails.cache')
-    assert_equal(span.span_type, 'cache')
-    assert_equal(span.resource, 'GET')
-    assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, 'file_store')
-    assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
+    get, set = spans
+    assert_equal(get.name, 'rails.cache')
+    assert_equal(get.span_type, 'cache')
+    assert_equal(get.resource, 'GET')
+    assert_equal(get.service, 'rails-cache')
+    assert_equal(get.get_tag('rails.cache.backend').to_s, 'file_store')
+    assert_equal(get.get_tag('rails.cache.key'), 'custom-key')
+    assert_equal(set.name, 'rails.cache')
   end
 
   test 'cache.write() is properly traced' do
