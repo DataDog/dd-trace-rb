@@ -101,6 +101,11 @@ module Datadog
                 # a possibly infinite number of resources.
                 span.set_tag(Datadog::Ext::HTTP::URL, req.path)
                 span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
+
+                # Experimental auto tracing
+                req['x-ddtrace-parent_trace_id'] = span.trace_id.to_s
+                req['x-ddtrace-parent_span_id'] = span.span_id.to_s
+
                 response = request_without_datadog(req, body, &block)
                 span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
                 if req.respond_to?(:uri) && req.uri

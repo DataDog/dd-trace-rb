@@ -152,6 +152,14 @@ module Datadog
               span.set_tag('sinatra.route.path', @datadog_route)
               span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
 
+              # Adding tags just because this was supposed to be working already
+              span.set_tag('span.trace_id', request.env['HTTP_X_DDTRACE_PARENT_TRACE_ID'])
+              span.set_tag('span.parent_id', request.env['HTTP_X_DDTRACE_PARENT_SPAN_ID'])
+
+              # Experimental auto tracing
+              span.trace_id = request.env['HTTP_X_DDTRACE_PARENT_TRACE_ID'].to_i  if request.env['HTTP_X_DDTRACE_PARENT_TRACE_ID']
+              span.parent_id = request.env['HTTP_X_DDTRACE_PARENT_SPAN_ID'].to_i  if request.env['HTTP_X_DDTRACE_PARENT_SPAN_ID']
+
               if response.server_error?
                 span.status = 1
 
