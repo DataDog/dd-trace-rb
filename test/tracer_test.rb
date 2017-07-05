@@ -221,19 +221,27 @@ class TracerTest < Minitest::Test
     assert_equal(a.span_id, c.parent_id, 'a is the parent of c')
   end
 
+  # rubocop:disable Metrics/MethodLength
   def test_start_span_child_of_context
+    # skipping this for Ruby 1.9, as it has some threading issues (segfaults on msgpack)
+    return if RUBY_VERSION < '2.0.0'
+
     tracer = get_test_tracer
 
     mutex = Mutex.new
+    hold = Mutex.new
 
     @thread_span = nil
     @thread_ctx = nil
 
+    hold.lock
     thread = Thread.new do
       mutex.synchronize do
         @thread_span = tracer.start_span('a')
         @thread_ctx = tracer.call_context
       end
+      hold.lock
+      hold.unlock
     end
 
     1000.times do
@@ -243,19 +251,15 @@ class TracerTest < Minitest::Test
       end
     end
 
-    mutex.synchronize do
-      refute_equal(@thread_ctx, tracer.call_context, 'thread context is different')
-    end
+    refute_equal(@thread_ctx, tracer.call_context, 'thread context is different')
 
     tracer.trace('b') do
       span = tracer.start_span('c', child_of: @thread_ctx)
       span.finish
     end
 
-    mutex.synchronize do
-      @thread_span.finish
-    end
-
+    @thread_span.finish
+    hold.unlock
     thread.join
 
     @thread_span = nil
