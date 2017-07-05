@@ -93,7 +93,15 @@ class FauxWriter < Datadog::Writer
       # sort the spans to avoid test flakiness
       spans.sort! do |a, b|
         if a.name == b.name
-          a.resource <=> b.resource
+          if a.resource == b.resource
+            if a.start_time == b.start_time
+              a.end_time <=> b.end_time
+            else
+              a.start_time <=> b.start_time
+            end
+          else
+            a.resource <=> b.resource
+          end
         else
           a.name <=> b.name
         end

@@ -143,28 +143,27 @@ class TracerTest < TracerTestBase
     spans = @writer.spans()
     assert_equal(3, spans.length)
 
-    span = spans[0]
-    assert_equal('sinatra', span.service)
-    assert_equal('sinatra.render_template', span.resource)
-    assert_equal('layout', span.get_tag('sinatra.template_name'))
-    assert_equal(0, span.status)
-    assert_equal(spans[1], span.parent)
+    child1, child2, root = spans
 
-    span = spans[1]
-    assert_equal('sinatra', span.service)
-    assert_equal('sinatra.render_template', span.resource)
-    assert_equal('msg', span.get_tag('sinatra.template_name'))
-    assert_equal(0, span.status)
-    assert_equal(spans[2], span.parent)
+    assert_equal('sinatra', child2.service)
+    assert_equal('sinatra.render_template', child2.resource)
+    assert_equal('layout', child2.get_tag('sinatra.template_name'))
+    assert_equal(0, child2.status)
+    assert_equal(child1, child2.parent)
 
-    span = spans[2]
-    assert_equal('sinatra', span.service)
-    assert_equal('GET /template', span.resource)
-    assert_equal('GET', span.get_tag(Datadog::Ext::HTTP::METHOD))
-    assert_equal('/template', span.get_tag(Datadog::Ext::HTTP::URL))
-    assert_equal(Datadog::Ext::HTTP::TYPE, span.span_type)
-    assert_equal(0, span.status)
-    assert_nil(span.parent)
+    assert_equal('sinatra', child1.service)
+    assert_equal('sinatra.render_template', child1.resource)
+    assert_equal('msg', child1.get_tag('sinatra.template_name'))
+    assert_equal(0, child1.status)
+    assert_equal(root, child1.parent)
+
+    assert_equal('sinatra', root.service)
+    assert_equal('GET /template', root.resource)
+    assert_equal('GET', root.get_tag(Datadog::Ext::HTTP::METHOD))
+    assert_equal('/template', root.get_tag(Datadog::Ext::HTTP::URL))
+    assert_equal(Datadog::Ext::HTTP::TYPE, root.span_type)
+    assert_equal(0, root.status)
+    assert_nil(root.parent)
   end
 
   def test_literal_template
@@ -174,27 +173,26 @@ class TracerTest < TracerTestBase
     spans = @writer.spans()
     assert_equal(3, spans.length)
 
-    span = spans[0]
-    assert_equal('sinatra', span.service)
-    assert_equal('sinatra.render_template', span.resource)
-    assert_equal('layout', span.get_tag('sinatra.template_name'))
-    assert_equal(0, span.status)
-    assert_equal(spans[1], span.parent)
+    child1, child2, root = spans
 
-    span = spans[1]
-    assert_equal('sinatra', span.service)
-    assert_equal('sinatra.render_template', span.resource)
-    assert_nil(span.get_tag('sinatra.template_name'))
-    assert_equal(0, span.status)
-    assert_equal(spans[2], span.parent)
+    assert_equal('sinatra', child2.service)
+    assert_equal('sinatra.render_template', child2.resource)
+    assert_equal('layout', child2.get_tag('sinatra.template_name'))
+    assert_equal(0, child2.status)
+    assert_equal(child1, child2.parent)
 
-    span = spans[2]
-    assert_equal('sinatra', span.service)
-    assert_equal('GET /literal-template', span.resource)
-    assert_equal('GET', span.get_tag(Datadog::Ext::HTTP::METHOD))
-    assert_equal('/literal-template', span.get_tag(Datadog::Ext::HTTP::URL))
-    assert_equal(Datadog::Ext::HTTP::TYPE, span.span_type)
-    assert_equal(0, span.status)
-    assert_nil(span.parent)
+    assert_equal('sinatra', child1.service)
+    assert_equal('sinatra.render_template', child1.resource)
+    assert_nil(child1.get_tag('sinatra.template_name'))
+    assert_equal(0, child1.status)
+    assert_equal(root, child1.parent)
+
+    assert_equal('sinatra', root.service)
+    assert_equal('GET /literal-template', root.resource)
+    assert_equal('GET', root.get_tag(Datadog::Ext::HTTP::METHOD))
+    assert_equal('/literal-template', root.get_tag(Datadog::Ext::HTTP::URL))
+    assert_equal(Datadog::Ext::HTTP::TYPE, root.span_type)
+    assert_equal(0, root.status)
+    assert_nil(root.parent)
   end
 end
