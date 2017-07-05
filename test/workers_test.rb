@@ -63,7 +63,7 @@ class WorkersSpanTest < WorkersTest
     refute_nil(dump[500], 'no data for 500 OK')
     assert_equal(dump[500], {}, '500 ERROR')
     dumped_traces = dump[200][:traces]
-    refute_nil(dumped_traces, 'no 200 OK data for default traces endpoint')
+    refute_nil(dumped_traces, "no 200 OK data for default traces endpoint, dump: #{dump}")
     # unmarshalling data
     assert_equal(1, dumped_traces.length, 'there should be one and only one payload')
     assert_kind_of(String, dumped_traces[0])
