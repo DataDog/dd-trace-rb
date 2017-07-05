@@ -65,8 +65,8 @@ module Datadog
       @meta[key]
     end
 
-    # Set the given key / value metric pair on the span. Keys must be string.
-    # Values must be floating point numbers.
+    # This method sets a tag with a floating point value for the given key. It acts
+    # like `set_tag()` and it simply add a tag without further processing.
     def set_metric(key, value)
       # enforce that the value is a floating point number
       value = Float(value)
