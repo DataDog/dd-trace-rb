@@ -161,6 +161,7 @@ module Datadog
         # root span
         span = Span.new(self, name, opts)
         @sampler.sample(span)
+        span.set_tag("system.pid", Process.pid)
       else
         # child span
         opts[:service] ||= parent.service
