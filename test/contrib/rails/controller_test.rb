@@ -118,7 +118,7 @@ class TracingControllerTest < ActionController::TestCase
     else
       assert_equal(2, spans.length, 'legacy code (rails <= 4) uses render with a status, so there is an extra render span')
     end
-    span = spans[spans.length - 1]
+    span = spans[0]
     assert_equal('rails.action_controller', span.name)
     assert_equal(1, span.status, 'span should be flagged as an error')
     assert_nil(span.get_tag('error.type'), 'type should be undefined')
