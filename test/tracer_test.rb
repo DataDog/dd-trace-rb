@@ -239,7 +239,7 @@ class TracerTest < Minitest::Test
     1000.times do
       mutex.synchronize do
         break unless @thread_ctx.nil? || @thread_span.nil?
-        sleep 0.001
+        sleep 0.01
       end
     end
 

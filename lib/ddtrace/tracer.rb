@@ -145,7 +145,7 @@ module Datadog
       tags = options.fetch(:tags, {})
 
       unless child_of.nil?
-        if child_of.is_a?(Datadog::Context)
+        if child_of.respond_to?(:current_span)
           ctx = child_of
           parent = ctx.current_span
         end
