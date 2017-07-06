@@ -17,21 +17,41 @@ module Datadog
     end
 
     def patch_renderer_render_template
-      ::ActionView::Renderer.class_eval do
-        alias_method :render_template_without_datadog, :render_template
-        def render_template(*args, &block)
-          ActiveSupport::Notifications.instrument('start_render_template.action_view')
-          render_template_without_datadog(*args, &block)
+      if defined?(::ActionView::Renderer)
+        ::ActionView::Renderer.class_eval do
+          alias_method :render_template_without_datadog, :render_template
+          def render_template(*args, &block)
+            ActiveSupport::Notifications.instrument('start_render_template.action_view')
+            render_template_without_datadog(*args, &block)
+          end
+        end
+      else # Rails < 3.1
+        ::ActionView::Template.class_eval do
+          alias_method :render_template_without_datadog, :render
+          def render(*args, &block)
+            ActiveSupport::Notifications.instrument('start_render_template.action_view')
+            render_template_without_datadog(*args, &block)
+          end
         end
       end
     end
 
     def patch_renderer_render_partial
-      ::ActionView::PartialRenderer.class_eval do
-        alias_method :render_partial_without_datadog, :render_partial
-        def render_partial(*args, &block)
-          ActiveSupport::Notifications.instrument('start_render_partial.action_view')
-          render_partial_without_datadog(*args, &block)
+      if defined?(::ActionView::PartialRenderer)
+        ::ActionView::PartialRenderer.class_eval do
+          alias_method :render_partial_without_datadog, :render_partial
+          def render_partial(*args, &block)
+            ActiveSupport::Notifications.instrument('start_render_partial.action_view')
+            render_partial_without_datadog(*args, &block)
+          end
+        end
+      else # Rails < 3.1
+        ::ActionView::Partials::PartialRenderer.class_eval do
+          alias_method :render_partial_without_datadog, :render
+          def render(*args, &block)
+            ActiveSupport::Notifications.instrument('start_render_partial.action_view')
+            render_partial_without_datadog(*args, &block)
+          end
         end
       end
     end
