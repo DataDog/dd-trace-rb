@@ -141,6 +141,7 @@ module Datadog
 
     # OT spec: def start_span(operation_name, child_of: nil, references: nil, start_time: Time.now, tags: nil)
     def start_span(name, options = {})
+      start_time = options.fetch(:start_time, Time.now.utc)
       child_of = options.fetch(:child_of, nil) # can be context or span
       tags = options.fetch(:tags, {})
 
@@ -172,6 +173,7 @@ module Datadog
       end
       tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
       @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
+      span.start_time = start_time
       ctx.add_span(span)
       span
     end

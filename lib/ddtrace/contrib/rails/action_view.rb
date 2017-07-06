@@ -83,7 +83,7 @@ module Datadog
             end
           ensure
             span.start_time = start
-            span.finish_at(finish)
+            span.finish(finish)
           end
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
@@ -111,7 +111,7 @@ module Datadog
             end
           ensure
             span.start_time = start
-            span.finish_at(finish)
+            span.finish(finish)
           end
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)

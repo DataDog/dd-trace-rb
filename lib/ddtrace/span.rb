@@ -19,9 +19,8 @@ module Datadog
                   :status, :parent, :sampled,
                   :tracer, :context
 
-    # Create a new span linked to the given tracer. Call the <tt>finish()</tt> method once the
-    # tracer operation is over or use the <tt>finish_at(time)</tt> helper to close the span with the
-    # given +time+. Available options are:
+    # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
+    # and then <tt>finish()</tt> once the tracer operation is over.
     #
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or +name+ if it's missing
@@ -50,8 +49,8 @@ module Datadog
       @parent = nil
       @sampled = true
 
-      @start_time = options.fetch(:start_time, Time.now.utc)
-      @end_time = nil
+      @start_time = nil # set by Tracer.start_span
+      @end_time = nil # set by Span.finish
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -97,10 +96,20 @@ module Datadog
     def finish(finish_time = nil)
       return if finished?
 
-      @end_time = finish_time.nil? ? Time.now.utc : finish_time
+      # Provide a default start_time if unset, but this should have been set by start_span.
+      # Using now here causes 0-duration spans, still, this is expected, as we never
+      # explicitely say when it started.
+      @start_time ||= Time.now.utc
+
+      @end_time = finish_time.nil? ? Time.now.utc : finish_time # finish this
+
+      # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
 
-      @service ||= @tracer.default_service unless @tracer.nil? # spans without a service would be dropped
+      # spans without a service would be dropped, so here we provide a default.
+      # This should really never happen with integrations in contrib, as a default
+      # service is always set. It's only for custom instrumentation.
+      @service ||= @tracer.default_service unless @tracer.nil?
 
       begin
         @context.close_span(self)
@@ -111,12 +120,14 @@ module Datadog
       self
     end
 
-    # Proxy function that flag a span as finished with the given
-    # timestamp. This function is used for retro-compatibility.
-    # DEPRECATED: remove this function in the next release
-    def finish_at(finish_time)
-      finish(finish_time)
-    end
+    # BREAKING CHANGE: finish_at has removed.
+    #
+    # # Proxy function that flag a span as finished with the given
+    # # timestamp. This function is used for retro-compatibility.
+    # # DEPRECATED: remove this function in the next release
+    # def finish_at(finish_time)
+    #   finish(finish_time)
+    # end
 
     # Return whether the span is finished or not.
     def finished?
