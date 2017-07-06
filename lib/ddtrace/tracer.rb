@@ -139,7 +139,18 @@ module Datadog
       @tags.update(tags)
     end
 
-    # OT spec: def start_span(operation_name, child_of: nil, references: nil, start_time: Time.now, tags: nil)
+    # Return a span that will trace an operation called \name. This method allows
+    # parenting passing \child_of as an option. If it's missing, the newly created span is a
+    # root span. Available options are:
+    #
+    # * +service+: the service name for this span
+    # * +resource+: the resource this span refers, or \name if it's missing
+    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +parent_id+: the identifier of the parent span
+    # * +trace_id+: the identifier of the root span for this trace
+    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
+    # * +start_time+: when the span actually starts (defaults to \now)
+    # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
       start_time = options.fetch(:start_time, Time.now.utc)
       child_of = options.fetch(:child_of, nil) # can be context or span
@@ -206,10 +217,9 @@ module Datadog
     #   parent2 = tracer.trace('parent2')   # has no parent span
     #   parent2.finish()
     #
+    # This method accepts all the options accepted by \start_span.
     def trace(name, options = {})
-      opts = { child_of: call_context }
-      opts.merge!(options)
-      span = start_span(name, opts)
+      span = start_span(name, options)
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
