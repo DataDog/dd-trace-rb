@@ -57,6 +57,12 @@ module Datadog
       log.level == Logger::DEBUG
     end
 
+    # Return the current active \Context for this traced execution. This method is
+    # automatically called when calling Tracer.trace or Tracer.start_span,
+    # but it can be used in the application code during manual instrumentation.
+    #
+    # This method makes use of a \ContextProvider that is automatically set during the tracer
+    # initialization, or while using a library instrumentation.
     def call_context
       @provider.context
     end
@@ -75,7 +81,6 @@ module Datadog
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
       @mutex = Mutex.new
-      @spans = []
       @services = {}
       @tags = {}
     end
@@ -255,15 +260,17 @@ module Datadog
       call_context.current_span
     end
 
-    def write(spans)
+    # Send the trace to the writer to enqueue the spans list in the agent
+    # sending queue.
+    def write(trace)
       return if @writer.nil? || !@enabled
 
       if Datadog::Tracer.debug_logging
-        Datadog::Tracer.log.debug("Writing #{spans.length} spans (enabled: #{@enabled})")
-        PP.pp(spans)
+        Datadog::Tracer.log.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
+        PP.pp(trace)
       end
 
-      @writer.write(spans, @services)
+      @writer.write(trace, @services)
     end
 
     private :write

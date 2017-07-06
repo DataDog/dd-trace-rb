@@ -17,10 +17,10 @@ module Datadog
     # Initialize a new thread-safe \Context.
     def initialize
       @mutex = Mutex.new
-      _reset
+      reset
     end
 
-    def _reset
+    def reset
       @trace = []
       @sampled = false
       @finished_spans = 0
@@ -58,17 +58,19 @@ module Datadog
         @current_span = span.parent
         return if span.tracer.nil?
         return unless Datadog::Tracer.debug_logging
-        if span.parent.nil? && !_is_finished
+        if span.parent.nil? && !check_finished_spans
           opened_spans = @trace.length - @finished_spans
           tracer.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
           @trace.each do |s|
-            tracer.log.debug("unfinished span: #{s}") unless s._is_finished
+            tracer.log.debug("unfinished span: #{s}") unless s.check_finished_spans
           end
         end
       end
     end
 
-    def _is_finished
+    # Returns if the trace for the current Context is finished or not.
+    # Low-level internal function, not thread-safe.
+    def check_finished_spans
       @finished_spans > 0 && @trace.length == @finished_spans
     end
 
@@ -76,7 +78,7 @@ module Datadog
     # is considered finished if all spans in this context are finished.
     def finished?
       @mutex.synchronize do
-        return _is_finished
+        return check_finished_spans
       end
     end
 
@@ -96,11 +98,11 @@ module Datadog
     # This operation is thread-safe.
     def get
       @mutex.synchronize do
-        return nil, nil unless _is_finished
+        return nil, nil unless check_finished_spans
 
         trace = @trace
         sampled = @sampled
-        _reset
+        reset
         return trace, sampled
       end
     end
@@ -113,8 +115,8 @@ module Datadog
       end
     end
 
-    private :_reset
-    private :_is_finished
+    private :reset
+    private :check_finished_spans
   end
 
   # ThreadLocalContext can be used as a tracer global reference to create

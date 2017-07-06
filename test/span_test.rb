@@ -5,7 +5,7 @@ class SpanTest < Minitest::Test
   def test_span_finish
     tracer = nil
     span = Datadog::Span.new(tracer, 'my.op')
-    # the start_time must be set
+    # the start_time is not set, calling start_span with Tracer would set it
     assert_nil(span.start_time)
     assert_nil(span.end_time)
     span.finish
@@ -13,7 +13,7 @@ class SpanTest < Minitest::Test
     sleep(0.001)
     assert span.end_time < Time.now.utc
     assert span.start_time <= span.end_time
-    assert span.to_hash[:duration] > 0
+    assert span.to_hash[:duration] >= 0
   end
 
   def test_span_finish_once

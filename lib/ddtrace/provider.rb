@@ -3,10 +3,12 @@ module Datadog
   # all contexts from the current thread-local storage. It is suitable for
   # synchronous programming.
   class DefaultContextProvider
+    # Initializes the default context provider with a thread-bound context.
     def initialize
       @context = Datadog::ThreadLocalContext.new
     end
 
+    # Return the current context.
     def context
       @context.local
     end

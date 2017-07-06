@@ -1,4 +1,5 @@
 require 'time'
+require 'thread'
 
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
@@ -94,6 +95,10 @@ module Datadog
 
     # Mark the span finished at the current time and submit it.
     def finish(finish_time = nil)
+      # A span should not be finished twice. Note that this is not thread-safe,
+      # finish is called from multiple threads, a given span might be finished
+      # several times. Again, one should not do this, so this test is more a
+      # fallback to avoid very bad things and protect you in most common cases.
       return if finished?
 
       # Provide a default start_time if unset, but this should have been set by start_span.
