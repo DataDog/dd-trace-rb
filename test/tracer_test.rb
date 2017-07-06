@@ -247,8 +247,8 @@ class TracerTest < Minitest::Test
     1000.times do
       mutex.synchronize do
         break unless @thread_ctx.nil? || @thread_span.nil?
-        sleep 0.01
       end
+      sleep 0.01
     end
 
     refute_equal(@thread_ctx, tracer.call_context, 'thread context is different')
