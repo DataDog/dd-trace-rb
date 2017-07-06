@@ -283,13 +283,13 @@ class TracerTest < Minitest::Test
   def test_root_span_has_pid_metadata
     tracer = get_test_tracer
     root = tracer.trace('something')
-    assert_equal(Process.pid.to_s, root.get_tag("system.pid"))
+    assert_equal(Process.pid.to_s, root.get_tag(Datadog::Ext::SYSTEM::PID))
   end
 
   def test_child_span_has_no_pid_metadata
     tracer = get_test_tracer
     tracer.trace('something')
     child = tracer.trace('something_else')
-    assert_nil(child.get_tag("system.pid"))
+    assert_nil(child.get_tag(Datadog::Ext::SYSTEM::PID))
   end
 end
