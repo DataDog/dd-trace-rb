@@ -3,7 +3,6 @@ require 'ddtrace/tracer'
 
 class ProviderTest < Minitest::Test
   def test_default_provider
-    # tracer = get_test_tracer
     provider = Datadog::DefaultContextProvider.new
 
     ctx = provider.context

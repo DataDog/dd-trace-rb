@@ -8,7 +8,7 @@ module Datadog
     end
 
     def context
-      @context.get()
+      @context.local
     end
   end
 end

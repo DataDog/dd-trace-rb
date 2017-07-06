@@ -160,7 +160,7 @@ end
 class ThreadLocalContextTest < Minitest::Test
   def test_get
     local_ctx = Datadog::ThreadLocalContext.new
-    ctx = local_ctx.get
+    ctx = local_ctx.local
     refute_nil(ctx)
     assert_instance_of(Datadog::Context, ctx)
   end
@@ -173,8 +173,8 @@ class ThreadLocalContextTest < Minitest::Test
     span = Datadog::Span.new(tracer, 'test.op')
     span.finish
 
-    local_ctx.set ctx
-    ctx2 = local_ctx.get
+    local_ctx.local = ctx
+    ctx2 = local_ctx.local
 
     assert_equal(ctx, ctx2)
   end
@@ -191,7 +191,7 @@ class ThreadLocalContextTest < Minitest::Test
     n.times do |i|
       threads << Thread.new do
         span = Datadog::Span.new(tracer, "test.op#{i}")
-        ctx = local_ctx.get
+        ctx = local_ctx.local
         ctx.add_span(span)
         assert_equal(1, ctx.trace.length)
         mutex.synchronize do
@@ -203,7 +203,7 @@ class ThreadLocalContextTest < Minitest::Test
 
     # the main instance should have an empty Context
     # because it has not been used in this thread
-    ctx = local_ctx.get
+    ctx = local_ctx.local
     assert_equal(0, ctx.trace.length)
 
     threads = []

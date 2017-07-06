@@ -14,6 +14,7 @@ module Datadog
   #
   # This data structure is thread-safe.
   class Context
+    # Initialize a new thread-safe \Context.
     def initialize
       @mutex = Mutex.new
       _reset
@@ -21,17 +22,22 @@ module Datadog
 
     def _reset
       @trace = []
-      @sampled = false # [TODO:christian]
+      @sampled = false
       @finished_spans = 0
       @current_span = nil
     end
 
+    # Return the last active span that corresponds to the last inserted
+    # item in the trace list. This cannot be considered as the current active
+    # span in asynchronous environments, because some spans can be closed
+    # earlier while child spans still need to finish their traced execution.
     def current_span
       @mutex.synchronize do
         return @current_span
       end
     end
 
+    # Add a span to the context trace list, keeping it as the last active span.
     def add_span(span)
       @mutex.synchronize do
         @current_span = span
@@ -41,6 +47,8 @@ module Datadog
       end
     end
 
+    # Mark a span as a finished, increasing the internal counter to prevent
+    # cycles inside _trace list.
     def close_span(span)
       @mutex.synchronize do
         @finished_spans += 1
@@ -64,18 +72,28 @@ module Datadog
       @finished_spans > 0 && @trace.length == @finished_spans
     end
 
+    # Returns if the trace for the current Context is finished or not. A \Context
+    # is considered finished if all spans in this context are finished.
     def finished?
       @mutex.synchronize do
         return _is_finished
       end
     end
 
+    # Returns true if the context is sampled, that is, if it should be kept
+    # and sent to the trace agent.
     def sampled?
       @mutex.synchronize do
         return @sampled
       end
     end
 
+    # Returns both the trace list generated in the current context and
+    # if the context is sampled or not. It returns nil, nil if the ``Context`` is
+    # not finished. If a trace is returned, the \Context will be reset so that it
+    # can be re-used immediately.
+    #
+    # This operation is thread-safe.
     def get
       @mutex.synchronize do
         return nil, nil unless _is_finished
@@ -104,15 +122,21 @@ module Datadog
   # is required to prevent multiple threads sharing the same \Context
   # in different executions.
   class ThreadLocalContext
+    # ThreadLocalContext can be used as a tracer global reference to create
+    # a different \Context for each thread. In synchronous tracer, this
+    # is required to prevent multiple threads sharing the same \Context
+    # in different executions.
     def initialize
-      set(Datadog::Context.new)
+      self.local = Datadog::Context.new
     end
 
-    def set(ctx)
+    # Override the thread-local context with a new context.
+    def local=(ctx)
       Thread.current[:datadog_context] = ctx
     end
 
-    def get
+    # Return the thread-local context.
+    def local
       Thread.current[:datadog_context] ||= Datadog::Context.new
     end
   end

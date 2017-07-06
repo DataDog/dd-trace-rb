@@ -40,7 +40,7 @@ module Datadog
       end
     end
 
-    # Stored traces are returned and the local buffer is reset
+    # Stored traces are returned and the local buffer is reset.
     def pop
       @mutex.synchronize do
         traces = @traces
