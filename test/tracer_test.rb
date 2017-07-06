@@ -170,7 +170,10 @@ class TracerTest < Minitest::Test
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
     assert_equal(yesterday, span.start_time)
-    assert({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' } <= span.meta)
+    assert_equal('test', span.get_tag('env'))
+    assert_equal('cool', span.get_tag('temp'))
+    assert_equal('value1', span.get_tag('tag1'))
+    assert_equal('value2', span.get_tag('tag2'))
   end
 
   def test_start_span_all_args
@@ -193,7 +196,10 @@ class TracerTest < Minitest::Test
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
     assert_equal(yesterday, span.start_time)
-    assert({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' } <= span.meta)
+    assert_equal('test', span.get_tag('env'))
+    assert_equal('cool', span.get_tag('temp'))
+    assert_equal('value1', span.get_tag('tag1'))
+    assert_equal('value2', span.get_tag('tag2'))
   end
 
   def test_start_span_child_of_span
