@@ -8,7 +8,7 @@ module Datadog
       module ActiveSupport
         def self.instrument
           # patch Rails core components
-          Datadog::RailsPatcher.patch_cache_store()
+          Datadog::RailsCachePatcher.patch_cache_store()
 
           # subscribe when a cache read starts being processed
           ::ActiveSupport::Notifications.subscribe('start_cache_read.active_support') do |*args|

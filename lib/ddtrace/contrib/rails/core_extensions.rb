@@ -1,19 +1,11 @@
 module Datadog
-  # RailsPatcher contains function to patch the Rails libraries.
-  module RailsPatcher
+  # RailsRendererPatcher contains function to patch Rails rendering libraries.
+  module RailsRendererPatcher
     module_function
 
     def patch_renderer
       patch_renderer_render_template
       patch_renderer_render_partial
-    end
-
-    def patch_cache_store
-      patch_cache_store_read
-      patch_cache_store_fetch
-      patch_cache_store_write
-      patch_cache_store_delete
-      patch_cache_store_instrument
     end
 
     def patch_renderer_render_template
@@ -54,6 +46,19 @@ module Datadog
           end
         end
       end
+    end
+  end
+
+  # RailsCachePatcher contains function to patch Rails caching libraries.
+  module RailsCachePatcher
+    module_function
+
+    def patch_cache_store
+      patch_cache_store_read
+      patch_cache_store_fetch
+      patch_cache_store_write
+      patch_cache_store_delete
+      patch_cache_store_instrument
     end
 
     def cache_store_class(k)
