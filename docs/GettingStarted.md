@@ -440,7 +440,7 @@ You can use this object to instrument your own code:
     class MyWebSite
       def initialize
         pin = Datadog::Pin.new('my-web-site', app_type: Datadog::Ext::AppTypes::WEB)
-        Datadog::Pin.onto(self)
+        pin.onto(self)
       end
 
       def serve(something)
