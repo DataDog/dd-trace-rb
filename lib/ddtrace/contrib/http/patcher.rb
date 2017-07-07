@@ -85,15 +85,6 @@ module Datadog
               initialize_without_datadog(*args)
             end
 
-            def set_distributed_headers(pin)
-              unless pin.config.nil? || !pin.config.fetch(:distributed_traced_enabled, false)
-                req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, span.trace_id)
-                req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, span.parent_id)
-              end
-            end
-
-            private :set_distributed_headers
-
             alias_method :request_without_datadog, :request
             remove_method :request
 
@@ -116,7 +107,10 @@ module Datadog
                   span.set_tag(Datadog::Ext::HTTP::URL, req.path)
                   span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
 
-                  set_distributed_headers(pin)
+                  unless pin.config.nil? || !pin.config.fetch(:distributed_tracing_enabled, false)
+                    req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, span.trace_id)
+                    req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, span.span_id)
+                  end
                 rescue StandardError => e
                   Datadog::Tracer.log.error("error preparing span for http request: #{e}")
                 ensure

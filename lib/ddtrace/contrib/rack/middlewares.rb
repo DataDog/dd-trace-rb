@@ -10,10 +10,10 @@ module Datadog
       # They are slightly different from real headers as Rack uppercases everything
 
       # Header used to transmit the trace ID.
-      HTTP_HEADER_TRACE_ID = 'X_DATADOG_TRACE_ID'.freeze
+      HTTP_HEADER_TRACE_ID = 'HTTP_X_DATADOG_TRACE_ID'.freeze
 
       # Header used to transmit the parent ID.
-      HTTP_HEADER_PARENT_ID = 'X_DATADOG_PARENT_ID'.freeze
+      HTTP_HEADER_PARENT_ID = 'HTTP_X_DATADOG_PARENT_ID'.freeze
 
       # TraceMiddleware ensures that the Rack Request is properly traced
       # from the beginning to the end. The middleware adds the request span
@@ -23,13 +23,15 @@ module Datadog
       class TraceMiddleware
         DEFAULT_CONFIG = {
           tracer: Datadog.tracer,
-          default_service: 'rack'
+          default_service: 'rack',
+          distributed_tracing_enabled: false
         }.freeze
 
         def initialize(app, options = {})
           # update options with our configuration, unless it's already available
-          options[:tracer] ||= DEFAULT_CONFIG[:tracer]
-          options[:default_service] ||= DEFAULT_CONFIG[:default_service]
+          [:tracer, :default_service, :distributed_tracing_enabled].each do |k|
+            options[k] ||= DEFAULT_CONFIG[k]
+          end
 
           @app = app
           @options = options
@@ -42,6 +44,7 @@ module Datadog
           # retrieve the current tracer and service
           @tracer = @options.fetch(:tracer)
           @service = @options.fetch(:default_service)
+          @distributed_tracing_enabled = @options.fetch(:distributed_tracing_enabled)
 
           # configure the Rack service
           @tracer.set_service_info(
@@ -61,15 +64,17 @@ module Datadog
             span_type: Datadog::Ext::HTTP::TYPE
           }
 
-          # Merge distributed trace ids if present
-          #
-          # Use integer values for tests, as it will catch both
-          # a non-existing header or a badly formed one.
-          trace_id = env[Datadog::Contrib::Rack::HTTP_HEADER_TRACE_ID].to_i
-          parent_id = env[Datadog::Contrib::Rack::HTTP_HEADER_PARENT_ID].to_i
-          unless trace_id.zero? || parent_id.zero?
-            trace_options[:trace_id] = trace_id
-            trace_options[:parent_id] = parent_id
+          if @distributed_tracing_enabled
+            # Merge distributed trace ids if present
+            #
+            # Use integer values for tests, as it will catch both
+            # a non-existing header or a badly formed one.
+            trace_id = env[Datadog::Contrib::Rack::HTTP_HEADER_TRACE_ID].to_i
+            parent_id = env[Datadog::Contrib::Rack::HTTP_HEADER_PARENT_ID].to_i
+            unless trace_id.zero? || parent_id.zero?
+              trace_options[:trace_id] = trace_id
+              trace_options[:parent_id] = parent_id
+            end
           end
 
           # start a new request span and attach it to the current Rack environment;

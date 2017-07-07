@@ -1,8 +1,11 @@
 require 'helper'
+require 'net/http'
 require 'ddtrace'
 require 'ddtrace/contrib/rack/middlewares'
 
 require 'rack/test'
+
+Datadog::Monkey.patch_module(:http)
 
 class RackBaseTest < Minitest::Test
   include Rack::Test::Methods
