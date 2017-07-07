@@ -160,6 +160,18 @@ To start using the middleware in your generic Rack application, add it to your `
 
     run app
 
+Experimental distributed tracing support is available for this library.
+You need to set the ``:distributed_tracing_enabled`` option to true, for example:
+
+    use Datadog::Contrib::Rack::TraceMiddleware, distributed_tracing_enabled: true
+
+    app = proc do |env|
+      # trace and read 'x-datadog-trace-id' and 'x-datadog-parent-id'
+      [ 200, {'Content-Type' => 'text/plain'}, "OK" ]
+    end
+
+See [distributed tracing](#Distributed_Tracing) for details.
+
 #### Configure the tracer
 
 To modify the default middleware configuration, you can use middleware options as follows:
@@ -255,6 +267,16 @@ Net::HTTP module.
     end
 
     content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
+
+Experimental distributed tracing support is available for this library.
+You need to set the ``:distributed_tracing_enabled`` config entry to ``true`` using
+the ``Pin`` object attached to the client. Example:
+
+    client = Net::HTTP.new(host, port)
+    Datadog::Pino.get_from(client).config = { distributed_tracing_enabled: true }
+    response = client.get('foo') # trace and send 'x-datadog-trace-id' and 'x-datadog-parent-id'
+
+See [distributed tracing](#Distributed_Tracing) for details.
 
 ### Redis
 
@@ -587,6 +609,12 @@ On the server:
         'Hello world!'
       end
     end
+
+[Rack](#Rack) and [Net/HTTP](#Net_HTTP) have experimental support for this, they
+can send and receive these headers automatically and tie spans together automatically,
+provided you pass a ``:distributed_tracing_enabled`` option set to ``true``.
+
+This is disabled by default.
 
 ### Troubleshooting
 
