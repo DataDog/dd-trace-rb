@@ -39,7 +39,9 @@ module Datadog
 
       @span_id = Datadog::Utils.next_id()
       @parent_id = options.fetch(:parent_id, 0)
-      @trace_id = options.fetch(:trace_id, @span_id)
+      # use span_id for trace_id if given trace_id is nil or zero
+      @trace_id = options.fetch(:trace_id, 0)
+      @trace_id = @span_id if @trace_id.zero?
 
       @context = options.fetch(:context, nil)
 

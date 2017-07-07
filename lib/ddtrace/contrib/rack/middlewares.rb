@@ -6,6 +6,15 @@ module Datadog
     # Rack module includes middlewares that are required to trace any framework
     # and application built on top of Rack.
     module Rack
+      # RACK headers to test when doing distributed tracing.
+      # They are slightly different from real headers as Rack uppercases everything
+
+      # Header used to transmit the trace ID.
+      HTTP_HEADER_TRACE_ID = 'X_DATADOG_TRACE_ID'.freeze
+
+      # Header used to transmit the parent ID.
+      HTTP_HEADER_PARENT_ID = 'X_DATADOG_PARENT_ID'.freeze
+
       # TraceMiddleware ensures that the Rack Request is properly traced
       # from the beginning to the end. The middleware adds the request span
       # in the Rack environment so that it can be retrieved by the underlying
@@ -53,9 +62,14 @@ module Datadog
           }
 
           # Merge distributed trace ids if present
-          unless env['HTTP_X_DDTRACE_PARENT_TRACE_ID'].nil? || env['HTTP_X_DDTRACE_PARENT_SPAN_ID'].nil?
-            trace_options[:parent_id] = env['HTTP_X_DDTRACE_PARENT_SPAN_ID'].to_i
-            trace_options[:trace_id] = env['HTTP_X_DDTRACE_PARENT_TRACE_ID'].to_i
+          #
+          # Use integer values for tests, as it will catch both
+          # a non-existing header or a badly formed one.
+          trace_id = env[Datadog::Contrib::Rack::HTTP_HEADER_TRACE_ID].to_i
+          parent_id = env[Datadog::Contrib::Rack::HTTP_HEADER_PARENT_ID].to_i
+          unless trace_id.zero? || parent_id.zero?
+            trace_options[:trace_id] = trace_id
+            trace_options[:parent_id] = parent_id
           end
 
           # start a new request span and attach it to the current Rack environment;

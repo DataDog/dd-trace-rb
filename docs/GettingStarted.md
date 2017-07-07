@@ -556,8 +556,8 @@ On the client:
 
     Datadog.tracer.trace('web.call') do |span|
       req = Net::HTTP::Get.new(uri)
-      req['x-ddtrace-parent_trace_id'] = span.trace_id.to_s
-      req['x-ddtrace-parent_span_id'] = span.span_id.to_s
+      req['x-datadog-trace-id'] = span.trace_id.to_s
+      req['x-datadog-parent-id'] = span.span_id.to_s
 
       response = Net::HTTP.start(uri.hostname, uri.port) do |http|
         http.request(req)
@@ -575,8 +575,8 @@ On the server:
     # require 'ddtrace/contrib/sinatra/tracer'
 
     get '/' do
-      parent_trace_id = request.env['HTTP_X_DDTRACE_PARENT_TRACE_ID']
-      parent_span_id = request.env['HTTP_X_DDTRACE_PARENT_SPAN_ID']
+      parent_trace_id = request.env['HTTP_X_DATADOG_TRACE_ID']
+      parent_span_id = request.env['HTTP_X_DATADOG_PARENT_ID']
 
       Datadog.tracer.trace('web.work') do |span|
          if parent_trace_id && parent_span_id
