@@ -243,7 +243,9 @@ module Datadog
 
       if Datadog::Tracer.debug_logging
         Datadog::Tracer.log.debug("Writing #{spans.length} spans (enabled: #{@enabled})")
-        PP.pp(spans)
+        str = String.new('')
+        PP.pp(spans, str)
+        Datadog::Tracer.log.debug(str)
       end
 
       @writer.write(spans, @services)
