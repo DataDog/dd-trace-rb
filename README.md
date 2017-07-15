@@ -31,6 +31,12 @@ To use a development/preview version, use:
     gem 'ddtrace', :github => 'DataDog/dd-trace-rb', :branch => 'me/my-feature-branch'
 ```
 
+If using rails, you may want to include the railtie automatically:
+
+```ruby
+    gem 'ddtrace', require: 'ddtrace/rails'
+```
+
 ### Quickstart (manual instrumentation)
 
 If you aren't using a supported framework instrumentation, you may want to to manually instrument your code.
