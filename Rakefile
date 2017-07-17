@@ -147,10 +147,9 @@ task :ci do
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
-    # Test Rails3/Sidekiq with Rails4 versions (3 vs 4) as Sidekiq requires >= 2.0 and Rails3 should support 1.9
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails3-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railsactivejob'
+    sh 'rvm $RAILS3_SIDEKIQ_VERSIONS --verbose do appraisal rails3-postgres-sidekiq rake test:railssidekiq'
+    sh 'rvm $RAILS4_SIDEKIQ_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
+    sh 'rvm $RAILS4_SIDEKIQ_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railsactivejob'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake test:rails'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:rails'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis'
