@@ -16,7 +16,6 @@ module Datadog
   # example, a trace can be used to track the entire time spent processing a complicated web request.
   # Even though the request may require multiple resources and machines to handle the request, all
   # of these function calls and sub-requests would be encapsulated within a single trace.
-  # rubocop:disable Metrics/ClassLength
   class Tracer
     attr_reader :writer, :sampler, :services, :tags
     attr_accessor :enabled
@@ -186,8 +185,10 @@ module Datadog
         # Plus, this documents the code (Ruby 2 named args would be better but we're Ruby 1.9 compatible)
         [:service, :resource, :span_type, :parent_id, :trace_id].include?(k)
       end
+
       ctx, parent = guess_context_and_parent(options)
       opts[:context] = ctx unless ctx.nil?
+
       span = Span.new(self, name, opts)
       if parent.nil?
         # root span
@@ -195,7 +196,7 @@ module Datadog
         span.set_tag('system.pid', Process.pid)
       else
         # child span
-        span.parent = parent
+        span.parent = parent # sets service, trace_id, parent_id, sampled
       end
       tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
       @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?

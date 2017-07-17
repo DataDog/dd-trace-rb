@@ -12,6 +12,10 @@ module Datadog
       APP = 'net/http'.freeze
       SERVICE = 'net/http'.freeze
 
+      @distributed_tracing_enabled = false
+
+      attr_accessor :distributed_tracing_enabled
+
       module_function
 
       def should_skip_tracing?(req, address, port, transport, pin)
@@ -107,7 +111,7 @@ module Datadog
                   span.set_tag(Datadog::Ext::HTTP::URL, req.path)
                   span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
 
-                  unless pin.config.nil? || !pin.config.fetch(:distributed_tracing_enabled, false)
+                  unless pin.config.nil? || !pin.config.fetch(:distributed_tracing_enabled, @distributed_tracing_enabled)
                     req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, span.trace_id)
                     req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, span.span_id)
                   end
