@@ -1,6 +1,6 @@
 module Datadog
-  # RailsPatcher contains function to patch the Rails libraries.
-  module RailsPatcher
+  # RailsRendererPatcher contains function to patch Rails rendering libraries.
+  module RailsRendererPatcher
     module_function
 
     def patch_renderer
@@ -8,32 +8,57 @@ module Datadog
       patch_renderer_render_partial
     end
 
+    def patch_renderer_render_template
+      if defined?(::ActionView::Renderer)
+        ::ActionView::Renderer.class_eval do
+          alias_method :render_template_without_datadog, :render_template
+          def render_template(*args, &block)
+            ActiveSupport::Notifications.instrument('start_render_template.action_view')
+            render_template_without_datadog(*args, &block)
+          end
+        end
+      else # Rails < 3.1
+        ::ActionView::Template.class_eval do
+          alias_method :render_template_without_datadog, :render
+          def render(*args, &block)
+            ActiveSupport::Notifications.instrument('start_render_template.action_view')
+            render_template_without_datadog(*args, &block)
+          end
+        end
+      end
+    end
+
+    def patch_renderer_render_partial
+      if defined?(::ActionView::PartialRenderer)
+        ::ActionView::PartialRenderer.class_eval do
+          alias_method :render_partial_without_datadog, :render_partial
+          def render_partial(*args, &block)
+            ActiveSupport::Notifications.instrument('start_render_partial.action_view')
+            render_partial_without_datadog(*args, &block)
+          end
+        end
+      else # Rails < 3.1
+        ::ActionView::Partials::PartialRenderer.class_eval do
+          alias_method :render_partial_without_datadog, :render
+          def render(*args, &block)
+            ActiveSupport::Notifications.instrument('start_render_partial.action_view')
+            render_partial_without_datadog(*args, &block)
+          end
+        end
+      end
+    end
+  end
+
+  # RailsCachePatcher contains function to patch Rails caching libraries.
+  module RailsCachePatcher
+    module_function
+
     def patch_cache_store
       patch_cache_store_read
       patch_cache_store_fetch
       patch_cache_store_write
       patch_cache_store_delete
       patch_cache_store_instrument
-    end
-
-    def patch_renderer_render_template
-      ::ActionView::Renderer.class_eval do
-        alias_method :render_template_without_datadog, :render_template
-        def render_template(*args, &block)
-          ActiveSupport::Notifications.instrument('start_render_template.action_view')
-          render_template_without_datadog(*args, &block)
-        end
-      end
-    end
-
-    def patch_renderer_render_partial
-      ::ActionView::PartialRenderer.class_eval do
-        alias_method :render_partial_without_datadog, :render_partial
-        def render_partial(*args, &block)
-          ActiveSupport::Notifications.instrument('start_render_partial.action_view')
-          render_partial_without_datadog(*args, &block)
-        end
-      end
     end
 
     def cache_store_class(k)

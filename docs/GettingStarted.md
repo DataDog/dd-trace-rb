@@ -350,7 +350,7 @@ to trace requests to the home page:
 
         # add some attributes and metrics
         span.set_tag('http.method', request.request_method)
-        span.set_metric('posts.count', len(@posts))
+        span.set_tag('posts.count', @posts.length)
 
         # trace the template rendering
         tracer.trace('template.render') do
