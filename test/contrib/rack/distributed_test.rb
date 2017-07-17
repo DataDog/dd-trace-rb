@@ -87,8 +87,8 @@ class DistributedTest < Minitest::Test
     pin.tracer = tracer
     check_distributed(tracer, client, true, 'globally enabled, default client')
 
-    assert_true(false, Datadog::Contrib::HTTP.distributed_tracing_enabled,
-                'distributed tracing is still globally enabled')
+    assert_equal(true, Datadog::Contrib::HTTP.distributed_tracing_enabled,
+                 'distributed tracing is still globally enabled')
     client = Net::HTTP.new(RACK_HOST, RACK_PORT)
     pin = Datadog::Pin.get_from(client)
     pin.config = { distributed_tracing_enabled: false }
@@ -101,6 +101,6 @@ class DistributedTest < Minitest::Test
     client = Net::HTTP.new(RACK_HOST, RACK_PORT)
     pin = Datadog::Pin.get_from(client)
     pin.tracer = tracer
-    check_not_distributed(tracer, client, false, 'globally disabled, default client')
+    check_distributed(tracer, client, false, 'globally disabled, default client')
   end
 end
