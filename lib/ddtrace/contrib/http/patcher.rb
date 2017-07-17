@@ -14,7 +14,9 @@ module Datadog
 
       @distributed_tracing_enabled = false
 
-      attr_accessor :distributed_tracing_enabled
+      class << self
+        attr_accessor :distributed_tracing_enabled
+      end
 
       module_function
 
@@ -37,6 +39,13 @@ module Datadog
         active = pin.tracer.active_span()
         return true if active && (active.name == NAME)
         false
+      end
+
+      def should_skip_distributed_tracing?(pin)
+        unless pin.config.nil?
+          return !pin.config.fetch(:distributed_tracing_enabled, @distributed_tracing_enabled)
+        end
+        !@distributed_tracing_enabled
       end
 
       # Patcher enables patching of 'net/http' module.
@@ -111,7 +120,7 @@ module Datadog
                   span.set_tag(Datadog::Ext::HTTP::URL, req.path)
                   span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
 
-                  unless pin.config.nil? || !pin.config.fetch(:distributed_tracing_enabled, @distributed_tracing_enabled)
+                  unless Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
                     req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, span.trace_id)
                     req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, span.span_id)
                   end

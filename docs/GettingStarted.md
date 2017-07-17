@@ -269,12 +269,27 @@ Net::HTTP module.
     content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 
 Experimental distributed tracing support is available for this library.
-You need to set the ``:distributed_tracing_enabled`` config entry to ``true`` using
+By default, this is disabled. You need to enable it, either on a per-connection basis,
+by setting the ``:distributed_tracing_enabled`` config entry to ``true`` using
 the ``Pin`` object attached to the client. Example:
 
+    require 'net/http'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:http) # explicitly patch it
+
     client = Net::HTTP.new(host, port)
-    Datadog::Pino.get_from(client).config = { distributed_tracing_enabled: true }
+    Datadog::Pin.get_from(client).config = { distributed_tracing_enabled: true }
     response = client.get('foo') # trace and send 'x-datadog-trace-id' and 'x-datadog-parent-id'
+
+Or, by enabling distributed tracing for all HTTP calls:
+
+    require 'net/http'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:http) # explicitly patch it
+
+    Datadog::Contrib::HTTP.distributed_tracing_enabled = true
 
 See [distributed tracing](#Distributed_Tracing) for details.
 

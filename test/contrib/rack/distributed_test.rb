@@ -22,6 +22,32 @@ class DistributedTest < Minitest::Test
     @tracer = get_test_tracer
   end
 
+  def check_distributed(tracer, client, distributed, message)
+    response = client.get('/distributed/')
+    refute_nil(response, 'no response')
+    assert_kind_of(Net::HTTPResponse, response, 'bad response type')
+    assert_equal('200', response.code, 'bad response status')
+
+    spans = tracer.writer.spans()
+
+    assert_equal(2, spans.length, 'there should be exactly 2 spans')
+    http_span, rack_span = spans
+    assert_equal('http.request', http_span.name)
+    assert_equal('rack.request', rack_span.name)
+    if distributed
+      assert_equal(rack_span.trace_id, http_span.trace_id,
+                   "#{message}: http and rack spans should share the same trace id")
+      assert_equal(rack_span.parent_id, http_span.span_id,
+                   "#{message}: http span should be the parent of rack span")
+    else
+      refute_equal(rack_span.trace_id, http_span.trace_id,
+                   "#{message}: http and rack spans should *not* share the same trace id")
+      refute_equal(rack_span.parent_id, http_span.span_id,
+                   "#{message}: http span should *not* be the parent of rack span")
+    end
+  end
+
+  # rubocop:disable Metrics/MethodLength
   def test_net_http_get
     tracer = @tracer
 
@@ -42,35 +68,39 @@ class DistributedTest < Minitest::Test
 
     # this will create extra rack spans but we really need for the server to be up
     wait_http_server 'http://' + RACK_HOST + ':' + RACK_PORT.to_s, 5
+    tracer.writer.spans() # flush extra rack spans
 
+    assert_equal(false, Datadog::Contrib::HTTP.distributed_tracing_enabled,
+                 'by default, distributed tracing is disabled')
     client = Net::HTTP.new(RACK_HOST, RACK_PORT)
     pin = Datadog::Pin.get_from(client)
     pin.config = { distributed_tracing_enabled: true }
-    pin.tracer = @tracer
+    pin.tracer = tracer
+    check_distributed(tracer, client, true, 'globally disabled, enabled for this client')
 
-    response = client.get('/distributed/')
-    refute_nil(response, 'no response')
-    assert_kind_of(Net::HTTPResponse, response, 'bad response type')
-    assert_equal('200', response.code, 'bad response status')
+    Datadog::Contrib::HTTP.distributed_tracing_enabled = true
+    assert_equal(true, Datadog::Contrib::HTTP.distributed_tracing_enabled,
+                 'distributed tracing is now enabled')
+    client = Net::HTTP.new(RACK_HOST, RACK_PORT)
+    pin = Datadog::Pin.get_from(client)
+    pin.config = nil
+    pin.tracer = tracer
+    check_distributed(tracer, client, true, 'globally enabled, default client')
 
-    spans = @tracer.writer.spans()
+    assert_true(false, Datadog::Contrib::HTTP.distributed_tracing_enabled,
+                'distributed tracing is still globally enabled')
+    client = Net::HTTP.new(RACK_HOST, RACK_PORT)
+    pin = Datadog::Pin.get_from(client)
+    pin.config = { distributed_tracing_enabled: false }
+    pin.tracer = tracer
+    check_distributed(tracer, client, false, 'globally enabled, disabled for this client')
 
-    rack_span = nil
-    http_span = nil
-    spans.each do |span|
-      # iterate on all spans so that we can find
-      # - a rack span with a parent
-      # - an http request span
-      # We do this because there are several "uninteresting" rack responses
-      # which correspond to polling the server before it's up. We just want to
-      # ignore those
-      rack_span = span if !span.parent_id.zero? && span.name == 'rack.request'
-      http_span = span if span.name == 'http.request'
-    end
-    refute_nil(rack_span, "unable to find a rack span with a parent in: #{spans}")
-    refute_nil(http_span, "unable to find an http span in: #{spans}")
-
-    assert_equal(rack_span.trace_id, http_span.trace_id, 'http and rack spans should share the same trace id')
-    assert_equal(rack_span.parent_id, http_span.span_id, 'http span should be the parent of rack span')
+    Datadog::Contrib::HTTP.distributed_tracing_enabled = false
+    assert_equal(false, Datadog::Contrib::HTTP.distributed_tracing_enabled,
+                 'by default, distributed tracing is disabled')
+    client = Net::HTTP.new(RACK_HOST, RACK_PORT)
+    pin = Datadog::Pin.get_from(client)
+    pin.tracer = tracer
+    check_not_distributed(tracer, client, false, 'globally disabled, default client')
   end
 end
