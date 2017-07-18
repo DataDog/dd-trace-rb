@@ -12,7 +12,7 @@ class Rails3 < Rails::Application
   config.active_support.test_order = :random
   config.active_support.deprecation = :stderr
   config.consider_all_requests_local = true
-  config.middleware.delete ActionDispatch::DebugExceptions
+  config.middleware.delete ActionDispatch::DebugExceptions if Rails.version >= '3.2.22.5'
 end
 
 # Enables the auto-instrumentation for the testing application

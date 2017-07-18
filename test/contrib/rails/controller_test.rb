@@ -38,8 +38,10 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span.name, 'rails.render_template')
     assert_equal(span.span_type, 'template')
     assert_equal(span.resource, 'rails.render_template')
-    assert_equal(span.get_tag('rails.template_name'), 'tracing/index.html.erb')
-    assert_equal(span.get_tag('rails.layout'), 'layouts/application')
+    assert_equal(span.get_tag('rails.template_name'), 'tracing/index.html.erb') if Rails.version >= '3.2.22.5'
+    assert_includes(span.get_tag('rails.template_name'), 'tracing/index.html')
+    assert_equal(span.get_tag('rails.layout'), 'layouts/application') if Rails.version >= '3.2.22.5'
+    assert_includes(span.get_tag('rails.layout'), 'layouts/application')
   end
 
   test 'template partial rendering is properly traced' do
@@ -53,7 +55,8 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.span_type, 'template')
     assert_equal(span_partial.resource, 'rails.render_partial')
-    assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_body.html.erb')
+    assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_body.html.erb') if Rails.version >= '3.2.22.5'
+    assert_includes(span_partial.get_tag('rails.template_name'), 'tracing/_body.html')
     assert_equal(span_partial.parent, span_template)
   end
 
@@ -116,7 +119,8 @@ class TracingControllerTest < ActionController::TestCase
     if Rails::VERSION::MAJOR.to_i >= 5
       assert_equal(1, spans.length)
     else
-      assert_equal(2, spans.length, 'legacy code (rails <= 4) uses render with a status, so there is an extra render span')
+      assert_operator(spans.length, :>=, 1,
+                      'legacy code (rails <= 4) uses render with a status, so there coule be an extra render span')
     end
     span = spans[0]
     assert_equal('rails.action_controller', span.name)
