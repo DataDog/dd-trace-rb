@@ -84,6 +84,19 @@ you can activate it. The example above would become:
     end
 ```
 
+This will automatically trace any app inherited from `Sinatra::Application`.
+To trace apps inherited from `Sinatra::Base`, you should manually register
+the tracer inside your class.
+
+```ruby
+    require "ddtrace"
+    require "ddtrace/contrib/sinatra/tracer"
+
+    class App < Sinatra::Base
+      register Datadog::Contrib::Sinatra::Tracer
+    end
+```
+
 To know if a given framework or lib is supported by our client,
 please consult our [integrations][contrib] list.
 
