@@ -356,37 +356,13 @@ to trace requests to the home page:
         tracer.trace('template.render') do
           erb :index
         end
-      end
-    end
 
-### OpenTracing API
-
-Additionnally, you can use [OpenTracing API](https://github.com/opentracing/opentracing-ruby)
-compatible calls, such as:
-
-    require 'ddtrace'
-
-    tracer = Datadog.tracer
-
-    parent = tracer.start_span('parent')
-    child = tracer.start_span('child', child_of: parent)
-    # do something
-    child.finish
-    parent.finish
-
-This was introduced in version \0.8.0 and is equivalent to:
-
-    require 'ddtrace'
-
-    tracer = Datadog.tracer
-
-    tracer.trace('parent') do
-      tracer.trace('child') do
+        # trace using start_span (fine-grain control, requires explicit call to finish)
+        child = tracer.start_span('child', child_of: span)
         # do something
+        child.finish
       end
     end
-
-Both do exactly the same and send a parent and a child span automatically to the Datadog agent.
 
 ### Patching methods
 
