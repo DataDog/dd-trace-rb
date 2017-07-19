@@ -50,6 +50,30 @@ class TracerTest < Minitest::Test
     assert span.get_tag('error.stack').include?('dd-trace-rb')
   end
 
+  def test_trace_non_standard_error
+    # Check that even non-standard errors are trapped.
+    # Normally one should *never* catch those in Ruby but... we re-raise
+    # them afterwards so this is fine, we just capture them on-the-fly
+    # for the sake of tracing.
+    tracer = get_test_tracer
+
+    assert_raises NoMemoryError do
+      tracer.trace('something') do |s|
+        assert_nil(s.end_time)
+        raise NoMemoryError
+      end
+    end
+
+    spans = tracer.writer.spans()
+    assert_equal(spans.length, 1)
+    span = spans[0]
+    assert !span.end_time.nil?
+    assert_equal(span.name, 'something')
+    assert_equal(span.get_tag('error.msg'), 'NoMemoryError')
+    assert_equal(span.get_tag('error.type'), 'NoMemoryError')
+    assert span.get_tag('error.stack').include?('dd-trace-rb')
+  end
+
   def test_trace_child
     tracer = get_test_tracer
 

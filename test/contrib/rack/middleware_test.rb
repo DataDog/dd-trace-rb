@@ -214,6 +214,31 @@ class TracerTest < RackBaseTest
     assert_equal('Handled exception', span.get_tag('error.stack'))
     assert_nil(span.parent)
   end
+
+  def test_request_middleware_non_standard_error
+    # ensure the Rack request is properly traced even if
+    # there is an exception, and this is not a standard error
+    assert_raises NoMemoryError do
+      get '/nomemory/'
+    end
+
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('rack.request', span.name)
+    assert_equal('http', span.span_type)
+    assert_equal('rack', span.service)
+    assert_equal('GET', span.resource)
+    assert_equal('GET', span.get_tag('http.method'))
+    assert_nil(span.get_tag('http.status_code'))
+    assert_equal('/nomemory/', span.get_tag('http.url'))
+    assert_equal('NoMemoryError', span.get_tag('error.type'))
+    assert_equal('Non-standard error', span.get_tag('error.msg'))
+    refute_nil(span.get_tag('error.stack'))
+    assert_equal(1, span.status)
+    assert_nil(span.parent)
+  end
 end
 
 class CustomTracerTest < RackBaseTest

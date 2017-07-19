@@ -30,6 +30,10 @@ class RackBaseTest < Minitest::Test
         run(proc { |_env| [500, { 'Content-Type' => 'text/html' }, 'KO'] })
       end
 
+      map '/nomemory/' do
+        run(proc { |_env| raise NoMemoryError, 'Non-standard error' })
+      end
+
       map '/app/' do
         run(proc do |env|
           # this should be considered a web framework that can alter

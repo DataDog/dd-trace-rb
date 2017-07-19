@@ -128,7 +128,7 @@ module Datadog
       return @default_service if instance_variable_defined?(:@default_service) && @default_service
       begin
         @default_service = File.basename($PROGRAM_NAME, '.*')
-      rescue => e
+      rescue StandardError => e
         Datadog::Tracer.log.error("unable to guess default service: #{e}")
         @default_service = 'ruby'.freeze
       end
@@ -255,9 +255,15 @@ module Datadog
       if block_given?
         begin
           yield(span)
-        rescue StandardError => e
+        # rubocop:disable Lint/RescueException
+        # Here we really want to catch *any* exception, not only StandardError,
+        # as we really have no clue of what is in the block,
+        # and it is user code which should be executed no matter what.
+        # It's not a problem since we re-raise it afterwards so for example a
+        # SignalException::Interrupt would still bubble up.
+        rescue Exception => e
           span.set_error(e)
-          raise
+          raise e
         ensure
           span.finish()
         end

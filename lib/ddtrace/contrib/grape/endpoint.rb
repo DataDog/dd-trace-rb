@@ -79,7 +79,7 @@ module Datadog
             # catch thrown exceptions
             span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
 
-            # ovverride the current span with this notification values
+            # override the current span with this notification values
             span.set_tag('grape.route.endpoint', api_view)
             span.set_tag('grape.route.path', path)
           ensure
