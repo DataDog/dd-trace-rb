@@ -7,15 +7,10 @@ module Datadog
     # with the default one. Using the default prng, we could break code that
     # would rely on srand/rand sequences.
     @rnd = Random.new
-    # We want to garantee all calls are sequential else, in some edge cases,
-    # the same value could be return twice, ending in trace collision.
-    @mutex = Mutex.new
 
     # Return a span id
     def self.next_id
-      @mutex.synchronize do
-        @rnd.rand(Datadog::Span::MAX_ID)
-      end
+      @rnd.rand(Datadog::Span::MAX_ID)
     end
   end
 end
