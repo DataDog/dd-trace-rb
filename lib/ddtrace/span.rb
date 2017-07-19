@@ -135,9 +135,14 @@ module Datadog
       "Span(name:#{@name},sid:#{@span_id},tid:#{@trace_id},pid:#{@parent_id})"
     end
 
+    # DEPRECATED: remove this function in the next release, replaced by ``parent=``
+    def set_parent(parent)
+      self.parent = parent
+    end
+
     # Set this span's parent, inheriting any properties not explicitly set.
     # If the parent is nil, set the span zero values.
-    def set_parent(parent)
+    def parent=(parent)
       @parent = parent
 
       if parent.nil?
@@ -147,6 +152,7 @@ module Datadog
         @trace_id = parent.trace_id
         @parent_id = parent.span_id
         @service ||= parent.service
+        @sampled = parent.sampled
       end
     end
 

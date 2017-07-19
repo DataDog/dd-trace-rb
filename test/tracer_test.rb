@@ -154,12 +154,10 @@ class TracerTest < Minitest::Test
     tracer = get_test_tracer
     tracer.set_tags('env' => 'test', 'temp' => 'cool')
 
-    yesterday = Time.now.utc - 24 * 60 * 60
     tracer.trace('op',
                  service: 'special-service',
                  resource: 'extra-resource',
                  span_type: 'my-type',
-                 start_time: yesterday,
                  tags: { 'tag1' => 'value1', 'tag2' => 'value2' }) do
     end
 
@@ -169,7 +167,6 @@ class TracerTest < Minitest::Test
     assert_equal('special-service', span.service)
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
-    assert_equal(yesterday, span.start_time)
     assert_equal({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' }, span.meta)
   end
 
@@ -269,5 +266,25 @@ class TracerTest < Minitest::Test
     refute_equal(b.trace_id, c.trace_id, 'b and c do not belong to the same trace')
     assert_equal(a.trace_id, c.trace_id, 'a and c belong to the same trace')
     assert_equal(a.span_id, c.parent_id, 'a is the parent of c')
+  end
+
+  def test_start_span_detach
+    tracer = get_test_tracer
+
+    main = tracer.trace('main_call')
+    detached = tracer.start_span('detached_trace')
+    detached.finish()
+    main.finish()
+
+    spans = tracer.writer.spans()
+    assert_equal(2, spans.length)
+    d, m = spans
+
+    assert_equal('main_call', m.name)
+    assert_equal('detached_trace', d.name)
+    refute_equal(d.trace_id, m.trace_id, 'trace IDs should be different')
+    refute_equal(d.parent_id, m.span_id, 'm should not be the parent of d')
+    assert_equal(0, m.parent_id, 'm should be a root span')
+    assert_equal(0, d.parent_id, 'd should be a root span')
   end
 end

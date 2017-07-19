@@ -144,6 +144,27 @@ module Datadog
       @tags.update(tags)
     end
 
+    # Guess context and parent from child_of entry.
+    def guess_context_and_parent(options = {})
+      child_of = options.fetch(:child_of, nil) # can be context or span
+
+      ctx = nil
+      parent = nil
+      unless child_of.nil?
+        if child_of.respond_to?(:current_span)
+          ctx = child_of
+          parent = child_of.current_span
+        elsif child_of.is_a?(Datadog::Span)
+          parent = child_of
+          ctx = child_of.context
+        end
+      end
+
+      ctx ||= call_context
+
+      [ctx, parent]
+    end
+
     # Return a span that will trace an operation called \name. This method allows
     # parenting passing \child_of as an option. If it's missing, the newly created span is a
     # root span. Available options are:
@@ -158,39 +179,30 @@ module Datadog
     # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
       start_time = options.fetch(:start_time, Time.now.utc)
-      child_of = options.fetch(:child_of, nil) # can be context or span
       tags = options.fetch(:tags, {})
 
-      unless child_of.nil?
-        if child_of.respond_to?(:current_span)
-          ctx = child_of
-          parent = ctx.current_span
-        end
-        parent = child_of if child_of.is_a?(Datadog::Span)
+      opts = options.select do |k, v|
+        # Filter options, we want no side effects with unexpected args.
+        # Plus, this documents the code (Ruby 2 named args would be better but we're Ruby 1.9 compatible)
+        [:service, :resource, :span_type, :parent_id, :trace_id].include?(k) && !v.nil?
       end
-      ctx ||= call_context
-      parent ||= ctx.current_span
-      opts = {
-        context: ctx
-      }
-      opts.merge!(options)
+      ctx, parent = guess_context_and_parent(options)
+      opts[:context] = ctx unless ctx.nil?
+      span = Span.new(self, name, opts)
       if parent.nil?
         # root span
-        span = Span.new(self, name, opts)
         @sampler.sample(span)
       else
         # child span
-        opts[:service] ||= parent.service
-        opts[:trace_id] = parent.trace_id
-        opts[:parent_id] = parent.span_id
-        span = Span.new(self, name, opts)
         span.parent = parent
-        span.sampled = parent.sampled
       end
       tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
       @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
       span.start_time = start_time
-      ctx.add_span(span)
+
+      # this could at some point be optional (start_active_span vs start_manual_span)
+      ctx.add_span(span) unless ctx.nil?
+
       span
     end
 
@@ -222,9 +234,20 @@ module Datadog
     #   parent2 = tracer.trace('parent2')   # has no parent span
     #   parent2.finish()
     #
-    # This method accepts all the options accepted by \start_span.
+    # Available options are:
+    #
+    # * +service+: the service name for this span
+    # * +resource+: the resource this span refers, or \name if it's missing
+    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +tags+: extra tags which should be added to the span.
     def trace(name, options = {})
-      span = start_span(name, options)
+      opts = options.select do |k, v|
+        # Filter options, we want no side effects with unexpected args.
+        # Plus, this documents the code (Ruby 2 named args would be better but we're Ruby 1.9 compatible)
+        [:service, :resource, :span_type, :tags].include?(k) && !v.nil?
+      end
+      opts[:child_of] = call_context
+      span = start_span(name, opts)
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
@@ -273,6 +296,6 @@ module Datadog
       @writer.write(trace, @services)
     end
 
-    private :write
+    private :write, :guess_context_and_parent
   end
 end
