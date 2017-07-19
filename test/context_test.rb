@@ -115,6 +115,7 @@ class ContextTest < Minitest::Test
     assert_equal(true, ctx.finished?)
   end
 
+  # rubocop:disable Metrics/MethodLength
   def test_log_unfinished_spans
     tracer = get_test_tracer
 
@@ -144,22 +145,30 @@ class ContextTest < Minitest::Test
     root.finish()
     lines = buf.string.lines
 
-    # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
     assert_equal(3, lines.length, 'there should be 2 log messages') if lines.respond_to? :length
 
-    summary, c1, c2 = lines
-    assert_match(
-      /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) root span parent closed but has 2 unfinished spans:/,
-      summary
-    )
-    assert_match(
-      /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) unfinished span: Span\(name:child_1/,
-      c1
-    )
-    assert_match(
-      /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) unfinished span: Span\(name:child_2/,
-      c2
-    )
+    # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
+    i = 0
+    lines.each do |l|
+      case i
+      when 0
+        assert_match(
+          /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) root span parent closed but has 2 unfinished spans:/,
+          l
+        )
+      when 1
+        assert_match(
+          /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) unfinished span: Span\(name:child_1/,
+          l
+        )
+      when 2
+        assert_match(
+          /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) unfinished span: Span\(name:child_2/,
+          l
+        )
+      end
+      i += 1
+    end
 
     Datadog::Tracer.log = default_log
   end
