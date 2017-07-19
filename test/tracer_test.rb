@@ -287,4 +287,28 @@ class TracerTest < Minitest::Test
     assert_equal(0, m.parent_id, 'm should be a root span')
     assert_equal(0, d.parent_id, 'd should be a root span')
   end
+
+  def test_trace_nil_resource
+    tracer = get_test_tracer
+
+    tracer.trace('resource_set_to_nil', resource: nil) do |s|
+      # Testing passing of nil resource, some parts of the code
+      # rely on explicitly saying resource should be nil (pitfall: refactor
+      # and merge hash, then forget to pass resource: nil, this has side
+      # effects on Rack, while a rack unit test should trap this, it's unclear
+      # then, so this test is here to catch the problem early on).
+      assert_nil(s.resource, 'when not finished, resource should still be set to nil')
+    end
+
+    tracer.trace('resource_set_to_default') do |s|
+    end
+
+    spans = tracer.writer.spans()
+    assert_equal(spans.length, 2)
+    resource_set_to_default, resource_set_to_nil = spans
+    assert_nil(resource_set_to_nil.resource, 'resource has been explitly set to nil (will be refused by agent)')
+    assert_equal('resource_set_to_nil', resource_set_to_nil.name)
+    assert_equal('resource_set_to_default', resource_set_to_default.resource, 'resource should be set to default (name)')
+    assert_equal('resource_set_to_default', resource_set_to_default.name)
+  end
 end
