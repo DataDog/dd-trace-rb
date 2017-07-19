@@ -170,7 +170,10 @@ class TracerTest < Minitest::Test
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
     assert_equal(yesterday, span.start_time)
-    assert_equal({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' }, span.meta)
+    assert_equal('test', span.get_tag('env'))
+    assert_equal('cool', span.get_tag('temp'))
+    assert_equal('value1', span.get_tag('tag1'))
+    assert_equal('value2', span.get_tag('tag2'))
   end
 
   def test_start_span_all_args
@@ -193,7 +196,10 @@ class TracerTest < Minitest::Test
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
     assert_equal(yesterday, span.start_time)
-    assert_equal({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' }, span.meta)
+    assert_equal('test', span.get_tag('env'))
+    assert_equal('cool', span.get_tag('temp'))
+    assert_equal('value1', span.get_tag('tag1'))
+    assert_equal('value2', span.get_tag('tag2'))
   end
 
   def test_start_span_child_of_span
@@ -269,5 +275,18 @@ class TracerTest < Minitest::Test
     refute_equal(b.trace_id, c.trace_id, 'b and c do not belong to the same trace')
     assert_equal(a.trace_id, c.trace_id, 'a and c belong to the same trace')
     assert_equal(a.span_id, c.parent_id, 'a is the parent of c')
+  end
+
+  def test_root_span_has_pid_metadata
+    tracer = get_test_tracer
+    root = tracer.trace('something')
+    assert_equal(Process.pid.to_s, root.get_tag(Datadog::Ext::SYSTEM::PID))
+  end
+
+  def test_child_span_has_no_pid_metadata
+    tracer = get_test_tracer
+    tracer.trace('something')
+    child = tracer.trace('something_else')
+    assert_nil(child.get_tag(Datadog::Ext::SYSTEM::PID))
   end
 end

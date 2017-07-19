@@ -9,6 +9,7 @@ require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
+require 'ddtrace/ext/system'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -178,6 +179,7 @@ module Datadog
         # root span
         span = Span.new(self, name, opts)
         @sampler.sample(span)
+        span.set_tag(Datadog::Ext::SYSTEM::PID, Process.pid)
       else
         # child span
         opts[:service] ||= parent.service
