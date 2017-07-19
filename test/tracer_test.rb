@@ -223,9 +223,6 @@ class TracerTest < Minitest::Test
 
   # rubocop:disable Metrics/MethodLength
   def test_start_span_child_of_context
-    # skipping this for Ruby 1.9, as it has some threading issues (segfaults on msgpack)
-    return if RUBY_VERSION < '2.0.0'
-
     tracer = get_test_tracer
 
     mutex = Mutex.new
