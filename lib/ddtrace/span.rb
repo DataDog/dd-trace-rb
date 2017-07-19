@@ -125,15 +125,6 @@ module Datadog
       self
     end
 
-    # BREAKING CHANGE: finish_at has removed.
-    #
-    # # Proxy function that flag a span as finished with the given
-    # # timestamp. This function is used for retro-compatibility.
-    # # DEPRECATED: remove this function in the next release
-    # def finish_at(finish_time)
-    #   finish(finish_time)
-    # end
-
     # Return whether the span is finished or not.
     def finished?
       !@end_time.nil?
