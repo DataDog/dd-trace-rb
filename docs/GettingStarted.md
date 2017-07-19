@@ -609,11 +609,11 @@ for a ``tracegen`` service:
     require 'ddtrace'
 
     loop do
-	    Datadog.tracer.trace('hello-world') do |span|
-		    span.service = 'tracegen'
-		    span.resource = 'ruby'
-	    end
-	    sleep 1
+        Datadog.tracer.trace('hello-world') do |span|
+            span.service = 'tracegen'
+            span.resource = 'ruby'
+            sleep 1
+        end
     end
 
 ### Supported Versions

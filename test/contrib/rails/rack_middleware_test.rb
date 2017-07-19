@@ -34,7 +34,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
 
     # spans are sorted alphabetically, and ... controller names start
     # either by m or p (MySQL or PostGreSQL) so the database span is always
-    # the first one. Would fail with an adaptateur named z-something.
+    # the first one. Would fail with an adapter named z-something.
     database_span, request_span, controller_span, cache_span, render_span = spans
 
     assert_equal(request_span.name, 'rack.request')
