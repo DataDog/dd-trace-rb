@@ -60,9 +60,9 @@ module Datadog
         return unless Datadog::Tracer.debug_logging
         if span.parent.nil? && !check_finished_spans
           opened_spans = @trace.length - @finished_spans
-          tracer.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
+          Datadog::Tracer.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
           @trace.each do |s|
-            tracer.log.debug("unfinished span: #{s}") unless s.check_finished_spans
+            Datadog::Tracer.log.debug("unfinished span: #{s}") unless s.finished?
           end
         end
       end

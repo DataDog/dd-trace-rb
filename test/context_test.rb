@@ -1,6 +1,7 @@
 require 'helper'
 require 'ddtrace/tracer'
 
+# rubocop:disable Metrics/ClassLength
 class ContextTest < Minitest::Test
   def test_nil_tracer
     ctx = Datadog::Context.new
@@ -114,7 +115,54 @@ class ContextTest < Minitest::Test
     assert_equal(true, ctx.finished?)
   end
 
-  # [TODO:christian] implement test_log_unfinished_spans
+  def test_log_unfinished_spans
+    tracer = get_test_tracer
+
+    default_log = Datadog::Tracer.log
+
+    buf = StringIO.new
+
+    Datadog::Tracer.log = Datadog::Logger.new(buf)
+    Datadog::Tracer.log.level = ::Logger::DEBUG
+
+    assert_equal(true, Datadog::Tracer.log.debug?)
+    assert_equal(true, Datadog::Tracer.log.info?)
+    assert_equal(true, Datadog::Tracer.log.warn?)
+    assert_equal(true, Datadog::Tracer.log.error?)
+    assert_equal(true, Datadog::Tracer.log.fatal?)
+
+    root = Datadog::Span.new(tracer, 'parent')
+    child1 = Datadog::Span.new(tracer, 'child_1', trace_id: root.trace_id, parent_id: root.span_id)
+    child2 = Datadog::Span.new(tracer, 'child_2', trace_id: root.trace_id, parent_id: root.span_id)
+    child1.parent = root
+    child2.parent = root
+    ctx = Datadog::Context.new
+    ctx.add_span(root)
+    ctx.add_span(child1)
+    ctx.add_span(child2)
+
+    root.finish()
+    lines = buf.string.lines
+
+    # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
+    assert_equal(3, lines.length, 'there should be 2 log messages') if lines.respond_to? :length
+
+    summary, c1, c2 = lines
+    assert_match(
+      /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) root span parent closed but has 2 unfinished spans:/,
+      summary
+    )
+    assert_match(
+      /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) unfinished span: Span\(name:child_1/,
+      c1
+    )
+    assert_match(
+      /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) unfinished span: Span\(name:child_2/,
+      c2
+    )
+
+    Datadog::Tracer.log = default_log
+  end
 
   def test_thread_safe
     tracer = get_test_tracer
