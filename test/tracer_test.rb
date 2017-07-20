@@ -1,6 +1,7 @@
 require 'helper'
 require 'ddtrace/tracer'
 
+# rubocop:disable Metrics/ClassLength
 class TracerTest < Minitest::Test
   def test_trace
     tracer = get_test_tracer
@@ -59,7 +60,6 @@ class TracerTest < Minitest::Test
     end
 
     spans = tracer.writer.spans()
-    spans.sort! { |a, b| a.name <=> b.name }
     assert_equal(spans.length, 3)
     a, b, c = spans
     assert_equal(a.name, 'a')
@@ -123,7 +123,7 @@ class TracerTest < Minitest::Test
     tracer.trace('something').finish()
 
     spans = tracer.writer.spans()
-    assert_equal(spans.length, 0)
+    assert_equal(0, spans.length)
   end
 
   def test_configure_tracer
@@ -141,5 +141,174 @@ class TracerTest < Minitest::Test
     tracer.default_service = 'foo-bar'
     assert_equal('foo-bar', tracer.default_service)
     tracer.default_service = old_service
+  end
+
+  def test_active_span
+    tracer = get_test_tracer
+    span = tracer.trace('something')
+    assert_equal(span, tracer.active_span, 'current span is active')
+    assert_equal(false, tracer.active_span.finished?)
+  end
+
+  def test_trace_all_args
+    tracer = get_test_tracer
+    tracer.set_tags('env' => 'test', 'temp' => 'cool')
+
+    tracer.trace('op',
+                 service: 'special-service',
+                 resource: 'extra-resource',
+                 span_type: 'my-type',
+                 tags: { 'tag1' => 'value1', 'tag2' => 'value2' }) do
+    end
+
+    spans = tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('special-service', span.service)
+    assert_equal('extra-resource', span.resource)
+    assert_equal('my-type', span.span_type)
+    assert_equal({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' }, span.meta)
+  end
+
+  def test_start_span_all_args
+    tracer = get_test_tracer
+    tracer.set_tags('env' => 'test', 'temp' => 'cool')
+
+    yesterday = Time.now.utc - 24 * 60 * 60
+    span = tracer.start_span('op',
+                             service: 'special-service',
+                             resource: 'extra-resource',
+                             span_type: 'my-type',
+                             start_time: yesterday,
+                             tags: { 'tag1' => 'value1', 'tag2' => 'value2' })
+    span.finish
+
+    spans = tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('special-service', span.service)
+    assert_equal('extra-resource', span.resource)
+    assert_equal('my-type', span.span_type)
+    assert_equal(yesterday, span.start_time)
+    assert_equal({ 'env' => 'test', 'temp' => 'cool', 'tag1' => 'value1', 'tag2' => 'value2' }, span.meta)
+  end
+
+  def test_start_span_child_of_span
+    tracer = get_test_tracer
+
+    root = tracer.start_span('a')
+    root.finish
+
+    spans = tracer.writer.spans()
+    assert_equal(1, spans.length)
+    a = spans[0]
+
+    tracer.trace('b') do
+      span = tracer.start_span('c', child_of: root)
+      span.finish
+    end
+
+    spans = tracer.writer.spans()
+    assert_equal(2, spans.length)
+    b, c = spans
+
+    refute_equal(a.trace_id, b.trace_id, 'a and b do not belong to the same trace')
+    refute_equal(b.trace_id, c.trace_id, 'b and c do not belong to the same trace')
+    assert_equal(a.trace_id, c.trace_id, 'a and c belong to the same trace')
+    assert_equal(a.span_id, c.parent_id, 'a is the parent of c')
+  end
+
+  # rubocop:disable Metrics/MethodLength
+  def test_start_span_child_of_context
+    tracer = get_test_tracer
+
+    mutex = Mutex.new
+    hold = Mutex.new
+
+    @thread_span = nil
+    @thread_ctx = nil
+
+    hold.lock
+    thread = Thread.new do
+      mutex.synchronize do
+        @thread_span = tracer.start_span('a')
+        @thread_ctx = tracer.call_context
+      end
+      hold.lock
+      hold.unlock
+    end
+
+    1000.times do
+      mutex.synchronize do
+        break unless @thread_ctx.nil? || @thread_span.nil?
+      end
+      sleep 0.01
+    end
+
+    refute_equal(@thread_ctx, tracer.call_context, 'thread context is different')
+
+    tracer.trace('b') do
+      span = tracer.start_span('c', child_of: @thread_ctx)
+      span.finish
+    end
+
+    @thread_span.finish
+    hold.unlock
+    thread.join
+
+    @thread_span = nil
+    @thread_ctx = nil
+
+    spans = tracer.writer.spans()
+    assert_equal(3, spans.length)
+    a, b, c = spans
+    refute_equal(a.trace_id, b.trace_id, 'a and b do not belong to the same trace')
+    refute_equal(b.trace_id, c.trace_id, 'b and c do not belong to the same trace')
+    assert_equal(a.trace_id, c.trace_id, 'a and c belong to the same trace')
+    assert_equal(a.span_id, c.parent_id, 'a is the parent of c')
+  end
+
+  def test_start_span_detach
+    tracer = get_test_tracer
+
+    main = tracer.trace('main_call')
+    detached = tracer.start_span('detached_trace')
+    detached.finish()
+    main.finish()
+
+    spans = tracer.writer.spans()
+    assert_equal(2, spans.length)
+    d, m = spans
+
+    assert_equal('main_call', m.name)
+    assert_equal('detached_trace', d.name)
+    refute_equal(d.trace_id, m.trace_id, 'trace IDs should be different')
+    refute_equal(d.parent_id, m.span_id, 'm should not be the parent of d')
+    assert_equal(0, m.parent_id, 'm should be a root span')
+    assert_equal(0, d.parent_id, 'd should be a root span')
+  end
+
+  def test_trace_nil_resource
+    tracer = get_test_tracer
+
+    tracer.trace('resource_set_to_nil', resource: nil) do |s|
+      # Testing passing of nil resource, some parts of the code
+      # rely on explicitly saying resource should be nil (pitfall: refactor
+      # and merge hash, then forget to pass resource: nil, this has side
+      # effects on Rack, while a rack unit test should trap this, it's unclear
+      # then, so this test is here to catch the problem early on).
+      assert_nil(s.resource, 'when not finished, resource should still be set to nil')
+    end
+
+    tracer.trace('resource_set_to_default') do |s|
+    end
+
+    spans = tracer.writer.spans()
+    assert_equal(spans.length, 2)
+    resource_set_to_default, resource_set_to_nil = spans
+    assert_nil(resource_set_to_nil.resource, 'resource has been explitly set to nil (will be refused by agent)')
+    assert_equal('resource_set_to_nil', resource_set_to_nil.name)
+    assert_equal('resource_set_to_default', resource_set_to_default.resource, 'resource should be set to default (name)')
+    assert_equal('resource_set_to_default', resource_set_to_default.name)
   end
 end

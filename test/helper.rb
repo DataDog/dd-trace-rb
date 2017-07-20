@@ -4,7 +4,6 @@ require 'minitest/autorun'
 require 'ddtrace/encoding'
 require 'ddtrace/transport'
 require 'ddtrace/tracer'
-require 'ddtrace/buffer'
 require 'ddtrace/span'
 
 # Give access to otherwise private members
@@ -15,11 +14,19 @@ module Datadog
   class Tracer
     remove_method :writer
     attr_accessor :writer
+    attr_reader :provider
   end
   module Workers
     class AsyncTransport
       attr_accessor :transport
     end
+  end
+  class Context
+    remove_method :current_span
+    attr_accessor :trace, :sampled, :finished_spans, :current_span
+  end
+  class Span
+    attr_accessor :meta
   end
 end
 
@@ -63,6 +70,7 @@ end
 class FauxWriter < Datadog::Writer
   def initialize
     super(transport: FauxTransport.new(HOSTNAME, PORT))
+    @mutex = Mutex.new
 
     # easy access to registered components
     @spans = []
@@ -70,29 +78,53 @@ class FauxWriter < Datadog::Writer
   end
 
   def write(trace, services)
-    super(trace, services)
-    @spans << trace
-    @services = services
+    @mutex.synchronize do
+      super(trace, services)
+      @spans << trace
+      @services = services
+    end
   end
 
   def spans
-    spans = @spans
-    @spans = []
-    spans.flatten
+    @mutex.synchronize do
+      spans = @spans
+      @spans = []
+      spans.flatten!
+      # sort the spans to avoid test flakiness
+      spans.sort! do |a, b|
+        if a.name == b.name
+          if a.resource == b.resource
+            if a.start_time == b.start_time
+              a.end_time <=> b.end_time
+            else
+              a.start_time <=> b.start_time
+            end
+          else
+            a.resource <=> b.resource
+          end
+        else
+          a.name <=> b.name
+        end
+      end
+    end
   end
 
   def trace0_spans
-    return [] unless @spans
-    return [] if @spans.empty?
-    spans = @spans[0]
-    @spans = @spans[1..@spans.size]
-    spans
+    @mutex.synchronize do
+      return [] unless @spans
+      return [] if @spans.empty?
+      spans = @spans[0]
+      @spans = @spans[1..@spans.size]
+      spans
+    end
   end
 
   def services
-    services = @services
-    @services = []
-    services
+    @mutex.synchronize do
+      services = @services
+      @services = []
+      services
+    end
   end
 end
 

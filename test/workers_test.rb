@@ -45,7 +45,7 @@ class WorkersSpanTest < WorkersTest
   # but it checks that all the machinery around workers (tracer/writer/worker/transport)
   # is consistent and that data flows through it.
   def test_one_span
-    span = Datadog::Span.new(@tracer, 'my.op')
+    span = @tracer.start_span('my.op')
     span.service = 'my.service'
     sleep(0.001)
     span.finish()
@@ -63,7 +63,7 @@ class WorkersSpanTest < WorkersTest
     refute_nil(dump[500], 'no data for 500 OK')
     assert_equal(dump[500], {}, '500 ERROR')
     dumped_traces = dump[200][:traces]
-    refute_nil(dumped_traces, 'no 200 OK data for default traces endpoint')
+    refute_nil(dumped_traces, "no 200 OK data for default traces endpoint, dump: #{dump}")
     # unmarshalling data
     assert_equal(1, dumped_traces.length, 'there should be one and only one payload')
     assert_kind_of(String, dumped_traces[0])
@@ -84,7 +84,7 @@ class WorkersSpanTest < WorkersTest
 
   # test that retry on failure works for traces
   def test_span_retry
-    span = Datadog::Span.new(@tracer, 'my.op')
+    span = @tracer.start_span('my.op')
     span.service = 'my.service'
     sleep(0.001)
     span.finish()
@@ -98,7 +98,7 @@ class WorkersSpanTest < WorkersTest
 
     @transport.helper_error_mode! true # now responding 500 ERROR
 
-    span = Datadog::Span.new(@tracer, 'my.op2')
+    span = @tracer.start_span('my.op2')
     span.service = 'my.service'
     sleep(0.001)
     span.finish()
@@ -123,7 +123,7 @@ class WorkersSpanTest < WorkersTest
 
   # test that a default service is provided if none has been given at all
   def test_span_default_service
-    span = Datadog::Span.new(@tracer, 'my.op')
+    span = @tracer.start_span('my.op')
     sleep(0.001)
     span.finish()
 
@@ -160,19 +160,18 @@ end
 class WorkersServiceTest < WorkersTest
   # test that services are not flushed, when empty
   def test_empty_services
-    span = Datadog::Span.new(@tracer, 'my.op')
+    span = @tracer.start_span('my.op')
     span.service = 'my.service'
     sleep(0.001)
     span.finish()
 
-    sleep(2 * SERVICE_INTERVAL)
-
-    (20 * SPAN_INTERVAL).times do
+    (20 * SPAN_INTERVAL).times do |_i|
       break if @writer.stats[:traces_flushed] >= 1
       sleep(0.1)
     end
 
     assert_equal(1, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
+    sleep(2 * SERVICE_INTERVAL)
     assert_equal(0, @writer.stats[:services_flushed], 'wrong number of services flushed')
   end
 
@@ -181,7 +180,7 @@ class WorkersServiceTest < WorkersTest
     @tracer.set_service_info('my.service', 'rails', 'web')
     @tracer.set_service_info('my.other.service', 'golang', 'api')
 
-    span = Datadog::Span.new(@tracer, 'my.op')
+    span = @tracer.start_span('my.op')
     span.service = 'my.service'
     sleep(0.001)
     span.finish()
@@ -216,7 +215,7 @@ class WorkersServiceTest < WorkersTest
   def test_service_retry
     @tracer.set_service_info('my.service', 'rails', 'web')
 
-    span = Datadog::Span.new(@tracer, 'my.op')
+    span = @tracer.start_span('my.op')
     span.service = 'my.service'
     sleep(0.001)
     span.finish()
@@ -234,7 +233,7 @@ class WorkersServiceTest < WorkersTest
     @tracer.set_service_info('my.yet.other.service', 'postgresql', 'sql')
 
     # need to generate a trace else service info does not make it to the queue
-    span = Datadog::Span.new(@tracer, 'my.op')
+    span = @tracer.start_span('my.op')
     span.service = 'my.service'
     sleep(0.001)
     span.finish()

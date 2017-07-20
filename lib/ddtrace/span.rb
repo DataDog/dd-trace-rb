@@ -1,4 +1,5 @@
 require 'time'
+require 'thread'
 
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
@@ -16,17 +17,18 @@ module Datadog
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
-                  :status, :parent, :sampled
+                  :status, :parent, :sampled,
+                  :tracer, :context
 
-    # Create a new span linked to the given tracer. Call the <tt>finish()</tt> method once the
-    # tracer operation is over or use the <tt>finish_at(time)</tt> helper to close the span with the
-    # given +time+. Available options are:
+    # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
+    # and then <tt>finish()</tt> once the tracer operation is over.
     #
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or +name+ if it's missing
     # * +span_type+: the type of the span (such as +http+, +db+ and so on)
     # * +parent_id+: the identifier of the parent span
     # * +trace_id+: the identifier of the root span for this trace
+    # * +context+: the context of the span
     def initialize(tracer, name, options = {})
       @tracer = tracer
 
@@ -39,6 +41,8 @@ module Datadog
       @parent_id = options.fetch(:parent_id, 0)
       @trace_id = options.fetch(:trace_id, @span_id)
 
+      @context = options.fetch(:context, nil)
+
       @meta = {}
       @metrics = {}
       @status = 0
@@ -46,8 +50,8 @@ module Datadog
       @parent = nil
       @sampled = true
 
-      @start_time = Time.now.utc
-      @end_time = nil
+      @start_time = nil # set by Tracer.start_span
+      @end_time = nil # set by Span.finish
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -91,18 +95,34 @@ module Datadog
 
     # Mark the span finished at the current time and submit it.
     def finish(finish_time = nil)
+      # A span should not be finished twice. Note that this is not thread-safe,
+      # finish is called from multiple threads, a given span might be finished
+      # several times. Again, one should not do this, so this test is more a
+      # fallback to avoid very bad things and protect you in most common cases.
       return if finished?
 
-      @end_time = finish_time.nil? ? Time.now.utc : finish_time
-      @tracer.record(self) unless @tracer.nil?
-      self
-    end
+      # Provide a default start_time if unset, but this should have been set by start_span.
+      # Using now here causes 0-duration spans, still, this is expected, as we never
+      # explicitely say when it started.
+      @start_time ||= Time.now.utc
 
-    # Proxy function that flag a span as finished with the given
-    # timestamp. This function is used for retro-compatibility.
-    # DEPRECATED: remove this function in the next release
-    def finish_at(finish_time)
-      finish(finish_time)
+      @end_time = finish_time.nil? ? Time.now.utc : finish_time # finish this
+
+      # Finish does not really do anything if the span is not bound to a tracer and a context.
+      return self if @tracer.nil? || @context.nil?
+
+      # spans without a service would be dropped, so here we provide a default.
+      # This should really never happen with integrations in contrib, as a default
+      # service is always set. It's only for custom instrumentation.
+      @service ||= @tracer.default_service unless @tracer.nil?
+
+      begin
+        @context.close_span(self)
+        @tracer.record(self)
+      rescue StandardError => e
+        Datadog::Tracer.log.debug("error recording finished trace: #{e}")
+      end
+      self
     end
 
     # Return whether the span is finished or not.
@@ -115,9 +135,14 @@ module Datadog
       "Span(name:#{@name},sid:#{@span_id},tid:#{@trace_id},pid:#{@parent_id})"
     end
 
+    # DEPRECATED: remove this function in the next release, replaced by ``parent=``
+    def set_parent(parent)
+      self.parent = parent
+    end
+
     # Set this span's parent, inheriting any properties not explicitly set.
     # If the parent is nil, set the span zero values.
-    def set_parent(parent)
+    def parent=(parent)
       @parent = parent
 
       if parent.nil?
@@ -127,6 +152,7 @@ module Datadog
         @trace_id = parent.trace_id
         @parent_id = parent.span_id
         @service ||= parent.service
+        @sampled = parent.sampled
       end
     end
 

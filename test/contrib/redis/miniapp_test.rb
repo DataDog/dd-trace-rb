@@ -25,18 +25,9 @@ class RedisMiniAppTest < Minitest::Test
     assert_equal(trace_id, span.trace_id)
   end
 
-  def check_span_command1(span, parent_id, trace_id)
+  def check_span_command(span, parent_id, trace_id)
     assert_equal('redis.command', span.name)
     assert_equal('redis', span.service)
-    assert_equal('get data1', span.resource)
-    assert_equal(parent_id, span.parent_id)
-    assert_equal(trace_id, span.trace_id)
-  end
-
-  def check_span_command2(span, parent_id, trace_id)
-    assert_equal('redis.command', span.name)
-    assert_equal('redis', span.service)
-    assert_equal("set data2 something\nget data2", span.resource)
     assert_equal(parent_id, span.parent_id)
     assert_equal(trace_id, span.trace_id)
   end
@@ -70,11 +61,12 @@ class RedisMiniAppTest < Minitest::Test
     # spans[3] being the parent of span[2]
     # spand[2] being the parant of span[0] and span[1]
     assert_equal(4, spans.length)
-    check_span_publish spans[3]
-    trace_id = spans[3].span_id
-    check_span_process spans[2], trace_id, trace_id
-    parent_id = spans[2].span_id
-    check_span_command2 spans[1], parent_id, trace_id
-    check_span_command1 spans[0], parent_id, trace_id
+    process, publish, redis_cmd1, redis_cmd2 = spans
+    check_span_publish publish
+    trace_id = publish.span_id
+    check_span_process process, trace_id, trace_id
+    parent_id = process.span_id
+    check_span_command redis_cmd1, parent_id, trace_id
+    check_span_command redis_cmd2, parent_id, trace_id
   end
 end

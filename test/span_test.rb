@@ -5,15 +5,15 @@ class SpanTest < Minitest::Test
   def test_span_finish
     tracer = nil
     span = Datadog::Span.new(tracer, 'my.op')
-    # the start_time must be set
-    sleep(0.001)
-    assert span.start_time < Time.now.utc
+    # the start_time is not set, calling start_span with Tracer would set it
+    assert_nil(span.start_time)
     assert_nil(span.end_time)
     span.finish
     # the end_time must be set
     sleep(0.001)
     assert span.end_time < Time.now.utc
-    assert span.to_hash[:duration] > 0
+    assert span.start_time <= span.end_time
+    assert span.to_hash[:duration] >= 0
   end
 
   def test_span_finish_once
@@ -34,7 +34,7 @@ class SpanTest < Minitest::Test
     now = Time.now.utc
     # wait 0.01s but set the end time before the wait
     sleep(0.01)
-    span.finish_at(now)
+    span.finish(now)
 
     # we must have a span duration lesser than the wait time
     assert_equal(span.end_time, now)
@@ -46,10 +46,10 @@ class SpanTest < Minitest::Test
     now = Time.now.utc
     # wait 0.01s but set the end time before the wait
     sleep(0.01)
-    span.finish_at(now)
+    span.finish(now)
 
-    # call finish_at again doesn't change the time
-    span.finish_at(Time.now.utc)
+    # call finish again doesn't change the time
+    span.finish(Time.now.utc)
     assert_equal(span.end_time, now)
   end
 
@@ -155,7 +155,7 @@ class SpanTest < Minitest::Test
   end
 
   def test_set_error
-    # rubocop:disable Style/IndentHeredoc
+    # rubocop:disable Layout/IndentHeredoc
     span = Datadog::Span.new(nil, 'test.span')
     error = RuntimeError.new('Something broke!')
     error.set_backtrace(%w[list of calling methods])

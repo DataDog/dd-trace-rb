@@ -84,7 +84,7 @@ module Datadog
           span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('active_record.db.vendor', adapter_name)
           span.start_time = start
-          span.finish_at(finish)
+          span.finish(finish)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end

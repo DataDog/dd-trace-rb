@@ -84,7 +84,7 @@ module Datadog
             span.set_tag('grape.route.path', path)
           ensure
             span.start_time = start
-            span.finish_at(finish)
+            span.finish(finish)
           end
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
@@ -125,7 +125,7 @@ module Datadog
             span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
           ensure
             span.start_time = start
-            span.finish_at(finish)
+            span.finish(finish)
           end
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
@@ -153,7 +153,7 @@ module Datadog
             span.set_tag('grape.filter.type', type.to_s)
           ensure
             span.start_time = start
-            span.finish_at(finish)
+            span.finish(finish)
           end
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)

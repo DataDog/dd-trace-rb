@@ -52,8 +52,8 @@ class LoggerTest < Minitest::Test
 
     lines = buf.string.lines
 
-    # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
     assert_equal(4, lines.length, 'there should be 4 log messages') if lines.respond_to? :length
+    # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
     i = 0
     lines.each do |l|
       case i

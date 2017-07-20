@@ -6,6 +6,6 @@ gem "test-unit"
 gem "rails", "3.2.22.5"
 gem "pg", "0.15.1", platform: :ruby
 gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
-gem "sidekiq"
+gem "sidekiq", "4.0.0"
 
 gemspec path: "../"

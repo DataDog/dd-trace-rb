@@ -68,10 +68,8 @@ class TracedAPITest < BaseAPITest
 
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 4)
-    before = spans[0]
-    render = spans[1]
-    after = spans[2]
-    run = spans[3]
+
+    render, run, before, after = spans
 
     assert_equal(before.name, 'grape.endpoint_run_filters')
     assert_equal(before.span_type, 'http')
@@ -112,8 +110,8 @@ class TracedAPITest < BaseAPITest
 
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
-    before = spans[0]
-    run = spans[1]
+
+    run, before = spans
 
     assert_equal(before.name, 'grape.endpoint_run_filters')
     assert_equal(before.span_type, 'http')

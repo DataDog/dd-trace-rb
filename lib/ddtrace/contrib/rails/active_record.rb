@@ -46,7 +46,7 @@ module Datadog
           span.set_tag('rails.db.vendor', adapter_name)
           span.set_tag('rails.db.cached', cached) if cached
           span.start_time = start
-          span.finish_at(finish)
+          span.finish(finish)
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end

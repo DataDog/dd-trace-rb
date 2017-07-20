@@ -38,21 +38,21 @@ class RedisCacheTracingTest < ActionController::TestCase
 
       spans = @tracer.writer.spans()
       assert_equal(spans.length, 4)
-      span = spans[-1]
-      assert_equal(span.name, 'rails.cache')
-      assert_equal(span.span_type, 'cache')
-      assert_equal(span.resource, 'GET')
-      assert_equal(span.service, 'rails-cache')
-      assert_equal(span.get_tag('rails.cache.backend').to_s, 'redis_store')
-      assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
-      span = spans[-2]
-      assert_equal(span.name, 'redis.command')
-      assert_equal(span.span_type, 'redis')
-      assert_equal(span.resource, 'get custom-key')
-      assert_equal(span.service, 'redis')
+      cache, _, redis, = spans
+      assert_equal(cache.name, 'rails.cache')
+      assert_equal(cache.span_type, 'cache')
+      assert_equal(cache.resource, 'GET')
+      assert_equal(cache.service, 'rails-cache')
+      assert_equal(cache.get_tag('rails.cache.backend').to_s, 'redis_store')
+      assert_equal(cache.get_tag('rails.cache.key'), 'custom-key')
+
+      assert_equal(redis.name, 'redis.command')
+      assert_equal(redis.span_type, 'redis')
+      assert_equal(redis.resource, 'get custom-key')
+      assert_equal(redis.service, 'redis')
       # the following ensures span will be correctly displayed (parent/child of the same trace)
-      assert_equal(spans[-1].trace_id, spans[-2].trace_id)
-      assert_equal(spans[-1].span_id, spans[-2].parent_id)
+      assert_equal(cache.trace_id, redis.trace_id)
+      assert_equal(cache.span_id, redis.parent_id)
     end
   end
 
@@ -69,12 +69,14 @@ class RedisCacheTracingTest < ActionController::TestCase
     spans = @tracer.writer.spans()
     assert_equal(4, spans.length)
 
-    assert_equal(spans[-1].name, 'rails.cache')
-    assert_equal(spans[-1].resource, 'SET')
-    assert_equal(spans[-2].name, 'redis.command')
-    assert_equal(spans[-3].name, 'rails.cache')
-    assert_equal(spans[-3].resource, 'GET')
-    assert_equal(spans[-4].name, 'redis.command')
+    cache_get, cache_set, redis_get, redis_set = spans
+
+    assert_equal(cache_set.name, 'rails.cache')
+    assert_equal(cache_set.resource, 'SET')
+    assert_equal(redis_set.name, 'redis.command')
+    assert_equal(cache_get.name, 'rails.cache')
+    assert_equal(cache_get.resource, 'GET')
+    assert_equal(redis_get.name, 'redis.command')
 
     # check that the value is really updated, and persistent
     value = Rails.cache.read('custom-key')
@@ -90,8 +92,9 @@ class RedisCacheTracingTest < ActionController::TestCase
     spans = @tracer.writer.spans()
     assert_equal(2, spans.length)
 
-    assert_equal(spans[-1].name, 'rails.cache')
-    assert_equal(spans[-2].name, 'redis.command')
+    cache, redis = spans
+    assert_equal(cache.name, 'rails.cache')
+    assert_equal(redis.name, 'redis.command')
   end
 
   test 'cache.write() is properly traced' do
@@ -99,21 +102,22 @@ class RedisCacheTracingTest < ActionController::TestCase
     Rails.cache.write('custom-key', 50)
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
-    span = spans[-1]
-    assert_equal(span.name, 'rails.cache')
-    assert_equal(span.span_type, 'cache')
-    assert_equal(span.resource, 'SET')
-    assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, 'redis_store')
-    assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
-    span = spans[-2]
-    assert_equal(span.name, 'redis.command')
-    assert_equal(span.span_type, 'redis')
-    assert_match(/set custom-key .*ActiveSupport.*/, span.resource)
-    assert_equal(span.service, 'redis')
+    cache, redis = spans
+
+    assert_equal(cache.name, 'rails.cache')
+    assert_equal(cache.span_type, 'cache')
+    assert_equal(cache.resource, 'SET')
+    assert_equal(cache.service, 'rails-cache')
+    assert_equal(cache.get_tag('rails.cache.backend').to_s, 'redis_store')
+    assert_equal(cache.get_tag('rails.cache.key'), 'custom-key')
+
+    assert_equal(redis.name, 'redis.command')
+    assert_equal(redis.span_type, 'redis')
+    assert_match(/set custom-key .*ActiveSupport.*/, redis.resource)
+    assert_equal(redis.service, 'redis')
     # the following ensures span will be correctly displayed (parent/child of the same trace)
-    assert_equal(spans[-1].trace_id, spans[-2].trace_id)
-    assert_equal(spans[-1].span_id, spans[-2].parent_id)
+    assert_equal(cache.trace_id, redis.trace_id)
+    assert_equal(cache.span_id, redis.parent_id)
   end
 
   test 'cache.delete() is properly traced' do
@@ -121,20 +125,21 @@ class RedisCacheTracingTest < ActionController::TestCase
     Rails.cache.delete('custom-key')
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
-    span = spans[-1]
-    assert_equal(span.name, 'rails.cache')
-    assert_equal(span.span_type, 'cache')
-    assert_equal(span.resource, 'DELETE')
-    assert_equal(span.service, 'rails-cache')
-    assert_equal(span.get_tag('rails.cache.backend').to_s, 'redis_store')
-    assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
-    span = spans[-2]
-    assert_equal(span.name, 'redis.command')
-    assert_equal(span.span_type, 'redis')
-    assert_equal(span.resource, 'del custom-key')
-    assert_equal(span.service, 'redis')
+    cache, del = spans
+
+    assert_equal(cache.name, 'rails.cache')
+    assert_equal(cache.span_type, 'cache')
+    assert_equal(cache.resource, 'DELETE')
+    assert_equal(cache.service, 'rails-cache')
+    assert_equal(cache.get_tag('rails.cache.backend').to_s, 'redis_store')
+    assert_equal(cache.get_tag('rails.cache.key'), 'custom-key')
+
+    assert_equal(del.name, 'redis.command')
+    assert_equal(del.span_type, 'redis')
+    assert_equal(del.resource, 'del custom-key')
+    assert_equal(del.service, 'redis')
     # the following ensures span will be correctly displayed (parent/child of the same trace)
-    assert_equal(spans[-1].trace_id, spans[-2].trace_id)
-    assert_equal(spans[-1].span_id, spans[-2].parent_id)
+    assert_equal(cache.trace_id, del.trace_id)
+    assert_equal(cache.span_id, del.parent_id)
   end
 end

@@ -16,7 +16,7 @@ class TracerIntegrationTest < Minitest::Test
   def agent_receives_span_step2(tracer)
     tracer.set_service_info('my.service', 'rails', 'web')
 
-    span = Datadog::Span.new(tracer, 'my.op')
+    span = tracer.start_span('my.op')
     span.service = 'my.service'
     sleep(0.001)
     span.finish()
@@ -46,7 +46,7 @@ class TracerIntegrationTest < Minitest::Test
   end
 
   def agent_receives_span_step3(tracer, previous_success)
-    span = Datadog::Span.new(tracer, 'my.op')
+    span = tracer.start_span('my.op')
     span.service = 'my.service'
     sleep(0.001)
     span.finish()

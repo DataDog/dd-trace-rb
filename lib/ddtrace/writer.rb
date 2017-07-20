@@ -1,4 +1,3 @@
-require 'ddtrace/buffer'
 require 'ddtrace/transport'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'

@@ -25,12 +25,14 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'redis-rails'
     end
 
-    appraise 'rails3-postgres-sidekiq' do
-      gem 'test-unit'
-      gem 'rails', '3.2.22.5'
-      gem 'pg', '0.15.1', platform: :ruby
-      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'sidekiq'
+    if RUBY_VERSION < '2.2.2'
+      appraise 'rails3-postgres-sidekiq' do
+        gem 'test-unit'
+        gem 'rails', '3.2.22.5'
+        gem 'pg', '0.15.1', platform: :ruby
+        gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+        gem 'sidekiq', '4.0.0'
+      end
     end
   end
 
@@ -52,14 +54,6 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'pg', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
-    end
-
-    appraise 'rails4-postgres-sidekiq' do
-      gem 'rails', '4.2.7.1'
-      gem 'pg', platform: :ruby
-      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'sidekiq'
-      gem 'activejob'
     end
   end
 
@@ -84,7 +78,15 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'rails', '5.0.1'
       gem 'pg', platform: :ruby
       gem 'sidekiq'
-      gem "activejob"
+      gem 'activejob'
+    end
+
+    appraise 'rails4-postgres-sidekiq' do
+      gem 'rails', '4.2.7.1'
+      gem 'pg', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+      gem 'sidekiq'
+      gem 'activejob'
     end
   end
 end

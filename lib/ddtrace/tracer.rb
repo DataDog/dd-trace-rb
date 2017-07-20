@@ -4,7 +4,8 @@ require 'logger'
 require 'pathname'
 
 require 'ddtrace/span'
-require 'ddtrace/buffer'
+require 'ddtrace/context'
+require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
@@ -15,6 +16,7 @@ module Datadog
   # example, a trace can be used to track the entire time spent processing a complicated web request.
   # Even though the request may require multiple resources and machines to handle the request, all
   # of these function calls and sub-requests would be encapsulated within a single trace.
+  # rubocop:disable Metrics/ClassLength
   class Tracer
     attr_reader :writer, :sampler, :services, :tags
     attr_accessor :enabled
@@ -55,6 +57,16 @@ module Datadog
       log.level == Logger::DEBUG
     end
 
+    # Return the current active \Context for this traced execution. This method is
+    # automatically called when calling Tracer.trace or Tracer.start_span,
+    # but it can be used in the application code during manual instrumentation.
+    #
+    # This method makes use of a \ContextProvider that is automatically set during the tracer
+    # initialization, or while using a library instrumentation.
+    def call_context
+      @provider.context
+    end
+
     # Initialize a new \Tracer used to create, sample and submit spans that measure the
     # time of sections of code. Available +options+ are:
     #
@@ -65,10 +77,10 @@ module Datadog
       @writer = options.fetch(:writer, Datadog::Writer.new)
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
 
-      @buffer = Datadog::SpanBuffer.new()
+      @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
+      @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
       @mutex = Mutex.new
-      @spans = []
       @services = {}
       @tags = {}
     end
@@ -113,7 +125,7 @@ module Datadog
     # for non-root spans which have a parent. However, root spans without
     # a service would be invalid and rejected.
     def default_service
-      return @default_service if @default_service
+      return @default_service if instance_variable_defined?(:@default_service) && @default_service
       begin
         @default_service = File.basename($PROGRAM_NAME, '.*')
       rescue => e
@@ -130,6 +142,68 @@ module Datadog
     #   tracer.set_tags('env' => 'prod', 'component' => 'core')
     def set_tags(tags)
       @tags.update(tags)
+    end
+
+    # Guess context and parent from child_of entry.
+    def guess_context_and_parent(options = {})
+      child_of = options.fetch(:child_of, nil) # can be context or span
+
+      ctx = nil
+      parent = nil
+      unless child_of.nil?
+        if child_of.respond_to?(:current_span)
+          ctx = child_of
+          parent = child_of.current_span
+        elsif child_of.is_a?(Datadog::Span)
+          parent = child_of
+          ctx = child_of.context
+        end
+      end
+
+      ctx ||= call_context
+
+      [ctx, parent]
+    end
+
+    # Return a span that will trace an operation called \name. This method allows
+    # parenting passing \child_of as an option. If it's missing, the newly created span is a
+    # root span. Available options are:
+    #
+    # * +service+: the service name for this span
+    # * +resource+: the resource this span refers, or \name if it's missing
+    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +parent_id+: the identifier of the parent span
+    # * +trace_id+: the identifier of the root span for this trace
+    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
+    # * +start_time+: when the span actually starts (defaults to \now)
+    # * +tags+: extra tags which should be added to the span.
+    def start_span(name, options = {})
+      start_time = options.fetch(:start_time, Time.now.utc)
+      tags = options.fetch(:tags, {})
+
+      opts = options.select do |k, _v|
+        # Filter options, we want no side effects with unexpected args.
+        # Plus, this documents the code (Ruby 2 named args would be better but we're Ruby 1.9 compatible)
+        [:service, :resource, :span_type, :parent_id, :trace_id].include?(k)
+      end
+      ctx, parent = guess_context_and_parent(options)
+      opts[:context] = ctx unless ctx.nil?
+      span = Span.new(self, name, opts)
+      if parent.nil?
+        # root span
+        @sampler.sample(span)
+      else
+        # child span
+        span.parent = parent
+      end
+      tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
+      @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
+      span.start_time = start_time
+
+      # this could at some point be optional (start_active_span vs start_manual_span)
+      ctx.add_span(span) unless ctx.nil?
+
+      span
     end
 
     # Return a +span+ that will trace an operation called +name+. You could trace your code
@@ -160,22 +234,20 @@ module Datadog
     #   parent2 = tracer.trace('parent2')   # has no parent span
     #   parent2.finish()
     #
+    # Available options are:
+    #
+    # * +service+: the service name for this span
+    # * +resource+: the resource this span refers, or \name if it's missing
+    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +tags+: extra tags which should be added to the span.
     def trace(name, options = {})
-      span = Span.new(self, name, options)
-
-      # set up inheritance
-      parent = @buffer.get()
-      span.set_parent(parent)
-      @buffer.set(span)
-
-      @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
-
-      # sampling
-      if parent.nil?
-        @sampler.sample(span)
-      else
-        span.sampled = span.parent.sampled
+      opts = options.select do |k, _v|
+        # Filter options, we want no side effects with unexpected args.
+        # Plus, this documents the code (Ruby 2 named args would be better but we're Ruby 1.9 compatible)
+        [:service, :resource, :span_type, :tags].include?(k)
       end
+      opts[:child_of] = call_context
+      span = start_span(name, opts)
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
@@ -194,61 +266,36 @@ module Datadog
       end
     end
 
-    # Record the given finished span in the +spans+ list. When a +span+ is recorded, it will be sent
-    # to the Datadog trace agent as soon as the trace is finished.
-    def record(span)
-      span.service ||= default_service
-
-      spans = []
-      @mutex.synchronize do
-        @spans << span
-        parent = span.parent
-        # Bubble up until we find a non-finished parent. This is necessary for
-        # the case when the parent finished after its parent.
-        parent = parent.parent while !parent.nil? && parent.finished?
-        @buffer.set(parent)
-
-        return unless parent.nil?
-
-        # In general, all spans within the buffer belong to the same trace.
-        # But in heavily multithreaded contexts and/or when using lots of callbacks
-        # hooks and other non-linear programming style, one can technically
-        # end up in different situations. So we only extract the spans which
-        # are associated to the root span that just finished, and save the
-        # others for later.
-        trace_spans = []
-        alien_spans = []
-        @spans.each do |s|
-          if s.trace_id == span.trace_id
-            trace_spans << s
-          else
-            alien_spans << s
-          end
-        end
-        spans = trace_spans
-        @spans = alien_spans
-      end
-
-      return if spans.empty? || !span.sampled
-      write(spans)
+    # Record the given +context+. For compatibility with previous versions,
+    # +context+ can also be a span. It is similar to the +child_of+ argument,
+    # method will figure out what to do, submitting a +span+ for recording
+    # is like trying to record its +context+.
+    def record(context)
+      context = context.context if context.is_a?(Datadog::Span)
+      return if context.nil?
+      trace, sampled = context.get
+      ready = !trace.nil? && !trace.empty? && sampled
+      write(trace) if ready
     end
 
     # Return the current active span or +nil+.
     def active_span
-      @buffer.get()
+      call_context.current_span
     end
 
-    def write(spans)
+    # Send the trace to the writer to enqueue the spans list in the agent
+    # sending queue.
+    def write(trace)
       return if @writer.nil? || !@enabled
 
       if Datadog::Tracer.debug_logging
-        Datadog::Tracer.log.debug("Writing #{spans.length} spans (enabled: #{@enabled})")
-        PP.pp(spans)
+        Datadog::Tracer.log.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
+        PP.pp(trace)
       end
 
-      @writer.write(spans, @services)
+      @writer.write(trace, @services)
     end
 
-    private :write
+    private :write, :guess_context_and_parent
   end
 end
