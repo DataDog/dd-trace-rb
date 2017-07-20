@@ -8,6 +8,28 @@ require 'rails'
 begin
   require 'pg'
   connector = 'postgres://postgres:postgres@127.0.0.1:55432/postgres'
+
+  # old versions of Rails (eg 3.0) require that sort of Monkey Patching,
+  # since using ActiveRecord is tricky (version mismatch etc.)
+  if Rails.version < '3.2.22.5'
+    module Rails
+      class Application
+        class Configuration
+          def database_configuration
+            { 'test' => { 'adapter' => 'postgresql',
+                          'encoding' => 'utf8',
+                          'reconnect' => false,
+                          'database' => 'postgres',
+                          'pool' => 5,
+                          'username' => 'postgres',
+                          'password' => 'postgres',
+                          'host' => 'localhost',
+                          'port' => '55432' } }
+          end
+        end
+      end
+    end
+  end
 rescue LoadError
   puts 'pg gem not found, trying another connector'
 end
@@ -51,6 +73,10 @@ when '5.0.1'
 when '4.2.7.1'
   require 'contrib/rails/apps/rails4'
 when '3.2.22.5'
+  require 'test/unit'
+  require 'contrib/rails/apps/rails3'
+  require 'contrib/rails/core_extensions'
+when '3.0.20'
   require 'test/unit'
   require 'contrib/rails/apps/rails3'
   require 'contrib/rails/core_extensions'

@@ -53,12 +53,26 @@ class TracingController < ActionController::Base
   end
 end
 
-Rails.application.routes.append do
-  get '/' => 'tracing#index'
-  get '/partial' => 'tracing#partial'
-  get '/full' => 'tracing#full'
-  get '/error' => 'tracing#error'
-  get '/soft_error' => 'tracing#soft_error'
-  get '/error_template' => 'tracing#error_template'
-  get '/error_partial' => 'tracing#error_partial'
+routes = {
+  '/' => 'tracing#index',
+  '/partial' => 'tracing#partial',
+  '/full' => 'tracing#full',
+  '/error' => 'tracing#error',
+  '/soft_error' => 'tracing#soft_error',
+  '/error_template' => 'tracing#error_template',
+  '/error_partial' => 'tracing#error_partial'
+}
+
+if Rails.version >= '3.2.22.5'
+  Rails.application.routes.append do
+    routes.each do |k, v|
+      get k => v
+    end
+  end
+else
+  Rails.application.routes.draw do
+    routes.each do |k, v|
+      get k, to: v
+    end
+  end
 end

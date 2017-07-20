@@ -31,6 +31,12 @@ module RailsTrace
       end
     end
 
+    def config.database_configuration
+      parsed = super
+      puts '', 'UYOUOUUO', ''
+      raise parsed.to_yaml # Replace this line to add custom connections to the hash from database.yml
+    end
+
     # configure the application: it loads common controllers,
     # initializes the application and runs all migrations;
     # the require order is important

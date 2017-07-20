@@ -80,7 +80,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
 
     # get spans
     spans = @tracer.writer.spans()
-    assert_equal(2, spans.length)
+    assert_operator(spans.length, :>=, 2, 'there should be at least 2 spans')
     request_span, controller_span = spans
 
     assert_equal(controller_span.name, 'rails.action_controller')
@@ -106,7 +106,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
 
     # get spans
     spans = @tracer.writer.spans()
-    assert_equal(1, spans.length)
+    assert_operator(spans.length, :>=, 1, 'there should be at least 1 span')
     request_span = spans[0]
 
     assert_equal('rack.request', request_span.name)

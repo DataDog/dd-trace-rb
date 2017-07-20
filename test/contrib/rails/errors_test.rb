@@ -53,8 +53,16 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.status, 1)
     assert_equal(span_template.span_type, 'template')
     assert_equal(span_template.resource, 'rails.render_template')
-    assert_equal(span_template.get_tag('rails.template_name'), 'tracing/error.html.erb')
-    assert_equal(span_template.get_tag('rails.layout'), 'layouts/application')
+    if Rails.version >= '3.2.22.5'
+      assert_equal(span_template.get_tag('rails.template_name'),
+                   'tracing/error.html.erb')
+    end
+    assert_includes(span_template.get_tag('rails.template_name'), 'tracing/error.html')
+    if Rails.version >= '3.2.22.5'
+      assert_equal(span_template.get_tag('rails.layout'),
+                   'layouts/application')
+    end
+    assert_includes(span_template.get_tag('rails.layout'), 'layouts/application')
     assert_equal(span_template.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_template.get_tag('error.msg'), 'divided by 0')
   end
@@ -81,7 +89,11 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.status, 1)
     assert_equal(span_partial.span_type, 'template')
     assert_equal(span_partial.resource, 'rails.render_partial')
-    assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_inner_error.html.erb')
+    if Rails.version >= '3.2.22.5'
+      assert_equal(span_partial.get_tag('rails.template_name'),
+                   'tracing/_inner_error.html.erb')
+    end
+    assert_includes(span_partial.get_tag('rails.template_name'), 'tracing/_inner_error.html')
     assert_equal(span_partial.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_partial.get_tag('error.msg'), 'divided by 0')
 
@@ -89,8 +101,16 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.status, 1)
     assert_equal(span_template.span_type, 'template')
     assert_equal(span_template.resource, 'rails.render_template')
-    assert_equal(span_template.get_tag('rails.template_name'), 'tracing/error_partial.html.erb')
-    assert_equal(span_template.get_tag('rails.layout'), 'layouts/application')
+    if Rails.version >= '3.2.22.5'
+      assert_equal(span_template.get_tag('rails.template_name'),
+                   'tracing/error_partial.html.erb')
+    end
+    assert_includes(span_template.get_tag('rails.template_name'), 'tracing/error_partial.html')
+    if Rails.version >= '3.2.22.5'
+      assert_equal(span_template.get_tag('rails.layout'),
+                   'layouts/application')
+    end
+    assert_includes(span_template.get_tag('rails.layout'), 'layouts/application')
     assert_equal(span_template.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_template.get_tag('error.msg'), 'divided by 0')
   end

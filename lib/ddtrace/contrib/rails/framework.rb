@@ -11,6 +11,17 @@ require 'ddtrace/contrib/rails/active_record'
 require 'ddtrace/contrib/rails/active_support'
 require 'ddtrace/contrib/rails/utils'
 
+# Rails < 3.1
+unless defined?(ActiveRecord::Base.connection_config)
+  ActiveRecord::Base.class_eval do
+    class << self
+      def connection_config
+        connection_pool.spec.config
+      end
+    end
+  end
+end
+
 module Datadog
   module Contrib
     # TODO[manu]: write docs

@@ -1,6 +1,6 @@
 if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
   if RUBY_VERSION >= '1.9.1'
-    appraise 'rails3-mysql2' do
+    appraise 'rails32-mysql2' do
       gem 'test-unit'
       gem 'rails', '3.2.22.5'
       gem 'mysql2', '0.3.21', platform: :ruby
@@ -10,14 +10,31 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
   end
 
   if RUBY_VERSION >= '1.9.1'
-    appraise 'rails3-postgres' do
+    appraise 'rails30-postgres' do
+      gem 'test-unit'
+      gem 'rails', '3.0.20'
+      gem 'pg', '0.15.1', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+    end
+
+    if RUBY_VERSION < '2.2.2'
+      appraise 'rails30-postgres-sidekiq' do
+        gem 'test-unit'
+        gem 'rails', '3.0.20'
+        gem 'pg', '0.15.1', platform: :ruby
+        gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+        gem 'sidekiq', '4.0.0'
+      end
+    end
+
+    appraise 'rails32-postgres' do
       gem 'test-unit'
       gem 'rails', '3.2.22.5'
       gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
     end
 
-    appraise 'rails3-postgres-redis' do
+    appraise 'rails32-postgres-redis' do
       gem 'test-unit'
       gem 'rails', '3.2.22.5'
       gem 'pg', '0.15.1', platform: :ruby
@@ -26,7 +43,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
     end
 
     if RUBY_VERSION < '2.2.2'
-      appraise 'rails3-postgres-sidekiq' do
+      appraise 'rails32-postgres-sidekiq' do
         gem 'test-unit'
         gem 'rails', '3.2.22.5'
         gem 'pg', '0.15.1', platform: :ruby
