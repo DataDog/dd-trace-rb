@@ -20,6 +20,7 @@ class DistributedTest < Minitest::Test
 
   def setup
     @tracer = get_test_tracer
+    @rack_port = RACK_PORT
   end
 
   def check_distributed(tracer, client, distributed, message)
@@ -63,16 +64,16 @@ class DistributedTest < Minitest::Test
     ]
 
     Thread.new do
-      Rack::Handler::WEBrick.run(app, Port: RACK_PORT, Logger: log, AccessLog: access_log) {}
+      Rack::Handler::WEBrick.run(app, Port: @rack_port, Logger: log, AccessLog: access_log) {}
     end
 
     # this will create extra rack spans but we really need for the server to be up
-    wait_http_server 'http://' + RACK_HOST + ':' + RACK_PORT.to_s, 5
+    wait_http_server 'http://' + RACK_HOST + ':' + @rack_port.to_s, 5
     tracer.writer.spans() # flush extra rack spans
 
     assert_equal(false, Datadog::Contrib::HTTP.distributed_tracing_enabled,
                  'by default, distributed tracing is disabled')
-    client = Net::HTTP.new(RACK_HOST, RACK_PORT)
+    client = Net::HTTP.new(RACK_HOST, @rack_port)
     pin = Datadog::Pin.get_from(client)
     pin.config = { distributed_tracing_enabled: true }
     pin.tracer = tracer
@@ -81,7 +82,7 @@ class DistributedTest < Minitest::Test
     Datadog::Contrib::HTTP.distributed_tracing_enabled = true
     assert_equal(true, Datadog::Contrib::HTTP.distributed_tracing_enabled,
                  'distributed tracing is now enabled')
-    client = Net::HTTP.new(RACK_HOST, RACK_PORT)
+    client = Net::HTTP.new(RACK_HOST, @rack_port)
     pin = Datadog::Pin.get_from(client)
     pin.config = nil
     pin.tracer = tracer
@@ -89,7 +90,7 @@ class DistributedTest < Minitest::Test
 
     assert_equal(true, Datadog::Contrib::HTTP.distributed_tracing_enabled,
                  'distributed tracing is still globally enabled')
-    client = Net::HTTP.new(RACK_HOST, RACK_PORT)
+    client = Net::HTTP.new(RACK_HOST, @rack_port)
     pin = Datadog::Pin.get_from(client)
     pin.config = { distributed_tracing_enabled: false }
     pin.tracer = tracer
@@ -98,7 +99,7 @@ class DistributedTest < Minitest::Test
     Datadog::Contrib::HTTP.distributed_tracing_enabled = false
     assert_equal(false, Datadog::Contrib::HTTP.distributed_tracing_enabled,
                  'by default, distributed tracing is disabled')
-    client = Net::HTTP.new(RACK_HOST, RACK_PORT)
+    client = Net::HTTP.new(RACK_HOST, @rack_port)
     pin = Datadog::Pin.get_from(client)
     pin.tracer = tracer
     check_distributed(tracer, client, false, 'globally disabled, default client')

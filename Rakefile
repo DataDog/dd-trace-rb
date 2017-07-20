@@ -5,6 +5,7 @@ require 'rake/testtask'
 require 'appraisal'
 require 'yard'
 
+# rubocop:disable Metrics/BlockLength
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
@@ -49,6 +50,11 @@ namespace :test do
       t.libs << %w[test lib]
       t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
     end
+  end
+
+  Rake::TestTask.new(:rackcustom) do |t|
+    t.libs << %w[test lib]
+    t.test_files = FileList['test/contrib/rack/custom/*_test.rb']
   end
 
   Rake::TestTask.new(:monkey) do |t|
@@ -132,6 +138,7 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:rack'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:rackcustom'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:grape'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:monkey'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:elasticsearch'
@@ -139,6 +146,7 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:redis'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sinatra'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:rack'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:rackcustom'
     sh 'rvm $SIDEKIQ_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sidekiq'
   when 2
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake test:rails'
