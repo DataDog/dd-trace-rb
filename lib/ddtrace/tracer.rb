@@ -192,6 +192,7 @@ module Datadog
       if parent.nil?
         # root span
         @sampler.sample(span)
+        span.set_tag('system.pid', Process.pid)
       else
         # child span
         span.parent = parent
