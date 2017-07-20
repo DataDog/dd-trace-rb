@@ -58,7 +58,13 @@ module Datadog
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
-        rescue StandardError => e
+        # rubocop:disable Lint/RescueException
+        # Here we really want to catch *any* exception, not only StandardError,
+        # as we really have no clue of what is in the block,
+        # and it is user code which should be executed no matter what.
+        # It's not a problem since we re-raise it afterwards so for example a
+        # SignalException::Interrupt would still bubble up.
+        rescue Exception => e
           # catch exceptions that may be raised in the middleware chain
           # Note: if a middleware catches an Exception without re raising,
           # the Exception cannot be recorded here
