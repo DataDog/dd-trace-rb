@@ -8,6 +8,7 @@ require 'ddtrace/contrib/elasticsearch/patcher'
 require 'ddtrace/contrib/grape/patcher'
 require 'ddtrace/contrib/redis/patcher'
 require 'ddtrace/contrib/http/patcher'
+require 'ddtrace/contrib/sequel/patcher'
 
 module Datadog
   # Monkey is used for monkey-patching 3rd party libs.
@@ -18,7 +19,8 @@ module Datadog
       http: true,
       redis: true,
       grape: true,
-      active_record: false
+      active_record: false,
+      sequel: false
     }
     # Patchers should expose 2 methods:
     # - patch, which applies our patch if needed. Should be idempotent,
@@ -29,7 +31,8 @@ module Datadog
                   http: Datadog::Contrib::HTTP::Patcher,
                   redis: Datadog::Contrib::Redis::Patcher,
                   grape: Datadog::Contrib::Grape::Patcher,
-                  active_record: Datadog::Contrib::ActiveRecord::Patcher }
+                  active_record: Datadog::Contrib::ActiveRecord::Patcher,
+                  sequel: Datadog::Contrib::Sequel::Patcher }
     @mutex = Mutex.new
 
     module_function

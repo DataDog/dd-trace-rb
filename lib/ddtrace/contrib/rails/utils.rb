@@ -33,6 +33,8 @@ module Datadog
             'sqlite'
           when 'postgresql'
             'postgres'
+          when 'mysql2'
+            'mysql'
           else
             vendor
           end

@@ -118,6 +118,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'hiredis'
     gem 'sinatra'
     gem 'sqlite3'
+    gem 'sequel'
     gem 'activerecord'
     gem 'sidekiq'
   end
@@ -130,6 +131,7 @@ else
     gem 'rack-test'
     gem 'sinatra', '1.4.5'
     gem 'sqlite3'
+    gem 'sequel'
     gem 'activerecord', '3.2.22.5'
     gem 'sidekiq', '4.0.0'
   end
