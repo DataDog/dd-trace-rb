@@ -54,6 +54,7 @@ namespace :spec do
     :rack,
     :redis,
     :resque,
+    :sequel,
     :sidekiq,
     :sinatra,
     :sucker_punch
@@ -115,6 +116,7 @@ namespace :test do
     :grape,
     :http,
     :rack,
+    :sequel,
     :sidekiq,
     :sinatra,
     :sucker_punch
@@ -205,6 +207,7 @@ task :ci do
   when 1
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:elasticsearch'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sequel'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:rack'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:grape'
@@ -214,6 +217,7 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:elasticsearch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:http'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sinatra'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sequel'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:rack'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:aws'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sucker_punch'
