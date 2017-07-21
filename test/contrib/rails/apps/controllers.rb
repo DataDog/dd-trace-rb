@@ -13,6 +13,7 @@ class TracingController < ActionController::Base
       'views/tracing/full.html.erb' => '<% Article.all.each do |article| %><% end %>',
       'views/tracing/error.html.erb' => '<%= 1/0 %>',
       'views/tracing/soft_error.html.erb' => 'nothing',
+      'views/tracing/not_found.html.erb' => 'nothing',
       'views/tracing/error_partial.html.erb' => 'Hello from <%= render "views/tracing/inner_error.html.erb" %>',
       'views/tracing/_body.html.erb' => '_body.html.erb partial',
       'views/tracing/_inner_error.html.erb' => '<%= 1/0 %>'
@@ -39,6 +40,13 @@ class TracingController < ActionController::Base
     end
   end
 
+  def not_found
+    # Here we raise manually a 'Not Found' exception.
+    # The conversion is by default done by Rack::Utils.status_code using
+    # http://www.rubydoc.info/gems/rack/Rack/Utils#HTTP_STATUS_CODES-constant
+    raise ActionController::RoutingError, :not_found
+  end
+
   def error_template
     render 'views/tracing/error.html.erb'
   end
@@ -59,6 +67,7 @@ routes = {
   '/full' => 'tracing#full',
   '/error' => 'tracing#error',
   '/soft_error' => 'tracing#soft_error',
+  '/not_found' => 'tracing#not_found',
   '/error_template' => 'tracing#error_template',
   '/error_partial' => 'tracing#error_partial'
 }

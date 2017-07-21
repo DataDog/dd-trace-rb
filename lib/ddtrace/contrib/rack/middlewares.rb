@@ -55,6 +55,7 @@ module Datadog
           )
         end
 
+        # rubocop:disable Metrics/MethodLength
         def call(env)
           # configure the Rack middleware once
           configure()
@@ -113,9 +114,15 @@ module Datadog
           # be set in another level but if they're missing, reasonable defaults
           # are used.
           request_span.resource = "#{env['REQUEST_METHOD']} #{status}".strip unless request_span.resource
-          request_span.set_tag('http.method', env['REQUEST_METHOD']) if request_span.get_tag('http.method').nil?
-          request_span.set_tag('http.url', url) if request_span.get_tag('http.url').nil?
-          request_span.set_tag('http.status_code', status) if request_span.get_tag('http.status_code').nil? && status
+          if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
+            request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
+          end
+          if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
+            request_span.set_tag(Datadog::Ext::HTTP::URL, url)
+          end
+          if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
+            request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
+          end
 
           # detect if the status code is a 5xx and flag the request span as an error
           # unless it has been already set by the underlying framework

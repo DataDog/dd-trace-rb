@@ -63,10 +63,14 @@ module Datadog
               end
             else
               error = payload[:exception]
-              span.status = 1
-              span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
-              span.set_tag(Datadog::Ext::Errors::MSG, error[1])
-              span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
+              status = ActionDispatch::ExceptionWrapper.status_code_for_exception(error[0])
+              status = status ? status.to_s : '?'
+              if status.starts_with?('5')
+                span.status = 1
+                span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
+                span.set_tag(Datadog::Ext::Errors::MSG, error[1])
+                span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
+              end
             end
           ensure
             span.start_time = start
