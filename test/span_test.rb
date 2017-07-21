@@ -67,7 +67,7 @@ class SpanTest < Minitest::Test
     span = Datadog::Span.new(nil, 'my.op')
     assert span.span_id
     assert span.parent_id.zero?
-    assert span.trace_id == span.span_id
+    assert span.trace_id != span.span_id
     assert_equal(span.name, 'my.op')
     assert span.span_id.nonzero?
     assert span.trace_id.nonzero?

@@ -42,9 +42,9 @@ class ConcurrentTest < Minitest::Test
       root, sub = trace
       assert_equal('a-root-task', root.name)
       assert_equal('a-sub-task', sub.name)
-      assert_equal(root.trace_id, root.span_id)
+      refute_equal(root.trace_id, root.span_id)
       assert_equal(root.trace_id, sub.trace_id, 'root span and sub span must have the same trace id')
-      assert_equal(root.trace_id, sub.parent_id)
+      assert_equal(root.span_id, sub.parent_id)
     end
   end
 end

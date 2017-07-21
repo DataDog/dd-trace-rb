@@ -78,7 +78,7 @@ class WorkersSpanTest < WorkersTest
     # checking content
     assert_equal(0, span['parent_id'], 'a root span should have no parent')
     assert_equal(0, span['error'], 'there should be explicitely no error')
-    assert_equal(span['trace_id'], span['span_id'], 'a root span should have equal trace_id and span_id')
+    refute_equal(span['trace_id'], span['span_id'], 'trace_id and span_id are different for any span')
     assert_equal('my.service', span['service'], 'wrong service')
   end
 
@@ -150,7 +150,7 @@ class WorkersSpanTest < WorkersTest
     # checking content
     assert_equal(0, span['parent_id'], 'a root span should have no parent')
     assert_equal(0, span['error'], 'there should be explicitely no error')
-    assert_equal(span['trace_id'], span['span_id'], 'a root span should have equal trace_id and span_id')
+    refute_equal(span['trace_id'], span['span_id'], 'trace_id and span_id are different for any span')
     # now the whole purpose of this test: check we have a 'ruby' service by default,
     # which should be guessed from the script being executed.
     assert_equal('rake_test_loader', span['service'], 'wrong service')
