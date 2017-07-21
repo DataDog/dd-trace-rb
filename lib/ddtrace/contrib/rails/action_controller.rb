@@ -33,6 +33,7 @@ module Datadog
           Datadog::Tracer.log.error(e.message)
         end
 
+        # rubocop:disable Metrics/MethodLength
         def self.process_action(_name, start, finish, _id, payload)
           return unless Thread.current[KEY]
           Thread.current[KEY] = false
@@ -63,8 +64,12 @@ module Datadog
               end
             else
               error = payload[:exception]
-              status = ActionDispatch::ExceptionWrapper.status_code_for_exception(error[0])
-              status = status ? status.to_s : '?'
+              if defined?(::ActionDispatch::ExceptionWrapper)
+                status = ::ActionDispatch::ExceptionWrapper.status_code_for_exception(error[0])
+                status = status ? status.to_s : '?'
+              else
+                status = '500'
+              end
               if status.starts_with?('5')
                 span.status = 1
                 span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
