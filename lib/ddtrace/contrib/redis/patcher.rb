@@ -2,9 +2,22 @@
 
 module Datadog
   module Contrib
+    # Redis contains the patcher and a method for determining the service name
     module Redis
-      SERVICE = 'redis'.freeze
-      DRIVER = 'redis.driver'.freeze
+      DEFAULT_SERVICE_NAME = 'redis'.freeze
+
+      def self.service_name
+        @service_name ||= \
+          if defined?(::Sinatra)
+            ::Sinatra::Application.settings.datadog_tracer.cfg
+                                  .fetch(:default_redis_service, DEFAULT_SERVICE_NAME)
+          elsif defined?(::Rails)
+            ::Rails.configuration.datadog_trace
+                   .fetch(:default_redis_service, DEFAULT_SERVICE_NAME)
+          else
+            DEFAULT_SERVICE_NAME
+          end
+      end
 
       # Patcher enables patching of 'redis' module.
       # This is used in monkey.rb to automatically apply patches
@@ -59,7 +72,7 @@ module Datadog
             end
 
             def initialize(*args)
-              pin = Datadog::Pin.new(SERVICE, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
+              pin = Datadog::Pin.new(Redis.service_name, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
               if pin.tracer && pin.service
                 pin.tracer.set_service_info(pin.service, pin.app, pin.app_type)

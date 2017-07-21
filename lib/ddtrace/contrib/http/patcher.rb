@@ -10,7 +10,7 @@ module Datadog
 
       NAME = 'http.request'.freeze
       APP = 'net/http'.freeze
-      SERVICE = 'net/http'.freeze
+      DEFAULT_SERVICE_NAME = 'net/http'.freeze
 
       module_function
 
@@ -33,6 +33,19 @@ module Datadog
         active = pin.tracer.active_span()
         return true if active && (active.name == NAME)
         false
+      end
+
+      def self.service_name
+        @service_name ||= \
+          if defined?(::Sinatra)
+            ::Sinatra::Application.settings.datadog_tracer.cfg
+                                  .fetch(:default_redis_service, DEFAULT_SERVICE_NAME)
+          elsif defined?(::Rails)
+            ::Rails.configuration.datadog_trace
+                   .fetch(:default_redis_service, DEFAULT_SERVICE_NAME)
+          else
+            DEFAULT_SERVICE_NAME
+          end
       end
 
       # Patcher enables patching of 'net/http' module.
@@ -77,7 +90,7 @@ module Datadog
             end
 
             def initialize(*args)
-              pin = Datadog::Pin.new(SERVICE, app: APP, app_type: Datadog::Ext::AppTypes::WEB)
+              pin = Datadog::Pin.new(HTTP.service_name, app: APP, app_type: Datadog::Ext::AppTypes::WEB)
               pin.onto(self)
               initialize_without_datadog(*args)
             end
