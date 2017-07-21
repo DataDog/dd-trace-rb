@@ -1,5 +1,6 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
+require 'ddtrace/distributed'
 
 module Datadog
   module Contrib
@@ -64,22 +65,22 @@ module Datadog
             span_type: Datadog::Ext::HTTP::TYPE
           }
 
+          # start a new request span and attach it to the current Rack environment;
+          # we must ensure that the span `resource` is set later
+          request_span = @tracer.trace('rack.request', trace_options)
+
           if @distributed_tracing_enabled
             # Merge distributed trace ids if present
             #
             # Use integer values for tests, as it will catch both
             # a non-existing header or a badly formed one.
-            trace_id = env[Datadog::Contrib::Rack::HTTP_HEADER_TRACE_ID].to_i
-            parent_id = env[Datadog::Contrib::Rack::HTTP_HEADER_PARENT_ID].to_i
-            unless trace_id.zero? || parent_id.zero?
-              trace_options[:trace_id] = trace_id
-              trace_options[:parent_id] = parent_id
-            end
+            trace_id, parent_id = Datadog::Distributed.parse_trace_headers(
+              env[Datadog::Contrib::Rack::HTTP_HEADER_TRACE_ID],
+              env[Datadog::Contrib::Rack::HTTP_HEADER_PARENT_ID]
+            )
+            request_span.trace_id = trace_id unless trace_id.nil?
+            request_span.parent_id = parent_id unless parent_id.nil?
           end
-
-          # start a new request span and attach it to the current Rack environment;
-          # we must ensure that the span `resource` is set later
-          request_span = @tracer.trace('rack.request', trace_options)
 
           env[:datadog_rack_request_span] = request_span
 
