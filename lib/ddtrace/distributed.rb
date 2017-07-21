@@ -24,11 +24,11 @@ module Datadog
         Datadog::Tracer.log.debug("invalid parent_id header: #{parent_id_header}")
         return nil, nil
       end
-      if trace_id < 0 || trace_id > Datadog::Span::MAX_ID
+      if trace_id < 0 || trace_id >= Datadog::Span::MAX_ID
         Datadog::Tracer.log.debug("trace_id out of range: #{trace_id_header}")
         return nil, nil
       end
-      if parent_id < 0 || parent_id > Datadog::Span::MAX_ID
+      if parent_id < 0 || parent_id >= Datadog::Span::MAX_ID
         Datadog::Tracer.log.debug("parent_id out of range: #{parent_id_header}")
         return nil, nil
       end
