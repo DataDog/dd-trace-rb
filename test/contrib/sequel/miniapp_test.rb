@@ -42,7 +42,7 @@ class SequelMiniAppTest < Minitest::Test
       tracer.trace('process') do |subspan|
         subspan.service = 'datalayer'
         subspan.resource = 'home'
-        sequel[:table].insert(:name => "data")
+        sequel[:table].insert(name: 'data')
       end
     end
 

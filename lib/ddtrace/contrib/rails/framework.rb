@@ -107,8 +107,8 @@ module Datadog
                 adapter_name,
                 Datadog::Ext::AppTypes::DB
               )
-            rescue StandardError => e
-              Datadog::Tracer.log.warn("Unable to get database config (#{e}), skipping ActiveRecord instrumentation")
+            rescue StandardError
+              Datadog::Tracer.log.warn('Unable to get database config (#{e}), skipping ActiveRecord instrumentation')
             end
           end
 

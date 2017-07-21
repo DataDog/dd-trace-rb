@@ -1,11 +1,11 @@
 module Datadog
   module Contrib
     module Sequel
-      # Patcher enables patching of 'active_record' module.
+      # Patcher enables patching of 'sequel' module.
       # This is used in monkey.rb to manually apply patches
       module Patcher
-        SERVICE = "sequel".freeze
-        APP = "sequel".freeze
+        SERVICE = 'sequel'.freeze
+        APP = 'sequel'.freeze
 
         @patched = false
 
@@ -27,8 +27,8 @@ module Datadog
               patch_sequel_dataset()
 
               @patched = true
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Sequel integration: #{e}")
+            rescue StandardError
+              Datadog::Tracer.log.error('Unable to apply Sequel integration: #{e}')
             end
           end
 
@@ -58,7 +58,7 @@ module Datadog
 
               response = nil
 
-              pin.tracer.trace("sequel.query") do |span|
+              pin.tracer.trace('sequel.query') do |span|
                 span.service = pin.service
                 span.resource = opts[:query]
                 span.span_type = Datadog::Ext::SQL::TYPE
@@ -92,7 +92,7 @@ module Datadog
               opts = parse_opts(sql, options)
               response = nil
 
-              pin.tracer.trace("sequel.query") do |span|
+              pin.tracer.trace('sequel.query') do |span|
                 span.service = pin.service
                 span.resource = opts[:query]
                 span.span_type = Datadog::Ext::SQL::TYPE

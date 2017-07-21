@@ -1,6 +1,7 @@
 module Datadog
   module Contrib
     module Sequel
+      # TODO[manu]: write docs
       module Utils
         def adapter_name
           @adapter_name ||= Datadog::Contrib::Rails::Utils.normalize_vendor(
@@ -14,13 +15,13 @@ module Datadog
         end
 
         def parse_opts(sql, opts)
-          if ::Sequel::VERSION < '3.41.0' && !(self.class.to_s =~ /Dataset$/)
-            db_opts = @opts
-          elsif @pool
-            db_opts = @pool.db.opts
-          else
-            db_opts = @db.opts
-          end
+          db_opts = if ::Sequel::VERSION < '3.41.0' && self.class.to_s !~ /Dataset$/
+                      @opts
+                    elsif @pool
+                      @pool.db.opts
+                    else
+                      @db.opts
+                    end
 
           if ::Sequel::VERSION > '4.36.0' && !sql.is_a?(String)
             # In 4.37.0, sql was converted to a prepared statement object
@@ -28,10 +29,10 @@ module Datadog
           end
 
           {
-            :name => opts[:type],
-            :query => sanitize_sql(sql),
-            :database => db_opts[:database],
-            :host => db_opts[:host]
+            name: opts[:type],
+            query: sanitize_sql(sql),
+            database: db_opts[:database],
+            host: db_opts[:host]
           }
         end
       end
