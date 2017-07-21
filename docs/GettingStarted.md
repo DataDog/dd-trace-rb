@@ -160,6 +160,18 @@ To start using the middleware in your generic Rack application, add it to your `
 
     run app
 
+Experimental distributed tracing support is available for this library.
+You need to set the ``:distributed_tracing_enabled`` option to true, for example:
+
+    use Datadog::Contrib::Rack::TraceMiddleware, distributed_tracing_enabled: true
+
+    app = proc do |env|
+      # trace and read 'x-datadog-trace-id' and 'x-datadog-parent-id'
+      [ 200, {'Content-Type' => 'text/plain'}, "OK" ]
+    end
+
+See [distributed tracing](#Distributed_Tracing) for details.
+
 #### Configure the tracer
 
 To modify the default middleware configuration, you can use middleware options as follows:
@@ -255,6 +267,31 @@ Net::HTTP module.
     end
 
     content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
+
+Experimental distributed tracing support is available for this library.
+By default, this is disabled. You need to enable it, either on a per-connection basis,
+by setting the ``:distributed_tracing_enabled`` config entry to ``true`` using
+the ``Pin`` object attached to the client. Example:
+
+    require 'net/http'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:http) # explicitly patch it
+
+    client = Net::HTTP.new(host, port)
+    Datadog::Pin.get_from(client).config = { distributed_tracing_enabled: true }
+    response = client.get('foo') # trace and send 'x-datadog-trace-id' and 'x-datadog-parent-id'
+
+Or, by enabling distributed tracing for all HTTP calls:
+
+    require 'net/http'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:http) # explicitly patch it
+
+    Datadog::Contrib::HTTP.distributed_tracing_enabled = true
+
+See [distributed tracing](#Distributed_Tracing) for details.
 
 ### Redis
 
@@ -556,8 +593,8 @@ On the client:
 
     Datadog.tracer.trace('web.call') do |span|
       req = Net::HTTP::Get.new(uri)
-      req['x-ddtrace-parent_trace_id'] = span.trace_id.to_s
-      req['x-ddtrace-parent_span_id'] = span.span_id.to_s
+      req['x-datadog-trace-id'] = span.trace_id.to_s
+      req['x-datadog-parent-id'] = span.span_id.to_s
 
       response = Net::HTTP.start(uri.hostname, uri.port) do |http|
         http.request(req)
@@ -575,8 +612,8 @@ On the server:
     # require 'ddtrace/contrib/sinatra/tracer'
 
     get '/' do
-      parent_trace_id = request.env['HTTP_X_DDTRACE_PARENT_TRACE_ID']
-      parent_span_id = request.env['HTTP_X_DDTRACE_PARENT_SPAN_ID']
+      parent_trace_id = request.env['HTTP_X_DATADOG_TRACE_ID']
+      parent_span_id = request.env['HTTP_X_DATADOG_PARENT_ID']
 
       Datadog.tracer.trace('web.work') do |span|
          if parent_trace_id && parent_span_id
@@ -587,6 +624,12 @@ On the server:
         'Hello world!'
       end
     end
+
+[Rack](#Rack) and [Net/HTTP](#Net_HTTP) have experimental support for this, they
+can send and receive these headers automatically and tie spans together automatically,
+provided you pass a ``:distributed_tracing_enabled`` option set to ``true``.
+
+This is disabled by default.
 
 ### Troubleshooting
 

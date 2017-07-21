@@ -12,6 +12,12 @@ module Datadog
       APP = 'net/http'.freeze
       SERVICE = 'net/http'.freeze
 
+      @distributed_tracing_enabled = false
+
+      class << self
+        attr_accessor :distributed_tracing_enabled
+      end
+
       module_function
 
       def should_skip_tracing?(req, address, port, transport, pin)
@@ -35,6 +41,13 @@ module Datadog
         false
       end
 
+      def should_skip_distributed_tracing?(pin)
+        unless pin.config.nil?
+          return !pin.config.fetch(:distributed_tracing_enabled, @distributed_tracing_enabled)
+        end
+        !@distributed_tracing_enabled
+      end
+
       # Patcher enables patching of 'net/http' module.
       # This is used in monkey.rb to automatically apply patches
       module Patcher
@@ -52,6 +65,7 @@ module Datadog
               require 'ddtrace/ext/app_types'
               require 'ddtrace/ext/http'
               require 'ddtrace/ext/net'
+              require 'ddtrace/ext/distributed'
 
               patch_http()
 
@@ -69,6 +83,8 @@ module Datadog
         end
 
         # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/BlockLength
+        # rubocop:disable Metrics/AbcSize
         def patch_http
           ::Net::HTTP.class_eval do
             alias_method :initialize_without_datadog, :initialize
@@ -84,6 +100,7 @@ module Datadog
 
             alias_method :request_without_datadog, :request
             remove_method :request
+
             def request(req, body = nil, &block) # :yield: +response+
               pin = Datadog::Pin.get_from(self)
               return request_without_datadog(req, body, &block) unless pin && pin.tracer
@@ -93,15 +110,25 @@ module Datadog
                 Datadog::Contrib::HTTP.should_skip_tracing?(req, @address, @port, transport, pin)
 
               pin.tracer.trace(NAME) do |span|
-                span.service = pin.service
-                span.span_type = Datadog::Ext::HTTP::TYPE
+                begin
+                  span.service = pin.service
+                  span.span_type = Datadog::Ext::HTTP::TYPE
 
-                span.resource = req.method
-                # Using the method as a resource, as URL/path can trigger
-                # a possibly infinite number of resources.
-                span.set_tag(Datadog::Ext::HTTP::URL, req.path)
-                span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
-                response = request_without_datadog(req, body, &block)
+                  span.resource = req.method
+                  # Using the method as a resource, as URL/path can trigger
+                  # a possibly infinite number of resources.
+                  span.set_tag(Datadog::Ext::HTTP::URL, req.path)
+                  span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
+
+                  unless Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
+                    req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, span.trace_id)
+                    req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, span.span_id)
+                  end
+                rescue StandardError => e
+                  Datadog::Tracer.log.error("error preparing span for http request: #{e}")
+                ensure
+                  response = request_without_datadog(req, body, &block)
+                end
                 span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
                 if req.respond_to?(:uri) && req.uri
                   span.set_tag(Datadog::Ext::NET::TARGET_HOST, req.uri.host)

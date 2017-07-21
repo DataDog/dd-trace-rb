@@ -17,8 +17,10 @@ module Datadog
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
-                  :status, :parent, :sampled,
+                  :status, :sampled,
                   :tracer, :context
+
+    attr_reader :parent
 
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
     # and then <tt>finish()</tt> once the tracer operation is over.
@@ -37,9 +39,9 @@ module Datadog
       @resource = options.fetch(:resource, name)
       @span_type = options.fetch(:span_type, nil)
 
-      @span_id = Datadog::Utils.next_id()
+      @span_id = Datadog::Utils.next_id
       @parent_id = options.fetch(:parent_id, 0)
-      @trace_id = options.fetch(:trace_id, @span_id)
+      @trace_id = options.fetch(:trace_id, Datadog::Utils.next_id)
 
       @context = options.fetch(:context, nil)
 

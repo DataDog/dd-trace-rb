@@ -1,11 +1,21 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
+require 'ddtrace/distributed'
 
 module Datadog
   module Contrib
     # Rack module includes middlewares that are required to trace any framework
     # and application built on top of Rack.
     module Rack
+      # RACK headers to test when doing distributed tracing.
+      # They are slightly different from real headers as Rack uppercases everything
+
+      # Header used to transmit the trace ID.
+      HTTP_HEADER_TRACE_ID = 'HTTP_X_DATADOG_TRACE_ID'.freeze
+
+      # Header used to transmit the parent ID.
+      HTTP_HEADER_PARENT_ID = 'HTTP_X_DATADOG_PARENT_ID'.freeze
+
       # TraceMiddleware ensures that the Rack Request is properly traced
       # from the beginning to the end. The middleware adds the request span
       # in the Rack environment so that it can be retrieved by the underlying
@@ -14,13 +24,15 @@ module Datadog
       class TraceMiddleware
         DEFAULT_CONFIG = {
           tracer: Datadog.tracer,
-          default_service: 'rack'
+          default_service: 'rack',
+          distributed_tracing_enabled: false
         }.freeze
 
         def initialize(app, options = {})
           # update options with our configuration, unless it's already available
-          options[:tracer] ||= DEFAULT_CONFIG[:tracer]
-          options[:default_service] ||= DEFAULT_CONFIG[:default_service]
+          [:tracer, :default_service, :distributed_tracing_enabled].each do |k|
+            options[k] ||= DEFAULT_CONFIG[k]
+          end
 
           @app = app
           @options = options
@@ -33,6 +45,7 @@ module Datadog
           # retrieve the current tracer and service
           @tracer = @options.fetch(:tracer)
           @service = @options.fetch(:default_service)
+          @distributed_tracing_enabled = @options.fetch(:distributed_tracing_enabled)
 
           # configure the Rack service
           @tracer.set_service_info(
@@ -46,14 +59,29 @@ module Datadog
           # configure the Rack middleware once
           configure()
 
-          # start a new request span and attach it to the current Rack environment;
-          # we must ensure that the span `resource` is set later
-          request_span = @tracer.trace(
-            'rack.request',
+          trace_options = {
             service: @service,
             resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE
-          )
+          }
+
+          # start a new request span and attach it to the current Rack environment;
+          # we must ensure that the span `resource` is set later
+          request_span = @tracer.trace('rack.request', trace_options)
+
+          if @distributed_tracing_enabled
+            # Merge distributed trace ids if present
+            #
+            # Use integer values for tests, as it will catch both
+            # a non-existing header or a badly formed one.
+            trace_id, parent_id = Datadog::Distributed.parse_trace_headers(
+              env[Datadog::Contrib::Rack::HTTP_HEADER_TRACE_ID],
+              env[Datadog::Contrib::Rack::HTTP_HEADER_PARENT_ID]
+            )
+            request_span.trace_id = trace_id unless trace_id.nil?
+            request_span.parent_id = parent_id unless parent_id.nil?
+          end
+
           env[:datadog_rack_request_span] = request_span
 
           # call the rest of the stack

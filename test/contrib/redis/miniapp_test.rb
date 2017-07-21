@@ -13,7 +13,7 @@ class RedisMiniAppTest < Minitest::Test
     assert_equal('publish', span.name)
     assert_equal('webapp', span.service)
     assert_equal('/index', span.resource)
-    assert_equal(span.trace_id, span.span_id)
+    refute_equal(span.trace_id, span.span_id)
     assert_equal(0, span.parent_id)
   end
 
@@ -63,8 +63,9 @@ class RedisMiniAppTest < Minitest::Test
     assert_equal(4, spans.length)
     process, publish, redis_cmd1, redis_cmd2 = spans
     check_span_publish publish
-    trace_id = publish.span_id
-    check_span_process process, trace_id, trace_id
+    parent_id = publish.span_id
+    trace_id = publish.trace_id
+    check_span_process process, parent_id, trace_id
     parent_id = process.span_id
     check_span_command redis_cmd1, parent_id, trace_id
     check_span_command redis_cmd2, parent_id, trace_id

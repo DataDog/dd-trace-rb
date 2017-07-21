@@ -17,7 +17,7 @@ class ESMiniAppTest < Minitest::Test
     assert_equal('publish', span.name)
     assert_equal('webapp', span.service)
     assert_equal('/status', span.resource)
-    assert_equal(span.trace_id, span.span_id)
+    refute_equal(span.trace_id, span.span_id)
     assert_equal(0, span.parent_id)
   end
 
@@ -52,8 +52,9 @@ class ESMiniAppTest < Minitest::Test
     # here we should get 3 spans, with spans[2] being the parent
     assert_equal(3, spans.length)
     check_span_publish spans[2]
-    trace_id = spans[2].span_id
-    check_span_command spans[1], trace_id, trace_id
-    check_span_command spans[0], trace_id, trace_id
+    trace_id = spans[2].trace_id
+    parent_id = spans[2].span_id
+    check_span_command spans[1], parent_id, trace_id
+    check_span_command spans[0], parent_id, trace_id
   end
 end
