@@ -22,7 +22,7 @@ class HTTPMiniAppTest < Minitest::Test
     assert_equal('page', span.name)
     assert_equal('webapp', span.service)
     assert_equal('/index', span.resource)
-    assert_equal(span.trace_id, span.span_id)
+    refute_equal(span.trace_id, span.span_id)
     assert_equal(0, span.parent_id)
   end
 
@@ -58,8 +58,9 @@ class HTTPMiniAppTest < Minitest::Test
     # here we should get 3 spans, with spans[2] being the parent
     assert_equal(3, spans.length)
     check_span_page spans[2]
-    trace_id = spans[2].span_id
-    check_span_get spans[0], trace_id, trace_id
-    check_span_get spans[1], trace_id, trace_id
+    trace_id = spans[2].trace_id
+    parent_id = spans[2].span_id
+    check_span_get spans[0], parent_id, trace_id
+    check_span_get spans[1], parent_id, trace_id
   end
 end
