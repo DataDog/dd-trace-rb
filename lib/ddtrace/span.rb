@@ -11,8 +11,12 @@ module Datadog
   # within a larger operation. Spans can be nested within each other, and in those instances
   # will have a parent-child relationship.
   class Span
-    # The max value for a \Span identifier
-    MAX_ID = 2**64 - 1
+    # The max value for a \Span identifier.
+    # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
+    #
+    # Limited to 63-bit positive integers, as some other languages might be limited to this,
+    # and IDs need to be easy to port across various languages and platforms.
+    MAX_ID = 2**63
 
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
