@@ -31,6 +31,27 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span.get_tag('error.msg'), 'divided by 0')
   end
 
+  test '404 should not be traced as errors' do
+    assert_raises ActionController::RoutingError do
+      get :not_found
+    end
+
+    spans = @tracer.writer.spans()
+    assert_equal(spans.length, 1)
+
+    span = spans[0]
+    assert_equal(span.name, 'rails.action_controller')
+    assert_equal(span.span_type, 'http')
+    assert_equal(span.resource, 'TracingController#not_found')
+    assert_equal(span.get_tag('rails.route.action'), 'not_found')
+    assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
+    # Stop here for old Rails versions, which have no ActionDispatch::ExceptionWrapper
+    return if Rails.version < '3.2.22.5'
+    assert_equal(span.status, 0)
+    assert_nil(span.get_tag('error.type'))
+    assert_nil(span.get_tag('error.msg'))
+  end
+
   test 'error in the template must be traced' do
     assert_raises ::ActionView::Template::Error do
       get :error_template

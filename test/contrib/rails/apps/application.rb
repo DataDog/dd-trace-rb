@@ -33,7 +33,6 @@ module RailsTrace
 
     def config.database_configuration
       parsed = super
-      puts '', 'UYOUOUUO', ''
       raise parsed.to_yaml # Replace this line to add custom connections to the hash from database.yml
     end
 
