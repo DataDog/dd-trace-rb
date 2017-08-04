@@ -9,6 +9,7 @@ gem "rack", "1.4.7"
 gem "rack-test"
 gem "sinatra", "1.4.5"
 gem "sqlite3"
+gem "sequel"
 gem "activerecord", "3.2.22.5"
 gem "sidekiq", "4.0.0"
 

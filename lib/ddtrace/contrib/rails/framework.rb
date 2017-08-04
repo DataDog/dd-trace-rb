@@ -12,7 +12,7 @@ require 'ddtrace/contrib/rails/active_support'
 require 'ddtrace/contrib/rails/utils'
 
 # Rails < 3.1
-unless defined?(ActiveRecord::Base.connection_config)
+if defined?(ActiveRecord) && defined?(ActiveRecord::Base.connection_config)
   ActiveRecord::Base.class_eval do
     class << self
       def connection_config
@@ -107,8 +107,8 @@ module Datadog
                 adapter_name,
                 Datadog::Ext::AppTypes::DB
               )
-            rescue StandardError => e
-              Datadog::Tracer.log.warn("Unable to get database config (#{e}), skipping ActiveRecord instrumentation")
+            rescue StandardError
+              Datadog::Tracer.log.warn('Unable to get database config (#{e}), skipping ActiveRecord instrumentation')
             end
           end
 
