@@ -130,6 +130,7 @@ module Datadog
             request_span.status = 1
             # in any case we don't touch the stacktrace if it has been set
             if request_span.get_tag(Datadog::Ext::Errors::STACK).nil?
+              # [TODO:christian] this is the one to change
               request_span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
             end
           end

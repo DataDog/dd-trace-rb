@@ -87,8 +87,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(controller_span.status, 1)
     assert_equal(controller_span.get_tag('error.type'), 'ZeroDivisionError')
     assert_equal(controller_span.get_tag('error.msg'), 'divided by 0')
-    assert_match(/ddtrace/, controller_span.get_tag('error.stack'))
-    assert_match(/\n/, controller_span.get_tag('error.stack'))
+    assert_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
 
     assert_equal('rack.request', request_span.name)
     assert_equal(request_span.span_type, 'http')
@@ -97,6 +96,35 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.get_tag('http.method'), 'GET')
     assert_equal(request_span.get_tag('http.status_code'), '500')
     assert_equal(request_span.status, 1, 'span should be flagged as an error')
+    assert_not_nil(request_span.get_tag('error.stack')) # error stack is in rack span
+    # [TODO:christian] audit for actual content of the stack
+  end
+
+  test 'the rack.request span has the Rails exception, soft error version' do
+    # make a request that fails
+    get '/soft_error'
+    # assert_response 520
+
+    # get spans
+    spans = @tracer.writer.spans()
+    assert_operator(spans.length, :>=, 2, 'there should be at least 2 spans')
+    request_span, controller_span = spans
+
+    assert_equal(controller_span.name, 'rails.action_controller')
+    assert_equal(controller_span.status, 1)
+    assert_nil(controller_span.get_tag('error.type'))
+    assert_nil(controller_span.get_tag('error.msg'))
+    assert_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
+
+    assert_equal('rack.request', request_span.name)
+    assert_equal(request_span.span_type, 'http')
+    assert_equal(request_span.resource, 'TracingController#soft_error')
+    assert_equal(request_span.get_tag('http.url'), '/soft_error')
+    assert_equal(request_span.get_tag('http.method'), 'GET')
+    assert_equal(request_span.get_tag('http.status_code'), '520')
+    assert_equal(request_span.status, 1, 'span should be flagged as an error')
+    assert_not_nil(request_span.get_tag('error.stack')) # error stack is in rack span
+    # [TODO:christian] audit for actual content of the stack
   end
 
   test 'the status code is properly set if Rails controller is bypassed' do
