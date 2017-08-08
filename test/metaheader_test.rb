@@ -9,6 +9,7 @@ class MetaHeaderTest < Minitest::Test
   TEST_PORT = 6219
   EXPECTED_META_LANG = 'ruby'.freeze
   EXPECTED_META_LANG_VERSION = RUBY_VERSION
+  # typical lang interpreter would be 'ruby-x86_64-darwin16.4.0'
   EXPECTED_META_LANG_INTEPRETER = defined?(RUBY_ENGINE) ? RUBY_ENGINE + '-' + RUBY_PLATFORM : 'ruby-' + RUBY_PLATFORM
   EXPECTED_META_TRACER_VERSION = Datadog::VERSION::STRING
 
