@@ -29,10 +29,13 @@ end
 if defined?(Rails::VERSION)
   if Rails::VERSION::MAJOR.to_i >= 3
     require 'ddtrace/contrib/rails/framework'
+    require 'ddtrace/contrib/rails/middlewares'
 
     module Datadog
       # Railtie class initializes
       class Railtie < Rails::Railtie
+        config.app_middleware.use(Datadog::Contrib::Rails::TraceMiddleware)
+
         # auto instrument Rails and third party components after
         # the framework initialization
         options = {}

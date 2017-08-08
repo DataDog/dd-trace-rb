@@ -12,6 +12,7 @@ class TracingController < ActionController::Base
       'views/tracing/partial.html.erb' => 'Hello from <%= render "views/tracing/body.html.erb" %>',
       'views/tracing/full.html.erb' => '<% Article.all.each do |article| %><% end %>',
       'views/tracing/error.html.erb' => '<%= 1/0 %>',
+      'views/tracing/sub_error.html.erb' => '<%= 1/0 %>',
       'views/tracing/soft_error.html.erb' => 'nothing',
       'views/tracing/not_found.html.erb' => 'nothing',
       'views/tracing/error_partial.html.erb' => 'Hello from <%= render "views/tracing/inner_error.html.erb" %>',
@@ -38,6 +39,18 @@ class TracingController < ActionController::Base
     else
       render nothing: true, status: 520
     end
+  end
+
+  def sub_error
+    a_nested_error_call
+  end
+
+  def a_nested_error_call
+    another_nested_error_call
+  end
+
+  def another_nested_error_call
+    error
   end
 
   def not_found
@@ -67,6 +80,7 @@ routes = {
   '/full' => 'tracing#full',
   '/error' => 'tracing#error',
   '/soft_error' => 'tracing#soft_error',
+  '/sub_error' => 'tracing#sub_error',
   '/not_found' => 'tracing#not_found',
   '/error_template' => 'tracing#error_template',
   '/error_partial' => 'tracing#error_partial'

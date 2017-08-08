@@ -127,6 +127,34 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # [TODO:christian] audit for actual content of the stack
   end
 
+  test 'the rack.request span has the Rails exception and call stack is correct' do
+    # make a request that fails
+    get '/sub_error'
+    assert_response :error
+
+    # get spans
+    spans = @tracer.writer.spans()
+    assert_operator(spans.length, :>=, 2, 'there should be at least 2 spans')
+    request_span, controller_span = spans
+
+    assert_equal(controller_span.name, 'rails.action_controller')
+    assert_equal(controller_span.status, 1)
+    assert_equal(controller_span.get_tag('error.type'), 'ZeroDivisionError')
+    assert_equal(controller_span.get_tag('error.msg'), 'divided by 0')
+    assert_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
+
+    assert_equal('rack.request', request_span.name)
+    assert_equal(request_span.span_type, 'http')
+    assert_equal(request_span.resource, 'TracingController#sub_error')
+    assert_equal(request_span.get_tag('http.url'), '/sub_error')
+    assert_equal(request_span.get_tag('http.method'), 'GET')
+    assert_equal(request_span.get_tag('http.status_code'), '500')
+    assert_equal(request_span.status, 1, 'span should be flagged as an error')
+    assert_not_nil(request_span.get_tag('error.stack')) # error stack is in rack span
+    puts request_span.get_tag('error.stack')
+    # [TODO:christian] audit for actual content of the stack
+  end
+
   test 'the status code is properly set if Rails controller is bypassed' do
     # make a request that doesn't have a route
     get '/not_existing'
