@@ -87,7 +87,7 @@ module Datadog
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
-          return status, headers, response
+
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
         # as we really have no clue of what is in the block,
