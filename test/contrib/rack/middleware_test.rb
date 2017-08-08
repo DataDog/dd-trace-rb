@@ -165,7 +165,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('500', span.get_tag('http.status_code'))
     assert_equal('/500/', span.get_tag('http.url'))
-    refute_nil(span.get_tag('error.stack'))
+    assert_nil(span.get_tag('error.stack'))
     assert_equal(1, span.status)
     assert_nil(span.parent)
   end

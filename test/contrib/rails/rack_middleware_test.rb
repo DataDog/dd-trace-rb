@@ -97,7 +97,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.get_tag('http.status_code'), '500')
     assert_equal(request_span.status, 1, 'span should be flagged as an error')
     assert_not_nil(request_span.get_tag('error.stack')) # error stack is in rack span
-    # [TODO:christian] audit for actual content of the stack
+    assert_match(/controllers\.rb.*error/, request_span.get_tag('error.stack'))
   end
 
   test 'the rack.request span has the Rails exception, soft error version' do
@@ -114,7 +114,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(controller_span.status, 1)
     assert_nil(controller_span.get_tag('error.type'))
     assert_nil(controller_span.get_tag('error.msg'))
-    assert_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
+    assert_nil(controller_span.get_tag('error.stack'))
 
     assert_equal('rack.request', request_span.name)
     assert_equal(request_span.span_type, 'http')
@@ -123,8 +123,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.get_tag('http.method'), 'GET')
     assert_equal(request_span.get_tag('http.status_code'), '520')
     assert_equal(request_span.status, 1, 'span should be flagged as an error')
-    assert_not_nil(request_span.get_tag('error.stack')) # error stack is in rack span
-    # [TODO:christian] audit for actual content of the stack
+    assert_nil(request_span.get_tag('error.stack'))
   end
 
   test 'the rack.request span has the Rails exception and call stack is correct' do
@@ -151,8 +150,10 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.get_tag('http.status_code'), '500')
     assert_equal(request_span.status, 1, 'span should be flagged as an error')
     assert_not_nil(request_span.get_tag('error.stack')) # error stack is in rack span
-    puts request_span.get_tag('error.stack')
-    # [TODO:christian] audit for actual content of the stack
+    assert_match(/controllers\.rb.*error/, request_span.get_tag('error.stack'))
+    assert_match(/controllers\.rb.*another_nested_error_call/, request_span.get_tag('error.stack'))
+    assert_match(/controllers\.rb.*a_nested_error_call/, request_span.get_tag('error.stack'))
+    assert_match(/controllers\.rb.*sub_error/, request_span.get_tag('error.stack'))
   end
 
   test 'the status code is properly set if Rails controller is bypassed' do
