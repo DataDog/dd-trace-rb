@@ -33,7 +33,6 @@ module Datadog
           Datadog::Tracer.log.error(e.message)
         end
 
-        # rubocop:disable Metrics/MethodLength
         def self.process_action(_name, start, finish, _id, payload)
           return unless Thread.current[KEY]
           Thread.current[KEY] = false
@@ -58,10 +57,7 @@ module Datadog
               # [christian] in some cases :status is not defined,
               # rather than firing an error, simply acknowledge we don't know it.
               status = payload.fetch(:status, '?').to_s
-              if status.starts_with?('5')
-                span.status = 1
-                span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
-              end
+              span.status = 1 if status.starts_with?('5')
             else
               error = payload[:exception]
               if defined?(::ActionDispatch::ExceptionWrapper)
@@ -74,7 +70,6 @@ module Datadog
                 span.status = 1
                 span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
                 span.set_tag(Datadog::Ext::Errors::MSG, error[1])
-                span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
               end
             end
           ensure

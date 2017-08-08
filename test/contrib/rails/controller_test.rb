@@ -108,8 +108,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(1, span.status, 'span should be flagged as an error')
     assert_equal('ZeroDivisionError', span.get_tag('error.type'), 'type should contain the class name of the error')
     assert_equal('divided by 0', span.get_tag('error.msg'), 'msg should state we tried to divided by 0')
-    assert_match(/ddtrace/, span.get_tag('error.stack'), 'stack should contain the call stack when error was raised')
-    assert_match(/\n/, span.get_tag('error.stack'), 'stack should have multiple lines')
+    assert_nil(span.get_tag('error.stack'))
   end
 
   test 'http error code should be trapped and reported as such, even with no exception' do
@@ -127,6 +126,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(1, span.status, 'span should be flagged as an error')
     assert_nil(span.get_tag('error.type'), 'type should be undefined')
     assert_nil(span.get_tag('error.msg'), 'msg should be empty')
-    assert_match(/ddtrace/, span.get_tag('error.stack'), 'stack should contain the call stack when error was raised')
+    assert_nil(span.get_tag('error.stack'), 'no error stack')
   end
 end

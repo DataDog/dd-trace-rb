@@ -87,6 +87,7 @@ module Datadog
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
+
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
         # as we really have no clue of what is in the block,
@@ -96,7 +97,7 @@ module Datadog
         rescue Exception => e
           # catch exceptions that may be raised in the middleware chain
           # Note: if a middleware catches an Exception without re raising,
-          # the Exception cannot be recorded here
+          # the Exception cannot be recorded here.
           request_span.set_error(e)
           raise e
         ensure
@@ -128,10 +129,6 @@ module Datadog
           # unless it has been already set by the underlying framework
           if status.to_s.start_with?('5') && request_span.status.zero?
             request_span.status = 1
-            # in any case we don't touch the stacktrace if it has been set
-            if request_span.get_tag(Datadog::Ext::Errors::STACK).nil?
-              request_span.set_tag(Datadog::Ext::Errors::STACK, caller().join("\n"))
-            end
           end
 
           request_span.finish()
