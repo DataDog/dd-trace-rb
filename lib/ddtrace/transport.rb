@@ -2,6 +2,7 @@ require 'thread'
 require 'net/http'
 
 require 'ddtrace/encoding'
+require 'ddtrace/version'
 
 module Datadog
   # Transport class that handles the spans delivery to the
@@ -16,6 +17,7 @@ module Datadog
 
     # header containing the number of traces in a payload
     TRACE_COUNT_HEADER = 'X-Datadog-Trace-Count'.freeze
+    RUBY_INTERPRETER = RUBY_VERSION > '1.9' ? RUBY_ENGINE + '-' + RUBY_PLATFORM : 'ruby-' + RUBY_PLATFORM
 
     def initialize(hostname, port, options = {})
       @hostname = hostname
@@ -28,6 +30,10 @@ module Datadog
       # overwrite the Content-type with the one chosen in the Encoder
       @headers = options.fetch(:headers, {})
       @headers['Content-Type'] = @encoder.content_type
+      @headers['Datadog-Meta-Lang'] = 'ruby'
+      @headers['Datadog-Meta-Lang-Version'] = RUBY_VERSION
+      @headers['Datadog-Meta-Lang-Interpreter'] = RUBY_INTERPRETER
+      @headers['Datadog-Meta-Tracer-Version'] = Datadog::VERSION::STRING
 
       # stats
       @mutex = Mutex.new
