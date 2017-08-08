@@ -7,7 +7,7 @@ module Datadog
       # This is only here to catch errors, the Rack module does something very similar, however,
       # since it's not in the same place in the stack, when the Rack middleware is called,
       # error is already swallowed and handled by Rails so we miss the call stack, for instance.
-      class TraceMiddleware
+      class ExceptionMiddleware
         def initialize(app)
           @app = app
         end
