@@ -177,6 +177,12 @@ See [distributed tracing](#Distributed_Tracing) for details.
 To modify the default middleware configuration, you can use middleware options as follows:
 
     # config.ru example
+    Datadog.tracer.configure(
+      enabled: true,
+      hostname: localhost,
+      port: 8126
+    )
+
     use Datadog::Contrib::Rack::TraceMiddleware, default_service: 'rack-stack'
 
     app = proc do |env|
