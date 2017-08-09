@@ -118,7 +118,7 @@ Eg, within Ruby:
 Or, shell syntax, before launching Rails:
 
 ```
-export DISABLE_DATADOG_RAILS = 1
+export DISABLE_DATADOG_RAILS=1
 ```
 
 ### Sinatra
