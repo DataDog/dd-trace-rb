@@ -111,6 +111,7 @@ end
 if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
   appraise 'contrib' do
     gem 'elasticsearch-transport'
+    gem 'mongo'
     gem 'grape'
     gem 'rack'
     gem 'rack-test'
