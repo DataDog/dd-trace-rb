@@ -128,4 +128,29 @@ class TracingControllerTest < ActionController::TestCase
     assert_nil(span.get_tag('error.msg'), 'msg should be empty')
     assert_nil(span.get_tag('error.stack'), 'no error stack')
   end
+
+  test 'combining rails and custom tracing is supported' do
+    @tracer.trace('a-parent') do
+      get :index
+      assert_response :success
+      @tracer.trace('a-brother') do
+      end
+    end
+
+    spans = @tracer.writer.spans()
+    assert_equal(4, spans.length)
+
+    brother_span, parent_span, controller_span, = spans
+    assert_equal('rails.action_controller', controller_span.name)
+    assert_equal('http', controller_span.span_type)
+    assert_equal('TracingController#index', controller_span.resource)
+    assert_equal('index', controller_span.get_tag('rails.route.action'))
+    assert_equal('TracingController', controller_span.get_tag('rails.route.controller'))
+    assert_equal('a-parent', parent_span.name)
+    assert_equal('a-brother', brother_span.name)
+    assert_equal(controller_span.trace_id, parent_span.trace_id)
+    assert_equal(controller_span.trace_id, brother_span.trace_id)
+    assert_equal(parent_span.span_id, controller_span.parent_id)
+    assert_equal(brother_span.parent_id, controller_span.parent_id)
+  end
 end
