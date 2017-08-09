@@ -5,6 +5,7 @@ require 'rake/testtask'
 require 'appraisal'
 require 'yard'
 
+# rubocop:disable Metrics/BlockLength
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
