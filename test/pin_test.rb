@@ -3,6 +3,16 @@ require 'ddtrace'
 require 'ddtrace/pin'
 require 'ddtrace/tracer'
 
+class CustomPinSetGet
+  def datadog_pin
+    @custom_attribute
+  end
+
+  def datadog_pin=(pin)
+    @custom_attribute = 'The PIN is set!'
+  end
+end
+
 class PinTest < Minitest::Test
   def test_pin_onto
     a = '' # using String, but really, any object should fit
@@ -47,5 +57,14 @@ class PinTest < Minitest::Test
   def test_enabled
     pin = Datadog::Pin.new('abc')
     assert_equal(true, pin.enabled?)
+  end
+
+  def test_custom_getter_setter
+    # ensures that if datadog_pin is available in the class, it will
+    # be used instead of the default datadog_pin
+    obj = CustomPinSetGet.new
+    pin = Datadog::Pin.new('pin', app: 'app', app_type: 'db')
+    pin.onto(obj)
+    assert_equal('The PIN is set!', Datadog::Pin.get_from(obj))
   end
 end
