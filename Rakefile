@@ -5,6 +5,7 @@ require 'rake/testtask'
 require 'appraisal'
 require 'yard'
 
+# rubocop:disable Metrics/BlockLength
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
@@ -25,7 +26,8 @@ namespace :test do
     t.test_files = FileList['test/contrib/rails/**/*_test.rb'].reject do |path|
       path.include?('redis') ||
         path.include?('sidekiq') ||
-        path.include?('active_job')
+        path.include?('active_job') ||
+        path.include?('disable_env')
     end
   end
 
@@ -42,6 +44,11 @@ namespace :test do
   Rake::TestTask.new(:railsactivejob) do |t|
     t.libs << %w[test lib]
     t.test_files = FileList['test/contrib/rails/**/*active_job*_test.rb']
+  end
+
+  Rake::TestTask.new(:railsdisableenv) do |t|
+    t.libs << %w[test lib]
+    t.test_files = FileList['test/contrib/rails/**/*disable_env*_test.rb']
   end
 
   [:elasticsearch, :http, :redis, :sinatra, :sidekiq, :rack, :grape].each do |contrib|
@@ -142,12 +149,15 @@ task :ci do
     sh 'rvm $SIDEKIQ_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sidekiq'
   when 2
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake test:rails'
+    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake test:railsdisableenv'
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-mysql2 rake test:rails'
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-postgres rake test:rails'
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-postgres-redis rake test:railsredis'
+    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-postgres rake test:railsdisableenv'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:railsdisableenv'
     sh 'rvm $RAILS3_SIDEKIQ_VERSIONS --verbose do appraisal rails30-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $RAILS3_SIDEKIQ_VERSIONS --verbose do appraisal rails32-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $RAILS4_SIDEKIQ_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
@@ -157,6 +167,7 @@ task :ci do
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railsactivejob'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:railsdisableenv'
   else
     puts 'Too many workers than parallel tasks'
   end
