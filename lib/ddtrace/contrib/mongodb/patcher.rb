@@ -6,34 +6,6 @@ module Datadog
       APP = 'mongodb'
       SERVICE = 'mongodb'.freeze
 
-      # `MongoCommandSubscriber` listens to all events from the `Monitoring`
-      # system available in the Mongo driver.
-      class MongoCommandSubscriber
-        def initialize
-          # keeps track of active Spans so that they can be retrieved
-          # between executions. This data structure must be thread-safe.
-          # TODO: add thread-safety
-          @active_spans = {}
-        end
-
-        def started(event)
-          # TODO: start a trace
-        end
-
-        def failed(event)
-          # TODO: find the error? at least flag it as error
-          finished(event)
-        end
-
-        def succeeded(event)
-          finished(event)
-        end
-
-        def finished(event)
-          # TODO: end the trace
-        end
-      end
-
       # Patcher adds subscribers to the MongoDB driver so that each command is traced.
       # Use the `Datadog::Monkey.patch_module(:mongodb)` to activate tracing for
       # this module.
@@ -51,9 +23,10 @@ module Datadog
           if !@patched && (defined?(::Mongo::Monitoring::Global) && \
                   Gem::Version.new(::Mongo::VERSION) >= Gem::Version.new('2.4.3'))
             begin
-              require 'ddtrace/monkey'
               require 'ddtrace/pin'
+              require 'ddtrace/monkey'
               require 'ddtrace/ext/app_types'
+              require 'ddtrace/contrib/mongodb/subscribers'
 
               patch_mongo_client()
               add_mongo_monitoring()
@@ -70,7 +43,7 @@ module Datadog
           # Subscribe to all COMMAND queries with our subscriber class
           ::Mongo::Monitoring::Global.subscribe(
             ::Mongo::Monitoring::COMMAND,
-            MongoComandSubscriber.new
+            Datadog::Contrib::MongoDB::MongoCommandSubscriber.new
           )
         end
 
@@ -82,26 +55,24 @@ module Datadog
             end
 
             def initialize(*args)
+              # attach the Pin instance
+              initialize_without_datadog(*args)
               pin = Datadog::Pin.new(SERVICE, app: APP, app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
-              initialize_without_datadog(*args)
+              # TODO: send services metadata
             end
 
             def datadog_pin
-              # safe navigation to avoid NoMethodError; since all addresses
-              # share the same PIN, returning the first one is enough
-              address = self.try(:cluster).try(:addresses).try(:first)
-              return unless address != nil
-              Datadog::Pin.get_from(address)
+              # TODO: provide safe-navigation otherwise it could crash the system
+              Datadog::Pin.get_from(self.cluster.addresses.first)
             end
 
-            def datadog_pin=
+            def datadog_pin=(pin)
+              # TODO: provide safe-navigation otherwise it could crash the system
               # attach the PIN to all cluster addresses. One of them is used
               # when executing a Command and it is attached to the Monitoring
               # Event instance.
-              addresses = self.try(:cluster).try(:addresses)
-              return unless addresses.respond_to? :each
-              addresses.each { |x| onto(x) }
+              self.cluster.addresses.each { |x| pin.onto(x) }
             end
           end
         end
