@@ -24,9 +24,11 @@ end
 
 module Datadog
   module Contrib
-    # TODO[manu]: write docs
+    # Instrument Rails.
     module Rails
-      # TODO[manu]: write docs
+      # Rails framework code, used to essentially:
+      # - handle configuration entries which are specific to Datadog tracing
+      # - instrument parts of the framework when needed
       module Framework
         # default configurations for the Rails integration; by default
         # the Datadog.tracer is enabled, while the Rails auto instrumentation

@@ -3,7 +3,7 @@ require 'ddtrace/contrib/rails/utils'
 module Datadog
   module Contrib
     module Rails
-      # TODO[manu]: write docs
+      # Code used to create and handle 'rails.render_template' and 'rails.render_partial' spans.
       module ActionView
         def self.instrument
           # patch Rails core components

@@ -5,7 +5,7 @@ require 'ddtrace/contrib/rails/utils'
 module Datadog
   module Contrib
     module Rails
-      # TODO[manu]: write docs
+      # Code used to create and handle 'mysql.query', 'postgres.query', ... spans.
       module ActiveRecord
         def self.instrument
           # ActiveRecord is instrumented only if it's available

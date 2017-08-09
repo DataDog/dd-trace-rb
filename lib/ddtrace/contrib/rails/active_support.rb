@@ -4,7 +4,7 @@ require 'ddtrace/ext/cache'
 module Datadog
   module Contrib
     module Rails
-      # TODO[manu]: write docs
+      # Code used to create and handle 'rails.cache' spans.
       module ActiveSupport
         def self.instrument
           # patch Rails core components
