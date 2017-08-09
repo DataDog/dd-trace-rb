@@ -106,6 +106,21 @@ Available settings are:
 * ``env``: set the environment. Rails users may set it to ``Rails.env`` to use their application settings.
 * ``tags``: set global tags that should be applied to all spans. Defaults to an empty hash
 
+#### Disabling Rails auto-instrumentation
+
+If you wish to disable all Rails auto-instrumentation, you need to set the env var ``DISABLE_DATADOG_RAILS``.
+
+Eg, within Ruby:
+
+    ENV['DISABLE_DATADOG_RAILS'] = 1 # this must be done before ddtrace is included at all
+    require 'ddtrace'
+
+Or, shell syntax, before launching Rails:
+
+```
+export DISABLE_DATADOG_RAILS = 1
+```
+
 ### Sinatra
 
 The Sinatra integration traces requests and template rendering. The integration is based on the
