@@ -157,7 +157,7 @@ task :ci do
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:rails'
     sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails4-postgres rake test:railsdisableenv'
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:railsdisableenv'
     sh 'rvm $RAILS3_SIDEKIQ_VERSIONS --verbose do appraisal rails30-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $RAILS3_SIDEKIQ_VERSIONS --verbose do appraisal rails32-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $RAILS4_SIDEKIQ_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
