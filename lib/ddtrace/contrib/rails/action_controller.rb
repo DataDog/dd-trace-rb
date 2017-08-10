@@ -4,7 +4,7 @@ require 'ddtrace/ext/errors'
 module Datadog
   module Contrib
     module Rails
-      # TODO[manu]: write docs
+      # Code used to create and handle 'rails.action_controller' spans.
       module ActionController
         KEY = 'datadog_actioncontroller'.freeze
 
