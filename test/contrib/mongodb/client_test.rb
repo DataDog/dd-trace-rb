@@ -1,4 +1,3 @@
-require 'byebug'
 require 'contrib/mongodb/test_helper'
 require 'helper'
 
@@ -8,6 +7,9 @@ class MongoDBTest < Minitest::Test
   MONGO_DB = 'test'.freeze
 
   def setup
+    # disable Mongo logging
+    Mongo::Logger.logger.level = ::Logger::WARN
+
     # initialize the client and overwrite the default tracer
     @client = Mongo::Client.new(["#{MONGO_HOST}:#{MONGO_PORT}"], :database => MONGO_DB)
     @tracer = get_test_tracer()
