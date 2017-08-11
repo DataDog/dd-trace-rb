@@ -14,14 +14,29 @@ module Datadog
         # TODO: move in the parser.rb
         # return a Command from the given MongoDB query
         def normalize_query(query)
-          # remove the _id value
-          query.each do |command|
-            command.delete(:_id)
-            command.each do |key, _|
-              command[key] = '?'
-            end
+          # always take the first element to safe-guard against massive insert_many;
+          # NOTE: this is a rough estimation because it's possible to insert
+          # many values using different schemas; unfortunately to speed-up the
+          # parsing process this is the best guess.
+          # TODO: the normalization must be moved at Trace Agent level so that is
+          # faster and more accurate
+          document = query.first.dup
+
+          # delete the unique identifier
+          document.delete(:_id)
+          document.each do |key, _|
+            document[key] = '?'
           end
-          query
+
+          document
+        end
+
+        # removes values from filter keys
+        def normalize_filter(filter)
+          norm_filter = filter.dup
+          norm_filter.each do |key, _|
+            norm_filter[key] = '?'
+          end
         end
 
         def started(event)
@@ -44,10 +59,35 @@ module Datadog
             span.set_tag('mongodb.collection', collection)
             span.set_tag('mongodb.ordered', event.command['ordered'])
 
-            # get and normalize documents list; some commands don't have documents
+            # get and normalize documents list
             documents = event.command['documents']
-            span.set_tag('mongodb.documents', normalize_query(documents)) unless documents.nil?
-            documents ||= ''
+            unless documents.nil? || documents.empty?
+              document = normalize_query(documents)
+              span.set_tag('mongodb.documents', document)
+            end
+
+            # get and normalize filters list
+            filters = event.command['filter']
+            unless filters.nil? || filters.empty?
+              filter = normalize_filter(filters)
+              span.set_tag('mongodb.filter', filter)
+            end
+
+            updates = event.command['updates']
+            unless updates.nil? || updates.empty? || updates.first['q'].empty?
+              # we're only using the query parameter and
+              # not the updated fields
+              query = normalize_filter(updates.first['q'])
+              span.set_tag('mongodb.updates', query)
+            end
+
+            deletes = event.command['deletes']
+            unless deletes.nil? || deletes.empty? || deletes.first['q'].empty?
+              # we're only using the query parameter and
+              # not the updated fields
+              query = normalize_filter(deletes.first['q'])
+              span.set_tag('mongodb.deletes', query)
+            end
           end
 
           # common fields
@@ -56,7 +96,7 @@ module Datadog
           span.set_tag('out.port', event.address.port)
 
           # set the resource
-          span.resource = "#{command_name} #{collection} #{documents}".strip
+          span.resource = "#{command_name} #{collection} #{document || filter || query}".strip
           @active_spans[event.operation_id] = span
         end
 
