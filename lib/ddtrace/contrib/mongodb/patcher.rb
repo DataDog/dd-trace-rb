@@ -2,8 +2,9 @@
 
 module Datadog
   module Contrib
+    # MongoDB module includes classes and functions to instrument MongoDB clients
     module MongoDB
-      APP = 'mongodb'
+      APP = 'mongodb'.freeze
       SERVICE = 'mongodb'.freeze
 
       # Patcher adds subscribers to the MongoDB driver so that each command is traced.
@@ -68,21 +69,21 @@ module Datadog
 
             def datadog_pin
               # safe-navigation to avoid crashes during each query
-              return unless self.respond_to? :cluster
-              return unless self.cluster.respond_to? :addresses
-              return unless self.cluster.addresses.respond_to? :first
-              Datadog::Pin.get_from(self.cluster.addresses.first)
+              return unless respond_to? :cluster
+              return unless cluster.respond_to? :addresses
+              return unless cluster.addresses.respond_to? :first
+              Datadog::Pin.get_from(cluster.addresses.first)
             end
 
             def datadog_pin=(pin)
               # safe-navigation to avoid crashes during each query
-              return unless self.respond_to? :cluster
-              return unless self.cluster.respond_to? :addresses
-              return unless self.cluster.addresses.respond_to? :each
+              return unless respond_to? :cluster
+              return unless cluster.respond_to? :addresses
+              return unless cluster.addresses.respond_to? :each
               # attach the PIN to all cluster addresses. One of them is used
               # when executing a Command and it is attached to the Monitoring
               # Event instance.
-              self.cluster.addresses.each { |x| pin.onto(x) }
+              cluster.addresses.each { |x| pin.onto(x) }
             end
           end
         end

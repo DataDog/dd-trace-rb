@@ -1,9 +1,13 @@
 module Datadog
   module Contrib
+    # MongoDB module includes classes and functions to instrument MongoDB clients
     module MongoDB
       # `MongoCommandSubscriber` listens to all events from the `Monitoring`
       # system available in the Mongo driver.
       class MongoCommandSubscriber
+        # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/AbcSize
+        # rubocop:disable Metrics/CyclomaticComplexity
         def started(event)
           pin = Datadog::Pin.get_from(event.address)
           return unless pin && pin.enabled?
@@ -29,7 +33,7 @@ module Datadog
           # take in consideration the query ('q') to keep the cardinality low
           # NOTE: 'find' doesn't use a symbol
           case command_name
-          when "find"
+          when 'find'
             filter = event.command['filter']
             unless filter.nil? || filter.empty?
               query = Datadog::Contrib::MongoDB.normalize_query(filter)
@@ -62,37 +66,37 @@ module Datadog
         end
 
         def failed(event)
-          begin
-            span = Thread.current[:datadog_mongo_span]
-            return unless span
+          span = Thread.current[:datadog_mongo_span]
+          return unless span
 
-            # the failure is not a real exception because it's handled by
-            # the framework itself, so setting the error and the message
-            # should be enough
-            span.status = 1
-            span.set_tag(Datadog::Ext::Errors::MSG, event.message)
-          ensure
-            # whatever happens, the Span must be removed from the local storage and
-            # it must be finished to prevent any leak
-            span.finish() unless span.nil?
-            Thread.current[:datadog_mongo_span] = nil
-          end
+          # the failure is not a real exception because it's handled by
+          # the framework itself, so setting the error and the message
+          # should be enough
+          span.status = 1
+          span.set_tag(Datadog::Ext::Errors::MSG, event.message)
+        rescue StandardError => e
+          Datadog::Tracer.log.debug("error when handling MongoDB 'failed' event: #{e}")
+        ensure
+          # whatever happens, the Span must be removed from the local storage and
+          # it must be finished to prevent any leak
+          span.finish() unless span.nil?
+          Thread.current[:datadog_mongo_span] = nil
         end
 
         def succeeded(event)
-          begin
-            span = Thread.current[:datadog_mongo_span]
-            return unless span
+          span = Thread.current[:datadog_mongo_span]
+          return unless span
 
-            # add fields that are available only after executing the query
-            rows = event.reply.fetch('n', nil)
-            span.set_tag(Datadog::Ext::Mongo::ROWS, rows) unless rows.nil?
-          ensure
-            # whatever happens, the Span must be removed from the local storage and
-            # it must be finished to prevent any leak
-            span.finish() unless span.nil?
-            Thread.current[:datadog_mongo_span] = nil
-          end
+          # add fields that are available only after executing the query
+          rows = event.reply.fetch('n', nil)
+          span.set_tag(Datadog::Ext::Mongo::ROWS, rows) unless rows.nil?
+        rescue StandardError => e
+          Datadog::Tracer.log.debug("error when handling MongoDB 'succeeded' event: #{e}")
+        ensure
+          # whatever happens, the Span must be removed from the local storage and
+          # it must be finished to prevent any leak
+          span.finish() unless span.nil?
+          Thread.current[:datadog_mongo_span] = nil
         end
       end
     end
