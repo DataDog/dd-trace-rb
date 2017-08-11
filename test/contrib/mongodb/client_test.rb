@@ -51,6 +51,24 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('artists', span.get_tag('mongodb.collection'))
     assert_equal('[{:name=>"?"}]', span.get_tag('mongodb.documents'))
+    assert_equal('1', span.get_tag('mongodb.rows'))
+    assert_equal('127.0.0.1', span.get_tag('out.host'))
+    assert_equal('57017', span.get_tag('out.port'))
+  end
+
+  def test_drop_operation
+    @client.database.drop
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    # check fields
+    assert_equal('dropDatabase', span.resource)
+    assert_equal('mongodb', span.service)
+    assert_equal('mongodb', span.span_type)
+    assert_equal('test', span.get_tag('mongodb.db'))
+    assert_nil(span.get_tag('mongodb.collection'))
+    assert_nil(span.get_tag('mongodb.documents'))
+    assert_nil(span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
   end

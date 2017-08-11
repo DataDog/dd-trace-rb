@@ -33,23 +33,30 @@ module Datadog
           # is safe since it's a unique id used to link events together. Reference:
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
           command_name = event.command_name
-          collection = event.command[command_name]
           span = pin.tracer.trace('mongo.cmd', service: pin.service, span_type: 'mongodb')
+
+          # some commands have special cases
+          case command_name
+          when :dropDatabase
+            collection = nil
+          else
+            collection = event.command[command_name]
+            span.set_tag('mongodb.collection', collection)
+            span.set_tag('mongodb.ordered', event.command['ordered'])
+
+            # get and normalize documents list; some commands don't have documents
+            documents = event.command['documents']
+            span.set_tag('mongodb.documents', normalize_query(documents)) unless documents.nil?
+            documents ||= ''
+          end
+
+          # common fields
           span.set_tag('mongodb.db', event.database_name)
-          span.set_tag('mongodb.ordered', event.command['ordered'])
-          span.set_tag('mongodb.collection', collection)
           span.set_tag('out.host', event.address.host)
           span.set_tag('out.port', event.address.port)
 
-          # get and normalize documents list; some commands don't have documents
-          documents = event.command['documents']
-          span.set_tag('mongodb.documents', normalize_query(documents)) unless documents.nil?
-          documents ||= ''
-
           # set the resource
-          span.resource = "#{command_name} #{collection} #{documents}"
-
-          # TODO: missing rows number
+          span.resource = "#{command_name} #{collection} #{documents}".strip
           @active_spans[event.operation_id] = span
         end
 
@@ -64,11 +71,15 @@ module Datadog
 
         def finished(event)
           begin
-            # retrieve the span and finish it
+            # retrieve the span from the manager and add fields that
+            # are known only when the query is finished
             span = @active_spans[event.operation_id]
-            span.finish()
+            rows = event.reply.fetch('n', nil)
+            span.set_tag('mongodb.rows', rows) unless rows.nil?
           ensure
-            # whatever happens, the Hash must be clean to prevent any leak
+            # whatever happens, the Hash must be clean and the span must be
+            # finished to prevent any leak
+            span.finish()
             @active_spans.delete(event.operation_id)
           end
         end
