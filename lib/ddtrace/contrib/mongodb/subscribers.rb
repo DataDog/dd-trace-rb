@@ -4,22 +4,17 @@ module Datadog
       # `MongoCommandSubscriber` listens to all events from the `Monitoring`
       # system available in the Mongo driver.
       class MongoCommandSubscriber
-        def initialize
-          # keeps track of active Spans so that they can be retrieved
-          # between executions. This data structure must be thread-safe.
-          # TODO: add thread-safety
-          @active_spans = {}
-        end
-
         def started(event)
           pin = Datadog::Pin.get_from(event.address)
           return unless pin || !pin.enabled?
 
-          # start a trace and store it in the active span manager; using the `operation_id`
-          # is safe since it's a unique id used to link events together. Reference:
+          # start a trace and store it in the current thread; using the `operation_id`
+          # is safe since it's a unique id used to link events together. Also only one
+          # thread is involved in this execution so thread-local storage should be safe. Reference:
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
+          # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring/publishable.rb#L38-L56
           span = pin.tracer.trace('mongo.cmd', service: pin.service, span_type: 'mongodb')
-          @active_spans[event.operation_id] = span
+          Thread.current[:datadog_mongo_span] = span
 
           # common fields for all commands
           command_name = event.command_name
@@ -67,26 +62,36 @@ module Datadog
         end
 
         def failed(event)
-          # TODO: find the error? at least flag it as error
-          finished(event)
+          begin
+            span = Thread.current[:datadog_mongo_span]
+            return unless span
+
+            # the failure is not a real exception because it's handled by
+            # the framework itself, so setting the error and the message
+            # should be enough
+            span.status = 1
+            span.set_tag(Datadog::Ext::Errors::MSG, event.message)
+          ensure
+            # whatever happens, the Span must be removed from the local storage and
+            # it must be finished to prevent any leak
+            span.finish() unless span.nil?
+            Thread.current[:datadog_mongo_span] = nil
+          end
         end
 
         def succeeded(event)
-          finished(event)
-        end
-
-        def finished(event)
           begin
-            # retrieve the span from the manager and add fields that
-            # are known only when the query is finished
-            span = @active_spans[event.operation_id]
+            span = Thread.current[:datadog_mongo_span]
+            return unless span
+
+            # add fields that are available only after executing the query
             rows = event.reply.fetch('n', nil)
             span.set_tag('mongodb.rows', rows) unless rows.nil?
           ensure
-            # whatever happens, the Span must be removed from the Hash and it must be
-            # finished to prevent any leak
-            span.finish()
-            @active_spans.delete(event.operation_id)
+            # whatever happens, the Span must be removed from the local storage and
+            # it must be finished to prevent any leak
+            span.finish() unless span.nil?
+            Thread.current[:datadog_mongo_span] = nil
           end
         end
       end

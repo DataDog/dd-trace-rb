@@ -287,4 +287,27 @@ class MongoDBTest < Minitest::Test
     assert_equal(0, collection.find({name: 'Sally'}).count)
     assert_equal(0, collection.find({name: 'Steve'}).count)
   end
+
+  def test_failed_queries
+    # do an invalid operation that results with a failed command
+    @client[:artists].drop
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    # check fields
+    assert_equal('drop artists', span.resource)
+    assert_equal('mongodb', span.service)
+    assert_equal('mongodb', span.span_type)
+    assert_equal('test', span.get_tag('mongodb.db'))
+    assert_equal('artists', span.get_tag('mongodb.collection'))
+    assert_equal(1, span.status)
+    assert_equal('ns not found (26)', span.get_tag('error.msg'))
+    assert_nil(span.get_tag('mongodb.deletes'))
+    assert_nil(span.get_tag('mongodb.updates'))
+    assert_nil(span.get_tag('mongodb.documents'))
+    assert_nil(span.get_tag('mongodb.filter'))
+    assert_nil(span.get_tag('mongodb.rows'))
+    assert_equal('127.0.0.1', span.get_tag('out.host'))
+    assert_equal('57017', span.get_tag('out.port'))
+  end
 end
