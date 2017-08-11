@@ -26,6 +26,7 @@ module Datadog
               require 'ddtrace/pin'
               require 'ddtrace/monkey'
               require 'ddtrace/ext/app_types'
+              require 'ddtrace/contrib/mongodb/parsers'
               require 'ddtrace/contrib/mongodb/subscribers'
 
               patch_mongo_client()

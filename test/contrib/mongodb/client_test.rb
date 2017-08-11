@@ -62,11 +62,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('dropDatabase', span.resource)
+    assert_equal('dropDatabase 1', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
-    assert_nil(span.get_tag('mongodb.collection'))
+    assert_equal('1', span.get_tag('mongodb.collection'))
     assert_nil(span.get_tag('mongodb.documents'))
     assert_nil(span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))

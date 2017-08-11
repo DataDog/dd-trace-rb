@@ -11,93 +11,59 @@ module Datadog
           @active_spans = {}
         end
 
-        # TODO: move in the parser.rb
-        # return a Command from the given MongoDB query
-        def normalize_query(query)
-          # always take the first element to safe-guard against massive insert_many;
-          # NOTE: this is a rough estimation because it's possible to insert
-          # many values using different schemas; unfortunately to speed-up the
-          # parsing process this is the best guess.
-          # TODO: the normalization must be moved at Trace Agent level so that is
-          # faster and more accurate
-          document = query.first.dup
-
-          # delete the unique identifier
-          document.delete(:_id)
-          document.each do |key, _|
-            document[key] = '?'
-          end
-
-          document
-        end
-
-        # removes values from filter keys
-        def normalize_filter(filter)
-          norm_filter = filter.dup
-          norm_filter.each do |key, _|
-            norm_filter[key] = '?'
-          end
-        end
-
         def started(event)
           pin = Datadog::Pin.get_from(event.address)
           return unless pin || !pin.enabled?
 
-          # TODO: make all safe
           # start a trace and store it in the active span manager; using the `operation_id`
           # is safe since it's a unique id used to link events together. Reference:
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
-          command_name = event.command_name
           span = pin.tracer.trace('mongo.cmd', service: pin.service, span_type: 'mongodb')
+          @active_spans[event.operation_id] = span
 
-          # some commands have special cases
-          case command_name
-          when :dropDatabase
-            collection = nil
-          else
-            collection = event.command[command_name]
-            span.set_tag('mongodb.collection', collection)
-            span.set_tag('mongodb.ordered', event.command['ordered'])
-
-            # get and normalize documents list
-            documents = event.command['documents']
-            unless documents.nil? || documents.empty?
-              document = normalize_query(documents)
-              span.set_tag('mongodb.documents', document)
-            end
-
-            # get and normalize filters list
-            filters = event.command['filter']
-            unless filters.nil? || filters.empty?
-              filter = normalize_filter(filters)
-              span.set_tag('mongodb.filter', filter)
-            end
-
-            updates = event.command['updates']
-            unless updates.nil? || updates.empty? || updates.first['q'].empty?
-              # we're only using the query parameter and
-              # not the updated fields
-              query = normalize_filter(updates.first['q'])
-              span.set_tag('mongodb.updates', query)
-            end
-
-            deletes = event.command['deletes']
-            unless deletes.nil? || deletes.empty? || deletes.first['q'].empty?
-              # we're only using the query parameter and
-              # not the updated fields
-              query = normalize_filter(deletes.first['q'])
-              span.set_tag('mongodb.deletes', query)
-            end
-          end
-
-          # common fields
+          # common fields for all commands
+          command_name = event.command_name
+          collection = event.command[command_name]
+          span.set_tag('mongodb.collection', collection)
           span.set_tag('mongodb.db', event.database_name)
           span.set_tag('out.host', event.address.host)
           span.set_tag('out.port', event.address.port)
 
-          # set the resource
-          span.resource = "#{command_name} #{collection} #{document || filter || query}".strip
-          @active_spans[event.operation_id] = span
+          # commands are handled so that specific fields are normalized based on type, if it's
+          # a command that requires documents or a specific query. For some commands, we only
+          # take in consideration the query ('q') to keep the cardinality low
+          # NOTE: 'find' doesn't use a symbol
+          case command_name
+          when "find"
+            filter = event.command['filter']
+            unless filter.nil? || filter.empty?
+              query = Datadog::Contrib::MongoDB.normalize_query(filter)
+              span.set_tag('mongodb.filter', query)
+            end
+          when :update
+            updates = event.command['updates']
+            unless updates.nil? || updates.empty? || updates.first['q'].empty?
+              query = Datadog::Contrib::MongoDB.normalize_query(updates.first['q'])
+              span.set_tag('mongodb.updates', query)
+            end
+          when :delete
+            deletes = event.command['deletes']
+            unless deletes.nil? || deletes.empty? || deletes.first['q'].empty?
+              query = Datadog::Contrib::MongoDB.normalize_query(deletes.first['q'])
+              span.set_tag('mongodb.deletes', query)
+            end
+          else
+            span.set_tag('mongodb.ordered', event.command['ordered'])
+
+            documents = event.command['documents']
+            unless documents.nil? || documents.empty?
+              document = Datadog::Contrib::MongoDB.normalize_documents(documents)
+              span.set_tag('mongodb.documents', document)
+            end
+          end
+
+          # set the resource with the quantized documents or queries
+          span.resource = "#{command_name} #{collection} #{document || query}".strip
         end
 
         def failed(event)
@@ -117,7 +83,7 @@ module Datadog
             rows = event.reply.fetch('n', nil)
             span.set_tag('mongodb.rows', rows) unless rows.nil?
           ensure
-            # whatever happens, the Hash must be clean and the span must be
+            # whatever happens, the Span must be removed from the Hash and it must be
             # finished to prevent any leak
             span.finish()
             @active_spans.delete(event.operation_id)
