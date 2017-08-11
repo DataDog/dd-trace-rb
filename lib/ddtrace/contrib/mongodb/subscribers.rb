@@ -6,7 +6,7 @@ module Datadog
       class MongoCommandSubscriber
         def started(event)
           pin = Datadog::Pin.get_from(event.address)
-          return unless pin || !pin.enabled?
+          return unless pin && pin.enabled?
 
           # start a trace and store it in the current thread; using the `operation_id`
           # is safe since it's a unique id used to link events together. Also only one

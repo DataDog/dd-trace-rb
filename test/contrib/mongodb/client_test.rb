@@ -39,6 +39,14 @@ class MongoDBTest < Minitest::Test
     assert_equal('mongodb-primary', span.service)
   end
 
+  def test_pin_disabled
+    pin = Datadog::Pin.get_from(@client)
+    pin.tracer.enabled = false
+    @client[:artists].insert_one({ :name => 'FKA Twigs' })
+    spans = @tracer.writer.spans()
+    assert_equal(0, spans.length)
+  end
+
   def test_insert_operation
     @client[:artists].insert_one({ :name => 'FKA Twigs' })
     spans = @tracer.writer.spans()
