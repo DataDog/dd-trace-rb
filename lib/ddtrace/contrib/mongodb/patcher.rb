@@ -67,12 +67,18 @@ module Datadog
             end
 
             def datadog_pin
-              # TODO: provide safe-navigation otherwise it could crash the system
+              # safe-navigation to avoid crashes during each query
+              return unless self.respond_to? :cluster
+              return unless self.cluster.respond_to? :addresses
+              return unless self.cluster.addresses.respond_to? :first
               Datadog::Pin.get_from(self.cluster.addresses.first)
             end
 
             def datadog_pin=(pin)
-              # TODO: provide safe-navigation otherwise it could crash the system
+              # safe-navigation to avoid crashes during each query
+              return unless self.respond_to? :cluster
+              return unless self.cluster.respond_to? :addresses
+              return unless self.cluster.addresses.respond_to? :each
               # attach the PIN to all cluster addresses. One of them is used
               # when executing a Command and it is attached to the Monitoring
               # Event instance.
