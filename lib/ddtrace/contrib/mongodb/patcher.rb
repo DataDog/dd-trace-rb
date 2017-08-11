@@ -61,7 +61,9 @@ module Datadog
               initialize_without_datadog(*args)
               pin = Datadog::Pin.new(SERVICE, app: APP, app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
-              # TODO: send services metadata
+              if pin.tracer && pin.service
+                pin.tracer.set_service_info(pin.service, 'mongodb', pin.app_type)
+              end
             end
 
             def datadog_pin
