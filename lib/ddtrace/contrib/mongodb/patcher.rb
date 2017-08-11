@@ -19,9 +19,9 @@ module Datadog
         end
 
         def patch
-          # TODO[manu] find the lowest supported version
+          # versions prior to 2.1.0 don't support the Monitoring API
           if !@patched && (defined?(::Mongo::Monitoring::Global) && \
-                  Gem::Version.new(::Mongo::VERSION) >= Gem::Version.new('2.4.3'))
+                  Gem::Version.new(::Mongo::VERSION) >= Gem::Version.new('2.1.0'))
             begin
               require 'ddtrace/pin'
               require 'ddtrace/ext/net'
