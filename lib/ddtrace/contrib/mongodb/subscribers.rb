@@ -13,16 +13,16 @@ module Datadog
           # thread is involved in this execution so thread-local storage should be safe. Reference:
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring/publishable.rb#L38-L56
-          span = pin.tracer.trace('mongo.cmd', service: pin.service, span_type: 'mongodb')
+          span = pin.tracer.trace('mongo.cmd', service: pin.service, span_type: Datadog::Ext::Mongo::TYPE)
           Thread.current[:datadog_mongo_span] = span
 
           # common fields for all commands
           command_name = event.command_name
           collection = event.command[command_name]
-          span.set_tag('mongodb.collection', collection)
-          span.set_tag('mongodb.db', event.database_name)
-          span.set_tag('out.host', event.address.host)
-          span.set_tag('out.port', event.address.port)
+          span.set_tag(Datadog::Ext::Mongo::COLLECTION, collection)
+          span.set_tag(Datadog::Ext::Mongo::DB, event.database_name)
+          span.set_tag(Datadog::Ext::NET::TARGET_HOST, event.address.host)
+          span.set_tag(Datadog::Ext::NET::TARGET_PORT, event.address.port)
 
           # commands are handled so that specific fields are normalized based on type, if it's
           # a command that requires documents or a specific query. For some commands, we only
@@ -86,7 +86,7 @@ module Datadog
 
             # add fields that are available only after executing the query
             rows = event.reply.fetch('n', nil)
-            span.set_tag('mongodb.rows', rows) unless rows.nil?
+            span.set_tag(Datadog::Ext::Mongo::ROWS, rows) unless rows.nil?
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak

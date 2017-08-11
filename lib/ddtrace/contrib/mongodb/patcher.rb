@@ -24,7 +24,8 @@ module Datadog
                   Gem::Version.new(::Mongo::VERSION) >= Gem::Version.new('2.4.3'))
             begin
               require 'ddtrace/pin'
-              require 'ddtrace/monkey'
+              require 'ddtrace/ext/net'
+              require 'ddtrace/ext/mongo'
               require 'ddtrace/ext/app_types'
               require 'ddtrace/contrib/mongodb/parsers'
               require 'ddtrace/contrib/mongodb/subscribers'
