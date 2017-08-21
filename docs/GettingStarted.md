@@ -167,6 +167,8 @@ retrieved at the Rack level.
 To start using the middleware in your generic Rack application, add it to your ``config.ru``:
 
     # config.ru example
+    require 'ddtrace/contrib/rack/middlewares'
+
     use Datadog::Contrib::Rack::TraceMiddleware
 
     app = proc do |env|
@@ -177,6 +179,9 @@ To start using the middleware in your generic Rack application, add it to your `
 
 Experimental distributed tracing support is available for this library.
 You need to set the ``:distributed_tracing_enabled`` option to true, for example:
+
+    # config.ru example
+    require 'ddtrace/contrib/rack/middlewares'
 
     use Datadog::Contrib::Rack::TraceMiddleware, distributed_tracing_enabled: true
 
@@ -192,6 +197,8 @@ See [distributed tracing](#Distributed_Tracing) for details.
 To modify the default middleware configuration, you can use middleware options as follows:
 
     # config.ru example
+    require 'ddtrace/contrib/rack/middlewares'
+
     Datadog.tracer.configure(
       enabled: true,
       hostname: localhost,
