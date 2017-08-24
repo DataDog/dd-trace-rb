@@ -112,7 +112,7 @@ If you wish to disable all Rails auto-instrumentation, you need to set the env v
 
 Eg, within Ruby:
 
-    ENV['DISABLE_DATADOG_RAILS'] = 1 # this must be done before ddtrace is included at all
+    ENV['DISABLE_DATADOG_RAILS'] = "1" # this must be done before ddtrace is included at all
     require 'ddtrace'
 
 Or, shell syntax, before launching Rails:
