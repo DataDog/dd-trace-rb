@@ -321,6 +321,18 @@ Or, by enabling distributed tracing for all HTTP calls:
 
 See [distributed tracing](#Distributed_Tracing) for details.
 
+### AWS
+
+The AWS integration will trace every interaction (e.g. API calls) with AWS
+services (S3, ElastiCache etc.).
+
+    require 'aws-sdk'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:aws) # explicitly patch it
+
+    Aws::S3::Client.new.list_buckets # traced call
+
 ### Redis
 
 The Redis integration will trace simple calls as well as pipelines.

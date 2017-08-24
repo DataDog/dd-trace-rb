@@ -5,10 +5,11 @@ require 'thread'
 # patching code, which is required on demand, when patching.
 require 'ddtrace/contrib/active_record/patcher'
 require 'ddtrace/contrib/elasticsearch/patcher'
+require 'ddtrace/contrib/faraday/patcher'
 require 'ddtrace/contrib/grape/patcher'
 require 'ddtrace/contrib/redis/patcher'
 require 'ddtrace/contrib/http/patcher'
-require 'ddtrace/contrib/faraday/patcher'
+require 'ddtrace/contrib/aws/patcher'
 
 module Datadog
   # Monkey is used for monkey-patching 3rd party libs.
@@ -20,6 +21,7 @@ module Datadog
       redis: true,
       grape: true,
       faraday: true,
+      aws: true,
       active_record: false
     }
     # Patchers should expose 2 methods:
@@ -32,6 +34,7 @@ module Datadog
                   redis: Datadog::Contrib::Redis::Patcher,
                   grape: Datadog::Contrib::Grape::Patcher,
                   faraday: Datadog::Contrib::Faraday::Patcher,
+                  aws: Datadog::Contrib::Aws::Patcher,
                   active_record: Datadog::Contrib::ActiveRecord::Patcher }
     @mutex = Mutex.new
 

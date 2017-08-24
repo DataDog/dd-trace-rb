@@ -120,6 +120,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'sqlite3'
     gem 'activerecord'
     gem 'sidekiq'
+    gem 'aws-sdk'
   end
 else
   appraise 'contrib-old' do
@@ -132,5 +133,6 @@ else
     gem 'sqlite3'
     gem 'activerecord', '3.2.22.5'
     gem 'sidekiq', '4.0.0'
+    gem 'aws-sdk', '~> 2.0'
   end
 end
