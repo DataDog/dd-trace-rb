@@ -19,4 +19,12 @@ class ProviderTest < Minitest::Test
 
     assert_equal(ctx, ctx2)
   end
+
+  def test_setting_a_context
+    provider = Datadog::DefaultContextProvider.new
+    custom_context = Datadog::Context.new
+    provider.context = custom_context
+
+    assert_same(provider.context, custom_context)
+  end
 end
