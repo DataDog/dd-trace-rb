@@ -151,17 +151,7 @@ module Datadog
               span.resource = "#{request.request_method} #{@datadog_route}"
               span.set_tag('sinatra.route.path', @datadog_route)
               span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
-
-              if response.server_error?
-                span.status = 1
-
-                err = env['sinatra.error']
-                if err
-                  span.set_tag(Datadog::Ext::Errors::TYPE, err.class)
-                  span.set_tag(Datadog::Ext::Errors::MSG, err.message)
-                end
-              end
-
+              span.set_error(env['sinatra.error']) if response.server_error?
               span.finish()
             ensure
               @datadog_request_span = nil

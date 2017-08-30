@@ -74,13 +74,7 @@ module Datadog
             template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(payload.fetch(:identifier))
             span.set_tag('rails.template_name', template_name)
             span.set_tag('rails.layout', payload.fetch(:layout))
-
-            if payload[:exception]
-              error = payload[:exception]
-              span.status = 1
-              span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
-              span.set_tag(Datadog::Ext::Errors::MSG, error[1])
-            end
+            span.set_error(payload[:exception]) if payload[:exception]
           ensure
             span.start_time = start
             span.finish(finish)
@@ -102,13 +96,7 @@ module Datadog
           begin
             template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(payload.fetch(:identifier))
             span.set_tag('rails.template_name', template_name)
-
-            if payload[:exception]
-              error = payload[:exception]
-              span.status = 1
-              span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
-              span.set_tag(Datadog::Ext::Errors::MSG, error[1])
-            end
+            span.set_error(payload[:exception]) if payload[:exception]
           ensure
             span.start_time = start
             span.finish(finish)

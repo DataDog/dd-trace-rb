@@ -66,11 +66,7 @@ module Datadog
               else
                 status = '500'
               end
-              if status.starts_with?('5')
-                span.status = 1
-                span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
-                span.set_tag(Datadog::Ext::Errors::MSG, error[1])
-              end
+              span.set_error(error) if status.starts_with?('5')
             end
           ensure
             span.start_time = start
