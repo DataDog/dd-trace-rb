@@ -3,7 +3,7 @@
 source "https://rubygems.org"
 
 gem "elasticsearch-transport"
-gem "redis"
+gem "redis", "< 4.0.0"
 gem "hiredis"
 gem "rack", "1.4.7"
 gem "rack-test"

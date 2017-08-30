@@ -124,7 +124,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
 else
   appraise 'contrib-old' do
     gem 'elasticsearch-transport'
-    gem 'redis'
+    gem 'redis', '< 4.0.0'
     gem 'hiredis'
     gem 'rack', '1.4.7'
     gem 'rack-test'
