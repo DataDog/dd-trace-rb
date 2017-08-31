@@ -1,6 +1,7 @@
 require 'ddtrace/monkey'
 require 'ddtrace/pin'
 require 'ddtrace/tracer'
+require 'ddtrace/error'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog

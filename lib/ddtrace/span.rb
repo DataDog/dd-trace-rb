@@ -92,11 +92,12 @@ module Datadog
 
     # Mark the span with the given error.
     def set_error(e)
-      return if e.nil?
-      @status = 1
-      @meta[Datadog::Ext::Errors::MSG] = e.message if e.respond_to?(:message) && e.message
-      @meta[Datadog::Ext::Errors::TYPE] = e.class.to_s
-      @meta[Datadog::Ext::Errors::STACK] = e.backtrace.join("\n") if e.respond_to?(:backtrace) && e.backtrace
+      e = Error.build_from(e)
+
+      @status = Ext::Errors::STATUS
+      set_tag(Ext::Errors::TYPE, e.type) unless e.type.empty?
+      set_tag(Ext::Errors::MSG, e.message) unless e.message.empty?
+      set_tag(Ext::Errors::STACK, e.backtrace) unless e.backtrace.empty?
     end
 
     # Mark the span finished at the current time and submit it.

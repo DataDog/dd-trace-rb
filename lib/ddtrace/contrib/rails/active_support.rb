@@ -97,13 +97,7 @@ module Datadog
             store, = *Array.wrap(::Rails.configuration.cache_store).flatten
             span.set_tag('rails.cache.backend', store)
             span.set_tag('rails.cache.key', payload.fetch(:key))
-
-            if payload[:exception]
-              error = payload[:exception]
-              span.status = 1
-              span.set_tag(Datadog::Ext::Errors::TYPE, error[0])
-              span.set_tag(Datadog::Ext::Errors::MSG, error[1])
-            end
+            span.set_error(payload[:exception]) if payload[:exception]
           ensure
             span.start_time = start
             span.finish(finish)
