@@ -18,7 +18,7 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
-    attr_reader :writer, :sampler, :services, :tags
+    attr_reader :writer, :sampler, :services, :tags, :provider
     attr_accessor :enabled
     attr_writer :default_service
 
