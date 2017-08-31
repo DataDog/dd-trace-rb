@@ -356,4 +356,10 @@ class TracerTest < Minitest::Test
     child = tracer.trace('something_else')
     assert_nil(child.get_tag('system.pid'))
   end
+
+  def test_provider
+    provider = Datadog::DefaultContextProvider.new
+    tracer = Datadog::Tracer.new(context_provider: provider)
+    assert_same(provider, tracer.provider)
+  end
 end

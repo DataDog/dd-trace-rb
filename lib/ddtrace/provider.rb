@@ -8,6 +8,11 @@ module Datadog
       @context = Datadog::ThreadLocalContext.new
     end
 
+    # Sets the current context.
+    def context=(ctx)
+      @context.local = ctx
+    end
+
     # Return the current context.
     def context
       @context.local
