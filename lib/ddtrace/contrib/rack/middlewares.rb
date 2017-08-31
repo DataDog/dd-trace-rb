@@ -40,7 +40,7 @@ module Datadog
 
         def configure
           # ensure that the configuration is executed only once
-          return if @tracer && @service
+          return clean_context if @tracer && @service
 
           # retrieve the current tracer and service
           @tracer = @options.fetch(:tracer)
@@ -134,6 +134,15 @@ module Datadog
           request_span.finish()
 
           [status, headers, response]
+        end
+
+        private
+
+        # TODO: Remove this once we change how context propagation works. This
+        # ensures we clean thread-local variables on each HTTP request avoiding
+        # memory leaks.
+        def clean_context
+          @tracer.provider.context = Datadog::Context.new
         end
       end
     end

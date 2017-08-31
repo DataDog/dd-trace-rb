@@ -14,6 +14,7 @@ class RackBaseTest < Minitest::Test
   def app
     tracer = @tracer
 
+    # rubocop:disable Metrics/BlockLength
     Rack::Builder.new do
       use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer
 
@@ -72,6 +73,18 @@ class RackBaseTest < Minitest::Test
 
           [500, { 'Content-Type' => 'text/html' }, 'OK']
         end)
+      end
+
+      map '/leak/' do
+        handler = proc do
+          tracer.trace('leaky-span-1')
+          tracer.trace('leaky-span-2')
+          tracer.trace('leaky-span-3')
+
+          [200, { 'Content-Type' => 'text/html' }, 'OK']
+        end
+
+        run(handler)
       end
     end.to_app
   end

@@ -239,6 +239,14 @@ class TracerTest < RackBaseTest
     assert_equal(1, span.status)
     assert_nil(span.parent)
   end
+
+  def test_middleware_context_cleaning
+    get '/leak'
+    get '/success'
+
+    assert_equal(0, @tracer.provider.context.trace.length)
+    assert_equal(1, @tracer.writer.spans.length)
+  end
 end
 
 class CustomTracerTest < RackBaseTest
