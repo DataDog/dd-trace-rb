@@ -5,9 +5,6 @@ module Datadog
       # `MongoCommandSubscriber` listens to all events from the `Monitoring`
       # system available in the Mongo driver.
       class MongoCommandSubscriber
-        # rubocop:disable Metrics/MethodLength
-        # rubocop:disable Metrics/AbcSize
-        # rubocop:disable Metrics/CyclomaticComplexity
         def started(event)
           pin = Datadog::Pin.get_from(event.address)
           return unless pin && pin.enabled?
@@ -20,49 +17,20 @@ module Datadog
           span = pin.tracer.trace('mongo.cmd', service: pin.service, span_type: Datadog::Ext::Mongo::TYPE)
           Thread.current[:datadog_mongo_span] = span
 
-          # common fields for all commands
-          command_name = event.command_name
-          collection = event.command[command_name]
-          span.set_tag(Datadog::Ext::Mongo::COLLECTION, collection)
-          span.set_tag(Datadog::Ext::Mongo::DB, event.database_name)
+          # build a quantized Query using the Parser module
+          query = Datadog::Contrib::MongoDB.query_builder(event.command_name, event.database_name, event.command)
+
+          # add operation tags; the full query is stored and used as a resource,
+          # since it has been quantized and reduced
+          span.set_tag(Datadog::Ext::Mongo::DB, query[:database])
+          span.set_tag(Datadog::Ext::Mongo::COLLECTION, query[:collection])
+          span.set_tag(Datadog::Ext::Mongo::OPERATION, query[:operation])
+          span.set_tag(Datadog::Ext::Mongo::QUERY, query)
           span.set_tag(Datadog::Ext::NET::TARGET_HOST, event.address.host)
           span.set_tag(Datadog::Ext::NET::TARGET_PORT, event.address.port)
 
-          # commands are handled so that specific fields are normalized based on type, if it's
-          # a command that requires documents or a specific query. For some commands, we only
-          # take in consideration the query ('q') to keep the cardinality low
-          # NOTE: 'find' doesn't use a symbol
-          case command_name
-          when 'find'
-            filter = event.command['filter']
-            unless filter.nil? || filter.empty?
-              query = Datadog::Contrib::MongoDB.normalize_query(filter)
-              span.set_tag('mongodb.filter', query)
-            end
-          when :update
-            updates = event.command['updates']
-            unless updates.nil? || updates.empty? || updates.first['q'].empty?
-              query = Datadog::Contrib::MongoDB.normalize_query(updates.first['q'])
-              span.set_tag('mongodb.updates', query)
-            end
-          when :delete
-            deletes = event.command['deletes']
-            unless deletes.nil? || deletes.empty? || deletes.first['q'].empty?
-              query = Datadog::Contrib::MongoDB.normalize_query(deletes.first['q'])
-              span.set_tag('mongodb.deletes', query)
-            end
-          else
-            span.set_tag('mongodb.ordered', event.command['ordered'])
-
-            documents = event.command['documents']
-            unless documents.nil? || documents.empty?
-              document = Datadog::Contrib::MongoDB.normalize_documents(documents)
-              span.set_tag('mongodb.documents', document)
-            end
-          end
-
-          # set the resource with the quantized documents or queries
-          span.resource = "#{command_name} #{collection} #{document || query}".strip
+          # set the resource with the quantized query
+          span.resource = query
         end
 
         def failed(event)

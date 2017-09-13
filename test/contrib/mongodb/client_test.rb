@@ -2,6 +2,8 @@ require 'contrib/mongodb/test_helper'
 require 'helper'
 
 # rubocop:disable Metrics/ClassLength
+# rubocop:disable Metrics/LineLength
+# rubocop:disable Style/HashSyntax
 class MongoDBTest < Minitest::Test
   MONGO_HOST = '127.0.0.1'.freeze
   MONGO_PORT = 57017
@@ -56,12 +58,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('insert artists {:name=>"?"}', span.resource)
+    assert_equal({ :operation => :insert, :database => 'test', :collection => 'artists', 'documents' => { :name => '?' }, 'ordered' => '?' }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('artists', span.get_tag('mongodb.collection'))
-    assert_equal('{:name=>"?"}', span.get_tag('mongodb.documents'))
     assert_equal('1', span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -73,12 +74,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('dropDatabase 1', span.resource)
+    assert_equal({ :operation => :dropDatabase, :database => 'test', :collection => 1 }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('1', span.get_tag('mongodb.collection'))
-    assert_nil(span.get_tag('mongodb.documents'))
     assert_nil(span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -90,12 +90,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('insert people {:name=>"?", :hobbies=>"?"}', span.resource)
+    assert_equal({ :operation => :insert, :database => 'test', :collection => 'people', 'documents' => { :name => '?', :hobbies => '?' }, 'ordered' => '?' }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
-    assert_equal('{:name=>"?", :hobbies=>"?"}', span.get_tag('mongodb.documents'))
     assert_equal('1', span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -112,12 +111,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('insert people {:name=>"?", :hobbies=>"?"}', span.resource)
+    assert_equal({ :operation => :insert, :database => 'test', :collection => 'people', 'documents' => { :name => '?', :hobbies => '?' }, 'ordered' => '?' }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
-    assert_equal('{:name=>"?", :hobbies=>"?"}', span.get_tag('mongodb.documents'))
     assert_equal('2', span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -132,19 +130,17 @@ class MongoDBTest < Minitest::Test
     # do a find in all and consume the database
     collection = @client[:people]
     collection.find.each do |document|
-      #=> Yields a BSON::Document.
+      # =>  Yields a BSON::Document.
     end
     spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('find people', span.resource)
+    assert_equal({ :operation => 'find', :database => 'test', :collection => 'people', 'filter' => {} }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
-    assert_nil(span.get_tag('mongodb.filter'))
-    assert_nil(span.get_tag('mongodb.documents'))
     assert_nil(span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -163,13 +159,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('find people {"name"=>"?"}', span.resource)
+    assert_equal({ :operation => 'find', :database => 'test', :collection => 'people', 'filter' => { 'name' => '?' } }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
-    assert_equal('{"name"=>"?"}', span.get_tag('mongodb.filter'))
-    assert_nil(span.get_tag('mongodb.documents'))
     assert_nil(span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -188,14 +182,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('update people {"name"=>"?"}', span.resource)
+    assert_equal({ :operation => :update, :database => 'test', :collection => 'people', 'updates' => { 'q' => { 'name' => '?' }, 'u' => { '$set' => { 'phone_number' => '?' } }, 'multi' => '?', 'upsert' => '?' }, 'ordered' => '?' }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
-    assert_equal('{"name"=>"?"}', span.get_tag('mongodb.updates'))
-    assert_nil(span.get_tag('mongodb.documents'))
-    assert_nil(span.get_tag('mongodb.filter'))
     assert_equal('1', span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -220,14 +211,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('update people', span.resource)
+    assert_equal({ :operation => :update, :database => 'test', :collection => 'people', 'updates' => { 'q' => {}, 'u' => { '$set' => { 'phone_number' => '?' } }, 'multi' => '?', 'upsert' => '?' }, 'ordered' => '?' }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
-    assert_nil(span.get_tag('mongodb.updates'))
-    assert_nil(span.get_tag('mongodb.documents'))
-    assert_nil(span.get_tag('mongodb.filter'))
     assert_equal('2', span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -249,15 +237,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('delete people {"name"=>"?"}', span.resource)
+    assert_equal({ :operation => :delete, :database => 'test', :collection => 'people', 'deletes' => { 'q' => { 'name' => '?' }, 'limit' => '?' }, 'ordered' => '?' }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
-    assert_equal('{"name"=>"?"}', span.get_tag('mongodb.deletes'))
-    assert_nil(span.get_tag('mongodb.updates'))
-    assert_nil(span.get_tag('mongodb.documents'))
-    assert_nil(span.get_tag('mongodb.filter'))
     assert_equal('1', span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -282,15 +266,11 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('delete people {"name"=>"?"}', span.resource)
+    assert_equal({ :operation => :delete, :database => 'test', :collection => 'people', 'deletes' => { 'q' => { 'name' => '?' }, 'limit' => '?' }, 'ordered' => '?' }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
-    assert_equal('{"name"=>"?"}', span.get_tag('mongodb.deletes'))
-    assert_nil(span.get_tag('mongodb.updates'))
-    assert_nil(span.get_tag('mongodb.documents'))
-    assert_nil(span.get_tag('mongodb.filter'))
     assert_equal('2', span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
@@ -306,18 +286,14 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal('drop artists', span.resource)
+    assert_equal({ :operation => :drop, :database => 'test', :collection => 'artists' }, span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('artists', span.get_tag('mongodb.collection'))
+    assert_nil(span.get_tag('mongodb.rows'))
     assert_equal(1, span.status)
     assert_equal('ns not found (26)', span.get_tag('error.msg'))
-    assert_nil(span.get_tag('mongodb.deletes'))
-    assert_nil(span.get_tag('mongodb.updates'))
-    assert_nil(span.get_tag('mongodb.documents'))
-    assert_nil(span.get_tag('mongodb.filter'))
-    assert_nil(span.get_tag('mongodb.rows'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('57017', span.get_tag('out.port'))
   end
