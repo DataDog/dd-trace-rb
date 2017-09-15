@@ -42,11 +42,11 @@ module Datadog
       patch @autopatch_modules
     end
 
-    def patch_module(m)
+    def patch_module(m, *args)
       @mutex.synchronize do
         patcher = @patchers[m]
         raise "Unsupported module #{m}" unless patcher
-        patcher.patch
+        patcher.patch(*args)
       end
     end
 
