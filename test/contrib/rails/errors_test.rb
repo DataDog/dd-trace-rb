@@ -52,6 +52,36 @@ class TracingControllerTest < ActionController::TestCase
     assert_nil(span.get_tag('error.msg'))
   end
 
+  test 'missing rendering should close the template Span' do
+    # this route doesn't raise an exception, but the notification `render_template.action_view`
+    # is not fired, causing unfinished spans; this test protects from regressions
+    assert_raises ::ActionView::MissingTemplate do
+      get :missing_template
+    end
+    spans = @tracer.writer.spans()
+    assert_equal(spans.length, 2)
+
+    span_request, span_template = spans
+
+    assert_equal(span_request.name, 'rails.action_controller')
+    assert_equal(span_request.status, 1)
+    assert_equal(span_request.span_type, 'http')
+    assert_equal(span_request.resource, 'TracingController#missing_template')
+    assert_equal(span_request.get_tag('rails.route.action'), 'missing_template')
+    assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
+    assert_equal(span_request.get_tag('error.type'), 'ActionView::MissingTemplate')
+    assert_includes(span_request.get_tag('error.msg'), 'Missing template views/tracing/ouch.not.here')
+
+    assert_equal(span_template.name, 'rails.render_template')
+    assert_equal(span_template.status, 1)
+    assert_equal(span_template.span_type, 'template')
+    assert_equal(span_template.resource, 'rails.render_template')
+    assert_nil(span_template.get_tag('rails.template_name'))
+    assert_nil(span_template.get_tag('rails.layout'))
+    assert_equal(span_template.get_tag('error.type'), 'ActionView::MissingTemplate')
+    assert_includes(span_template.get_tag('error.msg'), 'Missing template views/tracing/ouch.not.here')
+  end
+
   test 'error in the template must be traced' do
     assert_raises ::ActionView::Template::Error do
       get :error_template

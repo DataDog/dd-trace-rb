@@ -9,15 +9,33 @@ module Datadog
     end
 
     def patch_renderer_render_template
-      if defined?(::ActionView::Renderer)
-        ::ActionView::Renderer.class_eval do
+      if defined?(::ActionView::TemplateRenderer)
+        ::ActionView::TemplateRenderer.class_eval do
+          alias_method :render_without_datadog, :render
           alias_method :render_template_without_datadog, :render_template
-          def render_template(*args, &block)
-            ActiveSupport::Notifications.instrument('start_render_template.action_view')
-            render_template_without_datadog(*args, &block)
+
+          def render(context, options)
+            # create a tracing context and start the rendering span
+            @tracing_context = {}
+            ::ActiveSupport::Notifications.instrument('start_render_template.action_view', tracing_context: @tracing_context)
+            render_without_datadog(context, options)
+          rescue Exception => e
+            # attach the exception to the tracing context if any
+            @tracing_context[:exception] = e
+            raise e
+          ensure
+            # ensure that the template `Span` is finished even during exceptions
+            ::ActiveSupport::Notifications.instrument('finish_render_template.action_view', tracing_context: @tracing_context)
+          end
+
+          def render_template(template, layout_name = nil, locals = nil)
+            # update the tracing context with computed values before the rendering
+            @tracing_context[:template_name] = Datadog::Contrib::Rails::Utils.normalize_template_name(template.identifier)
+            @tracing_context[:layout] = layout_name[:virtual_path]
+            render_template_without_datadog(template, layout_name, locals)
           end
         end
-      else # Rails < 3.1
+      else # Rails < 3.1 TODO: modularize changes above to avoid duplication
         ::ActionView::Template.class_eval do
           alias_method :render_template_without_datadog, :render
           def render(*args, &block)
