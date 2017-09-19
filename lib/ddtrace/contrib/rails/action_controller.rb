@@ -20,26 +20,29 @@ module Datadog
           end
         end
 
-        def self.start_processing(*)
-          return if Thread.current[KEY]
-
+        def self.start_processing(_name, _start, _finish, _id, payload)
+          # trace the execution
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           service = ::Rails.configuration.datadog_trace.fetch(:default_controller_service)
           type = Datadog::Ext::HTTP::TYPE
-          tracer.trace('rails.action_controller', service: service, span_type: type)
+          span = tracer.trace('rails.action_controller', service: service, span_type: type)
 
-          Thread.current[KEY] = true
+          # attach a tracing context to the Request
+          tracing_context = {
+            dd_request_span: span
+          }
+          request = payload[:headers].instance_variable_get(:@req)
+          request[:tracing_context] = tracing_context
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
 
         def self.process_action(_name, start, finish, _id, payload)
-          return unless Thread.current[KEY]
-          Thread.current[KEY] = false
-
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          span = tracer.active_span()
-          return unless span
+          # retrieve the tracing context and the latest active span
+          request = payload[:headers].instance_variable_get(:@req)
+          tracing_context = request[:tracing_context]
+          span = tracing_context[:dd_request_span]
+          return unless span && !span.finished?
 
           begin
             resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
