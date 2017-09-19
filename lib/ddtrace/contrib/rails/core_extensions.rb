@@ -71,7 +71,7 @@ module Datadog
         alias_method :render_without_datadog, :render
         alias_method :render, :render_with_datadog
 
-        if klass.private_method_defined? :render_template
+        if klass.private_method_defined?(:render_template) || klass.method_defined?(:render_template)
           alias_method :render_template_without_datadog, :render_template
           alias_method :render_template, :render_template_with_datadog
         else
