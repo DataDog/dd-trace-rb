@@ -2,6 +2,8 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
+# rubocop:disable Metrics/ClassLength
+# rubocop:disable Metrics/BlockLength
 class TracingControllerTest < ActionController::TestCase
   setup do
     @original_tracer = Rails.configuration.datadog_trace[:tracer]

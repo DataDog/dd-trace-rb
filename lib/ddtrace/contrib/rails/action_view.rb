@@ -10,22 +10,22 @@ module Datadog
           Datadog::RailsRendererPatcher.patch_renderer()
 
           # subscribe when the template rendering starts
-          ::ActiveSupport::Notifications.subscribe('start_render_template.action_view') do |*args|
+          ::ActiveSupport::Notifications.subscribe('!datadog.start_render_template.action_view') do |*args|
             start_render_template(*args)
           end
 
           # subscribe when the template rendering has been processed
-          ::ActiveSupport::Notifications.subscribe('finish_render_template.action_view') do |*args|
+          ::ActiveSupport::Notifications.subscribe('!datadog.finish_render_template.action_view') do |*args|
             finish_render_template(*args)
           end
 
           # subscribe when the partial rendering starts
-          ::ActiveSupport::Notifications.subscribe('start_render_partial.action_view') do |*args|
+          ::ActiveSupport::Notifications.subscribe('!datadog.start_render_partial.action_view') do |*args|
             start_render_partial(*args)
           end
 
           # subscribe when the partial rendering has been processed
-          ::ActiveSupport::Notifications.subscribe('finish_render_partial.action_view') do |*args|
+          ::ActiveSupport::Notifications.subscribe('!datadog.finish_render_partial.action_view') do |*args|
             finish_render_partial(*args)
           end
         end
