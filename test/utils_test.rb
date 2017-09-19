@@ -41,4 +41,21 @@ class UtilsTest < Minitest::Test
       assert_equal(0.6221087710398319, r2, '2nd randomly generated number should not be altered by tracing')
     end
   end
+
+  def test_forked_process_id_collision
+    skip if RUBY_PLATFORM == 'java'
+
+    r, w = IO.pipe
+
+    fork do
+      r.close
+      w.write(Datadog::Utils.next_id)
+      w.close
+    end
+
+    w.close
+    Process.wait
+    refute_equal(Datadog::Utils.next_id, r.read.chomp.to_i)
+    r.close
+  end
 end
