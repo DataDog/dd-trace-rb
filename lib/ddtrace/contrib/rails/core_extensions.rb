@@ -12,8 +12,12 @@ module Datadog
       klass.class_eval do
         def render_with_datadog(*args, &block)
           # create a tracing context and start the rendering span
-          @tracing_context = {}
-          ::ActiveSupport::Notifications.instrument('start_render_template.action_view', tracing_context: @tracing_context)
+          # NOTE: Rails < 3.1 compatibility: preserve the tracing
+          # context when a partial is rendered
+          @tracing_context ||= {}
+          if @tracing_context.empty?
+            ::ActiveSupport::Notifications.instrument('start_render_template.action_view', tracing_context: @tracing_context)
+          end
           render_without_datadog(*args)
         rescue Exception => e
           # attach the exception to the tracing context if any
@@ -25,14 +29,19 @@ module Datadog
         end
 
         def render_template_with_datadog(*args)
-          # args
+          # arguments based on render_template signature (stable since Rails 3.2)
           template = args[0]
           layout_name = args[1]
 
           # update the tracing context with computed values before the rendering
           template_name = template.try('identifier')
           template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(template_name)
-          layout = layout_name.try(:[], 'virtual_path')
+          if layout_name.is_a?(String)
+            # NOTE: Rails < 3.1 compatibility: the second argument is the layout name
+            layout = layout_name
+          else
+            layout = layout_name.try(:[], 'virtual_path')
+          end
           @tracing_context[:template_name] = template_name
           @tracing_context[:layout] = layout
         rescue StandardError => e
@@ -44,8 +53,49 @@ module Datadog
         # method aliasing to patch the class
         alias_method :render_without_datadog, :render
         alias_method :render, :render_with_datadog
-        alias_method :render_template_without_datadog, :render_template
-        alias_method :render_template, :render_template_with_datadog
+
+        if klass.private_method_defined? :render_template
+          alias_method :render_template_without_datadog, :render_template
+          alias_method :render_template, :render_template_with_datadog
+        else
+          # NOTE: Rails < 3.1 compatibility: the method name is different
+          alias_method :render_template_without_datadog, :_render_template
+          alias_method :_render_template, :render_template_with_datadog
+        end
+      end
+    end
+
+    def tracing_partial_block(klass)
+      klass.class_eval do
+        def render_with_datadog(*args, &block)
+          # create a tracing context and start the rendering span
+          @tracing_context = {}
+          ::ActiveSupport::Notifications.instrument('start_render_partial.action_view', tracing_context: @tracing_context)
+          render_without_datadog(*args)
+        rescue Exception => e
+          # attach the exception to the tracing context if any
+          @tracing_context[:exception] = e
+          raise e
+        ensure
+          # ensure that the template `Span` is finished even during exceptions
+          ::ActiveSupport::Notifications.instrument('finish_render_partial.action_view', tracing_context: @tracing_context)
+        end
+
+        def render_partial_with_datadog(*args)
+          # update the tracing context with computed values before the rendering
+          template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(@template.try('identifier'))
+          @tracing_context[:template_name] = template_name
+        rescue StandardError => e
+          Datadog::Tracer.log.error(e.message)
+        ensure
+          render_partial_without_datadog(*args)
+        end
+
+        # method aliasing to patch the class
+        alias_method :render_without_datadog, :render
+        alias_method :render, :render_with_datadog
+        alias_method :render_partial_without_datadog, :render_partial
+        alias_method :render_partial, :render_partial_with_datadog
       end
     end
 
@@ -60,45 +110,10 @@ module Datadog
 
     def patch_renderer_render_partial
       if defined?(::ActionView::PartialRenderer)
-        ::ActionView::PartialRenderer.class_eval do
-          def render_with_datadog(*args, &block)
-            # create a tracing context and start the rendering span
-            @tracing_context = {}
-            ::ActiveSupport::Notifications.instrument('start_render_partial.action_view', tracing_context: @tracing_context)
-            render_without_datadog(*args)
-          rescue Exception => e
-            # attach the exception to the tracing context if any
-            @tracing_context[:exception] = e
-            raise e
-          ensure
-            # ensure that the template `Span` is finished even during exceptions
-            ::ActiveSupport::Notifications.instrument('finish_render_partial.action_view', tracing_context: @tracing_context)
-          end
-
-          def render_partial_with_datadog(*args)
-            # update the tracing context with computed values before the rendering
-            template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(@template.try('identifier'))
-            @tracing_context[:template_name] = template_name
-          rescue StandardError => e
-            Datadog::Tracer.log.error(e.message)
-          ensure
-            render_partial_without_datadog(*args)
-          end
-
-          # method aliasing to patch the class
-          alias_method :render_without_datadog, :render
-          alias_method :render, :render_with_datadog
-          alias_method :render_partial_without_datadog, :render_partial
-          alias_method :render_partial, :render_partial_with_datadog
-        end
-      else # Rails < 3.1
-        ::ActionView::Partials::PartialRenderer.class_eval do
-          alias_method :render_partial_without_datadog, :render
-          def render(*args, &block)
-            ActiveSupport::Notifications.instrument('start_render_partial.action_view')
-            render_partial_without_datadog(*args, &block)
-          end
-        end
+        tracing_partial_block(::ActionView::PartialRenderer)
+      else
+        # Rails < 3.1
+        tracing_partial_block(::ActionView::Partials::PartialRenderer)
       end
     end
   end
