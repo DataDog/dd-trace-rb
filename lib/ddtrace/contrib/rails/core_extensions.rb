@@ -8,41 +8,60 @@ module Datadog
       patch_renderer_render_partial
     end
 
+    def tracing_block(klass)
+      klass.class_eval do
+        def render_with_datadog(*args, &block)
+          # create a tracing context and start the rendering span
+          @tracing_context = {}
+          ::ActiveSupport::Notifications.instrument('start_render_template.action_view', tracing_context: @tracing_context)
+          render_without_datadog(*args)
+        rescue Exception => e
+          # attach the exception to the tracing context if any
+          @tracing_context[:exception] = e
+          raise e
+        ensure
+          # ensure that the template `Span` is finished even during exceptions
+          ::ActiveSupport::Notifications.instrument('finish_render_template.action_view', tracing_context: @tracing_context)
+        end
+
+        def render_template_with_datadog(*args)
+          # args
+          template = args[0]
+          layout_name = args[1]
+
+          # update the tracing context with computed values before the rendering
+          template_name = template.try('identifier')
+          template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(template_name)
+          layout = layout_name.try(:[], 'virtual_path')
+          @tracing_context[:template_name] = template_name
+          @tracing_context[:layout] = layout
+		rescue StandardError => e
+          Datadog::Tracer.log.error(e.message)
+        ensure
+          render_template_without_datadog(*args)
+        end
+
+        # method aliasing to patch the class
+        alias_method :render_without_datadog, :render
+        alias_method :render, :render_with_datadog
+
+        if klass.private_method_defined? :render_template
+          alias_method :render_template_without_datadog, :render_template
+          alias_method :render_template, :render_template_with_datadog
+        else
+          # Rails < 3.1 compatibility
+          alias_method :render_template_without_datadog, :_render_template
+          alias_method :_render_template, :render_template_with_datadog
+        end
+      end
+    end
+
     def patch_renderer_render_template
       if defined?(::ActionView::TemplateRenderer)
-        ::ActionView::TemplateRenderer.class_eval do
-          alias_method :render_without_datadog, :render
-          alias_method :render_template_without_datadog, :render_template
-
-          def render(context, options)
-            # create a tracing context and start the rendering span
-            @tracing_context = {}
-            ::ActiveSupport::Notifications.instrument('start_render_template.action_view', tracing_context: @tracing_context)
-            render_without_datadog(context, options)
-          rescue Exception => e
-            # attach the exception to the tracing context if any
-            @tracing_context[:exception] = e
-            raise e
-          ensure
-            # ensure that the template `Span` is finished even during exceptions
-            ::ActiveSupport::Notifications.instrument('finish_render_template.action_view', tracing_context: @tracing_context)
-          end
-
-          def render_template(template, layout_name = nil, locals = nil)
-            # update the tracing context with computed values before the rendering
-            @tracing_context[:template_name] = Datadog::Contrib::Rails::Utils.normalize_template_name(template.identifier)
-            @tracing_context[:layout] = layout_name[:virtual_path]
-            render_template_without_datadog(template, layout_name, locals)
-          end
-        end
-      else # Rails < 3.1 TODO: modularize changes above to avoid duplication
-        ::ActionView::Template.class_eval do
-          alias_method :render_template_without_datadog, :render
-          def render(*args, &block)
-            ActiveSupport::Notifications.instrument('start_render_template.action_view')
-            render_template_without_datadog(*args, &block)
-          end
-        end
+        tracing_block(::ActionView::TemplateRenderer)
+      else
+        # Rails < 3.1
+        tracing_block(::ActionView::Rendering)
       end
     end
 
