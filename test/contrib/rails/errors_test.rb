@@ -53,7 +53,7 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'missing rendering should close the template Span' do
-    # this route doesn't raise an exception, but the notification `render_template.action_view`
+    # this route raises an exception, but the notification `render_template.action_view`
     # is not fired, causing unfinished spans; this test protects from regressions
     assert_raises ::ActionView::MissingTemplate do
       get :missing_template
@@ -80,6 +80,45 @@ class TracingControllerTest < ActionController::TestCase
     assert_nil(span_template.get_tag('rails.layout'))
     assert_equal(span_template.get_tag('error.type'), 'ActionView::MissingTemplate')
     assert_includes(span_template.get_tag('error.msg'), 'Missing template views/tracing/ouch.not.here')
+  end
+
+  test 'missing partial rendering should close the template Span' do
+    # this route raises an exception, but the notification `render_partial.action_view`
+    # is not fired, causing unfinished spans; this test protects from regressions
+    assert_raises ::ActionView::Template::Error do
+      get :missing_partial
+    end
+    spans = @tracer.writer.spans()
+    assert_equal(spans.length, 3)
+
+    span_request, span_partial, span_template = spans
+
+    assert_equal(span_request.name, 'rails.action_controller')
+    assert_equal(span_request.status, 1)
+    assert_equal(span_request.span_type, 'http')
+    assert_equal(span_request.resource, 'TracingController#missing_partial')
+    assert_equal(span_request.get_tag('rails.route.action'), 'missing_partial')
+    assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
+    assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
+    assert_includes(span_request.get_tag('error.msg'), 'Missing partial tracing/_ouch.html.erb')
+
+    assert_equal(span_partial.name, 'rails.render_partial')
+    assert_equal(span_partial.status, 1)
+    assert_equal(span_partial.span_type, 'template')
+    assert_equal(span_partial.resource, 'rails.render_partial')
+    assert_nil(span_partial.get_tag('rails.template_name'))
+    assert_nil(span_partial.get_tag('rails.layout'))
+    assert_equal(span_partial.get_tag('error.type'), 'ActionView::MissingTemplate')
+    assert_includes(span_request.get_tag('error.msg'), 'Missing partial tracing/_ouch.html.erb')
+
+    assert_equal(span_template.name, 'rails.render_template')
+    assert_equal(span_template.status, 1)
+    assert_equal(span_template.span_type, 'template')
+    assert_equal(span_template.resource, 'rails.render_template')
+    assert_equal(span_template.get_tag('rails.template_name'), 'tracing/missing_partial.html.erb')
+    assert_equal(span_template.get_tag('rails.layout'), 'layouts/application')
+    assert_equal(span_template.get_tag('error.type'), 'ActionView::Template::Error')
+    assert_includes(span_template.get_tag('error.msg'), 'Missing partial tracing/_ouch.html.erb')
   end
 
   test 'error in the template must be traced' do
