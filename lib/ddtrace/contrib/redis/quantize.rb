@@ -11,7 +11,7 @@ module Datadog
         module_function
 
         def format_arg(arg)
-          str = arg.to_s
+          str = arg.is_a?(Symbol) ? arg.to_s.upcase : arg.to_s
           Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
         rescue StandardError => e
           Datadog::Tracer.log.debug("non formattable Redis arg #{str}: #{e}")

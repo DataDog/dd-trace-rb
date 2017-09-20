@@ -31,7 +31,8 @@ class RedisTest < Minitest::Test
     check_common_tags(span)
     assert_equal('redis.command', span.name)
     assert_equal(service, span.service)
-    assert_equal('set FOO bar', span.resource)
+    assert_equal('SET FOO bar', span.resource)
+    assert_equal('SET FOO bar', span.get_tag('redis.raw_command'))
   end
 
   def roundtrip_get(driver, service)
@@ -43,7 +44,8 @@ class RedisTest < Minitest::Test
     check_common_tags(span)
     assert_equal('redis.command', span.name)
     assert_equal(service, span.service)
-    assert_equal('get FOO', span.resource)
+    assert_equal('GET FOO', span.resource)
+    assert_equal('GET FOO', span.get_tag('redis.raw_command'))
   end
 
   def test_roundtrip
@@ -72,9 +74,11 @@ class RedisTest < Minitest::Test
       check_connect_span(d, spans[0]) if spans.length >= 2
       span = spans[-1]
       check_common_tags(span)
+      assert_equal(5, span.get_metric('redis.pipeline_length'))
       assert_equal('redis.command', span.name)
       assert_equal('redis', span.service)
-      assert_equal("set v1 0\nset v2 0\nincr v1\nincr v2\nincr v2", span.resource)
+      assert_equal("SET v1 0\nSET v2 0\nINCR v1\nINCR v2\nINCR v2", span.resource)
+      assert_equal("SET v1 0\nSET v2 0\nINCR v1\nINCR v2\nINCR v2", span.get_tag('redis.raw_command'))
     end
   end
 
@@ -93,6 +97,7 @@ class RedisTest < Minitest::Test
       assert_equal('redis.command', span.name)
       assert_equal('redis', span.service)
       assert_equal('THIS_IS_NOT_A_REDIS_FUNC THIS_IS_NOT_A_VALID_ARG', span.resource)
+      assert_equal('THIS_IS_NOT_A_REDIS_FUNC THIS_IS_NOT_A_VALID_ARG', span.get_tag('redis.raw_command'))
       assert_equal(1, span.status, 'this span should be flagged as an error')
       assert_equal("ERR unknown command 'THIS_IS_NOT_A_REDIS_FUNC'", span.get_tag('error.msg'))
       assert_equal('Redis::CommandError', span.get_tag('error.type'))
@@ -111,11 +116,13 @@ class RedisTest < Minitest::Test
       check_common_tags(set)
       assert_equal('redis.command', set.name)
       assert_equal('redis', set.service)
-      assert_equal('set K ' + 'x' * 97 + '...', set.resource)
+      assert_equal('SET K ' + 'x' * 97 + '...', set.resource)
+      assert_equal('SET K ' + 'x' * 97 + '...', set.get_tag('redis.raw_command'))
       check_common_tags(get)
       assert_equal('redis.command', get.name)
       assert_equal('redis', get.service)
-      assert_equal('get K', get.resource)
+      assert_equal('GET K', get.resource)
+      assert_equal('GET K', get.get_tag('redis.raw_command'))
     end
   end
 
