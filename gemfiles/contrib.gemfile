@@ -12,5 +12,6 @@ gem "sinatra"
 gem "sqlite3"
 gem "activerecord"
 gem "sidekiq"
+gem "aws-sdk"
 
 gemspec path: "../"
