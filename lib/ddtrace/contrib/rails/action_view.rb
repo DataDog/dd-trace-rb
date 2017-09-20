@@ -46,7 +46,7 @@ module Datadog
           # retrieve the tracing context and the latest active span
           tracing_context = payload.fetch(:tracing_context)
           span = tracing_context[:dd_rails_template_span]
-          return unless span && !span.finished?
+          return if span.try(:finished?)
 
           # finish the tracing and update the execution time
           begin
@@ -79,7 +79,7 @@ module Datadog
           # retrieve the tracing context and the latest active span
           tracing_context = payload.fetch(:tracing_context)
           span = tracing_context[:dd_rails_partial_span]
-          return unless span && !span.finished?
+          return if span.try(:finished?)
 
           # finish the tracing and update the execution time
           begin
