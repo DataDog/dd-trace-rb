@@ -387,6 +387,39 @@ giving precedence to the middleware settings. Inherited configurations are:
 * ``trace_agent_hostname``
 * ``trace_agent_port``
 
+### Faraday
+
+The `faraday` integration is available through the `ddtrace` middleware:
+
+    require 'faraday'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:faraday) # registers the tracing middleware
+
+    connection = Faraday.new('https://example.com') do |builder|
+      builder.use(:ddtrace, options)
+      builder.adapter Faraday.default_adapter
+    end
+
+    connection.get('/foo')
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Type | Default | Description |
+| --- | --- | --- | --- |
+| `split_by_domain` | Boolean | `false` | Uses the request domain as the service name when set to `true`. |
+| `distributed_tracing` | Boolean | `false` | Propagates tracing context along the HTTP request when set to `true`. |
+| `error_handler` | Callable | [Click Here](https://github.com/DataDog/dd-trace-rb/blob/4fe3bc9df032eac3cd294b0bebcc866080dbe04f/lib/ddtrace/contrib/faraday/middleware.rb#L11-L13) | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. By default, only server-side errors (e.g. `5xx`) are flagged as errors. |
+
+It's worth mentioning that `ddtrace` also supports instrumentation for the
+`net/http` library, so if you're using it as farady's backend you might see
+instrumentation both on `faraday` and `net/http` levels. If you want to avoid
+multiple levels of instrumentation for your HTTP requests, remember that you can
+always fine tune witch libraries are patched by calling:
+
+    Datadog::Monkey.patch([:foo, :bar])
+    # instead of Datadog::Monkey.patch_all
+
 ## Advanced usage
 
 ### Manual Instrumentation

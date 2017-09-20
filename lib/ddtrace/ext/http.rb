@@ -6,6 +6,7 @@ module Datadog
       URL = 'http.url'.freeze
       METHOD = 'http.method'.freeze
       STATUS_CODE = 'http.status_code'.freeze
+      ERROR_RANGE = 500...600
     end
   end
 end
