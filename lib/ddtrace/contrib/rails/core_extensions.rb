@@ -60,18 +60,22 @@ module Datadog
     def patch_process_action
       ::ActionController::Instrumentation.class_eval do
         def process_action_with_datadog(*args)
-          # mutable payload that is sent to both signals so that
-          # the tracing context can be propagated; used to propagate the
-          # request span without relying in the spans order, it ensures
-          # that the span is finished no matter what
+          # mutable payload with a tracing context that is used in two different
+          # signals; it propagates the request span so that it can be finished
+          # no matter what
           raw_payload = {
             controller: self.class.name,
             action: action_name,
             tracing_context: {}
           }
 
+          # emits two different signals that start and finish the trace; this approach
+          # mimics the original behavior that is available since Rails 3.0:
+          # - https://github.com/rails/rails/blob/3-0-stable/actionpack/lib/action_controller/metal/instrumentation.rb#L17-L35
+          # - https://github.com/rails/rails/blob/5-1-stable/actionpack/lib/action_controller/metal/instrumentation.rb#L17-L39
           ActiveSupport::Notifications.instrument('!datadog.start_processing.action_controller', raw_payload)
-        ensure
+
+          # process the request and finish the trace
           ActiveSupport::Notifications.instrument('!datadog.finish_processing.action_controller', raw_payload) do |payload|
             result = process_action_without_datadog(*args)
             payload[:status] = response.status
