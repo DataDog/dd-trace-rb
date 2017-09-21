@@ -6,13 +6,22 @@ require 'elasticsearch/transport'
 require 'redis'
 require 'faraday'
 require 'aws-sdk'
+require 'sucker_punch'
 
 class MonkeyTest < Minitest::Test
   def test_autopatch_modules
-    assert_equal(
-      { elasticsearch: true, http: true, redis: true, grape: true, faraday: true, aws: true, active_record: false },
-      Datadog::Monkey.autopatch_modules
-    )
+    expected = {
+      elasticsearch: true,
+      http: true,
+      redis: true,
+      grape: true,
+      faraday: true,
+      aws: true,
+      sucker_punch: true,
+      active_record: false
+    }
+
+    assert_equal(expected, Datadog::Monkey.autopatch_modules)
   end
 
   # rubocop:disable Metrics/AbcSize
@@ -27,7 +36,7 @@ class MonkeyTest < Minitest::Test
     assert_equal(false, Datadog::Contrib::Grape::Patcher.patched?)
     assert_equal(false, Datadog::Contrib::Aws::Patcher.patched?)
     assert_equal(false, Datadog::Contrib::ActiveRecord::Patcher.patched?)
-    assert_equal({ elasticsearch: false, http: false, redis: false, grape: false, faraday: false, aws: false, active_record: false }, Datadog::Monkey.get_patched_modules())
+    assert_equal({ elasticsearch: false, http: false, redis: false, grape: false, faraday: false, aws: false, sucker_punch: false, active_record: false }, Datadog::Monkey.get_patched_modules())
 
     Datadog::Monkey.patch_module(:redis)
     assert_equal(false, Datadog::Contrib::Elasticsearch::Patcher.patched?)
@@ -37,7 +46,7 @@ class MonkeyTest < Minitest::Test
     assert_equal(false, Datadog::Contrib::Aws::Patcher.patched?)
     assert_equal(false, Datadog::Contrib::ActiveRecord::Patcher.patched?)
     refute(Datadog::Contrib::Faraday::Patcher.patched?)
-    assert_equal({ elasticsearch: false, http: false, redis: true, grape: false, faraday: false, aws: false, active_record: false }, Datadog::Monkey.get_patched_modules())
+    assert_equal({ elasticsearch: false, http: false, redis: true, grape: false, faraday: false, aws: false, sucker_punch: false, active_record: false }, Datadog::Monkey.get_patched_modules())
 
     # now do it again to check it's idempotent
     Datadog::Monkey.patch_module(:redis)
@@ -48,7 +57,7 @@ class MonkeyTest < Minitest::Test
     assert_equal(false, Datadog::Contrib::Aws::Patcher.patched?)
     assert_equal(false, Datadog::Contrib::ActiveRecord::Patcher.patched?)
     refute(Datadog::Contrib::Faraday::Patcher.patched?)
-    assert_equal({ elasticsearch: false, http: false, redis: true, grape: false, faraday: false, aws: false, active_record: false }, Datadog::Monkey.get_patched_modules())
+    assert_equal({ elasticsearch: false, http: false, redis: true, grape: false, faraday: false, aws: false, sucker_punch: false, active_record: false }, Datadog::Monkey.get_patched_modules())
 
     Datadog::Monkey.patch(elasticsearch: true, redis: true)
     assert_equal(true, Datadog::Contrib::Elasticsearch::Patcher.patched?)
@@ -57,7 +66,7 @@ class MonkeyTest < Minitest::Test
     assert_equal(false, Datadog::Contrib::Grape::Patcher.patched?)
     assert_equal(false, Datadog::Contrib::Aws::Patcher.patched?)
     assert_equal(false, Datadog::Contrib::ActiveRecord::Patcher.patched?)
-    assert_equal({ elasticsearch: true, http: false, redis: true, grape: false, faraday: false, aws: false, active_record: false }, Datadog::Monkey.get_patched_modules())
+    assert_equal({ elasticsearch: true, http: false, redis: true, grape: false, faraday: false, aws: false, sucker_punch: false, active_record: false }, Datadog::Monkey.get_patched_modules())
 
     # verify that active_record is not auto patched by default
     Datadog::Monkey.patch_all()
@@ -67,7 +76,7 @@ class MonkeyTest < Minitest::Test
     assert_equal(false, Datadog::Contrib::Grape::Patcher.patched?)
     assert_equal(true, Datadog::Contrib::Aws::Patcher.patched?)
     assert_equal(false, Datadog::Contrib::ActiveRecord::Patcher.patched?)
-    assert_equal({ elasticsearch: true, http: true, redis: true, grape: false, faraday: true, aws: true, active_record: false }, Datadog::Monkey.get_patched_modules())
+    assert_equal({ elasticsearch: true, http: true, redis: true, grape: false, faraday: true, aws: true, sucker_punch: true, active_record: false }, Datadog::Monkey.get_patched_modules())
 
     Datadog::Monkey.patch_module(:active_record)
     assert_equal(true, Datadog::Contrib::Elasticsearch::Patcher.patched?)
@@ -76,6 +85,6 @@ class MonkeyTest < Minitest::Test
     assert_equal(false, Datadog::Contrib::Grape::Patcher.patched?)
     assert_equal(true, Datadog::Contrib::Aws::Patcher.patched?)
     assert_equal(true, Datadog::Contrib::ActiveRecord::Patcher.patched?)
-    assert_equal({ elasticsearch: true, http: true, redis: true, grape: false, faraday: true, aws: true, active_record: true }, Datadog::Monkey.get_patched_modules())
+    assert_equal({ elasticsearch: true, http: true, redis: true, grape: false, faraday: true, aws: true, sucker_punch: true, active_record: true }, Datadog::Monkey.get_patched_modules())
   end
 end

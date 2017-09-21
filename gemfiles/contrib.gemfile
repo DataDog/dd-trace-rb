@@ -13,5 +13,6 @@ gem "sqlite3"
 gem "activerecord"
 gem "sidekiq"
 gem "aws-sdk"
+gem "sucker_punch"
 
 gemspec path: "../"

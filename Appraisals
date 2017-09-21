@@ -121,6 +121,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'activerecord'
     gem 'sidekiq'
     gem 'aws-sdk'
+    gem 'sucker_punch'
   end
 else
   appraise 'contrib-old' do
@@ -134,5 +135,6 @@ else
     gem 'activerecord', '3.2.22.5'
     gem 'sidekiq', '4.0.0'
     gem 'aws-sdk', '~> 2.0'
+    gem 'sucker_punch'
   end
 end

@@ -10,6 +10,7 @@ require 'ddtrace/contrib/grape/patcher'
 require 'ddtrace/contrib/redis/patcher'
 require 'ddtrace/contrib/http/patcher'
 require 'ddtrace/contrib/aws/patcher'
+require 'ddtrace/contrib/sucker_punch/patcher'
 
 module Datadog
   # Monkey is used for monkey-patching 3rd party libs.
@@ -22,6 +23,7 @@ module Datadog
       grape: true,
       faraday: true,
       aws: true,
+      sucker_punch: true,
       active_record: false
     }
     # Patchers should expose 2 methods:
@@ -35,6 +37,7 @@ module Datadog
                   grape: Datadog::Contrib::Grape::Patcher,
                   faraday: Datadog::Contrib::Faraday::Patcher,
                   aws: Datadog::Contrib::Aws::Patcher,
+                  sucker_punch: Datadog::Contrib::SuckerPunch::Patcher,
                   active_record: Datadog::Contrib::ActiveRecord::Patcher }
     @mutex = Mutex.new
 

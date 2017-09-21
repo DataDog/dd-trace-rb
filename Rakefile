@@ -51,7 +51,7 @@ namespace :test do
     t.test_files = FileList['test/contrib/rails/**/*disable_env*_test.rb']
   end
 
-  [:elasticsearch, :http, :redis, :sinatra, :sidekiq, :rack, :faraday, :grape, :aws].each do |contrib|
+  [:elasticsearch, :http, :redis, :sinatra, :sidekiq, :rack, :faraday, :grape, :aws, :sucker_punch].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
       t.libs << %w[test lib]
       t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
