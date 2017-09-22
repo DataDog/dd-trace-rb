@@ -24,6 +24,18 @@ module Datadog
   def self.tracer
     @tracer
   end
+
+  def self.shutdown(tracer = @tracer)
+    Datadog::Tracer.log.debug("////// SHUTDOWN METHOD")
+    return if !tracer.enabled || tracer.writer.worker.nil?
+    Datadog::Tracer.log.debug("////// tracer enabled, worker not nil")
+    loop do
+      sleep (0.1)
+      Datadog::Tracer.log.debug("////// slept")
+      break if tracer.writer.worker.trace_buffer.empty? && tracer.writer.worker.service_buffer.empty?
+    end
+    Datadog::Tracer.log.debug("///// exiting")
+  end
 end
 
 # Datadog auto instrumentation for frameworks

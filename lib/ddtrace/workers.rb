@@ -9,6 +9,8 @@ module Datadog
     # will perform a task at regular intervals. The thread can be stopped
     # with the +stop()+ method and can start with the +start()+ method.
     class AsyncTransport
+      attr_reader :trace_buffer, :service_buffer
+
       def initialize(transport, buff_size, trace_task, service_task, interval)
         @trace_task = trace_task
         @service_task = service_task

@@ -5,7 +5,7 @@ require 'ddtrace/workers'
 module Datadog
   # Traces and services writer that periodically sends data to the trace-agent
   class Writer
-    attr_reader :transport
+    attr_reader :transport, :worker
 
     HOSTNAME = 'localhost'.freeze
     PORT = '8126'.freeze
