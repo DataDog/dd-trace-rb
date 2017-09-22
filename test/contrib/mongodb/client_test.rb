@@ -58,7 +58,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => :insert, :database => 'test', :collection => 'artists', 'documents' => { :name => '?' }, 'ordered' => '?' }, span.resource)
+    assert_equal('{:operation=>:insert, :database=>"test", :collection=>"artists", "documents"=>{:name=>"?"}, "ordered"=>"?"}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -74,7 +74,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => :dropDatabase, :database => 'test', :collection => 1 }, span.resource)
+    assert_equal('{:operation=>:dropDatabase, :database=>"test", :collection=>1}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -90,7 +90,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => :insert, :database => 'test', :collection => 'people', 'documents' => { :name => '?', :hobbies => '?' }, 'ordered' => '?' }, span.resource)
+    assert_equal('{:operation=>:insert, :database=>"test", :collection=>"people", "documents"=>{:name=>"?", :hobbies=>"?"}, "ordered"=>"?"}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -111,7 +111,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => :insert, :database => 'test', :collection => 'people', 'documents' => { :name => '?', :hobbies => '?' }, 'ordered' => '?' }, span.resource)
+    assert_equal('{:operation=>:insert, :database=>"test", :collection=>"people", "documents"=>{:name=>"?", :hobbies=>"?"}, "ordered"=>"?"}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -136,7 +136,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => 'find', :database => 'test', :collection => 'people', 'filter' => {} }, span.resource)
+    assert_equal('{:operation=>"find", :database=>"test", :collection=>"people", "filter"=>{}}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -159,7 +159,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => 'find', :database => 'test', :collection => 'people', 'filter' => { 'name' => '?' } }, span.resource)
+    assert_equal('{:operation=>"find", :database=>"test", :collection=>"people", "filter"=>{"name"=>"?"}}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -182,7 +182,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => :update, :database => 'test', :collection => 'people', 'updates' => { 'q' => { 'name' => '?' }, 'u' => { '$set' => { 'phone_number' => '?' } }, 'multi' => '?', 'upsert' => '?' }, 'ordered' => '?' }, span.resource)
+    assert_equal('{:operation=>:update, :database=>"test", :collection=>"people", "updates"=>{"q"=>{"name"=>"?"}, "u"=>{"$set"=>{"phone_number"=>"?"}}, "multi"=>"?", "upsert"=>"?"}, "ordered"=>"?"}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -211,7 +211,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => :update, :database => 'test', :collection => 'people', 'updates' => { 'q' => {}, 'u' => { '$set' => { 'phone_number' => '?' } }, 'multi' => '?', 'upsert' => '?' }, 'ordered' => '?' }, span.resource)
+    assert_equal('{:operation=>:update, :database=>"test", :collection=>"people", "updates"=>{"q"=>{}, "u"=>{"$set"=>{"phone_number"=>"?"}}, "multi"=>"?", "upsert"=>"?"}, "ordered"=>"?"}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -237,7 +237,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => :delete, :database => 'test', :collection => 'people', 'deletes' => { 'q' => { 'name' => '?' }, 'limit' => '?' }, 'ordered' => '?' }, span.resource)
+    assert_equal('{:operation=>:delete, :database=>"test", :collection=>"people", "deletes"=>{"q"=>{"name"=>"?"}, "limit"=>"?"}, "ordered"=>"?"}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -266,7 +266,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => :delete, :database => 'test', :collection => 'people', 'deletes' => { 'q' => { 'name' => '?' }, 'limit' => '?' }, 'ordered' => '?' }, span.resource)
+    assert_equal('{:operation=>:delete, :database=>"test", :collection=>"people", "deletes"=>{"q"=>{"name"=>"?"}, "limit"=>"?"}, "ordered"=>"?"}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
@@ -286,7 +286,7 @@ class MongoDBTest < Minitest::Test
     assert_equal(1, spans.length)
     span = spans[0]
     # check fields
-    assert_equal({ :operation => :drop, :database => 'test', :collection => 'artists' }, span.resource)
+    assert_equal('{:operation=>:drop, :database=>"test", :collection=>"artists"}', span.resource)
     assert_equal('mongodb', span.service)
     assert_equal('mongodb', span.span_type)
     assert_equal('test', span.get_tag('mongodb.db'))
