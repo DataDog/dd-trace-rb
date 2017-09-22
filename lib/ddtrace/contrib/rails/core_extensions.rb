@@ -46,24 +46,27 @@ module Datadog
         end
 
         def render_template_with_datadog(*args)
-          # arguments based on render_template signature (stable since Rails 3.2)
-          template = args[0]
-          layout_name = args[1]
+          begin
+            # arguments based on render_template signature (stable since Rails 3.2)
+            template = args[0]
+            layout_name = args[1]
 
-          # update the tracing context with computed values before the rendering
-          template_name = template.try('identifier')
-          template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(template_name)
-          layout = if layout_name.is_a?(String)
-                     # NOTE: Rails < 3.1 compatibility: the second argument is the layout name
-                     layout_name
-                   else
-                     layout_name.try(:[], 'virtual_path')
-                   end
-          @tracing_context[:template_name] = template_name
-          @tracing_context[:layout] = layout
-        rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
-        ensure
+            # update the tracing context with computed values before the rendering
+            template_name = template.try('identifier')
+            template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(template_name)
+            layout = if layout_name.is_a?(String)
+                       # NOTE: Rails < 3.1 compatibility: the second argument is the layout name
+                       layout_name
+                     else
+                       layout_name.try(:[], 'virtual_path')
+                     end
+            @tracing_context[:template_name] = template_name
+            @tracing_context[:layout] = layout
+          rescue StandardError => e
+            Datadog::Tracer.log.error(e.message)
+          end
+
+          # execute the original function anyway
           render_template_without_datadog(*args)
         end
 
@@ -105,12 +108,15 @@ module Datadog
         end
 
         def render_partial_with_datadog(*args)
-          # update the tracing context with computed values before the rendering
-          template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(@template.try('identifier'))
-          @tracing_context[:template_name] = template_name
-        rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
-        ensure
+          begin
+            # update the tracing context with computed values before the rendering
+            template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(@template.try('identifier'))
+            @tracing_context[:template_name] = template_name
+          rescue StandardError => e
+            Datadog::Tracer.log.error(e.message)
+          end
+
+          # execute the original function anyway
           render_partial_without_datadog(*args)
         end
 
