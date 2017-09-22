@@ -63,7 +63,7 @@ module Datadog
             @tracing_context[:template_name] = template_name
             @tracing_context[:layout] = layout
           rescue StandardError => e
-            Datadog::Tracer.log.error(e.message)
+            Datadog::Tracer.log.debug(e.message)
           end
 
           # execute the original function anyway
@@ -113,7 +113,7 @@ module Datadog
             template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(@template.try('identifier'))
             @tracing_context[:template_name] = template_name
           rescue StandardError => e
-            Datadog::Tracer.log.error(e.message)
+            Datadog::Tracer.log.debug(e.message)
           end
 
           # execute the original function anyway

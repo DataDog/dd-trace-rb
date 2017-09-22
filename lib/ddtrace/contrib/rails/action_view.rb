@@ -46,7 +46,7 @@ module Datadog
           # retrieve the tracing context and the latest active span
           tracing_context = payload.fetch(:tracing_context)
           span = tracing_context[:dd_rails_template_span]
-          return if span.try(:finished?)
+          return if !span || span.finished?
 
           # finish the tracing and update the execution time
           begin
@@ -61,7 +61,7 @@ module Datadog
             span.finish()
           end
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
         end
 
         def self.start_render_partial(_name, _start, _finish, _id, payload)
@@ -72,14 +72,14 @@ module Datadog
           span = tracer.trace('rails.render_partial', span_type: Datadog::Ext::HTTP::TEMPLATE)
           tracing_context[:dd_rails_partial_span] = span
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
         end
 
         def self.finish_render_partial(_name, start, finish, _id, payload)
           # retrieve the tracing context and the latest active span
           tracing_context = payload.fetch(:tracing_context)
           span = tracing_context[:dd_rails_partial_span]
-          return if span.try(:finished?)
+          return if !span || span.finished?
 
           # finish the tracing and update the execution time
           begin
@@ -92,7 +92,7 @@ module Datadog
             span.finish()
           end
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
         end
       end
     end
