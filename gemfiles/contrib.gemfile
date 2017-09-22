@@ -16,5 +16,6 @@ gem "sidekiq"
 gem "aws-sdk"
 gem "sucker_punch"
 gem "dalli"
+gem "resque"
 
 gemspec path: "../"

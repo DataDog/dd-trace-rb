@@ -14,5 +14,6 @@ gem "activerecord", "3.2.22.5"
 gem "sidekiq", "4.0.0"
 gem "aws-sdk", "~> 2.0"
 gem "sucker_punch"
+gem "resque"
 
 gemspec path: "../"
