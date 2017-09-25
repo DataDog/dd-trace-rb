@@ -12,6 +12,7 @@ class TracingController < ActionController::Base
       'views/tracing/partial.html.erb' => 'Hello from <%= render "views/tracing/body.html.erb" %>',
       'views/tracing/full.html.erb' => '<% Article.all.each do |article| %><% end %>',
       'views/tracing/error.html.erb' => '<%= 1/0 %>',
+      'views/tracing/missing_partial.html.erb' => '<%= render "ouch.html.erb" %>',
       'views/tracing/sub_error.html.erb' => '<%= 1/0 %>',
       'views/tracing/soft_error.html.erb' => 'nothing',
       'views/tracing/not_found.html.erb' => 'nothing',
@@ -64,6 +65,14 @@ class TracingController < ActionController::Base
     render 'views/tracing/error.html.erb'
   end
 
+  def missing_template
+    render 'views/tracing/ouch.not.here'
+  end
+
+  def missing_partial
+    render 'views/tracing/missing_partial.html.erb'
+  end
+
   def error_partial
     render 'views/tracing/error_partial.html.erb'
   end
@@ -83,7 +92,9 @@ routes = {
   '/sub_error' => 'tracing#sub_error',
   '/not_found' => 'tracing#not_found',
   '/error_template' => 'tracing#error_template',
-  '/error_partial' => 'tracing#error_partial'
+  '/error_partial' => 'tracing#error_partial',
+  '/missing_template' => 'tracing#missing_template',
+  '/missing_partial' => 'tracing#missing_partial'
 }
 
 if Rails.version >= '3.2.22.5'

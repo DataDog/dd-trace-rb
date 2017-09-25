@@ -28,6 +28,20 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
   end
 
+  test 'template tracing does not break the code' do
+    # render a template and expect the correct result
+    get :index
+    assert_response :success
+    assert_equal('Hello from index.html.erb', response.body)
+  end
+
+  test 'template partial tracing does not break the code' do
+    # render a partial and expect the correct result
+    get :partial
+    assert_response :success
+    assert_equal('Hello from _body.html.erb partial', response.body)
+  end
+
   test 'template rendering is properly traced' do
     # render the template and assert the proper span
     get :index
