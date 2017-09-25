@@ -5,9 +5,6 @@ require 'ddtrace/error'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
-  DEFAULT_TIMEOUT = 5
-
-  @shutdown_called = false
   @tracer = Datadog::Tracer.new()
 
   # Default tracer that can be used as soon as +ddtrace+ is required:
@@ -26,23 +23,6 @@ module Datadog
 
   def self.tracer
     @tracer
-  end
-
-  def self.shutdown_called
-    @shutdown_called
-  end
-
-  def self.shutdown(tracer = Datadog.tracer)
-    return if @shutdown_called || !tracer.enabled || tracer.writer.worker.nil?
-    @shutdown_called = true
-    sleep(0.1)
-    timeout_time = Time.now + DEFAULT_TIMEOUT
-    worker = tracer.writer.worker
-    while (!worker.trace_buffer.empty? || !worker.service_buffer.empty?) && Time.now <= timeout_time
-      sleep(0.05)
-      Datadog::Tracer.log.debug('Waiting for the buffers to clear before exiting')
-    end
-    @shutdown_called = false
   end
 end
 
