@@ -9,6 +9,8 @@ module Datadog
     # will perform a task at regular intervals. The thread can be stopped
     # with the +stop()+ method and can start with the +start()+ method.
     class AsyncTransport
+      DEFAULT_TIMEOUT = 5
+
       attr_reader :trace_buffer, :service_buffer, :shutting_down
 
       def initialize(transport, buff_size, trace_task, service_task, interval)
@@ -75,8 +77,10 @@ module Datadog
       end
 
       def shutdown!
-        return if @shutting_down
+        return if @shutting_down || (@trace_buffer.empty? && @service_buffer.empty?)
         @shutting_down = true
+        @trace_buffer.close
+        @service_buffer.close
         sleep(0.1)
         timeout_time = Time.now + DEFAULT_TIMEOUT
         while (!@trace_buffer.empty? || !@service_buffer.empty?) && Time.now <= timeout_time

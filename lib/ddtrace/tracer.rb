@@ -18,8 +18,6 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
-    DEFAULT_TIMEOUT = 5
-
     attr_reader :writer, :sampler, :services, :tags, :provider
     attr_accessor :enabled
     attr_writer :default_service
@@ -59,8 +57,8 @@ module Datadog
       log.level == Logger::DEBUG
     end
 
-    def self.shutdown!
-      return if !@enabled? || @writer.worker.nil?
+    def shutdown!
+      return if !@enabled || @writer.worker.nil?
       @writer.worker.shutdown!
     end
 

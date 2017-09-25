@@ -69,4 +69,20 @@ class TraceBufferTest < Minitest::Test
     assert_includes(output_traces, input_traces[0])
     assert_includes(output_traces, input_traces[1])
   end
+
+  def test_closed_trace_buffer
+    # the trace buffer should not accept anymore traces when closed
+    buffer = Datadog::TraceBuffer.new(4)
+    buffer.push(1)
+    buffer.push(2)
+    buffer.push(3)
+    buffer.push(4)
+    buffer.close
+    buffer.push(5)
+    buffer.push(6)
+    out = buffer.pop
+    assert_equal(out.length, 4)
+    assert(!out.include?(5))
+    assert(!out.include?(6))
+  end
 end
