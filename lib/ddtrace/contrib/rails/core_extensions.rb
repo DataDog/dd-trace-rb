@@ -129,6 +129,46 @@ module Datadog
     end
   end
 
+  # RailsActionPatcher contains functions to patch Rails action controller instrumentation
+  module RailsActionPatcher
+    module_function
+
+    def patch_action_controller
+      patch_process_action
+    end
+
+    def patch_process_action
+      ::ActionController::Instrumentation.class_eval do
+        def process_action_with_datadog(*args)
+          # mutable payload with a tracing context that is used in two different
+          # signals; it propagates the request span so that it can be finished
+          # no matter what
+          raw_payload = {
+            controller: self.class.name,
+            action: action_name,
+            tracing_context: {}
+          }
+
+          # emits two different signals that start and finish the trace; this approach
+          # mimics the original behavior that is available since Rails 3.0:
+          # - https://github.com/rails/rails/blob/3-0-stable/actionpack/lib/action_controller/metal/instrumentation.rb#L17-L35
+          # - https://github.com/rails/rails/blob/5-1-stable/actionpack/lib/action_controller/metal/instrumentation.rb#L17-L39
+          ActiveSupport::Notifications.instrument('!datadog.start_processing.action_controller', raw_payload)
+
+          # process the request and finish the trace
+          ActiveSupport::Notifications.instrument('!datadog.finish_processing.action_controller', raw_payload) do |payload|
+            result = process_action_without_datadog(*args)
+            payload[:status] = response.status
+            result
+          end
+        end
+
+        alias_method :process_action_without_datadog, :process_action
+        alias_method :process_action, :process_action_with_datadog
+      end
+    end
+  end
+
   # RailsCachePatcher contains function to patch Rails caching libraries.
   module RailsCachePatcher
     module_function

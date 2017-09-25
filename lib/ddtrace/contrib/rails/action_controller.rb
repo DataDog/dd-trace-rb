@@ -6,40 +6,40 @@ module Datadog
     module Rails
       # Code used to create and handle 'rails.action_controller' spans.
       module ActionController
-        KEY = 'datadog_actioncontroller'.freeze
-
         def self.instrument
+          # patch Rails core components
+          Datadog::RailsActionPatcher.patch_action_controller
+
           # subscribe when the request processing starts
-          ::ActiveSupport::Notifications.subscribe('start_processing.action_controller') do |*args|
+          ::ActiveSupport::Notifications.subscribe('!datadog.start_processing.action_controller') do |*args|
             start_processing(*args)
           end
 
           # subscribe when the request processing has been completed
-          ::ActiveSupport::Notifications.subscribe('process_action.action_controller') do |*args|
-            process_action(*args)
+          ::ActiveSupport::Notifications.subscribe('!datadog.finish_processing.action_controller') do |*args|
+            finish_processing(*args)
           end
         end
 
-        def self.start_processing(*)
-          return if Thread.current[KEY]
-
+        def self.start_processing(_name, _start, _finish, _id, payload)
+          # trace the execution
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           service = ::Rails.configuration.datadog_trace.fetch(:default_controller_service)
           type = Datadog::Ext::HTTP::TYPE
-          tracer.trace('rails.action_controller', service: service, span_type: type)
+          span = tracer.trace('rails.action_controller', service: service, span_type: type)
 
-          Thread.current[KEY] = true
+          # attach the current span to the tracing context
+          tracing_context = payload.fetch(:tracing_context)
+          tracing_context[:dd_request_span] = span
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
         end
 
-        def self.process_action(_name, start, finish, _id, payload)
-          return unless Thread.current[KEY]
-          Thread.current[KEY] = false
-
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          span = tracer.active_span()
-          return unless span
+        def self.finish_processing(_name, start, finish, _id, payload)
+          # retrieve the tracing context and the latest active span
+          tracing_context = payload.fetch(:tracing_context)
+          span = tracing_context[:dd_request_span]
+          return unless span && !span.finished?
 
           begin
             resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
@@ -69,8 +69,7 @@ module Datadog
               span.set_error(error) if status.starts_with?('5')
             end
           ensure
-            span.start_time = start
-            span.finish(finish)
+            span.finish()
           end
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
