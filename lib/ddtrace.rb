@@ -7,8 +7,7 @@ require 'ddtrace/error'
 module Datadog
   DEFAULT_TIMEOUT = 5
 
-  attr_accessor :shutdown_called
-
+  @shutdown_called = false
   @tracer = Datadog::Tracer.new()
 
   # Default tracer that can be used as soon as +ddtrace+ is required:
@@ -29,6 +28,10 @@ module Datadog
     @tracer
   end
 
+  def self.shutdown_called
+    @shutdown_called
+  end
+
   def self.shutdown(tracer = Datadog.tracer)
     return if @shutdown_called || !tracer.enabled || tracer.writer.worker.nil?
     @shutdown_called = true
@@ -39,6 +42,7 @@ module Datadog
       sleep(0.05)
       Datadog::Tracer.log.debug('Waiting for the buffers to clear before exiting')
     end
+    @shutdown_called = false
   end
 end
 
