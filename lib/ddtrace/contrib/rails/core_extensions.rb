@@ -58,7 +58,6 @@ module Datadog
       patch_cache_store_fetch
       patch_cache_store_write
       patch_cache_store_delete
-      patch_cache_store_instrument
     end
 
     def cache_store_class(k)
@@ -81,8 +80,17 @@ module Datadog
       cache_store_class(:read).class_eval do
         alias_method :read_without_datadog, :read
         def read(*args, &block)
-          ActiveSupport::Notifications.instrument('start_cache_read.active_support')
-          read_without_datadog(*args, &block)
+          raw_payload = {
+            action: 'GET',
+            key: args[0],
+            tracing_context: {}
+          }
+
+          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
+
+          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+            read_without_datadog(*args, &block)
+          end
         end
       end
     end
@@ -91,8 +99,17 @@ module Datadog
       cache_store_class(:fetch).class_eval do
         alias_method :fetch_without_datadog, :fetch
         def fetch(*args, &block)
-          ActiveSupport::Notifications.instrument('start_cache_fetch.active_support')
-          fetch_without_datadog(*args, &block)
+          raw_payload = {
+            action: 'GET',
+            key: args[0],
+            tracing_context: {}
+          }
+
+          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
+
+          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+            fetch_without_datadog(*args, &block)
+          end
         end
       end
     end
@@ -101,8 +118,17 @@ module Datadog
       cache_store_class(:write).class_eval do
         alias_method :write_without_datadog, :write
         def write(*args, &block)
-          ActiveSupport::Notifications.instrument('start_cache_write.active_support')
-          write_without_datadog(*args, &block)
+          raw_payload = {
+            action: 'SET',
+            key: args[0],
+            tracing_context: {}
+          }
+
+          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
+
+          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+            write_without_datadog(*args, &block)
+          end
         end
       end
     end
@@ -111,25 +137,17 @@ module Datadog
       cache_store_class(:delete).class_eval do
         alias_method :delete_without_datadog, :delete
         def delete(*args, &block)
-          ActiveSupport::Notifications.instrument('start_cache_delete.active_support')
-          delete_without_datadog(*args, &block)
-        end
-      end
-    end
+          raw_payload = {
+            action: 'DELETE',
+            key: args[0],
+            tracing_context: {}
+          }
 
-    def patch_cache_store_instrument
-      # by default, Rails 3 doesn't instrument the cache system so we should turn it on
-      # using the ActiveSupport::Cache::Store.instrument= function. Unfortunately, early
-      # versions of Rails use a Thread.current store that is not compatible with some
-      # application servers like Passenger.
-      # More details: https://github.com/rails/rails/blob/v3.2.22.5/activesupport/lib/active_support/cache.rb#L175-L177
-      return unless ::Rails::VERSION::MAJOR.to_i == 3
-      ::ActiveSupport::Cache::Store.singleton_class.class_eval do
-        # Add the instrument function that Rails 3.x uses
-        # to know if the underlying cache should be instrumented or not. By default,
-        # we force that instrumentation if the Rails application is auto instrumented.
-        def instrument
-          true
+          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
+
+          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+            delete_without_datadog(*args, &block)
+          end
         end
       end
     end
