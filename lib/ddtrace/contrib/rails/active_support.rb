@@ -11,102 +11,58 @@ module Datadog
           Datadog::RailsCachePatcher.patch_cache_store()
 
           # subscribe when a cache read starts being processed
-          ::ActiveSupport::Notifications.subscribe('start_cache_read.active_support') do |*args|
-            start_trace_cache('GET', *args)
-          end
-
-          # subscribe when a cache fetch starts being processed
-          ::ActiveSupport::Notifications.subscribe('start_cache_fetch.active_support') do |*args|
-            start_trace_cache('GET', *args)
-          end
-
-          # subscribe when a cache write starts being processed
-          ::ActiveSupport::Notifications.subscribe('start_cache_write.active_support') do |*args|
-            start_trace_cache('SET', *args)
-          end
-
-          # subscribe when a cache delete starts being processed
-          ::ActiveSupport::Notifications.subscribe('start_cache_delete.active_support') do |*args|
-            start_trace_cache('DELETE', *args)
+          ::ActiveSupport::Notifications.subscribe('!datadog.start_cache_tracing.active_support') do |*args|
+            start_trace_cache(*args)
           end
 
           # subscribe when a cache read has been processed
-          ::ActiveSupport::Notifications.subscribe('cache_read.active_support') do |*args|
-            trace_cache('GET', *args)
-          end
-
-          # subscribe when a cache write has been processed
-          ::ActiveSupport::Notifications.subscribe('cache_write.active_support') do |*args|
-            trace_cache('SET', *args)
-          end
-
-          # subscribe when a cache delete has been processed
-          ::ActiveSupport::Notifications.subscribe('cache_delete.active_support') do |*args|
-            trace_cache('DELETE', *args)
+          ::ActiveSupport::Notifications.subscribe('!datadog.finish_cache_tracing.active_support') do |*args|
+            finish_trace_cache(*args)
           end
         end
 
-        def self.create_span(tracer)
+        def self.start_trace_cache(_name, _start, _finish, _id, payload)
+          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
+          tracing_context = payload.fetch(:tracing_context)
+
+          # In most of the cases Rails ``fetch()`` and ``read()`` calls are nested.
+          # This check ensures that two reads are not nested since they don't provide
+          # interesting details.
+          # NOTE: the ``finish_trace_cache()`` is fired but it already has a safe-guard
+          # to avoid any kind of issue.
+          current_span = tracer.active_span
+          return if current_span.try('name') == 'rails.cache' &&
+                    current_span.try('resource') == 'GET' &&
+                    payload[:action] == 'GET'
+
+          # create a new ``Span`` and add it to the tracing context
           service = ::Rails.configuration.datadog_trace.fetch(:default_cache_service)
           type = Datadog::Ext::CACHE::TYPE
-          tracer.trace('rails.cache', service: service, span_type: type)
-        end
-
-        def self.get_key(resource)
-          'datadog_activesupport_' + resource
-        end
-
-        def self.start_trace_cache(resource, *_args)
-          key = get_key(resource)
-          # This is mostly to trap the case of fetch/read. In some cases the framework
-          # will call fetch but fetch won't call read. In some cases read can be called
-          # alone. And in some cases they are nested. In all cases we want to have one
-          # and only one span.
-          return if Thread.current[key]
-          create_span(::Rails.configuration.datadog_trace.fetch(:tracer))
-          Thread.current[key] = true
+          span = tracer.trace('rails.cache', service: service, span_type: type)
+          span.resource = payload.fetch(:action)
+          tracing_context[:dd_cache_span] = span
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
         end
 
-        def self.trace_cache(resource, _name, start, finish, _id, payload)
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
-          key = get_key(resource)
-          if Thread.current[key]
-            # span was created by start_trace_cache, plan to re-use this one
-            Thread.current[key] = false
-          else
-            # Create a span now, as start_trace_cache was not called.
-            #
-            # This could typically happen if, for some reason the monkey-patching
-            # of the cache class did not work as expected. Doing this, we might
-            # loose some interesting parentship between some spans, because this
-            # span is created too late, and children won't "find" their parent.
-            # But, it's better than no span at all, and it case there is no child
-            # at all, it will work just as expected. In practice, it's required to
-            # have standard file cache work together with redis cache.
-            create_span(tracer)
-          end
-          span = tracer.active_span()
-          return unless span
+        def self.finish_trace_cache(_name, _start, _finish, _id, payload)
+          # retrieve the tracing context and continue the trace
+          tracing_context = payload.fetch(:tracing_context)
+          span = tracing_context[:dd_cache_span]
+          return unless span && !span.finished?
 
           begin
-            # finish the tracing and update the execution time
-            span.resource = resource
             # discard parameters from the cache_store configuration
             store, = *Array.wrap(::Rails.configuration.cache_store).flatten
             span.set_tag('rails.cache.backend', store)
             span.set_tag('rails.cache.key', payload.fetch(:key))
             span.set_error(payload[:exception]) if payload[:exception]
           ensure
-            span.start_time = start
-            span.finish(finish)
+            span.finish()
           end
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
         end
-
-        private_class_method :create_span, :get_key, :start_trace_cache, :trace_cache
       end
     end
   end
