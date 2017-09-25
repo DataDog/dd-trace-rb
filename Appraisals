@@ -123,6 +123,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'sidekiq'
     gem 'aws-sdk'
     gem 'sucker_punch'
+    gem 'dalli'
   end
 else
   appraise 'contrib-old' do
@@ -138,5 +139,6 @@ else
     gem 'sidekiq', '4.0.0'
     gem 'aws-sdk', '~> 2.0'
     gem 'sucker_punch'
+    gem 'dalli'
   end
 end

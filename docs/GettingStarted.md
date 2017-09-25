@@ -355,6 +355,16 @@ services (S3, ElastiCache etc.).
 
     Aws::S3::Client.new.list_buckets # traced call
 
+### Dalli
+
+Dalli integration will trace all calls to your `memcached` server:
+
+    require 'dalli'
+    require 'ddtrace'
+
+    client = Dalli::Client.new('localhost:11211', options)
+    client.set('abc', 123)
+
 ### Redis
 
 The Redis integration will trace simple calls as well as pipelines.

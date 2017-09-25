@@ -21,6 +21,14 @@ module Datadog
       Process.pid != @pid
     end
 
+    def self.truncate(value, size, omission = '...')
+      string = value.to_s
+
+      return string if string.size <= size
+
+      string.slice(0, size - omission.size) + omission
+    end
+
     private_class_method :reset!, :was_forked?
 
     reset!
