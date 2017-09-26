@@ -9,8 +9,7 @@ require 'ddtrace/writer'
 class WorkersTest < Minitest::Test
   HOSTNAME = 'http://127.0.0.1'.freeze
   PORT = 1234
-  SPAN_INTERVAL = 1
-  SERVICE_INTERVAL = 3
+  FLUSH_INTERVAL = 1
   BUFF_SIZE = 10
 
   def setup
@@ -24,12 +23,11 @@ class WorkersTest < Minitest::Test
     # now stop the writer and replace worker with ours, if we don't do
     # this the old worder will still be used.
     @writer.stop()
-    @worker = Datadog::Workers::AsyncTransport.new(SPAN_INTERVAL,
-                                                   SERVICE_INTERVAL,
-                                                   @transport,
+    @worker = Datadog::Workers::AsyncTransport.new(@transport,
                                                    BUFF_SIZE,
                                                    @writer.trace_handler,
-                                                   @writer.service_handler)
+                                                   @writer.service_handler,
+                                                   FLUSH_INTERVAL)
     @writer.worker = @worker
     @writer.worker.start()
     # at this stage our custom writer is in place, bind it to a tracer
@@ -50,7 +48,7 @@ class WorkersSpanTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    (20 * SPAN_INTERVAL).times do
+    (20 * FLUSH_INTERVAL).times do
       break if @writer.stats[:traces_flushed] >= 1
       sleep(0.1)
     end
@@ -89,7 +87,7 @@ class WorkersSpanTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    (20 * SPAN_INTERVAL).times do
+    (20 * FLUSH_INTERVAL).times do
       break if @writer.stats[:traces_flushed] >= 1
       sleep(0.1)
     end
@@ -103,13 +101,13 @@ class WorkersSpanTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    sleep(2 * SPAN_INTERVAL) # wait long enough so that a flush happens
+    sleep(2 * FLUSH_INTERVAL) # wait long enough so that a flush happens
 
     assert_equal(1, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
 
     @transport.helper_error_mode! false # now responding 200 OK
 
-    (20 * SPAN_INTERVAL).times do
+    (20 * FLUSH_INTERVAL).times do
       break if @writer.stats[:traces_flushed] >= 2
       sleep(0.1)
     end
@@ -127,7 +125,7 @@ class WorkersSpanTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    (20 * SPAN_INTERVAL).times do
+    (20 * FLUSH_INTERVAL).times do
       break if @writer.stats[:traces_flushed] >= 1
       sleep(0.1)
     end
@@ -165,13 +163,13 @@ class WorkersServiceTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    (20 * SPAN_INTERVAL).times do |_i|
+    (20 * FLUSH_INTERVAL).times do |_i|
       break if @writer.stats[:traces_flushed] >= 1
       sleep(0.1)
     end
 
     assert_equal(1, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
-    sleep(2 * SERVICE_INTERVAL)
+    sleep(2 * FLUSH_INTERVAL)
     assert_equal(0, @writer.stats[:services_flushed], 'wrong number of services flushed')
   end
 
@@ -185,7 +183,7 @@ class WorkersServiceTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    (20 * SERVICE_INTERVAL).times do
+    (20 * FLUSH_INTERVAL).times do
       break if @writer.stats[:services_flushed] >= 1
       sleep(0.1)
     end
@@ -202,6 +200,7 @@ class WorkersServiceTest < WorkersTest
     # unmarshalling data
     assert_equal(1, dumped_services.length, 'there should be one and only one payload')
     assert_kind_of(String, dumped_services[0])
+
     payload = JSON.parse(dumped_services[0])
     assert_kind_of(Hash, payload)
     services = payload
@@ -220,7 +219,7 @@ class WorkersServiceTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    (20 * SERVICE_INTERVAL).times do
+    (20 * FLUSH_INTERVAL).times do
       break if @writer.stats[:services_flushed] >= 1
       sleep(0.1)
     end
@@ -238,14 +237,14 @@ class WorkersServiceTest < WorkersTest
     sleep(0.001)
     span.finish()
 
-    sleep(2 * SERVICE_INTERVAL) # wait long enough so that a flush happens
+    sleep(2 * FLUSH_INTERVAL) # wait long enough so that a flush happens
 
     # nothing happens (500 ERROR...)
     assert_equal(1, @writer.stats[:services_flushed], 'wrong number of services flushed')
 
     @transport.helper_error_mode! false # now responding 200 OK
 
-    (20 * SERVICE_INTERVAL).times do
+    (20 * FLUSH_INTERVAL).times do
       break if @writer.stats[:services_flushed] >= 2
       sleep(0.1)
     end
