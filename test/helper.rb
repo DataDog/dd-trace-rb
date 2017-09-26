@@ -84,10 +84,10 @@ class FauxWriter < Datadog::Writer
     end
   end
 
-  def spans
+  def spans(action = :clear)
     @mutex.synchronize do
       spans = @spans
-      @spans = []
+      @spans = [] if action == :clear
       spans.flatten!
       # sort the spans to avoid test flakiness
       spans.sort! do |a, b|
@@ -217,4 +217,15 @@ def test_repeat
   # a few milliseconds ago")
   return 300 if RUBY_PLATFORM == 'java'
   30
+end
+
+def try_wait_until(options = {})
+  attempts = options.fetch(:attempts, 10)
+  backoff = options.fetch(:backoff, 0.1)
+
+  loop do
+    break if attempts <= 0 || yield
+    sleep(backoff)
+    attempts -= 1
+  end
 end
