@@ -46,7 +46,7 @@ module Datadog
           def loaded_constants
             SERVICES.each_with_object([]) do |service, constants|
               next if ::Aws.autoload?(service)
-              constants << ::Aws.const_get("#{service}::Client") rescue next
+              constants << ::Aws.const_get(service).const_get(:Client) rescue next
             end
           end
         end
