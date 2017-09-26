@@ -123,7 +123,8 @@ class TracerIntegrationTest < Minitest::Test
   end
 
   def test_short_span
-    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] || RUBY_PLATFORM != 'java'
+    # requires a running agent, and test does not apply to Java threading model
 
     tracer = Datadog::Tracer.new
     tracer.configure(enabled: true, hostname: '127.0.0.1', port: '8126')
@@ -132,7 +133,8 @@ class TracerIntegrationTest < Minitest::Test
   end
 
   def test_shutdown_exec_once
-    skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
+    skip unless ENV['TEST_DATADOG_INTEGRATION'] || RUBY_PLATFORM != 'java'
+    # requires a running agent, and test does not apply to Java threading model
 
     tracer = Datadog::Tracer.new
     tracer.configure(enabled: true, hostname: '127.0.0.1', port: '8126')
