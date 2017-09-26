@@ -6,6 +6,9 @@ module Datadog
 
       # Responsible for hooking the instrumentation into faraday
       module Patcher
+        include Base
+        register_as :faraday, auto_patch: true
+
         @patched = false
 
         class << self

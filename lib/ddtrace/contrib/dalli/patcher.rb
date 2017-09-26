@@ -8,6 +8,9 @@ module Datadog
 
       # Responsible for hooking the instrumentation into `dalli`
       module Patcher
+        include Base
+        register_as :dalli, auto_patch: true
+
         @patched = false
 
         class << self

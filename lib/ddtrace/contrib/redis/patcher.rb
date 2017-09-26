@@ -9,6 +9,9 @@ module Datadog
       # Patcher enables patching of 'redis' module.
       # This is used in monkey.rb to automatically apply patches
       module Patcher
+        include Base
+        register_as :redis, auto_patch: true
+
         @patched = false
 
         module_function

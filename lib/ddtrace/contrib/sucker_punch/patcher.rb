@@ -6,6 +6,9 @@ module Datadog
 
       # Responsible for hooking the instrumentation into `sucker_punch`
       module Patcher
+        include Base
+        register_as :sucker_punch, auto_patch: true
+
         @patched = false
 
         module_function

@@ -6,6 +6,9 @@ module Datadog
       # Patcher that introduces more instrumentation for Grape endpoints, so that
       # new signals are executed at the beginning of each step (filters, render and run)
       module Patcher
+        include Base
+        register_as :grape, auto_patch: true
+
         @patched = false
 
         module_function

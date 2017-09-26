@@ -1,4 +1,4 @@
-require 'ddtrace/monkey'
+require 'ddtrace/registry'
 require 'ddtrace/pin'
 require 'ddtrace/tracer'
 require 'ddtrace/error'
@@ -6,7 +6,8 @@ require 'ddtrace/pipeline'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
-  @tracer = Datadog::Tracer.new()
+  @tracer = Tracer.new
+  @registry = Registry.new
 
   # Default tracer that can be used as soon as +ddtrace+ is required:
   #
@@ -25,7 +26,13 @@ module Datadog
   def self.tracer
     @tracer
   end
+
+  def self.registry
+    @registry
+  end
 end
+
+require 'ddtrace/monkey'
 
 # Datadog auto instrumentation for frameworks
 if defined?(Rails::VERSION)
