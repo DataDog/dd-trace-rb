@@ -76,6 +76,7 @@ module Datadog
         @run = false
       end
 
+      # Closes all available queues and waits for the trace and service buffer to flush
       def shutdown!
         return if @shutting_down || (@trace_buffer.empty? && @service_buffer.empty?)
         @shutting_down = true
