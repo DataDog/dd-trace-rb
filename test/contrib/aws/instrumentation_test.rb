@@ -24,9 +24,9 @@ module Datadog
 
         def test_list_buckets
           @client.list_buckets
-          spans = @tracer.writer.spans
-          assert_equal(1, spans.length)
-          aws_span = spans[0]
+          try_wait_until { all_spans.any? }
+          assert_equal(1, all_spans.length)
+          aws_span = all_spans[0]
 
           # check Span attributes
           assert_equal('s3.list_buckets', aws_span.name)
@@ -61,6 +61,10 @@ module Datadog
 
         def pin
           ::Aws.datadog_pin
+        end
+
+        def all_spans
+          @tracer.writer.spans(:keep)
         end
       end
     end
