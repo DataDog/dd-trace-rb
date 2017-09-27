@@ -32,10 +32,11 @@ class TracerTest < ActionDispatch::IntegrationTest
   end
 
   test 'a default service and database should be properly set' do
-    tracer = Datadog.tracer
+    reset_config()
+    services = Datadog.tracer.services
     adapter_name = get_adapter_name()
     assert_equal(
-      tracer.services,
+      services,
       'rails-app' => {
         'app' => 'rack', 'app_type' => 'web'
       },
