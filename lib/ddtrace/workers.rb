@@ -88,6 +88,8 @@ module Datadog
           sleep(0.05)
           Datadog::Tracer.log.debug('Waiting for the buffers to clear before exiting')
         end
+        stop
+        join
         @shutting_down = false
       end
 
