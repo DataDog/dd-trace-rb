@@ -80,7 +80,7 @@ class FauxWriter < Datadog::Writer
     @mutex.synchronize do
       super(trace, services)
       @spans << trace
-      @services = services
+      @services = @services.merge(services) if !services.empty?
     end
   end
 
@@ -121,7 +121,7 @@ class FauxWriter < Datadog::Writer
   def services
     @mutex.synchronize do
       services = @services
-      @services = []
+      @services = {} 
       services
     end
   end
