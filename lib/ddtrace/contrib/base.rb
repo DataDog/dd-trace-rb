@@ -1,4 +1,5 @@
 require 'ddtrace/registry'
+require 'ddtrace/configurable'
 
 module Datadog
   module Contrib
@@ -6,6 +7,7 @@ module Datadog
     module Base
       def self.included(base)
         base.send(:include, Registry::Registerable)
+        base.send(:include, Configurable)
       end
     end
   end
