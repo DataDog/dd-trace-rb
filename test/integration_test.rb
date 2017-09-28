@@ -72,9 +72,10 @@ class TracerIntegrationTest < Minitest::Test
     span.service = 'my.service'
     span.finish()
 
-    tracer.shutdown!
+    first_shutdown = tracer.shutdown!
 
     stats = tracer.writer.stats
+    assert(first_shutdown, 'should have run through the shutdown method')
     assert(span.finished?, 'span did not finish')
     assert_equal(1, stats[:traces_flushed], 'wrong number of traces flushed')
     assert_equal(1, stats[:services_flushed], 'wrong number of services flushed')
@@ -88,19 +89,27 @@ class TracerIntegrationTest < Minitest::Test
     span = tracer.start_span('my.short.op')
     span.service = 'my.service'
     span.finish()
+    first_shutdown = nil
+    second_shutdown = nil
+    worker = Thread.new() do
+      first_shutdown = tracer.shutdown!
+    end
 
-    first_point = Time.now.utc
-    tracer.shutdown!
-    second_point = Time.now.utc
-    tracer.shutdown!
-    third_point = Time.now.utc
+    100.times do
+      break if tracer.writer.worker.shutting_down # wait until first shutdown is halfway through execution
+      sleep(0.01)
+    end
 
-    first_shutdown = second_point - first_point
-    second_shutdown = third_point - second_point
+    second_worker = Thread.new() do
+      second_shutdown = tracer.shutdown!
+    end
+
+    worker.join(2)
+    second_worker.join(2)
 
     stats = tracer.writer.stats
-    assert(first_shutdown >= 0.1, 'should have executed shutdown')
-    assert_equal(true, second_shutdown < 0.1, 'should not have executed second shutdown')
+    assert(first_shutdown, 'should have run through the shutdown method')
+    assert_equal(false, second_shutdown, 'should not have executed shutdown')
     assert_equal(true, span.finished?, 'span did not finish')
     assert_equal(1, stats[:traces_flushed], 'wrong number of traces flushed')
     assert_equal(1, stats[:services_flushed], 'wrong number of services flushed')
