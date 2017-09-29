@@ -3,7 +3,6 @@ require 'helper'
 
 # rubocop:disable Metrics/ClassLength
 # rubocop:disable Metrics/LineLength
-# rubocop:disable Style/HashSyntax
 class MongoDBTest < Minitest::Test
   MONGO_HOST = '127.0.0.1'.freeze
   MONGO_PORT = 57017

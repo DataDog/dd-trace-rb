@@ -21,7 +21,7 @@ module Datadog
         }
 
         command.each do |key, value|
-          result[key] = normalize_statement(value, skip) unless skip.include?(key)
+          result[key] = quantize_statement(value, skip) unless skip.include?(key)
         end
 
         result
@@ -31,26 +31,26 @@ module Datadog
       # replace elements available in a given query, so that Arrays, Hashes and so
       # on are compacted. It ensures a low cardinality so that it can be used
       # as a Span resource.
-      # TODO: the quantization may not be enough, we still need to check the
-      # cardinality if it's reasonable
-      def normalize_statement(source, skip = [])
-        if source.is_a? Hash
-          obfuscated = {}
-          source.each do |key, value|
-            obfuscated[key] = normalize_value(value, skip) unless skip.include?(key)
+      def quantize_statement(statement, skip = [])
+        case statement
+        when Hash
+          quantized = {}
+          statement.each do |key, value|
+            quantized[key] = quantize_value(value, skip) unless skip.include?(key)
           end
 
-          obfuscated
+          quantized
         else
-          normalize_value(source, skip)
+          quantize_value(statement, skip)
         end
       end
 
-      def normalize_value(value, skip = [])
-        if value.is_a?(Hash)
-          normalize_statement(value, skip)
-        elsif value.is_a?(Array)
-          normalize_value(value.first, skip)
+      def quantize_value(value, skip = [])
+        case value
+        when Hash
+          quantize_statement(value, skip)
+        when Array
+          quantize_value(value.first, skip)
         else
           PLACEHOLDER
         end
