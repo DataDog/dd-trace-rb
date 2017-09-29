@@ -13,8 +13,7 @@ module Datadog
     def initialize(options = {})
       # writer and transport parameters
       @buff_size = options.fetch(:buffer_size, 100)
-      @span_interval = options.fetch(:spans_interval, 1)
-      @service_interval = options.fetch(:services_interval, 120)
+      @flush_interval = options.fetch(:flush_interval, 1)
 
       # transport and buffers
       @transport = options.fetch(:transport, Datadog::HTTPTransport.new(HOSTNAME, PORT))
@@ -36,12 +35,11 @@ module Datadog
     def start
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
       @service_handler = ->(items, transport) { send_services(items, transport) }
-      @worker = Datadog::Workers::AsyncTransport.new(@span_interval,
-                                                     @service_interval,
-                                                     @transport,
+      @worker = Datadog::Workers::AsyncTransport.new(@transport,
                                                      @buff_size,
                                                      @trace_handler,
-                                                     @service_handler)
+                                                     @service_handler,
+                                                     @flush_interval)
 
       @worker.start()
     end

@@ -120,23 +120,16 @@ class RedisTest < Minitest::Test
   end
 
   def test_service_name
-    drivers = {}
-    %w[foo bar].each do |service_name|
-      drivers[service_name] = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
-      pin = Datadog::Pin.get_from(drivers[service_name])
-      pin.tracer = @tracer
-      pin.service = service_name
-    end
-
+    service_name = 'test'
+    driver = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
+    pin = Datadog::Pin.get_from(driver)
+    pin.tracer = @tracer
+    pin.service = service_name
     @tracer.writer.services() # empty queue
-    drivers.each do |service_name, driver|
-      @tracer.set_service_info("redis-#{service_name}", 'redis', Datadog::Ext::AppTypes::CACHE)
-      roundtrip_set driver, service_name
-      roundtrip_get driver, service_name
-    end
-    services = @tracer.writer.services()
-    assert_equal(2, services.length)
-    assert_equal({ 'app' => 'redis', 'app_type' => 'cache' }, services['redis-foo'])
-    assert_equal({ 'app' => 'redis', 'app_type' => 'cache' }, services['redis-bar'])
+    @tracer.set_service_info("redis-#{service_name}", 'redis', Datadog::Ext::AppTypes::CACHE)
+    driver.set 'FOO', 'bar'
+    services = @tracer.writer.services
+    assert_equal(1, services.length)
+    assert_equal({ 'app' => 'redis', 'app_type' => 'cache' }, services['redis-test'])
   end
 end

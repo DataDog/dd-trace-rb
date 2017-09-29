@@ -303,6 +303,7 @@ module Datadog
       end
 
       @writer.write(trace, @services)
+      @services = {}
     end
 
     private :write, :guess_context_and_parent

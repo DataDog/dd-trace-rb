@@ -9,11 +9,10 @@ module Datadog
     # will perform a task at regular intervals. The thread can be stopped
     # with the +stop()+ method and can start with the +start()+ method.
     class AsyncTransport
-      def initialize(span_interval, service_interval, transport, buff_size, trace_task, service_task)
+      def initialize(transport, buff_size, trace_task, service_task, interval)
         @trace_task = trace_task
         @service_task = service_task
-        @span_interval = span_interval
-        @service_interval = service_interval
+        @flush_interval = interval
         @trace_buffer = TraceBuffer.new(buff_size)
         @service_buffer = TraceBuffer.new(buff_size)
         @transport = transport
@@ -43,16 +42,7 @@ module Datadog
 
         begin
           services = @service_buffer.pop()
-          # pick up the latest services hash (this is a FIFO list)
-          # that is different from what we sent before.
-          different = services.inject(false) { |acc, elem| elem != @last_flushed_services ? elem : acc }
-          if different
-            if @service_task.call(different, @transport)
-              @last_flushed_services = different.clone
-            end
-          else
-            Datadog::Tracer.log.debug('No new different services, skipping flush.')
-          end
+          @service_task.call(services[0], @transport)
         rescue StandardError => e
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
@@ -67,17 +57,11 @@ module Datadog
         @run = true
         @worker = Thread.new() do
           Datadog::Tracer.log.debug("Starting thread in the process: #{Process.pid}")
-          @last_flushed_services = nil
-          next_send_services = Time.now
 
-          # this loop assumes spans are flushed more often than services
           while @run
             callback_traces
-            if Time.now >= next_send_services
-              next_send_services = Time.now + @service_interval
-              callback_services
-            end
-            sleep(@span_interval)
+            callback_services
+            sleep(@flush_interval) if @run
           end
         end
       end
@@ -89,7 +73,7 @@ module Datadog
 
       # Block until executor shutdown is complete or until timeout seconds have passed.
       def join
-        @worker.join(10)
+        @worker.join(5)
       end
 
       # Enqueue an item in the trace internal buffer. This operation is thread-safe

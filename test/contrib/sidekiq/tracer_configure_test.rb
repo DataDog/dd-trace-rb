@@ -16,7 +16,7 @@ class TracerTest < TracerTestBase
 
     assert_equal(true, @tracer.enabled)
     assert_equal(
-      @tracer.services,
+      @writer.services,
       'sidekiq' => {
         'app' => 'sidekiq', 'app_type' => 'worker'
       }
