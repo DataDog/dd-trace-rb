@@ -13,6 +13,7 @@ module Datadog
       # rubocop:disable Style/RedundantSelf
       def around_perform(*args)
         pin = self.datadog_pin
+        pin.tracer.set_service_info(SERVICE, 'resque', Ext::AppTypes::WORKER)
         pin.tracer.trace('resque.job', service: SERVICE) do |span|
           span.resource = self.name
           span.span_type = pin.app_type
