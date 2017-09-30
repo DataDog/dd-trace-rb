@@ -32,6 +32,11 @@ redis:
     ports:
         - "127.0.0.1:${TEST_REDIS_PORT}:6379"
 
+mongodb:
+    image: mongo:3.5
+    ports:
+        - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
+
 ddagent:
     image: datadog/docker-dd-agent
     environment:

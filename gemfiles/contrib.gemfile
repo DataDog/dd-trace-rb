@@ -3,6 +3,7 @@
 source "https://rubygems.org"
 
 gem "elasticsearch-transport"
+gem "mongo"
 gem "grape"
 gem "rack"
 gem "rack-test"

@@ -30,6 +30,7 @@ provides auto instrumentation for the following web frameworks and libraries:
 * [Grape](#Grape)
 * [Active Record](#Active_Record)
 * [Elastic Search](#Elastic_Search)
+* [MongoDB](#MongoDB)
 * [Net/HTTP](#Net_HTTP)
 * [Redis](#Redis)
 
@@ -278,6 +279,27 @@ in the ``Client`` object:
 Note that if you enable both Elasticsearch and Net/HTTP integrations then
 for each call, two spans are created, one for Elasctisearch and one for Net/HTTP.
 This typically happens if you call ``patch_all`` to enable all integrations by default.
+
+### MongoDB
+
+The integration traces any `Command` that is sent from the
+[MongoDB Ruby Driver](https://github.com/mongodb/mongo-ruby-driver) to a MongoDB cluster.
+By extension, Object Document Mappers (ODM) such as Mongoid are automatically instrumented
+if they use the official Ruby driver. To activate the integration, simply:
+
+    require 'mongo'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:mongo)
+
+    # now create a MongoDB client and use it as usual:
+    client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'artists')
+    collection = client[:people]
+    collection.insert_one({ name: 'Steve' })
+
+    # to change the MongoDB service, use the Pin object
+    pin = Datadog::Pin.get_from(client)
+    pin.service = 'mongodb-primary'
 
 ### Net/HTTP
 
