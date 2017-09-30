@@ -34,12 +34,9 @@ module Datadog
       def quantize_statement(statement, skip = [])
         case statement
         when Hash
-          quantized = {}
-          statement.each do |key, value|
+          statement.each_with_object({}) do |(key, value), quantized|
             quantized[key] = quantize_value(value, skip) unless skip.include?(key)
           end
-
-          quantized
         else
           quantize_value(statement, skip)
         end
