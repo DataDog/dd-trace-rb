@@ -144,6 +144,7 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:faraday'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:aws'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:mongodb'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sucker_punch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:monkey'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:elasticsearch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:http'
@@ -153,6 +154,7 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:faraday'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:aws'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:mongodb'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sucker_punch'
     sh 'rvm $SIDEKIQ_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sidekiq'
   when 2
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake test:rails'
