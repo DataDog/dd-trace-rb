@@ -33,6 +33,7 @@ provides auto instrumentation for the following web frameworks and libraries:
 * [MongoDB](#MongoDB)
 * [Dalli](#Dalli)
 * [Faraday](#Faraday)
+* [SuckerPunch](#SuckerPunch)
 * [Net/HTTP](#Net_HTTP)
 * [Redis](#Redis)
 
@@ -417,6 +418,21 @@ executions. It can be added as any other Sidekiq middleware:
         chain.add(Datadog::Contrib::Sidekiq::Tracer)
       end
     end
+
+### SuckerPunch
+
+The `sucker_punch` integration traces all scheduled jobs:
+
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:sucker_punch)
+
+    # the execution of this job is traced
+    LogJob.perform_async('login')
+
+    # to change SuckerPunch service name, use the Pin class
+    pin = Datadog::Pin.get_from(::SuckerPunch)
+    pin.service = 'deploy-queues'
 
 #### Configure the tracer middleware
 
