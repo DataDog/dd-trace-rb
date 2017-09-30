@@ -31,6 +31,7 @@ provides auto instrumentation for the following web frameworks and libraries:
 * [Active Record](#Active_Record)
 * [Elastic Search](#Elastic_Search)
 * [MongoDB](#MongoDB)
+* [Dalli](#Dalli)
 * [Net/HTTP](#Net_HTTP)
 * [Redis](#Redis)
 
@@ -354,6 +355,23 @@ services (S3, ElastiCache etc.).
     Datadog::Monkey.patch_module(:aws) # explicitly patch it
 
     Aws::S3::Client.new.list_buckets # traced call
+
+### Dalli
+
+Dalli integration will trace all calls to your ``memcached`` server:
+
+    require 'dalli'
+    require 'ddtrace'
+
+    # patch Dalli so all clients are traced
+    Datadog::Monkey.patch_module(:dalli)
+
+    client = Dalli::Client.new('localhost:11211', options)
+    client.set('abc', 123)
+
+    # to change Dalli service name, use the Pin class
+    pin = Datadog::Pin.get_from(client)
+    pin.service = 'primary-cache'
 
 ### Redis
 
