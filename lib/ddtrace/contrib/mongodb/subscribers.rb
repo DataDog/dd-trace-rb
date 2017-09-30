@@ -39,10 +39,8 @@ module Datadog
           return unless span
 
           # the failure is not a real exception because it's handled by
-          # the framework itself, so setting the error and the message
-          # should be enough
-          span.status = 1
-          span.set_tag(Datadog::Ext::Errors::MSG, event.message)
+          # the framework itself, so we set only the error and the message
+          span.set_error(event)
         rescue StandardError => e
           Datadog::Tracer.log.debug("error when handling MongoDB 'failed' event: #{e}")
         ensure
