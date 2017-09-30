@@ -24,6 +24,15 @@ class MongoDBTest < Minitest::Test
     @client.database.drop
   end
 
+  def test_constructor_signature
+    executed = false
+    Mongo::Client.new(["#{MONGO_HOST}:#{MONGO_PORT}"], database: MONGO_DB) do |_self|
+      # be sure that the block is evaluated
+      executed = true
+    end
+    assert(executed, 'the constructor block is not executed')
+  end
+
   def test_pin_attributes
     # the client must have a PIN set
     pin = Datadog::Pin.get_from(@client)

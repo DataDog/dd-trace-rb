@@ -57,9 +57,9 @@ module Datadog
               remove_method :initialize
             end
 
-            def initialize(*args)
+            def initialize(*args, &blk)
               # attach the Pin instance
-              initialize_without_datadog(*args)
+              initialize_without_datadog(*args, &blk)
               pin = Datadog::Pin.new(SERVICE, app: APP, app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
               if pin.tracer && pin.service
