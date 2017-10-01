@@ -56,85 +56,88 @@ module Datadog
         end
 
         # rubocop:disable Metrics/MethodLength
-        def call(env)
-          # configure the Rack middleware once
-          configure
-          clean_context
-
-          trace_options = {
-            service: @service,
-            resource: nil,
-            span_type: Datadog::Ext::HTTP::TYPE
-          }
-
-          # start a new request span and attach it to the current Rack environment;
-          # we must ensure that the span `resource` is set later
-          request_span = @tracer.trace('rack.request', trace_options)
-
-          if @distributed_tracing_enabled
-            # Merge distributed trace ids if present
-            #
-            # Use integer values for tests, as it will catch both
-            # a non-existing header or a badly formed one.
-            trace_id, parent_id = Datadog::Distributed.parse_trace_headers(
-              env[Datadog::Contrib::Rack::HTTP_HEADER_TRACE_ID],
-              env[Datadog::Contrib::Rack::HTTP_HEADER_PARENT_ID]
-            )
-            request_span.trace_id = trace_id unless trace_id.nil?
-            request_span.parent_id = parent_id unless parent_id.nil?
-          end
-
-          env[:datadog_rack_request_span] = request_span
-
-          # call the rest of the stack
-          status, headers, response = @app.call(env)
-
         # rubocop:disable Lint/RescueException
-        # Here we really want to catch *any* exception, not only StandardError,
-        # as we really have no clue of what is in the block,
-        # and it is user code which should be executed no matter what.
-        # It's not a problem since we re-raise it afterwards so for example a
-        # SignalException::Interrupt would still bubble up.
-        rescue Exception => e
-          # catch exceptions that may be raised in the middleware chain
-          # Note: if a middleware catches an Exception without re raising,
-          # the Exception cannot be recorded here.
-          request_span.set_error(e)
-          raise e
-        ensure
-          # the source of truth in Rack is the PATH_INFO key that holds the
-          # URL for the current request; some framework may override that
-          # value, especially during exception handling and because of that
-          # we prefer using the `REQUEST_URI` if this is available.
-          # NOTE: `REQUEST_URI` is Rails specific and may not apply for other frameworks
-          url = env['REQUEST_URI'] || env['PATH_INFO']
+        def call(env)
+          request_span = nil
 
-          # Rack is a really low level interface and it doesn't provide any
-          # advanced functionality like routers. Because of that, we assume that
-          # the underlying framework or application has more knowledge about
-          # the result for this request; `resource` and `tags` are expected to
-          # be set in another level but if they're missing, reasonable defaults
-          # are used.
-          request_span.resource = "#{env['REQUEST_METHOD']} #{status}".strip unless request_span.resource
-          if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
-            request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
-          end
-          if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
-            request_span.set_tag(Datadog::Ext::HTTP::URL, url)
-          end
-          if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
-            request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
-          end
+          begin
+            configure
+            clean_context
 
-          # detect if the status code is a 5xx and flag the request span as an error
-          # unless it has been already set by the underlying framework
-          if status.to_s.start_with?('5') && request_span.status.zero?
-            request_span.status = 1
+            trace_options = {
+              service: @service,
+              resource: nil,
+              span_type: Datadog::Ext::HTTP::TYPE
+            }
+
+            # start a new request span and attach it to the current Rack environment;
+            # we must ensure that the span `resource` is set later
+            request_span = @tracer.trace('rack.request', trace_options)
+
+            if @distributed_tracing_enabled
+              # Merge distributed trace ids if present
+              #
+              # Use integer values for tests, as it will catch both
+              # a non-existing header or a badly formed one.
+              trace_id, parent_id = Datadog::Distributed.parse_trace_headers(
+                env[Datadog::Contrib::Rack::HTTP_HEADER_TRACE_ID],
+                env[Datadog::Contrib::Rack::HTTP_HEADER_PARENT_ID]
+              )
+              request_span.trace_id = trace_id unless trace_id.nil?
+              request_span.parent_id = parent_id unless parent_id.nil?
+            end
+
+            env[:datadog_rack_request_span] = request_span
+          rescue StandardException => e
+            Datadog::Tracer.log.debug("Unable to create Rack span: #{e.message}")
           end
 
-          request_span.finish()
+          begin
+            # call the rest of the stack
+            status, headers, response = @app.call(env)
+            [status, headers, response]
+          rescue Exception => e
+            # Here we really want to catch *any* exception, not only StandardError,
+            # as we really have no clue of what is in the block,
+            # and it is user code which should be executed no matter what.
+            # It's not a problem since we re-raise it afterwards so for example a
+            # SignalException::Interrupt would still bubble up.
+            request_span.set_error(e) unless request_span.nil?
+            raise e
+          ensure
+            return if request_span.nil?
 
-          [status, headers, response]
+            # the source of truth in Rack is the PATH_INFO key that holds the
+            # URL for the current request; some framework may override that
+            # value, especially during exception handling and because of that
+            # we prefer using the `REQUEST_URI` if this is available.
+            # NOTE: `REQUEST_URI` is Rails specific and may not apply for other frameworks
+            url = env['REQUEST_URI'] || env['PATH_INFO']
+
+            # Rack is a really low level interface and it doesn't provide any
+            # advanced functionality like routers. Because of that, we assume that
+            # the underlying framework or application has more knowledge about
+            # the result for this request; `resource` and `tags` are expected to
+            # be set in another level but if they're missing, reasonable defaults
+            # are used.
+            request_span.resource = "#{env['REQUEST_METHOD']} #{status}".strip unless request_span.resource
+            if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
+              request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
+            end
+            if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
+              request_span.set_tag(Datadog::Ext::HTTP::URL, url)
+            end
+            if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
+              request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
+            end
+
+            # detect if the status code is a 5xx and flag the request span as an error
+            # unless it has been already set by the underlying framework
+            if status.to_s.start_with?('5') && request_span.status.zero?
+              request_span.status = 1
+            end
+            request_span.finish()
+          end
         end
 
         private
