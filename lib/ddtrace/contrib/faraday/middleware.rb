@@ -55,8 +55,8 @@ module Datadog
 
         def propagate!(span, env)
           env[:request_headers].merge!(
-            Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id,
-            Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id
+            Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id.to_s,
+            Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id.to_s
           )
         end
 

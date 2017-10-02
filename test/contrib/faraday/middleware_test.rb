@@ -92,8 +92,8 @@ module Datadog
           headers = response.env.request_headers
           span = request_span
 
-          assert_equal(headers[Ext::DistributedTracing::HTTP_HEADER_TRACE_ID], span.trace_id)
-          assert_equal(headers[Ext::DistributedTracing::HTTP_HEADER_PARENT_ID], span.span_id)
+          assert_equal(headers[Ext::DistributedTracing::HTTP_HEADER_TRACE_ID], span.trace_id.to_s)
+          assert_equal(headers[Ext::DistributedTracing::HTTP_HEADER_PARENT_ID], span.span_id.to_s)
         end
 
         private
