@@ -93,7 +93,7 @@ module Datadog
           span = request_span
 
           assert_equal(headers[Ext::DistributedTracing::HTTP_HEADER_TRACE_ID], span.trace_id)
-          assert_equal(headers[Ext::DistributedTracing::HTTP_HEADER_PARENT_ID], span.parent_id)
+          assert_equal(headers[Ext::DistributedTracing::HTTP_HEADER_PARENT_ID], span.span_id)
         end
 
         private
