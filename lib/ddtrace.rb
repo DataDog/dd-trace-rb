@@ -36,8 +36,6 @@ if defined?(Rails::VERSION)
       module Datadog
         # Railtie class initializes
         class Railtie < Rails::Railtie
-          config.app_middleware.use(Datadog::Contrib::Rails::ExceptionMiddleware)
-
           # auto instrument Rails and third party components after
           # the framework initialization
           options = {}
