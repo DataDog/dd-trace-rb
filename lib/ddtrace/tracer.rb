@@ -57,6 +57,23 @@ module Datadog
       log.level == Logger::DEBUG
     end
 
+    # Shorthand that calls the `shutdown!` method of a registered worker.
+    # It's useful to ensure that the Trace Buffer is properly flushed before
+    # shutting down the application.
+    #
+    # For instance:
+    #
+    #   tracer.trace('operation_name', service='rake_tasks') do |span|
+    #     span.set_tag('task.name', 'script')
+    #   end
+    #
+    #   tracer.shutdown!
+    #
+    def shutdown!
+      return if !@enabled || @writer.worker.nil?
+      @writer.worker.shutdown!
+    end
+
     # Return the current active \Context for this traced execution. This method is
     # automatically called when calling Tracer.trace or Tracer.start_span,
     # but it can be used in the application code during manual instrumentation.
