@@ -68,7 +68,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(cache_span.name, 'rails.cache')
     assert_equal(cache_span.span_type, 'cache')
     assert_equal(cache_span.resource, 'SET')
-    assert_equal(cache_span.service, 'rails-cache')
+    assert_equal("#{app_name}-rails-cache", cache_span.service)
     assert_equal(cache_span.get_tag('rails.cache.backend').to_s, 'file_store')
     assert_equal(cache_span.get_tag('rails.cache.key'), 'empty-key')
   end

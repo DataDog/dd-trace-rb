@@ -83,3 +83,7 @@ when '3.0.20'
 else
   logger.error 'A Rails app for this version is not found!'
 end
+
+def app_name
+  Datadog::Contrib::Rails::Utils.app_name
+end

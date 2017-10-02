@@ -18,9 +18,9 @@ class TracerTest < ActionDispatch::IntegrationTest
     assert Rails.configuration.datadog_trace[:enabled]
     assert Rails.configuration.datadog_trace[:auto_instrument]
     assert Rails.configuration.datadog_trace[:auto_instrument_redis]
-    assert_equal(Rails.configuration.datadog_trace[:default_service], 'rails-app')
-    assert_equal(Rails.configuration.datadog_trace[:default_controller_service], 'rails-controller')
-    assert_equal(Rails.configuration.datadog_trace[:default_cache_service], 'rails-cache')
+    assert_equal("#{app_name}-rack", Rails.configuration.datadog_trace[:default_service])
+    assert_equal("#{app_name}-rails-controller", Rails.configuration.datadog_trace[:default_controller_service])
+    assert_equal("#{app_name}-rails-cache", Rails.configuration.datadog_trace[:default_cache_service])
     refute_nil(Rails.configuration.datadog_trace[:default_database_service])
     assert_equal(Rails.configuration.datadog_trace[:template_base_path], 'views/')
     assert Rails.configuration.datadog_trace[:tracer]
@@ -37,16 +37,16 @@ class TracerTest < ActionDispatch::IntegrationTest
     adapter_name = get_adapter_name()
     assert_equal(
       services,
-      'rails-app' => {
+      "#{app_name}-rack" => {
         'app' => 'rack', 'app_type' => 'web'
       },
-      'rails-controller' => {
+      "#{app_name}-rails-controller" => {
         'app' => 'rails', 'app_type' => 'web'
       },
       adapter_name => {
         'app' => adapter_name, 'app_type' => 'db'
       },
-      'rails-cache' => {
+      "#{app_name}-rails-cache" => {
         'app' => 'rails', 'app_type' => 'cache'
       }
     )
@@ -59,16 +59,16 @@ class TracerTest < ActionDispatch::IntegrationTest
 
     assert_equal(
       tracer.services,
-      'rails-app' => {
+      "#{app_name}-rack" => {
         'app' => 'rack', 'app_type' => 'web'
       },
-      'rails-controller' => {
+      "#{app_name}-rails-controller" => {
         'app' => 'rails', 'app_type' => 'web'
       },
       'customer-db' => {
         'app' => adapter_name, 'app_type' => 'db'
       },
-      'rails-cache' => {
+      "#{app_name}-rails-cache" => {
         'app' => 'rails', 'app_type' => 'cache'
       }
     )
@@ -81,7 +81,7 @@ class TracerTest < ActionDispatch::IntegrationTest
 
     assert_equal(
       tracer.services,
-      'rails-app' => {
+      "#{app_name}-rack" => {
         'app' => 'rack', 'app_type' => 'web'
       },
       'my-custom-app' => {
@@ -90,7 +90,7 @@ class TracerTest < ActionDispatch::IntegrationTest
       adapter_name => {
         'app' => adapter_name, 'app_type' => 'db'
       },
-      'rails-cache' => {
+      "#{app_name}-rails-cache" => {
         'app' => 'rails', 'app_type' => 'cache'
       }
     )
@@ -103,10 +103,10 @@ class TracerTest < ActionDispatch::IntegrationTest
 
     assert_equal(
       tracer.services,
-      'rails-app' => {
+      "#{app_name}-rack" => {
         'app' => 'rack', 'app_type' => 'web'
       },
-      'rails-controller' => {
+      "#{app_name}-rails-controller" => {
         'app' => 'rails', 'app_type' => 'web'
       },
       adapter_name => {

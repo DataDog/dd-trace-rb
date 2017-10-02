@@ -33,23 +33,26 @@ module Datadog
         # default configurations for the Rails integration; by default
         # the Datadog.tracer is enabled, while the Rails auto instrumentation
         # is kept disabled.
-        DEFAULT_CONFIG = {
-          enabled: true,
-          auto_instrument: false,
-          auto_instrument_redis: false,
-          auto_instrument_grape: false,
-          default_service: 'rails-app',
-          default_controller_service: 'rails-controller',
-          default_cache_service: 'rails-cache',
-          default_grape_service: 'grape',
-          template_base_path: 'views/',
-          tracer: Datadog.tracer,
-          debug: false,
-          trace_agent_hostname: Datadog::Writer::HOSTNAME,
-          trace_agent_port: Datadog::Writer::PORT,
-          env: nil,
-          tags: {}
-        }.freeze
+
+        def self.default_config
+          {
+            enabled: true,
+            auto_instrument: false,
+            auto_instrument_redis: false,
+            auto_instrument_grape: false,
+            default_service: "#{Utils.app_name}-rack",
+            default_controller_service: "#{Utils.app_name}-rails-controller",
+            default_cache_service: "#{Utils.app_name}-rails-cache",
+            default_grape_service: "#{Utils.app_name}-grape",
+            template_base_path: 'views/',
+            tracer: Datadog.tracer,
+            debug: false,
+            trace_agent_hostname: Datadog::Writer::HOSTNAME,
+            trace_agent_port: Datadog::Writer::PORT,
+            env: nil,
+            tags: {}
+          }
+        end
 
         # configure Datadog settings
         # rubocop:disable Metrics/MethodLength
@@ -57,7 +60,7 @@ module Datadog
           # tracer defaults
           # merge default configurations with users settings
           user_config = config[:config].datadog_trace rescue {}
-          datadog_config = DEFAULT_CONFIG.merge(user_config)
+          datadog_config = default_config.merge(user_config)
           datadog_config[:tracer].enabled = datadog_config[:enabled]
 
           # set debug logging
