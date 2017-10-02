@@ -3,6 +3,7 @@ require 'ddtrace/pin'
 require 'ddtrace/tracer'
 require 'ddtrace/error'
 require 'ddtrace/pipeline'
+require 'ddtrace/configuration'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -29,6 +30,18 @@ module Datadog
 
   def self.registry
     @registry
+  end
+
+  class << self
+    attr_writer :configuration
+
+    def configuration
+      @configuration ||= Configuration.new
+    end
+
+    def configure
+      yield(configuration)
+    end
   end
 end
 
