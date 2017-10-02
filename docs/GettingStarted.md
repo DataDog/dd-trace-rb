@@ -32,6 +32,8 @@ provides auto instrumentation for the following web frameworks and libraries:
 * [Elastic Search](#Elastic_Search)
 * [MongoDB](#MongoDB)
 * [Dalli](#Dalli)
+* [Faraday](#Faraday)
+* [SuckerPunch](#SuckerPunch)
 * [Net/HTTP](#Net_HTTP)
 * [Redis](#Redis)
 
@@ -344,6 +346,22 @@ Or, by enabling distributed tracing for all HTTP calls:
 
 See [distributed tracing](#Distributed_Tracing) for details.
 
+### Faraday
+
+The `faraday` integration is available through the `ddtrace` middleware:
+
+    require 'faraday'
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:faraday) # registers the tracing middleware
+
+    connection = Faraday.new('https://example.com') do |builder|
+      builder.use(:ddtrace, options)
+      builder.adapter Faraday.default_adapter
+    end
+
+    connection.get('/foo')
+
 ### AWS
 
 The AWS integration will trace every interaction (e.g. API calls) with AWS
@@ -401,6 +419,21 @@ executions. It can be added as any other Sidekiq middleware:
       end
     end
 
+### SuckerPunch
+
+The `sucker_punch` integration traces all scheduled jobs:
+
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:sucker_punch)
+
+    # the execution of this job is traced
+    LogJob.perform_async('login')
+
+    # to change SuckerPunch service name, use the Pin class
+    pin = Datadog::Pin.get_from(::SuckerPunch)
+    pin.service = 'deploy-queues'
+
 #### Configure the tracer middleware
 
 To modify the default configuration, simply pass arguments to the middleware.
@@ -438,22 +471,6 @@ giving precedence to the middleware settings. Inherited configurations are:
 * ``debug``
 * ``trace_agent_hostname``
 * ``trace_agent_port``
-
-### Faraday
-
-The `faraday` integration is available through the `ddtrace` middleware:
-
-    require 'faraday'
-    require 'ddtrace'
-
-    Datadog::Monkey.patch_module(:faraday) # registers the tracing middleware
-
-    connection = Faraday.new('https://example.com') do |builder|
-      builder.use(:ddtrace, options)
-      builder.adapter Faraday.default_adapter
-    end
-
-    connection.get('/foo')
 
 Where `options` is an optional `Hash` that accepts the following parameters:
 
