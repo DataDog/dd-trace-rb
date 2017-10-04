@@ -12,8 +12,8 @@ module Datadog
 
         def setup
           redis_url = "redis://#{REDIS_HOST}:#{REDIS_PORT}"
-
           ::Resque.redis = redis_url
+          Monkey.patch_module(:resque)
           @tracer = enable_test_tracer!
         end
 
@@ -27,6 +27,22 @@ module Datadog
           assert_equal(TestJob.name, span.resource, 'span resource should match job name')
           assert_equal(Ext::AppTypes::WORKER, span.span_type, 'span should be of worker span type')
           assert_equal('resque', span.service, 'wrong service stored in span')
+          refute_equal(Ext::Errors::STATUS, span.status, 'wrong span status')
+        end
+
+        def test_service_change
+          pin = Datadog::Pin.get_from(::Resque)
+          pin.service = 'test_service_change'
+          perform_job(TestJob)
+          spans = @tracer.writer.spans
+          span = spans.first
+
+          pin.service = 'resque' # reset pin
+          assert_equal(1, spans.length, 'created wrong number of spans')
+          assert_equal('resque.job', span.name, 'wrong span name set')
+          assert_equal(TestJob.name, span.resource, 'span resource should match job name')
+          assert_equal(Ext::AppTypes::WORKER, span.span_type, 'span should be of worker span type')
+          assert_equal('test_service_change', span.service, 'wrong service stored in span')
           refute_equal(Ext::Errors::STATUS, span.status, 'wrong span status')
         end
 
@@ -55,7 +71,7 @@ module Datadog
         end
 
         def pin
-          TestJob.datadog_pin
+          ::Resque.datadog_pin
         end
       end
     end

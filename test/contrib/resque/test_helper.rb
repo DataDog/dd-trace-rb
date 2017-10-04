@@ -8,7 +8,7 @@ def perform_job(klass, *args)
 end
 
 module TestJob
-  extend Datadog::Contrib::ResqueJob
+  extend Datadog::Contrib::Resque::ResqueJob
 
   def self.perform(pass = true)
     return true if pass
