@@ -33,7 +33,11 @@ module Datadog
       end
 
       result || []
-    rescue
+    rescue => e
+      Datadog::Tracer.log.debug(
+        "trace dropped entirely due to `Pipeline.before_flush` error: #{e}"
+      )
+
       []
     end
 

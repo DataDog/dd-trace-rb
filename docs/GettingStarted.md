@@ -744,6 +744,20 @@ provided you pass a ``:distributed_tracing_enabled`` option set to ``true``.
 
 This is disabled by default.
 
+### Processing Pipeline
+
+Sometimes it might be interesting to intercept `Span` objects before they get
+sent upstream.  To achieve that, you can hook custom *processors* into the
+pipeline using the method `Datadog::Pipeline.before_flush`:
+
+    Datadog::Pipeline.before_flush(
+      Datadog::Pipeline::SpanFilter.new { |span| span.resource =~ /PingController/ },
+      Datadog::Pipeline::SpanFilter.new { |span| span.get_tag('host') == 'localhost' }
+      Datadog::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
+    )
+
+For more information, please refer to this [link](https://github.com/DataDog/dd-trace-rb/pull/214).
+
 ### Troubleshooting
 
 #### Logs
