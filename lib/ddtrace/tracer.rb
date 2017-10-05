@@ -9,7 +9,6 @@ require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
-require 'ddtrace/filter_pipeline'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -57,16 +56,6 @@ module Datadog
     def self.debug_logging
       log.level == Logger::DEBUG
     end
-
-    class << self
-      attr_accessor :filter_pipeline
-
-      def add_filter(*args, &blk)
-        filter_pipeline.add_filter(*args, &blk)
-      end
-    end
-
-    self.filter_pipeline = FilterPipeline.new
 
     # Return the current active \Context for this traced execution. This method is
     # automatically called when calling Tracer.trace or Tracer.start_span,

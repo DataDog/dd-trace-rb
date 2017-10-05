@@ -37,7 +37,7 @@ class WorkersTest < Minitest::Test
   end
 
   def teardown
-    Datadog::Tracer.filter_pipeline = Datadog::FilterPipeline.new
+    Datadog::Pipeline.processors = []
   end
 end
 
@@ -159,7 +159,12 @@ class WorkersSpanTest < WorkersTest
   end
 
   def test_span_filtering
-    Datadog::Tracer.add_filter { |span| span.name[/discard/] }
+    filter = Datadog::Pipeline::SpanFilter.new do |span|
+      span.name[/discard/]
+    end
+
+    Datadog::Pipeline.before_flush(filter)
+
     @tracer.start_span('keep', service: 'tracer-test').finish
     @tracer.start_span('discard', service: 'tracer-test').finish
 
