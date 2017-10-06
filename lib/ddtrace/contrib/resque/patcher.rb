@@ -9,11 +9,14 @@ module Datadog
 
         class << self
           def patch
-            return @patched if patched?
+            return @patched if patched? || !defined?(::Resque)
+
+            require 'ddtrace/ext/app_types'
+
             add_pin
             @patched = true
           rescue => e
-            Tracer.log.error("Unable to add Resque pin: #{e}")
+            Tracer.log.error("Unable to apply Resque integration: #{e}")
             @patched
           end
 
@@ -27,10 +30,6 @@ module Datadog
             Pin.new(SERVICE, app_type: Ext::AppTypes::WORKER).tap do |pin|
               pin.onto(::Resque)
             end
-          end
-
-          def to_s
-            "Pin(service:#{@service},app:#{@app},app_type:#{@app_type},name:#{@name})"
           end
         end
       end
