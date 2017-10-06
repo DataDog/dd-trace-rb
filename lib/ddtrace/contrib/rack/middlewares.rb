@@ -38,9 +38,9 @@ module Datadog
           @options = options
         end
 
-        def configure(reload = false)
+        def configure
           # ensure that the configuration is executed only once
-          return unless reload || !@tracer || !@service
+          return clean_context if @tracer && @service
 
           # retrieve the current tracer and service
           @tracer = @options.fetch(:tracer)
@@ -58,8 +58,7 @@ module Datadog
         # rubocop:disable Metrics/MethodLength
         def call(env)
           # configure the Rack middleware once
-          configure
-          clean_context
+          configure()
 
           trace_options = {
             service: @service,

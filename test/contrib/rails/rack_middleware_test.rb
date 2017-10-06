@@ -2,14 +2,12 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
-# rubocop:disable Metrics/ClassLength
 class FullStackTest < ActionDispatch::IntegrationTest
   setup do
-    # store original tracers and options
+    # store original tracers
     Rails.application.app.configure()
     @rails_tracer = Rails.configuration.datadog_trace[:tracer]
     @rack_tracer = Rails.application.app.instance_variable_get :@tracer
-    @rack_options = Rails.application.app.instance_variable_get :@options
 
     # replace the Rails and the Rack tracer with a dummy one;
     # this prevents the overhead to reinitialize the Rails application
@@ -17,15 +15,12 @@ class FullStackTest < ActionDispatch::IntegrationTest
     @tracer = get_test_tracer
     Rails.configuration.datadog_trace[:tracer] = @tracer
     Rails.application.app.instance_variable_set(:@tracer, @tracer)
-    Rails.application.app.instance_variable_set(:@options, @rack_options.dup)
   end
 
   teardown do
     # restore original tracers
     Rails.configuration.datadog_trace[:tracer] = @rails_tracer
     Rails.application.app.instance_variable_set(:@tracer, @rack_tracer)
-    Rails.application.app.instance_variable_set(:@options, @rack_options)
-    Rails.application.app.configure(reload: true)
   end
 
   test 'a full request is properly traced' do
@@ -182,23 +177,5 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.get_tag('http.method'), 'GET')
     assert_equal(request_span.get_tag('http.status_code'), '404')
     assert_equal(request_span.status, 0)
-  end
-
-  test 'rails configuration enables distributed tracing' do
-    # enable distributed tracing
-    update_config(:distributed_tracing_enabled, true)
-
-    # make a request that doesn't have a route
-    get '/', nil, 'x-datadog-trace-id' => '42', 'x-datadog-parent-id' => '100'
-    assert_response 200
-
-    # get spans
-    spans = @tracer.writer.spans()
-    assert_operator(spans.length, :>=, 1, 'there should be at least 1 span')
-    request_span = spans[0]
-
-    assert_equal('rack.request', request_span.name)
-    assert_equal(42, request_span.trace_id)
-    assert_equal(100, request_span.parent_id)
   end
 end

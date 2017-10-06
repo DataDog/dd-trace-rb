@@ -194,15 +194,9 @@ end
 # * +key+: the key that should be updated
 # * +value+: the value of the key
 def update_config(key, value)
-  # update Rails configuration
   ::Rails.configuration.datadog_trace[key] = value
   config = { config: ::Rails.application.config }
   Datadog::Contrib::Rails::Framework.configure(config)
-
-  # update Rack configuration
-  options = Rails.application.app.instance_variable_get :@options
-  options.update(::Rails.configuration.datadog_trace)
-  Rails.application.app.configure(reload: true)
 end
 
 # reset default configuration and replace any dummy tracer

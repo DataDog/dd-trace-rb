@@ -74,7 +74,6 @@ of the Datadog tracer, you can override the following defaults:
       default_controller_service: 'rails-controller',
       default_cache_service: 'rails-cache',
       default_database_service: 'postgresql',
-      distributed_tracing_enabled: false,
       template_base_path: 'views/',
       tracer: Datadog.tracer,
       debug: false,
@@ -99,8 +98,6 @@ Available settings are:
 * ``default_cache_service``: set the cache service name used when tracing cache activity. Defaults to ``rails-cache``
 * ``default_database_service``: set the database service name used when tracing database activity. Defaults to the
   current adapter name, so if you're using PostgreSQL it will be ``postgres``.
-* ``distributed_tracing_enabled``: enable [distributed tracing](#Distributed_Tracing) so that this service trace is
-  connected with a trace of another service if tracing headers are sent
 * ``default_grape_service``: set the service name used when tracing a Grape application mounted in your Rails router.
   Defaults to ``grape``
 * ``template_base_path``: used when the template name is parsed in the auto instrumented code. If you don't store
