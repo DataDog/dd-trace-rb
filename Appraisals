@@ -124,6 +124,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'aws-sdk'
     gem 'sucker_punch'
     gem 'dalli'
+    gem 'resque'
   end
 else
   appraise 'contrib-old' do
@@ -140,5 +141,6 @@ else
     gem 'aws-sdk', '~> 2.0'
     gem 'sucker_punch'
     gem 'dalli'
+    gem 'resque'
   end
 end
