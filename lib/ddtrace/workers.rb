@@ -32,6 +32,7 @@ module Datadog
 
         begin
           traces = @trace_buffer.pop()
+          traces = Pipeline.process!(traces)
           @trace_task.call(traces, @transport)
         rescue StandardError => e
           # ensures that the thread will not die because of an exception.

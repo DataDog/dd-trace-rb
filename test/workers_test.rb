@@ -35,6 +35,10 @@ class WorkersTest < Minitest::Test
     @tracer.configure(enabled: true, hostname: HOSTNAME, port: PORT)
     @tracer.writer = @writer
   end
+
+  def teardown
+    Datadog::Pipeline.processors = []
+  end
 end
 
 class WorkersSpanTest < WorkersTest
@@ -152,6 +156,24 @@ class WorkersSpanTest < WorkersTest
     # now the whole purpose of this test: check we have a 'ruby' service by default,
     # which should be guessed from the script being executed.
     assert_equal('rake_test_loader', span['service'], 'wrong service')
+  end
+
+  def test_span_filtering
+    filter = Datadog::Pipeline::SpanFilter.new do |span|
+      span.name[/discard/]
+    end
+
+    Datadog::Pipeline.before_flush(filter)
+
+    @tracer.start_span('keep', service: 'tracer-test').finish
+    @tracer.start_span('discard', service: 'tracer-test').finish
+
+    try_wait_until do
+      @transport.helper_sent[200][:traces].any? rescue false
+    end
+
+    assert_match(/keep/, @transport.helper_sent[200][:traces].to_s)
+    refute_match(/discard/, @transport.helper_sent[200][:traces].to_s)
   end
 end
 

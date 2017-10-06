@@ -136,6 +136,8 @@ end
 
 # SpyTransport is a dummy HTTPTransport that tracks what would be sent.
 class SpyTransport < Datadog::HTTPTransport
+  attr_reader :helper_sent
+
   def initialize(hostname, port)
     super(hostname, port)
     @helper_sent = { 200 => {}, 500 => {} }
