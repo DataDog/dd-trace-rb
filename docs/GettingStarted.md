@@ -366,6 +366,23 @@ The `faraday` integration is available through the `ddtrace` middleware:
 
     connection.get('/foo')
 
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Type | Default | Description |
+| --- | --- | --- | --- |
+| `split_by_domain` | Boolean | `false` | Uses the request domain as the service name when set to `true`. |
+| `distributed_tracing` | Boolean | `false` | Propagates tracing context along the HTTP request when set to `true`. |
+| `error_handler` | Callable | ``5xx`` evaluated as errors | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. |
+
+It's worth mentioning that `ddtrace` also supports instrumentation for the
+`net/http` library, so if you're using it as farady's backend you might see
+instrumentation both on `faraday` and `net/http` levels. If you want to avoid
+multiple levels of instrumentation for your HTTP requests, remember that you can
+always fine tune which libraries are patched by calling:
+
+    Datadog::Monkey.patch([:faraday, :redis])
+    # instead of using Datadog::Monkey.patch_all
+
 ### AWS
 
 The AWS integration will trace every interaction (e.g. API calls) with AWS
@@ -423,36 +440,6 @@ executions. It can be added as any other Sidekiq middleware:
       end
     end
 
-### Resque
-
-The Resque integration uses Resque hooks that wraps the ``perform`` method.
-To add tracing to a Resque job, extend your base class with the provided
-one:
-
-    class MyJob
-      # add tracing to Resque hooks
-      extend Datadog::Contrib::Resque::ResqueJob
-
-      def self.perform(*args)
-        # do_something that is traced
-      end
-    end
-
-### SuckerPunch
-
-The `sucker_punch` integration traces all scheduled jobs:
-
-    require 'ddtrace'
-
-    Datadog::Monkey.patch_module(:sucker_punch)
-
-    # the execution of this job is traced
-    LogJob.perform_async('login')
-
-    # to change SuckerPunch service name, use the Pin class
-    pin = Datadog::Pin.get_from(::SuckerPunch)
-    pin.service = 'deploy-queues'
-
 #### Configure the tracer middleware
 
 To modify the default configuration, simply pass arguments to the middleware.
@@ -491,22 +478,35 @@ giving precedence to the middleware settings. Inherited configurations are:
 * ``trace_agent_hostname``
 * ``trace_agent_port``
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+### Resque
 
-| Key | Type | Default | Description |
-| --- | --- | --- | --- |
-| `split_by_domain` | Boolean | `false` | Uses the request domain as the service name when set to `true`. |
-| `distributed_tracing` | Boolean | `false` | Propagates tracing context along the HTTP request when set to `true`. |
-| `error_handler` | Callable | [Click Here](https://github.com/DataDog/dd-trace-rb/blob/4fe3bc9df032eac3cd294b0bebcc866080dbe04f/lib/ddtrace/contrib/faraday/middleware.rb#L11-L13) | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. By default, only server-side errors (e.g. `5xx`) are flagged as errors. |
+The Resque integration uses Resque hooks that wraps the ``perform`` method.
+To add tracing to a Resque job, extend your base class with the provided
+one:
 
-It's worth mentioning that `ddtrace` also supports instrumentation for the
-`net/http` library, so if you're using it as farady's backend you might see
-instrumentation both on `faraday` and `net/http` levels. If you want to avoid
-multiple levels of instrumentation for your HTTP requests, remember that you can
-always fine tune witch libraries are patched by calling:
+    class MyJob
+      # add tracing to Resque hooks
+      extend Datadog::Contrib::Resque::ResqueJob
 
-    Datadog::Monkey.patch([:foo, :bar])
-    # instead of Datadog::Monkey.patch_all
+      def self.perform(*args)
+        # do_something that is traced
+      end
+    end
+
+### SuckerPunch
+
+The `sucker_punch` integration traces all scheduled jobs:
+
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:sucker_punch)
+
+    # the execution of this job is traced
+    LogJob.perform_async('login')
+
+    # to change SuckerPunch service name, use the Pin class
+    pin = Datadog::Pin.get_from(::SuckerPunch)
+    pin.service = 'deploy-queues'
 
 ## Advanced usage
 
