@@ -484,12 +484,18 @@ The Resque integration uses Resque hooks that wraps the ``perform`` method.
 To add tracing to a Resque job, extend your base class with the provided
 one:
 
+    require 'ddtrace'
+    require 'ddtrace/contrib/resque/resque_job'
+
+    # patch Resque
+    Datadog::Monkey.patch_module(:resque)
+
     class MyJob
-      # add tracing to Resque hooks
+      # extend MyJob with integration hooks
       extend Datadog::Contrib::Resque::ResqueJob
 
       def self.perform(*args)
-        # do_something that is traced
+        # do_something
       end
     end
 
