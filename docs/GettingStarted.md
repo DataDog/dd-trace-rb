@@ -24,17 +24,18 @@ The easiest way to get started with the tracing client is to instrument your web
 provides auto instrumentation for the following web frameworks and libraries:
 
 * [Ruby on Rails](#Ruby_on_Rails)
-* [Sidekiq](#Sidekiq)
 * [Sinatra](#Sinatra)
 * [Rack](#Rack)
 * [Grape](#Grape)
 * [Active Record](#Active_Record)
 * [Elastic Search](#Elastic_Search)
 * [MongoDB](#MongoDB)
-* [Dalli](#Dalli)
-* [Faraday](#Faraday)
+* [Sidekiq](#Sidekiq)
+* [Resque](#Resque)
 * [SuckerPunch](#SuckerPunch)
 * [Net/HTTP](#Net_HTTP)
+* [Faraday](#Faraday)
+* [Dalli](#Dalli)
 * [Redis](#Redis)
 
 ## Web Frameworks
@@ -419,6 +420,21 @@ executions. It can be added as any other Sidekiq middleware:
     Sidekiq.configure_server do |config|
       config.server_middleware do |chain|
         chain.add(Datadog::Contrib::Sidekiq::Tracer)
+      end
+    end
+
+### Resque
+
+The Resque integration uses Resque hooks that wraps the ``perform`` method.
+To add tracing to a Resque job, extend your base class with the provided
+one:
+
+    class MyJob
+      # add tracing to Resque hooks
+      extend Datadog::Contrib::Resque::ResqueJob
+
+      def self.perform(*args)
+        # do_something that is traced
       end
     end
 
