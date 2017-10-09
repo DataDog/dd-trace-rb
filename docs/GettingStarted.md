@@ -863,11 +863,6 @@ Currently we are supporting Sinatra >= 1.4.0.
 
 Currently we are supporting Sidekiq >= 4.0.0.
 
-### Glossary
+### Terminology
 
-* ``Service``: The name of a set of processes that do the same job. Some examples are ``datadog-web-app`` or ``datadog-metrics-db``.
-* ``Resource``: A particular query to a service. For a web application, some examples might be a URL stem like ``/user/home`` or a
-handler function like ``web.user.home``. For a SQL database, a resource would be the SQL of the query itself like ``select * from users where id = ?``.
-You can track thousands (not millions or billions) of unique resources per services, so prefer resources like ``/user/home`` rather than ``/user/home?id=123456789``.
-* ``Span``: A span tracks a unit of work in a service, like querying a database or rendering a template. Spans are associated
-with a service and optionally a resource. Spans have names, start times, durations and optional tags.
+If you need more context about the terminology used in the APM, take a look at the [official documentation](https://docs.datadoghq.com/tracing/terminology/).
