@@ -92,6 +92,8 @@ end
 
 YARD::Rake::YardocTask.new(:docs) do |t|
   t.options += ['--title', "ddtrace #{Datadog::VERSION::STRING} documentation"]
+  t.options += ['--markup', 'markdown']
+  t.options += ['--markup-provider', 'redcarpet']
 end
 
 # Deploy tasks
