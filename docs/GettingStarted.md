@@ -24,17 +24,18 @@ The easiest way to get started with the tracing client is to instrument your web
 provides auto instrumentation for the following web frameworks and libraries:
 
 * [Ruby on Rails](#Ruby_on_Rails)
-* [Sidekiq](#Sidekiq)
 * [Sinatra](#Sinatra)
 * [Rack](#Rack)
 * [Grape](#Grape)
 * [Active Record](#Active_Record)
 * [Elastic Search](#Elastic_Search)
 * [MongoDB](#MongoDB)
-* [Dalli](#Dalli)
-* [Faraday](#Faraday)
+* [Sidekiq](#Sidekiq)
+* [Resque](#Resque)
 * [SuckerPunch](#SuckerPunch)
 * [Net/HTTP](#Net_HTTP)
+* [Faraday](#Faraday)
+* [Dalli](#Dalli)
 * [Redis](#Redis)
 
 ## Web Frameworks
@@ -365,6 +366,23 @@ The `faraday` integration is available through the `ddtrace` middleware:
 
     connection.get('/foo')
 
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Type | Default | Description |
+| --- | --- | --- | --- |
+| `split_by_domain` | Boolean | `false` | Uses the request domain as the service name when set to `true`. |
+| `distributed_tracing` | Boolean | `false` | Propagates tracing context along the HTTP request when set to `true`. |
+| `error_handler` | Callable | ``5xx`` evaluated as errors | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. |
+
+It's worth mentioning that `ddtrace` also supports instrumentation for the
+`net/http` library, so if you're using it as farady's backend you might see
+instrumentation both on `faraday` and `net/http` levels. If you want to avoid
+multiple levels of instrumentation for your HTTP requests, remember that you can
+always fine tune which libraries are patched by calling:
+
+    Datadog::Monkey.patch([:faraday, :redis])
+    # instead of using Datadog::Monkey.patch_all
+
 ### AWS
 
 The AWS integration will trace every interaction (e.g. API calls) with AWS
@@ -422,21 +440,6 @@ executions. It can be added as any other Sidekiq middleware:
       end
     end
 
-### SuckerPunch
-
-The `sucker_punch` integration traces all scheduled jobs:
-
-    require 'ddtrace'
-
-    Datadog::Monkey.patch_module(:sucker_punch)
-
-    # the execution of this job is traced
-    LogJob.perform_async('login')
-
-    # to change SuckerPunch service name, use the Pin class
-    pin = Datadog::Pin.get_from(::SuckerPunch)
-    pin.service = 'deploy-queues'
-
 #### Configure the tracer middleware
 
 To modify the default configuration, simply pass arguments to the middleware.
@@ -475,22 +478,35 @@ giving precedence to the middleware settings. Inherited configurations are:
 * ``trace_agent_hostname``
 * ``trace_agent_port``
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+### Resque
 
-| Key | Type | Default | Description |
-| --- | --- | --- | --- |
-| `split_by_domain` | Boolean | `false` | Uses the request domain as the service name when set to `true`. |
-| `distributed_tracing` | Boolean | `false` | Propagates tracing context along the HTTP request when set to `true`. |
-| `error_handler` | Callable | [Click Here](https://github.com/DataDog/dd-trace-rb/blob/4fe3bc9df032eac3cd294b0bebcc866080dbe04f/lib/ddtrace/contrib/faraday/middleware.rb#L11-L13) | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. By default, only server-side errors (e.g. `5xx`) are flagged as errors. |
+The Resque integration uses Resque hooks that wraps the ``perform`` method.
+To add tracing to a Resque job, extend your base class with the provided
+one:
 
-It's worth mentioning that `ddtrace` also supports instrumentation for the
-`net/http` library, so if you're using it as farady's backend you might see
-instrumentation both on `faraday` and `net/http` levels. If you want to avoid
-multiple levels of instrumentation for your HTTP requests, remember that you can
-always fine tune witch libraries are patched by calling:
+    class MyJob
+      # add tracing to Resque hooks
+      extend Datadog::Contrib::Resque::ResqueJob
 
-    Datadog::Monkey.patch([:foo, :bar])
-    # instead of Datadog::Monkey.patch_all
+      def self.perform(*args)
+        # do_something that is traced
+      end
+    end
+
+### SuckerPunch
+
+The `sucker_punch` integration traces all scheduled jobs:
+
+    require 'ddtrace'
+
+    Datadog::Monkey.patch_module(:sucker_punch)
+
+    # the execution of this job is traced
+    LogJob.perform_async('login')
+
+    # to change SuckerPunch service name, use the Pin class
+    pin = Datadog::Pin.get_from(::SuckerPunch)
+    pin.service = 'deploy-queues'
 
 ## Advanced usage
 
@@ -771,8 +787,11 @@ sent upstream.  To achieve that, you can hook custom *processors* into the
 pipeline using the method `Datadog::Pipeline.before_flush`:
 
     Datadog::Pipeline.before_flush(
+      # filter the Span if the given block evaluates true
       Datadog::Pipeline::SpanFilter.new { |span| span.resource =~ /PingController/ },
       Datadog::Pipeline::SpanFilter.new { |span| span.get_tag('host') == 'localhost' }
+
+      # alter the Span updating fields or tags
       Datadog::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
     )
 
@@ -844,11 +863,6 @@ Currently we are supporting Sinatra >= 1.4.0.
 
 Currently we are supporting Sidekiq >= 4.0.0.
 
-### Glossary
+### Terminology
 
-* ``Service``: The name of a set of processes that do the same job. Some examples are ``datadog-web-app`` or ``datadog-metrics-db``.
-* ``Resource``: A particular query to a service. For a web application, some examples might be a URL stem like ``/user/home`` or a
-handler function like ``web.user.home``. For a SQL database, a resource would be the SQL of the query itself like ``select * from users where id = ?``.
-You can track thousands (not millions or billions) of unique resources per services, so prefer resources like ``/user/home`` rather than ``/user/home?id=123456789``.
-* ``Span``: A span tracks a unit of work in a service, like querying a database or rendering a template. Spans are associated
-with a service and optionally a resource. Spans have names, start times, durations and optional tags.
+If you need more context about the terminology used in the APM, take a look at the [official documentation](https://docs.datadoghq.com/tracing/terminology/).
