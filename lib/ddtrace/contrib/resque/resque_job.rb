@@ -26,6 +26,7 @@ module Datadog
 end
 
 Resque.before_first_fork do
+  service = ::Rails.configuration.datadog_trace.fetch(:resque_service) || 'resque'
   pin = Datadog::Pin.get_from(Resque)
-  pin.tracer.set_service_info(pin.service, 'resque', Datadog::Ext::AppTypes::WORKER)
+  pin.tracer.set_service_info(pin.service, service, Datadog::Ext::AppTypes::WORKER)
 end
