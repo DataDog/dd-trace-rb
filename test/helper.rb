@@ -196,7 +196,8 @@ end
 # * +key+: the key that should be updated
 # * +value+: the value of the key
 def update_config(key, value)
-  ::Rails.configuration.datadog_trace[key] = value
+  Datadog.configuration[:rails][key] = value
+  ::Rails.configuration.datadog_trace.merge!(Datadog.registry[:rails].to_h)
   config = { config: ::Rails.application.config }
   Datadog::Contrib::Rails::Framework.configure(config)
 end
@@ -204,13 +205,12 @@ end
 # reset default configuration and replace any dummy tracer
 # with the global one
 def reset_config
-  ::Rails.configuration.datadog_trace = {
-    auto_instrument: true,
-    auto_instrument_redis: true
-  }
+  Datadog.configure do |c|
+    c.use :rails, auto_instrument: true, auto_instrument_redis: true
+  end
 
   config = { config: ::Rails.application.config }
-  Datadog::Contrib::Rails::Framework.configure(config)
+  Datadog.registry[:rails].configure(config)
 end
 
 def test_repeat

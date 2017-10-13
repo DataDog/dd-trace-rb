@@ -30,82 +30,78 @@ module Datadog
       # - handle configuration entries which are specific to Datadog tracing
       # - instrument parts of the framework when needed
       module Framework
-        # default configurations for the Rails integration; by default
-        # the Datadog.tracer is enabled, while the Rails auto instrumentation
-        # is kept disabled.
-        DEFAULT_CONFIG = {
-          enabled: true,
-          auto_instrument: false,
-          auto_instrument_redis: false,
-          auto_instrument_grape: false,
-          default_service: 'rails-app',
-          default_controller_service: 'rails-controller',
-          default_cache_service: 'rails-cache',
-          default_grape_service: 'grape',
-          template_base_path: 'views/',
-          tracer: Datadog.tracer,
-          debug: false,
-          trace_agent_hostname: Datadog::Writer::HOSTNAME,
-          trace_agent_port: Datadog::Writer::PORT,
-          env: nil,
-          tags: {}
-        }.freeze
+        include Base
+        register_as :rails
+
+        option :enabled, default: true
+        option :auto_instrument, default: false
+        option :auto_instrument_redis, default: false
+        option :auto_instrument_grape, default: false
+        option :default_service, default: 'rails-app'
+        option :default_controller_service, default: 'rails-controller'
+        option :default_cache_service, default: 'rails-cache'
+        option :default_grape_service, default: 'grape'
+        option :default_database_service
+        option :distributed_tracing_enabled, default: false
+        option :template_base_path, default: 'views/'
+        option :tracer, default: Datadog.tracer
+        option :debug, default: false
+        option :trace_agent_hostname, default: Datadog::Writer::HOSTNAME
+        option :trace_agent_port, default: Datadog::Writer::PORT
+        option :env, default: nil
+        option :tags, default: {}
 
         # configure Datadog settings
         # rubocop:disable Metrics/MethodLength
-        def self.configure(config)
-          # tracer defaults
-          # merge default configurations with users settings
-          user_config = config[:config].datadog_trace rescue {}
-          datadog_config = DEFAULT_CONFIG.merge(user_config)
-          datadog_config[:tracer].enabled = datadog_config[:enabled]
+        def self.configure(rails_config)
+          user_config = rails_config[:config].datadog_trace rescue {}
+          Datadog.configuration.use(:rails, user_config)
+          tracer = Datadog.configuration[:rails][:tracer]
 
-          # set debug logging
-          Datadog::Tracer.debug_logging = datadog_config[:debug]
+          tracer.enabled = get_option(:enabled)
+          tracer.class.debug_logging = get_option(:debug)
 
-          # set the address of the trace agent
-          datadog_config[:tracer].configure(
-            hostname: datadog_config[:trace_agent_hostname],
-            port: datadog_config[:trace_agent_port]
+          tracer.configure(
+            hostname: get_option(:trace_agent_hostname),
+            port: get_option(:trace_agent_port)
           )
 
-          # set default tracer tags
-          datadog_config[:tracer].set_tags(datadog_config[:tags])
+          tracer.set_tags(get_option(:tags))
+          tracer.set_tags('env' => get_option(:env)) if get_option(:env)
 
-          datadog_config[:tracer].set_tags('env' => datadog_config[:env]) if datadog_config[:env]
-
-          # set default service details
-          datadog_config[:tracer].set_service_info(
-            datadog_config[:default_service],
+          tracer.set_service_info(
+            get_option(:default_service),
             'rack',
             Datadog::Ext::AppTypes::WEB
           )
 
-          datadog_config[:tracer].set_service_info(
-            datadog_config[:default_controller_service],
+          tracer.set_service_info(
+            get_option(:default_controller_service),
             'rails',
             Datadog::Ext::AppTypes::WEB
           )
-
-          datadog_config[:tracer].set_service_info(
-            datadog_config[:default_cache_service],
+          tracer.set_service_info(
+            get_option(:default_cache_service),
             'rails',
             Datadog::Ext::AppTypes::CACHE
           )
 
           # By default, default service would be guessed from the script
           # being executed, but here we know better, get it from Rails config.
-          datadog_config[:tracer].default_service = datadog_config[:default_service]
+          tracer.default_service = get_option(:default_service)
+
+          Datadog.configuration[:rack][:tracer] = tracer
+          Datadog.configuration[:rack][:default_service] = get_option(:default_service)
+          Datadog.configuration[:rack][:distributed_tracing_enabled] = get_option(:distributed_tracing_enabled)
 
           if defined?(::ActiveRecord)
             begin
               # set default database service details and store it in the configuration
               conn_cfg = ::ActiveRecord::Base.connection_config()
               adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(conn_cfg[:adapter])
-              database_service = datadog_config.fetch(:default_database_service, adapter_name)
-              datadog_config[:default_database_service] = database_service
-              datadog_config[:tracer].set_service_info(
-                database_service,
+              set_option(:default_database_service, adapter_name) unless get_option(:default_database_service)
+              tracer.set_service_info(
+                get_option(:default_database_service),
                 adapter_name,
                 Datadog::Ext::AppTypes::DB
               )
@@ -115,11 +111,11 @@ module Datadog
           end
 
           # update global configurations
-          ::Rails.configuration.datadog_trace = datadog_config
+          ::Rails.configuration.datadog_trace = to_h
         end
 
         def self.auto_instrument_redis
-          return unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
+          return unless get_option(:auto_instrument_redis)
           Datadog::Tracer.log.debug('Enabling auto-instrumentation for Redis client')
 
           # patch the Redis library and reload the CacheStore if it was using Redis
@@ -142,7 +138,7 @@ module Datadog
         end
 
         def self.auto_instrument_grape
-          return unless ::Rails.configuration.datadog_trace[:auto_instrument_grape]
+          return unless get_option(:auto_instrument_grape)
 
           # patch the Grape library so that endpoints are traced
           Datadog::Monkey.patch_module(:grape)
@@ -150,13 +146,13 @@ module Datadog
           # update the Grape pin object
           pin = Datadog::Pin.get_from(::Grape)
           return unless pin && pin.enabled?
-          pin.tracer = ::Rails.configuration.datadog_trace[:tracer]
-          pin.service = ::Rails.configuration.datadog_trace[:default_grape_service]
+          pin.tracer = get_option(:tracer)
+          pin.service = get_option(:default_grape_service)
         end
 
         # automatically instrument all Rails component
         def self.auto_instrument
-          return unless ::Rails.configuration.datadog_trace[:auto_instrument]
+          return unless get_option(:auto_instrument)
           Datadog::Tracer.log.debug('Enabling auto-instrumentation for core components')
 
           # instrumenting Rails framework

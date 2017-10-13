@@ -21,7 +21,7 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
+          tracer = Datadog.configuration[:rails][:tracer]
           span = tracer.active_span()
           span.set_error(e) unless span.nil?
           raise e

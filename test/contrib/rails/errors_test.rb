@@ -5,13 +5,13 @@ require 'contrib/rails/test_helper'
 # rubocop:disable Metrics/ClassLength
 class TracingControllerTest < ActionController::TestCase
   setup do
-    @original_tracer = Rails.configuration.datadog_trace[:tracer]
+    @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = @tracer
+    Datadog.configuration[:rails][:tracer] = @tracer
   end
 
   teardown do
-    Rails.configuration.datadog_trace[:tracer] = @original_tracer
+    Datadog.configuration[:rails][:tracer] = @original_tracer
   end
 
   test 'error in the controller must be traced' do

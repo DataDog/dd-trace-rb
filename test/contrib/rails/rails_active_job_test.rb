@@ -13,13 +13,13 @@ require 'active_job'
 class RailsActiveJobTest < ActionController::TestCase
   setup do
     # don't pollute the global tracer
-    @original_tracer = Rails.configuration.datadog_trace[:tracer]
+    @original_tracer = Datadog.configuration[:rails][:tracer]
     @original_writer = @original_tracer.writer
 
     @tracer = get_test_tracer()
     Datadog.tracer.writer = @tracer.writer
 
-    Rails.configuration.datadog_trace[:tracer] = @tracer
+    Datadog.configuration[:rails][:tracer] = @tracer
 
     # configure Sidekiq
     Sidekiq.configure_client do |config|
@@ -34,8 +34,8 @@ class RailsActiveJobTest < ActionController::TestCase
   end
 
   teardown do
-    Rails.configuration.datadog_trace[:tracer] = @original_tracer
-    Rails.configuration.datadog_trace[:tracer].writer = @original_writer
+    Datadog.configuration[:rails][:tracer] = @original_tracer
+    Datadog.configuration[:rails][:tracer].writer = @original_writer
   end
 
   # Sidekiq test job

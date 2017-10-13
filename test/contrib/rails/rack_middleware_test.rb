@@ -5,21 +5,22 @@ require 'contrib/rails/test_helper'
 class FullStackTest < ActionDispatch::IntegrationTest
   setup do
     # store original tracers
-    Rails.application.app.configure()
-    @rails_tracer = Rails.configuration.datadog_trace[:tracer]
+    @rails_tracer = Datadog.configuration[:rails][:tracer]
     @rack_tracer = Rails.application.app.instance_variable_get :@tracer
 
     # replace the Rails and the Rack tracer with a dummy one;
     # this prevents the overhead to reinitialize the Rails application
     # and the Rack stack
     @tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = @tracer
-    Rails.application.app.instance_variable_set(:@tracer, @tracer)
+    Datadog.registry[:rails].reset_options!
+    Datadog.configuration[:rails][:default_database_service] = get_adapter_name
+    Datadog.configuration[:rails][:tracer] = @tracer
+    Datadog.configuration[:rack][:tracer] = @tracer
   end
 
   teardown do
     # restore original tracers
-    Rails.configuration.datadog_trace[:tracer] = @rails_tracer
+    Datadog.configuration[:rails][:tracer] = @rails_tracer
     Rails.application.app.instance_variable_set(:@tracer, @rack_tracer)
   end
 

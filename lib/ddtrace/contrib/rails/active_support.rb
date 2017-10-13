@@ -12,7 +12,7 @@ module Datadog
         end
 
         def self.start_trace_cache(payload)
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
+          tracer = Datadog.configuration[:rails][:tracer]
           tracing_context = payload.fetch(:tracing_context)
 
           # In most of the cases Rails ``fetch()`` and ``read()`` calls are nested.
@@ -26,7 +26,7 @@ module Datadog
                     payload[:action] == 'GET'
 
           # create a new ``Span`` and add it to the tracing context
-          service = ::Rails.configuration.datadog_trace.fetch(:default_cache_service)
+          service = Datadog.configuration[:rails][:default_cache_service]
           type = Datadog::Ext::CACHE::TYPE
           span = tracer.trace('rails.cache', service: service, span_type: type)
           span.resource = payload.fetch(:action)

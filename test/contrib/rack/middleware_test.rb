@@ -286,19 +286,27 @@ end
 
 class RackBaseTest < Minitest::Test
   def test_middleware_builder_defaults
-    # by default it should have a Tracer and a service
+    previous_configuration = Datadog.registry[:rack].to_h
+    Datadog.registry[:rack].reset_options!
+
     middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {})
     refute_nil(middleware)
-    assert_equal(middleware.instance_eval { @options[:tracer] }, Datadog.tracer)
-    assert_equal(middleware.instance_eval { @options[:default_service] }, 'rack')
+    assert_equal(Datadog.tracer, Datadog.configuration[:rack][:tracer])
+    assert_equal('rack', Datadog.configuration[:rack][:default_service])
+
+    Datadog.configuration.use(:rack, previous_configuration)
   end
 
   def test_middleware_builder
     # it should set the tracer and the service
+    previous_configuration = Datadog.registry[:rack].to_h
+
     tracer = get_test_tracer()
     middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {}, tracer: tracer, default_service: 'custom-rack')
     refute_nil(middleware)
-    assert_equal(middleware.instance_eval { @options[:tracer] }, tracer)
-    assert_equal(middleware.instance_eval { @options[:default_service] }, 'custom-rack')
+    assert_equal(tracer, Datadog.configuration[:rack][:tracer])
+    assert_equal('custom-rack', Datadog.configuration[:rack][:default_service])
+
+    Datadog.configuration.use(:rack, previous_configuration)
   end
 end
