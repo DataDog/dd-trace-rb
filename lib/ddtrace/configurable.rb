@@ -18,12 +18,15 @@ module Datadog
         __assert_valid!(name)
 
         __options[name][:value] = __options[name][:setter].call(value)
+        __options[name][:set_flag] = true
       end
 
       def get_option(name)
         __assert_valid!(name)
 
-        __options[name][:value] || __options[name][:default]
+        return __options[name][:default] unless __options[name][:set_flag]
+
+        __options[name][:value]
       end
 
       def to_h

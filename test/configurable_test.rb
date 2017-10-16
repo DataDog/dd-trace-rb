@@ -76,5 +76,14 @@ module Datadog
       @module.set_option(:y, 100)
       assert_equal({ x: 1, y: 100 }, @module.to_h)
     end
+
+    def test_false_options
+      @module.class_eval do
+        option :boolean, default: true
+      end
+
+      @module.set_option(:boolean, false)
+      refute(@module.get_option(:boolean))
+    end
   end
 end
