@@ -12,6 +12,7 @@ module Datadog
           span.set_tag Datadog::Ext::NET::TARGET_HOST, client.host
           span.set_tag Datadog::Ext::NET::TARGET_PORT, client.port
           span.set_tag Datadog::Ext::Redis::DB, client.db
+          span.set_tag Datadog::Ext::Redis::RAW_COMMAND, span.resource
         end
       end
     end

@@ -23,7 +23,7 @@ class RedisQuantizeTest < Minitest::Test
   end
 
   def test_format_command_args
-    assert_equal('SET KEY VALUE', Datadog::Contrib::Redis::Quantize.format_command_args(%w[SET KEY VALUE]))
+    assert_equal('SET KEY VALUE', Datadog::Contrib::Redis::Quantize.format_command_args([:set, 'KEY', 'VALUE']))
     command_args = []
     20.times { command_args << ('X' * 90) }
     trimmed = Datadog::Contrib::Redis::Quantize.format_command_args(command_args)

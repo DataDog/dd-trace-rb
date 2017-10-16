@@ -48,7 +48,8 @@ class RedisCacheTracingTest < ActionController::TestCase
 
       assert_equal(redis.name, 'redis.command')
       assert_equal(redis.span_type, 'redis')
-      assert_equal(redis.resource, 'get custom-key')
+      assert_equal(redis.resource, 'GET custom-key')
+      assert_equal(redis.get_tag('redis.raw_command'), 'GET custom-key')
       assert_equal(redis.service, 'redis')
       # the following ensures span will be correctly displayed (parent/child of the same trace)
       assert_equal(cache.trace_id, redis.trace_id)
@@ -113,7 +114,8 @@ class RedisCacheTracingTest < ActionController::TestCase
 
     assert_equal(redis.name, 'redis.command')
     assert_equal(redis.span_type, 'redis')
-    assert_match(/set custom-key .*ActiveSupport.*/, redis.resource)
+    assert_match(/SET custom-key .*ActiveSupport.*/, redis.resource)
+    assert_match(/SET custom-key .*ActiveSupport.*/, redis.get_tag('redis.raw_command'))
     assert_equal(redis.service, 'redis')
     # the following ensures span will be correctly displayed (parent/child of the same trace)
     assert_equal(cache.trace_id, redis.trace_id)
@@ -136,7 +138,8 @@ class RedisCacheTracingTest < ActionController::TestCase
 
     assert_equal(del.name, 'redis.command')
     assert_equal(del.span_type, 'redis')
-    assert_equal(del.resource, 'del custom-key')
+    assert_equal(del.resource, 'DEL custom-key')
+    assert_equal(del.get_tag('redis.raw_command'), 'DEL custom-key')
     assert_equal(del.service, 'redis')
     # the following ensures span will be correctly displayed (parent/child of the same trace)
     assert_equal(cache.trace_id, del.trace_id)
