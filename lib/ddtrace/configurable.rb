@@ -8,28 +8,32 @@ module Datadog
       base.singleton_class.send(:include, ClassMethods)
     end
 
+    def merge_configuration(options, defaults = self.class)
+      defaults.to_h.merge(options)
+    end
+
     # ClassMethods
     module ClassMethods
       def set_option(name, value)
-        assert_valid!(name)
+        __assert_valid!(name)
 
-        options[name][:value] = options[name][:setter].call(value)
+        __options[name][:value] = __options[name][:setter].call(value)
       end
 
       def get_option(name)
-        assert_valid!(name)
+        __assert_valid!(name)
 
-        options[name][:value] || options[name][:default]
+        __options[name][:value] || __options[name][:default]
       end
 
       def to_h
-        options.each_with_object({}) do |(key, meta), hash|
-          hash[key] = meta[:value]
+        __options.each_with_object({}) do |(key, _), hash|
+          hash[key] = get_option(key)
         end
       end
 
       def reset_options!
-        options.each do |name, meta|
+        __options.each do |name, meta|
           set_option(name, meta[:default])
         end
       end
@@ -39,19 +43,19 @@ module Datadog
       def option(name, meta = {})
         name = name.to_sym
         meta[:setter] ||= IDENTITY
-        options[name] = meta
+        __options[name] = meta
       end
 
-      def options
-        @options ||= {}
+      def __options
+        @__options ||= {}
       end
 
-      def assert_valid!(name)
-        return if options.key?(name)
-        raise(InvalidOptionError, "#{pretty_name} doesn't have the option: #{name}")
+      def __assert_valid!(name)
+        return if __options.key?(name)
+        raise(InvalidOptionError, "#{__pretty_name} doesn't have the option: #{name}")
       end
 
-      def pretty_name
+      def __pretty_name
         entry = Datadog.registry.find { |el| el.klass == self }
 
         return entry.name if entry
