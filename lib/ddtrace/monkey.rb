@@ -4,6 +4,7 @@ require 'thread'
 # because patchers do not include any 3rd party module nor even our
 # patching code, which is required on demand, when patching.
 require 'ddtrace/contrib/base'
+require 'ddtrace/contrib/rails/patcher'
 require 'ddtrace/contrib/active_record/patcher'
 require 'ddtrace/contrib/elasticsearch/patcher'
 require 'ddtrace/contrib/faraday/patcher'
@@ -80,3 +81,5 @@ module Datadog
     end
   end
 end
+
+Datadog::Monkey.patch_module(:rails)

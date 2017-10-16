@@ -210,7 +210,7 @@ def reset_config
   end
 
   config = { config: ::Rails.application.config }
-  Datadog.registry[:rails].configure(config)
+  Datadog::Contrib::Rails::Framework.configure(config)
 end
 
 def test_repeat
