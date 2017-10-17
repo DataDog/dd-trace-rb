@@ -1,4 +1,5 @@
 require_relative 'configuration/proxy'
+require_relative 'configuration/resolver'
 
 module Datadog
   # Configuration provides a unique access point for configurations
@@ -17,8 +18,8 @@ module Datadog
     def use(integration_name, options = {})
       integration = fetch_integration(integration_name)
 
-      options.each_with_object(Proxy.new(integration)) do |(name, value), proxy|
-        proxy[name] = value
+      integration.sorted_options.each do |name|
+        integration.set_option(name, options[name]) if options.key?(name)
       end
 
       integration.patch if integration.respond_to?(:patch)

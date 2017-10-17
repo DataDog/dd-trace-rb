@@ -11,6 +11,7 @@ module Datadog
     def test_use_method
       contrib = Minitest::Mock.new
       contrib.expect(:patch, true)
+      contrib.expect(:sorted_options, [])
 
       @registry.add(:example, contrib)
       @configuration.use(:example)
@@ -70,6 +71,22 @@ module Datadog
 
       @registry.add(:example, integration)
       assert_equal({ option1: :foo, option2: :bar }, @configuration[:example].to_h)
+    end
+
+    def test_dependency_solving
+      integration = Module.new do
+        include Contrib::Base
+        option :multiply_by, depends_on: [:number] do |value|
+          get_option(:number) * value
+        end
+
+        option :number
+      end
+
+      @registry.add(:example, integration)
+      @configuration.use(:example, multiply_by: 5, number: 5)
+      assert_equal(5, @configuration[:example][:number])
+      assert_equal(25, @configuration[:example][:multiply_by])
     end
   end
 end

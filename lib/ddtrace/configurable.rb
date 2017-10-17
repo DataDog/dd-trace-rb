@@ -41,11 +41,16 @@ module Datadog
         end
       end
 
+      def sorted_options
+        Configuration::Resolver.new(__dependency_graph).call
+      end
+
       private
 
-      def option(name, meta = {})
+      def option(name, meta = {}, &block)
         name = name.to_sym
-        meta[:setter] ||= IDENTITY
+        meta[:setter] ||= (block || IDENTITY)
+        meta[:depends_on] ||= []
         __options[name] = meta
       end
 
@@ -64,6 +69,12 @@ module Datadog
         return entry.name if entry
 
         to_s
+      end
+
+      def __dependency_graph
+        __options.each_with_object({}) do |(name, meta), graph|
+          graph[name] = meta[:depends_on]
+        end
       end
     end
   end

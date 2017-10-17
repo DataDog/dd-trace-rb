@@ -37,6 +37,15 @@ module Datadog
       assert_equal('LOUD', @module.get_option(:shout))
     end
 
+    def test_custom_setter_block
+      @module.class_eval do
+        option(:shout) { |value| "#{value.upcase}!" }
+      end
+
+      @module.set_option(:shout, 'ouch')
+      assert_equal('OUCH!', @module.get_option(:shout))
+    end
+
     def test_invalid_option
       assert_raises(InvalidOptionError) do
         @module.set_option(:bad_option, 'foo')
@@ -84,6 +93,16 @@ module Datadog
 
       @module.set_option(:boolean, false)
       refute(@module.get_option(:boolean))
+    end
+
+    def test_dependency_solving
+      @module.class_eval do
+        option :foo, depends_on: [:bar]
+        option :bar, depends_on: [:baz]
+        option :baz
+      end
+
+      assert_equal([:baz, :bar, :foo], @module.sorted_options)
     end
   end
 end
