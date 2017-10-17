@@ -21,13 +21,13 @@ class TracerActiveRecordTest < TracerTestBase
     app().set :datadog_test_writer, @writer
 
     tracer = Datadog::Tracer.new(writer: @writer)
-    app().settings.datadog_tracer.configure(tracer: tracer, enabled: true)
+    Datadog.configuration.use(:sinatra, tracer: tracer, enabled: true)
 
     conn = ActiveRecord::Base.establish_connection(adapter: 'sqlite3',
                                                    database: ':memory:')
     app().set :datadog_test_conn, conn
 
-    Datadog::Monkey.patch_module(:active_record)
+    Datadog.configuration.use(:active_record)
 
     super
   end

@@ -44,7 +44,7 @@ module Datadog
         def self.datadog_trace
           # TODO: Consider using patcher for Rails as well.
           # @tracer ||= defined?(::Rails) && ::Rails.configuration.datadog_trace
-          @datadog_trace ||= defined?(::Sinatra) && ::Sinatra::Application.settings.datadog_tracer.cfg
+          @datadog_trace ||= defined?(::Sinatra) && Datadog.configuration[:sinatra].to_h
         end
 
         def self.adapter_name
