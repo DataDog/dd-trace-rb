@@ -1,7 +1,11 @@
+require 'forwardable'
+
 module Datadog
   class Configuration
     # Proxy provides a hash-like interface for fetching/setting configurations
     class Proxy
+      extend Forwardable
+
       def initialize(integration)
         @integration = integration
       end
@@ -18,15 +22,8 @@ module Datadog
         @integration.set_option(param, value)
       end
 
-      def to_h
-        @integration.to_h
-      end
-
-      alias to_hash to_h
-
-      def reset!
-        @integration.reset_options!
-      end
+      def_delegators :@integration, :to_h, :reset_options!
+      def_delegators :to_h, :to_hash, :merge
     end
   end
 end
