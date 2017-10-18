@@ -56,26 +56,6 @@ module Datadog
       end
     end
 
-    def test_merge_configuration
-      klass = Class.new do
-        include Configurable
-        option :x, default: :default_x
-        option :y, default: :default_y
-
-        attr_reader :options
-
-        def initialize(options = {})
-          @options = merge_configuration(options)
-        end
-      end
-
-      instance = klass.new(x: :custom_x, z: :custom_z)
-
-      assert_equal(:custom_x, instance.options[:x])
-      assert_equal(:default_y, instance.options[:y])
-      assert_equal(:custom_z, instance.options[:z])
-    end
-
     def test_to_h
       @module.class_eval do
         option :x, default: 1

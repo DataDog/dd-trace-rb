@@ -8,10 +8,6 @@ module Datadog
       base.singleton_class.send(:include, ClassMethods)
     end
 
-    def merge_configuration(options, defaults = self.class)
-      defaults.to_h.merge(options)
-    end
-
     # ClassMethods
     module ClassMethods
       def set_option(name, value)
