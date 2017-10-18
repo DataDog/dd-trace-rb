@@ -14,22 +14,23 @@ Datadog::Tracer.log.debug("Activating instrumentation for Sidekiq '#{sidekiq_vs}
 module Datadog
   module Contrib
     module Sidekiq
-      DEFAULT_CONFIG = {
-        enabled: true,
-        sidekiq_service: 'sidekiq',
-        tracer: Datadog.tracer,
-        debug: false,
-        trace_agent_hostname: Datadog::Writer::HOSTNAME,
-        trace_agent_port: Datadog::Writer::PORT
-      }.freeze
-
       # Middleware is a Sidekiq server-side middleware which traces executed jobs
       class Tracer
+        include Base
+        register_as :sidekiq
+
+        option :enabled, default: true
+        option :sidekiq_service, default: 'sidekiq'
+        option :tracer, default: Datadog.tracer
+        option :debug, default: false
+        option :trace_agent_hostname, default: Writer::HOSTNAME
+        option :trace_agent_port, default: Writer::PORT
+
         def initialize(options = {})
           # check if Rails configuration is available and use it to override
           # Sidekiq defaults
           rails_config = ::Rails.configuration.datadog_trace rescue {}
-          base_config = DEFAULT_CONFIG.merge(rails_config)
+          base_config = Datadog.configuration[:sidekiq].merge(rails_config)
           user_config = base_config.merge(options)
           @tracer = user_config[:tracer]
           @sidekiq_service = user_config[:sidekiq_service]
