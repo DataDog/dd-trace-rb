@@ -11,6 +11,9 @@ module Datadog
       # Use the `Datadog::Monkey.patch_module(:mongodb)` to activate tracing for
       # this module.
       module Patcher
+        include Base
+        register_as :mongo, auto_patch: true
+
         @patched = false
 
         module_function

@@ -7,6 +7,9 @@ module Datadog
 
       # Responsible for hooking the instrumentation into aws-sdk
       module Patcher
+        include Base
+        register_as :aws, auto_patch: true
+
         @patched = false
 
         class << self

@@ -5,6 +5,9 @@ module Datadog
 
       # Patcher for Resque integration - sets up the pin for the integration
       module Patcher
+        include Base
+        register_as :resque, auto_patch: true
+
         @patched = false
 
         class << self
