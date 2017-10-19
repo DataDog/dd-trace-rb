@@ -32,6 +32,10 @@ module Datadog
   end
 end
 
+# Monkey currently is responsible for loading all contributions, which in turn
+# rely on the registry defined above. We should make our code less dependent on
+# the load order, by letting things be lazily loaded while keeping
+# thread-safety.
 require 'ddtrace/monkey'
 
 # Datadog auto instrumentation for frameworks
