@@ -83,7 +83,6 @@ module Datadog
           # obfuscated version
           span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('active_record.db.vendor', adapter_name)
-          span.set_tag('kernel.caller', Kernel.caller(1, 10).join("\n"))
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
