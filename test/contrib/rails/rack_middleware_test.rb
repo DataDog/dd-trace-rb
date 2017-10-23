@@ -61,6 +61,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(database_span.service, adapter_name)
     assert_equal(database_span.get_tag('rails.db.vendor'), adapter_name)
     assert_nil(database_span.get_tag('rails.db.cached'))
+    assert_equal(true, sqlite_span.get_tag('caller').present?)
     assert_includes(database_span.resource, 'SELECT')
     assert_includes(database_span.resource, 'FROM')
     assert_includes(database_span.resource, 'articles')
