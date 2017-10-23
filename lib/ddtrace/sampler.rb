@@ -46,4 +46,39 @@ module Datadog
       span.set_metric(SAMPLE_RATE_METRIC_KEY, @sample_rate)
     end
   end
+
+  # \RateByServiceSampler samples different services at different rates
+  class RateByServiceSampler < Sampler
+    def initialize(rate = 1.0, opts = {})
+      @env = opts.fetch(:env, Datadog.tracer.tags[:env])
+      @mutex = Mutex.new
+      @fallback = RateSampler.new(rate)
+      @sampler = {}
+    end
+
+    def sample(span)
+      key = key_for(span)
+
+      @mutex.synchronize do
+        @sampler.fetch(key, @fallback).sample(span)
+      end
+    end
+
+    def update(rate_by_service)
+      @mutex.synchronize do
+        @sampler.delete_if { |key, _| !rate_by_service.key?(key) }
+
+        rate_by_service.each do |key, rate|
+          @sampler[key] ||= RateSampler.new(rate)
+          @sampler[key].sample_rate = rate
+        end
+      end
+    end
+
+    private
+
+    def key_for(span)
+      "service:#{span.service},env:#{@env}"
+    end
+  end
 end
