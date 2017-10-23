@@ -45,6 +45,11 @@ module Datadog
           span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('rails.db.vendor', adapter_name)
           span.set_tag('rails.db.cached', cached) if cached
+
+
+          complete_backtrace = caller
+          clean_backtrace = ::Rails.backtrace_cleaner.clean(complete_backtrace)
+          span.set_tag('caller', clean_backtrace.join("\n")) if clean_backtrace.present?
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
