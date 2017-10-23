@@ -46,6 +46,7 @@ class TracerActiveRecordTest < TracerTestBase
     assert_equal('sqlite', sqlite_span.service)
     assert_equal('SELECT 42', sqlite_span.resource)
     assert_equal('sqlite', sqlite_span.get_tag('active_record.db.vendor'))
+    assert_equal(true, sqlite_span.get_tag('kernel.caller').present?)
     assert_equal(Datadog::Ext::SQL::TYPE, sqlite_span.span_type)
     assert_equal(0, sqlite_span.status)
     assert_equal(sinatra_span, sqlite_span.parent)
