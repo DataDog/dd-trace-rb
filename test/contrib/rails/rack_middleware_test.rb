@@ -24,8 +24,14 @@ class FullStackTest < ActionDispatch::IntegrationTest
   end
 
   test 'a full request is properly traced' do
+    fake_backtrace_cleaner = ActiveSupport::BacktraceCleaner.new.tap do |bc|
+      bc.add_silencer { |line| !line.include?('dd-trace-rb') }
+    end
+
     # make the request and assert the proper span
-    get '/full'
+    ::Rails.stub :backtrace_cleaner, fake_backtrace_cleaner do
+      get '/full'
+    end
     assert_response :success
 
     # get spans
