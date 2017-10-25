@@ -33,6 +33,7 @@ module Datadog
     # spawns two different workers for spans and services;
     # they share the same transport which is thread-safe
     def start
+      @pid = Process.pid
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
       @service_handler = ->(items, transport) { send_services(items, transport) }
       @worker = Datadog::Workers::AsyncTransport.new(@transport,
@@ -85,7 +86,6 @@ module Datadog
       pid = Process.pid
       @mutex_after_fork.synchronize do
         if pid != @pid
-          @pid = pid
           # we should start threads because the worker doesn't own this
           start()
         end
