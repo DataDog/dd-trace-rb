@@ -218,7 +218,7 @@ class TracerTest < Minitest::Test
     assert_equal('special-service', span.service)
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
-    assert_equal(yesterday, span.start_time)
+    assert_equal(yesterday.to_f, span.start_time)
     assert_equal('test', span.get_tag('env'))
     assert_equal('cool', span.get_tag('temp'))
     assert_equal('value1', span.get_tag('tag1'))

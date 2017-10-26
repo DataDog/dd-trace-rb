@@ -4,14 +4,13 @@ require 'ddtrace/span'
 class SpanTest < Minitest::Test
   def test_span_finish
     tracer = nil
-    span = Datadog::Span.new(tracer, 'my.op')
+    span = generate_span(tracer, 'my.op')
     # the start_time is not set, calling start_span with Tracer would set it
-    assert_nil(span.start_time)
     assert_nil(span.end_time)
     span.finish
     # the end_time must be set
     sleep(0.001)
-    assert span.end_time < Time.now.utc
+    assert span.end_time < Datadog::Utils.current_time
     assert span.start_time <= span.end_time
     assert span.to_hash[:duration] >= 0
   end
@@ -31,7 +30,7 @@ class SpanTest < Minitest::Test
   def test_span_finish_at
     # finish_at must set the right time
     span = Datadog::Span.new(nil, 'span.test')
-    now = Time.now.utc
+    now = Datadog::Utils.current_time
     # wait 0.01s but set the end time before the wait
     sleep(0.01)
     span.finish(now)
@@ -43,7 +42,7 @@ class SpanTest < Minitest::Test
   def test_span_finish_at_once
     # calling finish_at() multiple times doesn't have any effect
     span = Datadog::Span.new(nil, 'span.test')
-    now = Time.now.utc
+    now = Datadog::Utils.current_time
     # wait 0.01s but set the end time before the wait
     sleep(0.01)
     span.finish(now)

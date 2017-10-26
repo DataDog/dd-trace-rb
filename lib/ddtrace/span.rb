@@ -19,12 +19,10 @@ module Datadog
     MAX_ID = 2**63
 
     attr_accessor :name, :service, :resource, :span_type,
-                  :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
-                  :status, :sampled,
-                  :tracer, :context
+                  :status, :sampled, :tracer, :context
 
-    attr_reader :parent
+    attr_reader :parent, :start_time, :end_time
 
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
     # and then <tt>finish()</tt> once the tracer operation is over.
@@ -101,19 +99,14 @@ module Datadog
     end
 
     # Mark the span finished at the current time and submit it.
-    def finish(finish_time = nil)
+    def finish(finish_time = Utils.current_time)
       # A span should not be finished twice. Note that this is not thread-safe,
       # finish is called from multiple threads, a given span might be finished
       # several times. Again, one should not do this, so this test is more a
       # fallback to avoid very bad things and protect you in most common cases.
       return if finished?
 
-      # Provide a default start_time if unset, but this should have been set by start_span.
-      # Using now here causes 0-duration spans, still, this is expected, as we never
-      # explicitely say when it started.
-      @start_time ||= Time.now.utc
-
-      @end_time = finish_time.nil? ? Time.now.utc : finish_time # finish this
+      self.end_time = finish_time
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
@@ -163,6 +156,16 @@ module Datadog
       end
     end
 
+    def start_time=(value)
+      value = value.utc.to_f if value.is_a?(Time)
+      @start_time = value
+    end
+
+    def end_time=(value)
+      value = value.utc.to_f if value.is_a?(Time)
+      @end_time = value
+    end
+
     # Return the hash representation of the current span.
     def to_hash
       h = {
@@ -179,7 +182,7 @@ module Datadog
       }
 
       if !@start_time.nil? && !@end_time.nil?
-        h[:start] = (@start_time.to_f * 1e9).to_i
+        h[:start] = (@start_time * 1e9).to_i
         h[:duration] = ((@end_time - @start_time) * 1e9).to_i
       end
 
@@ -188,8 +191,8 @@ module Datadog
 
     # Return a human readable version of the span
     def pretty_print(q)
-      start_time = (@start_time.to_f * 1e9).to_i rescue '-'
-      end_time = (@end_time.to_f * 1e9).to_i rescue '-'
+      start_time = (@start_time * 1e9).to_i rescue '-'
+      end_time = (@end_time * 1e9).to_i rescue '-'
       duration = ((@end_time - @start_time) * 1e9).to_i rescue 0
       q.group 0 do
         q.breakable
