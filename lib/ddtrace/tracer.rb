@@ -259,13 +259,8 @@ module Datadog
     # * +span_type+: the type of the span (such as \http, \db and so on)
     # * +tags+: extra tags which should be added to the span.
     def trace(name, options = {})
-      opts = options.select do |k, _v|
-        # Filter options, we want no side effects with unexpected args.
-        # Plus, this documents the code (Ruby 2 named args would be better but we're Ruby 1.9 compatible)
-        [:service, :resource, :span_type, :tags].include?(k)
-      end
-      opts[:child_of] = call_context
-      span = start_span(name, opts)
+      options[:child_of] = call_context
+      span = start_span(name, options)
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
