@@ -143,24 +143,25 @@ module Datadog
           # mutable payload with a tracing context that is used in two different
           # signals; it propagates the request span so that it can be finished
           # no matter what
-          raw_payload = {
+          payload = {
             controller: self.class.name,
             action: action_name,
             tracing_context: {}
           }
 
-          # emits two different signals that start and finish the trace; this approach
-          # mimics the original behavior that is available since Rails 3.0:
-          # - https://github.com/rails/rails/blob/3-0-stable/actionpack/lib/action_controller/metal/instrumentation.rb#L17-L35
-          # - https://github.com/rails/rails/blob/5-1-stable/actionpack/lib/action_controller/metal/instrumentation.rb#L17-L39
-          ActiveSupport::Notifications.instrument('!datadog.start_processing.action_controller', raw_payload)
-
-          # process the request and finish the trace
-          ActiveSupport::Notifications.instrument('!datadog.finish_processing.action_controller', raw_payload) do |payload|
+          begin
+            # process and catch request exceptions
+            Datadog::Contrib::Rails::ActionController.start_processing(payload)
             result = process_action_without_datadog(*args)
             payload[:status] = response.status
             result
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActionController.finish_processing(payload)
         end
 
         alias_method :process_action_without_datadog, :process_action
