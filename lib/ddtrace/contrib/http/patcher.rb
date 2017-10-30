@@ -12,13 +12,17 @@ module Datadog
       APP = 'net/http'.freeze
       SERVICE = 'net/http'.freeze
 
-      @distributed_tracing_enabled = false
+      module_function
 
-      class << self
-        attr_accessor :distributed_tracing_enabled
+      # TODO: Remove this once we drop support for legacy configuration
+      def distributed_tracing_enabled
+        Datadog.configuration[:http][:distributed_tracing_enabled]
       end
 
-      module_function
+      # TODO: Remove this once we drop support for legacy configuration
+      def distributed_tracing_enabled=(value)
+        Datadog.configuration[:http][:distributed_tracing_enabled] = value
+      end
 
       def should_skip_tracing?(req, address, port, transport, pin)
         # we don't want to trace our own call to the API (they use net/http)
@@ -42,10 +46,11 @@ module Datadog
       end
 
       def should_skip_distributed_tracing?(pin)
+        global_value = Datadog.configuration[:http][:distributed_tracing_enabled]
         unless pin.config.nil?
-          return !pin.config.fetch(:distributed_tracing_enabled, @distributed_tracing_enabled)
+          return !pin.config.fetch(:distributed_tracing_enabled, global_value)
         end
-        !@distributed_tracing_enabled
+        !global_value
       end
 
       # Patcher enables patching of 'net/http' module.
@@ -53,6 +58,7 @@ module Datadog
       module Patcher
         include Base
         register_as :http, auto_patch: true
+        option :distributed_tracing_enabled, default: false
 
         @patched = false
 
