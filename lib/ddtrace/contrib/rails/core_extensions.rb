@@ -27,11 +27,9 @@ module Datadog
           # context when a partial is rendered
           @tracing_context ||= {}
           if @tracing_context.empty?
-            ::ActiveSupport::Notifications.instrument(
-              '!datadog.start_render_template.action_view',
-              tracing_context: @tracing_context
-            )
+            Datadog::Contrib::Rails::ActionView.start_render_template(tracing_context: @tracing_context)
           end
+
           render_without_datadog(*args)
         rescue Exception => e
           # attach the exception to the tracing context if any
@@ -39,10 +37,7 @@ module Datadog
           raise e
         ensure
           # ensure that the template `Span` is finished even during exceptions
-          ::ActiveSupport::Notifications.instrument(
-            '!datadog.finish_render_template.action_view',
-            tracing_context: @tracing_context
-          )
+          Datadog::Contrib::Rails::ActionView.finish_render_template(tracing_context: @tracing_context)
         end
 
         def render_template_with_datadog(*args)
@@ -90,10 +85,7 @@ module Datadog
         def render_with_datadog(*args, &block)
           # create a tracing context and start the rendering span
           @tracing_context = {}
-          ::ActiveSupport::Notifications.instrument(
-            '!datadog.start_render_partial.action_view',
-            tracing_context: @tracing_context
-          )
+          Datadog::Contrib::Rails::ActionView.start_render_partial(tracing_context: @tracing_context)
           render_without_datadog(*args)
         rescue Exception => e
           # attach the exception to the tracing context if any
@@ -101,10 +93,7 @@ module Datadog
           raise e
         ensure
           # ensure that the template `Span` is finished even during exceptions
-          ::ActiveSupport::Notifications.instrument(
-            '!datadog.finish_render_partial.action_view',
-            tracing_context: @tracing_context
-          )
+          Datadog::Contrib::Rails::ActionView.finish_render_partial(tracing_context: @tracing_context)
         end
 
         def render_partial_with_datadog(*args)
