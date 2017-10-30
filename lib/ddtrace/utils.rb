@@ -1,3 +1,5 @@
+require 'rbconfig'
+
 module Datadog
   # Utils contains low-level utilities, typically to provide pseudo-random trace IDs.
   module Utils
@@ -27,6 +29,20 @@ module Datadog
       return string if string.size <= size
 
       string.slice(0, size - omission.size) + omission
+    end
+
+    def self.windows_platform?
+      RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
+    end
+
+    if defined?(Process::CLOCK_REALTIME) && !windows_platform?
+      def self.current_time
+        Process.clock_gettime(Process::CLOCK_REALTIME)
+      end
+    else
+      def self.current_time
+        Time.now.to_f
+      end
     end
 
     private_class_method :reset!, :was_forked?
