@@ -196,11 +196,17 @@ module Datadog
             tracing_context: {}
           }
 
-          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
-
-          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+          begin
+            # process and catch cache exceptions
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
             read_without_datadog(*args, &block)
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
         end
       end
     end
@@ -215,11 +221,17 @@ module Datadog
             tracing_context: {}
           }
 
-          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
-
-          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+          begin
+            # process and catch cache exceptions
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
             fetch_without_datadog(*args, &block)
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
         end
       end
     end
@@ -234,11 +246,17 @@ module Datadog
             tracing_context: {}
           }
 
-          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
-
-          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+          begin
+            # process and catch cache exceptions
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
             write_without_datadog(*args, &block)
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
         end
       end
     end
@@ -253,11 +271,17 @@ module Datadog
             tracing_context: {}
           }
 
-          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
-
-          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+          begin
+            # process and catch cache exceptions
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
             delete_without_datadog(*args, &block)
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
         end
       end
     end
