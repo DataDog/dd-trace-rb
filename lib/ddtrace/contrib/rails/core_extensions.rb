@@ -2,7 +2,7 @@ module Datadog
   # RailsRendererPatcher contains function to patch Rails rendering libraries.
   # rubocop:disable Lint/RescueException
   # rubocop:disable Metrics/MethodLength
-  # rubocop:disable Metrics/BlockLength
+  # rubocop:disable Metrics/ModuleLength
   module RailsRendererPatcher
     module_function
 
