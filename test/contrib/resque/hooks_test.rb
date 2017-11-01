@@ -15,6 +15,7 @@ module Datadog
           ::Resque.redis = redis_url
           Monkey.patch_module(:resque)
           @tracer = enable_test_tracer!
+          ::Resque::Failure.clear
         end
 
         def test_successful_job
@@ -28,6 +29,22 @@ module Datadog
           assert_equal(Ext::AppTypes::WORKER, span.span_type, 'span should be of worker span type')
           assert_equal('resque', span.service, 'wrong service stored in span')
           refute_equal(Ext::Errors::STATUS, span.status, 'wrong span status')
+        end
+
+        def test_clean_state
+          @tracer.trace('main.process') do
+            perform_job(TestCleanStateJob, @tracer)
+          end
+
+          spans = @tracer.writer.spans
+          assert_equal(2, spans.length)
+          assert_equal(0, ::Resque::Failure.count)
+
+          main_span = spans[0]
+          job_span = spans[1]
+          assert_equal('main.process', main_span.name, 'wrong span name set')
+          assert_equal('resque.job', job_span.name, 'wrong span name set')
+          refute_equal(main_span.trace_id, job_span.trace_id, 'main process and resque job must not be in the same trace')
         end
 
         def test_service_change
@@ -47,21 +64,21 @@ module Datadog
         end
 
         def test_failed_job
-          begin
-            perform_job(TestJob, false)
-          rescue StandardError => e
-            error = e
-          end
+          perform_job(TestJob, false)
           spans = @tracer.writer.spans
           span = spans.first
 
-          assert_equal('TestJob failed', error.message, 'unplanned error occured')
+          # retrieve error from Resque backend
+          assert_equal(1, ::Resque::Failure.count)
+          error_message = ::Resque::Failure.all['error']
+
+          assert_equal('TestJob failed', error_message, 'unplanned error occured')
           assert_equal(1, spans.length, 'created wrong number of spans')
           assert_equal('resque.job', span.name, 'wrong span name set')
           assert_equal(TestJob.name, span.resource, 'span resource should match job name')
           assert_equal(Ext::AppTypes::WORKER, span.span_type, 'span should be of worker span type')
           assert_equal('resque', span.service, 'wrong service stored in span')
-          assert_equal(error.message, span.get_tag(Ext::Errors::MSG), 'wrong error message populated')
+          assert_equal(error_message, span.get_tag(Ext::Errors::MSG), 'wrong error message populated')
           assert_equal(Ext::Errors::STATUS, span.status, 'wrong status in span')
           assert_equal('StandardError', span.get_tag(Ext::Errors::TYPE), 'wrong type of error stored in span')
         end

@@ -33,7 +33,9 @@ Resque.before_first_fork do
 end
 
 Resque.after_fork do
-  Thread.current[:datadog_context] = nil
+  # get the current tracer
   pin = Datadog::Pin.get_from(Resque)
+  # clean the state so no CoW happens
+  pin.tracer.provider.context = nil
   pin.tracer.writer.start
 end
