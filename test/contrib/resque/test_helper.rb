@@ -1,10 +1,12 @@
 require 'resque'
+
 require 'ddtrace'
 require 'ddtrace/contrib/resque/resque_job'
 
 def perform_job(klass, *args)
-  resque_job = Resque::Job.new(:test_queue, 'class' => klass, 'args' => args)
-  resque_job.perform
+  worker = Resque::Worker.new(:test_queue)
+  job = Resque::Job.new(:test_queue, 'class' => klass, 'args' => args)
+  worker.perform(job)
 end
 
 module TestJob
@@ -13,5 +15,16 @@ module TestJob
   def self.perform(pass = true)
     return true if pass
     raise StandardError, 'TestJob failed'
+  end
+end
+
+module TestCleanStateJob
+  extend Datadog::Contrib::Resque::ResqueJob
+
+  def self.perform(tracer)
+    # the perform ensures no Context is propagated
+    pin = Datadog::Pin.get_from(Resque)
+    spans = pin.tracer.provider.context.trace.length
+    raise StandardError if spans != 1
   end
 end
