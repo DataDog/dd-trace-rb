@@ -10,6 +10,8 @@ module Datadog
     # with the +stop()+ method and can start with the +start()+ method.
     class AsyncTransport
       DEFAULT_TIMEOUT = 5
+      BACK_OFF_RATIO = 1.2
+      BACK_OFF_MAX = 5
 
       attr_reader :trace_buffer, :service_buffer, :shutting_down
 
@@ -17,6 +19,7 @@ module Datadog
         @trace_task = trace_task
         @service_task = service_task
         @flush_interval = interval
+        @back_off = interval
         @trace_buffer = TraceBuffer.new(buff_size)
         @service_buffer = TraceBuffer.new(buff_size)
         @transport = transport
@@ -28,7 +31,7 @@ module Datadog
 
       # Callback function that process traces and executes the +send_traces()+ method.
       def callback_traces
-        return if @trace_buffer.empty?
+        return true if @trace_buffer.empty?
 
         begin
           traces = @trace_buffer.pop()
@@ -44,7 +47,7 @@ module Datadog
 
       # Callback function that process traces and executes the +send_services()+ method.
       def callback_services
-        return if @service_buffer.empty?
+        return true if @service_buffer.empty?
 
         begin
           services = @service_buffer.pop()
@@ -65,9 +68,11 @@ module Datadog
           Datadog::Tracer.log.debug("Starting thread in the process: #{Process.pid}")
 
           while @run
-            callback_traces
+            @back_off = callback_traces ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
+
             callback_services
-            sleep(@flush_interval) if @run
+
+            sleep(@back_off) if @run
           end
         end
       end
