@@ -34,11 +34,11 @@ module Datadog
       false
     end
 
+    # rubocop:disable Style/TrivialAccessors
     def onto(obj)
       unless obj.respond_to? :datadog_pin=
         obj.instance_exec do
           def datadog_pin=(pin)
-            Datadog::Tracer.log.debug("Set pin #{pin.service} on #{self.class}.")
             @datadog_pin = pin
           end
         end
@@ -47,7 +47,6 @@ module Datadog
       unless obj.respond_to? :datadog_pin
         obj.instance_exec do
           def datadog_pin
-            Datadog::Tracer.log.debug("Get pin from #{self.class}.")
             @datadog_pin
           end
         end
