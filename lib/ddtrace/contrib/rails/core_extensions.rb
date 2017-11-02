@@ -2,7 +2,7 @@ module Datadog
   # RailsRendererPatcher contains function to patch Rails rendering libraries.
   # rubocop:disable Lint/RescueException
   # rubocop:disable Metrics/MethodLength
-  # rubocop:disable Metrics/BlockLength
+  # rubocop:disable Metrics/ModuleLength
   module RailsRendererPatcher
     module_function
 
@@ -27,11 +27,9 @@ module Datadog
           # context when a partial is rendered
           @tracing_context ||= {}
           if @tracing_context.empty?
-            ::ActiveSupport::Notifications.instrument(
-              '!datadog.start_render_template.action_view',
-              tracing_context: @tracing_context
-            )
+            Datadog::Contrib::Rails::ActionView.start_render_template(tracing_context: @tracing_context)
           end
+
           render_without_datadog(*args)
         rescue Exception => e
           # attach the exception to the tracing context if any
@@ -39,10 +37,7 @@ module Datadog
           raise e
         ensure
           # ensure that the template `Span` is finished even during exceptions
-          ::ActiveSupport::Notifications.instrument(
-            '!datadog.finish_render_template.action_view',
-            tracing_context: @tracing_context
-          )
+          Datadog::Contrib::Rails::ActionView.finish_render_template(tracing_context: @tracing_context)
         end
 
         def render_template_with_datadog(*args)
@@ -90,10 +85,7 @@ module Datadog
         def render_with_datadog(*args, &block)
           # create a tracing context and start the rendering span
           @tracing_context = {}
-          ::ActiveSupport::Notifications.instrument(
-            '!datadog.start_render_partial.action_view',
-            tracing_context: @tracing_context
-          )
+          Datadog::Contrib::Rails::ActionView.start_render_partial(tracing_context: @tracing_context)
           render_without_datadog(*args)
         rescue Exception => e
           # attach the exception to the tracing context if any
@@ -101,10 +93,7 @@ module Datadog
           raise e
         ensure
           # ensure that the template `Span` is finished even during exceptions
-          ::ActiveSupport::Notifications.instrument(
-            '!datadog.finish_render_partial.action_view',
-            tracing_context: @tracing_context
-          )
+          Datadog::Contrib::Rails::ActionView.finish_render_partial(tracing_context: @tracing_context)
         end
 
         def render_partial_with_datadog(*args)
@@ -143,24 +132,25 @@ module Datadog
           # mutable payload with a tracing context that is used in two different
           # signals; it propagates the request span so that it can be finished
           # no matter what
-          raw_payload = {
+          payload = {
             controller: self.class.name,
             action: action_name,
             tracing_context: {}
           }
 
-          # emits two different signals that start and finish the trace; this approach
-          # mimics the original behavior that is available since Rails 3.0:
-          # - https://github.com/rails/rails/blob/3-0-stable/actionpack/lib/action_controller/metal/instrumentation.rb#L17-L35
-          # - https://github.com/rails/rails/blob/5-1-stable/actionpack/lib/action_controller/metal/instrumentation.rb#L17-L39
-          ActiveSupport::Notifications.instrument('!datadog.start_processing.action_controller', raw_payload)
-
-          # process the request and finish the trace
-          ActiveSupport::Notifications.instrument('!datadog.finish_processing.action_controller', raw_payload) do |payload|
+          begin
+            # process and catch request exceptions
+            Datadog::Contrib::Rails::ActionController.start_processing(payload)
             result = process_action_without_datadog(*args)
             payload[:status] = response.status
             result
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActionController.finish_processing(payload)
         end
 
         alias_method :process_action_without_datadog, :process_action
@@ -206,11 +196,17 @@ module Datadog
             tracing_context: {}
           }
 
-          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
-
-          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+          begin
+            # process and catch cache exceptions
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
             read_without_datadog(*args, &block)
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
         end
       end
     end
@@ -225,11 +221,17 @@ module Datadog
             tracing_context: {}
           }
 
-          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
-
-          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+          begin
+            # process and catch cache exceptions
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
             fetch_without_datadog(*args, &block)
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
         end
       end
     end
@@ -244,11 +246,17 @@ module Datadog
             tracing_context: {}
           }
 
-          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
-
-          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+          begin
+            # process and catch cache exceptions
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
             write_without_datadog(*args, &block)
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
         end
       end
     end
@@ -263,11 +271,17 @@ module Datadog
             tracing_context: {}
           }
 
-          ActiveSupport::Notifications.instrument('!datadog.start_cache_tracing.active_support', raw_payload)
-
-          ActiveSupport::Notifications.instrument('!datadog.finish_cache_tracing.active_support', raw_payload) do
+          begin
+            # process and catch cache exceptions
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
             delete_without_datadog(*args, &block)
+          rescue Exception => e
+            payload[:exception] = [e.class.name, e.message]
+            payload[:exception_object] = e
+            raise e
           end
+        ensure
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
         end
       end
     end

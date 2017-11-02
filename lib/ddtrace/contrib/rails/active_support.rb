@@ -8,20 +8,10 @@ module Datadog
       module ActiveSupport
         def self.instrument
           # patch Rails core components
-          Datadog::RailsCachePatcher.patch_cache_store()
-
-          # subscribe when a cache read starts being processed
-          ::ActiveSupport::Notifications.subscribe('!datadog.start_cache_tracing.active_support') do |*args|
-            start_trace_cache(*args)
-          end
-
-          # subscribe when a cache read has been processed
-          ::ActiveSupport::Notifications.subscribe('!datadog.finish_cache_tracing.active_support') do |*args|
-            finish_trace_cache(*args)
-          end
+          Datadog::RailsCachePatcher.patch_cache_store
         end
 
-        def self.start_trace_cache(_name, _start, _finish, _id, payload)
+        def self.start_trace_cache(payload)
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           tracing_context = payload.fetch(:tracing_context)
 
@@ -45,7 +35,7 @@ module Datadog
           Datadog::Tracer.log.debug(e.message)
         end
 
-        def self.finish_trace_cache(_name, _start, _finish, _id, payload)
+        def self.finish_trace_cache(payload)
           # retrieve the tracing context and continue the trace
           tracing_context = payload.fetch(:tracing_context)
           span = tracing_context[:dd_cache_span]
