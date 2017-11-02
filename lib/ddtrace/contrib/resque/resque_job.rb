@@ -35,6 +35,7 @@ end
 Resque.after_fork do
   # get the current tracer
   pin = Datadog::Pin.get_from(Resque)
+  next unless pin && pin.tracer
   # clean the state so no CoW happens
   pin.tracer.provider.context = nil
   pin.tracer.writer.start
