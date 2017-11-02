@@ -7,30 +7,10 @@ module Datadog
       module ActionView
         def self.instrument
           # patch Rails core components
-          Datadog::RailsRendererPatcher.patch_renderer()
-
-          # subscribe when the template rendering starts
-          ::ActiveSupport::Notifications.subscribe('!datadog.start_render_template.action_view') do |*args|
-            start_render_template(*args)
-          end
-
-          # subscribe when the template rendering has been processed
-          ::ActiveSupport::Notifications.subscribe('!datadog.finish_render_template.action_view') do |*args|
-            finish_render_template(*args)
-          end
-
-          # subscribe when the partial rendering starts
-          ::ActiveSupport::Notifications.subscribe('!datadog.start_render_partial.action_view') do |*args|
-            start_render_partial(*args)
-          end
-
-          # subscribe when the partial rendering has been processed
-          ::ActiveSupport::Notifications.subscribe('!datadog.finish_render_partial.action_view') do |*args|
-            finish_render_partial(*args)
-          end
+          Datadog::RailsRendererPatcher.patch_renderer
         end
 
-        def self.start_render_template(_name, _start, _finish, _id, payload)
+        def self.start_render_template(payload)
           # retrieve the tracing context
           tracing_context = payload.fetch(:tracing_context)
 
@@ -42,7 +22,7 @@ module Datadog
           Datadog::Tracer.log.debug(e.message)
         end
 
-        def self.finish_render_template(_name, _start, _finish, _id, payload)
+        def self.finish_render_template(payload)
           # retrieve the tracing context and the latest active span
           tracing_context = payload.fetch(:tracing_context)
           span = tracing_context[:dd_rails_template_span]
@@ -64,7 +44,7 @@ module Datadog
           Datadog::Tracer.log.debug(e.message)
         end
 
-        def self.start_render_partial(_name, _start, _finish, _id, payload)
+        def self.start_render_partial(payload)
           # retrieve the tracing context
           tracing_context = payload.fetch(:tracing_context)
 
@@ -75,7 +55,7 @@ module Datadog
           Datadog::Tracer.log.debug(e.message)
         end
 
-        def self.finish_render_partial(_name, start, finish, _id, payload)
+        def self.finish_render_partial(payload)
           # retrieve the tracing context and the latest active span
           tracing_context = payload.fetch(:tracing_context)
           span = tracing_context[:dd_rails_partial_span]

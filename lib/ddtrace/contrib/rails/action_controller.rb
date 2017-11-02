@@ -9,19 +9,9 @@ module Datadog
         def self.instrument
           # patch Rails core components
           Datadog::RailsActionPatcher.patch_action_controller
-
-          # subscribe when the request processing starts
-          ::ActiveSupport::Notifications.subscribe('!datadog.start_processing.action_controller') do |*args|
-            start_processing(*args)
-          end
-
-          # subscribe when the request processing has been completed
-          ::ActiveSupport::Notifications.subscribe('!datadog.finish_processing.action_controller') do |*args|
-            finish_processing(*args)
-          end
         end
 
-        def self.start_processing(_name, _start, _finish, _id, payload)
+        def self.start_processing(payload)
           # trace the execution
           tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
           service = ::Rails.configuration.datadog_trace.fetch(:default_controller_service)
@@ -35,7 +25,7 @@ module Datadog
           Datadog::Tracer.log.error(e.message)
         end
 
-        def self.finish_processing(_name, start, finish, _id, payload)
+        def self.finish_processing(payload)
           # retrieve the tracing context and the latest active span
           tracing_context = payload.fetch(:tracing_context)
           span = tracing_context[:dd_request_span]
