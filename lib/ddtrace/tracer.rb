@@ -162,24 +162,12 @@ module Datadog
     end
 
     # Guess context and parent from child_of entry.
-    def guess_context_and_parent(options = {})
-      child_of = options.fetch(:child_of, nil) # can be context or span
+    def guess_context_and_parent(child_of)
+      return [call_context, nil] unless child_of
 
-      ctx = nil
-      parent = nil
-      unless child_of.nil?
-        if child_of.respond_to?(:current_span)
-          ctx = child_of
-          parent = child_of.current_span
-        elsif child_of.is_a?(Datadog::Span)
-          parent = child_of
-          ctx = child_of.context
-        end
-      end
+      return [child_of, child_of.current_span] if child_of.is_a?(Context)
 
-      ctx ||= call_context
-
-      [ctx, parent]
+      [child_of.context, child_of]
     end
 
     # Return a span that will trace an operation called \name. This method allows
@@ -202,7 +190,7 @@ module Datadog
         [:service, :resource, :span_type].include?(k)
       end
 
-      ctx, parent = guess_context_and_parent(options)
+      ctx, parent = guess_context_and_parent(options[:child_of])
       opts[:context] = ctx unless ctx.nil?
 
       span = Span.new(self, name, opts)
