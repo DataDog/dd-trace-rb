@@ -46,6 +46,7 @@ module Datadog
       @span_id = Datadog::Utils.next_id
       @parent_id = options.fetch(:parent_id, 0)
       @trace_id = options.fetch(:trace_id, Datadog::Utils.next_id)
+      @sampling_priority = options[:sampling_priority]
 
       @context = options.fetch(:context, nil)
 
@@ -160,6 +161,7 @@ module Datadog
         @parent_id = parent.span_id
         @service ||= parent.service
         @sampled = parent.sampled
+        @sampling_priority = parent.sampling_priority
       end
     end
 
