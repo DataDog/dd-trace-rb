@@ -55,16 +55,10 @@ module Datadog
       return true if traces.empty?
 
       code = transport.send(:traces, traces)
+      status = !transport.server_error?(code)
+      @traces_flushed += traces.length if status
 
-      if transport.server_error? code # requeue on server error, skip on success or client error
-        traces[0..@buff_size].each do |trace|
-          @worker.enqueue_trace trace
-        end
-        return false
-      end
-
-      @traces_flushed += traces.length()
-      true
+      status
     end
 
     # flush services to the trace-agent, handles services only
@@ -72,13 +66,10 @@ module Datadog
       return true if services.empty?
 
       code = transport.send(:services, services)
-      if transport.server_error? code # requeue on server error, skip on success or client error
-        @worker.enqueue_service services
-        return false
-      end
+      status = !transport.server_error?(code)
+      @services_flushed += 1 if status
 
-      @services_flushed += 1
-      true
+      status
     end
 
     # enqueue the trace for submission to the API

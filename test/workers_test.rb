@@ -84,45 +84,6 @@ class WorkersSpanTest < WorkersTest
     assert_equal('my.service', span['service'], 'wrong service')
   end
 
-  # test that retry on failure works for traces
-  def test_span_retry
-    span = @tracer.start_span('my.op')
-    span.service = 'my.service'
-    sleep(0.001)
-    span.finish()
-
-    (20 * FLUSH_INTERVAL).times do
-      break if @writer.stats[:traces_flushed] >= 1
-      sleep(0.1)
-    end
-
-    assert_equal(1, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
-
-    @transport.helper_error_mode! true # now responding 500 ERROR
-
-    span = @tracer.start_span('my.op2')
-    span.service = 'my.service'
-    sleep(0.001)
-    span.finish()
-
-    sleep(2 * FLUSH_INTERVAL) # wait long enough so that a flush happens
-
-    assert_equal(1, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
-
-    @transport.helper_error_mode! false # now responding 200 OK
-
-    (20 * FLUSH_INTERVAL).times do
-      break if @writer.stats[:traces_flushed] >= 2
-      sleep(0.1)
-    end
-
-    assert_operator(2, :<=, @writer.stats[:traces_flushed], 'wrong number of traces flushed')
-
-    dump = @transport.helper_dump
-    dumped_traces = dump[500][:traces]
-    assert_operator(1, :<=, dumped_traces.length, 'there should have been errors on traces endpoint')
-  end
-
   # test that a default service is provided if none has been given at all
   def test_span_default_service
     span = @tracer.start_span('my.op')
@@ -168,7 +129,7 @@ class WorkersSpanTest < WorkersTest
     @tracer.start_span('keep', service: 'tracer-test').finish
     @tracer.start_span('discard', service: 'tracer-test').finish
 
-    try_wait_until do
+    try_wait_until(attempts: 20) do
       @transport.helper_sent[200][:traces].any? rescue false
     end
 
@@ -199,15 +160,10 @@ class WorkersServiceTest < WorkersTest
   def test_two_services
     @tracer.set_service_info('my.service', 'rails', 'web')
     @tracer.set_service_info('my.other.service', 'golang', 'api')
+    @tracer.start_span('my.op').finish
 
-    span = @tracer.start_span('my.op')
-    span.service = 'my.service'
-    sleep(0.001)
-    span.finish()
-
-    (20 * FLUSH_INTERVAL).times do
-      break if @writer.stats[:services_flushed] >= 1
-      sleep(0.1)
+    try_wait_until(attempts: 200, backoff: 0.1) do
+      @writer.stats[:services_flushed] >= 1
     end
 
     assert_equal(1, @writer.stats[:services_flushed], 'wrong number of services flushed')
@@ -230,51 +186,5 @@ class WorkersServiceTest < WorkersTest
     assert_equal({ 'my.service' => { 'app' => 'rails', 'app_type' => 'web' },
                    'my.other.service' => { 'app' => 'golang', 'app_type' => 'api' } },
                  services, 'bad services metadata')
-  end
-
-  # test that retry on failure works for services
-  def test_service_retry
-    @tracer.set_service_info('my.service', 'rails', 'web')
-
-    span = @tracer.start_span('my.op')
-    span.service = 'my.service'
-    sleep(0.001)
-    span.finish()
-
-    (20 * FLUSH_INTERVAL).times do
-      break if @writer.stats[:services_flushed] >= 1
-      sleep(0.1)
-    end
-
-    assert_equal(1, @writer.stats[:services_flushed], 'wrong number of services flushed')
-
-    @transport.helper_error_mode! true # now responding 500 ERROR
-
-    @tracer.set_service_info('my.other.service', 'golang', 'api')
-    @tracer.set_service_info('my.yet.other.service', 'postgresql', 'sql')
-
-    # need to generate a trace else service info does not make it to the queue
-    span = @tracer.start_span('my.op')
-    span.service = 'my.service'
-    sleep(0.001)
-    span.finish()
-
-    sleep(2 * FLUSH_INTERVAL) # wait long enough so that a flush happens
-
-    # nothing happens (500 ERROR...)
-    assert_equal(1, @writer.stats[:services_flushed], 'wrong number of services flushed')
-
-    @transport.helper_error_mode! false # now responding 200 OK
-
-    (20 * FLUSH_INTERVAL).times do
-      break if @writer.stats[:services_flushed] >= 2
-      sleep(0.1)
-    end
-
-    assert_equal(2, @writer.stats[:services_flushed], 'wrong number of services flushed')
-
-    dump = @transport.helper_dump
-    dumped_services = dump[500][:services]
-    assert_operator(1, :<=, dumped_services.length, 'there should have been errors on services endpoint')
   end
 end
