@@ -31,3 +31,11 @@ Resque.before_first_fork do
   next unless pin && pin.tracer
   pin.tracer.set_service_info(pin.service, 'resque', Datadog::Ext::AppTypes::WORKER)
 end
+
+Resque.after_fork do
+  # get the current tracer
+  pin = Datadog::Pin.get_from(Resque)
+  # clean the state so no CoW happens
+  pin.tracer.provider.context = nil
+  pin.tracer.writer.start
+end
