@@ -14,6 +14,8 @@ module Datadog
   #
   # This data structure is thread-safe.
   class Context
+    attr_accessor :sampling_priority
+
     # Initialize a new thread-safe \Context.
     def initialize
       @mutex = Mutex.new

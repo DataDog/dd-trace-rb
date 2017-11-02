@@ -22,7 +22,7 @@ module Datadog
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
-                  :tracer, :context
+                  :tracer, :context, :sampling_priority
 
     attr_reader :parent
 
