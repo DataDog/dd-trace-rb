@@ -58,6 +58,26 @@ class CacheTracingTest < ActionController::TestCase
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key')
   end
 
+  test 'cache exception handling' do
+    # use the cache and assert the proper span
+    assert_raise do
+      Rails.cache.fetch('exception') do
+        1 / 0
+      end
+    end
+    spans = @tracer.writer.spans()
+    assert_equal(spans.length, 1)
+    span = spans[0]
+    assert_equal(span.name, 'rails.cache')
+    assert_equal(span.span_type, 'cache')
+    assert_equal(span.resource, 'GET')
+    assert_equal(span.service, 'rails-cache')
+    assert_equal(span.get_tag('rails.cache.backend').to_s, 'file_store')
+    assert_equal(span.get_tag('rails.cache.key'), 'exception')
+    assert_equal(span.get_tag('error.type'), 'ZeroDivisionError')
+    assert_equal(span.get_tag('error.msg'), 'divided by 0')
+  end
+
   test 'doing a cache call uses the proper service name if it is changed' do
     # update database configuration
     update_config(:default_cache_service, 'service-cache')
