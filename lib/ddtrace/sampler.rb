@@ -42,8 +42,8 @@ module Datadog
     end
 
     def sample(span)
-      span.sampled = ((span.trace_id * KNUTH_FACTOR) % Datadog::Span::MAX_ID) <= @sampling_id_threshold
       span.set_metric(SAMPLE_RATE_METRIC_KEY, @sample_rate)
+      span.sampled = ((span.trace_id * KNUTH_FACTOR) % Datadog::Span::MAX_ID) <= @sampling_id_threshold
     end
   end
 
@@ -79,6 +79,21 @@ module Datadog
 
     def key_for(span)
       "service:#{span.service},env:#{@env}"
+    end
+  end
+
+  # \PrioritySampler
+  class PrioritySampler
+    def initialize(opts = {})
+      @base_sampler = opts[:base_sampler] || RateSampler.new
+      @post_sampler = opts[:post_sampler] || RateByServiceSampler.new
+    end
+
+    def sample(span)
+      span.sampling_priority = 0
+      return unless @base_sampler.sample(span)
+      return unless @post_sampler.sample(span)
+      span.sampling_priority = 1
     end
   end
 end
