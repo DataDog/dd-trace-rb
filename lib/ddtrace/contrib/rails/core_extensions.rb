@@ -190,7 +190,7 @@ module Datadog
       cache_store_class(:read).class_eval do
         alias_method :read_without_datadog, :read
         def read(*args, &block)
-          raw_payload = {
+          payload = {
             action: 'GET',
             key: args[0],
             tracing_context: {}
@@ -198,7 +198,7 @@ module Datadog
 
           begin
             # process and catch cache exceptions
-            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(payload)
             read_without_datadog(*args, &block)
           rescue Exception => e
             payload[:exception] = [e.class.name, e.message]
@@ -206,7 +206,7 @@ module Datadog
             raise e
           end
         ensure
-          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(payload)
         end
       end
     end
@@ -215,7 +215,7 @@ module Datadog
       cache_store_class(:fetch).class_eval do
         alias_method :fetch_without_datadog, :fetch
         def fetch(*args, &block)
-          raw_payload = {
+          payload = {
             action: 'GET',
             key: args[0],
             tracing_context: {}
@@ -223,7 +223,7 @@ module Datadog
 
           begin
             # process and catch cache exceptions
-            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(payload)
             fetch_without_datadog(*args, &block)
           rescue Exception => e
             payload[:exception] = [e.class.name, e.message]
@@ -231,7 +231,7 @@ module Datadog
             raise e
           end
         ensure
-          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(payload)
         end
       end
     end
@@ -240,7 +240,7 @@ module Datadog
       cache_store_class(:write).class_eval do
         alias_method :write_without_datadog, :write
         def write(*args, &block)
-          raw_payload = {
+          payload = {
             action: 'SET',
             key: args[0],
             tracing_context: {}
@@ -248,7 +248,7 @@ module Datadog
 
           begin
             # process and catch cache exceptions
-            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(payload)
             write_without_datadog(*args, &block)
           rescue Exception => e
             payload[:exception] = [e.class.name, e.message]
@@ -256,7 +256,7 @@ module Datadog
             raise e
           end
         ensure
-          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(payload)
         end
       end
     end
@@ -265,7 +265,7 @@ module Datadog
       cache_store_class(:delete).class_eval do
         alias_method :delete_without_datadog, :delete
         def delete(*args, &block)
-          raw_payload = {
+          payload = {
             action: 'DELETE',
             key: args[0],
             tracing_context: {}
@@ -273,7 +273,7 @@ module Datadog
 
           begin
             # process and catch cache exceptions
-            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(raw_payload)
+            Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(payload)
             delete_without_datadog(*args, &block)
           rescue Exception => e
             payload[:exception] = [e.class.name, e.message]
@@ -281,7 +281,7 @@ module Datadog
             raise e
           end
         ensure
-          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(raw_payload)
+          Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(payload)
         end
       end
     end
