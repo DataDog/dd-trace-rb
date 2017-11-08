@@ -1,6 +1,5 @@
 require 'helper'
 require 'ddtrace/span'
-
 class SpanTest < Minitest::Test
   def test_span_finish
     tracer = nil

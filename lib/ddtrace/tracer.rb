@@ -5,6 +5,7 @@ require 'pathname'
 
 require 'ddtrace/span'
 require 'ddtrace/context'
+require 'ddtrace/context_flush'
 require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
@@ -97,6 +98,8 @@ module Datadog
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
+      @context_flush = Datadog::ContextFlush.new(options)
+
       @mutex = Mutex.new
       @services = {}
       @tags = {}
@@ -117,8 +120,13 @@ module Datadog
       enabled = options.fetch(:enabled, nil)
       hostname = options.fetch(:hostname, nil)
       port = options.fetch(:port, nil)
+
+      # Those are rare "power-user" options.
       sampler = options.fetch(:sampler, nil)
       priority_sampling = options[:priority_sampling]
+      max_spans_before_partial_flush = options.fetch(:max_spans_before_partial_flush, nil)
+      min_spans_before_partial_flush = options.fetch(:max_spans_before_partial_flush, nil)
+      partial_flush_timeout = options.fetch(:partial_flush_timeout, nil)
 
       @enabled = enabled unless enabled.nil?
       @sampler = sampler unless sampler.nil?
@@ -130,6 +138,10 @@ module Datadog
 
       @writer.transport.hostname = hostname unless hostname.nil?
       @writer.transport.port = port unless port.nil?
+
+      @context_flush = Datadog::ContextFlush.new(options) unless min_spans_before_partial_flush.nil? &&
+                                                                 max_spans_before_partial_flush.nil? &&
+                                                                 partial_flush_timeout.nil?
     end
 
     # Set the information about the given service. A valid example is:
@@ -295,8 +307,15 @@ module Datadog
       context = context.context if context.is_a?(Datadog::Span)
       return if context.nil?
       trace, sampled = context.get
-      ready = !trace.nil? && !trace.empty? && sampled
-      write(trace) if ready
+      if sampled
+        if trace.nil? || trace.empty?
+          @context_flush.each_partial_trace(context) do |t|
+            write(t)
+          end
+        else
+          write(trace)
+        end
+      end
     end
 
     # Return the current active span or +nil+.

@@ -179,6 +179,7 @@ class ContextTest < Minitest::Test
     tracer = get_test_tracer
 
     default_log = Datadog::Tracer.log
+    default_level = Datadog::Tracer.log.level
 
     buf = StringIO.new
 
@@ -204,7 +205,7 @@ class ContextTest < Minitest::Test
     root.finish()
     lines = buf.string.lines
 
-    assert_equal(3, lines.length, 'there should be 2 log messages') if lines.respond_to? :length
+    assert_operator(3, :<=, lines.length, 'there should be at least 3 log messages') if lines.respond_to? :length
 
     # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
     i = 0
@@ -230,6 +231,7 @@ class ContextTest < Minitest::Test
     end
 
     Datadog::Tracer.log = default_log
+    Datadog::Tracer.log.level = default_level
   end
 
   def test_thread_safe
@@ -270,6 +272,100 @@ class ContextTest < Minitest::Test
     assert_equal(0, ctx.finished_spans)
     assert_nil(ctx.current_span)
     assert_equal(false, ctx.sampled)
+  end
+
+  def test_length
+    tracer = get_test_tracer
+    ctx = Datadog::Context.new
+
+    assert_equal(0, ctx.length)
+    10.times do |i|
+      span = Datadog::Span.new(tracer, "test.op#{i}")
+      assert_equal(i, ctx.length)
+      ctx.add_span(span)
+      assert_equal(i + 1, ctx.length)
+      ctx.close_span(span)
+      assert_equal(i + 1, ctx.length)
+    end
+
+    ctx.get
+
+    assert_equal(0, ctx.length)
+  end
+
+  def test_start_time
+    tracer = get_test_tracer
+    ctx = tracer.call_context
+
+    assert_nil(ctx.start_time)
+    tracer.trace('test.op') do |span|
+      assert_equal(span.start_time, ctx.start_time)
+    end
+    assert_nil(ctx.start_time)
+  end
+
+  def test_each_span
+    span = Datadog::Span.new(nil, 'test.op')
+    ctx = Datadog::Context.new
+    ctx.add_span(span)
+
+    action = MiniTest::Mock.new
+    action.expect(:call_with_name, nil, ['test.op'])
+    ctx.each_span do |s|
+      action.call_with_name(s.name)
+    end
+    action.verify
+  end
+
+  def test_delete_span_if
+    tracer = get_test_tracer
+    ctx = tracer.call_context
+
+    action = MiniTest::Mock.new
+    action.expect(:call_with_name, nil, ['test.op2'])
+    tracer.trace('test.op1') do
+      tracer.trace('test.op2') do
+        assert_equal(2, ctx.length)
+        ctx.delete_span_if { |span| span.name == 'test.op1' }
+        assert_equal(1, ctx.length)
+        ctx.each_span do |s|
+          action.call_with_name(s.name)
+        end
+        assert_equal(false, ctx.finished?, 'context is not finished as op2 is not finished')
+        tracer.trace('test.op3') do
+        end
+        assert_equal(2, ctx.length)
+        ctx.delete_span_if { |span| span.name == 'test.op3' }
+        assert_equal(1, ctx.length)
+      end
+      assert_equal(0, ctx.length, 'op2 has been finished, so context has been finished too')
+    end
+    action.verify
+  end
+
+  def test_max_length
+    tracer = get_test_tracer
+
+    ctx = Datadog::Context.new
+    assert_equal(Datadog::Context::DEFAULT_MAX_LENGTH, ctx.max_length)
+
+    max_length = 3
+    ctx = Datadog::Context.new(max_length: max_length)
+    assert_equal(max_length, ctx.max_length)
+
+    spans = []
+    (max_length * 2).times do |i|
+      span = tracer.start_span("test.op#{i}", child_of: ctx)
+      spans << span
+    end
+
+    assert_equal(max_length, ctx.length)
+    trace, = ctx.get
+    assert_nil(trace)
+
+    spans.each(&:finish)
+
+    assert_equal(0, ctx.length, "context #{ctx}")
   end
 end
 
