@@ -58,7 +58,7 @@ module Datadog
     end
 
     def closed?
-      @mutex.synchronise do
+      @mutex.synchronize do
         return @closed
       end
     end
