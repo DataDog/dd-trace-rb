@@ -1,4 +1,5 @@
 require 'time'
+require 'concurrent'
 
 require 'ddtrace/buffer'
 
@@ -67,9 +68,12 @@ module Datadog
         @worker = Thread.new() do
           Datadog::Tracer.log.debug("Starting thread in the process: #{Process.pid}")
 
-          while run
+          # Loop first - protects against edge race condition where code in shutdown! is run faster/before
+          # this method
+          loop do
             start_time = nil
-            if !@trace_buffer.closed?
+            # If buffer is left open, continue flushing every @flush_interval
+            unless @trace_buffer.closed?
               start_time = Time.now
 
               while !@trace_buffer.closed? && (Time.now - start_time < @flush_interval)
@@ -77,10 +81,22 @@ module Datadog
               end
             end
 
+            # Flush when buffer is closed or every @flush_interval
             if @trace_buffer.closed? || (Time.now - start_time >= @flush_interval)
-              @flush_interval = callback_traces ? @flush_interval : [@flush_interval * BACK_OFF_RATIO, BACK_OFF_MAX].min
+              trace_call = Concurrent::Promise.new { callback_traces }.execute
               callback_services
+
+              # Increase @flush_interval callback_traces returns immediately with nil
+              if trace_call.state == :fulfilled && trace_call.value.nil?
+                @flush_interval = [@flush_interval * BACK_OFF_RATIO, BACK_OFF_MAX].min
+
+              # Block on callback_traces if buffer is closed
+              elsif @trace_buffer.closed? && trace_call.state == :pending
+                trace_call.wait
+              end
             end
+
+            break unless run
           end
         end
       end
