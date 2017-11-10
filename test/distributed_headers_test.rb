@@ -36,8 +36,11 @@ class DistributedHeadersTest < Minitest::Test
 
     test_cases.each do |env, expected|
       dh = Datadog::DistributedHeaders.new(env)
-      # rubocop:disable Style/DoubleNegation
-      assert_equal(expected, !!dh.valid?, "with #{env} valid? should return #{expected}")
+      if dh.valid?
+        assert_equal(expected, true, "with #{env} valid? should be true")
+      else
+        assert_equal(expected, false, "with #{env} valid? should be false")
+      end
     end
   end
 
@@ -127,5 +130,23 @@ class DistributedHeadersTest < Minitest::Test
                      'x-datadog-trace-id' => span.trace_id.to_s,
                      'x-datadog-parent-id' => span.span_id.to_s }, env)
     end
+  end
+
+  def test_extract
+    ctx = Datadog::DistributedHeaders.extract({})
+    assert_nil(ctx.trace_id)
+    assert_nil(ctx.span_id)
+    assert_nil(ctx.sampling_priority)
+    ctx = Datadog::DistributedHeaders.extract('HTTP_X_DATADOG_TRACE_ID' => '123',
+                                              'HTTP_X_DATADOG_PARENT_ID' => '456')
+    assert_equal(123, ctx.trace_id)
+    assert_equal(456, ctx.span_id)
+    assert_nil(ctx.sampling_priority)
+    ctx = Datadog::DistributedHeaders.extract('HTTP_X_DATADOG_TRACE_ID' => '7',
+                                              'HTTP_X_DATADOG_PARENT_ID' => '8',
+                                              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '0')
+    assert_equal(7, ctx.trace_id)
+    assert_equal(8, ctx.span_id)
+    assert_equal(0, ctx.sampling_priority)
   end
 end
