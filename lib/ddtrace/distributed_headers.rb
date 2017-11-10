@@ -11,7 +11,8 @@ module Datadog
     end
 
     def valid?
-      trace_id && parent_id && sampling_priority
+      # Sampling priority is optional.
+      trace_id && parent_id
     end
 
     def trace_id
@@ -27,8 +28,12 @@ module Datadog
     end
 
     def sampling_priority
-      value = header(HTTP_HEADER_SAMPLING_PRIORITY).to_f
-      return unless SAMPLING_PRIORITY_RANGE.include?(value)
+      hdr = header(HTTP_HEADER_SAMPLING_PRIORITY)
+      # It's important to make a difference between no header,
+      # and a header defined to zero.
+      return unless hdr
+      value = hdr.to_i
+      return if value < 0
       value
     end
 
