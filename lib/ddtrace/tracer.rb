@@ -163,7 +163,10 @@ module Datadog
 
     # Guess context and parent from child_of entry.
     def guess_context_and_parent(child_of)
-      return [call_context, nil] unless child_of
+      # call_context should not be in this code path, as start_span
+      # should never try and pick an existing context, but only get
+      # it from the parameters passed to it (child_of)
+      return [Datadog::Context.new, nil] unless child_of
 
       return [child_of, child_of.current_span] if child_of.is_a?(Context)
 
@@ -198,6 +201,11 @@ module Datadog
         # root span
         @sampler.sample(span)
         span.set_tag('system.pid', Process.pid)
+        if ctx && ctx.trace_id && ctx.span_id
+          span.trace_id = ctx.trace_id
+          span.parent_id = ctx.span_id
+          span.sampling_priority = ctx.sampling_priority
+        end
       else
         # child span
         span.parent = parent # sets service, trace_id, parent_id, sampled

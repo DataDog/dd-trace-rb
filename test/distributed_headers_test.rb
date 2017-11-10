@@ -105,4 +105,27 @@ class DistributedHeadersTest < Minitest::Test
       end
     end
   end
+
+  def test_inject!
+    tracer = get_test_tracer
+
+    tracer.trace('caller') do |span|
+      env = { 'something' => 'alien' }
+      Datadog::DistributedHeaders.inject!(span, env)
+      assert_equal({ 'something' => 'alien',
+                     'x-datadog-trace-id' => span.trace_id.to_s,
+                     'x-datadog-parent-id' => span.span_id.to_s }, env)
+      span.sampling_priority = 0
+      Datadog::DistributedHeaders.inject!(span, env)
+      assert_equal({ 'something' => 'alien',
+                     'x-datadog-trace-id' => span.trace_id.to_s,
+                     'x-datadog-parent-id' => span.span_id.to_s,
+                     'x-datadog-sampling-priority' => '0' }, env)
+      span.sampling_priority = nil
+      Datadog::DistributedHeaders.inject!(span, env)
+      assert_equal({ 'something' => 'alien',
+                     'x-datadog-trace-id' => span.trace_id.to_s,
+                     'x-datadog-parent-id' => span.span_id.to_s }, env)
+    end
+  end
 end

@@ -57,20 +57,16 @@ module Datadog
             span_type: Datadog::Ext::HTTP::TYPE
           }
 
-          # start a new request span and attach it to the current Rack environment;
-          # we must ensure that the span `resource` is set later
-          request_span = @tracer.trace('rack.request', trace_options)
-
-          if @distributed_tracing_enabled
-            headers = DistributedHeaders.new(env)
-
-            if headers.valid?
-              @tracer.provider.context.sampling_priority = headers.sampling_priority
-
-              request_span.trace_id = headers.trace_id
-              request_span.parent_id = headers.parent_id
-              request_span.sampling_priority = headers.sampling_priority
+          request_span = nil
+          begin
+            if @distributed_tracing_enabled
+              context = DistributedHeaders.extract(env)
+              @tracer.provider.context = context if context.trace_id
             end
+          ensure
+            # start a new request span and attach it to the current Rack environment;
+            # we must ensure that the span `resource` is set later
+            request_span = @tracer.trace('rack.request', trace_options)
           end
 
           env[:datadog_rack_request_span] = request_span

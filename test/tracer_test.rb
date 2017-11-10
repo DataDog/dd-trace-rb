@@ -264,7 +264,7 @@ class TracerTest < Minitest::Test
     thread = Thread.new do
       mutex.synchronize do
         @thread_span = tracer.start_span('a')
-        @thread_ctx = tracer.call_context
+        @thread_ctx = @thread_span.context
       end
       hold.lock
       hold.unlock

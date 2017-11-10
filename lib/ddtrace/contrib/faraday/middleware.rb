@@ -1,7 +1,7 @@
 require 'faraday'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
-require 'ddtrace/ext/distributed'
+require 'ddtrace/distributed_headers'
 
 module Datadog
   module Contrib
@@ -56,10 +56,7 @@ module Datadog
         end
 
         def propagate!(span, env)
-          env[:request_headers][HTTP_HEADER_TRACE_ID] = span.trace_id.to_s
-          env[:request_headers][HTTP_HEADER_PARENT_ID] = span.span_id.to_s
-          return unless span.sampling_priority
-          env[:request_headers][HTTP_HEADER_SAMPLING_PRIORITY] = span.sampling_priority.to_s
+          Datadog::DistributedHeaders.inject!(span, env[:request_headers])
         end
 
         def dd_pin
