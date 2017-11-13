@@ -1,3 +1,5 @@
+require 'forwardable'
+
 module Datadog
   # \Sampler performs client-side trace sampling.
   class Sampler
@@ -86,6 +88,8 @@ module Datadog
 
   # \PrioritySampler
   class PrioritySampler
+    extend Forwardable
+
     def initialize(opts = {})
       @base_sampler = opts[:base_sampler] || RateSampler.new
       @post_sampler = opts[:post_sampler] || RateByServiceSampler.new
@@ -96,6 +100,10 @@ module Datadog
       return unless @base_sampler.sample(span)
       return unless @post_sampler.sample(span)
       span.sampling_priority = 1
+
+      true
     end
+
+    def_delegators :@post_sampler, :update
   end
 end
