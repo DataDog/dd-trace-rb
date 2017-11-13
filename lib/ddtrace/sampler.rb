@@ -49,11 +49,13 @@ module Datadog
 
   # \RateByServiceSampler samples different services at different rates
   class RateByServiceSampler < Sampler
+    DEFAULT_KEY = 'service:,env:'.freeze
+
     def initialize(rate = 1.0, opts = {})
       @env = opts.fetch(:env, Datadog.tracer.tags[:env])
       @mutex = Mutex.new
       @fallback = RateSampler.new(rate)
-      @sampler = {}
+      @sampler = { DEFAULT_KEY => @fallback }
     end
 
     def sample(span)
@@ -66,7 +68,7 @@ module Datadog
 
     def update(rate_by_service)
       @mutex.synchronize do
-        @sampler.delete_if { |key, _| !rate_by_service.key?(key) }
+        @sampler.delete_if { |key, _| key != DEFAULT_KEY && !rate_by_service.key?(key) }
 
         rate_by_service.each do |key, rate|
           @sampler[key] ||= RateSampler.new(rate)

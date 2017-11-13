@@ -48,6 +48,20 @@ module Datadog
       assert_in_epsilon(counter, DEFAULT_RATE * ITERATIONS_PER_SERVICE, MAX_DEVIATION)
     end
 
+    def test_fallback_update
+      counter = 0
+      rate = 0.2
+      @sampler.update('service:,env:' => rate)
+
+      ITERATIONS_PER_SERVICE.times do
+        span = Span.new(nil, nil, service: 'foo_service')
+        @sampler.sample(span)
+        counter += 1 if span.sampled
+      end
+
+      assert_in_epsilon(counter, rate * ITERATIONS_PER_SERVICE, MAX_DEVIATION)
+    end
+
     private
 
     def span_for(service_key)
