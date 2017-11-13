@@ -32,19 +32,19 @@ module Datadog
 
     def trace_id
       @mutex.synchronize do
-        return @parent_trace_id
+        @parent_trace_id
       end
     end
 
     def span_id
       @mutex.synchronize do
-        return @parent_span_id
+        @parent_span_id
       end
     end
 
     def sampling_priority
       @mutex.synchronize do
-        return @sampling_priority
+        @sampling_priority
       end
     end
 
