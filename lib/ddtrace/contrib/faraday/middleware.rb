@@ -1,7 +1,7 @@
 require 'faraday'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
-require 'ddtrace/distributed_headers'
+require 'ddtrace/propagation/http_propagator'
 
 module Datadog
   module Contrib
@@ -56,7 +56,7 @@ module Datadog
         end
 
         def propagate!(span, env)
-          Datadog::DistributedHeaders.inject!(span, env[:request_headers])
+          Datadog::HTTPPropagator.inject!(span, env[:request_headers])
         end
 
         def dd_pin

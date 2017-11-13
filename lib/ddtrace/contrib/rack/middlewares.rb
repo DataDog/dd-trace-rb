@@ -1,6 +1,6 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
-require 'ddtrace/distributed_headers'
+require 'ddtrace/propagation/http_propagator'
 
 module Datadog
   module Contrib
@@ -60,7 +60,7 @@ module Datadog
           request_span = nil
           begin
             if @distributed_tracing_enabled
-              context = DistributedHeaders.extract(env)
+              context = HTTPPropagator.extract(env)
               @tracer.provider.context = context if context.trace_id
             end
           ensure

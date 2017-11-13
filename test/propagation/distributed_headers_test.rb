@@ -1,7 +1,7 @@
 require 'helper'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
-require 'ddtrace/distributed_headers'
+require 'ddtrace/propagation/distributed_headers'
 
 class DistributedHeadersTest < Minitest::Test
   def test_valid_without_sampling_priority
@@ -107,46 +107,5 @@ class DistributedHeadersTest < Minitest::Test
         assert_nil(dh.sampling_priority, "with #{env} sampling_priority should return nil")
       end
     end
-  end
-
-  def test_inject!
-    tracer = get_test_tracer
-
-    tracer.trace('caller') do |span|
-      env = { 'something' => 'alien' }
-      Datadog::DistributedHeaders.inject!(span, env)
-      assert_equal({ 'something' => 'alien',
-                     'x-datadog-trace-id' => span.trace_id.to_s,
-                     'x-datadog-parent-id' => span.span_id.to_s }, env)
-      span.sampling_priority = 0
-      Datadog::DistributedHeaders.inject!(span, env)
-      assert_equal({ 'something' => 'alien',
-                     'x-datadog-trace-id' => span.trace_id.to_s,
-                     'x-datadog-parent-id' => span.span_id.to_s,
-                     'x-datadog-sampling-priority' => '0' }, env)
-      span.sampling_priority = nil
-      Datadog::DistributedHeaders.inject!(span, env)
-      assert_equal({ 'something' => 'alien',
-                     'x-datadog-trace-id' => span.trace_id.to_s,
-                     'x-datadog-parent-id' => span.span_id.to_s }, env)
-    end
-  end
-
-  def test_extract
-    ctx = Datadog::DistributedHeaders.extract({})
-    assert_nil(ctx.trace_id)
-    assert_nil(ctx.span_id)
-    assert_nil(ctx.sampling_priority)
-    ctx = Datadog::DistributedHeaders.extract('HTTP_X_DATADOG_TRACE_ID' => '123',
-                                              'HTTP_X_DATADOG_PARENT_ID' => '456')
-    assert_equal(123, ctx.trace_id)
-    assert_equal(456, ctx.span_id)
-    assert_nil(ctx.sampling_priority)
-    ctx = Datadog::DistributedHeaders.extract('HTTP_X_DATADOG_TRACE_ID' => '7',
-                                              'HTTP_X_DATADOG_PARENT_ID' => '8',
-                                              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '0')
-    assert_equal(7, ctx.trace_id)
-    assert_equal(8, ctx.span_id)
-    assert_equal(0, ctx.sampling_priority)
   end
 end
