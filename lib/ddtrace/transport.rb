@@ -19,13 +19,31 @@ module Datadog
     TRACE_COUNT_HEADER = 'X-Datadog-Trace-Count'.freeze
     RUBY_INTERPRETER = RUBY_VERSION > '1.9' ? RUBY_ENGINE + '-' + RUBY_PLATFORM : 'ruby-' + RUBY_PLATFORM
 
+    API = {
+      'v0.3' => {
+        traces_endpoint: '/v0.3/traces'.freeze,
+        services_endpoint: '/v0.3/services'.freeze,
+        encoder: Encoding::MsgpackEncoder,
+        fallback: 'v0.2'.freeze
+      }.freeze,
+      'v0.2' => {
+        traces_endpoint: '/v0.2/traces'.freeze,
+        services_endpoint: '/v0.2/services'.freeze,
+        encoder: Encoding::JSONEncoder
+      }.freeze
+    }.freeze
+
+    DEFAULT_API = 'v0.3'.freeze
+
+    private_constant :API, :DEFAULT_API
+
     def initialize(hostname, port, options = {})
+      api_version = options.fetch(:api_version, DEFAULT_API)
+
       @hostname = hostname
       @port = port
-      @traces_endpoint = '/v0.3/traces'.freeze
-      @services_endpoint = '/v0.3/services'.freeze
-      @compatibility_mode = false
-      @encoder = options.fetch(:encoder, Datadog::Encoding::MsgpackEncoder.new())
+      @api = API.fetch(api_version)
+      @encoder = options[:encoder] || @api[:encoder].new
 
       # overwrite the Content-type with the one chosen in the Encoder
       @headers = options.fetch(:headers, {})
@@ -48,21 +66,19 @@ module Datadog
       case endpoint
       when :services
         payload = @encoder.encode_services(data)
-        status_code = post(@services_endpoint, payload)
+        status_code = post(@api[:services_endpoint], payload)
       when :traces
         count = data.length
         payload = @encoder.encode_traces(data)
-        status_code = post(@traces_endpoint, payload, count)
+        status_code = post(@api[:traces_endpoint], payload, count)
       else
         Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
         return nil
       end
 
-      return status_code unless downgrade?(status_code) && !@compatibility_mode
+      downgrade! && send(endpoint, data) if downgrade?(status_code)
 
-      # the API endpoint is not available so we should downgrade the connection and re-try the call
-      downgrade!
-      send(endpoint, data)
+      status_code
     end
 
     # send data to the trace-agent; the method is thread-safe
@@ -84,10 +100,10 @@ module Datadog
     # this method should target a stable API that works whatever is the agent
     # or the tracing client versions.
     def downgrade!
-      @compatibility_mode = true
-      @traces_endpoint = '/v0.2/traces'.freeze
-      @services_endpoint = '/v0.2/services'.freeze
-      @encoder = Datadog::Encoding::JSONEncoder.new()
+      fallback_version = @api.fetch(:fallback)
+
+      @api = API.fetch(fallback_version)
+      @encoder = @api[:encoder].new
       @headers['Content-Type'] = @encoder.content_type
     end
 
@@ -119,6 +135,8 @@ module Datadog
     # endpoint. In both cases, we're going to downgrade the transporter encoder so that
     # it will target a stable API.
     def downgrade?(code)
+      return unless @api[:fallback]
+
       code == 404 || code == 415
     end
 

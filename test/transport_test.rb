@@ -106,9 +106,14 @@ class UtilsTest < Minitest::Test
     assert_equal 'application/msgpack', @default_transport.headers['Content-Type'],
                  "transport content-type is not msgpack, found: #{@default_transport.headers['Content-Type']}"
 
-    # make the call to a not existing endpoint (it will return 404)
-    @default_transport.traces_endpoint = '/v0.0/traces'.freeze
-    code = @default_transport.send(:traces, traces)
+    post = proc do |url, *rest|
+      return 404 unless url.start_with?('/v0.2')
+      @default_transport.post(url, *rest)
+    end
+
+    code = @default_transport.stub(:post, post) do
+      @default_transport.send(:traces, traces)
+    end
 
     # HTTPTransport should downgrade the encoder and API level
     assert_equal true, @default_transport.encoder.is_a?(Datadog::Encoding::JSONEncoder),
@@ -131,9 +136,14 @@ class UtilsTest < Minitest::Test
     assert_equal 'application/msgpack', @default_transport.headers['Content-Type'],
                  "transport content-type is not msgpack, found: #{@default_transport.headers['Content-Type']}"
 
-    # make the call to a not existing endpoint (it will return 404)
-    @default_transport.services_endpoint = '/v0.0/services'.freeze
-    code = @default_transport.send(:services, services)
+    post = proc do |url, *rest|
+      return 404 unless url.start_with?('/v0.2')
+      @default_transport.post(url, *rest)
+    end
+
+    code = @default_transport.stub(:post, post) do
+      @default_transport.send(:services, services)
+    end
 
     # HTTPTransport should downgrade the encoder and API level
     assert_equal true, @default_transport.encoder.is_a?(Datadog::Encoding::JSONEncoder),
