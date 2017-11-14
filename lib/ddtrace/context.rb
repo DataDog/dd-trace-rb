@@ -15,16 +15,43 @@ module Datadog
   # This data structure is thread-safe.
   class Context
     # Initialize a new thread-safe \Context.
-    def initialize
+    def initialize(options = {})
       @mutex = Mutex.new
-      reset
+      reset(options)
     end
 
-    def reset
+    def reset(options = {})
       @trace = []
-      @sampled = false
+      @parent_trace_id = options.fetch(:trace_id, nil)
+      @parent_span_id = options.fetch(:span_id, nil)
+      @sampled = options.fetch(:sampled, false)
+      @sampling_priority = options.fetch(:sampling_priority, nil)
       @finished_spans = 0
       @current_span = nil
+    end
+
+    def trace_id
+      @mutex.synchronize do
+        @parent_trace_id
+      end
+    end
+
+    def span_id
+      @mutex.synchronize do
+        @parent_span_id
+      end
+    end
+
+    def sampling_priority
+      @mutex.synchronize do
+        @sampling_priority
+      end
+    end
+
+    def sampling_priority=(priority)
+      @mutex.synchronize do
+        @sampling_priority = priority
+      end
     end
 
     # Return the last active span that corresponds to the last inserted
@@ -37,11 +64,21 @@ module Datadog
       end
     end
 
+    def set_current_span(span)
+      @current_span = span
+      if span
+        @parent_trace_id = span.trace_id
+        @parent_span_id = span.span_id
+        @sampled = span.sampled
+      else
+        @parent_span_id = nil
+      end
+    end
+
     # Add a span to the context trace list, keeping it as the last active span.
     def add_span(span)
       @mutex.synchronize do
-        @current_span = span
-        @sampled = span.sampled
+        set_current_span(span)
         @trace << span
         span.context = self
       end
@@ -55,7 +92,7 @@ module Datadog
         # Current span is only meaningful for linear tree-like traces,
         # in other cases, this is just broken and one should rely
         # on per-instrumentation code to retrieve handle parent/child relations.
-        @current_span = span.parent
+        set_current_span(span.parent)
         return if span.tracer.nil?
         return unless Datadog::Tracer.debug_logging
         if span.parent.nil? && !check_finished_spans
@@ -117,6 +154,7 @@ module Datadog
 
     private :reset
     private :check_finished_spans
+    private :set_current_span
   end
 
   # ThreadLocalContext can be used as a tracer global reference to create

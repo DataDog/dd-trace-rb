@@ -14,6 +14,61 @@ class ContextTest < Minitest::Test
     assert_equal(ctx, span.context)
   end
 
+  def test_initialize
+    ctx = Datadog::Context.new
+    assert_nil(ctx.trace_id)
+    assert_nil(ctx.span_id)
+    assert_nil(ctx.sampling_priority)
+    assert_equal(false, ctx.sampled)
+    assert_equal(false, ctx.finished?)
+
+    ctx = Datadog::Context.new(trace_id: 123, span_id: 456, sampling_priority: 1, sampled: true)
+    assert_equal(123, ctx.trace_id)
+    assert_equal(456, ctx.span_id)
+    assert_equal(1, ctx.sampling_priority)
+    assert_equal(true, ctx.sampled)
+    assert_equal(false, ctx.finished?)
+  end
+
+  def test_trace_id
+    tracer = get_test_tracer
+    ctx = Datadog::Context.new
+
+    assert_nil(ctx.trace_id)
+
+    span = Datadog::Span.new(tracer, 'test.op')
+    ctx.add_span(span)
+
+    assert_equal(span.trace_id, ctx.trace_id)
+  end
+
+  def test_span_id
+    tracer = get_test_tracer
+    ctx = Datadog::Context.new
+
+    assert_nil(ctx.span_id)
+
+    span = Datadog::Span.new(tracer, 'test.op')
+    ctx.add_span(span)
+
+    assert_equal(span.span_id, ctx.span_id)
+  end
+
+  def test_sampling_priority
+    ctx = Datadog::Context.new
+
+    assert_nil(ctx.sampling_priority)
+
+    [0, 1, 2, nil, 999].each do |sampling_priority|
+      ctx.sampling_priority = sampling_priority
+      if sampling_priority
+        assert_equal(sampling_priority, ctx.sampling_priority)
+      else
+        assert_nil(ctx.sampling_priority)
+      end
+    end
+  end
+
   def test_add_span
     tracer = get_test_tracer
     ctx = Datadog::Context.new

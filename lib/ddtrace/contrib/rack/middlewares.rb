@@ -1,21 +1,12 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
-require 'ddtrace/distributed'
+require 'ddtrace/propagation/http_propagator'
 
 module Datadog
   module Contrib
     # Rack module includes middlewares that are required to trace any framework
     # and application built on top of Rack.
     module Rack
-      # RACK headers to test when doing distributed tracing.
-      # They are slightly different from real headers as Rack uppercases everything
-
-      # Header used to transmit the trace ID.
-      HTTP_HEADER_TRACE_ID = 'HTTP_X_DATADOG_TRACE_ID'.freeze
-
-      # Header used to transmit the parent ID.
-      HTTP_HEADER_PARENT_ID = 'HTTP_X_DATADOG_PARENT_ID'.freeze
-
       # TraceMiddleware ensures that the Rack Request is properly traced
       # from the beginning to the end. The middleware adds the request span
       # in the Rack environment so that it can be retrieved by the underlying
@@ -66,21 +57,16 @@ module Datadog
             span_type: Datadog::Ext::HTTP::TYPE
           }
 
-          # start a new request span and attach it to the current Rack environment;
-          # we must ensure that the span `resource` is set later
-          request_span = @tracer.trace('rack.request', trace_options)
-
-          if @distributed_tracing_enabled
-            # Merge distributed trace ids if present
-            #
-            # Use integer values for tests, as it will catch both
-            # a non-existing header or a badly formed one.
-            trace_id, parent_id = Datadog::Distributed.parse_trace_headers(
-              env[Datadog::Contrib::Rack::HTTP_HEADER_TRACE_ID],
-              env[Datadog::Contrib::Rack::HTTP_HEADER_PARENT_ID]
-            )
-            request_span.trace_id = trace_id unless trace_id.nil?
-            request_span.parent_id = parent_id unless parent_id.nil?
+          request_span = nil
+          begin
+            if @distributed_tracing_enabled
+              context = HTTPPropagator.extract(env)
+              @tracer.provider.context = context if context.trace_id
+            end
+          ensure
+            # start a new request span and attach it to the current Rack environment;
+            # we must ensure that the span `resource` is set later
+            request_span = @tracer.trace('rack.request', trace_options)
           end
 
           env[:datadog_rack_request_span] = request_span

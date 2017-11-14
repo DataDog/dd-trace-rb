@@ -1,13 +1,15 @@
 require 'faraday'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
-require 'ddtrace/ext/distributed'
+require 'ddtrace/propagation/http_propagator'
 
 module Datadog
   module Contrib
     module Faraday
       # Middleware implements a faraday-middleware for ddtrace instrumentation
       class Middleware < ::Faraday::Middleware
+        include Ext::DistributedTracing
+
         DEFAULT_ERROR_HANDLER = lambda do |env|
           Ext::HTTP::ERROR_RANGE.cover?(env[:status])
         end
@@ -54,10 +56,7 @@ module Datadog
         end
 
         def propagate!(span, env)
-          env[:request_headers].merge!(
-            Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id.to_s,
-            Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id.to_s
-          )
+          Datadog::HTTPPropagator.inject!(span, env[:request_headers])
         end
 
         def dd_pin

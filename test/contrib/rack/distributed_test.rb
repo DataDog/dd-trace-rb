@@ -27,7 +27,7 @@ class DistributedTest < Minitest::Test
     response = client.get('/distributed/')
     refute_nil(response, 'no response')
     assert_kind_of(Net::HTTPResponse, response, 'bad response type')
-    assert_equal('200', response.code, 'bad response status')
+    assert_equal('200', response.code, "bad response status log=#{@log_buf.string}")
 
     spans = tracer.writer.spans()
 
