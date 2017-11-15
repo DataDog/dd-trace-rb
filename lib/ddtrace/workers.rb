@@ -83,17 +83,18 @@ module Datadog
 
             # Flush when buffer is closed or every @flush_interval
             if @trace_buffer.closed? || (Time.now - start_time >= @flush_interval)
-              trace_call = Concurrent::Promise.new { callback_traces }.execute
+              #trace_call = Concurrent::Promise.new { callback_traces }.execute
+              trace_call = callback_traces
               callback_services
 
               # Increase @flush_interval if callback_traces returns immediately with nil
-              if trace_call.state == :fulfilled && trace_call.value.nil?
-                @flush_interval = [@flush_interval * BACK_OFF_RATIO, BACK_OFF_MAX].min
+            #  if trace_call.state == :fulfilled && trace_call.value.nil?
+            #    @flush_interval = [@flush_interval * BACK_OFF_RATIO, BACK_OFF_MAX].min
 
-              # Block on callback_traces if buffer is closed
-              elsif @trace_buffer.closed? && trace_call.state == :pending
-                trace_call.wait(DEFAULT_TIMEOUT)
-              end
+            #  # Block on callback_traces if buffer is closed
+            #  elsif @trace_buffer.closed? && trace_call.state == :pending
+            #    trace_call.wait(DEFAULT_TIMEOUT)
+            #  end
             end
 
             break unless run
