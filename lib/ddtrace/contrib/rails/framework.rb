@@ -44,6 +44,7 @@ module Datadog
           default_grape_service: 'grape',
           template_base_path: 'views/',
           tracer: Datadog.tracer,
+          priority_sampling: false,
           debug: false,
           trace_agent_hostname: Datadog::Writer::HOSTNAME,
           trace_agent_port: Datadog::Writer::PORT,
@@ -66,7 +67,8 @@ module Datadog
           # set the address of the trace agent
           datadog_config[:tracer].configure(
             hostname: datadog_config[:trace_agent_hostname],
-            port: datadog_config[:trace_agent_port]
+            port: datadog_config[:trace_agent_port],
+            priority_sampling: datadog_config[:priority_sampling]
           )
 
           # set default tracer tags
