@@ -118,12 +118,12 @@ module Datadog
           ::Rails.configuration.datadog_trace = datadog_config
         end
 
-        def self.auto_instrument_redis
-          return unless ::Rails.configuration.datadog_trace[:auto_instrument_redis]
+        def self.auto_instrument_redis(config)
+          return unless config[:auto_instrument_redis]
           Datadog::Tracer.log.debug('Enabling auto-instrumentation for Redis client')
 
           # patch the Redis library and reload the CacheStore if it was using Redis
-          Datadog::Monkey.patch_module(:redis)
+          Datadog::Monkey.patch_module(:redis, config)
 
           # reload the cache store if it's available and it's using Redis
           return unless defined?(::ActiveSupport::Cache::RedisStore) &&
