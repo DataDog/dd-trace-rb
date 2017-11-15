@@ -44,7 +44,7 @@ module Datadog
       @mutex.synchronize do
         patcher = registry[m]
         raise "Unsupported module #{m}" unless patcher
-        patcher.patch
+        patcher.patch if patcher.respond_to?(:patch)
       end
     end
 
@@ -55,8 +55,9 @@ module Datadog
     end
 
     def get_patched_modules
-      registry.each_with_object({}) do |entry, patched|
-        @mutex.synchronize do
+      @mutex.synchronize do
+        registry.each_with_object({}) do |entry, patched|
+          next unless entry.klass.respond_to?(:patched?)
           patched[entry.name] = entry.klass.patched?
         end
       end
