@@ -122,13 +122,15 @@ module Datadog
 
       @priority_sampling = priority_sampling unless priority_sampling.nil?
       @enabled = enabled unless enabled.nil?
-      @writer.transport.hostname = hostname unless hostname.nil?
-      @writer.transport.port = port unless port.nil?
       @sampler = sampler unless sampler.nil?
 
       if priority_sampling
         @sampler = PrioritySampler.new(base_sampler: @sampler)
+        @writer = Writer.new(priority_sampler: @sampler)
       end
+
+      @writer.transport.hostname = hostname unless hostname.nil?
+      @writer.transport.port = port unless port.nil?
     end
 
     # Set the information about the given service. A valid example is:

@@ -14,9 +14,20 @@ module Datadog
       # writer and transport parameters
       @buff_size = options.fetch(:buffer_size, 100)
       @flush_interval = options.fetch(:flush_interval, 1)
+      transport_options = options.fetch(:transport_options, {})
+
+      # priority sampling
+      if options[:priority_sampler]
+        @priority_sampler = options[:priority_sampler]
+        transport_options[:api_version] ||= HTTPTransport::V4
+        transport_options[:response_callback] ||= method(:sampling_updater)
+      end
 
       # transport and buffers
-      @transport = options.fetch(:transport, Datadog::HTTPTransport.new(HOSTNAME, PORT))
+      @transport = options.fetch(:transport) do
+        HTTPTransport.new(HOSTNAME, PORT, transport_options)
+      end
+
       @services = {}
 
       # handles the thread creation after an eventual fork
@@ -102,6 +113,14 @@ module Datadog
         services_flushed: @services_flushed,
         transport: @transport.stats
       }
+    end
+
+    private
+
+    def sampling_updater(response)
+      return unless response.is_a?(Net::HTTPOK)
+      service_rates = JSON.parse(response.body)
+      @priority_sampler.update(service_rates)
     end
   end
 end
