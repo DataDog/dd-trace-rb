@@ -1,10 +1,14 @@
 require 'minitest'
 require 'minitest/autorun'
+require 'webmock/minitest'
 
 require 'ddtrace/encoding'
 require 'ddtrace/transport'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
+
+WebMock.allow_net_connect!
+WebMock.disable!
 
 # Give access to otherwise private members
 module Datadog

@@ -39,5 +39,8 @@ EOS
   spec.add_development_dependency 'minitest', '= 5.10.1'
   spec.add_development_dependency 'appraisal', '~> 2.2'
   spec.add_development_dependency 'yard', '~> 0.9'
+  spec.add_development_dependency 'webmock', '~> 2.0'
+  # locking transitive dependency of webmock
+  spec.add_development_dependency 'addressable',  '~> 2.4.0'
   spec.add_development_dependency 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 end
