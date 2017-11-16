@@ -18,8 +18,8 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
-    attr_reader :writer, :sampler, :services, :tags, :provider
-    attr_accessor :enabled
+    attr_reader :sampler, :services, :tags, :provider
+    attr_accessor :enabled, :writer
     attr_writer :default_service
 
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog

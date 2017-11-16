@@ -1,4 +1,5 @@
 require 'ddtrace/ext/app_types'
+require 'ddtrace/sync_writer'
 require 'resque'
 
 module Datadog
@@ -15,11 +16,6 @@ module Datadog
             yield
             span.service = pin.service
           end
-        end
-
-        def after_perform(*args)
-          pin = Pin.get_from(::Resque)
-          pin.tracer.shutdown! if pin && pin.tracer
         end
       end
     end
@@ -38,5 +34,5 @@ Resque.after_fork do
   next unless pin && pin.tracer
   # clean the state so no CoW happens
   pin.tracer.provider.context = nil
-  pin.tracer.writer.start
+  pin.tracer.writer = Datadog::SyncWriter.new(transport: pin.tracer.writer.transport)
 end
