@@ -100,11 +100,13 @@ module Datadog
     # this method should target a stable API that works whatever is the agent
     # or the tracing client versions.
     def downgrade!
-      fallback_version = @api.fetch(:fallback)
+      @mutex.synchronize do
+        fallback_version = @api.fetch(:fallback)
 
-      @api = API.fetch(fallback_version)
-      @encoder = @api[:encoder].new
-      @headers['Content-Type'] = @encoder.content_type
+        @api = API.fetch(fallback_version)
+        @encoder = @api[:encoder].new
+        @headers['Content-Type'] = @encoder.content_type
+      end
     end
 
     def informational?(code)
