@@ -188,3 +188,69 @@ class WorkersServiceTest < WorkersTest
                  services, 'bad services metadata')
   end
 end
+
+class WorkerIntegrationTest < Minitest::Test
+  LONG_INTERVAL = 10
+
+  def setup
+    @trace_task_calls, trace_task = generate_counter
+    @service_task_calls, service_task = generate_counter
+
+    @worker = Datadog::Workers::AsyncTransport.new(nil, 100, trace_task, service_task, LONG_INTERVAL)
+  end
+
+  def test_worker_termination
+    @worker.start
+
+    # let it reach the 10 seconds back-off
+    sleep(0.5)
+
+    # enqueue some work for a final flush
+    @worker.enqueue_trace(get_test_traces(1))
+    @worker.enqueue_service(get_test_services)
+
+    # make sure we have a consistent test set-up
+    assert_empty(@trace_task_calls)
+    assert_empty(@service_task_calls)
+
+    # interrupt back off and flush everything immeditiately
+    shutdown_beg = Time.now
+    @worker.stop
+    shutdown_end = Time.now
+
+    assert_equal(1, @trace_task_calls.count)
+    assert_equal(1, @service_task_calls.count)
+    assert((shutdown_end - shutdown_beg) < Datadog::Workers::AsyncTransport::SHUTDOWN_TIMEOUT)
+  end
+
+  def test_worker_termination_timeout
+    task = proc { sleep(LONG_INTERVAL) }
+    worker = Datadog::Workers::AsyncTransport.new(nil, 100, task, task, LONG_INTERVAL)
+
+    worker.start
+
+    # let it reach the 10 seconds back-off
+    sleep(0.5)
+
+    worker.enqueue_trace(get_test_traces(1))
+    worker.enqueue_service(get_test_services)
+
+    shutdown_beg = Time.now
+    worker.stop
+    shutdown_end = Time.now
+
+    assert_in_delta(Datadog::Workers::AsyncTransport::SHUTDOWN_TIMEOUT, shutdown_end - shutdown_beg, 0.5)
+  end
+
+  private
+
+  def generate_counter
+    counter = []
+
+    [
+      counter,
+      proc { counter << :called }
+    ]
+  end
+end
+p

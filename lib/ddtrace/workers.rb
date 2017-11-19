@@ -12,8 +12,9 @@ module Datadog
       DEFAULT_TIMEOUT = 5
       BACK_OFF_RATIO = 1.2
       BACK_OFF_MAX = 5
+      SHUTDOWN_TIMEOUT = 1
 
-      attr_reader :trace_buffer, :service_buffer, :shutting_down
+      attr_reader :trace_buffer, :service_buffer
 
       def initialize(transport, buff_size, trace_task, service_task, interval)
         @trace_task = trace_task
@@ -23,7 +24,8 @@ module Datadog
         @trace_buffer = TraceBuffer.new(buff_size)
         @service_buffer = TraceBuffer.new(buff_size)
         @transport = transport
-        @shutting_down = false
+        @shutdown = ConditionVariable.new
+        @mutex = Mutex.new
 
         @worker = nil
         @run = false
@@ -62,47 +64,32 @@ module Datadog
 
       # Start the timer execution.
       def start
-        return if @run
-        @run = true
-        @worker = Thread.new() do
-          Datadog::Tracer.log.debug("Starting thread in the process: #{Process.pid}")
-
-          while @run
-            @back_off = callback_traces ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
-
-            callback_services
-
-            sleep(@back_off) if @run
-          end
+        @mutex.synchronize do
+          return if @run
+          @run = true
+          Tracer.log.debug("Starting thread in the process: #{Process.pid}")
+          @worker = Thread.new { perform }
         end
-      end
-
-      # Stop the timer execution. Tasks already in the queue will be executed.
-      def stop
-        @run = false
       end
 
       # Closes all available queues and waits for the trace and service buffer to flush
-      def shutdown!
-        return false if @shutting_down
-        @shutting_down = true
-        @trace_buffer.close
-        @service_buffer.close
-        sleep(0.1)
-        timeout_time = Time.now + DEFAULT_TIMEOUT
-        while (!@trace_buffer.empty? || !@service_buffer.empty?) && Time.now <= timeout_time
-          sleep(0.05)
-          Datadog::Tracer.log.debug('Waiting for the buffers to clear before exiting')
+      def stop
+        @mutex.synchronize do
+          return unless @run
+
+          @trace_buffer.close
+          @service_buffer.close
+          @run = false
+          @shutdown.signal
         end
-        stop
+
         join
-        @shutting_down = false
         true
       end
 
       # Block until executor shutdown is complete or until timeout seconds have passed.
       def join
-        @worker.join(5)
+        @worker.join(SHUTDOWN_TIMEOUT)
       end
 
       # Enqueue an item in the trace internal buffer. This operation is thread-safe
@@ -115,6 +102,21 @@ module Datadog
       def enqueue_service(service)
         return if service == {} # no use to send this, not worth it
         @service_buffer.push(service)
+      end
+
+      private
+
+      def perform
+        loop do
+          @back_off = callback_traces ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
+
+          callback_services
+
+          @mutex.synchronize do
+            return if !@run && @trace_buffer.empty? && @service_buffer.empty?
+            @shutdown.wait(@mutex, @back_off)
+          end
+        end
       end
     end
   end
