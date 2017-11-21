@@ -26,6 +26,6 @@ class TracingDefaultServiceTest < ActionController::TestCase
     span = spans[0]
     assert_equal('web.request', span.name)
     assert_equal('/index', span.resource, '/index')
-    assert_equal('rails-app', span.service, 'service name should reflect this is a Rails application')
+    assert_equal("#{app_name}-rack", span.service, 'service name should reflect this is a Rails application')
   end
 end
