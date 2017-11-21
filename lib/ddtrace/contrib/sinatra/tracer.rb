@@ -17,63 +17,33 @@ Datadog::Tracer.log.info("activating instrumentation for sinatra #{sinatra_vs}")
 module Datadog
   module Contrib
     module Sinatra
-      # TracerCfg is used to manipulate the configuration of the Sinatra
-      # tracing extension.
-      class TracerCfg
-        DEFAULT_CFG = {
-          enabled: true,
-          default_service: 'sinatra',
-          tracer: Datadog.tracer,
-          debug: false,
-          trace_agent_hostname: Datadog::Writer::HOSTNAME,
-          trace_agent_port: Datadog::Writer::PORT
-        }.freeze()
-
-        attr_accessor :cfg
-
-        def initialize
-          @cfg = DEFAULT_CFG.dup()
-        end
-
-        def configure(args = {})
-          args.each do |name, value|
-            self[name] = value
-          end
-
-          apply()
-        end
-
-        def apply
-          Datadog::Tracer.debug_logging = @cfg[:debug]
-
-          tracer = @cfg[:tracer]
-
-          tracer.enabled = @cfg[:enabled]
-          tracer.configure(hostname: @cfg[:trace_agent_hostname],
-                           port: @cfg[:trace_agent_port])
-
-          tracer.set_service_info(@cfg[:default_service], 'sinatra',
-                                  Datadog::Ext::AppTypes::WEB)
-        end
-
-        def [](key)
-          raise ArgumentError, "unknown setting '#{key}'" unless @cfg.key? key
-          @cfg[key]
-        end
-
-        def []=(key, value)
-          raise ArgumentError, "unknown setting '#{key}'" unless @cfg.key? key
-          @cfg[key] = value
-        end
-
-        def enabled?
-          @cfg[:enabled] && !@cfg[:tracer].nil?
-        end
-      end
-
       # Datadog::Contrib::Sinatra::Tracer is a Sinatra extension which traces
       # requests.
       module Tracer
+        include Base
+        register_as :sinatra
+
+        option :enabled, default: true, depends_on: [:tracer] do |value|
+          get_option(:tracer).enabled = value
+        end
+
+        option :default_service, default: 'sinatra', depends_on: [:tracer] do |value|
+          get_option(:tracer).set_service_info(value, 'sinatra', Ext::AppTypes::WEB)
+          value
+        end
+
+        option :tracer, default: Datadog.tracer
+
+        option(:debug, default: false) { |value| Tracer.debug_logging = value }
+
+        option :trace_agent_hostname, default: Writer::HOSTNAME, depends_on: [:tracer] do |value|
+          get_option(:tracer).configure(hostname: value)
+        end
+
+        option :trace_agent_port, default: Writer::PORT, depends_on: [:tracer] do |value|
+          get_option(:tracer).configure(port: value)
+        end
+
         def route(verb, action, *)
           # Keep track of the route name when the app is instantiated for an
           # incoming request.
@@ -89,11 +59,9 @@ module Datadog
         def self.registered(app)
           ::Sinatra::Base.module_eval do
             def render(engine, data, *)
-              cfg = settings.datadog_tracer
-
               output = ''
-              if cfg.enabled?
-                tracer = cfg[:tracer]
+              tracer = Datadog.configuration[:sinatra][:tracer]
+              if tracer.enabled
                 tracer.trace('sinatra.render_template') do |span|
                   # If data is a string, it is a literal template and we don't
                   # want to record it.
@@ -108,15 +76,8 @@ module Datadog
             end
           end
 
-          app.set :datadog_tracer, TracerCfg.new()
-
-          app.configure do
-            app.settings.datadog_tracer.apply()
-          end
-
           app.before do
-            cfg = settings.datadog_tracer
-            return unless cfg.enabled?
+            return unless Datadog.configuration[:sinatra][:tracer].enabled
 
             if instance_variable_defined? :@datadog_request_span
               if @datadog_request_span
@@ -126,10 +87,10 @@ module Datadog
               end
             end
 
-            tracer = cfg[:tracer]
+            tracer = Datadog.configuration[:sinatra][:tracer]
 
             span = tracer.trace('sinatra.request',
-                                service: cfg.cfg[:default_service],
+                                service: Datadog.configuration[:sinatra][:default_service],
                                 span_type: Datadog::Ext::HTTP::TYPE)
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
@@ -138,8 +99,7 @@ module Datadog
           end
 
           app.after do
-            cfg = settings.datadog_tracer
-            return unless cfg.enabled?
+            return unless Datadog.configuration[:sinatra][:tracer].enabled
 
             span = @datadog_request_span
             begin
