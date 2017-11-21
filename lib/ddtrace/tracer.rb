@@ -71,7 +71,7 @@ module Datadog
     #
     def shutdown!
       return if !@enabled || @writer.worker.nil?
-      @writer.worker.shutdown!
+      @writer.worker.stop
     end
 
     # Return the current active \Context for this traced execution. This method is

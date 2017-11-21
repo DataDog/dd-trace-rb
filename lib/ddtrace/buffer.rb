@@ -16,8 +16,8 @@ module Datadog
     # Add a new ``trace`` in the local queue. This method doesn't block the execution
     # even if the buffer is full. In that case, a random trace is discarded.
     def push(trace)
-      return if @closed
       @mutex.synchronize do
+        return if @closed
         len = @traces.length
         if len < @max_size || @max_size <= 0
           @traces << trace
@@ -54,12 +54,6 @@ module Datadog
     def close
       @mutex.synchronize do
         @closed = true
-      end
-    end
-
-    def closed?
-      @mutex.synchronise do
-        return @closed
       end
     end
   end

@@ -89,28 +89,17 @@ class TracerIntegrationTest < Minitest::Test
     span = tracer.start_span('my.short.op')
     span.service = 'my.service'
     span.finish()
-    first_shutdown = nil
-    second_shutdown = nil
-    worker = Thread.new() do
-      first_shutdown = tracer.shutdown!
+    mutex = Mutex.new
+    shutdown_results = []
+
+    threads = Array.new(10) do
+      Thread.new { mutex.synchronize { shutdown_results << tracer.shutdown! } }
     end
 
-    100.times do
-      break if tracer.writer.worker.shutting_down # wait until first shutdown is halfway through execution
-      sleep(0.01)
-    end
-
-    second_worker = Thread.new() do
-      second_shutdown = tracer.shutdown!
-    end
-
-    worker.join(2)
-    second_worker.join(2)
+    threads.each(&:join)
 
     stats = tracer.writer.stats
-    assert(first_shutdown, 'should have run through the shutdown method')
-    assert_equal(false, second_shutdown, 'should not have executed shutdown')
-    assert_equal(true, span.finished?, 'span did not finish')
+    assert_equal(1, shutdown_results.count(true), 'shutdown should have returned true only once')
     assert_equal(1, stats[:traces_flushed], 'wrong number of traces flushed')
     assert_equal(1, stats[:services_flushed], 'wrong number of services flushed')
     assert_equal(0, stats[:transport][:client_error])
