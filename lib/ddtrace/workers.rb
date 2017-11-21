@@ -1,4 +1,5 @@
 require 'time'
+require 'concurrent'
 
 require 'ddtrace/buffer'
 
@@ -19,11 +20,11 @@ module Datadog
         @trace_task = trace_task
         @service_task = service_task
         @flush_interval = interval
-        @back_off = interval
         @trace_buffer = TraceBuffer.new(buff_size)
         @service_buffer = TraceBuffer.new(buff_size)
         @transport = transport
         @shutting_down = false
+        @mutex = Mutex.new
 
         @worker = nil
         @run = false
@@ -62,24 +63,48 @@ module Datadog
 
       # Start the timer execution.
       def start
-        return if @run
-        @run = true
+        return if run
+        @mutex.synchronize { @run = true }
         @worker = Thread.new() do
           Datadog::Tracer.log.debug("Starting thread in the process: #{Process.pid}")
 
-          while @run
-            @back_off = callback_traces ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
+          # Loop first - protects against edge race condition where code in shutdown! is run faster/before
+          # this method
+          loop do
+            start_time = nil
+            # If buffer is left open, continue flushing every @flush_interval
+            unless @trace_buffer.closed?
+              start_time = Time.now
 
-            callback_services
+              while !@trace_buffer.closed? && (Time.now - start_time < @flush_interval)
+                sleep(0.01)
+              end
+            end
 
-            sleep(@back_off) if @run
+            # Flush when buffer is closed or every @flush_interval
+            if @trace_buffer.closed? || (Time.now - start_time >= @flush_interval)
+              #trace_call = Concurrent::Promise.new { callback_traces }.execute
+              trace_call = callback_traces
+              callback_services
+
+              # Increase @flush_interval if callback_traces returns immediately with nil
+            #  if trace_call.state == :fulfilled && trace_call.value.nil?
+            #    @flush_interval = [@flush_interval * BACK_OFF_RATIO, BACK_OFF_MAX].min
+
+            #  # Block on callback_traces if buffer is closed
+            #  elsif @trace_buffer.closed? && trace_call.state == :pending
+            #    trace_call.wait(DEFAULT_TIMEOUT)
+            #  end
+            end
+
+            break unless run
           end
         end
       end
 
       # Stop the timer execution. Tasks already in the queue will be executed.
       def stop
-        @run = false
+        @mutex.synchronize { @run = false }
       end
 
       # Closes all available queues and waits for the trace and service buffer to flush
@@ -88,12 +113,6 @@ module Datadog
         @shutting_down = true
         @trace_buffer.close
         @service_buffer.close
-        sleep(0.1)
-        timeout_time = Time.now + DEFAULT_TIMEOUT
-        while (!@trace_buffer.empty? || !@service_buffer.empty?) && Time.now <= timeout_time
-          sleep(0.05)
-          Datadog::Tracer.log.debug('Waiting for the buffers to clear before exiting')
-        end
         stop
         join
         @shutting_down = false
@@ -115,6 +134,12 @@ module Datadog
       def enqueue_service(service)
         return if service == {} # no use to send this, not worth it
         @service_buffer.push(service)
+      end
+
+      private
+
+      def run
+        @mutex.synchronize { @run }
       end
     end
   end
