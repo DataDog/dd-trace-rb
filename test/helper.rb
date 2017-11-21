@@ -71,8 +71,9 @@ end
 
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Writer
-  def initialize
-    super(transport: FauxTransport.new(HOSTNAME, PORT))
+  def initialize(options = {})
+    options[:transport] ||= FauxTransport.new(HOSTNAME, PORT)
+    super
     @mutex = Mutex.new
 
     # easy access to registered components

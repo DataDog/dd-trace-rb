@@ -4,7 +4,8 @@ require 'ddtrace/sampler'
 module Datadog
   class PrioritySamplerTest < Minitest::Test
     def setup
-      @span = Span.new(nil, nil, service: 'foobar')
+      @context = Context.new
+      @span = Span.new(nil, nil, service: 'foobar', context: @context)
       @base_sampler = MiniTest::Mock.new
       @post_sampler = MiniTest::Mock.new
 
@@ -22,7 +23,7 @@ module Datadog
       @base_sampler.verify
       @post_sampler.verify
 
-      assert_equal(0, @span.sampling_priority)
+      assert_equal(0, @context.sampling_priority)
     end
 
     def test_sampling_composition_1
@@ -34,7 +35,7 @@ module Datadog
       @base_sampler.verify
       @post_sampler.verify
 
-      assert(1, @span.sampling_priority)
+      assert(1, @context.sampling_priority)
     end
 
     def test_sampling_composition_2
@@ -46,7 +47,7 @@ module Datadog
       @base_sampler.verify
       @post_sampler.verify
 
-      assert(0, @span.sampling_priority)
+      assert(0, @context.sampling_priority)
     end
 
     def test_sampling_update

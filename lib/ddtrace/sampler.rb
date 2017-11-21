@@ -96,10 +96,10 @@ module Datadog
     end
 
     def sample(span)
-      span.sampling_priority = 0
+      span.context.sampling_priority = 0 if span.context
       return unless @base_sampler.sample(span)
       return unless @post_sampler.sample(span)
-      span.sampling_priority = 1
+      span.context.sampling_priority = 1 if span.context
 
       true
     end

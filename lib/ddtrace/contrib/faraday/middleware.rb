@@ -56,7 +56,7 @@ module Datadog
         end
 
         def propagate!(span, env)
-          Datadog::HTTPPropagator.inject!(span, env[:request_headers])
+          Datadog::HTTPPropagator.inject!(span.context, env[:request_headers])
         end
 
         def dd_pin

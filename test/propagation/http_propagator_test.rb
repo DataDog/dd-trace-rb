@@ -8,18 +8,20 @@ class HTTPPropagatorTest < Minitest::Test
 
     tracer.trace('caller') do |span|
       env = { 'something' => 'alien' }
-      Datadog::HTTPPropagator.inject!(span, env)
+      Datadog::HTTPPropagator.inject!(span.context, env)
       assert_equal({ 'something' => 'alien',
                      'x-datadog-trace-id' => span.trace_id.to_s,
                      'x-datadog-parent-id' => span.span_id.to_s }, env)
-      span.sampling_priority = 0
-      Datadog::HTTPPropagator.inject!(span, env)
+
+      span.context.sampling_priority = 0
+      Datadog::HTTPPropagator.inject!(span.context, env)
       assert_equal({ 'something' => 'alien',
                      'x-datadog-trace-id' => span.trace_id.to_s,
                      'x-datadog-parent-id' => span.span_id.to_s,
                      'x-datadog-sampling-priority' => '0' }, env)
-      span.sampling_priority = nil
-      Datadog::HTTPPropagator.inject!(span, env)
+
+      span.context.sampling_priority = nil
+      Datadog::HTTPPropagator.inject!(span.context, env)
       assert_equal({ 'something' => 'alien',
                      'x-datadog-trace-id' => span.trace_id.to_s,
                      'x-datadog-parent-id' => span.span_id.to_s }, env)

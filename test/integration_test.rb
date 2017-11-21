@@ -139,4 +139,27 @@ class TracerIntegrationTest < Minitest::Test
 
     shutdown_exec_only_once(tracer)
   end
+
+  def test_sampling_priority_metric_propagation
+    tracer = get_test_tracer
+    tracer.configure(priority_sampling: true)
+    tracer.writer = FauxWriter.new(priority_sampler: Datadog::PrioritySampler.new)
+
+    span_a = tracer.start_span('span_a')
+    span_b = tracer.start_span('span_b', child_of: span_a.context)
+
+    # I want to keep the trace to which `span_b` belongs
+    span_b.context.sampling_priority = 10
+
+    span_b.finish
+    span_a.finish
+
+    try_wait_until { tracer.writer.spans(:keep).any? }
+
+    # The root span should have the correct sampling priority metric
+    assert_equal(
+      10,
+      span_a.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)
+    )
+  end
 end

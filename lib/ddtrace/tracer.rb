@@ -120,7 +120,6 @@ module Datadog
       sampler = options.fetch(:sampler, nil)
       priority_sampling = options[:priority_sampling]
 
-      @priority_sampling = priority_sampling unless priority_sampling.nil?
       @enabled = enabled unless enabled.nil?
       @sampler = sampler unless sampler.nil?
 
@@ -212,7 +211,6 @@ module Datadog
         if ctx && ctx.trace_id && ctx.span_id
           span.trace_id = ctx.trace_id
           span.parent_id = ctx.span_id
-          span.sampling_priority = ctx.sampling_priority
         end
       else
         # child span

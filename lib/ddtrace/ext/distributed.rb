@@ -6,6 +6,7 @@ module Datadog
       HTTP_HEADER_TRACE_ID = 'x-datadog-trace-id'.freeze
       HTTP_HEADER_PARENT_ID = 'x-datadog-parent-id'.freeze
       HTTP_HEADER_SAMPLING_PRIORITY = 'x-datadog-sampling-priority'.freeze
+      SAMPLING_PRIORITY_KEY = '_sampling_priority_v1'.freeze
     end
   end
 end
