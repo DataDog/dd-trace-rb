@@ -129,7 +129,7 @@ module Datadog
                   span.set_tag(Datadog::Ext::HTTP::URL, req.path)
                   span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
 
-                  unless Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
+                  if pin.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
                     req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, span.trace_id)
                     req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, span.span_id)
                     if span.sampling_priority

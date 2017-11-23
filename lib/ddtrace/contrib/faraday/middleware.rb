@@ -28,7 +28,7 @@ module Datadog
         def call(env)
           dd_pin.tracer.trace(SERVICE) do |span|
             annotate!(span, env)
-            propagate!(span, env) if options[:distributed_tracing]
+            propagate!(span, env) if options[:distributed_tracing] && dd_pin.tracer.enabled
             app.call(env).on_complete { |resp| handle_response(span, resp) }
           end
         end
