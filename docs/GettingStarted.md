@@ -727,7 +727,7 @@ Priority sampling consists in deciding if a trace will be kept by using a priori
 * 1: The sampler automatically decided to keep the trace.
 * 2: The user asked the keep the trace.
 
-For now, priority sampling is disabled by default. Enabling it ensures that your sampled distributed traces will be complete. To enable the priorty sampling:
+For now, priority sampling is disabled by default. Enabling it ensures that your sampled distributed traces will be complete. To enable the priority sampling:
 
 ```rb
 Datadog.tracer.configure(priority_sampling: true)
