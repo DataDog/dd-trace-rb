@@ -29,7 +29,7 @@ Resque.before_first_fork do
 
   # Create SyncWriter instance before forking
   sync_writer = Datadog::SyncWriter.new(transport: pin.tracer.writer.transport)
-  Datadog::SyncWriter::CACHED_INSTANCE = sync_writer
+  Datadog::Contrib::Resque.sync_writer = sync_writer
 end
 
 Resque.after_fork do
@@ -38,5 +38,5 @@ Resque.after_fork do
   next unless pin && pin.tracer
   # clean the state so no CoW happens
   pin.tracer.provider.context = nil
-  pin.tracer.writer = Datadog::SyncWriter::CACHED_INSTANCE
+  pin.tracer.writer = Datadog::Contrib::Resque.sync_writer
 end
