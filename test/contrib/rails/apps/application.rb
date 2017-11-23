@@ -41,10 +41,9 @@ module RailsTrace
     # the require order is important
     def test_config
       # Enables the auto-instrumentation for the testing application
-      Rails.configuration.datadog_trace = {
-        auto_instrument: true,
-        auto_instrument_redis: true
-      }
+      Datadog.configure do |c|
+        c.use :rails, auto_instrument: true, auto_instrument_redis: true
+      end
       Rails.application.config.active_job.queue_adapter = :sidekiq
 
       # Initialize the Rails application

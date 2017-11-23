@@ -16,10 +16,9 @@ class Rails3 < Rails::Application
 end
 
 # Enables the auto-instrumentation for the testing application
-Rails.configuration.datadog_trace = {
-  auto_instrument: true,
-  auto_instrument_redis: true
-}
+Datadog.configure do |c|
+  c.use :rails, auto_instrument: true, auto_instrument_redis: true
+end
 
 # Initialize the Rails application
 require 'contrib/rails/apps/controllers'

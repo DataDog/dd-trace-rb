@@ -11,7 +11,7 @@ module Datadog
         def self.normalize_template_name(name)
           return if name.nil?
 
-          base_path = ::Rails.configuration.datadog_trace.fetch(:template_base_path, 'views/')
+          base_path = Datadog.configuration[:rails][:template_base_path]
           sections_view = name.split(base_path)
 
           if sections_view.length == 1

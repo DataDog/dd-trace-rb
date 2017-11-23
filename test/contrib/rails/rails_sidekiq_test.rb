@@ -9,9 +9,9 @@ require 'ddtrace/contrib/sidekiq/tracer'
 class RailsSidekiqTest < ActionController::TestCase
   setup do
     # don't pollute the global tracer
-    @original_tracer = Rails.configuration.datadog_trace[:tracer]
+    @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer()
-    Rails.configuration.datadog_trace[:tracer] = @tracer
+    Datadog.configuration[:rails][:tracer] = @tracer
 
     # configure Sidekiq
     Sidekiq.configure_client do |config|
@@ -26,7 +26,7 @@ class RailsSidekiqTest < ActionController::TestCase
   end
 
   teardown do
-    Rails.configuration.datadog_trace[:tracer] = @original_tracer
+    Datadog.configuration[:rails][:tracer] = @original_tracer
   end
 
   # Sidekiq test job

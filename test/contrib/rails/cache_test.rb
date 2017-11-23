@@ -3,13 +3,14 @@ require 'contrib/rails/test_helper'
 
 class CacheTracingTest < ActionController::TestCase
   setup do
-    @original_tracer = Rails.configuration.datadog_trace[:tracer]
+    @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = @tracer
+    Datadog.configuration[:rails][:default_cache_service] = 'rails-cache'
+    Datadog.configuration[:rails][:tracer] = @tracer
   end
 
   teardown do
-    Rails.configuration.datadog_trace[:tracer] = @original_tracer
+    Datadog.configuration[:rails][:tracer] = @original_tracer
   end
 
   test 'cache.read() is properly traced' do

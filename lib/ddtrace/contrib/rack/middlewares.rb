@@ -13,20 +13,20 @@ module Datadog
       # application. If request tags are not set by the app, they will be set using
       # information available at the Rack level.
       class TraceMiddleware
-        DEFAULT_CONFIG = {
-          tracer: Datadog.tracer,
-          default_service: 'rack',
-          distributed_tracing_enabled: false
-        }.freeze
+        include Base
+        register_as :rack
+
+        option :tracer, default: Datadog.tracer
+        option :default_service, default: 'rack'
+        option :distributed_tracing_enabled, default: false
 
         def initialize(app, options = {})
           # update options with our configuration, unless it's already available
           [:tracer, :default_service, :distributed_tracing_enabled].each do |k|
-            options[k] ||= DEFAULT_CONFIG[k]
+            Datadog.configuration[:rack][k] = options[k] unless options[k].nil?
           end
 
           @app = app
-          @options = options
         end
 
         def configure
@@ -34,9 +34,9 @@ module Datadog
           return clean_context if @tracer && @service
 
           # retrieve the current tracer and service
-          @tracer = @options.fetch(:tracer)
-          @service = @options.fetch(:default_service)
-          @distributed_tracing_enabled = @options.fetch(:distributed_tracing_enabled)
+          @tracer = Datadog.configuration[:rack][:tracer]
+          @service = Datadog.configuration[:rack][:default_service]
+          @distributed_tracing_enabled = Datadog.configuration[:rack][:distributed_tracing_enabled]
 
           # configure the Rack service
           @tracer.set_service_info(

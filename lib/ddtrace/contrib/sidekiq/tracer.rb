@@ -29,8 +29,7 @@ module Datadog
         def initialize(options = {})
           # check if Rails configuration is available and use it to override
           # Sidekiq defaults
-          rails_config = ::Rails.configuration.datadog_trace rescue {}
-          base_config = Datadog.configuration[:sidekiq].merge(rails_config)
+          base_config = Datadog.configuration[:sidekiq].merge(Datadog.configuration[:rails])
           user_config = base_config.merge(options)
           @tracer = user_config[:tracer]
           @sidekiq_service = user_config[:sidekiq_service]

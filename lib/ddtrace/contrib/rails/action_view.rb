@@ -15,7 +15,7 @@ module Datadog
           tracing_context = payload.fetch(:tracing_context)
 
           # create a new Span and add it to the tracing context
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
+          tracer = Datadog.configuration[:rails][:tracer]
           span = tracer.trace('rails.render_template', span_type: Datadog::Ext::HTTP::TEMPLATE)
           tracing_context[:dd_rails_template_span] = span
         rescue StandardError => e
@@ -48,7 +48,7 @@ module Datadog
           # retrieve the tracing context
           tracing_context = payload.fetch(:tracing_context)
 
-          tracer = ::Rails.configuration.datadog_trace.fetch(:tracer)
+          tracer = Datadog.configuration[:rails][:tracer]
           span = tracer.trace('rails.render_partial', span_type: Datadog::Ext::HTTP::TEMPLATE)
           tracing_context[:dd_rails_partial_span] = span
         rescue StandardError => e

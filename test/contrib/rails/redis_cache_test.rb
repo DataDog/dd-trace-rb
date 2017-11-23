@@ -12,9 +12,9 @@ require 'contrib/rails/test_helper'
 class RedisCacheTracingTest < ActionController::TestCase
   setup do
     # switch Rails with a dummy tracer
-    @original_tracer = Rails.configuration.datadog_trace[:tracer]
+    @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer()
-    Rails.configuration.datadog_trace[:tracer] = @tracer
+    Datadog.configuration[:rails][:tracer] = @tracer
 
     # get the Redis pin accessing private methods (only Rails 3.x)
     client = Rails.cache.instance_variable_get(:@data)
@@ -24,7 +24,7 @@ class RedisCacheTracingTest < ActionController::TestCase
   end
 
   teardown do
-    Rails.configuration.datadog_trace[:tracer] = @original_tracer
+    Datadog.configuration[:rails][:tracer] = @original_tracer
   end
 
   test 'cache.read() and cache.fetch() are properly traced' do

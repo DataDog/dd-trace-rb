@@ -7,7 +7,9 @@ class TracerTest < ActionDispatch::IntegrationTest
   setup do
     # don't pollute the global tracer
     @tracer = get_test_tracer
-    Rails.configuration.datadog_trace[:tracer] = @tracer
+    Datadog.registry[:rails].reset_options!
+    Datadog.configuration[:rails][:default_database_service] = get_adapter_name
+    Datadog.configuration[:rails][:tracer] = @tracer
   end
 
   teardown do
@@ -15,25 +17,26 @@ class TracerTest < ActionDispatch::IntegrationTest
   end
 
   test 'the configuration is correctly called' do
-    assert Rails.configuration.datadog_trace[:enabled]
-    assert Rails.configuration.datadog_trace[:auto_instrument]
-    assert Rails.configuration.datadog_trace[:auto_instrument_redis]
-    assert_equal(Rails.configuration.datadog_trace[:default_service], 'rails-app')
-    assert_equal(Rails.configuration.datadog_trace[:default_controller_service], 'rails-controller')
-    assert_equal(Rails.configuration.datadog_trace[:default_cache_service], 'rails-cache')
-    refute_nil(Rails.configuration.datadog_trace[:default_database_service])
-    assert_equal(Rails.configuration.datadog_trace[:template_base_path], 'views/')
-    assert Rails.configuration.datadog_trace[:tracer]
-    assert !Rails.configuration.datadog_trace[:debug]
-    assert_equal(Rails.configuration.datadog_trace[:trace_agent_hostname], Datadog::Writer::HOSTNAME)
-    assert_equal(Rails.configuration.datadog_trace[:trace_agent_port], Datadog::Writer::PORT)
-    assert_nil(Rails.configuration.datadog_trace[:env], 'no env should be set by default')
-    assert_equal(Rails.configuration.datadog_trace[:tags], {}, 'no tags should be set by default')
+    assert Datadog.configuration[:rails][:enabled]
+    refute Datadog.configuration[:rails][:auto_instrument]
+    refute Datadog.configuration[:rails][:auto_instrument_redis]
+    assert_equal(Datadog.configuration[:rails][:default_service], 'rails-app')
+    assert_equal(Datadog.configuration[:rails][:default_controller_service], 'rails-controller')
+    assert_equal(Datadog.configuration[:rails][:default_cache_service], 'rails-cache')
+    refute_nil(Datadog.configuration[:rails][:default_database_service])
+    assert_equal(Datadog.configuration[:rails][:template_base_path], 'views/')
+    assert Datadog.configuration[:rails][:tracer]
+    assert !Datadog.configuration[:rails][:debug]
+    assert_equal(Datadog.configuration[:rails][:trace_agent_hostname], Datadog::Writer::HOSTNAME)
+    assert_equal(Datadog.configuration[:rails][:trace_agent_port], Datadog::Writer::PORT)
+    assert_nil(Datadog.configuration[:rails][:env], 'no env should be set by default')
+    assert_equal(Datadog.configuration[:rails][:tags], {}, 'no tags should be set by default')
   end
 
   test 'a default service and database should be properly set' do
+    update_config(:default_cache_service, 'rails-cache')
     reset_config()
-    services = Datadog.tracer.services
+    services = Datadog.configuration[:rails][:tracer].services
     adapter_name = get_adapter_name()
     assert_equal(
       services,
@@ -54,7 +57,7 @@ class TracerTest < ActionDispatch::IntegrationTest
 
   test 'database service can be changed by user' do
     update_config(:default_database_service, 'customer-db')
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
     adapter_name = get_adapter_name()
 
     assert_equal(
@@ -76,7 +79,7 @@ class TracerTest < ActionDispatch::IntegrationTest
 
   test 'application service can be changed by user' do
     update_config(:default_controller_service, 'my-custom-app')
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
     adapter_name = get_adapter_name()
 
     assert_equal(
@@ -98,7 +101,7 @@ class TracerTest < ActionDispatch::IntegrationTest
 
   test 'cache service can be changed by user' do
     update_config(:default_cache_service, 'service-cache')
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
     adapter_name = get_adapter_name()
 
     assert_equal(
@@ -128,7 +131,7 @@ class TracerTest < ActionDispatch::IntegrationTest
     update_config(:trace_agent_hostname, 'example.com')
     update_config(:trace_agent_port, 42)
 
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
 
     assert_equal(tracer.writer.transport.hostname, 'example.com')
     assert_equal(tracer.writer.transport.port, 42)
@@ -137,7 +140,7 @@ class TracerTest < ActionDispatch::IntegrationTest
   test 'tracer environment can be changed by the user' do
     update_config(:env, 'dev')
 
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
 
     assert_equal(tracer.tags['env'], 'dev')
   end
@@ -145,7 +148,7 @@ class TracerTest < ActionDispatch::IntegrationTest
   test 'tracer global tags can be changed by the user' do
     update_config(:tags, 'component' => 'api', 'section' => 'users')
 
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
 
     assert_equal(tracer.tags['component'], 'api')
     assert_equal(tracer.tags['section'], 'users')
@@ -153,27 +156,25 @@ class TracerTest < ActionDispatch::IntegrationTest
 
   test 'tracer env and env tag setting precedence' do
     # default case
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
     assert_nil(tracer.tags['env'])
 
     # use the Rails value
     update_config(:env, ::Rails.env)
     update_config(:tags, 'env' => 'foo')
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
     assert_equal(tracer.tags['env'], 'test')
 
     # explicit set
-    update_config(:use_rails_env, false)
     update_config(:env, 'dev')
     update_config(:tags, 'env' => 'bar')
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
     assert_equal(tracer.tags['env'], 'dev')
 
     # env is not valid but tags is set
-    update_config(:use_rails_env, false)
     update_config(:env, nil)
     update_config(:tags, 'env' => 'bar')
-    tracer = Rails.configuration.datadog_trace[:tracer]
+    tracer = Datadog.configuration[:rails][:tracer]
     assert_equal(tracer.tags['env'], 'bar')
   end
 end
