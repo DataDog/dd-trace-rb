@@ -164,24 +164,28 @@ class TracerIntegrationTest < Minitest::Test
   end
 
   def test_priority_sampling_integration
-    tracer = Datadog::Tracer.new
-    tracer.configure(enabled: true, hostname: '127.0.0.1', port: '8126', priority_sampling: true)
+    # Whatever the sampling priority sampling is, all traces are sent to the agent,
+    # the agent then sends it or not depending on the priority, but they are all sent.
+    3.times do |i|
+      tracer = Datadog::Tracer.new
+      tracer.configure(enabled: true, hostname: '127.0.0.1', port: '8126', priority_sampling: true)
 
-    span_a = tracer.start_span('span_a')
-    span_b = tracer.start_span('span_b', child_of: span_a.context)
+      span_a = tracer.start_span('span_a')
+      span_b = tracer.start_span('span_b', child_of: span_a.context)
 
-    # I want to keep the trace to which `span_b` belongs
-    span_b.context.sampling_priority = 10
+      # I want to keep the trace to which `span_b` belongs
+      span_b.context.sampling_priority = i
 
-    span_b.finish
-    span_a.finish
+      span_b.finish
+      span_a.finish
 
-    try_wait_until { tracer.writer.stats[:traces_flushed] >= 2 }
-    stats = tracer.writer.stats
+      try_wait_until { tracer.writer.stats[:traces_flushed] >= 2 }
+      stats = tracer.writer.stats
 
-    assert_equal(1, stats[:traces_flushed], 'wrong number of traces flushed')
-    assert_equal(0, stats[:transport][:client_error])
-    assert_equal(0, stats[:transport][:server_error])
-    assert_equal(0, stats[:transport][:internal_error])
+      assert_equal(1, stats[:traces_flushed], 'wrong number of traces flushed')
+      assert_equal(0, stats[:transport][:client_error])
+      assert_equal(0, stats[:transport][:server_error])
+      assert_equal(0, stats[:transport][:internal_error])
+    end
   end
 end
