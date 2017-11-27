@@ -15,7 +15,7 @@ module Datadog
         proc { flush_trace(trace) }
       )
     rescue => e
-      Tracer.log.error(e)
+      Tracer.log.debug(e)
     end
 
     private
