@@ -16,6 +16,7 @@ module Datadog
       module Patcher
         include Base
         register_as :elasticsearch, auto_patch: true
+        option :service_name, default: SERVICE
 
         @patched = false
 
@@ -45,6 +46,7 @@ module Datadog
 
         # rubocop:disable Metrics/MethodLength
         def patch_elasticsearch_transport_client
+          # rubocop:disable Metrics/BlockLength
           ::Elasticsearch::Transport::Client.class_eval do
             alias_method :initialize_without_datadog, :initialize
             Datadog::Monkey.without_warnings do
@@ -52,7 +54,8 @@ module Datadog
             end
 
             def initialize(*args)
-              pin = Datadog::Pin.new(SERVICE, app: 'elasticsearch', app_type: Datadog::Ext::AppTypes::DB)
+              service = Datadog.configuration[:elasticsearch][:service_name]
+              pin = Datadog::Pin.new(service, app: 'elasticsearch', app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
               initialize_without_datadog(*args)
             end
