@@ -24,7 +24,6 @@ module Datadog
         option :trace_agent_port, default: Datadog::Writer::PORT
         option :env, default: nil
         option :tags, default: {}
-        option :sidekiq_service, default: 'sidekiq'
 
         @patched = false
 

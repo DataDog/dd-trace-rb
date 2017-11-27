@@ -22,7 +22,7 @@ class TracerTest < TracerTestBase
     include Sidekiq::Worker
 
     def self.datadog_tracer_config
-      { service: 'sidekiq-slow' }
+      { service_name: 'sidekiq-slow' }
     end
 
     def perform(); end

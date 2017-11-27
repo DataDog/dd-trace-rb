@@ -39,7 +39,6 @@ class RailsSidekiqTest < ActionController::TestCase
   test 'Sidekiq middleware uses Rails configuration if available' do
     # configure Rails
     update_config(:enabled, false)
-    update_config(:sidekiq_service, 'rails-sidekiq')
     update_config(:debug, true)
     update_config(:trace_agent_hostname, 'agent1.example.com')
     update_config(:trace_agent_port, '7777')
@@ -47,7 +46,7 @@ class RailsSidekiqTest < ActionController::TestCase
 
     # add Sidekiq middleware
     Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Contrib::Sidekiq::Tracer, tracer: @tracer)
+      chain.add(Datadog::Contrib::Sidekiq::Tracer, tracer: @tracer, service_name: 'rails-sidekiq')
     end
 
     # do something to force middleware execution
