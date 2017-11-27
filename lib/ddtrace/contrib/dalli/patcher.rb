@@ -2,7 +2,6 @@ module Datadog
   module Contrib
     module Dalli
       COMPATIBLE_WITH = Gem::Version.new('2.0.0')
-      SERVICE = 'memcached'.freeze
       NAME = 'memcached.command'.freeze
       CMD_TAG = 'memcached.command'.freeze
 
@@ -10,6 +9,7 @@ module Datadog
       module Patcher
         include Base
         register_as :dalli, auto_patch: true
+        option :service_name, default: 'memcached'
 
         @patched = false
 
@@ -42,7 +42,7 @@ module Datadog
           end
 
           def add_pin!
-            Pin.new(SERVICE, app_type: Ext::AppTypes::DB).tap do |pin|
+            Pin.new(get_option(:service_name), app_type: Ext::AppTypes::DB).tap do |pin|
               pin.onto(::Dalli)
             end
           end
