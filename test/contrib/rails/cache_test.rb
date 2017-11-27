@@ -5,7 +5,7 @@ class CacheTracingTest < ActionController::TestCase
   setup do
     @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer
-    Datadog.configuration[:rails][:default_cache_service] = 'rails-cache'
+    Datadog.configuration[:rails][:cache_service] = 'rails-cache'
     Datadog.configuration[:rails][:tracer] = @tracer
   end
 
@@ -81,7 +81,7 @@ class CacheTracingTest < ActionController::TestCase
 
   test 'doing a cache call uses the proper service name if it is changed' do
     # update database configuration
-    update_config(:default_cache_service, 'service-cache')
+    update_config(:cache_service, 'service-cache')
 
     # make the cache write and assert the proper spans
     Rails.cache.write('custom-key', 50)

@@ -92,7 +92,7 @@ class RackBaseTest < Minitest::Test
   def setup
     # configure our Middleware with a DummyTracer
     @tracer = get_test_tracer()
-    Datadog.configuration[:rack][:default_service] = 'rack'
+    Datadog.configuration[:rack][:service_name] = 'rack'
     super
   end
 end

@@ -17,12 +17,12 @@ module Datadog
         register_as :rack
 
         option :tracer, default: Datadog.tracer
-        option :default_service, default: 'rack'
+        option :service_name, default: 'rack'
         option :distributed_tracing_enabled, default: false
 
         def initialize(app, options = {})
           # update options with our configuration, unless it's already available
-          [:tracer, :default_service, :distributed_tracing_enabled].each do |k|
+          [:tracer, :service_name, :distributed_tracing_enabled].each do |k|
             Datadog.configuration[:rack][k] = options[k] unless options[k].nil?
           end
 
@@ -35,7 +35,7 @@ module Datadog
 
           # retrieve the current tracer and service
           @tracer = Datadog.configuration[:rack][:tracer]
-          @service = Datadog.configuration[:rack][:default_service]
+          @service = Datadog.configuration[:rack][:service_name]
           @distributed_tracing_enabled = Datadog.configuration[:rack][:distributed_tracing_enabled]
 
           # configure the Rack service

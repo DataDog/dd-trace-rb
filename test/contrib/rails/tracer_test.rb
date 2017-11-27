@@ -8,7 +8,7 @@ class TracerTest < ActionDispatch::IntegrationTest
     # don't pollute the global tracer
     @tracer = get_test_tracer
     Datadog.registry[:rails].reset_options!
-    Datadog.configuration[:rails][:default_database_service] = get_adapter_name
+    Datadog.configuration[:rails][:database_service] = get_adapter_name
     Datadog.configuration[:rails][:tracer] = @tracer
   end
 
@@ -20,10 +20,10 @@ class TracerTest < ActionDispatch::IntegrationTest
     assert Datadog.configuration[:rails][:enabled]
     refute Datadog.configuration[:rails][:auto_instrument]
     refute Datadog.configuration[:rails][:auto_instrument_redis]
-    assert_equal(Datadog.configuration[:rails][:default_service], 'rails-app')
-    assert_equal(Datadog.configuration[:rails][:default_controller_service], 'rails-controller')
-    assert_equal(Datadog.configuration[:rails][:default_cache_service], 'rails-cache')
-    refute_nil(Datadog.configuration[:rails][:default_database_service])
+    assert_equal(Datadog.configuration[:rails][:service_name], 'rails-app')
+    assert_equal(Datadog.configuration[:rails][:controller_service], 'rails-controller')
+    assert_equal(Datadog.configuration[:rails][:cache_service], 'rails-cache')
+    refute_nil(Datadog.configuration[:rails][:database_service])
     assert_equal(Datadog.configuration[:rails][:template_base_path], 'views/')
     assert Datadog.configuration[:rails][:tracer]
     assert !Datadog.configuration[:rails][:debug]
@@ -34,7 +34,7 @@ class TracerTest < ActionDispatch::IntegrationTest
   end
 
   test 'a default service and database should be properly set' do
-    update_config(:default_cache_service, 'rails-cache')
+    update_config(:cache_service, 'rails-cache')
     reset_config()
     services = Datadog.configuration[:rails][:tracer].services
     adapter_name = get_adapter_name()
@@ -56,7 +56,7 @@ class TracerTest < ActionDispatch::IntegrationTest
   end
 
   test 'database service can be changed by user' do
-    update_config(:default_database_service, 'customer-db')
+    update_config(:database_service, 'customer-db')
     tracer = Datadog.configuration[:rails][:tracer]
     adapter_name = get_adapter_name()
 
@@ -78,7 +78,7 @@ class TracerTest < ActionDispatch::IntegrationTest
   end
 
   test 'application service can be changed by user' do
-    update_config(:default_controller_service, 'my-custom-app')
+    update_config(:controller_service, 'my-custom-app')
     tracer = Datadog.configuration[:rails][:tracer]
     adapter_name = get_adapter_name()
 
@@ -100,7 +100,7 @@ class TracerTest < ActionDispatch::IntegrationTest
   end
 
   test 'cache service can be changed by user' do
-    update_config(:default_cache_service, 'service-cache')
+    update_config(:cache_service, 'service-cache')
     tracer = Datadog.configuration[:rails][:tracer]
     adapter_name = get_adapter_name()
 

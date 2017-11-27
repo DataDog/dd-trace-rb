@@ -51,28 +51,28 @@ module Datadog
           tracer.set_tags('env' => Datadog.configuration[:rails][:env]) if Datadog.configuration[:rails][:env]
 
           tracer.set_service_info(
-            Datadog.configuration[:rails][:default_service],
+            Datadog.configuration[:rails][:service_name],
             'rack',
             Datadog::Ext::AppTypes::WEB
           )
 
           tracer.set_service_info(
-            Datadog.configuration[:rails][:default_controller_service],
+            Datadog.configuration[:rails][:controller_service],
             'rails',
             Datadog::Ext::AppTypes::WEB
           )
           tracer.set_service_info(
-            Datadog.configuration[:rails][:default_cache_service],
+            Datadog.configuration[:rails][:cache_service],
             'rails',
             Datadog::Ext::AppTypes::CACHE
           )
 
           # By default, default service would be guessed from the script
           # being executed, but here we know better, get it from Rails config.
-          tracer.default_service = Datadog.configuration[:rails][:default_service]
+          tracer.default_service = Datadog.configuration[:rails][:service_name]
 
           Datadog.configuration[:rack][:tracer] = tracer
-          Datadog.configuration[:rack][:default_service] = Datadog.configuration[:rails][:default_service]
+          Datadog.configuration[:rack][:service_name] = Datadog.configuration[:rails][:service_name]
           Datadog.configuration[:rack][:distributed_tracing_enabled] = \
             Datadog.configuration[:rails][:distributed_tracing_enabled]
 
@@ -81,9 +81,9 @@ module Datadog
               # set default database service details and store it in the configuration
               conn_cfg = ::ActiveRecord::Base.connection_config()
               adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(conn_cfg[:adapter])
-              Datadog.configuration[:rails][:default_database_service] ||= adapter_name
+              Datadog.configuration[:rails][:database_service] ||= adapter_name
               tracer.set_service_info(
-                Datadog.configuration[:rails][:default_database_service],
+                Datadog.configuration[:rails][:database_service],
                 adapter_name,
                 Datadog::Ext::AppTypes::DB
               )
