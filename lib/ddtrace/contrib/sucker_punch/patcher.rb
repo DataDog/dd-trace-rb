@@ -8,6 +8,7 @@ module Datadog
       module Patcher
         include Base
         register_as :sucker_punch, auto_patch: true
+        option :service_name, default: SERVICE
 
         @patched = false
 
@@ -41,7 +42,7 @@ module Datadog
         end
 
         def add_pin!
-          Pin.new(SERVICE, app_type: Ext::AppTypes::WORKER).tap do |pin|
+          Pin.new(get_option(:service_name), app_type: Ext::AppTypes::WORKER).tap do |pin|
             pin.onto(::SuckerPunch)
           end
         end
