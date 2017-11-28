@@ -179,7 +179,7 @@ class TracerIntegrationTest < Minitest::Test
       span_b.finish
       span_a.finish
 
-      try_wait_until { tracer.writer.stats[:traces_flushed] >= 2 }
+      try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
       stats = tracer.writer.stats
 
       assert_equal(1, stats[:traces_flushed], 'wrong number of traces flushed')
