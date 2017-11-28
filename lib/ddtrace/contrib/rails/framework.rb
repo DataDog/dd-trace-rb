@@ -129,7 +129,6 @@ module Datadog
           pin = Datadog::Pin.get_from(::Grape)
           return unless pin && pin.enabled?
           pin.tracer = Datadog.configuration[:rails][:tracer]
-          pin.service = Datadog.configuration[:rails][:default_grape_service]
         end
 
         # automatically instrument all Rails component

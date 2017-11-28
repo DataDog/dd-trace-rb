@@ -13,7 +13,6 @@ module Datadog
         option :service_name, default: 'rails-app'
         option :controller_service, default: 'rails-controller'
         option :cache_service, default: 'rails-cache'
-        option :default_grape_service, default: 'grape'
         option :database_service
         option :distributed_tracing_enabled, default: false
         option :priority_sampling, default: false
