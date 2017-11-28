@@ -13,7 +13,6 @@ module Datadog
         def setup
           redis_url = "redis://#{REDIS_HOST}:#{REDIS_PORT}"
           ::Resque.redis = redis_url
-          Monkey.patch_module(:resque)
           @tracer = enable_test_tracer!
           ::Resque::Failure.clear
         end

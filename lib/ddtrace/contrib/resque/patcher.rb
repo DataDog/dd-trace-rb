@@ -1,7 +1,13 @@
 module Datadog
   module Contrib
+    # Namespace for `resque` integration
     module Resque
       SERVICE = 'resque'.freeze
+
+      class << self
+        # Globally-acccesible reference for pre-forking optimization
+        attr_accessor :sync_writer
+      end
 
       # Patcher for Resque integration - sets up the pin for the integration
       module Patcher
