@@ -11,6 +11,7 @@ module Datadog
       module Patcher
         include Base
         register_as :redis, auto_patch: true
+        option :service_name, default: SERVICE
 
         @patched = false
 
@@ -62,7 +63,8 @@ module Datadog
             end
 
             def initialize(*args)
-              pin = Datadog::Pin.new(SERVICE, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
+              service = Datadog.configuration[:redis][:service_name]
+              pin = Datadog::Pin.new(service, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
               if pin.tracer && pin.service
                 pin.tracer.set_service_info(pin.service, pin.app, pin.app_type)
