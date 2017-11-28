@@ -43,7 +43,8 @@ module Datadog
 
           tracer.configure(
             hostname: Datadog.configuration[:rails][:trace_agent_hostname],
-            port: Datadog.configuration[:rails][:trace_agent_port]
+            port: Datadog.configuration[:rails][:trace_agent_port],
+            priority_sampling: Datadog.configuration[:rails][:priority_sampling]
           )
 
           tracer.set_tags(Datadog.configuration[:rails][:tags])

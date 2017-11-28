@@ -16,6 +16,7 @@ module Datadog
         option :default_grape_service, default: 'grape'
         option :default_database_service
         option :distributed_tracing_enabled, default: false
+        option :priority_sampling, default: false
         option :template_base_path, default: 'views/'
         option :tracer, default: Datadog.tracer
         option :debug, default: false

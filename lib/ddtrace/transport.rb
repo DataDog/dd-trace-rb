@@ -20,30 +20,35 @@ module Datadog
     RUBY_INTERPRETER = RUBY_VERSION > '1.9' ? RUBY_ENGINE + '-' + RUBY_PLATFORM : 'ruby-' + RUBY_PLATFORM
 
     API = {
-      'v0.3' => {
+      V4 = 'v0.4'.freeze => {
+        traces_endpoint: '/v0.4/traces'.freeze,
+        services_endpoint: '/v0.4/services'.freeze,
+        encoder: Encoding::MsgpackEncoder,
+        fallback: 'v0.3'.freeze
+      }.freeze,
+      V3 = 'v0.3'.freeze => {
         traces_endpoint: '/v0.3/traces'.freeze,
         services_endpoint: '/v0.3/services'.freeze,
         encoder: Encoding::MsgpackEncoder,
         fallback: 'v0.2'.freeze
       }.freeze,
-      'v0.2' => {
+      V2 = 'v0.2'.freeze => {
         traces_endpoint: '/v0.2/traces'.freeze,
         services_endpoint: '/v0.2/services'.freeze,
         encoder: Encoding::JSONEncoder
       }.freeze
     }.freeze
 
-    DEFAULT_API = 'v0.3'.freeze
-
-    private_constant :API, :DEFAULT_API
+    private_constant :API
 
     def initialize(hostname, port, options = {})
-      api_version = options.fetch(:api_version, DEFAULT_API)
+      api_version = options.fetch(:api_version, V3)
 
       @hostname = hostname
       @port = port
       @api = API.fetch(api_version)
       @encoder = options[:encoder] || @api[:encoder].new
+      @response_callback = options[:response_callback]
 
       # overwrite the Content-type with the one chosen in the Encoder
       @headers = options.fetch(:headers, {})
@@ -161,6 +166,8 @@ module Datadog
         @mutex.synchronize { @count_server_error += 1 }
       end
 
+      process_callback(response)
+
       status_code
     rescue StandardError => e
       Datadog::Tracer.log.error(e.message)
@@ -177,6 +184,16 @@ module Datadog
           internal_error: @count_internal_error
         }
       end
+    end
+
+    private
+
+    def process_callback(response)
+      return unless @response_callback && @response_callback.respond_to?(:call)
+
+      @response_callback.call(response)
+    rescue => e
+      Tracer.log.debug("Error processing callback: #{e}")
     end
   end
 end

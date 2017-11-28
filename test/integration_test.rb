@@ -139,4 +139,53 @@ class TracerIntegrationTest < Minitest::Test
 
     shutdown_exec_only_once(tracer)
   end
+
+  def test_sampling_priority_metric_propagation
+    tracer = get_test_tracer
+    tracer.configure(priority_sampling: true)
+    tracer.writer = FauxWriter.new(priority_sampler: Datadog::PrioritySampler.new)
+
+    span_a = tracer.start_span('span_a')
+    span_b = tracer.start_span('span_b', child_of: span_a.context)
+
+    # I want to keep the trace to which `span_b` belongs
+    span_b.context.sampling_priority = 10
+
+    span_b.finish
+    span_a.finish
+
+    try_wait_until { tracer.writer.spans(:keep).any? }
+
+    # The root span should have the correct sampling priority metric
+    assert_equal(
+      10,
+      span_a.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)
+    )
+  end
+
+  def test_priority_sampling_integration
+    # Whatever the sampling priority sampling is, all traces are sent to the agent,
+    # the agent then sends it or not depending on the priority, but they are all sent.
+    3.times do |i|
+      tracer = Datadog::Tracer.new
+      tracer.configure(enabled: true, hostname: '127.0.0.1', port: '8126', priority_sampling: true)
+
+      span_a = tracer.start_span('span_a')
+      span_b = tracer.start_span('span_b', child_of: span_a.context)
+
+      # I want to keep the trace to which `span_b` belongs
+      span_b.context.sampling_priority = i
+
+      span_b.finish
+      span_a.finish
+
+      try_wait_until { tracer.writer.stats[:traces_flushed] >= 2 }
+      stats = tracer.writer.stats
+
+      assert_equal(1, stats[:traces_flushed], 'wrong number of traces flushed')
+      assert_equal(0, stats[:transport][:client_error])
+      assert_equal(0, stats[:transport][:server_error])
+      assert_equal(0, stats[:transport][:internal_error])
+    end
+  end
 end

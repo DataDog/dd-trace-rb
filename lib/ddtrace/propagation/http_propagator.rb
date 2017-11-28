@@ -8,14 +8,11 @@ module Datadog
     include Ext::DistributedTracing
 
     # inject! popolates the env with span ID, trace ID and sampling priority
-    def self.inject!(span, env)
-      headers = { HTTP_HEADER_TRACE_ID => span.trace_id.to_s,
-                  HTTP_HEADER_PARENT_ID => span.span_id.to_s }
-      if span.sampling_priority
-        headers[HTTP_HEADER_SAMPLING_PRIORITY] = span.sampling_priority.to_s
-      end
-      env.merge! headers
-      env.delete(HTTP_HEADER_SAMPLING_PRIORITY) unless span.sampling_priority
+    def self.inject!(context, env)
+      env[HTTP_HEADER_TRACE_ID] = context.trace_id.to_s
+      env[HTTP_HEADER_PARENT_ID] = context.span_id.to_s
+      env[HTTP_HEADER_SAMPLING_PRIORITY] = context.sampling_priority.to_s
+      env.delete(HTTP_HEADER_SAMPLING_PRIORITY) unless context.sampling_priority
     end
 
     # extract returns a context containing the span ID, trace ID and

@@ -1,10 +1,14 @@
 require 'minitest'
 require 'minitest/autorun'
+require 'webmock/minitest'
 
 require 'ddtrace/encoding'
 require 'ddtrace/transport'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
+
+WebMock.allow_net_connect!
+WebMock.disable!
 
 # Give access to otherwise private members
 module Datadog
@@ -67,8 +71,9 @@ end
 
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Writer
-  def initialize
-    super(transport: FauxTransport.new(HOSTNAME, PORT))
+  def initialize(options = {})
+    options[:transport] ||= FauxTransport.new(HOSTNAME, PORT)
+    super
     @mutex = Mutex.new
 
     # easy access to registered components

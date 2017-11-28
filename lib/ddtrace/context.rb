@@ -139,6 +139,8 @@ module Datadog
 
         trace = @trace
         sampled = @sampled
+        attach_sampling_priority if sampled && @sampling_priority
+
         reset
         return trace, sampled
       end
@@ -152,9 +154,17 @@ module Datadog
       end
     end
 
+    def attach_sampling_priority
+      @trace.first.set_metric(
+        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+        @sampling_priority
+      )
+    end
+
     private :reset
     private :check_finished_spans
     private :set_current_span
+    private :attach_sampling_priority
   end
 
   # ThreadLocalContext can be used as a tracer global reference to create

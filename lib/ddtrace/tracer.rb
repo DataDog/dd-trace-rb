@@ -118,11 +118,18 @@ module Datadog
       hostname = options.fetch(:hostname, nil)
       port = options.fetch(:port, nil)
       sampler = options.fetch(:sampler, nil)
+      priority_sampling = options[:priority_sampling]
 
       @enabled = enabled unless enabled.nil?
+      @sampler = sampler unless sampler.nil?
+
+      if priority_sampling
+        @sampler = PrioritySampler.new(base_sampler: @sampler)
+        @writer = Writer.new(priority_sampler: @sampler)
+      end
+
       @writer.transport.hostname = hostname unless hostname.nil?
       @writer.transport.port = port unless port.nil?
-      @sampler = sampler unless sampler.nil?
     end
 
     # Set the information about the given service. A valid example is:
@@ -204,7 +211,6 @@ module Datadog
         if ctx && ctx.trace_id && ctx.span_id
           span.trace_id = ctx.trace_id
           span.parent_id = ctx.span_id
-          span.sampling_priority = ctx.sampling_priority
         end
       else
         # child span
