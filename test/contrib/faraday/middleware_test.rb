@@ -96,6 +96,22 @@ module Datadog
           assert_equal(headers[Ext::DistributedTracing::HTTP_HEADER_PARENT_ID], span.span_id.to_s)
         end
 
+        def test_distributed_tracing_disabled
+          tracer.enabled = false
+
+          response = client(distributed_tracing: true).get('/success')
+          headers = response.env.request_headers
+          span = request_span
+
+          # headers should not be set when the tracer is disabled: we do not want the callee
+          # to refer to spans which will never be sent to the agent.
+          assert_nil(headers[Ext::DistributedTracing::HTTP_HEADER_TRACE_ID])
+          assert_nil(headers[Ext::DistributedTracing::HTTP_HEADER_PARENT_ID])
+          assert_nil(span, 'disabled tracer, no spans should reach the writer')
+
+          tracer.enabled = true
+        end
+
         private
 
         attr_reader :client

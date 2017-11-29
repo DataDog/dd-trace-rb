@@ -109,4 +109,52 @@ class HTTPRequestTest < Minitest::Test
     assert_equal('http.request', span.name)
     assert_equal('bar', span.service)
   end
+
+  def test_distributed_tracing_headers
+    Datadog.configuration[:http][:distributed_tracing_enabled] = true
+
+    pin = Datadog::Pin.get_from(@client)
+    spy = StringIO.new
+
+    pin.tracer.trace('foo.bar') do |span|
+      span.context.sampling_priority = 10
+      @client.set_debug_output(spy)
+      @client.get('/_cluster/health')
+    end
+
+    request_data = spy.string
+    assert_match(/x-datadog-parent-id/i, request_data)
+    assert_match(/x-datadog-trace-id/i, request_data)
+    assert_match(/x-datadog-sampling-priority: 10/i, request_data)
+
+    Datadog.configuration[:http][:distributed_tracing_enabled] = false
+  end
+
+  def test_disabled_distributed_tracing
+    Datadog.configuration[:http][:distributed_tracing_enabled] = false
+
+    spy = StringIO.new
+    @client.set_debug_output(spy)
+    @client.get('/_cluster/health')
+
+    request_data = spy.string
+    refute_match(/x-datadog-parent-id/i, request_data)
+    refute_match(/x-datadog-trace-id/i, request_data)
+    refute_match(/x-datadog-sampling-priority/i, request_data)
+  end
+
+  def test_distributed_tracing_when_tracer_is_disabled
+    Datadog.configuration[:http][:distributed_tracing_enabled] = true
+    pin = Datadog::Pin.get_from(@client)
+    pin.tracer.configure(enabled: false)
+
+    spy = StringIO.new
+    @client.set_debug_output(spy)
+    @client.get('/_cluster/health')
+
+    request_data = spy.string
+    refute_match(/x-datadog-parent-id/i, request_data)
+    refute_match(/x-datadog-trace-id/i, request_data)
+    refute_match(/x-datadog-sampling-priority/i, request_data)
+  end
 end
