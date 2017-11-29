@@ -34,7 +34,7 @@ module Datadog
 
         option :tracer, default: Datadog.tracer
 
-        option(:debug, default: false) { |value| Tracer.debug_logging = value }
+        option(:debug, default: false) { |value| Datadog::Tracer.debug_logging = value }
 
         option :trace_agent_hostname, default: Writer::HOSTNAME, depends_on: [:tracer] do |value|
           get_option(:tracer).configure(hostname: value)
