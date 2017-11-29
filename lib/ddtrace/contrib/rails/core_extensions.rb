@@ -168,6 +168,7 @@ module Datadog
       patch_cache_store_fetch
       patch_cache_store_write
       patch_cache_store_delete
+      reload_cache_store
     end
 
     def cache_store_class(k)
@@ -283,6 +284,25 @@ module Datadog
         ensure
           Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(payload)
         end
+      end
+    end
+
+    def self.reload_cache_store
+      return unless Datadog.registry[:redis].patched?
+
+      return unless defined?(::ActiveSupport::Cache::RedisStore) &&
+                    defined?(::Rails.cache) &&
+                    ::Rails.cache.is_a?(::ActiveSupport::Cache::RedisStore)
+
+      Tracer.log.debug('Reloading redis cache store')
+
+      # backward compatibility: Rails 3.x doesn't have `cache=` method
+      cache_store = ::Rails.configuration.cache_store
+      cache_instance = ::ActiveSupport::Cache.lookup_store(cache_store)
+      if ::Rails::VERSION::MAJOR.to_i == 3
+        silence_warnings { Object.const_set 'RAILS_CACHE', cache_instance }
+      elsif ::Rails::VERSION::MAJOR.to_i > 3
+        ::Rails.cache = cache_instance
       end
     end
   end

@@ -7,9 +7,6 @@ module Datadog
         register_as :rails, auto_patch: true
 
         option :enabled, default: true
-        option :auto_instrument, default: false
-        option :auto_instrument_redis, default: false
-        option :auto_instrument_grape, default: false
         option :service_name, default: 'rails-app'
         option :controller_service, default: 'rails-controller'
         option :cache_service, default: 'rails-cache'

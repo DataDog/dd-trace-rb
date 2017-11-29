@@ -42,7 +42,8 @@ module RailsTrace
     def test_config
       # Enables the auto-instrumentation for the testing application
       Datadog.configure do |c|
-        c.use :rails, auto_instrument: true, auto_instrument_redis: true
+        c.use :rails
+        c.use :redis
       end
       Rails.application.config.active_job.queue_adapter = :sidekiq
 

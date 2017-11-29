@@ -30,8 +30,8 @@ module Datadog
 
               patch_redis()
               patch_redis_client()
-
               @patched = true
+              RailsCachePatcher.reload_cache_store if Datadog.registry[:rails].patched?
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Redis integration: #{e}")
             end
