@@ -31,50 +31,35 @@ module Datadog
       # - instrument parts of the framework when needed
       module Framework
         # configure Datadog settings
-        # rubocop:disable Metrics/MethodLength
-        # rubocop:disable Metrics/AbcSize
         def self.configure(rails_config)
           user_config = rails_config[:config].datadog_trace rescue {}
           Datadog.configuration.use(:rails, user_config)
-          tracer = Datadog.configuration[:rails][:tracer]
+          config = Datadog.configuration[:rails]
+          tracer = config[:tracer]
 
-          tracer.set_service_info(
-            Datadog.configuration[:rails][:service_name],
-            'rack',
-            Datadog::Ext::AppTypes::WEB
+          Datadog.configuration.use(
+            :rack,
+            tracer: tracer,
+            service_name: config[:service_name],
+            distributed_tracing_enabled: config[:distributed_tracing_enabled]
           )
 
-          tracer.set_service_info(
-            Datadog.configuration[:rails][:controller_service],
-            'rails',
-            Datadog::Ext::AppTypes::WEB
-          )
-          tracer.set_service_info(
-            Datadog.configuration[:rails][:cache_service],
-            'rails',
-            Datadog::Ext::AppTypes::CACHE
-          )
+          config[:controller_service] ||= config[:service_name]
+
+          tracer.set_service_info(config[:controller_service], 'rails', Ext::AppTypes::WEB)
+          tracer.set_service_info(config[:cache_service], 'rails', Ext::AppTypes::CACHE)
 
           # By default, default service would be guessed from the script
           # being executed, but here we know better, get it from Rails config.
-          tracer.default_service = Datadog.configuration[:rails][:service_name]
-
-          Datadog.configuration[:rack][:tracer] = tracer
-          Datadog.configuration[:rack][:service_name] = Datadog.configuration[:rails][:service_name]
-          Datadog.configuration[:rack][:distributed_tracing_enabled] = \
-            Datadog.configuration[:rails][:distributed_tracing_enabled]
+          tracer.default_service = config[:service_name]
 
           if defined?(::ActiveRecord)
             begin
               # set default database service details and store it in the configuration
               conn_cfg = ::ActiveRecord::Base.connection_config()
               adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(conn_cfg[:adapter])
-              Datadog.configuration[:rails][:database_service] ||= adapter_name
-              tracer.set_service_info(
-                Datadog.configuration[:rails][:database_service],
-                adapter_name,
-                Datadog::Ext::AppTypes::DB
-              )
+              config[:database_service] ||= adapter_name
+              tracer.set_service_info(config[:database_service], adapter_name, Ext::AppTypes::DB)
             rescue StandardError => e
               Datadog::Tracer.log.warn("Unable to get database config (#{e}), skipping ActiveRecord instrumentation")
             end

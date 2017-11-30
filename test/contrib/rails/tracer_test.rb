@@ -16,9 +16,8 @@ class TracerTest < ActionDispatch::IntegrationTest
   end
 
   test 'the configuration is correctly called' do
-    assert Datadog.configuration[:rails][:enabled]
     assert_equal(Datadog.configuration[:rails][:service_name], 'rails-app')
-    assert_equal(Datadog.configuration[:rails][:controller_service], 'rails-controller')
+    assert_nil(Datadog.configuration[:rails][:controller_service])
     assert_equal(Datadog.configuration[:rails][:cache_service], 'rails-cache')
     refute_nil(Datadog.configuration[:rails][:database_service])
     assert_equal(Datadog.configuration[:rails][:template_base_path], 'views/')
@@ -31,19 +30,18 @@ class TracerTest < ActionDispatch::IntegrationTest
     services = Datadog.configuration[:rails][:tracer].services
     adapter_name = get_adapter_name()
     assert_equal(
-      services,
-      'rails-app' => {
-        'app' => 'rack', 'app_type' => 'web'
+      {
+        'rails-app' => {
+          'app' => 'rails', 'app_type' => 'web'
+        },
+        adapter_name => {
+          'app' => adapter_name, 'app_type' => 'db'
+        },
+        'rails-cache' => {
+          'app' => 'rails', 'app_type' => 'cache'
+        }
       },
-      'rails-controller' => {
-        'app' => 'rails', 'app_type' => 'web'
-      },
-      adapter_name => {
-        'app' => adapter_name, 'app_type' => 'db'
-      },
-      'rails-cache' => {
-        'app' => 'rails', 'app_type' => 'cache'
-      }
+      services
     )
   end
 
@@ -53,41 +51,42 @@ class TracerTest < ActionDispatch::IntegrationTest
     adapter_name = get_adapter_name()
 
     assert_equal(
-      tracer.services,
-      'rails-app' => {
-        'app' => 'rack', 'app_type' => 'web'
+      {
+        'rails-app' => {
+          'app' => 'rails', 'app_type' => 'web'
+        },
+        'customer-db' => {
+          'app' => adapter_name, 'app_type' => 'db'
+        },
+        'rails-cache' => {
+          'app' => 'rails', 'app_type' => 'cache'
+        }
       },
-      'rails-controller' => {
-        'app' => 'rails', 'app_type' => 'web'
-      },
-      'customer-db' => {
-        'app' => adapter_name, 'app_type' => 'db'
-      },
-      'rails-cache' => {
-        'app' => 'rails', 'app_type' => 'cache'
-      }
+      tracer.services
     )
   end
 
   test 'application service can be changed by user' do
-    update_config(:controller_service, 'my-custom-app')
     tracer = Datadog.configuration[:rails][:tracer]
+    update_config(:controller_service, 'my-custom-app')
     adapter_name = get_adapter_name()
 
     assert_equal(
-      tracer.services,
-      'rails-app' => {
-        'app' => 'rack', 'app_type' => 'web'
+      {
+        'rails-app' => {
+          'app' => 'rack', 'app_type' => 'web'
+        },
+        'my-custom-app' => {
+          'app' => 'rails', 'app_type' => 'web'
+        },
+        adapter_name => {
+          'app' => adapter_name, 'app_type' => 'db'
+        },
+        'rails-cache' => {
+          'app' => 'rails', 'app_type' => 'cache'
+        }
       },
-      'my-custom-app' => {
-        'app' => 'rails', 'app_type' => 'web'
-      },
-      adapter_name => {
-        'app' => adapter_name, 'app_type' => 'db'
-      },
-      'rails-cache' => {
-        'app' => 'rails', 'app_type' => 'cache'
-      }
+      tracer.services
     )
   end
 
@@ -97,19 +96,18 @@ class TracerTest < ActionDispatch::IntegrationTest
     adapter_name = get_adapter_name()
 
     assert_equal(
-      tracer.services,
-      'rails-app' => {
-        'app' => 'rack', 'app_type' => 'web'
+      {
+        'rails-app' => {
+          'app' => 'rails', 'app_type' => 'web'
+        },
+        adapter_name => {
+          'app' => adapter_name, 'app_type' => 'db'
+        },
+        'service-cache' => {
+          'app' => 'rails', 'app_type' => 'cache'
+        }
       },
-      'rails-controller' => {
-        'app' => 'rails', 'app_type' => 'web'
-      },
-      adapter_name => {
-        'app' => adapter_name, 'app_type' => 'db'
-      },
-      'service-cache' => {
-        'app' => 'rails', 'app_type' => 'cache'
-      }
+      tracer.services
     )
   end
 end
