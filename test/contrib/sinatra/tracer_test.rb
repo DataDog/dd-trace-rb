@@ -1,5 +1,6 @@
 require 'contrib/sinatra/tracer_test_base'
 
+# rubocop:disable Metrics/ClassLength
 class TracerTest < TracerTestBase
   class TracerTestApp < Sinatra::Application
     get '/request' do
@@ -43,6 +44,22 @@ class TracerTest < TracerTestBase
     Datadog.configuration.use(:sinatra, tracer: tracer, enabled: true)
 
     super
+  end
+
+  def test_service_name
+    previous_name = Datadog.configuration[:sinatra][:service_name]
+    Datadog.configuration.use(:sinatra, service_name: 'my-sinatra-app')
+
+    get '/request'
+    assert_equal(200, last_response.status)
+
+    spans = @writer.spans()
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('my-sinatra-app', span.service)
+  ensure
+    Datadog.configuration.use(:sinatra, service_name: previous_name)
   end
 
   def test_request
