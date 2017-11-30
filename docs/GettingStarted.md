@@ -141,6 +141,10 @@ either ``sinatra`` or ``sinatra/base``:
     require 'ddtrace'
     require 'ddtrace/contrib/sinatra/tracer'
 
+    Datadog.configure do |c|
+      c.use :sinatra, default_service: 'my-app'
+    end
+
     get '/' do
       'Hello world!'
     end
@@ -148,13 +152,6 @@ either ``sinatra`` or ``sinatra/base``:
 The tracing extension will be automatically activated.
 
 #### Configure the tracer
-
-To modify the default configuration, use the ``settings.datadog_tracer.configure`` method. For example,
-to change the default service name and activate the debug mode:
-
-    configure do
-      settings.datadog_tracer.configure default_service: 'my-app', debug: true
-    end
 
 Available settings are:
 
