@@ -17,9 +17,10 @@ module Datadog
 
     def use(integration_name, options = {})
       integration = fetch_integration(integration_name)
+      settings = Proxy.new(integration)
 
       integration.sorted_options.each do |name|
-        integration.set_option(name, options[name]) if options.key?(name)
+        settings[name] = options.fetch(name, settings[name])
       end
 
       integration.patch if integration.respond_to?(:patch)

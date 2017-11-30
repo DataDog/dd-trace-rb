@@ -88,5 +88,25 @@ module Datadog
       assert_equal(5, @configuration[:example][:number])
       assert_equal(25, @configuration[:example][:multiply_by])
     end
+
+    def test_default_also_passes_through_setter
+      array = []
+
+      integration = Module.new do
+        include Contrib::Base
+        option :option1
+        option :option2, default: 10 do |value|
+          array << value
+          value
+        end
+      end
+
+      @registry.add(:example, integration)
+      @configuration.use(:example, option1: :foo!)
+
+      assert_equal(:foo!, @configuration[:example][:option1])
+      assert_equal(10, @configuration[:example][:option2])
+      assert_includes(array, 10)
+    end
   end
 end
