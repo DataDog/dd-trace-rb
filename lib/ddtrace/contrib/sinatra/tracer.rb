@@ -23,26 +23,12 @@ module Datadog
         include Base
         register_as :sinatra
 
-        option :enabled, default: true, depends_on: [:tracer] do |value|
-          get_option(:tracer).enabled = value
-        end
-
         option :service_name, default: 'sinatra', depends_on: [:tracer] do |value|
           get_option(:tracer).set_service_info(value, 'sinatra', Ext::AppTypes::WEB)
           value
         end
 
         option :tracer, default: Datadog.tracer
-
-        option(:debug, default: false) { |value| Datadog::Tracer.debug_logging = value }
-
-        option :trace_agent_hostname, default: Writer::HOSTNAME, depends_on: [:tracer] do |value|
-          get_option(:tracer).configure(hostname: value)
-        end
-
-        option :trace_agent_port, default: Writer::PORT, depends_on: [:tracer] do |value|
-          get_option(:tracer).configure(port: value)
-        end
 
         def route(verb, action, *)
           # Keep track of the route name when the app is instantiated for an

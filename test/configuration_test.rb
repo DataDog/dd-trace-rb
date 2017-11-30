@@ -108,5 +108,37 @@ module Datadog
       assert_equal(10, @configuration[:example][:option2])
       assert_includes(array, 10)
     end
+
+    def test_tracer_configuration
+      tracer = Datadog::Tracer.new
+      debug_state = tracer.class.debug_logging
+
+      @configuration.tracer(
+        enabled: false,
+        debug: !debug_state,
+        hostname: 'tracer.host.com',
+        port: 1234,
+        env: :config_test,
+        tags: { foo: :bar },
+        instance: tracer
+      )
+
+      refute(tracer.enabled)
+      refute(debug_state)
+      assert_equal('tracer.host.com', tracer.writer.transport.hostname)
+      assert_equal(1234, tracer.writer.transport.port)
+      assert_equal(:config_test, tracer.tags[:env])
+      assert_equal(:bar, tracer.tags[:foo])
+      tracer.class.debug_logging = debug_state
+    end
+
+    def test_configuration_acts_on_default_tracer
+      previous_state = Datadog.tracer.enabled
+
+      @configuration.tracer(enabled: !previous_state)
+      refute_equal(previous_state, Datadog.tracer.enabled)
+      @configuration.tracer(enabled: previous_state)
+      assert_equal(previous_state, Datadog.tracer.enabled)
+    end
   end
 end

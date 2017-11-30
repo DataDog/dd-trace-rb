@@ -12,8 +12,8 @@ class DisabledTracerTest < TracerTestBase
     super
 
     Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Contrib::Sidekiq::Tracer,
-                tracer: @tracer, enabled: false)
+      @tracer.configure(enabled: false)
+      chain.add(Datadog::Contrib::Sidekiq::Tracer, tracer: @tracer)
     end
   end
 

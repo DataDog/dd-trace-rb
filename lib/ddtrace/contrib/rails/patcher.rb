@@ -12,14 +12,8 @@ module Datadog
         option :cache_service, default: 'rails-cache'
         option :database_service
         option :distributed_tracing_enabled, default: false
-        option :priority_sampling, default: false
         option :template_base_path, default: 'views/'
         option :tracer, default: Datadog.tracer
-        option :debug, default: false
-        option :trace_agent_hostname, default: Datadog::Writer::HOSTNAME
-        option :trace_agent_port, default: Datadog::Writer::PORT
-        option :env, default: nil
-        option :tags, default: {}
 
         @patched = false
 
