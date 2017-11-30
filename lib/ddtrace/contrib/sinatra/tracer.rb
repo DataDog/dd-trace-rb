@@ -27,7 +27,7 @@ module Datadog
           get_option(:tracer).enabled = value
         end
 
-        option :default_service, default: 'sinatra', depends_on: [:tracer] do |value|
+        option :service_name, default: 'sinatra', depends_on: [:tracer] do |value|
           get_option(:tracer).set_service_info(value, 'sinatra', Ext::AppTypes::WEB)
           value
         end
@@ -90,7 +90,7 @@ module Datadog
             tracer = Datadog.configuration[:sinatra][:tracer]
 
             span = tracer.trace('sinatra.request',
-                                service: Datadog.configuration[:sinatra][:default_service],
+                                service: Datadog.configuration[:sinatra][:service_name],
                                 span_type: Datadog::Ext::HTTP::TYPE)
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)

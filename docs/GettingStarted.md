@@ -142,7 +142,7 @@ either ``sinatra`` or ``sinatra/base``:
     require 'ddtrace/contrib/sinatra/tracer'
 
     Datadog.configure do |c|
-      c.use :sinatra, default_service: 'my-app'
+      c.use :sinatra, service_name: 'my-app'
     end
 
     get '/' do
@@ -157,7 +157,7 @@ Available settings are:
 
 * ``enabled``: define if the ``tracer`` is enabled or not. If set to ``false``, the code is still instrumented
   but no spans are sent to the local trace agent.
-* ``default_service``: set the service name used when tracing application requests. Defaults to ``sinatra``
+* ``service_name``: set the service name used when tracing application requests. Defaults to ``sinatra``
 * ``tracer``: set the tracer to use. Usually you don't need to change that value
   unless you're already using a different initialized tracer somewhere else
 * ``debug``: set to ``true`` to enable debug logging.
