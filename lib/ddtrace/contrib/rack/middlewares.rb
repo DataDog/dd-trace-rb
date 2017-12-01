@@ -40,8 +40,6 @@ module Datadog
           @tracer = Datadog.configuration[:rack][:tracer]
           @service = Datadog.configuration[:rack][:service_name]
           @distributed_tracing_enabled = Datadog.configuration[:rack][:distributed_tracing_enabled]
-
-          # configure the Rack service
         end
 
         # rubocop:disable Metrics/MethodLength

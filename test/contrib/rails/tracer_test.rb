@@ -16,7 +16,7 @@ class TracerTest < ActionDispatch::IntegrationTest
   end
 
   test 'the configuration is correctly called' do
-    Datadog::Contrib::Rails::Framework.configure({})
+    Datadog::Contrib::Rails::Framework.setup
     assert_equal(app_name, @config[:service_name])
     assert_equal(@config[:service_name], @config[:controller_service])
     assert_equal("#{app_name}-cache", @config[:cache_service])
@@ -27,7 +27,7 @@ class TracerTest < ActionDispatch::IntegrationTest
 
   test 'a default service and database should be properly set' do
     services = Datadog.configuration[:rails][:tracer].services
-    Datadog::Contrib::Rails::Framework.configure({})
+    Datadog::Contrib::Rails::Framework.setup
     adapter_name = get_adapter_name()
     assert_equal(
       {

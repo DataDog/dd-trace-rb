@@ -42,21 +42,12 @@ module Datadog
           end
         end
 
-        def self.datadog_trace
-          # TODO: Consider using patcher for Rails as well.
-          # @tracer ||= defined?(::Rails) && ::Rails.configuration.datadog_trace
-          @datadog_trace ||= defined?(::Sinatra) && Datadog.configuration[:sinatra].to_h
-        end
-
         def self.adapter_name
-          @adapter_name ||= Datadog::Contrib::Rails::Utils.normalize_vendor(
-            ::ActiveRecord::Base.connection_config[:adapter]
-          )
+          @adapter_name ||= Datadog::Contrib::Rails::Utils.adapter_name
         end
 
         def self.tracer
-          return Datadog.tracer unless datadog_trace
-          @tracer ||= datadog_trace.fetch(:tracer)
+          @tracer ||= Datadog.configuration[:sinatra][:tracer]
         end
 
         def self.database_service

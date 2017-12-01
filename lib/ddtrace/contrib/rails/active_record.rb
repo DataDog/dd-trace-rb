@@ -20,8 +20,7 @@ module Datadog
         def self.sql(_name, start, finish, _id, payload)
           tracer = Datadog.configuration[:rails][:tracer]
           database_service = Datadog.configuration[:rails][:database_service]
-          adapter_name = ::ActiveRecord::Base.connection_config[:adapter]
-          adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(adapter_name)
+          adapter_name = Datadog::Contrib::Rails::Utils.adapter_name
           span_type = Datadog::Ext::SQL::TYPE
 
           span = tracer.trace(

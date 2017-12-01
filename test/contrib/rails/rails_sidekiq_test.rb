@@ -38,7 +38,7 @@ class RailsSidekiqTest < ActionController::TestCase
 
   test 'Sidekiq middleware uses Rails configuration if available' do
     @tracer.configure(enabled: false, debug: true, host: 'tracer.example.com', port: 7777)
-    Datadog::Contrib::Rails::Framework.configure({})
+    Datadog::Contrib::Rails::Framework.setup
     db_adapter = get_adapter_name()
 
     # add Sidekiq middleware
