@@ -8,6 +8,7 @@ module Datadog
       module Patcher
         include Base
         register_as :faraday, auto_patch: true
+        option :service_name, default: SERVICE
 
         @patched = false
 
@@ -42,6 +43,7 @@ module Datadog
           def add_pin
             Pin.new(SERVICE, app_type: Ext::AppTypes::WEB).tap do |pin|
               pin.onto(::Faraday)
+              pin.service = Datadog.configuration[:faraday][:service_name]
             end
           end
 

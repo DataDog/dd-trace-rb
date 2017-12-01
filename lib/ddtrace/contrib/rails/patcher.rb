@@ -10,11 +10,10 @@ module Datadog
         option :auto_instrument, default: false
         option :auto_instrument_redis, default: false
         option :auto_instrument_grape, default: false
-        option :default_service, default: 'rails-app'
-        option :default_controller_service, default: 'rails-controller'
-        option :default_cache_service, default: 'rails-cache'
-        option :default_grape_service, default: 'grape'
-        option :default_database_service
+        option :service_name, default: 'rails-app'
+        option :controller_service, default: 'rails-controller'
+        option :cache_service, default: 'rails-cache'
+        option :database_service
         option :distributed_tracing_enabled, default: false
         option :priority_sampling, default: false
         option :template_base_path, default: 'views/'
@@ -24,7 +23,6 @@ module Datadog
         option :trace_agent_port, default: Datadog::Writer::PORT
         option :env, default: nil
         option :tags, default: {}
-        option :sidekiq_service, default: 'sidekiq'
 
         @patched = false
 

@@ -33,7 +33,7 @@ class TracerTest < TracerTestBase
         Datadog::Contrib::Sidekiq::Tracer,
         tracer: @tracer,
         enabled: false,
-        sidekiq_service: 'my-sidekiq',
+        service_name: 'my-sidekiq',
         debug: true,
         trace_agent_hostname: 'trace.example.com',
         trace_agent_port: '7777'

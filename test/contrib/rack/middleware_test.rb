@@ -255,7 +255,7 @@ class CustomTracerTest < RackBaseTest
     service = 'custom-rack'
 
     Rack::Builder.new do
-      use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer, default_service: service
+      use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer, service_name: service
 
       map '/' do
         run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
@@ -292,7 +292,7 @@ class RackBaseTest < Minitest::Test
     middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {})
     refute_nil(middleware)
     assert_equal(Datadog.tracer, Datadog.configuration[:rack][:tracer])
-    assert_equal('rack', Datadog.configuration[:rack][:default_service])
+    assert_equal('rack', Datadog.configuration[:rack][:service_name])
 
     Datadog.configuration.use(:rack, previous_configuration)
   end
@@ -302,10 +302,10 @@ class RackBaseTest < Minitest::Test
     previous_configuration = Datadog.registry[:rack].to_h
 
     tracer = get_test_tracer()
-    middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {}, tracer: tracer, default_service: 'custom-rack')
+    middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {}, tracer: tracer, service_name: 'custom-rack')
     refute_nil(middleware)
     assert_equal(tracer, Datadog.configuration[:rack][:tracer])
-    assert_equal('custom-rack', Datadog.configuration[:rack][:default_service])
+    assert_equal('custom-rack', Datadog.configuration[:rack][:service_name])
 
     Datadog.configuration.use(:rack, previous_configuration)
   end

@@ -26,7 +26,7 @@ module Datadog
                     payload[:action] == 'GET'
 
           # create a new ``Span`` and add it to the tracing context
-          service = Datadog.configuration[:rails][:default_cache_service]
+          service = Datadog.configuration[:rails][:cache_service]
           type = Datadog::Ext::CACHE::TYPE
           span = tracer.trace('rails.cache', service: service, span_type: type)
           span.resource = payload.fetch(:action)

@@ -1,7 +1,6 @@
 module Datadog
   module Contrib
     module Aws
-      SERVICE = 'aws'.freeze
       AGENT = 'aws-sdk-ruby'.freeze
       RESOURCE = 'aws.command'.freeze
 
@@ -9,6 +8,7 @@ module Datadog
       module Patcher
         include Base
         register_as :aws, auto_patch: true
+        option :service_name, default: 'aws'
 
         @patched = false
 
@@ -37,7 +37,7 @@ module Datadog
           private
 
           def add_pin
-            Pin.new(SERVICE, app_type: Ext::AppTypes::WEB).tap do |pin|
+            Pin.new(get_option(:service_name), app_type: Ext::AppTypes::WEB).tap do |pin|
               pin.onto(::Aws)
             end
           end

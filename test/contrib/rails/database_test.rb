@@ -5,7 +5,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
   setup do
     @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer
-    Datadog.configuration[:rails][:default_database_service] = get_adapter_name
+    Datadog.configuration[:rails][:database_service] = get_adapter_name
     Datadog.configuration[:rails][:tracer] = @tracer
   end
 
@@ -33,7 +33,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
 
   test 'doing a database call uses the proper service name if it is changed' do
     # update database configuration
-    update_config(:default_database_service, 'customer-db')
+    update_config(:database_service, 'customer-db')
 
     # make the query and assert the proper spans
     Article.count

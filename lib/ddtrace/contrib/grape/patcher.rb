@@ -8,6 +8,7 @@ module Datadog
       module Patcher
         include Base
         register_as :grape, auto_patch: true
+        option :service_name, default: SERVICE
 
         @patched = false
 
@@ -31,7 +32,8 @@ module Datadog
               patch_endpoint_render()
 
               # attach a PIN object globally and set the service once
-              pin = Datadog::Pin.new(SERVICE, app: 'grape', app_type: Datadog::Ext::AppTypes::WEB)
+              service = get_option(:service_name)
+              pin = Datadog::Pin.new(service, app: 'grape', app_type: Datadog::Ext::AppTypes::WEB)
               pin.onto(::Grape)
               if pin.tracer && pin.service
                 pin.tracer.set_service_info(pin.service, 'grape', pin.app_type)

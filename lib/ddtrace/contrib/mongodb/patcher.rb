@@ -13,6 +13,7 @@ module Datadog
       module Patcher
         include Base
         register_as :mongo, auto_patch: true
+        option :service_name, default: SERVICE
 
         @patched = false
 
@@ -63,7 +64,8 @@ module Datadog
             def initialize(*args, &blk)
               # attach the Pin instance
               initialize_without_datadog(*args, &blk)
-              pin = Datadog::Pin.new(SERVICE, app: APP, app_type: Datadog::Ext::AppTypes::DB)
+              service = Datadog.configuration[:mongo][:service_name]
+              pin = Datadog::Pin.new(service, app: APP, app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
               if pin.tracer && pin.service
                 pin.tracer.set_service_info(pin.service, 'mongodb', pin.app_type)
