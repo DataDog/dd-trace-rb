@@ -17,7 +17,10 @@ module Datadog
         register_as :rack
 
         option :tracer, default: Datadog.tracer
-        option :service_name, default: 'rack'
+        option :service_name, default: 'rack', depends_on: [:tracer] do |value|
+          get_option(:tracer).set_service_info(value, 'rack', Ext::AppTypes::WEB)
+          value
+        end
         option :distributed_tracing_enabled, default: false
 
         def initialize(app, options = {})
@@ -39,11 +42,6 @@ module Datadog
           @distributed_tracing_enabled = Datadog.configuration[:rack][:distributed_tracing_enabled]
 
           # configure the Rack service
-          @tracer.set_service_info(
-            @service,
-            'rack',
-            Datadog::Ext::AppTypes::WEB
-          )
         end
 
         # rubocop:disable Metrics/MethodLength

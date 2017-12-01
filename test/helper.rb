@@ -202,9 +202,7 @@ end
 # * +value+: the value of the key
 def update_config(key, value)
   Datadog.configuration[:rails][key] = value
-  ::Rails.configuration.datadog_trace.merge!(Datadog.registry[:rails].to_h)
-  config = { config: ::Rails.application.config }
-  Datadog::Contrib::Rails::Framework.configure(config)
+  Datadog::Contrib::Rails::Framework.configure({})
 end
 
 # reset default configuration and replace any dummy tracer
