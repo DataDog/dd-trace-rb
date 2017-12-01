@@ -95,53 +95,6 @@ module Datadog
           # update global configurations
           ::Rails.configuration.datadog_trace = Datadog.registry[:rails].to_h
         end
-
-        def self.auto_instrument_redis
-          return unless Datadog.configuration[:rails][:auto_instrument_redis]
-          Datadog::Tracer.log.debug('Enabling auto-instrumentation for Redis client')
-
-          # patch the Redis library and reload the CacheStore if it was using Redis
-          Datadog::Monkey.patch_module(:redis)
-
-          # reload the cache store if it's available and it's using Redis
-          return unless defined?(::ActiveSupport::Cache::RedisStore) &&
-                        defined?(::Rails.cache) &&
-                        ::Rails.cache.is_a?(::ActiveSupport::Cache::RedisStore)
-          Datadog::Tracer.log.debug('Enabling auto-instrumentation for redis-rails connector')
-
-          # backward compatibility: Rails 3.x doesn't have `cache=` method
-          cache_store = ::Rails.configuration.cache_store
-          cache_instance = ::ActiveSupport::Cache.lookup_store(cache_store)
-          if ::Rails::VERSION::MAJOR.to_i == 3
-            silence_warnings { Object.const_set 'RAILS_CACHE', cache_instance }
-          elsif ::Rails::VERSION::MAJOR.to_i > 3
-            ::Rails.cache = cache_instance
-          end
-        end
-
-        def self.auto_instrument_grape
-          return unless Datadog.configuration[:rails][:auto_instrument_grape]
-
-          # patch the Grape library so that endpoints are traced
-          Datadog::Monkey.patch_module(:grape)
-
-          # update the Grape pin object
-          pin = Datadog::Pin.get_from(::Grape)
-          return unless pin && pin.enabled?
-          pin.tracer = Datadog.configuration[:rails][:tracer]
-        end
-
-        # automatically instrument all Rails component
-        def self.auto_instrument
-          return unless Datadog.configuration[:rails][:auto_instrument]
-          Datadog::Tracer.log.debug('Enabling auto-instrumentation for core components')
-
-          # instrumenting Rails framework
-          Datadog::Contrib::Rails::ActionController.instrument()
-          Datadog::Contrib::Rails::ActionView.instrument()
-          Datadog::Contrib::Rails::ActiveRecord.instrument()
-          Datadog::Contrib::Rails::ActiveSupport.instrument()
-        end
       end
     end
   end

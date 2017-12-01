@@ -15,6 +15,7 @@ class RedisCacheTracingTest < ActionController::TestCase
     @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer()
     Datadog.configuration[:rails][:tracer] = @tracer
+    Datadog.configuration.use(:redis)
 
     # get the Redis pin accessing private methods (only Rails 3.x)
     client = Rails.cache.instance_variable_get(:@data)

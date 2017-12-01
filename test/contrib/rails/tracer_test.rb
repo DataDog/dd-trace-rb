@@ -18,8 +18,6 @@ class TracerTest < ActionDispatch::IntegrationTest
 
   test 'the configuration is correctly called' do
     assert Datadog.configuration[:rails][:enabled]
-    refute Datadog.configuration[:rails][:auto_instrument]
-    refute Datadog.configuration[:rails][:auto_instrument_redis]
     assert_equal(Datadog.configuration[:rails][:service_name], 'rails-app')
     assert_equal(Datadog.configuration[:rails][:controller_service], 'rails-controller')
     assert_equal(Datadog.configuration[:rails][:cache_service], 'rails-cache')

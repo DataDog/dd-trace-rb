@@ -10,9 +10,10 @@ module Datadog
 
     config.after_initialize do |app|
       Datadog::Contrib::Rails::Framework.configure(config: app.config)
-      Datadog::Contrib::Rails::Framework.auto_instrument
-      Datadog::Contrib::Rails::Framework.auto_instrument_redis
-      Datadog::Contrib::Rails::Framework.auto_instrument_grape
+      Datadog::Contrib::Rails::ActionController.instrument
+      Datadog::Contrib::Rails::ActionView.instrument
+      Datadog::Contrib::Rails::ActiveRecord.instrument
+      Datadog::Contrib::Rails::ActiveSupport.instrument
     end
   end
 end
