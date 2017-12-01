@@ -6,9 +6,9 @@ module Datadog
         include Base
         register_as :rails, auto_patch: true
 
-        option :service_name, default: 'rails-app'
+        option :service_name
         option :controller_service
-        option :cache_service, default: 'rails-cache'
+        option :cache_service
         option :database_service
         option :distributed_tracing_enabled, default: false
         option :template_base_path, default: 'views/'

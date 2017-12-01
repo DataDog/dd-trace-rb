@@ -36,6 +36,7 @@ module Datadog
           Datadog.configuration.use(:rails, user_config)
           config = Datadog.configuration[:rails]
           tracer = config[:tracer]
+          config[:service_name] ||= Utils.app_name
 
           Datadog.configuration.use(
             :rack,
@@ -45,6 +46,7 @@ module Datadog
           )
 
           config[:controller_service] ||= config[:service_name]
+          config[:cache_service] ||= "#{config[:service_name]}-cache"
 
           tracer.set_service_info(config[:controller_service], 'rails', Ext::AppTypes::WEB)
           tracer.set_service_info(config[:cache_service], 'rails', Ext::AppTypes::CACHE)
@@ -58,7 +60,7 @@ module Datadog
               # set default database service details and store it in the configuration
               conn_cfg = ::ActiveRecord::Base.connection_config()
               adapter_name = Datadog::Contrib::Rails::Utils.normalize_vendor(conn_cfg[:adapter])
-              config[:database_service] ||= adapter_name
+              config[:database_service] ||= "#{config[:service_name]}-#{adapter_name}"
               tracer.set_service_info(config[:database_service], adapter_name, Ext::AppTypes::DB)
             rescue StandardError => e
               Datadog::Tracer.log.warn("Unable to get database config (#{e}), skipping ActiveRecord instrumentation")
