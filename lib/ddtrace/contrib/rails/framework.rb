@@ -38,18 +38,6 @@ module Datadog
           Datadog.configuration.use(:rails, user_config)
           tracer = Datadog.configuration[:rails][:tracer]
 
-          tracer.enabled = Datadog.configuration[:rails][:enabled]
-          tracer.class.debug_logging = Datadog.configuration[:rails][:debug]
-
-          tracer.configure(
-            hostname: Datadog.configuration[:rails][:trace_agent_hostname],
-            port: Datadog.configuration[:rails][:trace_agent_port],
-            priority_sampling: Datadog.configuration[:rails][:priority_sampling]
-          )
-
-          tracer.set_tags(Datadog.configuration[:rails][:tags])
-          tracer.set_tags('env' => Datadog.configuration[:rails][:env]) if Datadog.configuration[:rails][:env]
-
           tracer.set_service_info(
             Datadog.configuration[:rails][:service_name],
             'rack',

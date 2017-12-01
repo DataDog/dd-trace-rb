@@ -40,8 +40,8 @@ class TracerTest < TracerTestBase
     @writer = FauxWriter.new()
     app().set :datadog_test_writer, @writer
 
-    tracer = Datadog::Tracer.new(writer: @writer)
-    Datadog.configuration.use(:sinatra, tracer: tracer, enabled: true)
+    tracer = Datadog::Tracer.new(writer: @writer, enabled: true)
+    Datadog.configuration.use(:sinatra, tracer: tracer)
 
     super
   end
