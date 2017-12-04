@@ -111,7 +111,7 @@ class HTTPRequestTest < Minitest::Test
   end
 
   def test_distributed_tracing_headers
-    Datadog.configuration[:http][:distributed_tracing_enabled] = true
+    Datadog.configuration[:http][:distributed_tracing] = true
 
     pin = Datadog::Pin.get_from(@client)
     spy = StringIO.new
@@ -127,11 +127,11 @@ class HTTPRequestTest < Minitest::Test
     assert_match(/x-datadog-trace-id/i, request_data)
     assert_match(/x-datadog-sampling-priority: 10/i, request_data)
 
-    Datadog.configuration[:http][:distributed_tracing_enabled] = false
+    Datadog.configuration[:http][:distributed_tracing] = false
   end
 
   def test_disabled_distributed_tracing
-    Datadog.configuration[:http][:distributed_tracing_enabled] = false
+    Datadog.configuration[:http][:distributed_tracing] = false
 
     spy = StringIO.new
     @client.set_debug_output(spy)
@@ -144,7 +144,7 @@ class HTTPRequestTest < Minitest::Test
   end
 
   def test_distributed_tracing_when_tracer_is_disabled
-    Datadog.configuration[:http][:distributed_tracing_enabled] = true
+    Datadog.configuration[:http][:distributed_tracing] = true
     pin = Datadog::Pin.get_from(@client)
     pin.tracer.configure(enabled: false)
 

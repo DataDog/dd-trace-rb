@@ -29,7 +29,7 @@ module Datadog
             :rack,
             tracer: tracer,
             service_name: config[:service_name],
-            distributed_tracing_enabled: config[:distributed_tracing_enabled]
+            distributed_tracing: config[:distributed_tracing]
           )
 
           config[:controller_service] ||= config[:service_name]
