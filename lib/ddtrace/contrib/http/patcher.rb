@@ -14,16 +14,6 @@ module Datadog
 
       module_function
 
-      # TODO: Remove this once we drop support for legacy configuration
-      def distributed_tracing_enabled
-        Datadog.configuration[:http][:distributed_tracing_enabled]
-      end
-
-      # TODO: Remove this once we drop support for legacy configuration
-      def distributed_tracing_enabled=(value)
-        Datadog.configuration[:http][:distributed_tracing_enabled] = value
-      end
-
       def should_skip_tracing?(req, address, port, transport, pin)
         # we don't want to trace our own call to the API (they use net/http)
         # when we know the host & port (from the URI) we use it, else (most-likely
