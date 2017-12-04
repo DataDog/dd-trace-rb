@@ -1,6 +1,7 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/queue_time/instrumenter'
 
 module Datadog
   module Contrib
@@ -44,12 +45,26 @@ module Datadog
             'rack',
             Datadog::Ext::AppTypes::WEB
           )
+
+          # configure the Rack service
+          @tracer.set_service_info(
+            'nginx',
+            'rack',
+            Datadog::Ext::AppTypes::WEB
+          )
         end
 
         # rubocop:disable Metrics/MethodLength
         def call(env)
+          now = Time.now
+
           # configure the Rack middleware once
-          configure()
+          configure
+
+          # [experimental] create another root span if headers are set in nginx or other frontend web servers
+          # TODO: this code may not be optimal because of clock skew
+          request_start = Datadog::Contrib::QueueTime.get_request_start(env, now)
+          frontend_span = @tracer.trace('request.enqueuing', service: 'nginx', start_time: request_start)
 
           trace_options = {
             service: @service,
@@ -69,6 +84,7 @@ module Datadog
             request_span = @tracer.trace('rack.request', trace_options)
           end
 
+          env[:datadog_rack_frontend_span] = frontend_span
           env[:datadog_rack_request_span] = request_span
 
           # call the rest of the stack
@@ -118,6 +134,7 @@ module Datadog
           end
 
           request_span.finish()
+          frontend_span.finish()
           clean_context
 
           [status, headers, response]
