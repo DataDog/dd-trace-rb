@@ -13,9 +13,9 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # and the Rack stack
     @tracer = get_test_tracer
     Datadog.registry[:rails].reset_options!
-    Datadog.configuration[:rails][:database_service] = get_adapter_name
     Datadog.configuration[:rails][:tracer] = @tracer
-    Datadog.configuration[:rack][:tracer] = @tracer
+    Datadog.configuration[:rails][:database_service] = get_adapter_name
+    Datadog::Contrib::Rails::Framework.configure({})
   end
 
   teardown do
@@ -69,7 +69,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(cache_span.name, 'rails.cache')
     assert_equal(cache_span.span_type, 'cache')
     assert_equal(cache_span.resource, 'SET')
-    assert_equal(cache_span.service, 'rails-cache')
+    assert_equal(cache_span.service, "#{app_name}-cache")
     assert_equal(cache_span.get_tag('rails.cache.backend').to_s, 'file_store')
     assert_equal(cache_span.get_tag('rails.cache.key'), 'empty-key')
   end

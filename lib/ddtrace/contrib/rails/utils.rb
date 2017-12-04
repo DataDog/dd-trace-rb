@@ -37,6 +37,14 @@ module Datadog
             vendor
           end
         end
+
+        def self.app_name
+          if ::Rails::VERSION::MAJOR >= 4
+            ::Rails.application.class.parent_name.underscore
+          else
+            ::Rails.application.class.to_s.underscore
+          end
+        end
       end
     end
   end

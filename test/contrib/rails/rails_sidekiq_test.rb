@@ -51,13 +51,13 @@ class RailsSidekiqTest < ActionController::TestCase
 
     assert_equal(
       @tracer.services,
-      'rails-app' => {
+      app_name => {
         'app' => 'rails', 'app_type' => 'web'
       },
-      db_adapter => {
+      "#{app_name}-#{db_adapter}" => {
         'app' => db_adapter, 'app_type' => 'db'
       },
-      'rails-cache' => {
+      "#{app_name}-cache" => {
         'app' => 'rails', 'app_type' => 'cache'
       },
       'rails-sidekiq' => {
