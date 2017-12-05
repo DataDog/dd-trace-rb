@@ -20,7 +20,7 @@ module Datadog
       def get_option(name)
         __assert_valid!(name)
 
-        return __options[name][:default] unless __options[name][:set_flag]
+        return __default_value(name) unless __options[name][:set_flag]
 
         __options[name][:value]
       end
@@ -47,6 +47,7 @@ module Datadog
         name = name.to_sym
         meta[:setter] ||= (block || IDENTITY)
         meta[:depends_on] ||= []
+        meta[:lazy] ||= false
         __options[name] = meta
       end
 
@@ -71,6 +72,11 @@ module Datadog
         __options.each_with_object({}) do |(name, meta), graph|
           graph[name] = meta[:depends_on]
         end
+      end
+
+      def __default_value(name)
+        return __options[name][:default].call if __options[name][:lazy]
+        __options[name][:default]
       end
     end
   end
