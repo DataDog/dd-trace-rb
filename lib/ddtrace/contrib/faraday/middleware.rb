@@ -10,32 +10,24 @@ module Datadog
       class Middleware < ::Faraday::Middleware
         include Ext::DistributedTracing
 
-        DEFAULT_ERROR_HANDLER = lambda do |env|
-          Ext::HTTP::ERROR_RANGE.cover?(env[:status])
-        end
-
-        DEFAULT_OPTIONS = {
-          distributed_tracing: false,
-          split_by_domain: false,
-          error_handler: DEFAULT_ERROR_HANDLER
-        }.freeze
-
         def initialize(app, options = {})
           super(app)
-          @options = DEFAULT_OPTIONS.merge(options)
+          @options = Datadog.configuration[:faraday].merge(options)
+          @tracer = Pin.get_from(::Faraday).tracer
+          setup_service!
         end
 
         def call(env)
-          dd_pin.tracer.trace(SERVICE) do |span|
+          tracer.trace(NAME) do |span|
             annotate!(span, env)
-            propagate!(span, env) if options[:distributed_tracing] && dd_pin.tracer.enabled
+            propagate!(span, env) if options[:distributed_tracing] && tracer.enabled
             app.call(env).on_complete { |resp| handle_response(span, resp) }
           end
         end
 
         private
 
-        attr_reader :app, :options
+        attr_reader :app, :options, :tracer
 
         def annotate!(span, env)
           span.resource = env[:method].to_s.upcase
@@ -59,14 +51,16 @@ module Datadog
           Datadog::HTTPPropagator.inject!(span.context, env[:request_headers])
         end
 
-        def dd_pin
-          Pin.get_from(::Faraday)
-        end
-
         def service_name(env)
           return env[:url].host if options[:split_by_domain]
 
-          dd_pin.service
+          options[:service_name]
+        end
+
+        def setup_service!
+          return if options[:service_name] == Datadog.configuration[:faraday][:service_name]
+
+          Patcher.register_service(options[:service_name])
         end
       end
     end
