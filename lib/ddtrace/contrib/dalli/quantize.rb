@@ -10,6 +10,8 @@ module Datadog
         def format_command(operation, args)
           command = [operation, *args].join(' ').strip
           Utils.truncate(command, MAX_CMD_LENGTH)
+        rescue ::Encoding::CompatibilityError
+          "#{operation} BLOB (OMITTED)"
         end
       end
     end
