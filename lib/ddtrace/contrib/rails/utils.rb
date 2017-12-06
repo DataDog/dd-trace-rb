@@ -45,6 +45,20 @@ module Datadog
             ::Rails.application.class.to_s.underscore
           end
         end
+
+        def self.adapter_name
+          normalize_vendor(connection_adapter)
+        end
+
+        def self.connection_adapter
+          if defined?(::ActiveRecord::Base.connection_config)
+            ::ActiveRecord::Base.connection_config[:adapter]
+          else
+            ::ActiveRecord::Base.connection_pool.spec.config[:adapter]
+          end
+        end
+
+        private_class_method :connection_adapter
       end
     end
   end

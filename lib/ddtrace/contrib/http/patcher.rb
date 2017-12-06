@@ -14,16 +14,6 @@ module Datadog
 
       module_function
 
-      # TODO: Remove this once we drop support for legacy configuration
-      def distributed_tracing_enabled
-        Datadog.configuration[:http][:distributed_tracing_enabled]
-      end
-
-      # TODO: Remove this once we drop support for legacy configuration
-      def distributed_tracing_enabled=(value)
-        Datadog.configuration[:http][:distributed_tracing_enabled] = value
-      end
-
       def should_skip_tracing?(req, address, port, transport, pin)
         # we don't want to trace our own call to the API (they use net/http)
         # when we know the host & port (from the URI) we use it, else (most-likely
@@ -46,11 +36,11 @@ module Datadog
       end
 
       def should_skip_distributed_tracing?(pin)
-        global_value = Datadog.configuration[:http][:distributed_tracing_enabled]
-        unless pin.config.nil?
-          return !pin.config.fetch(:distributed_tracing_enabled, global_value)
+        if pin.config && pin.config.key?(:distributed_tracing)
+          return !pin.config[:distributed_tracing]
         end
-        !global_value
+
+        !Datadog.configuration[:http][:distributed_tracing]
       end
 
       # Patcher enables patching of 'net/http' module.
@@ -58,7 +48,7 @@ module Datadog
       module Patcher
         include Base
         register_as :http, auto_patch: true
-        option :distributed_tracing_enabled, default: false
+        option :distributed_tracing, default: false
 
         @patched = false
 

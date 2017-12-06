@@ -65,8 +65,7 @@ def get_test_services
 end
 
 def get_adapter_name
-  adapter_name = ::ActiveRecord::Base.connection_config[:adapter]
-  Datadog::Contrib::Rails::Utils.normalize_vendor(adapter_name)
+  Datadog::Contrib::Rails::Utils.adapter_name
 end
 
 # FauxWriter is a dummy writer that buffers spans locally.
@@ -202,7 +201,7 @@ end
 # * +value+: the value of the key
 def update_config(key, value)
   Datadog.configuration[:rails][key] = value
-  Datadog::Contrib::Rails::Framework.configure({})
+  Datadog::Contrib::Rails::Framework.setup
 end
 
 # reset default configuration and replace any dummy tracer
@@ -213,8 +212,7 @@ def reset_config
     c.use :redis
   end
 
-  config = { config: ::Rails.application.config }
-  Datadog::Contrib::Rails::Framework.configure(config)
+  Datadog::Contrib::Rails::Framework.setup
 end
 
 def test_repeat

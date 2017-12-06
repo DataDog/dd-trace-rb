@@ -21,11 +21,11 @@ module Datadog
           get_option(:tracer).set_service_info(value, 'rack', Ext::AppTypes::WEB)
           value
         end
-        option :distributed_tracing_enabled, default: false
+        option :distributed_tracing, default: false
 
         def initialize(app, options = {})
           # update options with our configuration, unless it's already available
-          [:tracer, :service_name, :distributed_tracing_enabled].each do |k|
+          [:tracer, :service_name, :distributed_tracing].each do |k|
             Datadog.configuration[:rack][k] = options[k] unless options[k].nil?
           end
 
@@ -39,9 +39,7 @@ module Datadog
           # retrieve the current tracer and service
           @tracer = Datadog.configuration[:rack][:tracer]
           @service = Datadog.configuration[:rack][:service_name]
-          @distributed_tracing_enabled = Datadog.configuration[:rack][:distributed_tracing_enabled]
-
-          # configure the Rack service
+          @distributed_tracing = Datadog.configuration[:rack][:distributed_tracing]
         end
 
         # rubocop:disable Metrics/MethodLength
@@ -57,7 +55,7 @@ module Datadog
 
           request_span = nil
           begin
-            if @distributed_tracing_enabled
+            if @distributed_tracing
               context = HTTPPropagator.extract(env)
               @tracer.provider.context = context if context.trace_id
             end

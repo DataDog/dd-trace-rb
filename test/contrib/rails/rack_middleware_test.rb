@@ -15,7 +15,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     Datadog.registry[:rails].reset_options!
     Datadog.configuration[:rails][:tracer] = @tracer
     Datadog.configuration[:rails][:database_service] = get_adapter_name
-    Datadog::Contrib::Rails::Framework.configure({})
+    Datadog::Contrib::Rails::Framework.setup
   end
 
   teardown do

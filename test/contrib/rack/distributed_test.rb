@@ -49,11 +49,12 @@ class DistributedTest < Minitest::Test
   end
 
   # rubocop:disable Metrics/MethodLength
+  # rubocop:disable Metrics/AbcSize
   def test_net_http_get
     tracer = @tracer
 
     app = Rack::Builder.new do
-      use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer, distributed_tracing_enabled: true
+      use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer, distributed_tracing: true
       run EchoApp.new
     end
 
@@ -71,16 +72,16 @@ class DistributedTest < Minitest::Test
     wait_http_server 'http://' + RACK_HOST + ':' + @rack_port.to_s, 5
     tracer.writer.spans() # flush extra rack spans
 
-    assert_equal(false, Datadog::Contrib::HTTP.distributed_tracing_enabled,
+    assert_equal(false, Datadog.configuration[:http][:distributed_tracing],
                  'by default, distributed tracing is disabled')
     client = Net::HTTP.new(RACK_HOST, @rack_port)
     pin = Datadog::Pin.get_from(client)
-    pin.config = { distributed_tracing_enabled: true }
+    pin.config = { distributed_tracing: true }
     pin.tracer = tracer
     check_distributed(tracer, client, true, 'globally disabled, enabled for this client')
 
-    Datadog::Contrib::HTTP.distributed_tracing_enabled = true
-    assert_equal(true, Datadog::Contrib::HTTP.distributed_tracing_enabled,
+    Datadog.configuration[:http][:distributed_tracing] = true
+    assert_equal(true, Datadog.configuration[:http][:distributed_tracing],
                  'distributed tracing is now enabled')
     client = Net::HTTP.new(RACK_HOST, @rack_port)
     pin = Datadog::Pin.get_from(client)
@@ -88,16 +89,16 @@ class DistributedTest < Minitest::Test
     pin.tracer = tracer
     check_distributed(tracer, client, true, 'globally enabled, default client')
 
-    assert_equal(true, Datadog::Contrib::HTTP.distributed_tracing_enabled,
+    assert_equal(true, Datadog.configuration[:http][:distributed_tracing],
                  'distributed tracing is still globally enabled')
     client = Net::HTTP.new(RACK_HOST, @rack_port)
     pin = Datadog::Pin.get_from(client)
-    pin.config = { distributed_tracing_enabled: false }
+    pin.config = { distributed_tracing: false }
     pin.tracer = tracer
     check_distributed(tracer, client, false, 'globally enabled, disabled for this client')
 
-    Datadog::Contrib::HTTP.distributed_tracing_enabled = false
-    assert_equal(false, Datadog::Contrib::HTTP.distributed_tracing_enabled,
+    Datadog.configuration[:http][:distributed_tracing] = false
+    assert_equal(false, Datadog.configuration[:http][:distributed_tracing],
                  'by default, distributed tracing is disabled')
     client = Net::HTTP.new(RACK_HOST, @rack_port)
     pin = Datadog::Pin.get_from(client)
