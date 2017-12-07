@@ -23,6 +23,13 @@ module Datadog
           assert(command.end_with?('...'))
           assert_equal('set foo ' + 'A' * 89 + '...', command)
         end
+
+        def test_regression_different_encodings
+          op = :set
+          args = ["\xa1".force_encoding('iso-8859-1'), "\xa1\xa1".force_encoding('euc-jp')]
+
+          assert_match(/BLOB \(OMITTED\)/, Quantize.format_command(op, args))
+        end
       end
     end
   end
