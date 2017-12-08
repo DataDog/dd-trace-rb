@@ -1,52 +1,74 @@
 # remember to use this compose file __ONLY__ for development/testing purposes
-postgres:
-    image: postgres:9.6
-    environment:
-        - POSTGRES_PASSWORD=$TEST_POSTGRES_PASSWORD
-        - POSTGRES_USER=$TEST_POSTGRES_USER
-        - POSTGRES_DB=$TEST_POSTGRES_DB
-    ports:
-        - "127.0.0.1:${TEST_POSTGRES_PORT}:5432"
+version: '3'
+services:
+    postgres:
+        image: postgres:9.6
+        environment:
+            - POSTGRES_PASSWORD=$TEST_POSTGRES_PASSWORD
+            - POSTGRES_USER=$TEST_POSTGRES_USER
+            - POSTGRES_DB=$TEST_POSTGRES_DB
+        ports:
+            - "127.0.0.1:${TEST_POSTGRES_PORT}:5432"
 
-mysql:
-    image: mysql:5.6
-    environment:
-        - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
-        - MYSQL_PASSWORD=$TEST_MYSQL_PASSWORD
-        - MYSQL_USER=$TEST_MYSQL_USER
-    ports:
-        - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
+    mysql:
+        image: mysql:5.6
+        environment:
+            - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
+            - MYSQL_PASSWORD=$TEST_MYSQL_PASSWORD
+            - MYSQL_USER=$TEST_MYSQL_USER
+        ports:
+            - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
 
-elasticsearch:
-    # Note: ES 5.0 dies with error:
-    # max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
-    # see https://github.com/docker-library/elasticsearch/issues/98 for details
-    # For now, just rely on a 2.X server.
-    image: elasticsearch:2.4
-    ports:
-        - "127.0.0.1:${TEST_ELASTICSEARCH_REST_PORT}:9200"
-        - "127.0.0.1:${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
+    elasticsearch:
+        # Note: ES 5.0 dies with error:
+        # max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
+        # see https://github.com/docker-library/elasticsearch/issues/98 for details
+        # For now, just rely on a 2.X server.
+        image: elasticsearch:2.4
+        ports:
+            - "127.0.0.1:${TEST_ELASTICSEARCH_REST_PORT}:9200"
+            - "127.0.0.1:${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
 
-redis:
-    image: redis:3.0
-    ports:
-        - "127.0.0.1:${TEST_REDIS_PORT}:6379"
+    redis:
+        image: redis:3.0
+        ports:
+            - "127.0.0.1:${TEST_REDIS_PORT}:6379"
 
-mongodb:
-    image: mongo:3.5
-    ports:
-        - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
+    mongodb:
+        image: mongo:3.5
+        ports:
+            - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
 
-memcached:
-    image: memcached:1.5-alpine
-    ports:
-        - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
+    memcached:
+        image: memcached:1.5-alpine
+        ports:
+            - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
 
-ddagent:
-    image: datadog/docker-dd-agent
-    environment:
-        - DD_APM_ENABLED=true
-        - DD_BIND_HOST=0.0.0.0
-        - DD_API_KEY=invalid_key_but_this_is_fine
-    ports:
-        - "127.0.0.1:8126:8126"
+    zookeeper:
+        image: confluentinc/cp-zookeeper:latest
+        environment:
+            ZOOKEEPER_CLIENT_PORT: 32181
+            ZOOKEEPER_TICK_TIME: 2000
+        ports:
+            - "${TEST_ZOOKEEPER_PORT}:32181"
+
+    kafka:
+        image: confluentinc/cp-kafka:latest
+        depends_on:
+            - zookeeper
+        environment:
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:32181
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:29092
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        ports:
+            - "${TEST_KAFKA_PORT}:29092"
+
+    ddagent:
+        image: datadog/docker-dd-agent
+        environment:
+            - DD_APM_ENABLED=true
+            - DD_BIND_HOST=0.0.0.0
+            - DD_API_KEY=invalid_key_but_this_is_fine
+        ports:
+            - "127.0.0.1:8126:8126"
