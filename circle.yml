@@ -29,6 +29,8 @@ dependencies:
     - gem update --system=2.6.11
     - gem install builder
     - gem update bundler
+    # remove line below once `msgpack` have a consistent version for jruby
+    - bundle inject msgpack 1.1.0 && sed -i "y/\"/'/" Gemfile
     - bundle install
     # configure Ruby interpreters
     - rvm get head
