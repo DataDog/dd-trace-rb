@@ -54,7 +54,7 @@ module Datadog
     def test_lazy_option
       integration = Module.new do
         include Contrib::Base
-        option :option1, default: -> { 1 + 1 }
+        option :option1, default: -> { 1 + 1 }, lazy: true
       end
 
       @registry.add(:example, integration)

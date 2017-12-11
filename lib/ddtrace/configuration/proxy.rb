@@ -11,11 +11,7 @@ module Datadog
       end
 
       def [](param)
-        value = @integration.get_option(param)
-
-        return value.call if value.respond_to?(:call)
-
-        value
+        @integration.get_option(param)
       end
 
       def []=(param, value)

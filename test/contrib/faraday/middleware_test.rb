@@ -13,6 +13,10 @@ module Datadog
           ::Faraday.datadog_pin.tracer = get_test_tracer
         end
 
+        def teardown
+          Datadog.configuration[:faraday].reset_options!
+        end
+
         def test_no_interference
           response = client.get('/success')
 
@@ -26,7 +30,7 @@ module Datadog
           span = request_span
 
           assert_equal(SERVICE, span.service)
-          assert_equal(SERVICE, span.name)
+          assert_equal(NAME, span.name)
           assert_equal('GET', span.resource)
           assert_equal('GET', span.get_tag(Ext::HTTP::METHOD))
           assert_equal('200', span.get_tag(Ext::HTTP::STATUS_CODE))
@@ -42,7 +46,7 @@ module Datadog
           span = request_span
 
           assert_equal(SERVICE, span.service)
-          assert_equal(SERVICE, span.name)
+          assert_equal(NAME, span.name)
           assert_equal('POST', span.resource)
           assert_equal('POST', span.get_tag(Ext::HTTP::METHOD))
           assert_equal('/failure', span.get_tag(Ext::HTTP::URL))
@@ -74,7 +78,7 @@ module Datadog
           client(split_by_domain: true).get('/success')
           span = request_span
 
-          assert_equal(span.name, SERVICE)
+          assert_equal(span.name, NAME)
           assert_equal(span.service, 'example.com')
           assert_equal(span.resource, 'GET')
         end
@@ -112,6 +116,22 @@ module Datadog
           tracer.enabled = true
         end
 
+        def test_global_service_name
+          Datadog.configure do |c|
+            c.use :faraday, service_name: 'faraday-global'
+          end
+
+          client.get('/success')
+          span = request_span
+          assert_equal('faraday-global', span.service)
+        end
+
+        def test_per_request_service_name
+          client(service_name: 'adhoc-request').get('/success')
+          span = request_span
+          assert_equal('adhoc-request', span.service)
+        end
+
         private
 
         attr_reader :client
@@ -128,7 +148,7 @@ module Datadog
         end
 
         def request_span
-          tracer.writer.spans.find { |span| span.name == SERVICE }
+          tracer.writer.spans.find { |span| span.name == NAME }
         end
 
         def tracer
