@@ -50,6 +50,10 @@ module Datadog
           normalize_vendor(connection_adapter)
         end
 
+        def self.database_name
+          connection_database
+        end
+
         def self.connection_adapter
           if defined?(::ActiveRecord::Base.connection_config)
             ::ActiveRecord::Base.connection_config[:adapter]
@@ -58,7 +62,15 @@ module Datadog
           end
         end
 
-        private_class_method :connection_adapter
+        def self.connection_database
+          if defined?(::ActiveRecord::Base.connection_config)
+            ::ActiveRecord::Base.connection_config[:database]
+          else
+            ::ActiveRecord::Base.connection_pool.spec.config[:database]
+          end
+        end
+
+        private_class_method :connection_adapter, :connection_database
       end
     end
   end

@@ -21,6 +21,7 @@ module Datadog
           tracer = Datadog.configuration[:rails][:tracer]
           database_service = Datadog.configuration[:rails][:database_service]
           adapter_name = Datadog::Contrib::Rails::Utils.adapter_name
+          database_name = Datadog::Contrib::Rails::Utils.database_name
           span_type = Datadog::Ext::SQL::TYPE
 
           span = tracer.trace(
@@ -43,6 +44,7 @@ module Datadog
           # obfuscated version
           span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('rails.db.vendor', adapter_name)
+          span.set_tag('rails.db.name', database_name)
           span.set_tag('rails.db.cached', cached) if cached
           span.start_time = start
           span.finish(finish)
