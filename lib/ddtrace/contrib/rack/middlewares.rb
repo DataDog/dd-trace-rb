@@ -68,7 +68,7 @@ module Datadog
           # catch exceptions that may be raised in the middleware chain
           # Note: if a middleware catches an Exception without re raising,
           # the Exception cannot be recorded here.
-          request_span.set_error(e)
+          request_span.set_error(e) unless request_span.nil?
           raise e
         ensure
           # the source of truth in Rack is the PATH_INFO key that holds the
