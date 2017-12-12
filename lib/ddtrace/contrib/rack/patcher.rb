@@ -14,6 +14,13 @@ module Datadog
           get_option(:tracer).set_service_info(value, 'rack', Ext::AppTypes::WEB)
           value
         end
+        option :request_queuing, default: false
+        option :web_service_name, default: 'web-server', depends_on: [:tracer, :request_queuing] do |value|
+          if get_option(:request_queuing)
+            get_option(:tracer).set_service_info(value, 'webserver', Ext::AppTypes::WEB)
+          end
+          value
+        end
 
         module_function
 
