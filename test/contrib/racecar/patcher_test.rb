@@ -21,65 +21,48 @@ module Datadog
         #
         # Single message consumer
         #
-        def test_process_successful
-          (1..3).each { |n| deliver_message(n.to_s, topic: 'dd_trace_test_dummy') }
+        # NOTE: This test is not repeatable without clearing your Kafka topic,
+        #       because old failed messages will remain in the partition and
+        #       fail the next test run.
+        #       Needs to be reworked.
+        def test_process 
+          deliver_message('pass', topic: 'dd_trace_test_dummy')
+          deliver_message('fail', topic: 'dd_trace_test_dummy')
 
           racecar_thread = create_and_start_racecar_thread(DummyConsumer)
 
-          try_wait_until(backoff: 1) { all_spans.length == 3 }
+          try_wait_until(backoff: 0.5) { all_spans.length == 2 }
 
-          racecar_thread.join(1)
+          racecar_thread.join(0.5)
           racecar_thread.kill
 
-          span = all_spans.find { |s| s.name == Patcher::NAME }
+          spans = all_spans.select { |s| s.name == Patcher::NAME }
+          assert_equal(2, spans.length)
 
-          assert_equal('racecar', span.service)
-          assert_equal('racecar.consumer', span.name)
-          # assert_equal('DummyConsumer', span.resource) # TODO: Update name
-          assert_equal('dd_trace_test_dummy', span.get_tag('kafka.topic'))
-          # assert_equal('DummyConsumer', span.get_tag('kafka.consumer'))
-          assert_match(/[0-9]+/, span.get_tag('kafka.partition'))
-          assert_match(/[0-9]+/, span.get_tag('kafka.offset'))
-          assert_nil(span.get_tag('kafka.first_offset'))
-          refute_equal(Ext::Errors::STATUS, span.status)
+          spans.first.tap do |span|
+            assert_equal('racecar', span.service)
+            assert_equal('racecar.consumer', span.name)
+            # assert_equal('DummyConsumer', span.resource) # TODO: Update name
+            assert_equal('dd_trace_test_dummy', span.get_tag('kafka.topic'))
+            # assert_equal('DummyConsumer', span.get_tag('kafka.consumer'))
+            assert_match(/[0-9]+/, span.get_tag('kafka.partition'))
+            assert_match(/[0-9]+/, span.get_tag('kafka.offset'))
+            assert_nil(span.get_tag('kafka.first_offset'))
+            refute_equal(Ext::Errors::STATUS, span.status)
+          end
+
+          spans.last.tap do |span|
+            assert_equal('racecar', span.service)
+            assert_equal('racecar.consumer', span.name)
+            # assert_equal('DummyConsumer', span.resource) # TODO: Update name
+            assert_equal('dd_trace_test_dummy', span.get_tag('kafka.topic'))
+            # assert_equal('DummyConsumer', span.get_tag('kafka.consumer'))
+            assert_match(/[0-9]+/, span.get_tag('kafka.partition'))
+            assert_match(/[0-9]+/, span.get_tag('kafka.offset'))
+            assert_nil(span.get_tag('kafka.first_offset'))
+            assert_equal(Ext::Errors::STATUS, span.status)
+          end
         end
-
-        # def test_failed_job
-        #   ::DummyConsumer.perform_async(:fail)
-        #   try_wait_until { all_spans.length == 2 }
-
-        #   span = all_spans.find { |s| s.resource[/PROCESS/] }
-        #   assert_equal('racecar', span.service)
-        #   assert_equal('racecar.perform', span.name)
-        #   assert_equal('PROCESS DummyConsumer', span.resource)
-        #   assert_equal('DummyConsumer', span.get_tag('racecar.queue'))
-        #   assert_equal(Ext::Errors::STATUS, span.status)
-        #   assert_equal('ZeroDivisionError', span.get_tag(Ext::Errors::TYPE))
-        #   assert_equal('divided by 0', span.get_tag(Ext::Errors::MSG))
-        # end
-
-        # def test_async_enqueueing
-        #   ::DummyConsumer.perform_async
-        #   try_wait_until { all_spans.any? }
-
-        #   span = all_spans.find { |s| s.resource[/ENQUEUE/] }
-        #   assert_equal('racecar', span.service)
-        #   assert_equal('racecar.perform_async', span.name)
-        #   assert_equal('ENQUEUE DummyConsumer', span.resource)
-        #   assert_equal('DummyConsumer', span.get_tag('racecar.queue'))
-        # end
-
-        # def test_delayed_enqueueing
-        #   ::DummyConsumer.perform_in(0)
-        #   try_wait_until { all_spans.any? }
-
-        #   span = all_spans.find { |s| s.resource[/ENQUEUE/] }
-        #   assert_equal('racecar', span.service)
-        #   assert_equal('racecar.perform_in', span.name)
-        #   assert_equal('ENQUEUE DummyConsumer', span.resource)
-        #   assert_equal('DummyConsumer', span.get_tag('racecar.queue'))
-        #   assert_equal('0', span.get_tag('racecar.perform_in'))
-        # end
 
         private
 
