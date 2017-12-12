@@ -21,45 +21,139 @@ module Datadog
         #
         # Single message consumer
         #
-        # NOTE: This test is not repeatable without clearing your Kafka topic,
-        #       because old failed messages will remain in the partition and
-        #       fail the next test run.
-        #       Needs to be reworked.
-        def test_process 
-          deliver_message('pass', topic: 'dd_trace_test_dummy')
-          deliver_message('fail', topic: 'dd_trace_test_dummy')
+        def test_process_success
+          # Emulate consumer success
+          processor = DummyConsumer.new
+          topic = 'dd_trace_test_dummy'
+          payload = {
+            consumer_class: processor.to_s,
+            topic: topic,
+            partition: 1,
+            offset: 2,
+          }
 
-          racecar_thread = create_and_start_racecar_thread(DummyConsumer)
+          ActiveSupport::Notifications.instrument("start_process_message.racecar", payload)
+          ActiveSupport::Notifications.instrument("process_message.racecar", payload)
 
-          try_wait_until(backoff: 0.5) { all_spans.length == 2 }
-
-          racecar_thread.join(0.5)
-          racecar_thread.kill
-
+          # Assert correct output
           spans = all_spans.select { |s| s.name == Patcher::NAME }
-          assert_equal(2, spans.length)
+          assert_equal(1, spans.length)
 
           spans.first.tap do |span|
             assert_equal('racecar', span.service)
             assert_equal('racecar.consumer', span.name)
             # assert_equal('DummyConsumer', span.resource) # TODO: Update name
-            assert_equal('dd_trace_test_dummy', span.get_tag('kafka.topic'))
+            assert_equal(topic, span.get_tag('kafka.topic'))
             # assert_equal('DummyConsumer', span.get_tag('kafka.consumer'))
-            assert_match(/[0-9]+/, span.get_tag('kafka.partition'))
-            assert_match(/[0-9]+/, span.get_tag('kafka.offset'))
+            assert_equal("1", span.get_tag('kafka.partition'))
+            assert_equal("2", span.get_tag('kafka.offset'))
             assert_nil(span.get_tag('kafka.first_offset'))
             refute_equal(Ext::Errors::STATUS, span.status)
           end
+        end
+
+        def test_process_failure
+          # Emulate consumer failure
+          processor = DummyConsumer.new
+          topic = 'dd_trace_test_dummy'
+          payload = {
+            consumer_class: processor.to_s,
+            topic: topic,
+            partition: 1,
+            offset: 2,
+          }
+
+          ActiveSupport::Notifications.instrument("start_process_message.racecar", payload)
+          begin
+            raise ArgumentError.new('This message was destined to fail.')
+          rescue ArgumentError => e
+            payload.merge!(exception_object: e)
+          end
+          ActiveSupport::Notifications.instrument("process_message.racecar", payload)
+
+          # Assert correct output
+          spans = all_spans.select { |s| s.name == Patcher::NAME }
+          assert_equal(1, spans.length)
 
           spans.last.tap do |span|
             assert_equal('racecar', span.service)
             assert_equal('racecar.consumer', span.name)
             # assert_equal('DummyConsumer', span.resource) # TODO: Update name
-            assert_equal('dd_trace_test_dummy', span.get_tag('kafka.topic'))
+            assert_equal(topic, span.get_tag('kafka.topic'))
             # assert_equal('DummyConsumer', span.get_tag('kafka.consumer'))
-            assert_match(/[0-9]+/, span.get_tag('kafka.partition'))
-            assert_match(/[0-9]+/, span.get_tag('kafka.offset'))
+            assert_equal("1", span.get_tag('kafka.partition'))
+            assert_equal("2", span.get_tag('kafka.offset'))
             assert_nil(span.get_tag('kafka.first_offset'))
+            assert_equal(Ext::Errors::STATUS, span.status)
+          end
+        end
+
+        #
+        # Batch message consumer
+        #
+        def test_process_batch_success
+          # Emulate consumer success
+          processor = DummyBatchConsumer.new
+          topic = 'dd_trace_test_dummy_batch'
+          payload = {
+            consumer_class: processor.to_s,
+            topic: topic,
+            partition: 1,
+            first_offset: 2,
+          }
+
+          ActiveSupport::Notifications.instrument("start_process_batch.racecar", payload)
+          ActiveSupport::Notifications.instrument("process_batch.racecar", payload)
+
+          # Assert correct output
+          spans = all_spans.select { |s| s.name == Patcher::NAME }
+          assert_equal(1, spans.length)
+
+          spans.first.tap do |span|
+            assert_equal('racecar', span.service)
+            assert_equal('racecar.consumer', span.name)
+            # assert_equal('DummyBatchConsumer', span.resource) # TODO: Update name
+            assert_equal(topic, span.get_tag('kafka.topic'))
+            # assert_equal('DummyBatchConsumer', span.get_tag('kafka.consumer'))
+            assert_equal("1", span.get_tag('kafka.partition'))
+            assert_nil(span.get_tag('kafka.offset'))
+            assert_equal("2", span.get_tag('kafka.first_offset'))
+            refute_equal(Ext::Errors::STATUS, span.status)
+          end
+        end
+
+        def test_process_batch_failure
+          # Emulate consumer failure
+          processor = DummyBatchConsumer.new
+          topic = 'dd_trace_test_dummy_batch'
+          payload = {
+            consumer_class: processor.to_s,
+            topic: topic,
+            partition: 1,
+            first_offset: 2,
+          }
+
+          ActiveSupport::Notifications.instrument("start_process_batch.racecar", payload)
+          begin
+            raise ArgumentError.new('This message was destined to fail.')
+          rescue ArgumentError => e
+            payload.merge!(exception_object: e)
+          end
+          ActiveSupport::Notifications.instrument("process_batch.racecar", payload)
+
+          # Assert correct output
+          spans = all_spans.select { |s| s.name == Patcher::NAME }
+          assert_equal(1, spans.length)
+
+          spans.last.tap do |span|
+            assert_equal('racecar', span.service)
+            assert_equal('racecar.consumer', span.name)
+            # assert_equal('DummyBatchConsumer', span.resource) # TODO: Update name
+            assert_equal(topic, span.get_tag('kafka.topic'))
+            # assert_equal('DummyBatchConsumer', span.get_tag('kafka.consumer'))
+            assert_equal("1", span.get_tag('kafka.partition'))
+            assert_nil(span.get_tag('kafka.offset'))
+            assert_equal("2", span.get_tag('kafka.first_offset'))
             assert_equal(Ext::Errors::STATUS, span.status)
           end
         end
