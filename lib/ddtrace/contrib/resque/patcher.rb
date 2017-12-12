@@ -16,14 +16,17 @@ module Datadog
         option :service_name, default: SERVICE
 
         @patched = false
+        option :workers, default: []
 
         class << self
           def patch
             return @patched if patched? || !defined?(::Resque)
 
             require 'ddtrace/ext/app_types'
+            require_relative 'resque_job'
 
             add_pin
+            get_option(:workers).each { |worker| worker.extend(ResqueJob) }
             @patched = true
           rescue => e
             Tracer.log.error("Unable to apply Resque integration: #{e}")
