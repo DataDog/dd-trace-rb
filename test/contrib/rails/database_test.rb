@@ -16,15 +16,17 @@ class DatabaseTracingTest < ActiveSupport::TestCase
   test 'active record is properly traced' do
     # make the query and assert the proper spans
     Article.count
-    spans = @tracer.writer.spans()
+    spans = @tracer.writer.spans
     assert_equal(spans.length, 1)
 
     span = spans.first
-    adapter_name = get_adapter_name()
+    adapter_name = get_adapter_name
+    database_name = get_database_name
     assert_equal(span.name, "#{adapter_name}.query")
     assert_equal(span.span_type, 'sql')
     assert_equal(span.service, adapter_name)
     assert_equal(span.get_tag('rails.db.vendor'), adapter_name)
+    assert_equal(span.get_tag('rails.db.name'), database_name)
     assert_nil(span.get_tag('rails.db.cached'))
     assert_includes(span.resource, 'SELECT COUNT(*) FROM')
     # ensure that the sql.query tag is not set
@@ -44,6 +46,6 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     assert_equal(span.service, 'customer-db')
 
     # reset the original configuration
-    reset_config()
+    reset_config
   end
 end
