@@ -32,43 +32,31 @@ module Datadog
           @app = app
         end
 
-        def configure
-          # ensure that the configuration is executed only once
-          return clean_context if @tracer && @service
-
-          # retrieve the current tracer and service
-          @tracer = Datadog.configuration[:rack][:tracer]
-          @service = Datadog.configuration[:rack][:service_name]
-          @distributed_tracing = Datadog.configuration[:rack][:distributed_tracing]
-        end
-
-        # rubocop:disable Metrics/MethodLength
         def call(env)
-          # configure the Rack middleware once
-          configure()
+          # retrieve integration settings
+          tracer = Datadog.configuration[:rack][:tracer]
+          service = Datadog.configuration[:rack][:service_name]
+          distributed_tracing = Datadog.configuration[:rack][:distributed_tracing]
 
           trace_options = {
-            service: @service,
+            service: service,
             resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE
           }
 
-          request_span = nil
-          begin
-            if @distributed_tracing
-              context = HTTPPropagator.extract(env)
-              @tracer.provider.context = context if context.trace_id
-            end
-          ensure
-            # start a new request span and attach it to the current Rack environment;
-            # we must ensure that the span `resource` is set later
-            request_span = @tracer.trace('rack.request', trace_options)
+          if distributed_tracing
+            context = HTTPPropagator.extract(env)
+            tracer.provider.context = context if context.trace_id
           end
 
+          # start a new request span and attach it to the current Rack environment;
+          # we must ensure that the span `resource` is set later
+          request_span = tracer.trace('rack.request', trace_options)
           env[:datadog_rack_request_span] = request_span
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
+          [status, headers, response]
 
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -113,18 +101,14 @@ module Datadog
             request_span.status = 1
           end
 
-          request_span.finish()
+          # ensure the request_span is finished and the context reset;
+          # this assumes that the Rack middleware creates a root span
+          request_span.finish
 
-          [status, headers, response]
-        end
-
-        private
-
-        # TODO: Remove this once we change how context propagation works. This
-        # ensures we clean thread-local variables on each HTTP request avoiding
-        # memory leaks.
-        def clean_context
-          @tracer.provider.context = Datadog::Context.new
+          # TODO: Remove this once we change how context propagation works. This
+          # ensures we clean thread-local variables on each HTTP request avoiding
+          # memory leaks.
+          tracer.provider.context = Datadog::Context.new
         end
       end
     end
