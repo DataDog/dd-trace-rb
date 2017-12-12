@@ -1,6 +1,7 @@
 require 'helper'
 require 'racecar'
 require 'racecar/cli'
+require 'active_support'
 require 'ddtrace'
 require_relative 'dummy_consumer'
 require_relative 'dummy_batch_consumer'
@@ -10,9 +11,11 @@ module Datadog
     module Racecar
       class PatcherTest < Minitest::Test
         def setup
-          Monkey.patch_module(:racecar)
+          Datadog.configure do |c|
+            c.use :racecar, tracer: get_test_tracer
+          end
 
-          @tracer = enable_test_tracer!
+          @tracer = Datadog.configuration[:racecar][:tracer]
         end
 
         #
@@ -23,19 +26,20 @@ module Datadog
 
           racecar_thread = create_and_start_racecar_thread(DummyConsumer)
 
-          try_wait_until(backoff: 0.3) { all_spans.length == 3 }
+          try_wait_until(backoff: 1) { all_spans.length == 3 }
 
           racecar_thread.join(1)
+          racecar_thread.kill
 
-          span = all_spans.find { |s| s.name == NAME }
+          span = all_spans.find { |s| s.name == Patcher::NAME }
 
           assert_equal('racecar', span.service)
           assert_equal('racecar.consumer', span.name)
           # assert_equal('DummyConsumer', span.resource) # TODO: Update name
           assert_equal('dd_trace_test_dummy', span.get_tag('kafka.topic'))
           # assert_equal('DummyConsumer', span.get_tag('kafka.consumer'))
-          assert_kind(Integer, span.get_tag('kafka.partition'))
-          assert_kind(Integer, span.get_tag('kafka.offset'))
+          assert_match(/[0-9]+/, span.get_tag('kafka.partition'))
+          assert_match(/[0-9]+/, span.get_tag('kafka.offset'))
           assert_nil(span.get_tag('kafka.first_offset'))
           refute_equal(Ext::Errors::STATUS, span.status)
         end
@@ -115,12 +119,6 @@ module Datadog
 
         def all_spans
           tracer.writer.spans(:keep)
-        end
-
-        def enable_test_tracer!
-          get_test_tracer.tap do |tracer|
-            Datadog.configuration[:racecar][:tracer] = tracer
-          end
         end
       end
     end
