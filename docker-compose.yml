@@ -44,26 +44,6 @@ services:
         ports:
             - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
 
-    zookeeper:
-        image: confluentinc/cp-zookeeper:latest
-        environment:
-            ZOOKEEPER_CLIENT_PORT: 32181
-            ZOOKEEPER_TICK_TIME: 2000
-        ports:
-            - "${TEST_ZOOKEEPER_PORT}:32181"
-
-    kafka:
-        image: confluentinc/cp-kafka:latest
-        depends_on:
-            - zookeeper
-        environment:
-            KAFKA_BROKER_ID: 1
-            KAFKA_ZOOKEEPER_CONNECT: zookeeper:32181
-            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:29092
-            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-        ports:
-            - "${TEST_KAFKA_PORT}:29092"
-
     ddagent:
         image: datadog/docker-dd-agent
         environment:

@@ -1,7 +1,6 @@
 require 'minitest'
 require 'minitest/autorun'
 require 'webmock/minitest'
-require 'pry'
 
 require 'ddtrace/encoding'
 require 'ddtrace/transport'
