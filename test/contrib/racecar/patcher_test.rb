@@ -68,11 +68,11 @@ module Datadog
           ActiveSupport::Notifications.instrument('start_process_message.racecar', payload)
           begin
             ActiveSupport::Notifications.instrument('process_message.racecar', payload) do
-              raise ConsumerFailureTestError.new
+              raise ConsumerFailureTestError
             end
-          rescue ConsumerFailureTestError => e
+          rescue ConsumerFailureTestError
+            nil
           end
-          
 
           # Assert correct output
           spans = all_spans.select { |s| s.name == Patcher::NAME }
@@ -143,10 +143,11 @@ module Datadog
           ActiveSupport::Notifications.instrument('start_process_batch.racecar', payload)
           begin
             ActiveSupport::Notifications.instrument('process_batch.racecar', payload) do
-              raise ConsumerFailureTestError.new
+              raise ConsumerFailureTestError
             end
           rescue ConsumerFailureTestError
-          end 
+            nil
+          end
 
           # Assert correct output
           spans = all_spans.select { |s| s.name == Patcher::NAME }
