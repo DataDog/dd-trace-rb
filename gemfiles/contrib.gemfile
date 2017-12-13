@@ -17,5 +17,6 @@ gem "aws-sdk"
 gem "sucker_punch"
 gem "dalli"
 gem "resque"
+gem "racecar", git: "https://github.com/zendesk/racecar.git", branch: "master"
 
 gemspec path: "../"

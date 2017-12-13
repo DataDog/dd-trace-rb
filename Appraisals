@@ -128,6 +128,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'sucker_punch'
     gem 'dalli'
     gem 'resque'
+    gem 'racecar', git: 'https://github.com/zendesk/racecar.git', branch: 'master'
   end
 else
   appraise 'contrib-old' do

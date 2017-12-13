@@ -63,6 +63,7 @@ namespace :test do
     :aws,
     :sucker_punch,
     :mongodb,
+    :racecar,
     :resque,
     :dalli
   ].each do |contrib|
