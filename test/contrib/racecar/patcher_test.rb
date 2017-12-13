@@ -29,11 +29,11 @@ module Datadog
             consumer_class: consumer,
             topic: topic,
             partition: partition,
-            offset: offset,
+            offset: offset
           }
 
-          ActiveSupport::Notifications.instrument("start_process_message.racecar", payload)
-          ActiveSupport::Notifications.instrument("process_message.racecar", payload)
+          ActiveSupport::Notifications.instrument('start_process_message.racecar', payload)
+          ActiveSupport::Notifications.instrument('process_message.racecar', payload)
 
           # Assert correct output
           spans = all_spans.select { |s| s.name == Patcher::NAME }
@@ -62,12 +62,12 @@ module Datadog
             consumer_class: consumer,
             topic: topic,
             partition: partition,
-            offset: offset,
+            offset: offset
           }
 
-          ActiveSupport::Notifications.instrument("start_process_message.racecar", payload)
+          ActiveSupport::Notifications.instrument('start_process_message.racecar', payload)
           begin
-            ActiveSupport::Notifications.instrument("process_message.racecar", payload) do
+            ActiveSupport::Notifications.instrument('process_message.racecar', payload) do
               raise ConsumerFailureTestError.new
             end
           rescue ConsumerFailureTestError => e
@@ -104,11 +104,11 @@ module Datadog
             consumer_class: consumer,
             topic: topic,
             partition: partition,
-            first_offset: offset,
+            first_offset: offset
           }
 
-          ActiveSupport::Notifications.instrument("start_process_batch.racecar", payload)
-          ActiveSupport::Notifications.instrument("process_batch.racecar", payload)
+          ActiveSupport::Notifications.instrument('start_process_batch.racecar', payload)
+          ActiveSupport::Notifications.instrument('process_batch.racecar', payload)
 
           # Assert correct output
           spans = all_spans.select { |s| s.name == Patcher::NAME }
@@ -137,12 +137,12 @@ module Datadog
             consumer_class: consumer,
             topic: topic,
             partition: partition,
-            first_offset: offset,
+            first_offset: offset
           }
 
-          ActiveSupport::Notifications.instrument("start_process_batch.racecar", payload)
+          ActiveSupport::Notifications.instrument('start_process_batch.racecar', payload)
           begin
-            ActiveSupport::Notifications.instrument("process_batch.racecar", payload) do
+            ActiveSupport::Notifications.instrument('process_batch.racecar', payload) do
               raise ConsumerFailureTestError.new
             end
           rescue ConsumerFailureTestError
