@@ -17,7 +17,7 @@ class ParsedContextTest < Minitest::Test
     assert_equal('us-west-2', context.region)
     assert_equal(0, context.retry_attempts)
     assert_equal('/', context.path)
-    assert_equal('s3-us-west-2.amazonaws.com', context.host)
+    assert_includes(context.host, 'us-west-2.amazonaws.com')
   end
 
   def test_context_param_safety
