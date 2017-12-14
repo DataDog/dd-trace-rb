@@ -247,25 +247,14 @@ class TracerTest < RackBaseTest
     assert_equal(0, @tracer.provider.context.trace.length)
     assert_equal(1, @tracer.writer.spans.length)
   end
-end
-
-class CustomTracerTest < RackBaseTest
-  def app
-    tracer = @tracer
-    service = 'custom-rack'
-
-    Rack::Builder.new do
-      use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer, service_name: service
-
-      map '/' do
-        run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
-      end
-    end
-  end
 
   def test_request_middleware_custom_service
-    # ensure the Rack request is properly traced
-    get '/'
+    # ensure the Rack request is properly traced with a custom service name
+    Datadog.configure do |c|
+      c.use :rack, service_name: 'custom-rack'
+    end
+
+    get '/success/'
     assert last_response.ok?
 
     spans = @tracer.writer.spans()
@@ -278,35 +267,8 @@ class CustomTracerTest < RackBaseTest
     assert_equal('GET 200', span.resource)
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
-    assert_equal('/', span.get_tag('http.url'))
+    assert_equal('/success/', span.get_tag('http.url'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
-  end
-end
-
-class RackBaseTest < Minitest::Test
-  def test_middleware_builder_defaults
-    previous_configuration = Datadog.registry[:rack].to_h
-    Datadog.registry[:rack].reset_options!
-
-    middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {})
-    refute_nil(middleware)
-    assert_equal(Datadog.tracer, Datadog.configuration[:rack][:tracer])
-    assert_equal('rack', Datadog.configuration[:rack][:service_name])
-
-    Datadog.configuration.use(:rack, previous_configuration)
-  end
-
-  def test_middleware_builder
-    # it should set the tracer and the service
-    previous_configuration = Datadog.registry[:rack].to_h
-
-    tracer = get_test_tracer()
-    middleware = Datadog::Contrib::Rack::TraceMiddleware.new(proc {}, tracer: tracer, service_name: 'custom-rack')
-    refute_nil(middleware)
-    assert_equal(tracer, Datadog.configuration[:rack][:tracer])
-    assert_equal('custom-rack', Datadog.configuration[:rack][:service_name])
-
-    Datadog.configuration.use(:rack, previous_configuration)
   end
 end

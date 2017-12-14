@@ -14,13 +14,17 @@ class EchoApp
   end
 end
 
-class DistributedTest < Minitest::Test
+class DistributedTest < RackBaseTest
   RACK_HOST = 'localhost'.freeze
   RACK_PORT = 9292
 
   def setup
-    @tracer = get_test_tracer
+    super
     @rack_port = RACK_PORT
+
+    Datadog.configure do |c|
+      c.use :rack, tracer: @tracer, distributed_tracing: true
+    end
   end
 
   def check_distributed(tracer, client, distributed, message)
@@ -54,7 +58,7 @@ class DistributedTest < Minitest::Test
     tracer = @tracer
 
     app = Rack::Builder.new do
-      use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer, distributed_tracing: true
+      use Datadog::Contrib::Rack::TraceMiddleware
       run EchoApp.new
     end
 

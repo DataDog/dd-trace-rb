@@ -16,7 +16,7 @@ class RackBaseTest < Minitest::Test
 
     # rubocop:disable Metrics/BlockLength
     Rack::Builder.new do
-      use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer
+      use Datadog::Contrib::Rack::TraceMiddleware
 
       map '/success/' do
         run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
@@ -90,9 +90,18 @@ class RackBaseTest < Minitest::Test
   end
 
   def setup
-    # configure our Middleware with a DummyTracer
-    @tracer = get_test_tracer()
-    Datadog.configuration[:rack][:service_name] = 'rack'
     super
+    # store the configuration and use a DummyTracer
+    @tracer = get_test_tracer
+
+    Datadog.configure do |c|
+      c.use :rack, tracer: @tracer
+    end
+  end
+
+  def teardown
+    super
+    # reset the configuration
+    Datadog.registry[:rack].reset_options!
   end
 end
