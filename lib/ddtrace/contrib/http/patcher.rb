@@ -108,12 +108,18 @@ module Datadog
 
               pin.tracer.trace(NAME) do |span|
                 begin
+                  if req.respond_to?(:uri) && req.uri
+                    host_address = req.uri.host
+                    host_port = req.uri.port.to_s
+                  else
+                    host_address = @address
+                    host_port = @port.to_s
+                  end
+
                   span.service = pin.service
                   span.span_type = Datadog::Ext::HTTP::TYPE
 
-                  span.resource = req.method
-                  # Using the method as a resource, as URL/path can trigger
-                  # a possibly infinite number of resources.
+                  span.resource = host_address
                   span.set_tag(Datadog::Ext::HTTP::URL, req.path)
                   span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
 
@@ -133,13 +139,8 @@ module Datadog
                   response = request_without_datadog(req, body, &block)
                 end
                 span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
-                if req.respond_to?(:uri) && req.uri
-                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, req.uri.host)
-                  span.set_tag(Datadog::Ext::NET::TARGET_PORT, req.uri.port.to_s)
-                else
-                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, @address)
-                  span.set_tag(Datadog::Ext::NET::TARGET_PORT, @port.to_s)
-                end
+                span.set_tag(Datadog::Ext::NET::TARGET_HOST, host_address)
+                span.set_tag(Datadog::Ext::NET::TARGET_PORT, host_port)
 
                 case response.code.to_i / 100
                 when 4

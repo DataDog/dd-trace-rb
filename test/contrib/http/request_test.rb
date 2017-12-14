@@ -36,7 +36,7 @@ class HTTPRequestTest < Minitest::Test
     span = spans[0]
     assert_equal('http.request', span.name)
     assert_equal('net/http', span.service)
-    assert_equal('GET', span.resource)
+    assert_equal(ELASTICSEARCH_HOST, span.resource)
     assert_equal('_cluster/health', span.get_tag('http.url'))
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
@@ -52,7 +52,7 @@ class HTTPRequestTest < Minitest::Test
     span = spans[0]
     assert_equal('http.request', span.name)
     assert_equal('net/http', span.service)
-    assert_equal('POST', span.resource)
+    assert_equal(ELASTICSEARCH_HOST, span.resource)
     assert_equal('/my/thing/42', span.get_tag('http.url'))
     assert_equal('POST', span.get_tag('http.method'))
     assert_equal('127.0.0.1', span.get_tag('out.host'))
@@ -68,7 +68,7 @@ class HTTPRequestTest < Minitest::Test
     span = spans[0]
     assert_equal('http.request', span.name)
     assert_equal('net/http', span.service)
-    assert_equal('GET', span.resource)
+    assert_equal(ELASTICSEARCH_HOST, span.resource)
     assert_equal('/admin.php?user=admin&passwd=123456', span.get_tag('http.url'))
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('404', span.get_tag('http.status_code'))
@@ -93,7 +93,7 @@ class HTTPRequestTest < Minitest::Test
       span = spans[0]
       assert_equal('http.request', span.name)
       assert_equal('net/http', span.service)
-      assert_equal('GET', span.resource)
+      assert_equal(ELASTICSEARCH_HOST, span.resource)
       assert_equal('/_cluster/health', span.get_tag('http.url'))
       assert_equal('GET', span.get_tag('http.method'))
       assert_equal('200', span.get_tag('http.status_code'))
