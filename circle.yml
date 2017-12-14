@@ -12,31 +12,42 @@ machine:
     RAILS5_VERSIONS: 2.3.4,2.2.7
     RAILS3_SIDEKIQ_VERSIONS: 2.1.10,2.0.0
     RAILS4_SIDEKIQ_VERSIONS: 2.3.4,2.2.7
-    JRUBY_VERSIONS: jruby-9.1.5.0
+    JRUBY_VERSIONS: jruby-9.1.13.0
     AGENT_BUILD_PATH: "/home/ubuntu/agent"
     TEST_DATADOG_INTEGRATION: 1
+  post:
+    - |
+      rvm get head
+      mkdir -p ~/rvm_binaries
+      for version in $(echo "$MRI_VERSIONS,$MRI_OLD_VERSIONS" | tr "," "\n"); do
+        ruby_bin=$(find ~/rvm_binaries -name "*${version}*")
+        if [[ -n "$ruby_bin" ]]; then
+          rvm mount "$ruby_bin"
+        else
+          rvm install "$version" --rubygems 2.6.11
+          cd ~/rvm_binaries && rvm prepare "$version"
+        fi
+      done
+      rvm install $JRUBY_VERSIONS --rubygems 2.6.11
+      rvm use $EARLY_STABLE --default
+
 
 dependencies:
   cache_directories:
     # Cache Ruby binaries and gems
     - "/opt/circleci/.rvm/"
+    - ~/rvm_binaries
   pre:
     # we should use an old docker-compose because CircleCI supports
     # only docker-engine==1.9
     - pip install docker-compose==1.7.1
     - docker-compose up -d | cat
     # installing dev dependencies
-    - gem update --system=2.6.11
-    - gem install builder
-    - gem update bundler
     # remove line below once `msgpack` have a consistent version for jruby
+    - gem install bundler
     - bundle inject msgpack 1.1.0 && sed -i "y/\"/'/" Gemfile
     - bundle install
-    # configure Ruby interpreters
-    - rvm get head
-    - rvm install $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS
   override:
-    - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do gem update --system=2.6.11
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do gem install bundler
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do bundle install
     # [FIXME] appraisal does not work with jruby (problem with native ext, eg sqlite3)
