@@ -8,7 +8,8 @@ RSpec.describe Datadog::Registry do
       it { is_expected.to be_a_kind_of(Enumerable) }
 
       shared_context 'an existing entry' do
-        before(:each) { registry.add(name, klass, auto_patch) }
+        before(:each) { entry }
+        let(:entry) { registry.add(name, klass, auto_patch) }
         let(:name) { :foo }
         let(:klass) { double('class') }
         let(:auto_patch) { false }
@@ -31,13 +32,10 @@ RSpec.describe Datadog::Registry do
         end
       end
 
-      describe '#map' do
-        subject { registry.map(&:klass) }
-
+      describe '#each' do
         context 'when a class has been registered' do
           include_context 'an existing entry'
-
-          it { is_expected.to match a_collection_including(klass) }
+          it { expect { |b| registry.each(&b) }.to yield_successive_args(entry) }
         end
       end
 
