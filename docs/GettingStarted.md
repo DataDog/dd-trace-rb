@@ -182,20 +182,22 @@ To start using the middleware in your generic Rack application, add it to your `
 
     run app
 
-Experimental distributed tracing support is available for this library.
-You need to set the ``:distributed_tracing_enabled`` option to true, for example:
+The Rack middleware can be configured using the global configuration object:
 
     # config.ru example
+    require 'ddtrace'
     require 'ddtrace/contrib/rack/middlewares'
 
-    use Datadog::Contrib::Rack::TraceMiddleware, distributed_tracing_enabled: true
+    Datadog.configure do |c|
+      c.use :rack, service_name: 'api-intake', distributed_tracing: true
+    end
 
     app = proc do |env|
-      # trace and read 'x-datadog-trace-id' and 'x-datadog-parent-id'
       [ 200, {'Content-Type' => 'text/plain'}, "OK" ]
     end
 
-See [distributed tracing](#Distributed_Tracing) for details.
+In the example above, we've activated the Distributed Tracing flag, please
+see [distributed tracing](#Distributed_Tracing) for more details.
 
 #### Configure the tracer
 

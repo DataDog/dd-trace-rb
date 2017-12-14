@@ -27,11 +27,9 @@ class BaseRackAPITest < MiniTest::Test
   include Rack::Test::Methods
 
   def app
-    tracer = @tracer
-
     # create a custom Rack application with the Rack middleware and a Grape API
     Rack::Builder.new do
-      use Datadog::Contrib::Rack::TraceMiddleware, tracer: tracer
+      use Datadog::Contrib::Rack::TraceMiddleware
       map '/api/' do
         run RackTestingAPI
       end
@@ -39,10 +37,20 @@ class BaseRackAPITest < MiniTest::Test
   end
 
   def setup
-    # use a dummy tracer
-    @tracer = get_test_tracer()
-    pin = Datadog::Pin.get_from(::Grape)
-    pin.tracer = @tracer
     super
+    # store the configuration and use a DummyTracer
+    @tracer = get_test_tracer
+
+    Datadog.configure do |c|
+      c.use :grape
+      c.use :rack, tracer: @tracer
+    end
+  end
+
+  def teardown
+    super
+    # reset the configuration
+    Datadog.registry[:rack].reset_options!
+    Datadog.registry[:grape].reset_options!
   end
 end

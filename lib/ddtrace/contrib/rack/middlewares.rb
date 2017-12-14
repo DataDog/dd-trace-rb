@@ -23,12 +23,7 @@ module Datadog
         end
         option :distributed_tracing, default: false
 
-        def initialize(app, options = {})
-          # update options with our configuration, unless it's already available
-          [:tracer, :service_name, :distributed_tracing].each do |k|
-            Datadog.configuration[:rack][k] = options[k] unless options[k].nil?
-          end
-
+        def initialize(app)
           @app = app
         end
 
