@@ -60,10 +60,10 @@ deployment:
     branch: /(master)|(develop)/
     # CircleCI is configured to provide VERSION_SUFFIX=$CIRCLE_BUILD_NUM
     commands:
-      - S3_DIR=trace-dev rake release:docs
-      - S3_DIR=trace-dev rake release:gem
+      - S3_DIR=trace-dev bundle exec rake release:docs
+      - S3_DIR=trace-dev bundle exec rake release:gem
       - cp -r ./rubygems/* $CIRCLE_ARTIFACTS
   public:
     tag: /v[0-9]+(\.[0-9]+)*/
     commands:
-      - S3_DIR=trace rake release:docs
+      - S3_DIR=trace bundle exec rake release:docs
