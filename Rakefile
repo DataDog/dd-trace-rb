@@ -147,13 +147,11 @@ task :ci do
   case ENV['CIRCLE_NODE_INDEX'].to_i
   when 0
     sh 'rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do rake test:main'
-    sh 'rvm $LAST_STABLE --verbose do rake benchmark'
   when 1
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:elasticsearch'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:redis'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:rack'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:grape'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:faraday'
@@ -174,8 +172,9 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sucker_punch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:dalli'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:resque'
-    sh 'rvm $SIDEKIQ_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sidekiq'
   when 2
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
+    sh 'rvm $SIDEKIQ_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sidekiq'
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake test:rails'
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake test:railsdisableenv'
     sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-mysql2 rake test:rails'
@@ -196,6 +195,7 @@ task :ci do
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railsactivejob'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:railsdisableenv'
+    sh 'rvm $LAST_STABLE --verbose do rake benchmark'
   else
     puts 'Too many workers than parallel tasks'
   end
