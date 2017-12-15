@@ -1,6 +1,9 @@
 machine:
   services:
     - docker
+  ruby:
+    version:
+      2.2.7
   environment:
     LAST_STABLE: 2.4.1
     EARLY_STABLE: 2.2.7
@@ -15,36 +18,26 @@ machine:
     JRUBY_VERSIONS: jruby-9.1.13.0
     AGENT_BUILD_PATH: "/home/ubuntu/agent"
     TEST_DATADOG_INTEGRATION: 1
-  post:
-    - |
-      rvm get head
-      mkdir -p ~/rvm_binaries
-      for version in $(echo "$MRI_VERSIONS,$MRI_OLD_VERSIONS" | tr "," "\n"); do
-        ruby_bin=$(find ~/rvm_binaries -name "*${version}*")
-        if [[ -n "$ruby_bin" ]]; then
-          rvm mount "$ruby_bin"
-        else
-          rvm install "$version" --rubygems 2.6.11
-          cd ~/rvm_binaries && rvm prepare "$version"
-        fi
-      done
-      rvm install $JRUBY_VERSIONS --rubygems 2.6.11
-      rvm use $EARLY_STABLE --default
-
 
 dependencies:
   cache_directories:
     # Cache Ruby binaries and gems
     - "/opt/circleci/.rvm/"
-    - ~/rvm_binaries
+    - ~/rubies_cache
   pre:
+    - mkdir -p ~/rubies_cache
+    - rsync -a -v --ignore-existing ~/rubies_cache/ /opt/circleci/.rvm/rubies
     # we should use an old docker-compose because CircleCI supports
     # only docker-engine==1.9
     - pip install docker-compose==1.7.1
     - docker-compose up -d | cat
     # installing dev dependencies
-    # remove line below once `msgpack` have a consistent version for jruby
+    - |
+      for version in $(echo "$MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS" | tr "," "\n"); do
+        $(rvm list | grep -q $version) || rvm install $version --rubygems 2.6.11
+      done
     - gem install bundler
+    # remove line below once `msgpack` have a consistent version for jruby
     - bundle inject msgpack 1.1.0 && sed -i "y/\"/'/" Gemfile
     - bundle install
   override:
@@ -52,6 +45,8 @@ dependencies:
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do bundle install
     # [FIXME] appraisal does not work with jruby (problem with native ext, eg sqlite3)
     - rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do appraisal install || echo FIX-ME: Ignoring non-zero exit status
+  post:
+    - rsync -a -v --ignore-existing /opt/circleci/.rvm/rubies/ ~/rubies_cache
 
 test:
   override:
