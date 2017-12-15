@@ -36,6 +36,7 @@ dependencies:
       for version in $(echo "$MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS" | tr "," "\n"); do
         $(rvm list | grep -q $version) || rvm install $version --rubygems 2.6.11
       done
+    - gem install builder
     - gem install bundler
     # remove line below once `msgpack` have a consistent version for jruby
     - bundle inject msgpack 1.1.0 && sed -i "y/\"/'/" Gemfile
