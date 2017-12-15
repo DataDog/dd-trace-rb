@@ -1,11 +1,69 @@
 require 'bundler/gem_tasks'
 require 'ddtrace/version'
 require 'rubocop/rake_task' if RUBY_VERSION >= '2.1.0'
+require 'rspec/core/rake_task'
 require 'rake/testtask'
 require 'appraisal'
 require 'yard'
 
+desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
+namespace :spec do
+  task all: [:main,
+             :rails, :railsredis, :railssidekiq, :railsactivejob,
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :monkey]
+
+  RSpec::Core::RakeTask.new(:main) do |t|
+    t.pattern = 'spec/**/*_spec.rb'
+    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis}/**/*_spec.rb,spec/monkey_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:rails) do |t|
+    t.pattern = 'spec/contrib/rails/**/*_spec.rb'
+    t.exclude_pattern = 'spec/contrib/rails/**/*{sidekiq,active_job,disable_env}*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:railsredis) do |t|
+    t.pattern = 'spec/contrib/rails/**/*redis*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:railssidekiq) do |t|
+    t.pattern = 'spec/contrib/rails/**/*sidekiq*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:railsactivejob) do |t|
+    t.pattern = 'spec/contrib/rails/**/*active_job*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:railsdisableenv) do |t|
+    t.pattern = 'spec/contrib/rails/**/*disable_env*_spec.rb'
+  end
+
+  [
+    :elasticsearch,
+    :http,
+    :redis,
+    :sinatra,
+    :sidekiq,
+    :rack,
+    :faraday,
+    :grape,
+    :aws,
+    :sucker_punch,
+    :mongodb,
+    :resque,
+    :dalli
+  ].each do |contrib|
+    RSpec::Core::RakeTask.new(contrib) do |t|
+      t.pattern = 'spec/contrib/#{contrib}/*_spec.rb'
+    end
+  end
+
+  RSpec::Core::RakeTask.new(:monkey) do |t|
+    t.pattern = 'spec/monkey_spec.rb'
+  end
+end
+
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
