@@ -75,7 +75,7 @@ module Datadog
           end
 
           # Assert correct output
-          spans = all_spans.select { |s| s.name == Patcher::NAME }
+          spans = all_spans.select { |s| s.name == Patcher::NAME_MESSAGE }
           assert_equal(1, spans.length)
 
           spans.last.tap do |span|
@@ -100,10 +100,12 @@ module Datadog
           consumer = 'DummyBatchConsumer'
           partition = 1
           offset = 2
+          message_count = 5
           payload = {
             consumer_class: consumer,
             topic: topic,
             partition: partition,
+            message_count: message_count,
             first_offset: offset
           }
 
@@ -111,7 +113,7 @@ module Datadog
           ActiveSupport::Notifications.instrument('process_batch.racecar', payload)
 
           # Assert correct output
-          spans = all_spans.select { |s| s.name == Patcher::NAME }
+          spans = all_spans.select { |s| s.name == Patcher::NAME_BATCH }
           assert_equal(1, spans.length)
 
           spans.first.tap do |span|
@@ -123,6 +125,7 @@ module Datadog
             assert_equal(partition.to_s, span.get_tag('kafka.partition'))
             assert_nil(span.get_tag('kafka.offset'))
             assert_equal(offset.to_s, span.get_tag('kafka.first_offset'))
+            assert_equal(message_count.to_s, span.get_tag('kafka.message_count'))
             refute_equal(Ext::Errors::STATUS, span.status)
           end
         end
@@ -133,10 +136,12 @@ module Datadog
           consumer = 'DummyBatchConsumer'
           partition = 1
           offset = 2
+          message_count = 5
           payload = {
             consumer_class: consumer,
             topic: topic,
             partition: partition,
+            message_count: message_count,
             first_offset: offset
           }
 
@@ -162,6 +167,7 @@ module Datadog
             assert_equal(partition.to_s, span.get_tag('kafka.partition'))
             assert_nil(span.get_tag('kafka.offset'))
             assert_equal(offset.to_s, span.get_tag('kafka.first_offset'))
+            assert_equal(message_count.to_s, span.get_tag('kafka.message_count'))
             assert_equal(Ext::Errors::STATUS, span.status)
           end
         end

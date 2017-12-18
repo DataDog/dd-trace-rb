@@ -57,6 +57,7 @@ module Datadog
             span.set_tag('kafka.partition', payload[:partition])
             span.set_tag('kafka.offset', payload[:offset]) if payload.key?(:offset)
             span.set_tag('kafka.first_offset', payload[:first_offset]) if payload.key?(:first_offset)
+            span.set_tag('kafka.message_count', payload[:message_count]) if payload.key?(:message_count)
           end
 
           def finish(*_, payload)
