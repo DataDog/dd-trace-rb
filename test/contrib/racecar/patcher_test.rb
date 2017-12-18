@@ -36,12 +36,12 @@ module Datadog
           ActiveSupport::Notifications.instrument('process_message.racecar', payload)
 
           # Assert correct output
-          spans = all_spans.select { |s| s.name == Patcher::NAME }
+          spans = all_spans.select { |s| s.name == Patcher::NAME_MESSAGE }
           assert_equal(1, spans.length)
 
           spans.first.tap do |span|
             assert_equal('racecar', span.service)
-            assert_equal('racecar.consumer', span.name)
+            assert_equal('racecar.message', span.name)
             assert_equal(consumer, span.resource)
             assert_equal(topic, span.get_tag('kafka.topic'))
             assert_equal(consumer, span.get_tag('kafka.consumer'))
@@ -80,7 +80,7 @@ module Datadog
 
           spans.last.tap do |span|
             assert_equal('racecar', span.service)
-            assert_equal('racecar.consumer', span.name)
+            assert_equal('racecar.message', span.name)
             assert_equal(consumer, span.resource)
             assert_equal(topic, span.get_tag('kafka.topic'))
             assert_equal(consumer, span.get_tag('kafka.consumer'))
@@ -116,7 +116,7 @@ module Datadog
 
           spans.first.tap do |span|
             assert_equal('racecar', span.service)
-            assert_equal('racecar.consumer', span.name)
+            assert_equal('racecar.batch', span.name)
             assert_equal(consumer, span.resource)
             assert_equal(topic, span.get_tag('kafka.topic'))
             assert_equal(consumer, span.get_tag('kafka.consumer'))
@@ -150,12 +150,12 @@ module Datadog
           end
 
           # Assert correct output
-          spans = all_spans.select { |s| s.name == Patcher::NAME }
+          spans = all_spans.select { |s| s.name == Patcher::NAME_BATCH }
           assert_equal(1, spans.length)
 
           spans.first.tap do |span|
             assert_equal('racecar', span.service)
-            assert_equal('racecar.consumer', span.name)
+            assert_equal('racecar.batch', span.name)
             assert_equal(consumer, span.resource)
             assert_equal(topic, span.get_tag('kafka.topic'))
             assert_equal(consumer, span.get_tag('kafka.consumer'))

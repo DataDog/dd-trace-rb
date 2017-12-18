@@ -6,7 +6,8 @@ module Datadog
       # Provides instrumentation for `racecar` through ActiveSupport instrumentation signals
       module Patcher
         include Base
-        NAME = 'racecar.consumer'.freeze
+        NAME_MESSAGE = 'racecar.message'.freeze
+        NAME_BATCH = 'racecar.batch'.freeze
         register_as :racecar
         option :tracer, default: Datadog.tracer
         option :service_name, default: 'racecar'
@@ -44,10 +45,11 @@ module Datadog
             defined?(::Racecar) && defined?(::ActiveSupport::Notifications)
           end
 
-          def start(*_, payload)
+          def start(event, *_, payload)
             ensure_clean_context!
 
-            span = configuration[:tracer].trace(NAME)
+            name = event[/message/] ? NAME_MESSAGE : NAME_BATCH
+            span = configuration[:tracer].trace(name)
             span.service = configuration[:service_name]
             span.resource = payload[:consumer_class]
             span.set_tag('kafka.topic', payload[:topic])
