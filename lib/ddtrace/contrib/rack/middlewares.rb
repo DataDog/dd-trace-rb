@@ -27,6 +27,7 @@ module Datadog
           request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
           return if request_start.nil?
 
+          Datadog::Tracer.log.debug('[experimental] creating request.enqueuing span')
           tracer.trace(
             'request.enqueuing',
             start_time: request_start,

@@ -21,9 +21,10 @@ module Datadog
           # current time, to avoid significant clock skew
           request_start = Time.at(time_string.to_f)
           request_start.utc > now ? nil : request_start
-        rescue
+        rescue StandardError => e
           # in case of an Exception we don't create a
           # `request.enqueuing` span
+          Datadog::Tracer.log.debug("[experimental] unable to parse request enqueuing: #{e}")
           nil
         end
       end
