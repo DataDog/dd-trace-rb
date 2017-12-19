@@ -12,9 +12,9 @@ class RedisQuantizeTest < Minitest::Test
   def test_format_arg
     expected = { '' => '',
                  'HGETALL' => 'HGETALL',
-                 'A' * 100 => 'A' * 100,
-                 'B' * 101 => 'B' * 97 + '...',
-                 'C' * 1000 => 'C' * 97 + '...',
+                 'A' * 50 => 'A' * 50,
+                 'B' * 101 => 'B' * 47 + '...',
+                 'C' * 1000 => 'C' * 47 + '...',
                  nil => '',
                  Unstringable.new => '?' }
     expected.each do |k, v|
@@ -27,7 +27,7 @@ class RedisQuantizeTest < Minitest::Test
     command_args = []
     20.times { command_args << ('X' * 90) }
     trimmed = Datadog::Contrib::Redis::Quantize.format_command_args(command_args)
-    assert_equal(1000, trimmed.length)
-    assert_equal('X...', trimmed[996..999])
+    assert_equal(500, trimmed.length)
+    assert_equal('X...', trimmed[496..499])
   end
 end

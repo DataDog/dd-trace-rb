@@ -5,8 +5,8 @@ module Datadog
       module Quantize
         PLACEHOLDER = '?'.freeze
         TOO_LONG_MARK = '...'.freeze
-        VALUE_MAX_LEN = 100
-        CMD_MAX_LEN = 1000
+        VALUE_MAX_LEN = 50
+        CMD_MAX_LEN = 500
 
         module_function
 
