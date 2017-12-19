@@ -4,6 +4,10 @@ require 'contrib/sinatra/second_test_app'
 
 class MultiAppTest < TracerTestBase
   def app
+    @use_multi_app ? multi_app : single_app
+  end
+
+  def multi_app
     Rack::Builder.new do
       map '/one' do
         run FirstTestApp
@@ -15,8 +19,12 @@ class MultiAppTest < TracerTestBase
     end.to_app
   end
 
+  def single_app
+    FirstTestApp
+  end
+
   def setup
-    @writer = FauxWriter.new()
+    @writer = FauxWriter.new
     FirstTestApp.set :datadog_test_writer, @writer
     SecondTestApp.set :datadog_test_writer, @writer
 
@@ -26,36 +34,73 @@ class MultiAppTest < TracerTestBase
     super
   end
 
+  def teardown
+    disable_script_names!
+  end
+
+  def enable_script_names!
+    Datadog.configuration[:sinatra][:resource_script_names] = true
+  end
+
+  def disable_script_names!
+    Datadog.configuration[:sinatra][:resource_script_names] = false
+  end
+
+  # Test for when a single, normal app is setup.
+  # script_name is ''
+  # (To make sure we aren't breaking normal Sinatra apps.)
   def test_resource_name_without_script_name
-    first_path = '/one/endpoint'
-    get first_path, {}, 'SCRIPT_NAME' => ''
+    @use_multi_app = false
+    enable_script_names!
+
+    get '/endpoint'
 
     spans = @writer.spans.select { |s| s.name == 'sinatra.request' }
     assert_equal(1, spans.length)
 
     spans.first.tap do |span|
-      assert_equal("GET #{first_path}", span.resource)
+      assert_equal('GET /endpoint', span.resource)
     end
   end
 
-  def test_resource_name_with_script_name
-    first_path = '/one/endpoint'
-    first_script = '/foo'
-    get first_path, {}, 'SCRIPT_NAME' => first_script
+  # Test for when a multi-app is setup.
+  # script_name is the sub-app's base prefix.
+  # e.g. '/one' in this example.
+  # (To make sure we aren't adding script names when disabled.)
+  def test_resource_name_with_script_name_disabled
+    @use_multi_app = true
+    disable_script_names!
 
-    second_path = '/two/endpoint'
-    second_script = '/bar'
-    get second_path, {}, 'SCRIPT_NAME' => second_script
+    get '/one/endpoint'
+
+    spans = @writer.spans.select { |s| s.name == 'sinatra.request' }
+    assert_equal(1, spans.length)
+
+    spans.first.tap do |span|
+      assert_equal('GET /endpoint', span.resource)
+    end
+  end
+
+  # Test for when a multi-app is setup.
+  # script_name is the sub-app's base prefix.
+  # e.g. '/one' and '/two' in this example.
+  # (To make sure we are adding script names when enabled.)
+  def test_resource_name_with_script_name
+    @use_multi_app = true
+    enable_script_names!
+
+    get '/one/endpoint'
+    get '/two/endpoint'
 
     spans = @writer.spans.select { |s| s.name == 'sinatra.request' }
     assert_equal(2, spans.length)
 
-    spans.last.tap do |span|
-      assert_equal("GET #{first_script}#{first_path}", span.resource)
+    spans.first.tap do |span|
+      assert_equal('GET /one/endpoint', span.resource)
     end
 
-    spans.first.tap do |span|
-      assert_equal("GET #{second_script}#{second_path}", span.resource)
+    spans.last.tap do |span|
+      assert_equal('GET /two/endpoint', span.resource)
     end
   end
 end

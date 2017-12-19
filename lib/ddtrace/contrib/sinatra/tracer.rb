@@ -30,11 +30,19 @@ module Datadog
 
         option :tracer, default: Datadog.tracer
 
+        option :resource_script_names, default: false
+
         def route(verb, action, *)
           # Keep track of the route name when the app is instantiated for an
           # incoming request.
           condition do
-            @datadog_route = "#{request.script_name}#{action}"
+            # If the option to prepend script names is enabled, then
+            # prepend the script name from the request onto the action.
+            @datadog_route = if Datadog.configuration[:sinatra][:resource_script_names]
+                               "#{request.script_name}#{action}"
+                             else
+                               action
+                             end
           end
 
           super
