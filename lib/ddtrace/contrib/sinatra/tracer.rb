@@ -34,7 +34,7 @@ module Datadog
           # Keep track of the route name when the app is instantiated for an
           # incoming request.
           condition do
-            @datadog_route = action
+            @datadog_route = "#{request.script_name}#{action}"
           end
 
           super
