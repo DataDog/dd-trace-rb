@@ -46,6 +46,18 @@ module Datadog
           @adapter_name ||= Datadog::Contrib::Rails::Utils.adapter_name
         end
 
+        def self.database_name
+          @database_name ||= Datadog::Contrib::Rails::Utils.database_name
+        end
+
+        def self.adapter_host
+          @adapter_host ||= Datadog::Contrib::Rails::Utils.adapter_host
+        end
+
+        def self.adapter_port
+          @adapter_port ||= Datadog::Contrib::Rails::Utils.adapter_port
+        end
+
         def self.tracer
           @tracer ||= Datadog.configuration[:sinatra][:tracer]
         end
@@ -73,6 +85,9 @@ module Datadog
           # obfuscated version
           span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('active_record.db.vendor', adapter_name)
+          span.set_tag('active_record.db.name', database_name)
+          span.set_tag('out.host', adapter_host)
+          span.set_tag('out.port', adapter_port)
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
