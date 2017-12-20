@@ -23,6 +23,7 @@ module Datadog
 
             add_pin
             add_plugin(Seahorse::Client::Base, *loaded_constants)
+            Datadog.tracer.set_service_info(get_option(:service_name), 'aws', Ext::AppTypes::WEB)
 
             @patched = true
           rescue => e

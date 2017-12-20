@@ -22,6 +22,7 @@ module Datadog
 
             add_pin!
             Instrumentation.patch!
+            Datadog.tracer.set_service_info(get_option(:service_name), 'dalli', Ext::AppTypes::CACHE)
 
             @patched = true
           rescue => e
@@ -42,7 +43,7 @@ module Datadog
           end
 
           def add_pin!
-            Pin.new(get_option(:service_name), app_type: Ext::AppTypes::DB).tap do |pin|
+            Pin.new(get_option(:service_name), app_type: Ext::AppTypes::CACHE).tap do |pin|
               pin.onto(::Dalli)
             end
           end
