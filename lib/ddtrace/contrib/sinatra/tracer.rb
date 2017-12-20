@@ -56,7 +56,7 @@ module Datadog
               output = ''
               tracer = Datadog.configuration[:sinatra][:tracer]
               if tracer.enabled
-                tracer.trace('sinatra.render_template') do |span|
+                tracer.trace('sinatra.render_template', span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
                   # If data is a string, it is a literal template and we don't
                   # want to record it.
                   span.set_tag('sinatra.template_name', data) if data.is_a? Symbol

@@ -40,7 +40,7 @@ module Datadog
           service = sidekiq_service(resource_worker(resource))
           set_service_info(service)
 
-          @tracer.trace('sidekiq.job', service: service, span_type: 'job') do |span|
+          @tracer.trace('sidekiq.job', service: service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
             span.resource = resource
             span.set_tag('sidekiq.job.id', job['jid'])
             span.set_tag('sidekiq.job.retry', job['retry'])

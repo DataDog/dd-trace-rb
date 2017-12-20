@@ -9,7 +9,6 @@ module Datadog
       BODY = 'elasticsearch.body'.freeze
 
       SERVICE = 'elasticsearch'.freeze
-      SPAN_TYPE = 'elasticsearch'.freeze
 
       # Patcher enables patching of 'elasticsearch/transport' module.
       # This is used in monkey.rb to automatically apply patches
@@ -35,6 +34,7 @@ module Datadog
               require 'ddtrace/contrib/elasticsearch/quantize'
 
               patch_elasticsearch_transport_client()
+              Datadog.tracer.set_service_info(get_option(:service_name), 'elasticsearch', Ext::AppTypes::DB)
 
               @patched = true
             rescue StandardError => e
@@ -78,7 +78,7 @@ module Datadog
               pin.tracer.trace('elasticsearch.query') do |span|
                 begin
                   span.service = pin.service
-                  span.span_type = SPAN_TYPE
+                  span.span_type = Ext::AppTypes::DB
 
                   # load JSON for the following fields unless they're already strings
                   params = JSON.generate(params) if params && !params.is_a?(String)
