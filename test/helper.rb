@@ -72,6 +72,14 @@ def get_database_name
   Datadog::Contrib::Rails::Utils.database_name
 end
 
+def get_adapter_host
+  Datadog::Contrib::Rails::Utils.adapter_host
+end
+
+def get_adapter_port
+  Datadog::Contrib::Rails::Utils.adapter_port
+end
+
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Writer
   def initialize(options = {})

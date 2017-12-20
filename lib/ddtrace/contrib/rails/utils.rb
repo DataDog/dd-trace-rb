@@ -54,6 +54,14 @@ module Datadog
           connection_config[:database]
         end
 
+        def self.adapter_host
+          connection_config[:host]
+        end
+
+        def self.adapter_port
+          connection_config[:port]
+        end
+
         def self.connection_config
           if defined?(::ActiveRecord::Base.connection_config)
             ::ActiveRecord::Base.connection_config

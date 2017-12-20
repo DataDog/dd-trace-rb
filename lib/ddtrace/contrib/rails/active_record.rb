@@ -22,6 +22,8 @@ module Datadog
           database_service = Datadog.configuration[:rails][:database_service]
           adapter_name = Datadog::Contrib::Rails::Utils.adapter_name
           database_name = Datadog::Contrib::Rails::Utils.database_name
+          adapter_host = Datadog::Contrib::Rails::Utils.adapter_host
+          adapter_port = Datadog::Contrib::Rails::Utils.adapter_port
           span_type = Datadog::Ext::SQL::TYPE
 
           span = tracer.trace(
@@ -46,6 +48,8 @@ module Datadog
           span.set_tag('rails.db.vendor', adapter_name)
           span.set_tag('rails.db.name', database_name)
           span.set_tag('rails.db.cached', cached) if cached
+          span.set_tag('out.host', adapter_host)
+          span.set_tag('out.port', adapter_port)
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
