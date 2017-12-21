@@ -4,11 +4,12 @@ module Datadog
       # QueueTime simply...
       module QueueTime
         REQUEST_START = 'HTTP_X_REQUEST_START'.freeze
+        QUEUE_START = 'HTTP_X_QUEUE_START'.freeze
 
         module_function
 
         def get_request_start(env, now = Time.now.utc)
-          header = env[REQUEST_START]
+          header = env[REQUEST_START] || env[QUEUE_START]
           return unless header
 
           # nginx header is in the format "t=1512379167.574"
