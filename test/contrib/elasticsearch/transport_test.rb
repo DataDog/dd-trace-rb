@@ -34,6 +34,8 @@ class ESTransportTest < Minitest::Test
     assert_equal('200', span.get_tag('http.status_code'))
     assert_nil(span.get_tag('elasticsearch.params'))
     assert_nil(span.get_tag('elasticsearch.body'))
+    assert_equal('127.0.0.1', span.get_tag('out.host'))
+    assert_equal('49200', span.get_tag('out.port'))
   end
 
   def test_perform_request_with_encoded_body
