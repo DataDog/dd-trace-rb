@@ -45,6 +45,7 @@ module Datadog
         end
 
         # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/AbcSize
         def patch_elasticsearch_transport_client
           # rubocop:disable Metrics/BlockLength
           ::Elasticsearch::Transport::Client.class_eval do
@@ -77,6 +78,10 @@ module Datadog
               response = nil
               pin.tracer.trace('elasticsearch.query') do |span|
                 begin
+                  connection = transport.connections.first
+                  host = connection.host[:host] if connection
+                  port = connection.host[:port] if connection
+
                   span.service = pin.service
                   span.span_type = Ext::AppTypes::DB
 
@@ -88,6 +93,8 @@ module Datadog
                   span.set_tag(URL, url)
                   span.set_tag(PARAMS, params) if params
                   span.set_tag(BODY, body) if body
+                  span.set_tag('out.host', host) if host
+                  span.set_tag('out.port', port) if port
 
                   quantized_url = Datadog::Contrib::Elasticsearch::Quantize.format_url(url)
                   span.resource = "#{method} #{quantized_url}"
