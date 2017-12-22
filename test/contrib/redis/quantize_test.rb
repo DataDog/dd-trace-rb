@@ -30,4 +30,13 @@ class RedisQuantizeTest < Minitest::Test
     assert_equal(1000, trimmed.length)
     assert_equal('X...', trimmed[996..999])
   end
+
+  def test_invalid_byte_sequence_regression
+    # \255 is off-limits https://en.wikipedia.org/wiki/UTF-8#Codepage_layout
+    quantized = Datadog::Contrib::Redis::Quantize.format_arg(
+      "SET foo bar\255"
+    )
+
+    assert_equal('SET foo bar', quantized)
+  end
 end
