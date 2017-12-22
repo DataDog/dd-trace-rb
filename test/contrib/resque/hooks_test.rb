@@ -82,6 +82,20 @@ module Datadog
           assert_equal('StandardError', span.get_tag(Ext::Errors::TYPE), 'wrong type of error stored in span')
         end
 
+        def test_workers_patch
+          worker_class1 = Class.new
+          worker_class2 = Class.new
+
+          remove_patch!(:resque)
+
+          Datadog.configure do |c|
+            c.use(:resque, workers: [worker_class1, worker_class2])
+          end
+
+          assert_includes(worker_class1.singleton_class.included_modules, ResqueJob)
+          assert_includes(worker_class2.singleton_class.included_modules, ResqueJob)
+        end
+
         def enable_test_tracer!
           get_test_tracer.tap { |tracer| pin.tracer = tracer }
         end

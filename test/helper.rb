@@ -245,3 +245,9 @@ def try_wait_until(options = {})
     attempts -= 1
   end
 end
+
+def remove_patch!(integration)
+  Datadog
+    .registry[integration]
+    .instance_variable_set('@patched', false)
+end
