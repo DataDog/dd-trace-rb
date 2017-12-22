@@ -94,6 +94,5 @@ class MonkeyTest < Minitest::Test
     assert_equal(true, Datadog::Contrib::Aws::Patcher.patched?)
     assert_equal(true, Datadog::Contrib::ActiveRecord::Patcher.patched?)
     assert_equal({ rails: false, elasticsearch: true, http: true, redis: true, grape: false, faraday: true, aws: true, sucker_punch: true, active_record: true, mongo: false, dalli: true, resque: true, rack: false, racecar: false }, Datadog::Monkey.get_patched_modules())
-
   end
 end
