@@ -13,16 +13,6 @@ module Datadog
       # application. If request tags are not set by the app, they will be set using
       # information available at the Rack level.
       class TraceMiddleware
-        include Base
-        register_as :rack
-
-        option :tracer, default: Datadog.tracer
-        option :service_name, default: 'rack', depends_on: [:tracer] do |value|
-          get_option(:tracer).set_service_info(value, 'rack', Ext::AppTypes::WEB)
-          value
-        end
-        option :distributed_tracing, default: false
-
         def initialize(app)
           @app = app
         end
@@ -79,7 +69,7 @@ module Datadog
           # the result for this request; `resource` and `tags` are expected to
           # be set in another level but if they're missing, reasonable defaults
           # are used.
-          request_span.resource = "#{env['REQUEST_METHOD']} #{status}".strip unless request_span.resource
+          request_span.resource ||= resource_name_for(env, status)
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
           end
@@ -104,6 +94,14 @@ module Datadog
           # ensures we clean thread-local variables on each HTTP request avoiding
           # memory leaks.
           tracer.provider.context = Datadog::Context.new
+        end
+
+        def resource_name_for(env, status)
+          if Datadog.configuration[:rack][:middleware_names]
+            "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
+          else
+            "#{env['REQUEST_METHOD']} #{status}".strip
+          end
         end
       end
     end
