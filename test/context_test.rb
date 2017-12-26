@@ -59,7 +59,7 @@ class ContextTest < Minitest::Test
 
     assert_nil(ctx.sampling_priority)
 
-    [0, 1, 2, nil, 999].each do |sampling_priority|
+    [-1, 0, 1, 2, nil, 999].each do |sampling_priority|
       ctx.sampling_priority = sampling_priority
       if sampling_priority
         assert_equal(sampling_priority, ctx.sampling_priority)
