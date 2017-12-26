@@ -37,6 +37,23 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     assert_nil(span.get_tag('sql.query'))
   end
 
+  test 'active record is sets cached tag' do
+    # Make sure query caching is enabled...
+    Article.cache do
+      # Do two queries (second should cache.)
+      Article.count
+      Article.count
+
+      # Assert correct number of spans
+      spans = @tracer.writer.spans
+      assert_equal(spans.length, 2)
+
+      # Assert cached flag set correctly
+      span = spans.last
+      assert_equal(true, span.get_tag('rails.db.cached'))
+    end
+  end
+
   test 'doing a database call uses the proper service name if it is changed' do
     # update database configuration
     update_config(:database_service, 'customer-db')
