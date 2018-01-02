@@ -107,17 +107,17 @@ class RedisTest < Minitest::Test
 
   def test_quantize
     @drivers.each do |_d, driver|
-      driver.set 'K', 'x' * 10000
+      driver.set 'K', 'x' * 500
       response = driver.get 'K'
-      assert_equal('x' * 10000, response)
+      assert_equal('x' * 500, response)
       spans = @tracer.writer.spans()
       assert_operator(2, :<=, spans.length)
       get, set = spans[-2..-1]
       check_common_tags(set)
       assert_equal('redis.command', set.name)
       assert_equal('redis', set.service)
-      assert_equal('SET K ' + 'x' * 97 + '...', set.resource)
-      assert_equal('SET K ' + 'x' * 97 + '...', set.get_tag('redis.raw_command'))
+      assert_equal('SET K ' + 'x' * 47 + '...', set.resource)
+      assert_equal('SET K ' + 'x' * 47 + '...', set.get_tag('redis.raw_command'))
       check_common_tags(get)
       assert_equal('redis.command', get.name)
       assert_equal('redis', get.service)

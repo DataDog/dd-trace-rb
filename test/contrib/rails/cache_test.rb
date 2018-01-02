@@ -1,5 +1,7 @@
 require 'helper'
 require 'contrib/rails/test_helper'
+require 'securerandom'
+require 'ddtrace/ext/cache'
 
 class CacheTracingTest < ActionController::TestCase
   setup do
@@ -92,5 +94,20 @@ class CacheTracingTest < ActionController::TestCase
 
     # reset the original configuration
     reset_config()
+  end
+
+  def test_cache_key_truncation_regression
+    max_key_size = Datadog::Ext::CACHE::MAX_KEY_SIZE
+    large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)
+    Rails.cache.write(large_key, 'foobar')
+
+    spans = @tracer.writer.spans
+    assert_equal(1, spans.length)
+    span = spans[0]
+
+    assert(large_key.size > max_key_size)
+    assert_equal(span.name, 'rails.cache')
+    assert_equal(max_key_size, span.get_tag('rails.cache.key').length)
+    assert(span.get_tag('rails.cache.key').end_with?('...'))
   end
 end
