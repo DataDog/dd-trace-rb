@@ -4,11 +4,26 @@ require 'active_record'
 require 'contrib/sinatra/tracer_test_base'
 
 class TracerActiveRecordTest < TracerTestBase
+  class ApplicationRecord < ActiveRecord::Base
+    self.abstract_class = true
+  end
+
+  class Article < ApplicationRecord
+  end
+
   class TracerActiveRecordTestApp < Sinatra::Application
     post '/request' do
       conn = settings.datadog_test_conn
       conn.connection.execute('SELECT 42')
       ''
+    end
+
+    post '/cached_request' do
+      Article.cache do
+        # Do two queries (second should cache.)
+        Article.count
+        Article.count
+      end
     end
   end
 
@@ -30,6 +45,18 @@ class TracerActiveRecordTest < TracerTestBase
     Datadog.configuration.use(:active_record)
 
     super
+  end
+
+  def migrate_db
+    Article.exists?
+  rescue ActiveRecord::StatementInvalid
+    ActiveRecord::Schema.define(version: 20180101000000) do
+      create_table 'articles', force: :cascade do |t|
+        t.string   'title'
+        t.datetime 'created_at', null: false
+        t.datetime 'updated_at', null: false
+      end
+    end
   end
 
   def test_request
@@ -65,5 +92,31 @@ class TracerActiveRecordTest < TracerTestBase
     assert_equal(Datadog::Ext::HTTP::TYPE, sinatra_span.span_type)
     assert_equal(0, sinatra_span.status)
     assert_nil(sinatra_span.parent)
+  end
+
+  # Testing AR query caching requires use of a model.
+  # Create a model, query it a few times, make sure cached tag gets set.
+  def test_cached_tag
+    # Make sure Article table exists
+    migrate_db
+
+    # Do query with cached query
+    post '/cached_request'
+
+    # Assert correct number of spans (ignoring transactions, etc.)
+    spans = all_spans.select { |s| s.resource.include?('SELECT COUNT(*) FROM "articles"') }
+    assert_equal(2, spans.length)
+
+    # Assert cached flag not present on first query
+    assert_nil(spans.first.get_tag('active_record.db.cached'))
+
+    # Assert cached flag set correctly on second query
+    assert_equal('true', spans.last.get_tag('active_record.db.cached'))
+  end
+
+  private
+
+  def all_spans
+    @writer.spans(:keep)
   end
 end
