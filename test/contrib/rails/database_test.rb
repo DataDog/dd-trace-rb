@@ -48,9 +48,11 @@ class DatabaseTracingTest < ActiveSupport::TestCase
       spans = @tracer.writer.spans
       assert_equal(spans.length, 2)
 
-      # Assert cached flag set correctly
-      span = spans.last
-      assert_equal(true, span.get_tag('rails.db.cached'))
+      # Assert cached flag not present on first query
+      assert_nil(spans.first.get_tag('rails.db.cached'))
+
+      # Assert cached flag set correctly on second query
+      assert_equal('true', spans.last.get_tag('rails.db.cached'))
     end
   end
 
