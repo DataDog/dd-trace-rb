@@ -33,13 +33,10 @@ module Datadog
             span_type: span_type
           )
 
-          # find out if the SQL query has been cached in this request. This meta is really
+          # Find out if the SQL query has been cached in this request. This meta is really
           # helpful to users because some spans may have 0ns of duration because the query
           # is simply cached from memory, so the notification is fired with start == finish.
-          # TODO[manu]: this feature has been merged into master but has not yet released.
-          # We're supporting this action as a best effort, but we should add a test after
-          # a new version of Rails is out.
-          cached = payload[:cached]
+          cached = payload[:cached] || (payload[:name] == 'CACHE')
 
           # the span should have the query ONLY in the Resource attribute,
           # so that the ``sql.query`` tag will be set in the agent with an
