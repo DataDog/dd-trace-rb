@@ -22,14 +22,18 @@ module Datadog
           require_relative 'middlewares'
           @patched = true
 
-          return unless get_option(:middleware_names)
-
-          top = get_option(:application) || rails_app
-          retain_middleware_name(top)
+          enable_middleware_names if get_option(:middleware_names)
         end
 
         def patched?
           @patched ||= false
+        end
+
+        def enable_middleware_names
+          root = get_option(:application) || rails_app
+          retain_middleware_name(root)
+        rescue => e
+          Tracer.log.debug("Error patching middleware stack: #{e}")
         end
 
         def rails_app
