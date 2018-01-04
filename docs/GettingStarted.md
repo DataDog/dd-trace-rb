@@ -722,10 +722,10 @@ overhead.
 
 Priority sampling consists in deciding if a trace will be kept by using a priority attribute that will be propagated for distributed traces. Its value gives indication to the Agent and to the backend on how important the trace is.
 
-* -1: The user asked not to keep the trace.
-* 0: The sampler automatically decided not to keep the trace.
-* 1: The sampler automatically decided to keep the trace.
-* 2: The user asked to keep the trace.
+The sampler can set the priority to the following values:
+
+* `Datadog::Ext::Priority::AUTO_REJECT`: the sampler automatically decided to reject the trace.
+* `Datadog::Ext::Priority::AUTO_KEEP`: the sampler automatically decided to keep the trace.
 
 For now, priority sampling is disabled by default. Enabling it ensures that your sampled distributed traces will be complete. To enable the priority sampling:
 
@@ -735,17 +735,26 @@ Datadog.tracer.configure(priority_sampling: true)
 
 Once enabled, the sampler will automatically assign a priority of 0 or 1 to traces, depending on their service and volume.
 
-You can also set this priority manually to either drop a non-interesting trace or to keep an important one. For that, set the `context#sampling_priority` to `-1` or `2`. It has to be done before any context propagation (fork, RPC calls) to be effective.
-For example, it is possible to select some traces based on some existing bit of information such as a user or transaction ID.
-But it is generally not possible to select a trace based on its error status,
-as this information typically happens later in the process, when context has already been propagated:
+You can also set this priority manually to either drop a non-interesting trace or to keep an important one. For that, set the `context#sampling_priority` to:
+
+* `Datadog::Ext::Priority::USER_REJECT`: the user asked to reject the trace.
+* `Datadog::Ext::Priority::USER_KEEP`: the user asked to keep the trace.
+
+When not using [distributed tracing](#Distributed_Tracing), you may change the priority at any time,
+as long as the trace is not finished yet.
+But it has to be done before any context propagation (fork, RPC calls) to be effective in a distributed context.
+Changing the priority after context has been propagated causes different parts of a distributed trace
+to use different priorities. Some parts might be kept, some parts might be rejected,
+and this can cause the trace to be partially stored and remain incomplete.
+
+If you change the priority, we recommend you do it as soon as possible, when the root span has just been created.
 
 ```rb
-# Indicate to not keep the trace
-span.context.sampling_priority = -1
+# Indicate to reject the trace
+span.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
 
 # Indicate to keep the trace
-span.context.sampling_priority = 2
+span.context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
 ```
 
 ### Distributed Tracing
