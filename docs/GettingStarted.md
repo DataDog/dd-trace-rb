@@ -91,28 +91,6 @@ Available options for the `rails` integration are:
 * ``tracer``: is the global tracer used by the tracing application. Usually you don't need to change that value
   unless you're already using a different initialized ``tracer`` somewhere else
 
-To integrate Rails instrumentation with third-party libraries such as Grape, please check the available settings below.
-
-#### Configure the tracer with initializers
-
-To change the default behavior of the Datadog tracer, you can provide custom options inside the `Datadog.configure` block as in:
-
-    # config/initializers/datadog-tracer.rb
-
-    Datadog.configure do |c|
-      c.tracer option_name: option_value, ...
-    end
-
-Available options are:
-
-* ``enabled``: defines if the ``tracer`` is enabled or not. If set to ``false`` the code could be still instrumented
-  because of other settings, but no spans are sent to the local trace agent.
-* ``debug``: set to true to enable debug logging.
-* ``trace_agent_hostname``: set the hostname of the trace agent.
-* ``trace_agent_port``: set the port the trace agent is listening on.
-* ``env``: set the environment. Rails users may set it to ``Rails.env`` to use their application settings.
-* ``tags``: set global tags that should be applied to all spans. Defaults to an empty hash
-
 ### Sinatra
 
 The Sinatra integration traces requests and template rendering.
@@ -415,6 +393,26 @@ The `sucker_punch` integration traces all scheduled jobs:
     LogJob.perform_async('login')
 
 ## Advanced usage
+
+### Configure the tracer
+
+To change the default behavior of the Datadog tracer, you can provide custom options inside the `Datadog.configure` block as in:
+
+    # config/initializers/datadog-tracer.rb
+
+    Datadog.configure do |c|
+      c.tracer option_name: option_value, ...
+    end
+
+Available options are:
+
+* ``enabled``: defines if the ``tracer`` is enabled or not. If set to ``false`` the code could be still instrumented
+  because of other settings, but no spans are sent to the local trace agent.
+* ``debug``: set to true to enable debug logging.
+* ``trace_agent_hostname``: set the hostname of the trace agent.
+* ``trace_agent_port``: set the port the trace agent is listening on.
+* ``env``: set the environment. Rails users may set it to ``Rails.env`` to use their application settings.
+* ``tags``: set global tags that should be applied to all spans. Defaults to an empty hash
 
 ### Manual Instrumentation
 
