@@ -26,6 +26,7 @@ class MonkeyTest < Minitest::Test
       dalli: true,
       resque: true,
       active_record: false,
+      sidekiq: false,
       racecar: false
     }
 

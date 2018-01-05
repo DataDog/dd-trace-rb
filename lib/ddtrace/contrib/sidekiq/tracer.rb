@@ -2,25 +2,11 @@ require 'sidekiq/api'
 
 require 'ddtrace/ext/app_types'
 
-sidekiq_vs = Gem::Version.new(Sidekiq::VERSION)
-sidekiq_min_vs = Gem::Version.new('4.0.0')
-if sidekiq_vs < sidekiq_min_vs
-  raise "sidekiq version #{sidekiq_vs} is not supported yet " \
-        + "(supporting versions >=#{sidekiq_min_vs})"
-end
-
-Datadog::Tracer.log.debug("Activating instrumentation for Sidekiq '#{sidekiq_vs}'")
-
 module Datadog
   module Contrib
     module Sidekiq
-      # Middleware is a Sidekiq server-side middleware which traces executed jobs
+      # Tracer is a Sidekiq server-side middleware which traces executed jobs
       class Tracer
-        include Base
-        register_as :sidekiq
-        option :service_name, default: 'sidekiq'
-        option :tracer, default: Datadog.tracer
-
         def initialize(options = {})
           config = Datadog.configuration[:sidekiq].merge(options)
           @tracer = config[:tracer]
