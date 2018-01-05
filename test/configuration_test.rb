@@ -1,5 +1,6 @@
 require 'ddtrace/configuration'
 require 'ddtrace/configurable'
+require 'logger'
 
 module Datadog
   class ConfigurationTest < Minitest::Test
@@ -112,10 +113,13 @@ module Datadog
     def test_tracer_configuration
       tracer = Datadog::Tracer.new
       debug_state = tracer.class.debug_logging
+      original_log = tracer.class.log
+      custom_log = Logger.new(STDOUT)
 
       @configuration.tracer(
         enabled: false,
         debug: !debug_state,
+        log: custom_log,
         hostname: 'tracer.host.com',
         port: 1234,
         env: :config_test,
@@ -125,11 +129,13 @@ module Datadog
 
       refute(tracer.enabled)
       refute(debug_state)
+      assert_equal(custom_log, Datadog::Tracer.log)
       assert_equal('tracer.host.com', tracer.writer.transport.hostname)
       assert_equal(1234, tracer.writer.transport.port)
       assert_equal(:config_test, tracer.tags[:env])
       assert_equal(:bar, tracer.tags[:foo])
       tracer.class.debug_logging = debug_state
+      tracer.class.log = original_log
     end
 
     def test_configuration_acts_on_default_tracer
