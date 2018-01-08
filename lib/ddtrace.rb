@@ -39,12 +39,12 @@ module Datadog
       @configuration ||= Configuration.new
     end
 
-    def configure(target = configuration)
-      target = Pin.get_from(target) unless target.is_a?(Configuration)
-
-      return target unless block_given?
-
-      yield(target)
+    def configure(target = configuration, opts = {})
+      if target.is_a?(Configuration)
+        yield(target)
+      else
+        Configuration::PinSetup.new(target, opts).call
+      end
     end
   end
 end
