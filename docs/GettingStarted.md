@@ -122,7 +122,9 @@ To start using the middleware in your generic Rack application, add it to your `
     # config.ru example
     require 'ddtrace'
 
-    Datadog.configure { |c| c.use(:rack) }
+    Datadog.configure do |c|
+      c.use :rack
+    end
 
     use Datadog::Contrib::Rack::TraceMiddleware
 
@@ -476,7 +478,9 @@ For cases like this, you can provide the targeted instance to
     require 'ddtrace'
 
     # Enable tracing globally for redis
-    Datadog.configure { |c| c.use(:redis) }
+    Datadog.configure do |c|
+      c.use :redis
+    end
 
     customer_cache = Redis.new
     invoice_cache = Redis.new
@@ -503,7 +507,9 @@ for the first time:
     require 'sinatra'
     require 'active_record'
 
-    Datadog.configure { |c| c.tracer(debug: true) }
+    Datadog.configure do |c|
+      c.tracer debug: true
+    end
 
     # use the tracer as usual
     tracer = Datadog.tracer
@@ -576,7 +582,9 @@ The sampler can set the priority to the following values:
 For now, priority sampling is disabled by default. Enabling it ensures that your sampled distributed traces will be complete. To enable the priority sampling:
 
 ```rb
-Datadog.tracer.configure(priority_sampling: true)
+Datadog.configure do |c|
+  c.tracer priority_sampling: true
+end
 ```
 
 Once enabled, the sampler will automatically assign a priority of 0 or 1 to traces, depending on their service and volume.
