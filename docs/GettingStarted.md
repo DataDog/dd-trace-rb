@@ -534,7 +534,10 @@ Additionally, it is possible to override the default logger and replace it by a
 custom one. This is done using the ``log`` attribute of the tracer.
 
     f = File.new("my-custom.log", "w+")           # Log messages should go there
-    Datadog::Tracer.log = Logger.new(f)           # Overriding the default tracer
+    Datadog.configure do |c|
+      c.trace log: Logger.new(f)                  # Overriding the default tracer
+    end
+
     Datadog::Tracer.log.info { "this is typically called by tracing code" }
 
 ### Environment and tags
