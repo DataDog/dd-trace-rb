@@ -18,6 +18,8 @@ module Datadog
     attr_accessor :tracer
     attr_accessor :config
 
+    alias service_name= service=
+
     # [ruby19] named parameters would be more idiomatic here, but would break backward compatibility
     def initialize(service, options = { app: nil, tags: nil, app_type: nil, tracer: nil, config: nil })
       @service = service

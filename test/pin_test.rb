@@ -67,4 +67,21 @@ class PinTest < Minitest::Test
     pin.onto(obj)
     assert_equal('The PIN is set!', Datadog::Pin.get_from(obj))
   end
+
+  # We're providing this API to gradually hide the Pin from customers
+  def test_configure_api_with_block
+    object = Object.new
+    Datadog::Pin.new(:foo).onto(object)
+    Datadog.configure(object) { |c| c.service_name = :bar }
+
+    assert_equal(:bar, object.datadog_pin.service)
+  end
+
+  def test_configure_api
+    object = Object.new
+    Datadog::Pin.new(:foo).onto(object)
+    Datadog.configure(object).service_name = :bar
+
+    assert_equal(:bar, object.datadog_pin.service)
+  end
 end
