@@ -223,7 +223,7 @@ if they use the official Ruby driver. To activate the integration, simply:
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :mongo
+      c.use :mongo, service_name: 'mongodb'
     end
 
     # now create a MongoDB client and use it as usual:
@@ -231,9 +231,10 @@ if they use the official Ruby driver. To activate the integration, simply:
     collection = client[:people]
     collection.insert_one({ name: 'Steve' })
 
-    # to change the MongoDB service, use the Pin object
-    pin = Datadog::Pin.get_from(client)
-    pin.service = 'mongodb-primary'
+    # In case you want to override the global configuration for a certain client instance
+    Datadog.configure(client) do |c|
+      c.service_name = 'mongodb-primary'
+    end
 
 ### Net/HTTP
 
@@ -256,8 +257,7 @@ Net::HTTP module.
 
 Experimental distributed tracing support is available for this library.
 By default, this is disabled. You need to enable it, either on a per-connection basis,
-by setting the ``:distributed_tracing`` config entry to ``true`` using
-the ``Pin`` object attached to the client. Example:
+by setting the ``:distributed_tracing`` through `Datadog.configure`
 
     require 'net/http'
     require 'ddtrace'
@@ -267,7 +267,7 @@ the ``Pin`` object attached to the client. Example:
     end
 
     client = Net::HTTP.new(host, port)
-    Datadog::Pin.get_from(client).config = { distributed_tracing: true }
+    Datadog.configure(client).config = { distributed_tracing: true }
     response = client.get('foo') # trace and send 'x-datadog-trace-id' and 'x-datadog-parent-id'
 
 Or, by enabling distributed tracing for all HTTP calls:
@@ -454,65 +454,43 @@ to trace requests to the home page:
       end
     end
 
-### Patch Info (PIN)
+### Ad-hoc configuration
 
-The Patch Info, AKA ``Pin`` object, gives you control on the integration.
+Certain integrations such as `Redis`, `Elasticsearch` and `net/http` may have
+different configuration parameters for each of its instances (generally a
+connection object).
 
-It has one class method:
+For cases like this, you can provide the targeted instance to
+`Datadog.configure` method and set the following attributes:
 
-* ``get_from``: returns the Pin object which has been pinned onto some random
-  object. It is safe to call ``get_from`` on any object, but it might return ``nil``.
-
-Some instance methods:
-
-* ``enabled?``: wether tracing is enabled for this object
-* ``onto``: applies the patch information to some random object. It is the companion
-  function of ``get_from``.
-
-Accessors:
-
-* ``service``: service, you should typically set some meaningful value for this.
+* ``service_name``: service, you should typically set some meaningful value for this.
 * ``app``: application name
 * ``tags``: optional tags
 * ``app_type``: application type
 * ``name``: span name
 * ``tracer``: the tracer object used for tracing
 
-By default, a traced integration such as Redis or Elasticsearch carries a Pin object. Eg:
+#### Example
 
     require 'redis'
     require 'ddtrace'
 
+    # Enable tracing globally for redis
     Datadog.configure { |c| c.use(:redis) }
 
-    redis = Redis.new
-    pin = Datadog::Pin.get_from(redis)
-    pin.service = 'my-redis-cache'
-    puts redis.get 'my-key' # this will be traced as belonging to 'my-redis-cache' service
-    pin.tracer = nil
-    puts pin.enabled?       # false
-    puts redis.get 'my-key' # this won't be traced, tracing has been disabled now
+    customer_cache = Redis.new
+    invoice_cache = Redis.new
 
-You can use this object to instrument your own code:
-
-    require 'ddtrace'
-    require 'ddtrace/ext/app_types'
-
-    class MyWebSite
-      def initialize
-        pin = Datadog::Pin.new('my-web-site', app_type: Datadog::Ext::AppTypes::WEB)
-        pin.onto(self)
-      end
-
-      def serve(something)
-        pin = Datadog::Pin.get_from(self)
-        pin.tracer.trace('serve') do |span|
-          span.resource = something
-          span.service = pin.service
-          # serve something here
-        end
-      end
+    Datadog.configure(customer_cache) do |c|
+      c.service_name = 'customer-cache'
     end
+
+    Datadog.configure(invoice_cache) do |c|
+      c.service_name = invoice-cache'
+    end
+
+    customer_cache.get(...) # traced call will belong to `customer-cache` service
+    invoice_cache.get(...) # traced call will belong to `invoice-cache` service
 
 ### Debug Mode
 
