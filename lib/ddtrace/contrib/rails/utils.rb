@@ -63,10 +63,12 @@ module Datadog
         end
 
         def self.connection_config
-          if defined?(::ActiveRecord::Base.connection_config)
-            ::ActiveRecord::Base.connection_config
-          else
-            ::ActiveRecord::Base.connection_pool.spec.config
+          @connection_config ||= begin
+            if defined?(::ActiveRecord::Base.connection_config)
+              ::ActiveRecord::Base.connection_config
+            else
+              ::ActiveRecord::Base.connection_pool.spec.config
+            end
           end
         end
 
