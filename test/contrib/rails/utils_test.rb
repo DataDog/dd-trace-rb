@@ -65,4 +65,16 @@ class UtilsTest < ActiveSupport::TestCase
     vendor = Datadog::Contrib::Rails::Utils.normalize_vendor('customdb')
     assert_equal(vendor, 'customdb')
   end
+
+  test 'regression: database info is available even without an active connection' do
+    begin
+      ActiveRecord::Base.remove_connection
+      refute_nil(Datadog::Contrib::Rails::Utils.adapter_name)
+      refute_nil(Datadog::Contrib::Rails::Utils.adapter_host)
+      refute_nil(Datadog::Contrib::Rails::Utils.adapter_port)
+      refute_nil(Datadog::Contrib::Rails::Utils.database_name)
+    ensure
+      ActiveRecord::Base.establish_connection
+    end
+  end
 end
