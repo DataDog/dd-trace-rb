@@ -234,9 +234,8 @@ if they use the official Ruby driver. To activate the integration, simply:
     collection.insert_one({ name: 'Steve' })
 
     # In case you want to override the global configuration for a certain client instance
-    Datadog.configure(client) do |c|
-      c.service_name = 'mongodb-primary'
-    end
+    Datadog.configure(client, service_name: 'mongodb-primary')
+
 
 ### Net/HTTP
 
@@ -269,7 +268,7 @@ by setting the ``:distributed_tracing`` through `Datadog.configure`
     end
 
     client = Net::HTTP.new(host, port)
-    Datadog.configure(client).config = { distributed_tracing: true }
+    Datadog.configure(client, distributed_tracing: true)
     response = client.get('foo') # trace and send 'x-datadog-trace-id' and 'x-datadog-parent-id'
 
 Or, by enabling distributed tracing for all HTTP calls:
@@ -485,13 +484,8 @@ For cases like this, you can provide the targeted instance to
     customer_cache = Redis.new
     invoice_cache = Redis.new
 
-    Datadog.configure(customer_cache) do |c|
-      c.service_name = 'customer-cache'
-    end
-
-    Datadog.configure(invoice_cache) do |c|
-      c.service_name = invoice-cache'
-    end
+    Datadog.configure(customer_cache, service_name: 'customer-cache')
+    Datadog.configure(invoice_cache, service_name: invoice-cache')
 
     customer_cache.get(...) # traced call will belong to `customer-cache` service
     invoice_cache.get(...) # traced call will belong to `invoice-cache` service
