@@ -19,24 +19,24 @@ namespace :spec do
   end
 
   RSpec::Core::RakeTask.new(:rails) do |t|
-    t.pattern = 'spec/contrib/rails/**/*_spec.rb'
-    t.exclude_pattern = 'spec/contrib/rails/**/*{sidekiq,active_job,disable_env}*_spec.rb'
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*_spec.rb'
+    t.exclude_pattern = 'spec/ddtrace/contrib/rails/**/*{sidekiq,active_job,disable_env}*_spec.rb'
   end
 
   RSpec::Core::RakeTask.new(:railsredis) do |t|
-    t.pattern = 'spec/contrib/rails/**/*redis*_spec.rb'
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*redis*_spec.rb'
   end
 
   RSpec::Core::RakeTask.new(:railssidekiq) do |t|
-    t.pattern = 'spec/contrib/rails/**/*sidekiq*_spec.rb'
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*sidekiq*_spec.rb'
   end
 
   RSpec::Core::RakeTask.new(:railsactivejob) do |t|
-    t.pattern = 'spec/contrib/rails/**/*active_job*_spec.rb'
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*active_job*_spec.rb'
   end
 
   RSpec::Core::RakeTask.new(:railsdisableenv) do |t|
-    t.pattern = 'spec/contrib/rails/**/*disable_env*_spec.rb'
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'
   end
 
   [
@@ -56,12 +56,12 @@ namespace :spec do
     :dalli
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t|
-      t.pattern = 'spec/contrib/#{contrib}/*_spec.rb'
+      t.pattern = "spec/ddtrace/contrib/#{contrib}/*_spec.rb"
     end
   end
 
   RSpec::Core::RakeTask.new(:monkey) do |t|
-    t.pattern = 'spec/monkey_spec.rb'
+    t.pattern = 'spec/ddtrace/monkey_spec.rb'
   end
 end
 
