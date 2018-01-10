@@ -28,7 +28,6 @@ module Datadog
               require 'ddtrace/contrib/redis/tags'
               require 'ddtrace/contrib/redis/quantize'
 
-              redis_version_4_plus? ? patch_redis_4_plus : patch_redis_3
               patch_redis_client
               @patched = true
               RailsCachePatcher.reload_cache_store if Datadog.registry[:rails].patched?
@@ -39,43 +38,8 @@ module Datadog
           @patched
         end
 
-        def redis_version_4_plus?
-          defined?(::Redis::VERSION) && Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('4.0.0')
-        end
-
         def compatible?
           defined?(::Redis::VERSION) && Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('3.0.0')
-        end
-
-        def patch_redis_3
-          ::Redis.module_eval do
-            def datadog_pin=(pin)
-              # Forward the pin to client, which actually traces calls.
-              Datadog::Pin.onto(client, pin)
-            end
-
-            def datadog_pin
-              # Get the pin from client, which actually traces calls.
-              Datadog::Pin.get_from(client)
-            end
-          end
-        end
-
-        # Redis changed the backwards compatibility of #client for version 4+
-        # See https://github.com/redis/redis-rb/commit/c239abb43c2dce99468bf94652a3c48b31a1041a
-        #     https://github.com/redis/redis-rb/commit/31385074b6bbeef7e1f9849b0b1149b9ef870e2d
-        def patch_redis_4_plus
-          ::Redis.module_eval do
-            def datadog_pin=(pin)
-              # Forward the pin to client, which actually traces calls.
-              Datadog::Pin.onto(_client, pin)
-            end
-
-            def datadog_pin
-              # Get the pin from client, which actually traces calls.
-              Datadog::Pin.get_from(_client)
-            end
-          end
         end
 
         # rubocop:disable Metrics/MethodLength
