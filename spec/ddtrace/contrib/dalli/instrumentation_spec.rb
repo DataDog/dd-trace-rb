@@ -18,7 +18,7 @@ RSpec.describe 'Dalli instrumentation' do
 
   # Enable the test tracer
   before(:each) do
-    ::Datadog::Monkey.patch_module(:dalli)
+    Datadog.configure { |c| c.use :dalli }
     pin.tracer = tracer
   end
 
