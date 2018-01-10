@@ -8,6 +8,6 @@ gem "rails", "3.2.22.5"
 gem "pg", "0.15.1", platform: :ruby
 gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "redis-rails"
-gem "redis"
+gem "redis", "< 4.0"
 
 gemspec path: "../"

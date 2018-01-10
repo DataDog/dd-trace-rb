@@ -40,7 +40,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
-      gem 'redis'
+      gem 'redis', '< 4.0'
     end
 
     if RUBY_VERSION < '2.2.2'
@@ -72,7 +72,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
-      gem 'redis'
+      gem 'redis', '< 4.0'
     end
   end
 
