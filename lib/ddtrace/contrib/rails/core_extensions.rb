@@ -81,23 +81,22 @@ module Datadog
     end
 
     def patch_partial_renderer(klass)
-      # rubocop:disable Metrics/BlockLength
       klass.class_eval do
         def render_with_datadog(*args, &block)
           # Create a tracing context and start the rendering span
           tracing_context = {}
           Datadog::Contrib::Rails::ActionView.start_render_partial(tracing_context: tracing_context)
-          add_tracing_context(tracing_context)
+          tracing_contexts[current_span_id] = tracing_context
 
           render_without_datadog(*args)
         rescue Exception => e
           # attach the exception to the tracing context if any
-          current_tracing_context[:exception] = e
+          tracing_contexts[current_span_id][:exception] = e
           raise e
         ensure
           # Ensure that the template `Span` is finished even during exceptions
           # Remove the existing tracing context (to avoid leaks)
-          remove_tracing_context(tracing_context)
+          tracing_contexts.delete(current_span_id)
 
           # Then finish the span associated with the context
           Datadog::Contrib::Rails::ActionView.finish_render_partial(tracing_context: tracing_context)
@@ -107,7 +106,7 @@ module Datadog
           begin
             # update the tracing context with computed values before the rendering
             template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(@template.try('identifier'))
-            current_tracing_context[:template_name] = template_name
+            tracing_contexts[current_span_id][:template_name] = template_name
           rescue StandardError => e
             Datadog::Tracer.log.debug(e.message)
           end
@@ -123,28 +122,8 @@ module Datadog
           @tracing_contexts ||= {}
         end
 
-        def tracing_context_key_from_span(span)
-          return nil if span.nil?
-          span.span_id
-        end
-
-        def tracing_context_key(tracing_context)
-          return nil if tracing_context.nil?
-          tracing_context_key_from_span(tracing_context[:dd_rails_partial_span])
-        end
-
-        def add_tracing_context(tracing_context)
-          key = tracing_context_key(tracing_context)
-          tracing_contexts[key] = tracing_context unless key.nil?
-        end
-
-        def remove_tracing_context(tracing_context)
-          tracing_contexts.delete(tracing_context_key(tracing_context))
-        end
-
-        def current_tracing_context
-          current_span = Datadog.configuration[:rails][:tracer].call_context.current_span
-          tracing_contexts[tracing_context_key_from_span(current_span)]
+        def current_span_id
+          Datadog.configuration[:rails][:tracer].call_context.current_span.span_id
         end
 
         # method aliasing to patch the class
