@@ -17,6 +17,9 @@ class TracingController < ActionController::Base
       'views/tracing/soft_error.html.erb' => 'nothing',
       'views/tracing/not_found.html.erb' => 'nothing',
       'views/tracing/error_partial.html.erb' => 'Hello from <%= render "views/tracing/inner_error.html.erb" %>',
+      'views/tracing/nested_partial.html.erb' => 'Server says (<%= render "views/tracing/outer_partial.html.erb" %>)',
+      'views/tracing/_outer_partial.html.erb' => 'Outer partial: (<%= render "views/tracing/inner_partial.html.erb" %>)',
+      'views/tracing/_inner_partial.html.erb' => 'Inner partial',
       'views/tracing/_body.html.erb' => '_body.html.erb partial',
       'views/tracing/_inner_error.html.erb' => '<%= 1/0 %>'
     )
@@ -28,6 +31,10 @@ class TracingController < ActionController::Base
 
   def partial
     render 'views/tracing/partial.html.erb'
+  end
+
+  def nested_partial
+    render 'views/tracing/nested_partial.html.erb'
   end
 
   def error
@@ -85,6 +92,7 @@ end
 
 routes = {
   '/' => 'tracing#index',
+  '/nested_partial' => 'tracing#nested_partial',
   '/partial' => 'tracing#partial',
   '/full' => 'tracing#full',
   '/error' => 'tracing#error',

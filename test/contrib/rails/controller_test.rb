@@ -2,6 +2,7 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
+# rubocop:disable Metrics/ClassLength
 class TracingControllerTest < ActionController::TestCase
   setup do
     @original_tracer = Datadog.configuration[:rails][:tracer]
@@ -72,6 +73,41 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_body.html.erb') if Rails.version >= '3.2.22.5'
     assert_includes(span_partial.get_tag('rails.template_name'), 'tracing/_body.html')
     assert_equal(span_partial.parent, span_template)
+  end
+
+  test 'template nested partial rendering is properly traced' do
+    # render the template and assert the proper span
+    get :nested_partial
+    assert_response :success
+
+    # Verify all spans have closed
+    assert_equal(true, @tracer.call_context.trace.all?(&:finished?))
+
+    # Verify correct number of spans
+    spans = @tracer.writer.spans
+    assert_equal(spans.length, 4)
+
+    _, span_outer_partial, span_inner_partial, span_template = spans
+
+    # Outer partial
+    assert_equal('rails.render_partial', span_outer_partial.name)
+    assert_equal('template', span_outer_partial.span_type)
+    assert_equal('rails.render_partial', span_outer_partial.resource)
+    if Rails.version >= '3.2.22.5'
+      assert_equal('tracing/_outer_partial.html.erb', span_outer_partial.get_tag('rails.template_name'))
+    end
+    assert_includes(span_outer_partial.get_tag('rails.template_name'), 'tracing/_outer_partial.html')
+    assert_equal(span_template, span_outer_partial.parent)
+
+    # Inner partial
+    assert_equal('rails.render_partial', span_inner_partial.name)
+    assert_equal('template', span_inner_partial.span_type)
+    assert_equal('rails.render_partial', span_inner_partial.resource)
+    if Rails.version >= '3.2.22.5'
+      assert_equal('tracing/_inner_partial.html.erb', span_inner_partial.get_tag('rails.template_name'))
+    end
+    assert_includes(span_inner_partial.get_tag('rails.template_name'), 'tracing/_inner_partial.html')
+    assert_equal(span_outer_partial, span_inner_partial.parent)
   end
 
   test 'a full request with database access on the template' do
