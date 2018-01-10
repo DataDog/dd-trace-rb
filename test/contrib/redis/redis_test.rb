@@ -128,16 +128,29 @@ class RedisTest < Minitest::Test
 
   def test_service_name
     driver = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
-    @tracer.writer.services # empty queue
+    driver.set 'FOO', 'bar'
+    tracer.writer.services # empty queue
     Datadog.configure(
-      driver,
+      client_from_driver(driver),
       service_name: 'redis-test',
-      tracer: @tracer,
+      tracer: tracer,
       app_type: Datadog::Ext::AppTypes::CACHE
     )
     driver.set 'FOO', 'bar'
-    services = @tracer.writer.services
+    services = tracer.writer.services
     assert_equal(1, services.length)
     assert_equal({ 'app' => 'redis', 'app_type' => 'cache' }, services['redis-test'])
+  end
+
+  private
+
+  attr_reader :tracer, :drivers
+
+  def client_from_driver(driver)
+    if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('4.0.0')
+      driver._client
+    else
+      driver.client
+    end
   end
 end
