@@ -40,7 +40,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
-      gem 'redis', '< 4.0'
+      gem 'redis'
     end
 
     if RUBY_VERSION < '2.2.2'
@@ -72,7 +72,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
-      gem 'redis', '< 4.0'
+      gem 'redis'
     end
   end
 
@@ -91,7 +91,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'rails', '5.0.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis-rails'
-      gem 'redis', '< 4.0'
+      gem 'redis'
     end
 
     appraise 'rails5-postgres-sidekiq' do
@@ -118,7 +118,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'grape'
     gem 'rack'
     gem 'rack-test'
-    gem 'redis', '< 4.0'
+    gem 'redis'
     gem 'hiredis'
     gem 'sinatra'
     gem 'sqlite3'
