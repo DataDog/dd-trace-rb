@@ -118,7 +118,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'grape'
     gem 'rack'
     gem 'rack-test'
-    gem 'redis'
+    gem 'redis', '< 4.0'
     gem 'hiredis'
     gem 'sinatra'
     gem 'sqlite3'
@@ -127,14 +127,14 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'aws-sdk'
     gem 'sucker_punch'
     gem 'dalli'
-    gem 'resque'
+    gem 'resque', '< 2.0'
     gem 'racecar', '>= 0.3.5'
   end
 else
   appraise 'contrib-old' do
     gem 'elasticsearch-transport'
     gem 'mongo'
-    gem 'redis', '< 4.0.0'
+    gem 'redis', '< 4.0'
     gem 'hiredis'
     gem 'rack', '1.4.7'
     gem 'rack-test', '0.7.0'
@@ -145,6 +145,6 @@ else
     gem 'aws-sdk', '~> 2.0'
     gem 'sucker_punch'
     gem 'dalli'
-    gem 'resque'
+    gem 'resque', '< 2.0'
   end
 end
