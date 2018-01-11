@@ -81,6 +81,7 @@ class PinTest < Minitest::Test
 
   def test_service_info_update_with_missing_params
     tracer = get_test_tracer
+
     # instantiating `Pin` without an `app` param (which is necessary for service info)
     Datadog::Pin.new('test-service', app_type: 'test-type', tracer: tracer)
 
