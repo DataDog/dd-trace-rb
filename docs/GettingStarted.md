@@ -66,30 +66,21 @@ To enable the Rails auto instrumentation, create an initializer file in your ``c
     # config/initializers/datadog-tracer.rb
 
     Datadog.configure do |c|
-      c.use :rails
+      c.use :rails, options
     end
 
-To use service names other than the default ones, you might provide custom options as:
+Where `options` is an optional `Hash` that accepts the following parameters:
 
-    # config/initializers/datadog-tracer.rb
 
-    Datadog.configure do |c|
-      c.use :rails, option_name: option_value, ...
-    end
-
-Available options for the `rails` integration are:
-
-* ``service_name``: set the service name used when tracing application requests (on the `rack` level). Defaults to ``<app_name>``, where `<app_name>` is automatically inferred from your Rails application namespace;
-* ``controller_service``: set the service name used when tracing a Rails action controller. Defaults to ``<app_name>-controller``
-* ``cache_service``: set the cache service name used when tracing cache activity. Defaults to ``<app_name>-cache``
-* ``database_service``: set the database service name used when tracing database activity. Defaults to the
-  current adapter name, so if you're using PostgreSQL it will be ``<app_name>-postgres``.
-* ``distributed_tracing``: enable [distributed tracing](#Distributed_Tracing) so that this service trace is
-  connected with a trace of another service if tracing headers are sent
-* ``template_base_path``: used when the template name is parsed in the auto instrumented code. If you don't store
-  your templates in the ``views/`` folder, you may need to change this value
-* ``tracer``: is the global tracer used by the tracing application. Usually you don't need to change that value
-  unless you're already using a different initialized ``tracer`` somewhere else
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used when tracing application requests (on the `rack` level) | ``<app_name>`` (inferred from your Rails application namespace) |
+| ``controller_service`` | Service name used when tracing a Rails action controller | ``<app_name>-controller`` |
+| ``cache_service`` | Cache service name used when tracing cache activity | ``<app_name>-cache`` |
+| ``database_service`` | Database service name used when tracing database activity | ``<app_name>-<adapter_name>``. |
+| ``distributed_tracing`` | Enables [distributed tracing](#Distributed_Tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
+| ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ### Sinatra
 
@@ -103,12 +94,20 @@ either ``sinatra`` or ``sinatra/base``:
     require 'ddtrace/contrib/sinatra/tracer'
 
     Datadog.configure do |c|
-      c.use :sinatra, service_name: 'my-app'
+      c.use :sinatra, options
     end
 
     get '/' do
       'Hello world!'
     end
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `sinatra` instrumentation | sinatra |
+| ``resource_script_names`` | Prepend resource names with script name | ``false`` |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 The tracing extension will be automatically activated.
 
@@ -123,39 +122,32 @@ To start using the middleware in your generic Rack application, add it to your `
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :rack
+      c.use :rack, options
     end
 
     use Datadog::Contrib::Rack::TraceMiddleware
 
     app = proc do |env|
-      [ 200, {'Content-Type' => 'text/plain'}, "OK" ]
+      [ 200, {'Content-Type' => 'text/plain'}, ['OK'] ]
     end
 
     run app
 
-The Rack middleware can be configured using the global configuration object:
+Where `options` is an optional `Hash` that accepts the following parameters:
 
-    # config.ru example
-    require 'ddtrace'
-
-    Datadog.configure do |c|
-      c.use :rack, service_name: 'api-intake', distributed_tracing: true
-    end
-
-    app = proc do |env|
-      [ 200, {'Content-Type' => 'text/plain'}, "OK" ]
-    end
-
-In the example above, we've activated the Distributed Tracing flag, please
-see [distributed tracing](#Distributed_Tracing) for more details.
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used when tracing application requests | rack |
+| ``distributed_tracing`` | Enables [distributed tracing](#Distributed_Tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
+| ``middleware_names`` | Enable this if you want to use the middleware classes as the resource names for `rack` spans | ``false`` |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ## Other libraries
 
 ### Grape
 
 The Grape integration adds the instrumentation to Grape endpoints and filters. This integration can work side by side
-with other integrations like Rack and Rails. To activate your integration, use the ``patch_module`` function before
+with other integrations like Rack and Rails. To activate your integration, use the ``Datadog.configure`` method before
 defining your Grape application:
 
     # api.rb
@@ -163,7 +155,7 @@ defining your Grape application:
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :grape
+      c.use :grape, options
     end
 
     # then define your application
@@ -173,6 +165,12 @@ defining your Grape application:
         'Hello world!'
       end
     end
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `grape` instrumentation | grape |
 
 ### Active Record
 
@@ -185,7 +183,7 @@ however it can be set up alone:
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :active_record
+      c.use :active_record, options
     end
 
     Dir::Tmpname.create(['test', '.sqlite']) do |db|
@@ -193,6 +191,12 @@ however it can be set up alone:
                                                      database: db)
       conn.connection.execute('SELECT 42') # traced!
     end
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `active_record` instrumentation | active_record |
 
 ### Elastic Search
 
@@ -203,16 +207,18 @@ in the ``Client`` object:
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :elasticsearch
+      c.use :elasticsearch, options
     end
 
     # now do your Elastic Search stuff, eg:
     client = Elasticsearch::Client.new url: 'http://127.0.0.1:9200'
     response = client.perform_request 'GET', '_cluster/health'
 
-Note that if you enable both Elasticsearch and Net/HTTP integrations then
-for each call, two spans are created, one for Elasctisearch and one for Net/HTTP.
-This typically happens if you call ``patch_all`` to enable all integrations by default.
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `elasticsearch` instrumentation | elasticsearch |
 
 ### MongoDB
 
@@ -225,7 +231,7 @@ if they use the official Ruby driver. To activate the integration, simply:
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :mongo, service_name: 'mongodb'
+      c.use :mongo, options
     end
 
     # now create a MongoDB client and use it as usual:
@@ -236,6 +242,11 @@ if they use the official Ruby driver. To activate the integration, simply:
     # In case you want to override the global configuration for a certain client instance
     Datadog.configure(client, service_name: 'mongodb-primary')
 
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `mongo` instrumentation | mongodb |
 
 ### Net/HTTP
 
@@ -246,7 +257,7 @@ Net::HTTP module.
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :http
+      c.use :http, options
     end
 
     Net::HTTP.start('127.0.0.1', 8080) do |http|
@@ -256,31 +267,17 @@ Net::HTTP module.
 
     content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 
-Experimental distributed tracing support is available for this library.
-By default, this is disabled. You need to enable it, either on a per-connection basis,
-by setting the ``:distributed_tracing`` through `Datadog.configure`
+Where `options` is an optional `Hash` that accepts the following parameters:
 
-    require 'net/http'
-    require 'ddtrace'
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `http` instrumentation | http |
+| ``distributed_tracing`` | Enables distributed tracing | ``false`` |
 
-    Datadog.configure do |c|
-      c.use :http
-    end
+If you wish to configure each connection object individually, you may use the ``Datadog.configure`` as it follows:
 
     client = Net::HTTP.new(host, port)
-    Datadog.configure(client, distributed_tracing: true)
-    response = client.get('foo') # trace and send 'x-datadog-trace-id' and 'x-datadog-parent-id'
-
-Or, by enabling distributed tracing for all HTTP calls:
-
-    require 'net/http'
-    require 'ddtrace'
-
-    Datadog.configure do |c|
-      c.use :http, distributed_tracing: true
-    end
-
-See [distributed tracing](#Distributed_Tracing) for details.
+    Datadog.configure(client, options)
 
 ### Faraday
 
@@ -302,12 +299,12 @@ The `faraday` integration is available through the `ddtrace` middleware:
 
 Where `options` is an optional `Hash` that accepts the following parameters:
 
-| Key | Type | Default | Description |
-| --- | --- | --- | --- |
-| `service_name` | String | Global service name (default: `faraday`) | Service name for this specific connection object. |
-| `split_by_domain` | Boolean | `false` | Uses the request domain as the service name when set to `true`. |
-| `distributed_tracing` | Boolean | `false` | Propagates tracing context along the HTTP request when set to `true`. |
-| `error_handler` | Callable | ``5xx`` evaluated as errors | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. |
+| Key | Default | Description |
+| --- | --- | --- |
+| `service_name` | Global service name (default: `faraday`) | Service name for this specific connection object. |
+| `split_by_domain` | `false` | Uses the request domain as the service name when set to `true`. |
+| `distributed_tracing` | `false` | Propagates tracing context along the HTTP request when set to `true`. |
+| `error_handler` | ``5xx`` evaluated as errors | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. |
 
 ### AWS
 
@@ -318,10 +315,16 @@ services (S3, ElastiCache etc.).
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :aws, service_name: 'aws'
+      c.use :aws, options
     end
 
     Aws::S3::Client.new.list_buckets # traced call
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `aws` instrumentation | aws |
 
 ### Dalli
 
@@ -337,6 +340,12 @@ Dalli integration will trace all calls to your ``memcached`` server:
     client = Dalli::Client.new('localhost:11211', options)
     client.set('abc', 123)
 
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `dalli` instrumentation | memcached |
+
 ### Redis
 
 The Redis integration will trace simple calls as well as pipelines.
@@ -345,12 +354,29 @@ The Redis integration will trace simple calls as well as pipelines.
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :dalli, service_name: 'redis'
+      c.use :redis, service_name: 'redis'
     end
 
     # now do your Redis stuff, eg:
     redis = Redis.new
     redis.set 'foo', 'bar' # traced!
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `redis` instrumentation | redis |
+
+You can also set *per-instance* configuration as it follows:
+
+    customer_cache = Redis.new
+    invoice_cache = Redis.new
+
+    Datadog.configure(customer_cache, service_name: 'customer-cache')
+    Datadog.configure(invoice_cache, service_name: invoice-cache')
+
+    customer_cache.get(...) # traced call will belong to `customer-cache` service
+    invoice_cache.get(...) # traced call will belong to `invoice-cache` service
 
 ### Sidekiq
 
@@ -360,8 +386,14 @@ executions. You can enable it through `Datadog.configure`:
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :sidekiq, service_name: 'my-sidekiq'
+      c.use :sidekiq, options
     end
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `sidekiq` instrumentation | sidekiq |
 
 ### Resque
 
@@ -377,8 +409,15 @@ To add tracing to a Resque job, simply do as follows:
     end
 
     Datadog.configure do |c|
-      c.use :resque, service_name: 'resque', workers: [MyJob]
+      c.use :resque, options
     end
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `resque` instrumentation | resque |
+| ``workers`` | An array including all worker classes you want to trace (eg ``[MyJob]``) | ``[]`` |
 
 ### SuckerPunch
 
@@ -387,11 +426,17 @@ The `sucker_punch` integration traces all scheduled jobs:
     require 'ddtrace'
 
     Datadog.configure do |c|
-      c.use :sucker_punch, service_name: 'sucker_punch'
+      c.use :sucker_punch, options
     end
 
     # the execution of this job is traced
     LogJob.perform_async('login')
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `sucker_punch` instrumentation | sucker_punch |
 
 ## Advanced usage
 
@@ -414,6 +459,23 @@ Available options are:
 * ``port``: set the port the trace agent is listening on.
 * ``env``: set the environment. Rails users may set it to ``Rails.env`` to use their application settings.
 * ``tags``: set global tags that should be applied to all spans. Defaults to an empty hash
+
+#### Using a custom logger
+
+By default, all logs are processed by the default Ruby logger.
+Typically, when using Rails, you should see the messages in your application log file.
+Datadog client log messages are marked with ``[ddtrace]`` so you should be able
+to isolate them from other messages.
+
+Additionally, it is possible to override the default logger and replace it by a
+custom one. This is done using the ``log`` attribute of the tracer.
+
+    f = File.new("my-custom.log", "w+")           # Log messages should go there
+    Datadog.configure do |c|
+      c.trace log: Logger.new(f)                  # Overriding the default tracer
+    end
+
+    Datadog::Tracer.log.info { "this is typically called by tracing code" }
 
 ### Manual Instrumentation
 
@@ -447,92 +509,8 @@ to trace requests to the home page:
         tracer.trace('template.render') do
           erb :index
         end
-
-        # trace using start_span (fine-grain control, requires explicit call to finish)
-        child = tracer.start_span('child', child_of: span)
-        # do something
-        child.finish
       end
     end
-
-### Ad-hoc configuration
-
-Certain integrations such as `Redis`, `Elasticsearch` and `net/http` may have
-different configuration parameters for each of its instances (generally a
-connection object).
-
-For cases like this, you can provide the targeted instance to
-`Datadog.configure` method and set the following attributes:
-
-* ``service_name``: service, you should typically set some meaningful value for this.
-* ``app``: application name
-* ``tags``: optional tags
-* ``app_type``: application type
-* ``name``: span name
-* ``tracer``: the tracer object used for tracing
-
-#### Example
-
-    require 'redis'
-    require 'ddtrace'
-
-    # Enable tracing globally for redis
-    Datadog.configure do |c|
-      c.use :redis
-    end
-
-    customer_cache = Redis.new
-    invoice_cache = Redis.new
-
-    Datadog.configure(customer_cache, service_name: 'customer-cache')
-    Datadog.configure(invoice_cache, service_name: invoice-cache')
-
-    customer_cache.get(...) # traced call will belong to `customer-cache` service
-    invoice_cache.get(...) # traced call will belong to `invoice-cache` service
-
-### Debug Mode
-
-If you need to check locally what traces and spans are sent after each traced block, you can enable
-a global debug mode for all tracers so that every time a trace is ready to be sent, the content will be
-printed in the +STDOUT+. To enable the debug logging, add this code anywhere before using the tracer
-for the first time:
-
-    require 'ddtrace'
-    require 'sinatra'
-    require 'active_record'
-
-    Datadog.configure do |c|
-      c.tracer debug: true
-    end
-
-    # use the tracer as usual
-    tracer = Datadog.tracer
-
-    get '/' do
-      tracer.trace('web.request') do |span|
-        # ...
-      end
-    end
-
-Remember that the debug mode may affect your application performance and so it must not be used
-in a production environment.
-
-### Using a custom logger
-
-By default, all logs are processed by the default Ruby logger.
-Typically, when using Rails, you should see the messages in your application log file.
-Datadog client log messages are marked with ``[ddtrace]`` so you should be able
-to isolate them from other messages.
-
-Additionally, it is possible to override the default logger and replace it by a
-custom one. This is done using the ``log`` attribute of the tracer.
-
-    f = File.new("my-custom.log", "w+")           # Log messages should go there
-    Datadog.configure do |c|
-      c.trace log: Logger.new(f)                  # Overriding the default tracer
-    end
-
-    Datadog::Tracer.log.info { "this is typically called by tracing code" }
 
 ### Environment and tags
 
