@@ -1,5 +1,7 @@
 require 'forwardable'
 
+require 'ddtrace/ext/priority'
+
 module Datadog
   # \Sampler performs client-side trace sampling.
   class Sampler
@@ -96,10 +98,10 @@ module Datadog
     end
 
     def sample(span)
-      span.context.sampling_priority = 0 if span.context
+      span.context.sampling_priority = Datadog::Ext::Priority::AUTO_REJECT if span.context
       return unless @base_sampler.sample(span)
       return unless @post_sampler.sample(span)
-      span.context.sampling_priority = 1 if span.context
+      span.context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP if span.context
 
       true
     end
