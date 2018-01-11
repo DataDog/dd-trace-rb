@@ -9,6 +9,16 @@ class RedisMiniAppTest < Minitest::Test
   REDIS_HOST = '127.0.0.1'.freeze
   REDIS_PORT = 46379
 
+  def setup
+    Datadog.configure do |c|
+      c.use :redis
+    end
+
+    @redis = Redis.new(host: REDIS_HOST, port: REDIS_PORT)
+    @tracer = get_test_tracer
+    Datadog.configure(client_from_driver(redis), tracer: tracer)
+  end
+
   def check_span_publish(span)
     assert_equal('publish', span.name)
     assert_equal('webapp', span.service)
@@ -33,13 +43,8 @@ class RedisMiniAppTest < Minitest::Test
   end
 
   def test_miniapp
-    redis = Redis.new(host: REDIS_HOST, port: REDIS_PORT)
-
     # now this is how you make sure that the redis spans are sub-spans
     # of the apps parent spans:
-    tracer = get_test_tracer # get a ref to the app tracer
-    Datadog.configure(client_from_driver(redis), tracer: tracer)
-
     tracer.trace('publish') do |span|
       span.service = 'webapp'
       span.resource = '/index'
@@ -61,6 +66,12 @@ class RedisMiniAppTest < Minitest::Test
     # spand[2] being the parant of span[0] and span[1]
     assert_equal(4, spans.length)
     process, publish, redis_cmd1, redis_cmd2 = spans
+    # span[3] (publish)
+    #   \
+    #    ------> span[2] (process)
+    #              \
+    #               |-----> span[1]
+    #               \-----> span[0]
     check_span_publish publish
     parent_id = publish.span_id
     trace_id = publish.trace_id
@@ -69,6 +80,10 @@ class RedisMiniAppTest < Minitest::Test
     check_span_command redis_cmd1, parent_id, trace_id
     check_span_command redis_cmd2, parent_id, trace_id
   end
+
+  private
+
+  attr_reader :tracer, :redis
 
   def client_from_driver(driver)
     if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('4.0.0')
