@@ -2,4 +2,6 @@ require 'ddtrace'
 require 'redis'
 require 'hiredis'
 
-Datadog::Monkey.patch_module(:redis)
+Datadog.configure do |c|
+  c.use :redis
+end
