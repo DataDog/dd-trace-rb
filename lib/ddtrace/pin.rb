@@ -18,17 +18,14 @@ module Datadog
     attr_accessor :tracer
     attr_accessor :config
 
-    alias service_name= service=
-
-    # [ruby19] named parameters would be more idiomatic here, but would break backward compatibility
-    def initialize(service, options = { app: nil, tags: nil, app_type: nil, tracer: nil, config: nil })
-      @service = service
-      @app = options.fetch(:app, nil)
-      @tags = options.fetch(:tags, nil)
-      @app_type = options.fetch(:app_type, nil)
+    def initialize(service, options = {})
+      @app = options[:app]
+      @tags = options[:tags]
+      @app_type = options[:app_type]
       @name = nil # this would rarely be overriden as it's really span-specific
       @tracer = options[:tracer] || Datadog.tracer
-      @config = options.fetch(:config, nil)
+      @config = options[:config]
+      self.service = service
     end
 
     def enabled?
@@ -56,6 +53,16 @@ module Datadog
 
       obj.datadog_pin = self
     end
+
+    def service=(name)
+      if name && app && app_type
+        tracer.set_service_info(name, app, app_type)
+      end
+
+      @service = name
+    end
+
+    alias service_name= service=
 
     def to_s
       "Pin(service:#{@service},app:#{@app},app_type:#{@app_type},name:#{@name})"

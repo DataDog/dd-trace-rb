@@ -40,9 +40,9 @@ module Datadog
           private
 
           def add_pin
-            Pin.new(get_option(:service_name), app_type: Ext::AppTypes::WORKER).tap do |pin|
-              pin.onto(::Resque)
-            end
+            Pin
+              .new(get_option(:service_name), app: 'resque', app_type: Ext::AppTypes::WORKER)
+              .onto(::Resque)
           end
         end
       end

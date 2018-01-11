@@ -17,7 +17,7 @@ module Datadog
         def test_pin_defaults
           assert_equal('aws', pin.service)
           assert_equal('web', pin.app_type)
-          assert_nil(pin.app)
+          assert_equal('aws', pin.app)
           assert_nil(pin.name)
           assert_nil(pin.config)
         end

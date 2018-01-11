@@ -23,7 +23,6 @@ module Datadog
 
             add_pin
             add_plugin(Seahorse::Client::Base, *loaded_constants)
-            Datadog.tracer.set_service_info(get_option(:service_name), 'aws', Ext::AppTypes::WEB)
 
             @patched = true
           rescue => e
@@ -38,9 +37,9 @@ module Datadog
           private
 
           def add_pin
-            Pin.new(get_option(:service_name), app_type: Ext::AppTypes::WEB).tap do |pin|
-              pin.onto(::Aws)
-            end
+            Pin
+              .new(get_option(:service_name), app: 'aws', app_type: Ext::AppTypes::WEB)
+              .onto(::Aws)
           end
 
           def add_plugin(*targets)

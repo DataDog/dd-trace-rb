@@ -34,7 +34,6 @@ module Datadog
               require 'ddtrace/contrib/elasticsearch/quantize'
 
               patch_elasticsearch_transport_client()
-              Datadog.tracer.set_service_info(get_option(:service_name), 'elasticsearch', Ext::AppTypes::DB)
 
               @patched = true
             rescue StandardError => e

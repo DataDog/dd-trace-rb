@@ -35,9 +35,6 @@ module Datadog
               service = get_option(:service_name)
               pin = Datadog::Pin.new(service, app: 'grape', app_type: Datadog::Ext::AppTypes::WEB)
               pin.onto(::Grape)
-              if pin.tracer && pin.service
-                pin.tracer.set_service_info(pin.service, 'grape', pin.app_type)
-              end
 
               # subscribe to ActiveSupport events
               Datadog::Contrib::Grape::Endpoint.subscribe()

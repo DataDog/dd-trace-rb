@@ -24,7 +24,6 @@ module Datadog
           add_pin!
           ExceptionHandler.patch!
           Instrumentation.patch!
-          Datadog.tracer.set_service_info(get_option(:service_name), 'sucker_punch', Ext::AppTypes::WORKER)
 
           @patched = true
         rescue => e
@@ -43,7 +42,7 @@ module Datadog
         end
 
         def add_pin!
-          Pin.new(get_option(:service_name), app_type: Ext::AppTypes::WORKER).tap do |pin|
+          Pin.new(get_option(:service_name), app: 'sucker_punch', app_type: Ext::AppTypes::WORKER).tap do |pin|
             pin.onto(::SuckerPunch)
           end
         end
