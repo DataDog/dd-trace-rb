@@ -10,6 +10,9 @@ class RedisIntegrationTest < Minitest::Test
 
     # Here we use the default tracer (to make a real integration test)
     @tracer = Datadog.tracer
+    Datadog.configure do |c|
+      c.use :redis, tracer: @tracer
+    end
 
     @redis = Redis.new(host: REDIS_HOST, port: REDIS_PORT)
   end
@@ -21,10 +24,7 @@ class RedisIntegrationTest < Minitest::Test
     assert_equal 'OK', set_response
     get_response = @redis.get 'FOO'
     assert_equal 'bar', get_response
-    30.times do
-      break if @tracer.writer.stats[:traces_flushed] >= already_flushed + 2
-      sleep(0.1)
-    end
+    try_wait_until(attempts: 30) { @tracer.writer.stats[:traces_flushed] >= already_flushed + 2 }
     assert_operator(already_flushed + 2, :<=, @tracer.writer.stats[:traces_flushed])
   end
 end

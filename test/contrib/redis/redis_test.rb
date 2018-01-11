@@ -20,6 +20,13 @@ class RedisTest < Minitest::Test
     }
   end
 
+  def teardown
+    # Reset tracer to default (so we don't break other tests)
+    Datadog.configure do |c|
+      c.use :redis, tracer: Datadog.tracer
+    end
+  end
+
   def check_common_tags(span)
     assert_equal('127.0.0.1', span.get_tag('out.host'))
     assert_equal('46379', span.get_tag('out.port'))
