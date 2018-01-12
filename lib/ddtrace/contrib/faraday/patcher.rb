@@ -31,7 +31,6 @@ module Datadog
 
             add_pin
             add_middleware
-            register_service(get_option(:service_name))
 
             @patched = true
           rescue => e
@@ -56,10 +55,12 @@ module Datadog
           end
 
           def add_pin
-            Pin.new(get_option(:service_name), app_type: Ext::AppTypes::WEB).tap do |pin|
-              pin.onto(::Faraday)
-              pin.tracer = get_option(:tracer)
-            end
+            Pin.new(
+              get_option(:service_name),
+              app: 'faraday',
+              app_type: Ext::AppTypes::WEB,
+              tracer: get_option(:tracer)
+            ).onto(::Faraday)
           end
 
           def add_middleware

@@ -12,7 +12,7 @@ module Datadog
       end
 
       def test_setting_options
-        custom_tracer = Object.new
+        custom_tracer = get_test_tracer
 
         custom_options = {
           service_name: 'my-service',

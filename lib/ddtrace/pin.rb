@@ -10,7 +10,7 @@ module Datadog
       obj.datadog_pin
     end
 
-    attr_accessor :service
+    attr_accessor :service_name
     attr_accessor :app
     attr_accessor :tags
     attr_accessor :app_type
@@ -18,17 +18,14 @@ module Datadog
     attr_accessor :tracer
     attr_accessor :config
 
-    alias service_name= service=
-
-    # [ruby19] named parameters would be more idiomatic here, but would break backward compatibility
-    def initialize(service, options = { app: nil, tags: nil, app_type: nil, tracer: nil, config: nil })
-      @service = service
-      @app = options.fetch(:app, nil)
-      @tags = options.fetch(:tags, nil)
-      @app_type = options.fetch(:app_type, nil)
+    def initialize(service_name, options = {})
+      @app = options[:app]
+      @tags = options[:tags]
+      @app_type = options[:app_type]
       @name = nil # this would rarely be overriden as it's really span-specific
       @tracer = options[:tracer] || Datadog.tracer
-      @config = options.fetch(:config, nil)
+      @config = options[:config]
+      self.service_name = service_name
     end
 
     def enabled?
@@ -57,8 +54,17 @@ module Datadog
       obj.datadog_pin = self
     end
 
+    def service_name=(name)
+      tracer.set_service_info(name, app, app_type) if name && app && app_type
+
+      @service_name = name
+    end
+
+    alias service= service_name=
+    alias service service_name
+
     def to_s
-      "Pin(service:#{@service},app:#{@app},app_type:#{@app_type},name:#{@name})"
+      "Pin(service:#{service},app:#{app},app_type:#{app_type},name:#{name})"
     end
   end
 end

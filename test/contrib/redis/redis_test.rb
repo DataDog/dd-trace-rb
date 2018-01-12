@@ -127,13 +127,14 @@ class RedisTest < Minitest::Test
   end
 
   def test_service_name
-    service_name = 'test'
     driver = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
-    pin = Datadog::Pin.get_from(driver)
-    pin.tracer = @tracer
-    pin.service = service_name
-    @tracer.writer.services() # empty queue
-    @tracer.set_service_info("redis-#{service_name}", 'redis', Datadog::Ext::AppTypes::CACHE)
+    @tracer.writer.services # empty queue
+    Datadog.configure(
+      driver,
+      service_name: 'redis-test',
+      tracer: @tracer,
+      app_type: Datadog::Ext::AppTypes::CACHE
+    )
     driver.set 'FOO', 'bar'
     services = @tracer.writer.services
     assert_equal(1, services.length)

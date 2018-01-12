@@ -67,9 +67,6 @@ module Datadog
               service = Datadog.configuration[:mongo][:service_name]
               pin = Datadog::Pin.new(service, app: APP, app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
-              if pin.tracer && pin.service
-                pin.tracer.set_service_info(pin.service, 'mongodb', pin.app_type)
-              end
             end
 
             def datadog_pin

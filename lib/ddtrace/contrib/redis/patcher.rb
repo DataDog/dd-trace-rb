@@ -54,7 +54,6 @@ module Datadog
         end
 
         # rubocop:disable Metrics/MethodLength
-        # rubocop:disable Metrics/BlockLength
         def patch_redis_client
           ::Redis::Client.class_eval do
             alias_method :initialize_without_datadog, :initialize
@@ -66,9 +65,6 @@ module Datadog
               service = Datadog.configuration[:redis][:service_name]
               pin = Datadog::Pin.new(service, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
-              if pin.tracer && pin.service
-                pin.tracer.set_service_info(pin.service, pin.app, pin.app_type)
-              end
               initialize_without_datadog(*args)
             end
 

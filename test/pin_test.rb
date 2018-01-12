@@ -67,4 +67,24 @@ class PinTest < Minitest::Test
     pin.onto(obj)
     assert_equal('The PIN is set!', Datadog::Pin.get_from(obj))
   end
+
+  def test_service_info_update
+    tracer = get_test_tracer
+    Datadog::Pin.new('test-service', app: 'test-app', app_type: 'test-type', tracer: tracer)
+
+    assert(tracer.services.key?('test-service'))
+    assert_equal(
+      { 'app' => 'test-app', 'app_type' => 'test-type' },
+      tracer.services['test-service']
+    )
+  end
+
+  def test_service_info_update_with_missing_params
+    tracer = get_test_tracer
+
+    # instantiating `Pin` without an `app` param (which is necessary for service info)
+    Datadog::Pin.new('test-service', app_type: 'test-type', tracer: tracer)
+
+    assert(tracer.services.empty?)
+  end
 end
