@@ -79,7 +79,7 @@ module Datadog
       error = Error.build_from(exception)
 
       assert_equal('StandardError', @error.type)
-      assert_nil(error.message)
+      assert_empty(error.message)
       assert_empty(error.backtrace)
     end
   end
