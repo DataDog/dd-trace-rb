@@ -29,6 +29,9 @@ module Datadog
       return value if value.encoding == ::Encoding::UTF_8
 
       value.encode(::Encoding::UTF_8)
+    rescue => e
+      Tracer.log.error("Error converting error message to UTF-8: #{e.message}")
+      nil
     end
 
     BlankError = Error.new

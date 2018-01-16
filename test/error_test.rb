@@ -73,5 +73,14 @@ module Datadog
       assert_empty(error.message)
       assert_empty(error.backtrace)
     end
+
+    def test_regression_non_utf8_compatible
+      exception = StandardError.new("\xC2".force_encoding(::Encoding::ASCII_8BIT))
+      error = Error.build_from(exception)
+
+      assert_equal('StandardError', @error.type)
+      assert_nil(error.message)
+      assert_empty(error.backtrace)
+    end
   end
 end
