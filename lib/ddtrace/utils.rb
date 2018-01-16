@@ -1,6 +1,7 @@
 module Datadog
   # Utils contains low-level utilities, typically to provide pseudo-random trace IDs.
   module Utils
+    STRING_PLACEHOLDER = ''.encode(Encoding::UTF_8).freeze
     # We use a custom random number generator because we want no interference
     # with the default one. Using the default prng, we could break code that
     # would rely on srand/rand sequences.
@@ -50,7 +51,5 @@ module Datadog
 
       options[:placeholder] || STRING_PLACEHOLDER
     end
-
-    STRING_PLACEHOLDER = ''.encode(Encoding::UTF_8).freeze
   end
 end
