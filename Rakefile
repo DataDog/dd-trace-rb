@@ -245,7 +245,7 @@ task :ci do
     # sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:sucker_punch'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
     # sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:resque'
-    # sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
     # sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:monkey'
     # sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:elasticsearch'
     # sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:http'
