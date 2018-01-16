@@ -21,6 +21,10 @@ module Datadog
       Process.pid != @pid
     end
 
+    private_class_method :reset!, :was_forked?
+
+    reset!
+
     def self.truncate(value, size, omission = '...')
       string = value.to_s
 
@@ -29,8 +33,22 @@ module Datadog
       string.slice(0, size - omission.size) + omission
     end
 
-    private_class_method :reset!, :was_forked?
+    def utf8_encode(str, options = {})
+      placeholder = options[:placeholder] || STRING_PLACEHOLDER
 
-    reset!
+      if str.encoding?(Encoding::UTF_8)
+        str
+      elsif options[:binary]
+        str.encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
+      else
+        str.encode(Encoding::UTF_8)
+      end
+    rescue => e
+      Tracer.log.error("Error encoding string in UTF-8: #{e}")
+
+      placeholder
+    end
+
+    STRING_PLACEHOLDER = ''.freeze
   end
 end
