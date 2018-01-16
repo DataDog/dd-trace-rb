@@ -58,4 +58,35 @@ class UtilsTest < Minitest::Test
     refute_equal(Datadog::Utils.next_id, r.read.chomp.to_i)
     r.close
   end
+
+  def test_utf8_encoding_happy_path
+    str = 'pristine ✓'
+
+    assert_equal('pristine ✓', Datadog::Utils.utf8_encode(str))
+
+    assert_equal(::Encoding::UTF_8, Datadog::Utils.utf8_encode(str).encoding)
+
+    # we don't allocate new objects when a valid UTF-8 string is provided
+    assert_same(str, Datadog::Utils.utf8_encode(str))
+  end
+
+  def test_utf8_encoding_invalid_conversion
+    time_bomb = "\xC2".force_encoding(::Encoding::ASCII_8BIT)
+
+    # making sure this is indeed a problem
+    assert_raises(Encoding::CompatibilityError) do
+      time_bomb.encode(Encoding::UTF_8)
+    end
+
+    assert_equal(Datadog::Utils::STRING_PLACEHOLDER, Datadog::Utils.utf8_encode(time_bomb))
+
+    # we can also set a custom placeholder
+    assert_equal('?', Datadog::Utils.utf8_encode(time_bomb, placeholder: '?'))
+  end
+
+  def test_binary_data
+    byte_array = "keep what \xC2 is valid".force_encoding(::Encoding::ASCII_8BIT)
+
+    assert_equal('keep what is valid', Utils.utf8_encode(byte_array, binary: true))
+  end
 end

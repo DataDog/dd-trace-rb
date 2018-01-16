@@ -51,6 +51,6 @@ module Datadog
       options[:placeholder] || STRING_PLACEHOLDER
     end
 
-    STRING_PLACEHOLDER = ''.freeze
+    STRING_PLACEHOLDER = ''.encode(Encoding::UTF_8).freeze
   end
 end
