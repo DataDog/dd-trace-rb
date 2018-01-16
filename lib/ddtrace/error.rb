@@ -16,22 +16,9 @@ module Datadog
 
     def initialize(type = nil, message = nil, backtrace = nil)
       backtrace = Array(backtrace).join("\n")
-      @type = sanitize(type)
-      @message = sanitize(message)
-      @backtrace = sanitize(backtrace)
-    end
-
-    private
-
-    def sanitize(value)
-      value = value.to_s
-
-      return value if value.encoding == ::Encoding::UTF_8
-
-      value.encode(::Encoding::UTF_8)
-    rescue => e
-      Tracer.log.error("Error converting error message to UTF-8: #{e.message}")
-      nil
+      @type = Utils.utf8_encode(type, placeholder: nil)
+      @message = Utils.utf8_encode(message, placeholder: nil)
+      @backtrace = Utils.utf8_encode(backtrace, placeholder: nil)
     end
 
     BlankError = Error.new

@@ -33,20 +33,22 @@ module Datadog
       string.slice(0, size - omission.size) + omission
     end
 
-    def utf8_encode(str, options = {})
-      placeholder = options[:placeholder] || STRING_PLACEHOLDER
+    def self.utf8_encode(str, options = {})
+      str = str.to_s
 
-      if str.encoding?(Encoding::UTF_8)
-        str
-      elsif options[:binary]
+      if options[:binary]
+        # This option is useful for "gracefully" displaying binary data that
+        # often contains text such as marshalled objects
         str.encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
+      elsif str.encoding?(Encoding::UTF_8)
+        str
       else
         str.encode(Encoding::UTF_8)
       end
     rescue => e
       Tracer.log.error("Error encoding string in UTF-8: #{e}")
 
-      placeholder
+      options[:placeholder] || STRING_PLACEHOLDER
     end
 
     STRING_PLACEHOLDER = ''.freeze
