@@ -2,18 +2,20 @@
 
 source "https://rubygems.org"
 
+gem "pry-nav", git: "https://github.com/nixme/pry-nav.git", branch: "master"
 gem "elasticsearch-transport"
 gem "mongo"
 gem "redis", "< 4.0.0"
 gem "hiredis"
 gem "rack", "1.4.7"
-gem "rack-test"
+gem "rack-test", "0.7.0"
 gem "sinatra", "1.4.5"
 gem "sqlite3"
 gem "activerecord", "3.2.22.5"
 gem "sidekiq", "4.0.0"
 gem "aws-sdk", "~> 2.0"
 gem "sucker_punch"
+gem "dalli"
 gem "resque"
 
 gemspec path: "../"

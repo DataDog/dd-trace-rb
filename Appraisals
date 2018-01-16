@@ -137,7 +137,7 @@ else
     gem 'redis', '< 4.0.0'
     gem 'hiredis'
     gem 'rack', '1.4.7'
-    gem 'rack-test'
+    gem 'rack-test', '0.7.0'
     gem 'sinatra', '1.4.5'
     gem 'sqlite3'
     gem 'activerecord', '3.2.22.5'
