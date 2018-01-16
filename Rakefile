@@ -122,7 +122,6 @@ namespace :test do
     :aws,
     :sucker_punch,
     :mongodb,
-    :racecar,
     :resque
   ].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
@@ -220,7 +219,6 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:mongodb'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sucker_punch'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:resque'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:racecar'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:monkey'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:elasticsearch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:http'
