@@ -1,11 +1,70 @@
 require 'bundler/gem_tasks'
 require 'ddtrace/version'
 require 'rubocop/rake_task' if RUBY_VERSION >= '2.1.0'
+require 'rspec/core/rake_task'
 require 'rake/testtask'
 require 'appraisal'
 require 'yard'
 
+desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
+namespace :spec do
+  task all: [:main,
+             :rails, :railsredis, :railssidekiq, :railsactivejob,
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :monkey]
+
+  RSpec::Core::RakeTask.new(:main) do |t|
+    t.pattern = 'spec/**/*_spec.rb'
+    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis}/**/*_spec.rb,spec/monkey_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:rails) do |t|
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*_spec.rb'
+    t.exclude_pattern = 'spec/ddtrace/contrib/rails/**/*{sidekiq,active_job,disable_env}*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:railsredis) do |t|
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*redis*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:railssidekiq) do |t|
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*sidekiq*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:railsactivejob) do |t|
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*active_job*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:railsdisableenv) do |t|
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'
+  end
+
+  [
+    :elasticsearch,
+    :http,
+    :redis,
+    :sinatra,
+    :sidekiq,
+    :rack,
+    :faraday,
+    :grape,
+    :aws,
+    :sucker_punch,
+    :mongodb,
+    :racecar,
+    :resque,
+    :dalli
+  ].each do |contrib|
+    RSpec::Core::RakeTask.new(contrib) do |t|
+      t.pattern = "spec/ddtrace/contrib/#{contrib}/*_spec.rb"
+    end
+  end
+
+  RSpec::Core::RakeTask.new(:monkey) do |t|
+    t.pattern = 'spec/ddtrace/monkey_spec.rb'
+  end
+end
+
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
@@ -63,9 +122,7 @@ namespace :test do
     :aws,
     :sucker_punch,
     :mongodb,
-    :racecar,
-    :resque,
-    :dalli
+    :resque
   ].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
       t.libs << %w[test lib]
@@ -148,6 +205,8 @@ task :ci do
   case ENV['CIRCLE_NODE_INDEX'].to_i
   when 0
     sh 'rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do rake test:main'
+    # RSpec
+    sh 'rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do rake spec:main'
   when 1
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:elasticsearch'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
@@ -159,9 +218,7 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:aws'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:mongodb'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sucker_punch'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:dalli'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:resque'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:racecar'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:monkey'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:elasticsearch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:http'
@@ -172,8 +229,11 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:aws'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:mongodb'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sucker_punch'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:dalli'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:resque'
+    # RSpec
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
   when 2
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
     sh 'rvm $SIDEKIQ_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sidekiq'
@@ -197,6 +257,7 @@ task :ci do
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railssidekiq'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railsactivejob'
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:railsdisableenv'
+    # RSpec
     sh 'rvm $LAST_STABLE --verbose do rake benchmark'
   else
     puts 'Too many workers than parallel tasks'
