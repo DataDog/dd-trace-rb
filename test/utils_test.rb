@@ -60,9 +60,10 @@ class UtilsTest < Minitest::Test
   end
 
   def test_utf8_encoding_happy_path
-    str = 'pristine ✓'
+    # we can't use utf-8 literals because our tests run against ruby 1.9.3
+    str = "pristine \U+FFE2".encode(Encoding::UTF_8)
 
-    assert_equal('pristine ✓', Datadog::Utils.utf8_encode(str))
+    assert_equal("pristine \U+FFE2", Datadog::Utils.utf8_encode(str))
 
     assert_equal(::Encoding::UTF_8, Datadog::Utils.utf8_encode(str).encoding)
 
@@ -74,7 +75,7 @@ class UtilsTest < Minitest::Test
     time_bomb = "\xC2".force_encoding(::Encoding::ASCII_8BIT)
 
     # making sure this is indeed a problem
-    assert_raises(Encoding::CompatibilityError) do
+    assert_raises(Encoding::UndefinedConversionError) do
       time_bomb.encode(Encoding::UTF_8)
     end
 
@@ -85,8 +86,8 @@ class UtilsTest < Minitest::Test
   end
 
   def test_binary_data
-    byte_array = "keep what \xC2 is valid".force_encoding(::Encoding::ASCII_8BIT)
+    byte_array = "keep what\xC2 is valid".force_encoding(::Encoding::ASCII_8BIT)
 
-    assert_equal('keep what is valid', Utils.utf8_encode(byte_array, binary: true))
+    assert_equal('keep what is valid', Datadog::Utils.utf8_encode(byte_array, binary: true))
   end
 end

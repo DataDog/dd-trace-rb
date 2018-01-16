@@ -16,9 +16,9 @@ module Datadog
 
     def initialize(type = nil, message = nil, backtrace = nil)
       backtrace = Array(backtrace).join("\n")
-      @type = Utils.utf8_encode(type, placeholder: nil)
-      @message = Utils.utf8_encode(message, placeholder: nil)
-      @backtrace = Utils.utf8_encode(backtrace, placeholder: nil)
+      @type = Utils.utf8_encode(type)
+      @message = Utils.utf8_encode(message)
+      @backtrace = Utils.utf8_encode(backtrace)
     end
 
     BlankError = Error.new
