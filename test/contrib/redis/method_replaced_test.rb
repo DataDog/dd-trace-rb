@@ -9,6 +9,10 @@ class RedisMethodReplacedTest < Minitest::Test
   REDIS_PORT = 46379
 
   def setup
+    Datadog.configure do |c|
+      c.use :redis
+    end
+
     ::Redis::Client.class_eval do
       alias_method :call_original, :call
       remove_method :call
@@ -26,6 +30,8 @@ class RedisMethodReplacedTest < Minitest::Test
 
   def test_main
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
+
+    refute_nil(Redis::Client.instance_methods.find { |m| m == :call_without_datadog })
 
     redis = Redis.new(host: REDIS_HOST, port: REDIS_PORT)
     redis.call(['ping', 'hello world'])
