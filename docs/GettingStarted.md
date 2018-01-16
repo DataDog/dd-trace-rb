@@ -109,14 +109,12 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``resource_script_names`` | Prepend resource names with script name | ``false`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
-The tracing extension will be automatically activated.
-
 ### Rack
 
 The Rack integration provides a middleware that traces all requests before they reach the underlying framework
 or application. It responds to the Rack minimal interface, providing reasonable values that can be
-retrieved at the Rack level.
-To start using the middleware in your generic Rack application, add it to your ``config.ru``:
+retrieved at the Rack level. This integration is automatically activated with web frameworks like Rails.
+If you're using a plain Rack application, just enable the integration it to your ``config.ru``:
 
     # config.ru example
     require 'ddtrace'
@@ -459,6 +457,7 @@ Available options are:
 * ``port``: set the port the trace agent is listening on.
 * ``env``: set the environment. Rails users may set it to ``Rails.env`` to use their application settings.
 * ``tags``: set global tags that should be applied to all spans. Defaults to an empty hash
+* ``log``: defines a custom logger.
 
 #### Using a custom logger
 
@@ -472,7 +471,7 @@ custom one. This is done using the ``log`` attribute of the tracer.
 
     f = File.new("my-custom.log", "w+")           # Log messages should go there
     Datadog.configure do |c|
-      c.trace log: Logger.new(f)                  # Overriding the default tracer
+      c.tracer log: Logger.new(f)                 # Overriding the default tracer
     end
 
     Datadog::Tracer.log.info { "this is typically called by tracing code" }
