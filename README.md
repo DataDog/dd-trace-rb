@@ -6,7 +6,7 @@
 
 You can find the latest documentation on [rubydoc.info][docs]
 
-[docs]: http://www.rubydoc.info/github/DataDog/dd-trace-rb/
+[docs]: http://gems.datadoghq.com/trace/docs/
 
 ## Getting started
 
