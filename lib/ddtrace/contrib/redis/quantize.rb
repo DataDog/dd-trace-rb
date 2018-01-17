@@ -12,9 +12,9 @@ module Datadog
 
         def format_arg(arg)
           str = arg.is_a?(Symbol) ? arg.to_s.upcase : arg.to_s
-          str = str.encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
+          str = Utils.utf8_encode(str, binary: true, placeholder: PLACEHOLDER)
           Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
-        rescue StandardError => e
+        rescue => e
           Datadog::Tracer.log.debug("non formattable Redis arg #{str}: #{e}")
           PLACEHOLDER
         end
