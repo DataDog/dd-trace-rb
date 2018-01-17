@@ -2,17 +2,28 @@ require 'time'
 require 'contrib/redis/test_helper'
 require 'helper'
 
+# rubocop:disable Metrics/ClassLength
 class RedisTest < Minitest::Test
   REDIS_HOST = '127.0.0.1'.freeze
   REDIS_PORT = 46379
-  def setup
-    @tracer = get_test_tracer()
 
-    @drivers = {}
-    [:ruby, :hiredis].each do |d|
-      @drivers[d] = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: d)
-      pin = Datadog::Pin.get_from(@drivers[d])
-      pin.tracer = @tracer
+  def setup
+    @tracer = get_test_tracer
+
+    Datadog.configure do |c|
+      c.use :redis, tracer: tracer
+    end
+
+    @drivers = {
+      ruby: Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby),
+      hiredis: Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :hiredis)
+    }
+  end
+
+  def teardown
+    # Reset tracer to default (so we don't break other tests)
+    Datadog.configure do |c|
+      c.use :redis, tracer: Datadog.tracer
     end
   end
 
@@ -25,7 +36,7 @@ class RedisTest < Minitest::Test
   def roundtrip_set(driver, service)
     set_response = driver.set 'FOO', 'bar'
     assert_equal 'OK', set_response
-    spans = @tracer.writer.spans()
+    spans = tracer.writer.spans
     assert_operator(1, :<=, spans.length)
     span = spans[-1]
     check_common_tags(span)
@@ -38,7 +49,7 @@ class RedisTest < Minitest::Test
   def roundtrip_get(driver, service)
     get_response = driver.get 'FOO'
     assert_equal 'bar', get_response
-    spans = @tracer.writer.spans()
+    spans = tracer.writer.spans
     assert_equal(1, spans.length)
     span = spans[0]
     check_common_tags(span)
@@ -49,8 +60,8 @@ class RedisTest < Minitest::Test
   end
 
   def test_roundtrip
-    @drivers.each do |_d, driver|
-      pin = Datadog::Pin.get_from(driver)
+    drivers.each do |_d, driver|
+      pin = Datadog::Pin.get_from(client_from_driver(driver))
       refute_nil(pin)
       assert_equal('db', pin.app_type)
       roundtrip_set driver, 'redis'
@@ -59,7 +70,7 @@ class RedisTest < Minitest::Test
   end
 
   def test_pipeline
-    @drivers.each do |d, driver|
+    drivers.each do |d, driver|
       responses = []
       driver.pipelined do
         responses << driver.set('v1', '0')
@@ -69,7 +80,7 @@ class RedisTest < Minitest::Test
         responses << driver.incr('v2')
       end
       assert_equal(['OK', 'OK', 1, 1, 2], responses.map(&:value))
-      spans = @tracer.writer.spans()
+      spans = tracer.writer.spans
       assert_operator(1, :<=, spans.length)
       check_connect_span(d, spans[0]) if spans.length >= 2
       span = spans[-1]
@@ -83,14 +94,14 @@ class RedisTest < Minitest::Test
   end
 
   def test_error
-    @drivers.each do |_d, driver|
+    drivers.each do |_d, driver|
       begin
         driver.call 'THIS_IS_NOT_A_REDIS_FUNC', 'THIS_IS_NOT_A_VALID_ARG'
       rescue StandardError => e
         assert_kind_of(Redis::CommandError, e)
         assert_equal("ERR unknown command 'THIS_IS_NOT_A_REDIS_FUNC'", e.to_s)
       end
-      spans = @tracer.writer.spans()
+      spans = tracer.writer.spans
       assert_operator(1, :<=, spans.length)
       span = spans[-1]
       check_common_tags(span)
@@ -106,11 +117,11 @@ class RedisTest < Minitest::Test
   end
 
   def test_quantize
-    @drivers.each do |_d, driver|
+    drivers.each do |_d, driver|
       driver.set 'K', 'x' * 500
       response = driver.get 'K'
       assert_equal('x' * 500, response)
-      spans = @tracer.writer.spans()
+      spans = tracer.writer.spans
       assert_operator(2, :<=, spans.length)
       get, set = spans[-2..-1]
       check_common_tags(set)
@@ -128,16 +139,29 @@ class RedisTest < Minitest::Test
 
   def test_service_name
     driver = Redis.new(host: REDIS_HOST, port: REDIS_PORT, driver: :ruby)
-    @tracer.writer.services # empty queue
+    driver.set 'FOO', 'bar'
+    tracer.writer.services # empty queue
     Datadog.configure(
-      driver,
+      client_from_driver(driver),
       service_name: 'redis-test',
-      tracer: @tracer,
+      tracer: tracer,
       app_type: Datadog::Ext::AppTypes::CACHE
     )
     driver.set 'FOO', 'bar'
-    services = @tracer.writer.services
+    services = tracer.writer.services
     assert_equal(1, services.length)
     assert_equal({ 'app' => 'redis', 'app_type' => 'cache' }, services['redis-test'])
+  end
+
+  private
+
+  attr_reader :tracer, :drivers
+
+  def client_from_driver(driver)
+    if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('4.0.0')
+      driver._client
+    else
+      driver.client
+    end
   end
 end

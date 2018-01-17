@@ -13,15 +13,13 @@ class RedisCacheTracingTest < ActionController::TestCase
   setup do
     # switch Rails with a dummy tracer
     @original_tracer = Datadog.configuration[:rails][:tracer]
-    @tracer = get_test_tracer()
+    @tracer = get_test_tracer
     Datadog.configuration[:rails][:tracer] = @tracer
     Datadog.configuration.use(:redis)
 
     # get the Redis pin accessing private methods (only Rails 3.x)
-    client = Rails.cache.instance_variable_get(:@data)
-    pin = Datadog::Pin.get_from(client)
-    refute_nil(pin, 'unable to get pin from Redis connection')
-    pin.tracer = @tracer
+    driver = Rails.cache.instance_variable_get(:@data)
+    Datadog.configure(client_from_driver(driver), tracer: @tracer)
   end
 
   teardown do
@@ -145,5 +143,15 @@ class RedisCacheTracingTest < ActionController::TestCase
     # the following ensures span will be correctly displayed (parent/child of the same trace)
     assert_equal(cache.trace_id, del.trace_id)
     assert_equal(cache.span_id, del.parent_id)
+  end
+
+  private
+
+  def client_from_driver(driver)
+    if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('4.0.0')
+      driver._client
+    else
+      driver.client
+    end
   end
 end

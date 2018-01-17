@@ -6,6 +6,6 @@ gem "pry-nav", git: "https://github.com/nixme/pry-nav.git", branch: "master"
 gem "rails", "5.0.1"
 gem "pg", "< 1.0", platform: :ruby
 gem "redis-rails"
-gem "redis", "< 4.0"
+gem "redis"
 
 gemspec path: "../"

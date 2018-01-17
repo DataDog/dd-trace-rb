@@ -12,6 +12,7 @@ module Datadog
         include Base
         register_as :redis, auto_patch: true
         option :service_name, default: SERVICE
+        option :tracer, default: Datadog.tracer
 
         @patched = false
 
@@ -19,8 +20,7 @@ module Datadog
 
         # patch applies our patch if needed
         def patch
-          if !@patched && (defined?(::Redis::VERSION) && \
-                           Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('3.0.0'))
+          if !@patched && compatible?
             begin
               # do not require these by default, but only when actually patching
               require 'ddtrace/monkey'
@@ -28,8 +28,7 @@ module Datadog
               require 'ddtrace/contrib/redis/tags'
               require 'ddtrace/contrib/redis/quantize'
 
-              patch_redis()
-              patch_redis_client()
+              patch_redis_client
               @patched = true
               RailsCachePatcher.reload_cache_store if Datadog.registry[:rails].patched?
             rescue StandardError => e
@@ -39,21 +38,12 @@ module Datadog
           @patched
         end
 
-        def patch_redis
-          ::Redis.module_eval do
-            def datadog_pin=(pin)
-              # Forward the pin to client, which actually traces calls.
-              Datadog::Pin.onto(client, pin)
-            end
-
-            def datadog_pin
-              # Get the pin from client, which actually traces calls.
-              Datadog::Pin.get_from(client)
-            end
-          end
+        def compatible?
+          defined?(::Redis::VERSION) && Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('3.0.0')
         end
 
         # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/BlockLength
         def patch_redis_client
           ::Redis::Client.class_eval do
             alias_method :initialize_without_datadog, :initialize
@@ -63,7 +53,8 @@ module Datadog
 
             def initialize(*args)
               service = Datadog.configuration[:redis][:service_name]
-              pin = Datadog::Pin.new(service, app: 'redis', app_type: Datadog::Ext::AppTypes::DB)
+              tracer = Datadog.configuration[:redis][:tracer]
+              pin = Datadog::Pin.new(service, app: 'redis', app_type: Datadog::Ext::AppTypes::DB, tracer: tracer)
               pin.onto(self)
               initialize_without_datadog(*args)
             end
