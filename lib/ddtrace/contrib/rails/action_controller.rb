@@ -32,12 +32,14 @@ module Datadog
           return unless span && !span.finished?
 
           begin
-            resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
-            span.resource = resource
+            # Set the resource name, if it's still the default name
+            if span.resource == span.name
+              span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
+            end
 
             # set the parent resource if it's a `rack.request` span
             if !span.parent.nil? && span.parent.name == 'rack.request'
-              span.parent.resource = resource
+              span.parent.resource = span.resource
             end
 
             span.set_tag('rails.route.action', payload.fetch(:action))
