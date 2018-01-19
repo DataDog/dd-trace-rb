@@ -88,6 +88,12 @@ class TracingController < ActionController::Base
     @value = Rails.cache.write('empty-key', 50)
     render 'views/tracing/full.html.erb'
   end
+
+  def custom_resource
+    tracer = Datadog.configuration[:rails][:tracer]
+    tracer.active_span.resource = 'custom-resource'
+    head :ok
+  end
 end
 
 routes = {
@@ -102,7 +108,8 @@ routes = {
   '/error_template' => 'tracing#error_template',
   '/error_partial' => 'tracing#error_partial',
   '/missing_template' => 'tracing#missing_template',
-  '/missing_partial' => 'tracing#missing_partial'
+  '/missing_partial' => 'tracing#missing_partial',
+  '/custom_resource' => 'tracing#custom_resource'
 }
 
 if Rails.version >= '3.2.22.5'

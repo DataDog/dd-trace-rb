@@ -179,6 +179,17 @@ class TracingControllerTest < ActionController::TestCase
     assert_nil(span.get_tag('error.stack'), 'no error stack')
   end
 
+  test 'custom resource names can be set' do
+    get :custom_resource
+    assert_response :success
+    spans = @tracer.writer.spans
+    assert_equal(spans.length, 1)
+
+    spans.first.tap do |span|
+      assert_equal('custom-resource', span.resource)
+    end
+  end
+
   test 'combining rails and custom tracing is supported' do
     @tracer.trace('a-parent') do
       get :index
