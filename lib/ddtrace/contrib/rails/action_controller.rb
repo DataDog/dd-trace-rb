@@ -37,8 +37,9 @@ module Datadog
               span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
             end
 
-            # set the parent resource if it's a `rack.request` span
-            if !span.parent.nil? && span.parent.name == 'rack.request'
+            # Set the parent resource if it's a `rack.request` span,
+            # but not if its an exception contoller.
+            if !span.parent.nil? && span.parent.name == 'rack.request' && !exception_controller?(payload)
               span.parent.resource = span.resource
             end
 
@@ -65,6 +66,26 @@ module Datadog
           end
         rescue StandardError => e
           Datadog::Tracer.log.error(e.message)
+        end
+
+        def self.exception_controller?(payload)
+          exception_controller_class = Datadog.configuration[:rails][:exception_controller]
+          controller = payload.fetch(:controller)
+          headers = payload.fetch(:headers)
+
+          # If no exception controller class has been set,
+          # guess whether this is an exception controller from the headers.
+          if exception_controller_class.nil?
+            !headers[:request_exception].nil?
+          # If an exception controller class has been specified,
+          # check if the controller is a kind of the exception controller class.
+          elsif exception_controller_class.is_a?(Class) || exception_controller_class.is_a?(Module)
+            controller <= exception_controller_class
+          # Otherwise if the exception controller class is some other value (like false)
+          # assume that this controller doesn't handle exceptions.
+          else
+            false
+          end
         end
       end
     end

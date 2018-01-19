@@ -150,8 +150,13 @@ module Datadog
           # signals; it propagates the request span so that it can be finished
           # no matter what
           payload = {
-            controller: self.class.name,
+            controller: self.class,
             action: action_name,
+            headers: {
+              # The exception this controller was given in the request,
+              # which is typical if the controller is configured to handle exceptions.
+              request_exception: request.headers['action_dispatch.exception']
+            },
             tracing_context: {}
           }
 
