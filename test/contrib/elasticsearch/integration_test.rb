@@ -7,6 +7,10 @@ class ESIntegrationTest < Minitest::Test
   def setup
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
 
+    Datadog.configure do |c|
+      c.use :elasticsearch
+    end
+
     # Here we use the default tracer (to make a real integration test)
     @tracer = Datadog.tracer
 

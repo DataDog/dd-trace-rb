@@ -8,6 +8,7 @@ module Datadog
       def self.included(base)
         base.send(:include, Registry::Registerable)
         base.send(:include, Configurable)
+        base.send(:include, Patcher)
       end
     end
   end

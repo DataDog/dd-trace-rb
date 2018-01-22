@@ -8,7 +8,10 @@ module Datadog
     module SuckerPunch
       class PatcherTest < Minitest::Test
         def setup
-          Monkey.patch_module(:sucker_punch)
+          Datadog.configure do |c|
+            c.use :sucker_punch
+          end
+
           ::SuckerPunch::Queue.clear
           ::SuckerPunch::RUNNING.make_true
 

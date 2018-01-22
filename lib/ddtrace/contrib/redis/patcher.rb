@@ -7,7 +7,6 @@ module Datadog
       DRIVER = 'redis.driver'.freeze
 
       # Patcher enables patching of 'redis' module.
-      # This is used in monkey.rb to automatically apply patches
       module Patcher
         include Base
         register_as :redis, auto_patch: true
@@ -23,7 +22,6 @@ module Datadog
           if !@patched && compatible?
             begin
               # do not require these by default, but only when actually patching
-              require 'ddtrace/monkey'
               require 'ddtrace/ext/app_types'
               require 'ddtrace/contrib/redis/tags'
               require 'ddtrace/contrib/redis/quantize'
@@ -47,7 +45,7 @@ module Datadog
         def patch_redis_client
           ::Redis::Client.class_eval do
             alias_method :initialize_without_datadog, :initialize
-            Datadog::Monkey.without_warnings do
+            Datadog::Patcher.without_warnings do
               remove_method :initialize
             end
 

@@ -9,6 +9,10 @@ class ESMiniAppTest < Minitest::Test
   ELASTICSEARCH_SERVER = 'http://127.0.0.1:49200'.freeze
 
   def setup
+    Datadog.configure do |c|
+      c.use :elasticsearch
+    end
+
     # wait until it's really running, docker-compose can be slow
     wait_http_server ELASTICSEARCH_SERVER, 60
   end

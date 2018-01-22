@@ -9,6 +9,10 @@ class MongoDBTest < Minitest::Test
   MONGO_DB = 'test'.freeze
 
   def setup
+    Datadog.configure do |c|
+      c.use :mongo
+    end
+
     # disable Mongo logging
     Mongo::Logger.logger.level = ::Logger::WARN
 

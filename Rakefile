@@ -11,11 +11,11 @@ desc 'Run RSpec'
 namespace :spec do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
-             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :monkey]
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
   RSpec::Core::RakeTask.new(:main) do |t|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis}/**/*_spec.rb,spec/monkey_spec.rb'
+    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis}/**/*_spec.rb'
   end
 
   RSpec::Core::RakeTask.new(:rails) do |t|
@@ -59,24 +59,19 @@ namespace :spec do
       t.pattern = "spec/ddtrace/contrib/#{contrib}/*_spec.rb"
     end
   end
-
-  RSpec::Core::RakeTask.new(:monkey) do |t|
-    t.pattern = 'spec/ddtrace/monkey_spec.rb'
-  end
 end
 
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
-             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :monkey]
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w[test lib]
     t.test_files = FileList['test/**/*_test.rb'].reject do |path|
       path.include?('contrib') ||
         path.include?('benchmark') ||
-        path.include?('redis') ||
-        path.include?('monkey_test.rb')
+        path.include?('redis')
     end
   end
 
@@ -128,11 +123,6 @@ namespace :test do
       t.libs << %w[test lib]
       t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
     end
-  end
-
-  Rake::TestTask.new(:monkey) do |t|
-    t.libs << %w[test lib]
-    t.test_files = FileList['test/monkey_test.rb']
   end
 end
 
@@ -219,7 +209,6 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:mongodb'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sucker_punch'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:resque'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:monkey'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:elasticsearch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:http'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:redis'

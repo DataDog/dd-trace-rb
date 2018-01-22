@@ -11,6 +11,10 @@ module Datadog
         REDIS_PORT = 46379
 
         def setup
+          Datadog.configure do |c|
+            c.use :resque
+          end
+
           redis_url = "redis://#{REDIS_HOST}:#{REDIS_PORT}"
           ::Resque.redis = redis_url
           @tracer = enable_test_tracer!

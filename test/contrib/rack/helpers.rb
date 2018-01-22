@@ -5,8 +5,6 @@ require 'ddtrace/contrib/rack/middlewares'
 
 require 'rack/test'
 
-Datadog::Monkey.patch_module(:http)
-
 class RackBaseTest < Minitest::Test
   include Rack::Test::Methods
 
@@ -91,10 +89,12 @@ class RackBaseTest < Minitest::Test
 
   def setup
     super
+
     # store the configuration and use a DummyTracer
     @tracer = get_test_tracer
 
     Datadog.configure do |c|
+      c.use :http
       c.use :rack, tracer: @tracer
     end
   end

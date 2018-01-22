@@ -6,6 +6,10 @@ require 'helper'
 class ESTransportTest < Minitest::Test
   ELASTICSEARCH_SERVER = 'http://127.0.0.1:49200'.freeze
   def setup
+    Datadog.configure do |c|
+      c.use :elasticsearch
+    end
+
     @tracer = get_test_tracer
 
     # wait until it's really running, docker-compose can be slow

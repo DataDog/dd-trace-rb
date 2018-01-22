@@ -14,6 +14,10 @@ class HTTPMiniAppTest < Minitest::Test
   ELASTICSEARCH_PORT = 49200
 
   def setup
+    Datadog.configure do |c|
+      c.use :http
+    end
+
     # wait until it's really running, docker-compose can be slow
     wait_http_server 'http://' + ELASTICSEARCH_HOST + ':' + ELASTICSEARCH_PORT.to_s(), 60
   end
