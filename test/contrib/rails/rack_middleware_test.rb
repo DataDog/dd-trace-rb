@@ -2,6 +2,7 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
+# rubocop:disable Metrics/ClassLength
 class FullStackTest < ActionDispatch::IntegrationTest
   setup do
     # store original tracers
@@ -159,6 +160,33 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_match(/controllers\.rb.*a_nested_error_call/, request_span.get_tag('error.stack'))
     assert_match(/controllers\.rb.*sub_error/, request_span.get_tag('error.stack'))
     assert_match(/\n/, request_span.get_tag('error.stack'))
+  end
+
+  test 'custom error controllers should not override trace resource names' do
+    # Simulate an error being passed to the exception controller
+    # (Syntax depends on Rails integration test version)
+    if Rails.version >= '5.0'
+      get '/internal_server_error', headers: { 'action_dispatch.exception' => ArgumentError.new }
+    else
+      get '/internal_server_error', {}, 'action_dispatch.exception' => ArgumentError.new
+    end
+
+    assert_response :error
+
+    # Check spans
+    spans = @tracer.writer.spans
+    assert_equal(2, spans.length)
+
+    rack_span = spans.first
+    controller_span = spans.last
+
+    # Rack span
+    assert_equal(rack_span.status, 1, 'span should be flagged as an error')
+    refute_equal(rack_span.resource, controller_span.resource) # We expect the resource hasn't been overriden
+
+    # Controller span
+    assert_equal(controller_span.status, 1, 'span should be flagged as an error')
+    assert_equal(controller_span.resource, 'ErrorsController#internal_server_error')
   end
 
   test 'the status code is properly set if Rails controller is bypassed' do
