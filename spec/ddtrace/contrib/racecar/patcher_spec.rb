@@ -19,6 +19,10 @@ RSpec.describe 'Racecar patcher' do
     end
   end
 
+  after(:each) do
+    Datadog::Contrib::Racecar::Patcher.unpatch
+  end
+
   describe 'for single message processing' do
     let(:topic) { 'dd_trace_test_dummy' }
     let(:consumer) { 'DummyConsumer' }
