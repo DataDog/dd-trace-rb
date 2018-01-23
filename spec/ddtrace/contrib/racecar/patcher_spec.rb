@@ -39,7 +39,6 @@ RSpec.describe 'Racecar patcher' do
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
-        ActiveSupport::Notifications.instrument('start_process_message.racecar', payload)
         ActiveSupport::Notifications.instrument('process_message.racecar', payload)
 
         racecar_span.tap do |span|
@@ -62,7 +61,6 @@ RSpec.describe 'Racecar patcher' do
 
       it 'is expected to send a span' do
         # Emulate failure
-        ActiveSupport::Notifications.instrument('start_process_message.racecar', payload)
         begin
           ActiveSupport::Notifications.instrument('process_message.racecar', payload) do
             raise error_class
@@ -109,7 +107,6 @@ RSpec.describe 'Racecar patcher' do
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
-        ActiveSupport::Notifications.instrument('start_process_batch.racecar', payload)
         ActiveSupport::Notifications.instrument('process_batch.racecar', payload)
 
         racecar_span.tap do |span|
@@ -132,7 +129,6 @@ RSpec.describe 'Racecar patcher' do
       let(:error_class) { Class.new(StandardError) }
 
       it 'is expected to send a span' do
-        ActiveSupport::Notifications.instrument('start_process_batch.racecar', payload)
         begin
           ActiveSupport::Notifications.instrument('process_batch.racecar', payload) do
             raise error_class

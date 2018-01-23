@@ -16,10 +16,8 @@ module Datadog
           def patch
             return patched? if patched? || !compatible?
 
-            ::ActiveSupport::Notifications.subscribe('start_process_batch.racecar', &method(:start))
-            ::ActiveSupport::Notifications.subscribe('start_process_message.racecar', &method(:start))
-            ::ActiveSupport::Notifications.subscribe('process_batch.racecar', &method(:finish))
-            ::ActiveSupport::Notifications.subscribe('process_message.racecar', &method(:finish))
+            ::ActiveSupport::Notifications.subscribe('process_batch.racecar', self)
+            ::ActiveSupport::Notifications.subscribe('process_message.racecar', self)
 
             configuration[:tracer].set_service_info(
               configuration[:service_name],
@@ -35,17 +33,7 @@ module Datadog
             @patched = false
           end
 
-          private
-
-          def configuration
-            Datadog.configuration[:racecar]
-          end
-
-          def compatible?
-            defined?(::Racecar) && defined?(::ActiveSupport::Notifications)
-          end
-
-          def start(event, *_, payload)
+          def start(event, _, payload)
             ensure_clean_context!
 
             name = event[/message/] ? NAME_MESSAGE : NAME_BATCH
@@ -60,13 +48,23 @@ module Datadog
             span.set_tag('kafka.message_count', payload[:message_count]) if payload.key?(:message_count)
           end
 
-          def finish(*_, payload)
+          def finish(_, _, payload)
             current_span = configuration[:tracer].call_context.current_span
 
             return unless current_span
 
             current_span.set_error(payload[:exception_object]) if payload[:exception_object]
             current_span.finish
+          end
+
+          private
+
+          def configuration
+            Datadog.configuration[:racecar]
+          end
+
+          def compatible?
+            defined?(::Racecar) && defined?(::ActiveSupport::Notifications)
           end
 
           def ensure_clean_context!
