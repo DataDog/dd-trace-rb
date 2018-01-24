@@ -18,6 +18,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
     assert_equal('/success/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
   end
@@ -38,6 +39,7 @@ class TracerTest < RackBaseTest
     assert_equal('POST', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
     assert_equal('/success/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
   end
@@ -58,6 +60,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
     assert_equal('/success/100', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
   end
@@ -78,6 +81,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('404', span.get_tag('http.status_code'))
     assert_equal('/not/exists/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
   end
@@ -99,6 +103,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('400', span.get_tag('http.status_code'))
     assert_equal('/failure/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
   end
@@ -121,6 +126,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_nil(span.get_tag('http.status_code'))
     assert_equal('/exception/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal('StandardError', span.get_tag('error.type'))
     assert_equal('Unable to process the request', span.get_tag('error.msg'))
     refute_nil(span.get_tag('error.stack'))
@@ -144,6 +150,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET_V2', span.get_tag('http.method'))
     assert_equal('201', span.get_tag('http.status_code'))
     assert_equal('/app/static/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
   end
@@ -165,6 +172,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('500', span.get_tag('http.status_code'))
     assert_equal('/500/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_nil(span.get_tag('error.stack'))
     assert_equal(1, span.status)
     assert_nil(span.parent)
@@ -187,6 +195,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('500', span.get_tag('http.status_code'))
     assert_equal('/app/500/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(1, span.status)
     assert_equal('Handled exception', span.get_tag('error.stack'))
     assert_nil(span.parent)
@@ -210,6 +219,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('500', span.get_tag('http.status_code'))
     assert_equal('/app/500/no_status/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(1, span.status)
     assert_equal('Handled exception', span.get_tag('error.stack'))
     assert_nil(span.parent)
@@ -233,6 +243,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_nil(span.get_tag('http.status_code'))
     assert_equal('/nomemory/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal('NoMemoryError', span.get_tag('error.type'))
     assert_equal('Non-standard error', span.get_tag('error.msg'))
     refute_nil(span.get_tag('error.stack'))
@@ -268,6 +279,7 @@ class TracerTest < RackBaseTest
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
     assert_equal('/success/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
   end

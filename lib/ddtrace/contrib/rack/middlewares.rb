@@ -17,6 +17,7 @@ module Datadog
           @app = app
         end
 
+        # rubocop:disable Metrics/MethodLength
         def call(env)
           # retrieve integration settings
           tracer = Datadog.configuration[:rack][:tracer]
@@ -75,6 +76,18 @@ module Datadog
           end
           if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
             request_span.set_tag(Datadog::Ext::HTTP::URL, url)
+          end
+          if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
+            request_obj = ::Rack::Request.new(env)
+
+            base_url = if request_obj.respond_to?(:base_url)
+              request_obj.base_url
+            else
+              # Compatibility for older Rack versions
+              request_obj.url.chomp(request_obj.fullpath)
+            end
+
+            request_span.set_tag(Datadog::Ext::HTTP::BASE_URL, base_url)
           end
           if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
             request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
