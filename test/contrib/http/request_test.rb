@@ -12,6 +12,10 @@ class HTTPRequestTest < Minitest::Test
                           HTTPIntegrationTest::ELASTICSEARCH_PORT.to_s).freeze
 
   def setup
+    Datadog.configure do |c|
+      c.use :http
+    end
+
     @tracer = get_test_tracer
 
     # wait until it's really running, docker-compose can be slow

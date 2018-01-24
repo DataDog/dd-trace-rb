@@ -7,9 +7,11 @@ module Datadog
   module Contrib
     module Faraday
       class MiddlewareTest < Minitest::Test
-        Monkey.patch_module(:faraday)
-
         def setup
+          Datadog.configure do |c|
+            c.use :faraday
+          end
+
           ::Faraday.datadog_pin.tracer = get_test_tracer
         end
 

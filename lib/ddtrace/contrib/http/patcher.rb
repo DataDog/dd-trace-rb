@@ -44,7 +44,6 @@ module Datadog
       end
 
       # Patcher enables patching of 'net/http' module.
-      # This is used in monkey.rb to automatically apply patches
       module Patcher
         include Base
         register_as :http, auto_patch: true
@@ -60,7 +59,6 @@ module Datadog
             begin
               require 'uri'
               require 'ddtrace/pin'
-              require 'ddtrace/monkey'
               require 'ddtrace/ext/app_types'
               require 'ddtrace/ext/http'
               require 'ddtrace/ext/net'
@@ -87,7 +85,7 @@ module Datadog
         def patch_http
           ::Net::HTTP.class_eval do
             alias_method :initialize_without_datadog, :initialize
-            Datadog::Monkey.without_warnings do
+            Datadog::Patcher.without_warnings do
               remove_method :initialize
             end
 

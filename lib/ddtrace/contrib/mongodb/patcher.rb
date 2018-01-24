@@ -8,8 +8,6 @@ module Datadog
       SERVICE = 'mongodb'.freeze
 
       # Patcher adds subscribers to the MongoDB driver so that each command is traced.
-      # Use the `Datadog::Monkey.patch_module(:mongodb)` to activate tracing for
-      # this module.
       module Patcher
         include Base
         register_as :mongo, auto_patch: true
@@ -57,7 +55,7 @@ module Datadog
         def patch_mongo_client
           ::Mongo::Client.class_eval do
             alias_method :initialize_without_datadog, :initialize
-            Datadog::Monkey.without_warnings do
+            Datadog::Patcher.without_warnings do
               remove_method :initialize
             end
 

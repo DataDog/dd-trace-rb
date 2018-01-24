@@ -75,7 +75,10 @@ you can activate it. The example above would become:
     require 'sinatra'
     require 'active_record'
 
-    Datadog::Monkey.patch_all # monkey patch all available integrations
+    Datadog.configure do |c|
+      c.use :sinatra
+      c.use :active_record
+    end
 
     # now write your code naturally, it's traced automatically
     get '/' do

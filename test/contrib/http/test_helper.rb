@@ -2,8 +2,6 @@ require 'time'
 require 'net/http'
 require 'ddtrace'
 
-Datadog::Monkey.patch_module(:http)
-
 def wait_http_server(server, delay)
   delay.times do |i|
     uri = URI(server + '/')

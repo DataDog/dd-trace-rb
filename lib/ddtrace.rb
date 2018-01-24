@@ -1,9 +1,12 @@
+require 'thread'
+
 require 'ddtrace/registry'
 require 'ddtrace/pin'
 require 'ddtrace/tracer'
 require 'ddtrace/error'
 require 'ddtrace/pipeline'
 require 'ddtrace/configuration'
+require 'ddtrace/patcher'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -49,8 +52,19 @@ module Datadog
   end
 end
 
-# Monkey currently is responsible for loading all contributions, which in turn
-# rely on the registry defined above. We should make our code less dependent on
-# the load order, by letting things be lazily loaded while keeping
-# thread-safety.
-require 'ddtrace/monkey'
+require 'ddtrace/contrib/base'
+require 'ddtrace/contrib/rack/patcher'
+require 'ddtrace/contrib/rails/patcher'
+require 'ddtrace/contrib/active_record/patcher'
+require 'ddtrace/contrib/elasticsearch/patcher'
+require 'ddtrace/contrib/faraday/patcher'
+require 'ddtrace/contrib/grape/patcher'
+require 'ddtrace/contrib/redis/patcher'
+require 'ddtrace/contrib/http/patcher'
+require 'ddtrace/contrib/aws/patcher'
+require 'ddtrace/contrib/sucker_punch/patcher'
+require 'ddtrace/contrib/mongodb/patcher'
+require 'ddtrace/contrib/dalli/patcher'
+require 'ddtrace/contrib/resque/patcher'
+require 'ddtrace/contrib/racecar/patcher'
+require 'ddtrace/contrib/sidekiq/patcher'

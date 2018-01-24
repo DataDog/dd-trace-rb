@@ -29,6 +29,5 @@ module TestCleanStateJob
   end
 end
 
-Datadog::Monkey.patch_module(:resque)
 Resque.after_fork { Datadog::Pin.get_from(Resque).tracer.writer = FauxWriter.new }
 Resque.before_first_fork.each(&:call)
