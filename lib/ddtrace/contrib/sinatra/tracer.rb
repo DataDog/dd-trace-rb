@@ -4,6 +4,7 @@ require 'sinatra/base'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
+require 'ddtrace/propagation/http_propagator'
 
 sinatra_vs = Gem::Version.new(Sinatra::VERSION)
 sinatra_min_vs = Gem::Version.new('1.4.0')
@@ -29,8 +30,8 @@ module Datadog
         end
 
         option :tracer, default: Datadog.tracer
-
         option :resource_script_names, default: false
+        option :distributed_tracing, default: false
 
         def route(verb, action, *)
           # Keep track of the route name when the app is instantiated for an
@@ -82,6 +83,11 @@ module Datadog
             end
 
             tracer = Datadog.configuration[:sinatra][:tracer]
+
+            if Datadog.configuration[:sinatra][:distributed_tracing]
+              context = HTTPPropagator.extract(request.env)
+              tracer.provider.context = context if context.trace_id
+            end
 
             span = tracer.trace('sinatra.request',
                                 service: Datadog.configuration[:sinatra][:service_name],
