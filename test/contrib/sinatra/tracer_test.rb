@@ -79,6 +79,31 @@ class TracerTest < TracerTestBase
     assert_nil(span.parent)
   end
 
+  def test_distributed_request
+    # Enable distributed tracing
+    Datadog.configuration.use(:sinatra, distributed_tracing: true)
+
+    response = get  '/request', {},
+                    'HTTP_X_DATADOG_TRACE_ID' => '1',
+                    'HTTP_X_DATADOG_PARENT_ID' => '2',
+                    'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s
+
+    assert_equal(200, response.status)
+
+    # Check spans
+    spans = @writer.spans
+    assert_equal(1, spans.length)
+
+    # Check span
+    span = spans[0]
+    assert_equal(1, span.trace_id)
+    assert_equal(2, span.parent_id)
+    assert_equal(2.0, span.get_metric('_sampling_priority_v1'))
+  ensure
+    # Disable distributed tracing
+    Datadog.configuration.use(:sinatra, distributed_tracing: false)
+  end
+
   def test_bad_request
     get '/bad-request'
     assert_equal(400, last_response.status)

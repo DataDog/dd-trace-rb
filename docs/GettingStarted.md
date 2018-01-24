@@ -108,6 +108,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | --- | --- |
 | ``service_name`` | Service name used for `sinatra` instrumentation | sinatra |
 | ``resource_script_names`` | Prepend resource names with script name | ``false`` |
+| ``distributed_tracing`` | Enables [distributed tracing](#Distributed_Tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ### Rack
