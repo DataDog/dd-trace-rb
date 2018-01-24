@@ -83,8 +83,9 @@ module Datadog
             end
 
             tracer = Datadog.configuration[:sinatra][:tracer]
+            distributed_tracing = Datadog.configuration[:sinatra][:distributed_tracing]
 
-            if Datadog.configuration[:sinatra][:distributed_tracing]
+            if distributed_tracing && tracer.provider.context.trace_id.nil?
               context = HTTPPropagator.extract(request.env)
               tracer.provider.context = context if context.trace_id
             end
