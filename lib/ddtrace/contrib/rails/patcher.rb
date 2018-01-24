@@ -12,6 +12,7 @@ module Datadog
         option :database_service
         option :distributed_tracing, default: false
         option :template_base_path, default: 'views/'
+        option :exception_controller, default: nil
         option :tracer, default: Datadog.tracer
 
         @patched = false

@@ -96,6 +96,12 @@ class TracingController < ActionController::Base
   end
 end
 
+class ErrorsController < ActionController::Base
+  def internal_server_error
+    head :internal_server_error
+  end
+end
+
 routes = {
   '/' => 'tracing#index',
   '/nested_partial' => 'tracing#nested_partial',
@@ -109,7 +115,8 @@ routes = {
   '/error_partial' => 'tracing#error_partial',
   '/missing_template' => 'tracing#missing_template',
   '/missing_partial' => 'tracing#missing_partial',
-  '/custom_resource' => 'tracing#custom_resource'
+  '/custom_resource' => 'tracing#custom_resource',
+  '/internal_server_error' => 'errors#internal_server_error'
 }
 
 if Rails.version >= '3.2.22.5'
