@@ -19,5 +19,6 @@ gem "sucker_punch"
 gem "dalli"
 gem "resque", "< 2.0"
 gem "racecar", ">= 0.3.5"
+gem "mysql2", platform: :ruby
 
 gemspec path: "../"

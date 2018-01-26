@@ -129,6 +129,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'dalli'
     gem 'resque', '< 2.0'
     gem 'racecar', '>= 0.3.5'
+    gem 'mysql2', platform: :ruby
   end
 else
   appraise 'contrib-old' do
@@ -146,5 +147,7 @@ else
     gem 'sucker_punch'
     gem 'dalli'
     gem 'resque', '< 2.0'
+    gem 'mysql2', '0.3.21', platform: :ruby
+    gem 'activerecord-mysql-adapter', platform: :ruby
   end
 end

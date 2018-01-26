@@ -4,7 +4,7 @@ source "https://rubygems.org"
 
 gem "pry-nav", git: "https://github.com/nixme/pry-nav.git", branch: "master"
 gem "elasticsearch-transport"
-gem "mongo"
+gem "mongo", "< 2.5"
 gem "redis", "< 4.0"
 gem "hiredis"
 gem "rack", "1.4.7"
@@ -17,5 +17,7 @@ gem "aws-sdk", "~> 2.0"
 gem "sucker_punch"
 gem "dalli"
 gem "resque", "< 2.0"
+gem "mysql2", "0.3.21", platform: :ruby
+gem "activerecord-mysql-adapter", platform: :ruby
 
 gemspec path: "../"
