@@ -53,6 +53,7 @@ namespace :spec do
     :mongodb,
     :racecar,
     :resque,
+    :active_record,
     :dalli
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t|
@@ -220,9 +221,11 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sucker_punch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:resque'
     # RSpec
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_record'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_record'
   when 2
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
     sh 'rvm $SIDEKIQ_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sidekiq'
