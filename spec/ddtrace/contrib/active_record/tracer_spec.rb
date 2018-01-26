@@ -3,7 +3,7 @@ require 'ddtrace'
 
 require_relative 'app'
 
-RSpec.describe 'Dalli instrumentation' do
+RSpec.describe 'ActiveRecord instrumentation' do
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
 
   before(:each) do
@@ -15,7 +15,11 @@ RSpec.describe 'Dalli instrumentation' do
   it 'calls the instrumentation when is used standalone' do
     Article.count
     spans = tracer.writer.spans
+    services = tracer.writer.services
+
+    # expect service and trace is sent
     expect(spans.size).to eq(1)
+    expect(services['mysql2']).to eq({'app'=>'active_record', 'app_type'=>'db'})
 
     span = spans[0]
     expect(span.service).to eq('mysql2')

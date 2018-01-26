@@ -62,7 +62,7 @@ module Datadog
           return @database_service if defined?(@database_service)
 
           @database_service = get_option(:service_name) || adapter_name
-          get_option(:tracer).set_service_info(@database_service, 'sinatra', Ext::AppTypes::DB)
+          get_option(:tracer).set_service_info(@database_service, 'active_record', Ext::AppTypes::DB)
           @database_service
         end
 
