@@ -6,6 +6,7 @@ module Datadog
         include Base
         register_as :active_record, auto_patch: false
         option :service_name
+        option :tracer, default: Datadog.tracer
 
         @patched = false
 
@@ -57,22 +58,18 @@ module Datadog
           @adapter_port ||= Datadog::Contrib::Rails::Utils.adapter_port
         end
 
-        def self.tracer
-          @tracer ||= Datadog.configuration[:sinatra][:tracer]
-        end
-
         def self.database_service
           return @database_service if defined?(@database_service)
 
           @database_service = get_option(:service_name) || adapter_name
-          tracer.set_service_info(@database_service, 'sinatra', Ext::AppTypes::DB)
+          get_option(:tracer).set_service_info(@database_service, 'sinatra', Ext::AppTypes::DB)
           @database_service
         end
 
         def self.sql(_name, start, finish, _id, payload)
           span_type = Datadog::Ext::SQL::TYPE
 
-          span = tracer.trace(
+          span = get_option(:tracer).trace(
             "#{adapter_name}.query",
             resource: payload.fetch(:sql),
             service: database_service,
