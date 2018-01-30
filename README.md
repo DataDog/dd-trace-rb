@@ -76,6 +76,7 @@ you can activate it. The example above would become:
     require 'active_record'
 
     Datadog.configure do |c|
+      c.tracer enabled: false # optional flag to disable tracer 
       c.use :sinatra
       c.use :active_record
     end
