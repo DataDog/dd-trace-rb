@@ -141,6 +141,7 @@ module Datadog
 
     def patch_action_controller
       patch_process_action
+      patch_callbacks
     end
 
     def patch_process_action
@@ -177,6 +178,13 @@ module Datadog
 
         alias_method :process_action_without_datadog, :process_action
         alias_method :process_action, :process_action_with_datadog
+      end
+    end
+
+    def patch_callbacks
+      if ::Rails.version >= '5.1'
+        ::AbstractController::Base.prepend(Datadog::Contrib::Rails::ActionController::Callbacks)
+        ::ActionController::Base.include(Datadog::Contrib::Rails::ActiveSupport::Callbacks)
       end
     end
   end

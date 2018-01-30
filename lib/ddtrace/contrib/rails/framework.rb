@@ -5,10 +5,12 @@ require 'ddtrace/contrib/grape/endpoint'
 require 'ddtrace/contrib/rack/middlewares'
 
 require 'ddtrace/contrib/rails/core_extensions'
+require 'ddtrace/contrib/rails/active_support'
+require 'ddtrace/contrib/rails/active_support/callbacks'
 require 'ddtrace/contrib/rails/action_controller'
+require 'ddtrace/contrib/rails/action_controller/callbacks'
 require 'ddtrace/contrib/rails/action_view'
 require 'ddtrace/contrib/rails/active_record'
-require 'ddtrace/contrib/rails/active_support'
 require 'ddtrace/contrib/rails/utils'
 
 module Datadog
