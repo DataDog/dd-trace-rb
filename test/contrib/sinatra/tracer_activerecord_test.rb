@@ -25,6 +25,10 @@ class TracerActiveRecordTest < TracerTestBase
         Article.count
       end
     end
+
+    get '/select_request' do
+      Article.all.entries.to_s
+    end
   end
 
   def app
@@ -112,6 +116,34 @@ class TracerActiveRecordTest < TracerTestBase
 
     # Assert cached flag set correctly on second query
     assert_equal('true', spans.last.get_tag('active_record.db.cached'))
+  end
+
+  def test_instantiation_tracing
+    # Only supported in Rails 4.2+
+    skip unless Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
+
+    # Make sure Article table exists
+    migrate_db
+    Article.create(title: 'Instantiation test')
+    @writer.spans # Clear spans
+
+    # Run query
+    get '/select_request'
+    assert_equal(200, last_response.status)
+
+    spans = @writer.spans
+    assert_equal(3, spans.length)
+
+    instantiation_span, sinatra_span, sqlite_span = spans
+
+    assert_equal(instantiation_span.name, 'active_record.instantiation')
+    assert_equal(instantiation_span.span_type, 'sql')
+    assert_equal(instantiation_span.service, get_adapter_name)
+    assert_equal(instantiation_span.resource, 'TracerActiveRecordTest::Article')
+    assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'TracerActiveRecordTest::Article')
+    assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), '1')
+    assert_equal(sinatra_span, instantiation_span.parent)
+    assert_equal(sinatra_span, sqlite_span.parent)
   end
 
   private
