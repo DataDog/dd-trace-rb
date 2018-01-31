@@ -184,7 +184,7 @@ module Datadog
     def patch_callbacks
       ::AbstractController::Base.include(Datadog::Contrib::Rails::AbstractController::Callbacks)
       ::ActionController::Base.include(Datadog::Contrib::Rails::ActionController::Callbacks)
-      ::ActionController::API.include(Datadog::Contrib::Rails::ActionController::Callbacks)
+      ::ActionController::API.include(Datadog::Contrib::Rails::ActionController::Callbacks) if ::Rails.version >= '5.0'
     end
   end
 
