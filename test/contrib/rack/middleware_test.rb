@@ -1,3 +1,4 @@
+require 'securerandom'
 require 'contrib/rack/helpers'
 
 # rubocop:disable Metrics/ClassLength
@@ -280,6 +281,28 @@ class TracerTest < RackBaseTest
     assert_equal('200', span.get_tag('http.status_code'))
     assert_equal('/success/', span.get_tag('http.url'))
     assert_equal('http://example.org', span.get_tag('http.base_url'))
+    assert_equal(0, span.status)
+    assert_nil(span.parent)
+  end
+
+  def test_request_middleware_request_id
+    request_id = SecureRandom.uuid
+    get '/success/', {}, 'HTTP_X_REQUEST_ID' => request_id
+    assert last_response.ok?
+
+    spans = @tracer.writer.spans
+    assert_equal(1, spans.length)
+
+    span = spans.first
+    assert_equal('rack.request', span.name)
+    assert_equal('http', span.span_type)
+    assert_equal('rack', span.service)
+    assert_equal('GET 200', span.resource)
+    assert_equal('GET', span.get_tag('http.method'))
+    assert_equal('200', span.get_tag('http.status_code'))
+    assert_equal('/success/', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
+    assert_equal(request_id, span.get_tag('http.request_id'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
   end
