@@ -15,6 +15,11 @@ module Datadog
           ::ActiveSupport::Notifications.subscribe('sql.active_record') do |*args|
             sql(*args)
           end
+
+          # subscribe when the active record instantiates objects
+          ::ActiveSupport::Notifications.subscribe('instantiation.active_record') do |*args|
+            instantiation(*args)
+          end
         end
 
         def self.sql(_name, start, finish, _id, payload)
@@ -47,6 +52,27 @@ module Datadog
           span.set_tag('rails.db.cached', cached) if cached
           span.set_tag('out.host', adapter_host)
           span.set_tag('out.port', adapter_port)
+          span.start_time = start
+          span.finish(finish)
+        rescue StandardError => e
+          Datadog::Tracer.log.error(e.message)
+        end
+
+        def self.instantiation(_name, start, finish, _id, payload)
+          tracer = Datadog.configuration[:rails][:tracer]
+          database_service = Datadog.configuration[:rails][:database_service]
+          span_type = Datadog::Ext::SQL::TYPE
+
+          span = tracer.trace(
+            'active_record.instantiation',
+            resource: payload.fetch(:class_name),
+            service: database_service,
+            span_type: span_type
+          )
+
+          span.span_type = Datadog::Ext::SQL::TYPE
+          span.set_tag('active_record.instantiation.class_name', payload.fetch(:class_name))
+          span.set_tag('active_record.instantiation.record_count', payload.fetch(:record_count))
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
