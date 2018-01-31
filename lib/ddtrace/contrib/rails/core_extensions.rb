@@ -182,10 +182,9 @@ module Datadog
     end
 
     def patch_callbacks
-      if ::Rails.version >= '5.1'
-        ::AbstractController::Base.prepend(Datadog::Contrib::Rails::ActionController::Callbacks)
-        ::ActionController::Base.include(Datadog::Contrib::Rails::ActiveSupport::Callbacks)
-      end
+      ::AbstractController::Base.include(Datadog::Contrib::Rails::AbstractController::Callbacks)
+      ::ActionController::Base.include(Datadog::Contrib::Rails::ActionController::Callbacks)
+      ::ActionController::API.include(Datadog::Contrib::Rails::ActionController::Callbacks)
     end
   end
 

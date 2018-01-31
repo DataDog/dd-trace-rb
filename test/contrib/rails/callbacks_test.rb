@@ -2,7 +2,6 @@ require 'helper'
 
 require 'contrib/rails/test_helper'
 
-# rubocop:disable Metrics/ClassLength
 class CallbacksControllerTest < ActionController::TestCase
   setup do
     @original_tracer = Datadog.configuration[:rails][:tracer]
@@ -14,7 +13,7 @@ class CallbacksControllerTest < ActionController::TestCase
     Datadog.configuration[:rails][:tracer] = @original_tracer
   end
 
-  if Rails.version >= '5.1'
+  if Rails.version >= '5.0'
     test 'request is properly traced' do
       get :index
       assert_response :success
@@ -29,6 +28,7 @@ class CallbacksControllerTest < ActionController::TestCase
       assert_equal(before_span.resource, 'before_request')
       assert_equal(before_span.get_tag('active_support.callback.name'), 'process_action')
       assert_equal(before_span.get_tag('active_support.callback.kind'), 'before')
+      assert_equal(before_span.get_tag('active_support.callback.key'), 'before_request')
 
       # Action span
       assert_equal(action_span.name, 'rails.action_controller.process_action')
@@ -41,6 +41,7 @@ class CallbacksControllerTest < ActionController::TestCase
       assert_equal(after_span.resource, 'after_request')
       assert_equal(after_span.get_tag('active_support.callback.name'), 'process_action')
       assert_equal(after_span.get_tag('active_support.callback.kind'), 'after')
+      assert_equal(after_span.get_tag('active_support.callback.key'), 'after_request')
 
       # Controller span
       assert_equal(controller_span.name, 'rails.action_controller')

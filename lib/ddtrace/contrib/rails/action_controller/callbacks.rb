@@ -1,17 +1,17 @@
+require 'ddtrace/contrib/rails/active_support/callbacks'
+require 'ddtrace/contrib/rails/action_controller/callbacks/rails50'
+
 module Datadog
   module Contrib
     module Rails
       module ActionController
-        # Patches callbacks for ActionControllers
+        # Includes correct Callbacks module
         module Callbacks
-          def process_action(*args)
-            tracer = Datadog.configuration[:rails][:tracer]
-            tracer.trace('rails.action_controller.process_action') do |span|
-              span.resource = "#{self.class}##{args.first}"
-              span.service = Datadog.configuration[:rails][:controller_service]
-              span.span_type = Ext::HTTP::TYPE
-
-              super
+          def self.included(base)
+            if ::Rails.version >= '5.1'
+              base.include(ActiveSupport::Callbacks)
+            elsif ::Rails.version >= '5.0'
+              base.include(Rails50)
             end
           end
         end
