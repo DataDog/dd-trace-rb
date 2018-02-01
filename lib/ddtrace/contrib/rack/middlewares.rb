@@ -87,6 +87,7 @@ module Datadog
           # we prefer using the `REQUEST_URI` if this is available.
           # NOTE: `REQUEST_URI` is Rails specific and may not apply for other frameworks
           url = env['REQUEST_URI'] || env['PATH_INFO']
+          request_id = get_request_id(headers, env)
 
           request_span.resource ||= resource_name_for(env, status)
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
@@ -110,12 +111,23 @@ module Datadog
           if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
             request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
           end
+          if request_span.get_tag(Datadog::Ext::HTTP::REQUEST_ID).nil? && request_id
+            request_span.set_tag(Datadog::Ext::HTTP::REQUEST_ID, request_id)
+          end
 
           # detect if the status code is a 5xx and flag the request span as an error
           # unless it has been already set by the underlying framework
           if status.to_s.start_with?('5') && request_span.status.zero?
             request_span.status = 1
           end
+        end
+
+        # If Rails is present, it will sanitize & use the Request ID header,
+        # or generate a UUID if no request ID header is present, then set that as headers['X-Request-Id'].
+        # Othewise use whatever Rack variables are present (they should all be the same.)
+        def get_request_id(headers, env)
+          headers ||= {}
+          headers['X-Request-Id'] || headers['X-Request-ID'] || env['HTTP_X_REQUEST_ID']
         end
       end
     end
