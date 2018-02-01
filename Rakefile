@@ -48,6 +48,7 @@ namespace :spec do
     :rack,
     :faraday,
     :grape,
+    :graphql,
     :aws,
     :sucker_punch,
     :mongodb,
@@ -112,7 +113,6 @@ namespace :test do
     :elasticsearch,
     :faraday,
     :grape,
-    :graphql,
     :http,
     :mongodb,
     :resque,
@@ -213,7 +213,6 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:rack'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:grape'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:graphql'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:faraday'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:aws'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:mongodb'
@@ -233,6 +232,7 @@ task :ci do
     # RSpec
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_record'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:graphql'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_record'
