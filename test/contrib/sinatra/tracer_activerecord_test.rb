@@ -137,8 +137,8 @@ class TracerActiveRecordTest < TracerTestBase
     instantiation_span, sinatra_span, sqlite_span = spans
 
     assert_equal(instantiation_span.name, 'active_record.instantiation')
-    assert_equal(instantiation_span.span_type, 'sql')
-    assert_equal(instantiation_span.service, get_adapter_name)
+    assert_equal(instantiation_span.span_type, 'ruby')
+    assert_equal(instantiation_span.service, Datadog.configuration[:active_record][:service_name])
     assert_equal(instantiation_span.resource, 'TracerActiveRecordTest::Article')
     assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'TracerActiveRecordTest::Article')
     assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), '1')

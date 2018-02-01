@@ -1,3 +1,8 @@
+require 'ddtrace/contrib/rails/utils'
+require 'ddtrace/ext/ruby'
+require 'ddtrace/ext/sql'
+require 'ddtrace/ext/app_types'
+
 module Datadog
   module Contrib
     module ActiveRecord
@@ -5,7 +10,15 @@ module Datadog
       module Patcher
         include Base
         register_as :active_record, auto_patch: false
-        option :service_name
+        option :service_name, default: 'active_record', depends_on: [:tracer] do |value|
+          get_option(:tracer).set_service_info(value, 'active_record', Ext::AppTypes::CUSTOM)
+          value
+        end
+        option :database_service, depends_on: [:tracer] do |value|
+          name = value || adapter_name
+          get_option(:tracer).set_service_info(name, 'active_record', Ext::AppTypes::DB)
+          name
+        end
         option :tracer, default: Datadog.tracer
 
         @patched = false
@@ -20,12 +33,7 @@ module Datadog
         def patch
           if !@patched && defined?(::ActiveRecord)
             begin
-              require 'ddtrace/contrib/rails/utils'
-              require 'ddtrace/ext/sql'
-              require 'ddtrace/ext/app_types'
-
-              patch_active_record()
-
+              patch_active_record
               @patched = true
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Active Record integration: #{e}")
@@ -63,22 +71,12 @@ module Datadog
           @adapter_port ||= Datadog::Contrib::Rails::Utils.adapter_port
         end
 
-        def self.database_service
-          return @database_service if defined?(@database_service)
-
-          @database_service = get_option(:service_name) || adapter_name
-          get_option(:tracer).set_service_info(@database_service, 'active_record', Ext::AppTypes::DB)
-          @database_service
-        end
-
         def self.sql(_name, start, finish, _id, payload)
-          span_type = Datadog::Ext::SQL::TYPE
-
           span = get_option(:tracer).trace(
             "#{adapter_name}.query",
             resource: payload.fetch(:sql),
-            service: database_service,
-            span_type: span_type
+            service: get_option(:database_service),
+            span_type: Datadog::Ext::SQL::TYPE
           )
 
           # Find out if the SQL query has been cached in this request. This meta is really
@@ -89,7 +87,6 @@ module Datadog
           # the span should have the query ONLY in the Resource attribute,
           # so that the ``sql.query`` tag will be set in the agent with an
           # obfuscated version
-          span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('active_record.db.vendor', adapter_name)
           span.set_tag('active_record.db.name', database_name)
           span.set_tag('active_record.db.cached', cached) if cached
@@ -102,16 +99,13 @@ module Datadog
         end
 
         def self.instantiation(_name, start, finish, _id, payload)
-          span_type = Datadog::Ext::SQL::TYPE
-
           span = get_option(:tracer).trace(
             'active_record.instantiation',
             resource: payload.fetch(:class_name),
-            service: database_service,
-            span_type: span_type
+            service: get_option(:service_name),
+            span_type: Datadog::Ext::Ruby::TYPE
           )
 
-          span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('active_record.instantiation.class_name', payload.fetch(:class_name))
           span.set_tag('active_record.instantiation.record_count', payload.fetch(:record_count))
           span.start_time = start
