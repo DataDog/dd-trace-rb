@@ -1,5 +1,5 @@
 require 'ddtrace/ext/sql'
-
+require 'ddtrace/ext/ruby'
 require 'ddtrace/contrib/rails/utils'
 
 module Datadog
@@ -29,13 +29,12 @@ module Datadog
           database_name = Datadog::Contrib::Rails::Utils.database_name
           adapter_host = Datadog::Contrib::Rails::Utils.adapter_host
           adapter_port = Datadog::Contrib::Rails::Utils.adapter_port
-          span_type = Datadog::Ext::SQL::TYPE
 
           span = tracer.trace(
             "#{adapter_name}.query",
             resource: payload.fetch(:sql),
             service: database_service,
-            span_type: span_type
+            span_type: Datadog::Ext::SQL::TYPE
           )
 
           # Find out if the SQL query has been cached in this request. This meta is really
@@ -46,7 +45,6 @@ module Datadog
           # the span should have the query ONLY in the Resource attribute,
           # so that the ``sql.query`` tag will be set in the agent with an
           # obfuscated version
-          span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('rails.db.vendor', adapter_name)
           span.set_tag('rails.db.name', database_name)
           span.set_tag('rails.db.cached', cached) if cached
@@ -60,17 +58,15 @@ module Datadog
 
         def self.instantiation(_name, start, finish, _id, payload)
           tracer = Datadog.configuration[:rails][:tracer]
-          database_service = Datadog.configuration[:rails][:database_service]
-          span_type = Datadog::Ext::SQL::TYPE
+          rails_service = Datadog.configuration[:rails][:service_name]
 
           span = tracer.trace(
             'active_record.instantiation',
             resource: payload.fetch(:class_name),
-            service: database_service,
-            span_type: span_type
+            service: rails_service,
+            span_type: Datadog::Ext::Ruby::TYPE
           )
 
-          span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('active_record.instantiation.class_name', payload.fetch(:class_name))
           span.set_tag('active_record.instantiation.record_count', payload.fetch(:record_count))
           span.start_time = start
