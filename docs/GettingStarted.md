@@ -41,6 +41,7 @@ For further details and options, check our integrations list.
 * [Ruby on Rails](#Ruby_on_Rails)
 * [Sinatra](#Sinatra)
 * [Rack](#Rack)
+* [GraphQL](#GraphQL)
 * [Grape](#Grape)
 * [Active Record](#Active_Record)
 * [Elastic Search](#Elastic_Search)
@@ -143,6 +144,57 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ## Other libraries
+
+### GraphQL
+
+*Version 1.7.9+ supported*
+
+The GraphQL integration activates instrumentation for GraphQL queries. To activate your integration, use the ``Datadog.configure`` method:
+
+    # Inside Rails initializer or equivalent
+    Datadog.configure do |c|
+      c.use :graphql,
+            service_name: 'graphql',
+            schemas: [YourSchema]
+    end
+
+    # Then run a GraphQL query
+    YourSchema.execute(query, variables: {}, context: {}, operation_name: nil)
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `graphql` instrumentation | ``ruby-graphql`` |
+| ``schemas`` | Optional. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you supply your schema in this option, do not add `use(GraphQL::Tracing::DataDogTracing)` to the schema's definition, to avoid double traces. If you do not supply this option, you will need to individually configure your own schemas (see below.) | ``[]`` |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+
+##### Manually configuring GraphQL schemas
+
+If you have multiple schemas, and/or you prefer to individually configure the tracer settings for each,
+in the schema definition, you can add the following:
+
+```
+YourSchema = GraphQL::Schema.define do
+  use(
+    GraphQL::Tracing::DataDogTracing,
+    service: 'graphql',
+    tracer: Datadog.tracer
+  )
+end
+```
+
+Or you can modify an already defined schema:
+
+```
+YourSchema.define do
+  use(
+    GraphQL::Tracing::DataDogTracing,
+    service: 'graphql',
+    tracer: Datadog.tracer
+  )
+end
+```
 
 ### Grape
 
