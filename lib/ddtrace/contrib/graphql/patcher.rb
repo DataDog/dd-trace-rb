@@ -8,6 +8,7 @@ module Datadog
       module Patcher
         include Base
         register_as :graphql
+
         option :tracer, default: Datadog.tracer
         option :service_name, default: 'ruby-graphql', depends_on: [:tracer] do |value|
           get_option(:tracer).set_service_info(value, 'ruby-graphql', Ext::AppTypes::WEB)
