@@ -65,14 +65,15 @@ end
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
-             :elasticsearch, :http, :redis, :sidekiq, :sinatra]
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :monkey]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w[test lib]
     t.test_files = FileList['test/**/*_test.rb'].reject do |path|
       path.include?('contrib') ||
         path.include?('benchmark') ||
-        path.include?('redis')
+        path.include?('redis') ||
+        path.include?('monkey_test.rb')
     end
   end
 
@@ -124,6 +125,11 @@ namespace :test do
       t.libs << %w[test lib]
       t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
     end
+  end
+
+  Rake::TestTask.new(:monkey) do |t|
+    t.libs << %w[test lib]
+    t.test_files = FileList['test/monkey_test.rb']
   end
 end
 
@@ -210,6 +216,7 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:mongodb'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sucker_punch'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:resque'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:monkey'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:elasticsearch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:http'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:redis'
