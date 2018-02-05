@@ -46,7 +46,9 @@ module Datadog
           private
 
           def compatible?
-            defined?(::GraphQL) && defined?(::GraphQL::Tracing::DataDogTracing)
+            defined?(::GraphQL) \
+              && defined?(::GraphQL::Tracing::DataDogTracing) \
+              && Gem.loaded_specs['graphql'].version >= Gem::Version.new('1.7.9')
           end
         end
       end
