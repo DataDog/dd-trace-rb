@@ -7,6 +7,14 @@ require 'ddtrace'
 RSpec.describe 'GraphQL patcher' do
   include_context 'GraphQL test schema'
 
+  # GraphQL generates tons of warnings.
+  # This suppresses those warnings. 
+  around(:each) do |example|
+    without_warnings do
+      example.run
+    end
+  end
+
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
 
   def all_spans

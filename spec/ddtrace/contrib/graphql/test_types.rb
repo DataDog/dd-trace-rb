@@ -1,4 +1,6 @@
-require 'graphql'
+LogHelpers.without_warnings do
+  require 'graphql'
+end
 
 RSpec.shared_context 'GraphQL test schema' do
   let(:schema) do

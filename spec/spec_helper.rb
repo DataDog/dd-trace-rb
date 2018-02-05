@@ -16,6 +16,7 @@ require 'support/faux_writer'
 # require 'support/rails_active_record_helpers'
 # require 'support/configuration_helpers'
 require 'support/synchronization_helpers'
+require 'support/log_helpers'
 
 WebMock.allow_net_connect!
 WebMock.disable!
@@ -25,6 +26,7 @@ RSpec.configure do |config|
   # config.include RailsActiveRecordHelpers
   # config.include ConfigurationHelpers
   config.include SynchronizationHelpers
+  config.include LogHelpers
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
