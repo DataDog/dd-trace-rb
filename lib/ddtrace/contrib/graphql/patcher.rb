@@ -14,11 +14,11 @@ module Datadog
           get_option(:tracer).set_service_info(value, 'ruby-graphql', Ext::AppTypes::WEB)
           value
         end
-        option :schemas, default: []
+        option :schemas
 
         class << self
           def patch
-            return patched? if patched? || !compatible?
+            return patched? if patched? || !compatible? || get_option(:schemas).nil?
 
             get_option(:schemas).each { |s| patch_schema!(s) }
 

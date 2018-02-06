@@ -17,9 +17,12 @@ RSpec.describe 'GraphQL patcher' do
 
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
 
-  def all_spans
+  def pop_spans
     tracer.writer.spans(:keep)
   end
+
+  let(:all_spans) { pop_spans }
+  let(:root_span) { all_spans.find { |s| s.parent.nil? } }
 
   before(:each) do
     Datadog.configure do |c|
@@ -45,10 +48,25 @@ RSpec.describe 'GraphQL patcher' do
       # Expect nine spans
       expect(all_spans).to have(9).items
 
+      # List of valid resource names
+      # (If this is too brittle, revist later.)
+      valid_resource_names = [
+        'Query.foo',
+        'analyze.graphql',
+        'execute.graphql',
+        'lex.graphql',
+        'parse.graphql',
+        'validate.graphql'
+      ]
+
+      # Expect root span to be 'execute.graphql'
+      expect(root_span.name).to eq('execute.graphql')
+      expect(root_span.resource).to eq('execute.graphql')
+
       # Expect each span to be properly named
       all_spans.each do |span|
         expect(span.service).to eq('graphql-test')
-        expect(span.resource.to_s).to_not be_empty
+        expect(valid_resource_names).to include(span.resource.to_s)
       end
     end
   end
