@@ -18,18 +18,24 @@ class TracingControllerTest < ActionController::TestCase
     assert_raises ZeroDivisionError do
       get :error
     end
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 1)
+    spans = @tracer.writer.spans
 
-    span = spans[0]
-    assert_equal(span.name, 'rails.action_controller')
-    assert_equal(span.status, 1)
-    assert_equal(span.span_type, 'http')
-    assert_equal(span.resource, 'TracingController#error')
-    assert_equal(span.get_tag('rails.route.action'), 'error')
-    assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
-    assert_equal(span.get_tag('error.type'), 'ZeroDivisionError')
-    assert_equal(span.get_tag('error.msg'), 'divided by 0')
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(spans.length, 2)
+      controller_span, action_span = spans
+    else
+      assert_equal(spans.length, 1)
+      controller_span = spans.first
+    end
+
+    assert_equal(controller_span.name, 'rails.action_controller')
+    assert_equal(controller_span.status, 1)
+    assert_equal(controller_span.span_type, 'http')
+    assert_equal(controller_span.resource, 'TracingController#error')
+    assert_equal(controller_span.get_tag('rails.route.action'), 'error')
+    assert_equal(controller_span.get_tag('rails.route.controller'), 'TracingController')
+    assert_equal(controller_span.get_tag('error.type'), 'ZeroDivisionError')
+    assert_equal(controller_span.get_tag('error.msg'), 'divided by 0')
   end
 
   test '404 should not be traced as errors' do
@@ -37,20 +43,28 @@ class TracingControllerTest < ActionController::TestCase
       get :not_found
     end
 
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 1)
+    spans = @tracer.writer.spans
 
-    span = spans[0]
-    assert_equal(span.name, 'rails.action_controller')
-    assert_equal(span.span_type, 'http')
-    assert_equal(span.resource, 'TracingController#not_found')
-    assert_equal(span.get_tag('rails.route.action'), 'not_found')
-    assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
-    # Stop here for old Rails versions, which have no ActionDispatch::ExceptionWrapper
-    return if Rails.version < '3.2.22.5'
-    assert_equal(span.status, 0)
-    assert_nil(span.get_tag('error.type'))
-    assert_nil(span.get_tag('error.msg'))
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(spans.length, 2)
+      controller_span, action_span = spans
+    else
+      assert_equal(spans.length, 1)
+      controller_span = spans.first
+    end
+
+    assert_equal(controller_span.name, 'rails.action_controller')
+    assert_equal(controller_span.span_type, 'http')
+    assert_equal(controller_span.resource, 'TracingController#not_found')
+    assert_equal(controller_span.get_tag('rails.route.action'), 'not_found')
+    assert_equal(controller_span.get_tag('rails.route.controller'), 'TracingController')
+
+    # Old Rails versions have no ActionDispatch::ExceptionWrapper
+    unless Rails.version < '3.2.22.5'
+      assert_equal(controller_span.status, 0)
+      assert_nil(controller_span.get_tag('error.type'))
+      assert_nil(controller_span.get_tag('error.msg'))
+    end
   end
 
   test 'missing rendering should close the template Span' do
@@ -59,10 +73,15 @@ class TracingControllerTest < ActionController::TestCase
     assert_raises ::ActionView::MissingTemplate do
       get :missing_template
     end
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 2)
+    spans = @tracer.writer.spans
 
-    span_request, span_template = spans
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(spans.length, 3)
+      span_request, span_action, span_template = spans
+    else
+      assert_equal(spans.length, 2)
+      span_request, span_template = spans
+    end
 
     assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
@@ -72,6 +91,15 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span_request.get_tag('error.type'), 'ActionView::MissingTemplate')
     assert_includes(span_request.get_tag('error.msg'), 'Missing template views/tracing/ouch.not.here')
+
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(span_action.name, 'rails.action_controller.process_action')
+      assert_equal(span_action.status, 1)
+      assert_equal(span_action.span_type, 'http')
+      assert_equal(span_action.resource, 'TracingController#missing_template')
+      assert_equal(span_action.get_tag('error.type'), 'ActionView::MissingTemplate')
+      assert_includes(span_action.get_tag('error.msg'), 'Missing template views/tracing/ouch.not.here')
+    end
 
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_template.status, 1)
@@ -102,9 +130,15 @@ class TracingControllerTest < ActionController::TestCase
                             'ActionView::MissingTemplate'
                           end
 
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 3)
-    span_request, span_partial, span_template = spans
+    spans = @tracer.writer.spans
+
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(spans.length, 4)
+      span_request, span_action, span_partial, span_template = spans
+    else
+      assert_equal(spans.length, 3)
+      span_request, span_partial, span_template = spans
+    end
 
     assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
@@ -114,6 +148,15 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
     assert_includes(span_request.get_tag('error.msg'), error_msg)
+
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(span_action.name, 'rails.action_controller.process_action')
+      assert_equal(span_action.status, 1)
+      assert_equal(span_action.span_type, 'http')
+      assert_equal(span_action.resource, 'TracingController#missing_partial')
+      assert_equal(span_action.get_tag('error.type'), 'ActionView::Template::Error')
+      assert_includes(span_action.get_tag('error.msg'), error_msg)
+    end
 
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.status, 1)
@@ -138,10 +181,15 @@ class TracingControllerTest < ActionController::TestCase
     assert_raises ::ActionView::Template::Error do
       get :error_template
     end
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 2)
+    spans = @tracer.writer.spans
 
-    span_request, span_template = spans
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(spans.length, 3)
+      span_request, span_action, span_template = spans
+    else
+      assert_equal(spans.length, 2)
+      span_request, span_template = spans
+    end
 
     assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
@@ -151,6 +199,15 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_request.get_tag('error.msg'), 'divided by 0')
+
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(span_action.name, 'rails.action_controller.process_action')
+      assert_equal(span_action.status, 1)
+      assert_equal(span_action.span_type, 'http')
+      assert_equal(span_action.resource, 'TracingController#error_template')
+      assert_equal(span_action.get_tag('error.type'), 'ActionView::Template::Error')
+      assert_equal(span_action.get_tag('error.msg'), 'divided by 0')
+    end
 
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_template.status, 1)
@@ -174,10 +231,15 @@ class TracingControllerTest < ActionController::TestCase
     assert_raises ::ActionView::Template::Error do
       get :error_partial
     end
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 3)
+    spans = @tracer.writer.spans
 
-    span_request, span_partial, span_template = spans
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(spans.length, 4)
+      span_request, span_action, span_partial, span_template = spans
+    else
+      assert_equal(spans.length, 3)
+      span_request, span_partial, span_template = spans
+    end
 
     assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
@@ -187,6 +249,15 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_request.get_tag('error.msg'), 'divided by 0')
+
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert_equal(span_action.name, 'rails.action_controller.process_action')
+      assert_equal(span_action.status, 1)
+      assert_equal(span_action.span_type, 'http')
+      assert_equal(span_action.resource, 'TracingController#error_partial')
+      assert_equal(span_action.get_tag('error.type'), 'ActionView::Template::Error')
+      assert_equal(span_action.get_tag('error.msg'), 'divided by 0')
+    end
 
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.status, 1)

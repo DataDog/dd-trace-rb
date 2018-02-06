@@ -41,6 +41,10 @@ module Datadog
             Gem.loaded_specs['activerecord'] \
               && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
           end
+
+          def controller_callback_tracing_supported?
+            defined?(::Rails) && Gem::Version.new(::Rails.version) >= Gem::Version.new('5.0')
+          end
         end
       end
     end

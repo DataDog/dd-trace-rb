@@ -99,8 +99,13 @@ end
 class CallbacksController < ActionController::Base
   include Rails.application.routes.url_helpers
 
-  before_action :before_request
-  after_action :after_request
+  if Rails.version >= '4.0'
+    before_action :before_request
+    after_action :after_request
+  else
+    before_filter :before_request
+    after_filter :after_request
+  end
 
   def index
     head :ok
