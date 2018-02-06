@@ -10,15 +10,10 @@ module Datadog
       module Patcher
         include Base
         register_as :active_record, auto_patch: false
-        option :service_name, default: 'active_record', depends_on: [:tracer] do |value|
-          get_option(:tracer).set_service_info(value, 'active_record', Ext::AppTypes::CUSTOM)
-          value
+        option :service_name do |value|
+          value.tap { @database_service_name = nil }
         end
-        option :database_service, depends_on: [:tracer] do |value|
-          name = value || adapter_name
-          get_option(:tracer).set_service_info(name, 'active_record', Ext::AppTypes::DB)
-          name
-        end
+        option :ruby_service_name
         option :tracer, default: Datadog.tracer
 
         @patched = false
@@ -55,6 +50,15 @@ module Datadog
           end
         end
 
+        # NOTE: Resolve this here instead of in the option defaults,
+        #       because resolving adapter name as a default causes ActiveRecord to connect,
+        #       which isn't a good idea at initialization time.
+        def self.database_service_name
+          @database_service_name ||= (get_option(:service_name) || adapter_name).tap do |name|
+            get_option(:tracer).set_service_info(name, 'active_record', Ext::AppTypes::DB)
+          end
+        end
+
         def self.adapter_name
           @adapter_name ||= Datadog::Contrib::Rails::Utils.adapter_name
         end
@@ -75,7 +79,7 @@ module Datadog
           span = get_option(:tracer).trace(
             "#{adapter_name}.query",
             resource: payload.fetch(:sql),
-            service: get_option(:database_service),
+            service: database_service_name,
             span_type: Datadog::Ext::SQL::TYPE
           )
 
@@ -95,23 +99,31 @@ module Datadog
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
         end
 
         def self.instantiation(_name, start, finish, _id, payload)
           span = get_option(:tracer).trace(
             'active_record.instantiation',
             resource: payload.fetch(:class_name),
-            service: get_option(:service_name),
             span_type: Datadog::Ext::Ruby::TYPE
           )
+
+          # Inherit service name from parent, if available.
+          span.service = if get_option(:ruby_service_name)
+                           get_option(:ruby_service_name)
+                         elsif span.parent
+                           span.parent.service
+                         else
+                           'active_record'
+                         end
 
           span.set_tag('active_record.instantiation.class_name', payload.fetch(:class_name))
           span.set_tag('active_record.instantiation.record_count', payload.fetch(:record_count))
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
         end
       end
     end

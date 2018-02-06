@@ -53,26 +53,25 @@ module Datadog
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
         end
 
         def self.instantiation(_name, start, finish, _id, payload)
           tracer = Datadog.configuration[:rails][:tracer]
-          rails_service = Datadog.configuration[:rails][:service_name]
 
           span = tracer.trace(
             'active_record.instantiation',
             resource: payload.fetch(:class_name),
-            service: rails_service,
             span_type: Datadog::Ext::Ruby::TYPE
           )
 
+          span.service = span.parent ? span.parent.service : Datadog.configuration[:rails][:service_name]
           span.set_tag('active_record.instantiation.class_name', payload.fetch(:class_name))
           span.set_tag('active_record.instantiation.record_count', payload.fetch(:record_count))
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
         end
       end
     end
