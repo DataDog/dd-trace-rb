@@ -100,6 +100,18 @@ the tracer inside your class.
     end
 ```
 
+To configure the Datadog Tracer, you can define the `configure` block as follows:
+
+```ruby
+    Datadog.configure do |c|
+      c.tracer enabled: false, hostname: 'trace-agent.local'
+      # [...]
+    end
+```
+
+For a list of available options, check the [Tracer documentation](http://gems.datadoghq.com/trace/docs/#Configure_the_tracer).
+
+
 To know if a given framework or lib is supported by our client,
 please consult our [integrations][contrib] list.
 
