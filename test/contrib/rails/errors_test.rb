@@ -20,13 +20,12 @@ class TracingControllerTest < ActionController::TestCase
     end
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 2)
-      controller_span, action_span = spans
     else
       assert_equal(spans.length, 1)
-      controller_span = spans.first
     end
+    controller_span, = spans
 
     assert_equal(controller_span.name, 'rails.action_controller')
     assert_equal(controller_span.status, 1)
@@ -45,13 +44,12 @@ class TracingControllerTest < ActionController::TestCase
 
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 2)
-      controller_span, action_span = spans
     else
       assert_equal(spans.length, 1)
-      controller_span = spans.first
     end
+    controller_span, = spans
 
     assert_equal(controller_span.name, 'rails.action_controller')
     assert_equal(controller_span.span_type, 'http')
@@ -75,7 +73,7 @@ class TracingControllerTest < ActionController::TestCase
     end
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 3)
       span_request, span_action, span_template = spans
     else
@@ -92,7 +90,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('error.type'), 'ActionView::MissingTemplate')
     assert_includes(span_request.get_tag('error.msg'), 'Missing template views/tracing/ouch.not.here')
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(span_action.name, 'rails.action_controller.process_action')
       assert_equal(span_action.status, 1)
       assert_equal(span_action.span_type, 'http')
@@ -111,6 +109,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_includes(span_template.get_tag('error.msg'), 'Missing template views/tracing/ouch.not.here')
   end
 
+  # rubocop:disable Metrics/BlockLength
   test 'missing partial rendering should close the template Span' do
     # this route raises an exception, but the notification `render_partial.action_view`
     # is not fired, causing unfinished spans; this test protects from regressions
@@ -132,7 +131,7 @@ class TracingControllerTest < ActionController::TestCase
 
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 4)
       span_request, span_action, span_partial, span_template = spans
     else
@@ -149,7 +148,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
     assert_includes(span_request.get_tag('error.msg'), error_msg)
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(span_action.name, 'rails.action_controller.process_action')
       assert_equal(span_action.status, 1)
       assert_equal(span_action.span_type, 'http')
@@ -183,7 +182,7 @@ class TracingControllerTest < ActionController::TestCase
     end
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 3)
       span_request, span_action, span_template = spans
     else
@@ -200,7 +199,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_request.get_tag('error.msg'), 'divided by 0')
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(span_action.name, 'rails.action_controller.process_action')
       assert_equal(span_action.status, 1)
       assert_equal(span_action.span_type, 'http')
@@ -233,7 +232,7 @@ class TracingControllerTest < ActionController::TestCase
     end
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 4)
       span_request, span_action, span_partial, span_template = spans
     else
@@ -250,7 +249,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('error.type'), 'ActionView::Template::Error')
     assert_equal(span_request.get_tag('error.msg'), 'divided by 0')
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(span_action.name, 'rails.action_controller.process_action')
       assert_equal(span_action.status, 1)
       assert_equal(span_action.span_type, 'http')

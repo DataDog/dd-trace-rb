@@ -6,15 +6,23 @@ class CallbacksControllerTest < ActionController::TestCase
   setup do
     @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer
-    Datadog.configuration[:rails][:tracer] = @tracer
+    Datadog.configure do |c|
+      c.use :rails, tracer: @tracer, controller_callback_tracing: true
+    end
+
+    # If this isn't the first test to run, callbacks may not have been patched in.
+    # Make sure they're activated by calling patch manually.
+    Datadog::RailsActionPatcher.patch_callbacks
   end
 
   teardown do
     Datadog.configuration[:rails][:tracer] = @original_tracer
   end
 
-  if Rails.version >= '5.0'
-    test 'request is properly traced' do
+  test 'request is properly traced' do
+    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      assert(Datadog::RailsActionPatcher.callbacks_patched?)
+
       get :index
       assert_response :success
       spans = @tracer.writer.spans

@@ -19,7 +19,7 @@ class TracingControllerTest < ActionController::TestCase
     get :index
     assert_response :success
     spans = @tracer.writer.spans
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 3)
     else
       assert_equal(spans.length, 2)
@@ -53,7 +53,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_response :success
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 3)
       span = spans[2]
     else
@@ -75,7 +75,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_response :success
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 4)
       _, _, span_partial, span_template = spans
     else
@@ -102,7 +102,7 @@ class TracingControllerTest < ActionController::TestCase
     # Verify correct number of spans
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 5)
       _, _, span_outer_partial, span_inner_partial, span_template = spans
     else
@@ -138,7 +138,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_response :success
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported? \
+    if Datadog::RailsActionPatcher.callbacks_patched? \
       && Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
       assert_equal(spans.length, 6)
       span_instantiation, span_database, span_request, span_action, span_cache, span_template = spans
@@ -159,7 +159,7 @@ class TracingControllerTest < ActionController::TestCase
       assert_equal(span_instantiation.parent, span_template)
       assert_equal(span_cache.parent, span_action)
       assert_equal(span_action.parent, span_request)
-    elsif Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    elsif Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 5)
       span_database, span_request, span_action, span_cache, span_template = spans
 
@@ -233,7 +233,7 @@ class TracingControllerTest < ActionController::TestCase
     end
     assert_equal(true, err, 'should have raised an error')
     spans = @tracer.writer.spans
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(2, spans.length)
     else
       assert_equal(1, spans.length)
@@ -253,7 +253,7 @@ class TracingControllerTest < ActionController::TestCase
     spans = @tracer.writer.spans
 
     if Rails::VERSION::MAJOR.to_i >= 5
-      if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+      if Datadog::RailsActionPatcher.callbacks_patched?
         assert_equal(2, spans.length)
       else
         assert_equal(1, spans.length)
@@ -275,9 +275,9 @@ class TracingControllerTest < ActionController::TestCase
     assert_response :success
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(spans.length, 2)
-      span_request, span_action = spans
+      _, span_action = spans
 
       span_action.tap do |span|
         assert_equal('custom-resource', span.resource)
@@ -302,13 +302,13 @@ class TracingControllerTest < ActionController::TestCase
 
     spans = @tracer.writer.spans
 
-    if Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched?
       assert_equal(5, spans.length)
-      brother_span, parent_span, controller_span, action_span = spans
     else
       assert_equal(4, spans.length)
-      brother_span, parent_span, controller_span = spans
     end
+
+    brother_span, parent_span, controller_span, = spans
 
     assert_equal('rails.action_controller', controller_span.name)
     assert_equal('http', controller_span.span_type)
