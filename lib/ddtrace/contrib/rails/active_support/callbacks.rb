@@ -8,10 +8,16 @@ module Datadog
         # Includes correct Callbacks module
         module Callbacks
           def self.included(base)
-            if ::Rails.version >= '5.1'
-              base.include(Rails51)
-            elsif ::Rails.version >= '5.0'
-              base.include(Rails50)
+            begin
+              # 5.1.x only
+              if ::Rails.version >= '5.1' && ::Rails.version < '5.2'
+                base.include(Rails51)
+              # 5.0.x only
+              elsif ::Rails.version >= '5.0' && ::Rails.version < '5.1'
+                base.include(Rails50)
+              end
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to patch ActiveSupport callbacks: #{e}")
             end
           end
         end
