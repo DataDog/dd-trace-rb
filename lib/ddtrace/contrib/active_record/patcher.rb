@@ -51,6 +51,11 @@ module Datadog
           end
         end
 
+        def instantiation_tracing_supported?
+          Gem.loaded_specs['activerecord'] \
+            && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
+        end
+
         # NOTE: Resolve this here instead of in the option defaults,
         #       because resolving adapter name as a default causes ActiveRecord to connect,
         #       which isn't a good idea at initialization time.

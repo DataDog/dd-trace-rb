@@ -36,6 +36,11 @@ module Datadog
 
             defined?(::Rails::VERSION) && ::Rails::VERSION::MAJOR.to_i >= 3
           end
+
+          def active_record_instantiation_tracing_supported?
+            Gem.loaded_specs['activerecord'] \
+              && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
+          end
         end
       end
     end

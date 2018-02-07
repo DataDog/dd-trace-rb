@@ -38,8 +38,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
   end
 
   test 'active record traces instantiation' do
-    # Only supported in Rails 4.2+
-    if Rails.version >= '4.2'
+    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
       begin
         Article.create(title: 'Instantiation test')
         @tracer.writer.spans # Clear spans
