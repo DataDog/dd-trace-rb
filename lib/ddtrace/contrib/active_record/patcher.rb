@@ -1,4 +1,3 @@
-require 'ddtrace/contrib/rails/utils'
 require 'ddtrace/ext/ruby'
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
@@ -13,7 +12,7 @@ module Datadog
         option :service_name do |value|
           value.tap { @database_service_name = nil }
         end
-        option :ruby_service_name
+        option :orm_service_name
         option :tracer, default: Datadog.tracer
 
         @patched = false
@@ -28,6 +27,8 @@ module Datadog
         def patch
           if !@patched && defined?(::ActiveRecord)
             begin
+              require 'ddtrace/contrib/rails/utils'
+
               patch_active_record
               @patched = true
             rescue StandardError => e
@@ -106,12 +107,12 @@ module Datadog
           span = get_option(:tracer).trace(
             'active_record.instantiation',
             resource: payload.fetch(:class_name),
-            span_type: Datadog::Ext::Ruby::TYPE
+            span_type: 'custom'
           )
 
           # Inherit service name from parent, if available.
-          span.service = if get_option(:ruby_service_name)
-                           get_option(:ruby_service_name)
+          span.service = if get_option(:orm_service_name)
+                           get_option(:orm_service_name)
                          elsif span.parent
                            span.parent.service
                          else

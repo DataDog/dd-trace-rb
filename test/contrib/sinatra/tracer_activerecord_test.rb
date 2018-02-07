@@ -137,7 +137,7 @@ class TracerActiveRecordTest < TracerTestBase
     instantiation_span, sinatra_span, sqlite_span = spans
 
     assert_equal(instantiation_span.name, 'active_record.instantiation')
-    assert_equal(instantiation_span.span_type, 'ruby')
+    assert_equal(instantiation_span.span_type, 'custom')
     assert_equal(instantiation_span.service, sinatra_span.service)
     assert_equal(instantiation_span.resource, 'TracerActiveRecordTest::Article')
     assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'TracerActiveRecordTest::Article')

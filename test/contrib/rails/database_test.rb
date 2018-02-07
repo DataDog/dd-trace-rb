@@ -51,7 +51,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
 
         instantiation_span = spans.first
         assert_equal(instantiation_span.name, 'active_record.instantiation')
-        assert_equal(instantiation_span.span_type, 'ruby')
+        assert_equal(instantiation_span.span_type, 'custom')
         assert_equal(instantiation_span.service, Datadog.configuration[:rails][:service_name])
         assert_equal(instantiation_span.resource, 'Article')
         assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'Article')

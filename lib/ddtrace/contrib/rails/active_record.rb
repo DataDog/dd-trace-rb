@@ -62,7 +62,7 @@ module Datadog
           span = tracer.trace(
             'active_record.instantiation',
             resource: payload.fetch(:class_name),
-            span_type: Datadog::Ext::Ruby::TYPE
+            span_type: 'custom'
           )
 
           span.service = span.parent ? span.parent.service : Datadog.configuration[:rails][:service_name]
