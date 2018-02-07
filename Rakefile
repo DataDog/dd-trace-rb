@@ -48,6 +48,7 @@ namespace :spec do
     :rack,
     :faraday,
     :grape,
+    :graphql,
     :aws,
     :sucker_punch,
     :mongodb,
@@ -108,18 +109,19 @@ namespace :test do
   end
 
   [
+    :aws,
     :elasticsearch,
-    :http,
-    :redis,
-    :sinatra,
-    :sidekiq,
-    :rack,
     :faraday,
     :grape,
-    :aws,
-    :sucker_punch,
+    :http,
     :mongodb,
-    :resque
+    :resque,
+    :rack,
+    :redis,
+    :resque,
+    :sidekiq,
+    :sinatra,
+    :sucker_punch
   ].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
       t.libs << %w[test lib]
@@ -230,6 +232,7 @@ task :ci do
     # RSpec
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_record'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:graphql'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_record'
