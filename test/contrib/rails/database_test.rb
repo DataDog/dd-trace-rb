@@ -37,6 +37,30 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     assert_nil(span.get_tag('sql.query'))
   end
 
+  test 'active record traces instantiation' do
+    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+      begin
+        Article.create(title: 'Instantiation test')
+        @tracer.writer.spans # Clear spans
+
+        # make the query and assert the proper spans
+        Article.all.entries
+        spans = @tracer.writer.spans
+        assert_equal(2, spans.length)
+
+        instantiation_span = spans.first
+        assert_equal(instantiation_span.name, 'active_record.instantiation')
+        assert_equal(instantiation_span.span_type, 'custom')
+        assert_equal(instantiation_span.service, Datadog.configuration[:rails][:service_name])
+        assert_equal(instantiation_span.resource, 'Article')
+        assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'Article')
+        assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), '1')
+      ensure
+        Article.delete_all
+      end
+    end
+  end
+
   test 'active record is sets cached tag' do
     # Make sure query caching is enabled...
     Article.cache do

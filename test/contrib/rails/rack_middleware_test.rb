@@ -25,19 +25,25 @@ class FullStackTest < ActionDispatch::IntegrationTest
     Rails.application.app.instance_variable_set(:@tracer, @rack_tracer)
   end
 
+  # rubocop:disable Metrics/BlockLength
   test 'a full request is properly traced' do
     # make the request and assert the proper span
     get '/full'
     assert_response :success
 
     # get spans
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 5)
+    spans = @tracer.writer.spans
 
     # spans are sorted alphabetically, and ... controller names start
     # either by m or p (MySQL or PostGreSQL) so the database span is always
     # the first one. Would fail with an adapter named z-something.
-    database_span, request_span, controller_span, cache_span, render_span = spans
+    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+      assert_equal(spans.length, 6)
+      instantiation_span, database_span, request_span, controller_span, cache_span, render_span = spans
+    else
+      assert_equal(spans.length, 5)
+      database_span, request_span, controller_span, cache_span, render_span = spans
+    end
 
     assert_equal(request_span.name, 'rack.request')
     assert_equal(request_span.span_type, 'http')
@@ -57,7 +63,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(render_span.resource, 'rails.render_template')
     assert_equal(render_span.get_tag('rails.template_name'), 'tracing/full.html.erb')
 
-    adapter_name = get_adapter_name()
+    adapter_name = get_adapter_name
     assert_equal(database_span.name, "#{adapter_name}.query")
     assert_equal(database_span.span_type, 'sql')
     assert_equal(database_span.service, adapter_name)
@@ -66,6 +72,15 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_includes(database_span.resource, 'SELECT')
     assert_includes(database_span.resource, 'FROM')
     assert_includes(database_span.resource, 'articles')
+
+    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+      assert_equal(instantiation_span.name, 'active_record.instantiation')
+      assert_equal(instantiation_span.span_type, 'custom')
+      assert_equal(instantiation_span.service, Datadog.configuration[:rails][:service_name])
+      assert_equal(instantiation_span.resource, 'Article')
+      assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'Article')
+      assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), '0')
+    end
 
     assert_equal(cache_span.name, 'rails.cache')
     assert_equal(cache_span.span_type, 'cache')

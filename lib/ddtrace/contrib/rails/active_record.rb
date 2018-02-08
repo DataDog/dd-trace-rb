@@ -1,5 +1,4 @@
 require 'ddtrace/ext/sql'
-
 require 'ddtrace/contrib/rails/utils'
 
 module Datadog
@@ -15,6 +14,13 @@ module Datadog
           ::ActiveSupport::Notifications.subscribe('sql.active_record') do |*args|
             sql(*args)
           end
+
+          if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+            # subscribe when the active record instantiates objects
+            ::ActiveSupport::Notifications.subscribe('instantiation.active_record') do |*args|
+              instantiation(*args)
+            end
+          end
         end
 
         def self.sql(_name, start, finish, _id, payload)
@@ -24,13 +30,12 @@ module Datadog
           database_name = Datadog::Contrib::Rails::Utils.database_name
           adapter_host = Datadog::Contrib::Rails::Utils.adapter_host
           adapter_port = Datadog::Contrib::Rails::Utils.adapter_port
-          span_type = Datadog::Ext::SQL::TYPE
 
           span = tracer.trace(
             "#{adapter_name}.query",
             resource: payload.fetch(:sql),
             service: database_service,
-            span_type: span_type
+            span_type: Datadog::Ext::SQL::TYPE
           )
 
           # Find out if the SQL query has been cached in this request. This meta is really
@@ -41,7 +46,6 @@ module Datadog
           # the span should have the query ONLY in the Resource attribute,
           # so that the ``sql.query`` tag will be set in the agent with an
           # obfuscated version
-          span.span_type = Datadog::Ext::SQL::TYPE
           span.set_tag('rails.db.vendor', adapter_name)
           span.set_tag('rails.db.name', database_name)
           span.set_tag('rails.db.cached', cached) if cached
@@ -50,7 +54,25 @@ module Datadog
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
-          Datadog::Tracer.log.error(e.message)
+          Datadog::Tracer.log.debug(e.message)
+        end
+
+        def self.instantiation(_name, start, finish, _id, payload)
+          tracer = Datadog.configuration[:rails][:tracer]
+
+          span = tracer.trace(
+            'active_record.instantiation',
+            resource: payload.fetch(:class_name),
+            span_type: 'custom'
+          )
+
+          span.service = span.parent ? span.parent.service : Datadog.configuration[:rails][:service_name]
+          span.set_tag('active_record.instantiation.class_name', payload.fetch(:class_name))
+          span.set_tag('active_record.instantiation.record_count', payload.fetch(:record_count))
+          span.start_time = start
+          span.finish(finish)
+        rescue StandardError => e
+          Datadog::Tracer.log.debug(e.message)
         end
       end
     end
