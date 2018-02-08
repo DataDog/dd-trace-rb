@@ -1,4 +1,3 @@
-require 'ddtrace/ext/ruby'
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
 

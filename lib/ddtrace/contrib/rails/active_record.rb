@@ -1,5 +1,4 @@
 require 'ddtrace/ext/sql'
-require 'ddtrace/ext/ruby'
 require 'ddtrace/contrib/rails/utils'
 
 module Datadog
