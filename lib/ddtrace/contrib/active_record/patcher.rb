@@ -44,9 +44,11 @@ module Datadog
             sql(*args)
           end
 
-          # subscribe when the active record instantiates objects
-          ::ActiveSupport::Notifications.subscribe('instantiation.active_record') do |*args|
-            instantiation(*args)
+          if instantiation_tracing_supported?
+            # subscribe when the active record instantiates objects
+            ::ActiveSupport::Notifications.subscribe('instantiation.active_record') do |*args|
+              instantiation(*args)
+            end
           end
         end
 
