@@ -161,6 +161,29 @@ class TracingControllerTest < ActionController::TestCase
     refute_nil(span.get_tag('error.stack'))
   end
 
+  test 'not found error should not be reported as an error' do
+    err = false
+    begin
+      get :not_found
+    rescue
+      err = true
+    end
+    assert_equal(true, err, 'should have raised an error')
+    spans = @tracer.writer.spans
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal('rails.action_controller', span.name)
+
+    # Rails 3.0 doesn't know how to convert exceptions to 'not found'
+    # Expect newer versions to correctly not flag this span.
+    if Rails.version >= '3.2'
+      assert_equal(0, span.status, 'span should not be flagged as an error')
+      assert_nil(span.get_tag('error.type'))
+      assert_nil(span.get_tag('error.msg'))
+      assert_nil(span.get_tag('error.stack'))
+    end
+  end
+
   test 'http error code should be trapped and reported as such, even with no exception' do
     get :soft_error
 
