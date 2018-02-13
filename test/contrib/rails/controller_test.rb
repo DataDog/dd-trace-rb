@@ -158,7 +158,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(1, span.status, 'span should be flagged as an error')
     assert_equal('ZeroDivisionError', span.get_tag('error.type'), 'type should contain the class name of the error')
     assert_equal('divided by 0', span.get_tag('error.msg'), 'msg should state we tried to divided by 0')
-    assert_nil(span.get_tag('error.stack'))
+    refute_nil(span.get_tag('error.stack'))
   end
 
   test 'http error code should be trapped and reported as such, even with no exception' do

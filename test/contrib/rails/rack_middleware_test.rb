@@ -89,7 +89,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(controller_span.status, 1)
     assert_equal(controller_span.get_tag('error.type'), 'ZeroDivisionError')
     assert_equal(controller_span.get_tag('error.msg'), 'divided by 0')
-    assert_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
+    refute_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
 
     assert_equal('rack.request', request_span.name)
     assert_equal(request_span.span_type, 'http')
@@ -98,7 +98,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.get_tag('http.method'), 'GET')
     assert_equal(request_span.get_tag('http.status_code'), '500')
     assert_equal(request_span.status, 1, 'span should be flagged as an error')
-    assert_not_nil(request_span.get_tag('error.stack')) # error stack is in rack span
+    refute_nil(request_span.get_tag('error.stack')) # error stack is in rack span
     assert_match(/controllers\.rb.*error/, request_span.get_tag('error.stack'))
     assert_match(/\n/, request_span.get_tag('error.stack'))
   end
@@ -143,7 +143,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(controller_span.status, 1)
     assert_equal(controller_span.get_tag('error.type'), 'ZeroDivisionError')
     assert_equal(controller_span.get_tag('error.msg'), 'divided by 0')
-    assert_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
+    refute_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
 
     assert_equal('rack.request', request_span.name)
     assert_equal(request_span.span_type, 'http')
@@ -154,7 +154,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.status, 1, 'span should be flagged as an error')
     assert_equal(controller_span.get_tag('error.type'), 'ZeroDivisionError')
     assert_equal(controller_span.get_tag('error.msg'), 'divided by 0')
-    assert_not_nil(request_span.get_tag('error.stack')) # error stack is in rack span
+    refute_nil(request_span.get_tag('error.stack')) # error stack is in rack span
     assert_match(/controllers\.rb.*error/, request_span.get_tag('error.stack'))
     assert_match(/controllers\.rb.*another_nested_error_call/, request_span.get_tag('error.stack'))
     assert_match(/controllers\.rb.*a_nested_error_call/, request_span.get_tag('error.stack'))
