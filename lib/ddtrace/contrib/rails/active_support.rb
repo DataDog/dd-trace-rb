@@ -1,5 +1,6 @@
 require 'thread'
 require 'ddtrace/ext/cache'
+require 'ddtrace/contrib/rails/active_support/callbacks'
 
 module Datadog
   module Contrib

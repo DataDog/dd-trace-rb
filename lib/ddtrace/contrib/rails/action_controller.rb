@@ -1,5 +1,7 @@
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
+require 'ddtrace/contrib/rails/abstract_controller/callbacks'
+require 'ddtrace/contrib/rails/action_controller/callbacks'
 
 module Datadog
   module Contrib

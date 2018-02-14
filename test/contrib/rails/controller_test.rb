@@ -18,8 +18,12 @@ class TracingControllerTest < ActionController::TestCase
     # make the request and assert the proper span
     get :index
     assert_response :success
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 2)
+    spans = @tracer.writer.spans
+    if Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(spans.length, 3)
+    else
+      assert_equal(spans.length, 2)
+    end
 
     span = spans[0]
     assert_equal(span.name, 'rails.action_controller')
@@ -47,9 +51,15 @@ class TracingControllerTest < ActionController::TestCase
     # render the template and assert the proper span
     get :index
     assert_response :success
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 2)
-    span = spans[1]
+    spans = @tracer.writer.spans
+
+    if Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(spans.length, 3)
+      span = spans[2]
+    else
+      assert_equal(spans.length, 2)
+      span = spans[1]
+    end
     assert_equal(span.name, 'rails.render_template')
     assert_equal(span.span_type, 'template')
     assert_equal(span.resource, 'rails.render_template')
@@ -63,10 +73,16 @@ class TracingControllerTest < ActionController::TestCase
     # render the template and assert the proper span
     get :partial
     assert_response :success
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 3)
+    spans = @tracer.writer.spans
 
-    _, span_partial, span_template = spans
+    if Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(spans.length, 4)
+      _, _, span_partial, span_template = spans
+    else
+      assert_equal(spans.length, 3)
+      _, span_partial, span_template = spans
+    end
+
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.span_type, 'template')
     assert_equal(span_partial.resource, 'rails.render_partial')
@@ -85,9 +101,14 @@ class TracingControllerTest < ActionController::TestCase
 
     # Verify correct number of spans
     spans = @tracer.writer.spans
-    assert_equal(spans.length, 4)
 
-    _, span_outer_partial, span_inner_partial, span_template = spans
+    if Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(spans.length, 5)
+      _, _, span_outer_partial, span_inner_partial, span_template = spans
+    else
+      assert_equal(spans.length, 4)
+      _, span_outer_partial, span_inner_partial, span_template = spans
+    end
 
     # Outer partial
     assert_equal('rails.render_partial', span_outer_partial.name)
@@ -110,14 +131,53 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_outer_partial, span_inner_partial.parent)
   end
 
+  # rubocop:disable Metrics/BlockLength
   test 'a full request with database access on the template' do
     # render the endpoint
     get :full
     assert_response :success
     spans = @tracer.writer.spans
 
-    # rubocop:disable Style/IdenticalConditionalBranches
-    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched? \
+      && Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+      assert_equal(spans.length, 6)
+      span_instantiation, span_database, span_request, span_action, span_cache, span_template = spans
+
+      # assert the spans
+      adapter_name = get_adapter_name
+      assert_equal(span_instantiation.name, 'active_record.instantiation')
+      assert_equal(span_cache.name, 'rails.cache')
+      assert_equal(span_database.name, "#{adapter_name}.query")
+      assert_equal(span_template.name, 'rails.render_template')
+      assert_equal(span_request.name, 'rails.action_controller')
+      assert_equal(span_action.name, 'rails.action_controller.process_action')
+
+      # assert the parenting
+      assert_nil(span_request.parent)
+      assert_equal(span_template.parent, span_action)
+      assert_equal(span_database.parent, span_template)
+      assert_equal(span_instantiation.parent, span_template)
+      assert_equal(span_cache.parent, span_action)
+      assert_equal(span_action.parent, span_request)
+    elsif Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(spans.length, 5)
+      span_database, span_request, span_action, span_cache, span_template = spans
+
+      # assert the spans
+      adapter_name = get_adapter_name
+      assert_equal(span_cache.name, 'rails.cache')
+      assert_equal(span_database.name, "#{adapter_name}.query")
+      assert_equal(span_template.name, 'rails.render_template')
+      assert_equal(span_request.name, 'rails.action_controller')
+      assert_equal(span_action.name, 'rails.action_controller.process_action')
+
+      # assert the parenting
+      assert_nil(span_request.parent)
+      assert_equal(span_template.parent, span_action)
+      assert_equal(span_database.parent, span_template)
+      assert_equal(span_cache.parent, span_action)
+      assert_equal(span_action.parent, span_request)
+    elsif Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
       assert_equal(spans.length, 5)
       span_instantiation, span_database, span_request, span_cache, span_template = spans
 
@@ -172,9 +232,14 @@ class TracingControllerTest < ActionController::TestCase
       err = true
     end
     assert_equal(true, err, 'should have raised an error')
-    spans = @tracer.writer.spans()
-    assert_equal(1, spans.length)
-    span = spans[0]
+    spans = @tracer.writer.spans
+    if Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(2, spans.length)
+    else
+      assert_equal(1, spans.length)
+    end
+
+    span = spans.first
     assert_equal('rails.action_controller', span.name)
     assert_equal(1, span.status, 'span should be flagged as an error')
     assert_equal('ZeroDivisionError', span.get_tag('error.type'), 'type should contain the class name of the error')
@@ -185,9 +250,14 @@ class TracingControllerTest < ActionController::TestCase
   test 'http error code should be trapped and reported as such, even with no exception' do
     get :soft_error
 
-    spans = @tracer.writer.spans()
+    spans = @tracer.writer.spans
+
     if Rails::VERSION::MAJOR.to_i >= 5
-      assert_equal(1, spans.length)
+      if Datadog::RailsActionPatcher.callbacks_patched?
+        assert_equal(2, spans.length)
+      else
+        assert_equal(1, spans.length)
+      end
     else
       assert_operator(spans.length, :>=, 1,
                       'legacy code (rails <= 4) uses render with a status, so there coule be an extra render span')
@@ -204,10 +274,21 @@ class TracingControllerTest < ActionController::TestCase
     get :custom_resource
     assert_response :success
     spans = @tracer.writer.spans
-    assert_equal(spans.length, 1)
 
-    spans.first.tap do |span|
-      assert_equal('custom-resource', span.resource)
+    if Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(spans.length, 2)
+      _, span_action = spans
+
+      span_action.tap do |span|
+        assert_equal('custom-resource', span.resource)
+      end
+    else
+      assert_equal(spans.length, 1)
+      span_request = spans.first
+
+      span_request.tap do |span|
+        assert_equal('custom-resource', span.resource)
+      end
     end
   end
 
@@ -219,10 +300,16 @@ class TracingControllerTest < ActionController::TestCase
       end
     end
 
-    spans = @tracer.writer.spans()
-    assert_equal(4, spans.length)
+    spans = @tracer.writer.spans
+
+    if Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(5, spans.length)
+    else
+      assert_equal(4, spans.length)
+    end
 
     brother_span, parent_span, controller_span, = spans
+
     assert_equal('rails.action_controller', controller_span.name)
     assert_equal('http', controller_span.span_type)
     assert_equal('TracingController#index', controller_span.resource)

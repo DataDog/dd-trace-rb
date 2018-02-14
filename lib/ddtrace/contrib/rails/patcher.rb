@@ -13,6 +13,9 @@ module Datadog
         option :distributed_tracing, default: false
         option :template_base_path, default: 'views/'
         option :exception_controller, default: nil
+        option :controller_callback_tracing, default: false do |value|
+          controller_callback_tracing_supported? ? value : false
+        end
         option :tracer, default: Datadog.tracer
 
         @patched = false
@@ -40,6 +43,12 @@ module Datadog
           def active_record_instantiation_tracing_supported?
             Gem.loaded_specs['activerecord'] \
               && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
+          end
+
+          def controller_callback_tracing_supported?
+            defined?(::Rails) \
+              && Gem::Version.new(::Rails.version) >= Gem::Version.new('5.0') \
+              && Gem::Version.new(::Rails.version) < Gem::Version.new('5.2')
           end
         end
       end

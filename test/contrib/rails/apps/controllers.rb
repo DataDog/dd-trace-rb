@@ -96,6 +96,30 @@ class TracingController < ActionController::Base
   end
 end
 
+class CallbacksController < ActionController::Base
+  include Rails.application.routes.url_helpers
+
+  if Rails.version >= '4.0'
+    before_action :before_request
+    after_action :after_request
+  else
+    before_filter :before_request
+    after_filter :after_request
+  end
+
+  def index
+    head :ok
+  end
+
+  def before_request
+    # Sample before_action callback
+  end
+
+  def after_request
+    # Sample after_action callback
+  end
+end
+
 class ErrorsController < ActionController::Base
   def internal_server_error
     head :internal_server_error
@@ -116,6 +140,7 @@ routes = {
   '/missing_template' => 'tracing#missing_template',
   '/missing_partial' => 'tracing#missing_partial',
   '/custom_resource' => 'tracing#custom_resource',
+  '/callbacks' => 'callbacks#index',
   '/internal_server_error' => 'errors#internal_server_error'
 }
 

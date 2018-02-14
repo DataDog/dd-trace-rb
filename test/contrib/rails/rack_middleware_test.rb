@@ -37,7 +37,14 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # spans are sorted alphabetically, and ... controller names start
     # either by m or p (MySQL or PostGreSQL) so the database span is always
     # the first one. Would fail with an adapter named z-something.
-    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+    if Datadog::RailsActionPatcher.callbacks_patched? \
+      && Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+      assert_equal(spans.length, 7)
+      instantiation_span, database_span, request_span, controller_span, action_span, cache_span, render_span = spans
+    elsif Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(spans.length, 6)
+      database_span, request_span, controller_span, action_span, cache_span, render_span = spans
+    elsif Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
       assert_equal(spans.length, 6)
       instantiation_span, database_span, request_span, controller_span, cache_span, render_span = spans
     else
@@ -57,6 +64,12 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(controller_span.resource, 'TracingController#full')
     assert_equal(controller_span.get_tag('rails.route.action'), 'full')
     assert_equal(controller_span.get_tag('rails.route.controller'), 'TracingController')
+
+    if Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(action_span.name, 'rails.action_controller.process_action')
+      assert_equal(action_span.span_type, 'http')
+      assert_equal(action_span.resource, 'TracingController#full')
+    end
 
     assert_equal(render_span.name, 'rails.render_template')
     assert_equal(render_span.span_type, 'template')
@@ -190,10 +203,13 @@ class FullStackTest < ActionDispatch::IntegrationTest
 
     # Check spans
     spans = @tracer.writer.spans
-    assert_equal(2, spans.length)
 
-    rack_span = spans.first
-    controller_span = spans.last
+    if Datadog::RailsActionPatcher.callbacks_patched?
+      assert_equal(3, spans.length)
+    else
+      assert_equal(2, spans.length)
+    end
+    rack_span, controller_span, = spans
 
     # Rack span
     assert_equal(rack_span.status, 1, 'span should be flagged as an error')

@@ -81,6 +81,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``database_service`` | Database service name used when tracing database activity | ``<app_name>-<adapter_name>`` |
 | ``exception_controller`` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | ``nil`` |
 | ``distributed_tracing`` | Enables [distributed tracing](#Distributed_Tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
+| ``controller_callback_tracing`` | Enables controller callback tracing (e.g. `before_action`). *Experimental feature: it is considered unstable! Only supports Rails 5.0.x and 5.1.x. May break with any update to Rails; use with extreme caution.* | `false` |
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 

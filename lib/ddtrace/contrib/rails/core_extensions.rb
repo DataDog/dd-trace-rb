@@ -141,6 +141,9 @@ module Datadog
 
     def patch_action_controller
       patch_process_action
+      if Datadog.configuration[:rails][:controller_callback_tracing]
+        patch_callbacks
+      end
     end
 
     def patch_process_action
@@ -178,6 +181,36 @@ module Datadog
         alias_method :process_action_without_datadog, :process_action
         alias_method :process_action, :process_action_with_datadog
       end
+    end
+
+    def patch_callbacks
+      return callbacks_patched? if callbacks_patched?
+      unless Datadog::Contrib::Rails::Patcher.controller_callback_tracing_supported?
+        return callbacks_patched?
+      end
+
+      ::AbstractController::Base.send(
+        :include,
+        Datadog::Contrib::Rails::AbstractController::Callbacks
+      )
+
+      ::ActionController::Base.send(
+        :include,
+        Datadog::Contrib::Rails::ActionController::Callbacks
+      )
+
+      if defined?(::ActionController::API)
+        ::ActionController::API.send(
+          :include,
+          Datadog::Contrib::Rails::ActionController::Callbacks
+        )
+      end
+
+      @callbacks_patched = true
+    end
+
+    def callbacks_patched?
+      @callbacks_patched == true
     end
   end
 
