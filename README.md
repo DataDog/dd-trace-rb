@@ -14,21 +14,23 @@ You can find the latest documentation on [rubydoc.info][docs]
 
 Install the Ruby client with the ``gem`` command:
 
-    gem install ddtrace
+```
+gem install ddtrace
+```
 
 If you're using ``Bundler``, just update your ``Gemfile`` as follows:
 
 ```ruby
-    source 'https://rubygems.org'
+source 'https://rubygems.org'
 
-    # tracing gem
-    gem 'ddtrace'
+# tracing gem
+gem 'ddtrace'
 ```
 
 To use a development/preview version, use:
 
 ```ruby
-    gem 'ddtrace', :github => 'DataDog/dd-trace-rb', :branch => 'me/my-feature-branch'
+gem 'ddtrace', :github => 'DataDog/dd-trace-rb', :branch => 'me/my-feature-branch'
 ```
 
 ### Quickstart (manual instrumentation)
@@ -38,31 +40,31 @@ Adding tracing to your code is very simple. As an example, let’s imagine we ha
 to trace requests to the home page:
 
 ```ruby
-    require 'ddtrace'
-    require 'sinatra'
-    require 'active_record'
+require 'ddtrace'
+require 'sinatra'
+require 'active_record'
 
-    # a generic tracer that you can use across your application
-    tracer = Datadog.tracer
+# a generic tracer that you can use across your application
+tracer = Datadog.tracer
 
-    get '/' do
-      tracer.trace('web.request') do |span|
-        # set some span metadata
-        span.service = 'my-web-site'
-        span.resource = '/'
-        span.set_tag('http.method', request.request_method)
+get '/' do
+  tracer.trace('web.request') do |span|
+    # set some span metadata
+    span.service = 'my-web-site'
+    span.resource = '/'
+    span.set_tag('http.method', request.request_method)
 
-        # trace the activerecord call
-        tracer.trace('posts.fetch') do
-          @posts = Posts.order(created_at: :desc).limit(10)
-        end
-
-        # trace the template rendering
-        tracer.trace('template.render') do
-          erb :index
-        end
-      end
+    # trace the activerecord call
+    tracer.trace('posts.fetch') do
+      @posts = Posts.order(created_at: :desc).limit(10)
     end
+
+    # trace the template rendering
+    tracer.trace('template.render') do
+      erb :index
+    end
+  end
+end
 ```
 
 ### Quickstart (integration)
@@ -71,20 +73,20 @@ Instead of doing the above manually, whenever an integration is available,
 you can activate it. The example above would become:
 
 ```ruby
-    require 'ddtrace'
-    require 'sinatra'
-    require 'active_record'
+require 'ddtrace'
+require 'sinatra'
+require 'active_record'
 
-    Datadog.configure do |c|
-      c.use :sinatra
-      c.use :active_record
-    end
+Datadog.configure do |c|
+  c.use :sinatra
+  c.use :active_record
+end
 
-    # now write your code naturally, it's traced automatically
-    get '/' do
-      @posts = Posts.order(created_at: :desc).limit(10)
-      erb :index
-    end
+# now write your code naturally, it's traced automatically
+get '/' do
+  @posts = Posts.order(created_at: :desc).limit(10)
+  erb :index
+end
 ```
 
 This will automatically trace any app inherited from `Sinatra::Application`.
@@ -92,21 +94,21 @@ To trace apps inherited from `Sinatra::Base`, you should manually register
 the tracer inside your class.
 
 ```ruby
-    require "ddtrace"
-    require "ddtrace/contrib/sinatra/tracer"
+require "ddtrace"
+require "ddtrace/contrib/sinatra/tracer"
 
-    class App < Sinatra::Base
-      register Datadog::Contrib::Sinatra::Tracer
-    end
+class App < Sinatra::Base
+  register Datadog::Contrib::Sinatra::Tracer
+end
 ```
 
 To configure the Datadog Tracer, you can define the `configure` block as follows:
 
 ```ruby
-    Datadog.configure do |c|
-      c.tracer enabled: false, hostname: 'trace-agent.local'
-      # [...]
-    end
+Datadog.configure do |c|
+  c.tracer enabled: false, hostname: 'trace-agent.local'
+  # [...]
+end
 ```
 
 For a list of available options, check the [Tracer documentation](http://gems.datadoghq.com/trace/docs/#Configure_the_tracer).
