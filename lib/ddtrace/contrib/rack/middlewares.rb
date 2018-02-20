@@ -37,6 +37,10 @@ module Datadog
           request_span = tracer.trace('rack.request', trace_options)
           env[:datadog_rack_request_span] = request_span
 
+          # Copy the original env, before the rest of the stack executes.
+          # Values may change; we want values before that happens.
+          original_env = env.dup
+
           # call the rest of the stack
           status, headers, response = @app.call(env)
           [status, headers, response]
@@ -60,7 +64,7 @@ module Datadog
           # the result for this request; `resource` and `tags` are expected to
           # be set in another level but if they're missing, reasonable defaults
           # are used.
-          set_request_tags!(request_span, env, status, headers, response)
+          set_request_tags!(request_span, env, status, headers, response, original_env)
 
           # ensure the request_span is finished and the context reset;
           # this assumes that the Rack middleware creates a root span
@@ -80,13 +84,7 @@ module Datadog
           end
         end
 
-        def set_request_tags!(request_span, env, status, headers, response)
-          # the source of truth in Rack is the PATH_INFO key that holds the
-          # URL for the current request; some framework may override that
-          # value, especially during exception handling and because of that
-          # we prefer using the `REQUEST_URI` if this is available.
-          # NOTE: `REQUEST_URI` is Rails specific and may not apply for other frameworks
-          url = env['REQUEST_URI'] || env['PATH_INFO']
+        def set_request_tags!(request_span, env, status, headers, response, original_env)
           request_id = get_request_id(headers, env)
 
           request_span.resource ||= resource_name_for(env, status)
@@ -94,7 +92,12 @@ module Datadog
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
           end
           if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
-            request_span.set_tag(Datadog::Ext::HTTP::URL, url)
+            # The source of truth in Rack is the PATH_INFO key that holds the
+            # URL for the current request; some framework may override that
+            # value, especially during exception handling and because of that,
+            # we prefer to use the original PATH_INFO, before this overwrite occurred.
+            # http://www.rubydoc.info/github/rack/rack/file/SPEC
+            request_span.set_tag(Datadog::Ext::HTTP::URL, original_env['PATH_INFO'])
           end
           if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
             request_obj = ::Rack::Request.new(env)
