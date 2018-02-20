@@ -6,12 +6,6 @@ if ENV['USE_SIDEKIQ']
   require 'ddtrace/contrib/sidekiq/tracer'
 end
 
-require 'set'
-$configs = Set.new
-$applications = Set.new
-$middlewares = Set.new
-$route_sets = Set.new
-
 RSpec.shared_context 'Rails base application' do
   if Rails.version >= '5.0'
     require 'ddtrace/contrib/rails/support/rails5'
@@ -44,7 +38,8 @@ RSpec.shared_context 'Rails base application' do
 
   let(:after_test_initialize_block) do
     Proc.new do
-      models
+      # Force connection to initialize, and dump some spans
+      application_record.connection
     end
   end
 end

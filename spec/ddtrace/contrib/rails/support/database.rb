@@ -6,7 +6,7 @@ module Datadog
         module Database
           module_function
 
-          def configure!
+          def load_adapter!
             begin
               require 'pg'
               connector = 'postgres://postgres:postgres@127.0.0.1:55432/postgres'

@@ -87,7 +87,7 @@ RSpec.shared_context 'Rails 3 base application' do
   end
 
   def draw_test_routes!(mapper)
-    # Rails 4 accumulates these route drawing
+    # Rails 3 accumulates these route drawing
     # blocks errantly, and this prevents them from
     # drawing more than once.
     return if @drawn
@@ -118,12 +118,8 @@ RSpec.shared_context 'Rails 3 base application' do
   end
 
   def app_middleware
-    if Datadog::Contrib::Rails::Test::Configuration.get(:app_middleware).nil?
-      current = Rails::Railtie::Configuration.class_variable_get(:@@app_middleware)
-      Datadog::Contrib::Rails::Test::Configuration.set(:app_middleware, current)
-    end
-
-    Datadog::Contrib::Rails::Test::Configuration.get(:app_middleware).dup.tap do |copy|
+    current = Rails::Railtie::Configuration.class_variable_get(:@@app_middleware)
+    Datadog::Contrib::Rails::Test::Configuration.fetch(:app_middleware, current).dup.tap do |copy|
       copy.instance_variable_set(:@operations, (copy.instance_variable_get(:@operations) || [] ).dup)
       copy.instance_variable_set(:@delete_operations, (copy.instance_variable_get(:@delete_operations) || []).dup)
     end

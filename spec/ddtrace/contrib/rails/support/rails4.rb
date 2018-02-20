@@ -112,14 +112,9 @@ RSpec.shared_context 'Rails 4 base application' do
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
   end
 
-
   def app_middleware
-    if Datadog::Contrib::Rails::Test::Configuration.get(:app_middleware).nil?
-      current = Rails::Railtie::Configuration.class_variable_get(:@@app_middleware)
-      Datadog::Contrib::Rails::Test::Configuration.set(:app_middleware, current)
-    end
-
-    Datadog::Contrib::Rails::Test::Configuration.get(:app_middleware).dup.tap do |copy|
+    current = Rails::Railtie::Configuration.class_variable_get(:@@app_middleware)
+    Datadog::Contrib::Rails::Test::Configuration.fetch(:app_middleware, current).dup.tap do |copy|
       copy.instance_variable_set(:@operations, (copy.instance_variable_get(:@operations) || [] ).dup)
       copy.instance_variable_set(:@delete_operations, (copy.instance_variable_get(:@delete_operations) || []).dup)
     end

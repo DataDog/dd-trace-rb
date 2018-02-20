@@ -174,7 +174,7 @@ RSpec.describe 'Rails request' do
           let(:initialize_block) do
             super_block = super()
             Proc.new do
-            self.instance_exec(&super_block)
+              self.instance_exec(&super_block)
               config.action_dispatch.rescue_responses.merge!(
                 'CustomError' => :not_found
               )

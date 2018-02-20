@@ -9,6 +9,11 @@ module Datadog
             @original ||= {}
           end
 
+          def fetch(key, value)
+            return get(key) if original.has_key?(key)
+            value.tap { set(key, value) }
+          end
+
           def set(key, value)
             original[key] = value
           end
