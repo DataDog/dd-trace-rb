@@ -3,9 +3,9 @@ require 'spec_helper'
 require 'logger'
 require 'rails'
 
-require 'ddtrace/contrib/rails/support/configuration'
-require 'ddtrace/contrib/rails/support/database'
-require 'ddtrace/contrib/rails/support/application'
+require 'spec/ddtrace/contrib/rails/support/configuration'
+require 'spec/ddtrace/contrib/rails/support/database'
+require 'spec/ddtrace/contrib/rails/support/application'
 
 # logger
 logger = Logger.new(STDOUT)
