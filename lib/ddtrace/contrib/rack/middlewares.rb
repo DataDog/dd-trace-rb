@@ -85,6 +85,18 @@ module Datadog
         end
 
         def set_request_tags!(request_span, env, status, headers, response, original_env)
+          # http://www.rubydoc.info/github/rack/rack/file/SPEC
+          # The source of truth in Rack is the PATH_INFO key that holds the
+          # URL for the current request; but some frameworks may override that
+          # value, especially during exception handling.
+          #
+          # Because of this, we prefer to use REQUEST_URI, if available, which is the
+          # relative path + query string, and doesn't mutate.
+          #
+          # REQUEST_URI is only available depending on what web server is running though.
+          # So when its not available, we want the original, unmutated PATH_INFO, which
+          # is just the relative path without query strings.
+          url = env['REQUEST_URI'] || original_env['PATH_INFO']
           request_id = get_request_id(headers, env)
 
           request_span.resource ||= resource_name_for(env, status)
@@ -92,12 +104,7 @@ module Datadog
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
           end
           if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
-            # The source of truth in Rack is the PATH_INFO key that holds the
-            # URL for the current request; some framework may override that
-            # value, especially during exception handling and because of that,
-            # we prefer to use the original PATH_INFO, before this overwrite occurred.
-            # http://www.rubydoc.info/github/rack/rack/file/SPEC
-            request_span.set_tag(Datadog::Ext::HTTP::URL, original_env['PATH_INFO'])
+            request_span.set_tag(Datadog::Ext::HTTP::URL, url)
           end
           if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
             request_obj = ::Rack::Request.new(env)
