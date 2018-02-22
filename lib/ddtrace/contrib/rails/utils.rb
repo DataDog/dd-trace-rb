@@ -72,6 +72,18 @@ module Datadog
           end
         end
 
+        def self.exception_is_error?(exception)
+          if defined?(::ActionDispatch::ExceptionWrapper)
+            # Gets the equivalent status code for the exception (not all are 5XX)
+            # You can add custom errors via `config.action_dispatch.rescue_responses`
+            status = ::ActionDispatch::ExceptionWrapper.status_code_for_exception(exception.class.name)
+            # Only 5XX exceptions are actually errors (e.g. don't flag 404s)
+            status.to_s.starts_with?('5')
+          else
+            true
+          end
+        end
+
         private_class_method :connection_config
       end
     end

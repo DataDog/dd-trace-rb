@@ -22,8 +22,13 @@ module Datadog
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
           tracer = Datadog.configuration[:rails][:tracer]
-          span = tracer.active_span()
-          span.set_error(e) unless span.nil?
+          span = tracer.active_span
+          unless span.nil?
+            # Only set error if it's supposed to be flagged as such
+            # e.g. we don't want to flag 404s.
+            # You can add custom errors via `config.action_dispatch.rescue_responses`
+            span.set_error(e) if Utils.exception_is_error?(e)
+          end
           raise e
         end
       end
