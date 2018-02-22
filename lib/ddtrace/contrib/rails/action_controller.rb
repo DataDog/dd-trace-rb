@@ -6,9 +6,13 @@ module Datadog
     module Rails
       # Code used to create and handle 'rails.action_controller' spans.
       module ActionController
+        include Datadog::Patcher
+
         def self.instrument
           # patch Rails core components
-          Datadog::RailsActionPatcher.patch_action_controller
+          do_once(:instrument) do
+            Datadog::RailsActionPatcher.patch_action_controller
+          end
         end
 
         def self.start_processing(payload)
@@ -46,20 +50,14 @@ module Datadog
             span.set_tag('rails.route.action', payload.fetch(:action))
             span.set_tag('rails.route.controller', payload.fetch(:controller))
 
-            if payload[:exception].nil?
+            exception = payload[:exception_object]
+            if exception.nil?
               # [christian] in some cases :status is not defined,
               # rather than firing an error, simply acknowledge we don't know it.
               status = payload.fetch(:status, '?').to_s
               span.status = 1 if status.starts_with?('5')
-            else
-              error = payload[:exception]
-              if defined?(::ActionDispatch::ExceptionWrapper)
-                status = ::ActionDispatch::ExceptionWrapper.status_code_for_exception(error[0])
-                status = status ? status.to_s : '?'
-              else
-                status = '500'
-              end
-              span.set_error(error) if status.starts_with?('5')
+            elsif Utils.exception_is_error?(exception)
+              span.set_error(exception)
             end
           ensure
             span.finish()

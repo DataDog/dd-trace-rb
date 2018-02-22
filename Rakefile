@@ -259,6 +259,13 @@ task :ci do
     sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:railsdisableenv'
     # RSpec
     sh 'rvm $LAST_STABLE --verbose do rake benchmark'
+    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake spec:rails'
+    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-mysql2 rake spec:rails'
+    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-postgres rake spec:rails'
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-mysql2 rake spec:rails'
+    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake spec:rails'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake spec:rails'
+    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake spec:rails'
   else
     puts 'Too many workers than parallel tasks'
   end

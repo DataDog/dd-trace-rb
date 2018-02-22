@@ -6,13 +6,17 @@ module Datadog
     module Rails
       # Code used to create and handle 'mysql.query', 'postgres.query', ... spans.
       module ActiveRecord
+        include Datadog::Patcher
+
         def self.instrument
           # ActiveRecord is instrumented only if it's available
           return unless defined?(::ActiveRecord)
 
-          # subscribe when the active record query has been processed
-          ::ActiveSupport::Notifications.subscribe('sql.active_record') do |*args|
-            sql(*args)
+          do_once(:instrument) do
+            # subscribe when the active record query has been processed
+            ::ActiveSupport::Notifications.subscribe('sql.active_record') do |*args|
+              sql(*args)
+            end
           end
 
           if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
