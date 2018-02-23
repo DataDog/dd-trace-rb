@@ -17,12 +17,17 @@ module Datadog
         module_function
 
         def patch
-          return true if patched?
+          unless patched?
+            require_relative 'middlewares'
+            @patched = true
+          end
 
-          require_relative 'middlewares'
-          @patched = true
+          if !@middleware_patched && get_option(:middleware_names)
+            enable_middleware_names
+            @middleware_patched = true
+          end
 
-          enable_middleware_names if get_option(:middleware_names)
+          @patched || @middleware_patched
         end
 
         def patched?
