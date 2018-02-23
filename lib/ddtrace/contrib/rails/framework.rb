@@ -29,6 +29,7 @@ module Datadog
             :rack,
             tracer: tracer,
             service_name: config[:service_name],
+            middleware_names: config[:middleware_names],
             distributed_tracing: config[:distributed_tracing]
           )
 
