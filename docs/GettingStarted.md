@@ -141,7 +141,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | --- | --- |
 | ``service_name`` | Service name used when tracing application requests | rack |
 | ``distributed_tracing`` | Enables [distributed tracing](#Distributed_Tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
-| ``middleware_names`` | Enable this if you want to use the middleware classes as the resource names for `rack` spans | ``false`` |
+| ``middleware_names`` | Enable this if you want to use the middleware classes as the resource names for `rack` spans. Must provide the ``application`` option with it. | ``false`` |
+| ``application`` | Your Rack application. Necessary for enabling middleware resource names. | ``nil`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ## Other libraries

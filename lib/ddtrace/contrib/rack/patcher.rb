@@ -22,7 +22,7 @@ module Datadog
             @patched = true
           end
 
-          if !@middleware_patched && get_option(:middleware_names)
+          if !@middleware_patched && get_option(:middleware_names) && get_option(:application)
             enable_middleware_names
             @middleware_patched = true
           end
@@ -35,19 +35,13 @@ module Datadog
         end
 
         def enable_middleware_names
-          root = get_option(:application) || rails_app
-          retain_middleware_name(root)
+          retain_middleware_name(get_option(:application))
         rescue => e
           # We can safely ignore these exceptions since they happen only in the
           # context of middleware patching outside a Rails server process (eg. a
           # process that doesn't serve HTTP requests but has Rails environment
           # loaded such as a Resque master process)
           Tracer.log.debug("Error patching middleware stack: #{e}")
-        end
-
-        def rails_app
-          return unless Datadog.registry[:rails].compatible?
-          ::Rails.application.app
         end
 
         def retain_middleware_name(middleware)

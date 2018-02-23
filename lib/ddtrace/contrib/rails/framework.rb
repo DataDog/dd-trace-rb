@@ -28,6 +28,7 @@ module Datadog
           Datadog.configuration.use(
             :rack,
             tracer: tracer,
+            application: ::Rails.application,
             service_name: config[:service_name],
             middleware_names: config[:middleware_names],
             distributed_tracing: config[:distributed_tracing]
