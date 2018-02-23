@@ -77,7 +77,7 @@ module Datadog
         end
 
         def resource_name_for(env, status)
-          if Datadog.configuration[:rack][:middleware_names]
+          if Datadog.configuration[:rack][:middleware_names] && env['RESPONSE_MIDDLEWARE']
             "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
           else
             "#{env['REQUEST_METHOD']} #{status}".strip
