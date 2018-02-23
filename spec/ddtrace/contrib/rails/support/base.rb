@@ -25,7 +25,7 @@ RSpec.shared_context 'Rails base application' do
     debug_mw = debug_middleware
 
     Proc.new do
-      config.middleware.insert_before 0, debug_mw
+      config.middleware.insert_after ActionDispatch::ShowExceptions, debug_mw
       middleware.each { |m| config.middleware.use m }
     end
   end

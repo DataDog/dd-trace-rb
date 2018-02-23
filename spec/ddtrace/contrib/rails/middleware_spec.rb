@@ -21,19 +21,61 @@ RSpec.describe 'Rails request' do
     tracer.writer.spans(:keep)
   end
 
-  before(:each) do
-    Datadog.configure do |c|
-      c.use :rack, tracer: tracer
-      c.use :rails, tracer: tracer
+  RSpec::Matchers.define :have_kind_of_middleware do |expected|
+    match do |actual|
+      while actual
+        return true if actual.class <= expected
+        without_warnings { actual = actual.instance_variable_get(:@app) }
+      end
+      false
     end
   end
+
+  before(:each) do
+    Datadog.configure do |c|
+      c.use :rack, rack_options
+      c.use :rails, rails_options
+    end
+  end
+
+  let(:rack_options) { { tracer: tracer } }
+  let(:rails_options) { { tracer: tracer } }
 
   context 'with middleware' do
     before(:each) { get '/' }
 
-    let(:rails_middleware) { [middleware] }
+    context 'that does nothing' do
+      let(:middleware) do
+        stub_const('PassthroughMiddleware', Class.new do
+          def initialize(app)
+            @app = app
+          end
+
+          def call(env)
+            @app.call(env)
+          end
+        end)
+      end
+
+      context 'and added after tracing is enabled' do
+        before(:each) do
+          passthrough_middleware = middleware
+          rails_test_application.configure { config.app_middleware.use passthrough_middleware }
+        end
+
+        context 'with #middleware_names' do
+          let(:rack_options) { super().merge!(middleware_names: true) }
+
+          it do
+            expect(app).to have_kind_of_middleware(middleware)
+            expect(last_response).to be_ok
+          end
+        end
+      end
+    end
 
     context 'that raises an exception' do
+      let(:rails_middleware) { [middleware] }
       let(:middleware) do
         stub_const('RaiseExceptionMiddleware', Class.new do
           def initialize(app)
@@ -48,6 +90,7 @@ RSpec.describe 'Rails request' do
       end
 
       it do
+        expect(app).to have_kind_of_middleware(middleware)
         expect(last_response).to be_server_error
         expect(all_spans.length).to be >= 2
       end
@@ -71,6 +114,7 @@ RSpec.describe 'Rails request' do
     end
 
     context 'that raises a known NotFound exception' do
+      let(:rails_middleware) { [middleware] }
       let(:middleware) do
         stub_const('RaiseNotFoundMiddleware', Class.new do
           def initialize(app)
@@ -85,6 +129,7 @@ RSpec.describe 'Rails request' do
       end
 
       it do
+        expect(app).to have_kind_of_middleware(middleware)
         expect(last_response).to be_not_found
         expect(all_spans.length).to be >= 2
       end
@@ -117,6 +162,7 @@ RSpec.describe 'Rails request' do
     end
 
     context 'that raises a custom exception' do
+      let(:rails_middleware) { [middleware] }
       let(:error_class) do
         stub_const('CustomError', Class.new(StandardError) do
           def message
@@ -142,6 +188,7 @@ RSpec.describe 'Rails request' do
       end
 
       it do
+        expect(app).to have_kind_of_middleware(middleware)
         expect(last_response).to be_server_error
         expect(all_spans.length).to be >= 2
       end
@@ -191,6 +238,7 @@ RSpec.describe 'Rails request' do
           end
 
           it do
+            expect(app).to have_kind_of_middleware(middleware)
             expect(last_response).to be_not_found
             expect(all_spans.length).to be >= 2
           end

@@ -4,11 +4,7 @@ RSpec.shared_context 'Rails test application' do
   include_context 'Rails base application'
 
   let(:app) do
-    if Rails.version >= '3.2'
-      rails_test_application.to_app
-    else
-      rails_test_application
-    end
+    rails_test_application.instance
   end
 
   before(:each) do
@@ -37,7 +33,7 @@ RSpec.shared_context 'Rails test application' do
     end
   elsif Rails.version >= '3.0'
     let(:rails_test_application) do
-      rails_base_application
+      stub_const('Rails3::Application', rails_base_application)
     end
   else
     logger.error 'A Rails app for this version is not found!'
