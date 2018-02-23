@@ -33,17 +33,17 @@ RSpec.describe 'Rails request' do
 
   before(:each) do
     Datadog.configure do |c|
-      c.use :rack, rack_options
-      c.use :rails, rails_options
+      c.use :rack, rack_options if use_rack
+      c.use :rails, rails_options if use_rails
     end
   end
 
+  let(:use_rack) { true }
   let(:rack_options) { { tracer: tracer } }
+  let(:use_rails) { true }
   let(:rails_options) { { tracer: tracer } }
 
   context 'with middleware' do
-    before(:each) { get '/' }
-
     context 'that does nothing' do
       let(:middleware) do
         stub_const('PassthroughMiddleware', Class.new do
@@ -64,9 +64,11 @@ RSpec.describe 'Rails request' do
         end
 
         context 'with #middleware_names' do
-          let(:rack_options) { super().merge!(middleware_names: true) }
+          let(:use_rack) { false }
+          let(:rails_options) { super().merge!(middleware_names: true) }
 
           it do
+            get '/'
             expect(app).to have_kind_of_middleware(middleware)
             expect(last_response).to be_ok
           end
@@ -75,6 +77,8 @@ RSpec.describe 'Rails request' do
     end
 
     context 'that raises an exception' do
+      before(:each) { get '/' }
+
       let(:rails_middleware) { [middleware] }
       let(:middleware) do
         stub_const('RaiseExceptionMiddleware', Class.new do
@@ -114,6 +118,8 @@ RSpec.describe 'Rails request' do
     end
 
     context 'that raises a known NotFound exception' do
+      before(:each) { get '/' }
+
       let(:rails_middleware) { [middleware] }
       let(:middleware) do
         stub_const('RaiseNotFoundMiddleware', Class.new do
@@ -162,6 +168,8 @@ RSpec.describe 'Rails request' do
     end
 
     context 'that raises a custom exception' do
+      before(:each) { get '/' }
+
       let(:rails_middleware) { [middleware] }
       let(:error_class) do
         stub_const('CustomError', Class.new(StandardError) do
