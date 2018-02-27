@@ -24,13 +24,21 @@ If you're using ``Bundler``, just update your ``Gemfile`` as follows:
 source 'https://rubygems.org'
 
 # tracing gem
-gem 'ddtrace'
+gem 'ddtrace', require: false
 ```
 
 To use a development/preview version, use:
 
 ```ruby
-gem 'ddtrace', :github => 'DataDog/dd-trace-rb', :branch => 'me/my-feature-branch'
+gem 'ddtrace', :github => 'DataDog/dd-trace-rb', :branch => 'me/my-feature-branch', require: false
+```
+
+Note the use of `require: false`.  If Datadog is required it will send requests for anything it is tracing.  This makes it incompatible with the test environment where WebMock raises errors on any request.  Require datadog inside an ENV check if you want to make sure to only load it when desired:
+```ruby
+if !ENV['DISABLE_DATADOG_RAILS'] # Same logic as the gem internals use
+  require 'ddtrace'
+  # config can go here
+end
 ```
 
 ### Quickstart (manual instrumentation)
