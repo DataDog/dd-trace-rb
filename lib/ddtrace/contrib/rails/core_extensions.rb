@@ -336,7 +336,7 @@ module Datadog
     end
 
     def self.reload_cache_store
-      return unless Datadog.registry[:redis].patched?
+      return unless Datadog.registry[:redis].try(:patched?)
 
       return unless defined?(::ActiveSupport::Cache::RedisStore) &&
                     defined?(::Rails.cache) &&
