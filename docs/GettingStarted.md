@@ -657,7 +657,7 @@ pipeline using the method `Datadog::Pipeline.before_flush`:
     Datadog::Pipeline.before_flush(
       # filter the Span if the given block evaluates true
       Datadog::Pipeline::SpanFilter.new { |span| span.resource =~ /PingController/ },
-      Datadog::Pipeline::SpanFilter.new { |span| span.get_tag('host') == 'localhost' }
+      Datadog::Pipeline::SpanFilter.new { |span| span.get_tag('host') == 'localhost' },
 
       # alter the Span updating fields or tags
       Datadog::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
