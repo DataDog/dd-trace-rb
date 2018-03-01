@@ -22,9 +22,16 @@ module Datadog
             @patched = true
           end
 
-          if !@middleware_patched && get_option(:middleware_names) && get_option(:application)
-            enable_middleware_names
-            @middleware_patched = true
+          if !@middleware_patched && get_option(:middleware_names)
+            if get_option(:application)
+              enable_middleware_names
+              @middleware_patched = true
+            else
+              Datadog::Tracer.log.warn(%(
+              Rack :middleware_names requires you to also pass :application.
+              Middleware names have NOT been patched; please provide :application.
+              e.g. use: :rack, middleware_names: true, application: my_rack_app).freeze)
+            end
           end
 
           @patched || @middleware_patched
