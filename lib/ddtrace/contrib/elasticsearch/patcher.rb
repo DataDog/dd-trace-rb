@@ -89,7 +89,10 @@ module Datadog
                   span.set_tag(METHOD, method)
                   span.set_tag(URL, url)
                   span.set_tag(PARAMS, params) if params
-                  span.set_tag(BODY, body) if body
+                  if body
+                    quantized_body = Datadog::Contrib::Elasticsearch::Quantize.format_body(body)
+                    span.set_tag(BODY, quantized_body)
+                  end
                   span.set_tag('out.host', host) if host
                   span.set_tag('out.port', port) if port
 
