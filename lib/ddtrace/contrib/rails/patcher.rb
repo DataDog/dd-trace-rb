@@ -10,6 +10,7 @@ module Datadog
         option :controller_service
         option :cache_service
         option :database_service
+        option :middleware_names, default: false
         option :distributed_tracing, default: false
         option :template_base_path, default: 'views/'
         option :exception_controller, default: nil

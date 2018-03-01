@@ -81,6 +81,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``database_service`` | Database service name used when tracing database activity | ``<app_name>-<adapter_name>`` |
 | ``exception_controller`` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | ``nil`` |
 | ``distributed_tracing`` | Enables [distributed tracing](#Distributed_Tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
+| ``middleware_names`` | Enables any short-circuited middleware requests to display the middleware name as resource for the trace. | `false` |
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
@@ -140,7 +141,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | --- | --- |
 | ``service_name`` | Service name used when tracing application requests | rack |
 | ``distributed_tracing`` | Enables [distributed tracing](#Distributed_Tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
-| ``middleware_names`` | Enable this if you want to use the middleware classes as the resource names for `rack` spans | ``false`` |
+| ``middleware_names`` | Enable this if you want to use the middleware classes as the resource names for `rack` spans. Must provide the ``application`` option with it. | ``false`` |
+| ``application`` | Your Rack application. Necessary for enabling middleware resource names. | ``nil`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ## Other libraries
