@@ -274,6 +274,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | --- | --- |
 | ``service_name`` | Service name used for `elasticsearch` instrumentation | elasticsearch |
+| ``quantize`` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | {} |
 
 ### MongoDB
 

@@ -15,6 +15,7 @@ module Datadog
         include Base
         register_as :elasticsearch, auto_patch: true
         option :service_name, default: SERVICE
+        option :quantize, default: {}
 
         @patched = false
 
@@ -90,7 +91,8 @@ module Datadog
                   span.set_tag(URL, url)
                   span.set_tag(PARAMS, params) if params
                   if body
-                    quantized_body = Datadog::Contrib::Elasticsearch::Quantize.format_body(body)
+                    quantize_options = Datadog.configuration[:elasticsearch][:quantize]
+                    quantized_body = Datadog::Contrib::Elasticsearch::Quantize.format_body(body, quantize_options)
                     span.set_tag(BODY, quantized_body)
                   end
                   span.set_tag('out.host', host) if host
