@@ -71,7 +71,7 @@ module Datadog
             span.resource = resource
 
             # set the request span resource if it's a `rack.request` span
-            request_span = payload[:env][:datadog_rack_request_span]
+            request_span = payload[:env][Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
             if !request_span.nil? && request_span.name == 'rack.request'
               request_span.resource = resource
             end

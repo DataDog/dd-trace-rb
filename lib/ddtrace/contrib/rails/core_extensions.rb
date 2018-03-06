@@ -35,7 +35,7 @@ module Datadog
               Datadog::Contrib::Rails::ActionView.start_render_template(tracing_context: @tracing_context)
             end
 
-            render_without_datadog(*args)
+            render_without_datadog(*args, &block)
           rescue Exception => e
             # attach the exception to the tracing context if any
             @tracing_context[:exception] = e
