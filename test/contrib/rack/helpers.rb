@@ -40,7 +40,7 @@ class RackBaseTest < Minitest::Test
         run(proc do |env|
           # this should be considered a web framework that can alter
           # the request span after routing / controller processing
-          request_span = env[:datadog_rack_request_span]
+          request_span = env['datadog.rack_request_span']
           request_span.resource = 'GET /app/'
           request_span.set_tag('http.method', 'GET_V2')
           request_span.set_tag('http.status_code', 201)
@@ -54,7 +54,7 @@ class RackBaseTest < Minitest::Test
         run(proc do |env|
           # this should be considered a web framework that can alter
           # the request span after routing / controller processing
-          request_span = env[:datadog_rack_request_span]
+          request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
           request_span.status = 1
           request_span.set_tag('error.stack', 'Handled exception')
 
@@ -66,7 +66,7 @@ class RackBaseTest < Minitest::Test
         run(proc do |env|
           # this should be considered a web framework that can alter
           # the request span after routing / controller processing
-          request_span = env[:datadog_rack_request_span]
+          request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
           request_span.set_tag('error.stack', 'Handled exception')
 
           [500, { 'Content-Type' => 'text/html' }, 'OK']
