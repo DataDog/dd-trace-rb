@@ -13,8 +13,6 @@ module Datadog
       # application. If request tags are not set by the app, they will be set using
       # information available at the Rack level.
       class TraceMiddleware
-        RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
-
         def initialize(app)
           @app = app
         end
@@ -37,7 +35,7 @@ module Datadog
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
           request_span = tracer.trace('rack.request', trace_options)
-          env[RACK_REQUEST_SPAN] = request_span
+          env[:datadog_rack_request_span] = request_span
 
           # Copy the original env, before the rest of the stack executes.
           # Values may change; we want values before that happens.
