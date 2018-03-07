@@ -43,6 +43,9 @@ module Datadog
           #       Will be removed in version 0.13.0.
           env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
 
+          # Add deprecation warnings
+          add_deprecation_warnings(env)
+
           # Copy the original env, before the rest of the stack executes.
           # Values may change; we want values before that happens.
           original_env = env.dup
@@ -144,6 +147,34 @@ module Datadog
         def get_request_id(headers, env)
           headers ||= {}
           headers['X-Request-Id'] || headers['X-Request-ID'] || env['HTTP_X_REQUEST_ID']
+        end
+
+        private
+
+        REQUEST_SPAN_DEPRECATION_WARNING = %(
+          :datadog_rack_request_span is considered an internal symbol in the Rack env,
+          and has been been DEPRECATED. Public support for its usage is discontinued.
+          If you need the Rack request span, try using `Datadog.tracer.active_span`.
+          This key will be removed in version 0.13.0).freeze
+
+        def add_deprecation_warnings(env)
+          env.instance_eval do
+            def [](key)
+              if key == :datadog_rack_request_span && !@request_span_warning_issued
+                Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                @request_span_warning_issued = true
+              end
+              super
+            end
+
+            def []=(key, value)
+              if key == :datadog_rack_request_span && !@request_span_warning_issued
+                Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                @request_span_warning_issued = true
+              end
+              super
+            end
+          end
         end
       end
     end
