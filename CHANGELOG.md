@@ -24,7 +24,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.11.2...v0.12.0.beta1
 - ActiveRecord object instantiation tracing (#311, #334)
 - `http.request_id` tag to Rack spans (#335)
 
-## [0.11.3] - 2018-03-06
+## [0.11.3] - 2018-03-12
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.11.3
 
