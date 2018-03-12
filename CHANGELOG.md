@@ -4,6 +4,31 @@
 
 ## [Unreleased (beta)]
 
+## [0.12.0.beta3] - 2018-03-13
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.12.0.beta3
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta2...v0.12.0.beta3
+
+### Breaking changes
+- Use of Rack `middleware_names` now requires `application` to be provided as well. (#354)
+
+### Added
+- CHANGELOG.md (#350, #363) (@awendt)
+- `http.request_id` tag to Rack spans (#335)
+- Tracer configuration to README.md (#332) (@noma4i)
+
+### Fixed
+- Extra indentation in README.md (#349) (@ck3g)
+- `http.url` when Rails raises exceptions (#351, #353)
+- Rails from being patched twice (#352)
+- 4XX responses from middleware being marked as errors (#345)
+- Rails exception middleware sometimes not being inserted at correct position (#345)
+- Processing pipeline documentation typo (#355) (@MMartyn)
+- Loading the ddtrace library after Rails has fully initialized can result in load errors. (#357)
+- Use of block syntax with Rails `render` not working (#359, #360) (@dorner)
+- Rails middleware stack being frozen prematurely when Rack `middleware_names` was used. (#354)
+
 ## [0.12.0.beta2] - 2018-02-28
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.12.0.beta2
@@ -211,7 +236,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 [Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.3...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta2...0.12-dev
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta3...0.12-dev
+[0.12.0.beta3]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta2...v0.12.0.beta3
 [0.12.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta1...v0.12.0.beta2
 [0.12.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.2...v0.12.0.beta1
 [0.11.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.2...v0.11.3
