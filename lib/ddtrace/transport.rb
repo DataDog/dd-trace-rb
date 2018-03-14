@@ -8,6 +8,7 @@ module Datadog
   # Transport class that handles the spans delivery to the
   # local trace-agent. The class wraps a Net:HTTP instance
   # so that the Transport is thread-safe.
+  # rubocop:disable Metrics/ClassLength
   class HTTPTransport
     attr_accessor :hostname, :port
     attr_reader :traces_endpoint, :services_endpoint
@@ -81,9 +82,12 @@ module Datadog
         return nil
       end
 
-      downgrade! && send(endpoint, data) if downgrade?(status_code)
-
-      status_code
+      if downgrade?(status_code)
+        downgrade!
+        send(endpoint, data)
+      else
+        status_code
+      end
     end
 
     # send data to the trace-agent; the method is thread-safe
