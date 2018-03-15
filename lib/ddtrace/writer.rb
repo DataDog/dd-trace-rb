@@ -5,7 +5,7 @@ require 'ddtrace/workers'
 module Datadog
   # Traces and services writer that periodically sends data to the trace-agent
   class Writer
-    attr_reader :transport, :worker
+    attr_reader :transport, :worker, :priority_sampler
 
     HOSTNAME = 'localhost'.freeze
     PORT = '8126'.freeze
@@ -117,10 +117,16 @@ module Datadog
 
     private
 
-    def sampling_updater(response)
+    def sampling_updater(response, api)
       return unless response.is_a?(Net::HTTPOK)
-      service_rates = JSON.parse(response.body)
-      @priority_sampler.update(service_rates)
+
+      if api[:version] == HTTPTransport::V4
+        service_rates = JSON.parse(response.body)
+        @priority_sampler.update(service_rates)
+        true
+      else
+        false
+      end
     end
   end
 end

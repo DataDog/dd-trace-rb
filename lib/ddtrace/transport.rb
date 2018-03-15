@@ -198,7 +198,7 @@ module Datadog
     def process_callback(response)
       return unless @response_callback && @response_callback.respond_to?(:call)
 
-      @response_callback.call(response)
+      @response_callback.call(response, @api)
     rescue => e
       Tracer.log.debug("Error processing callback: #{e}")
     end
