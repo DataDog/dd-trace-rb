@@ -2,9 +2,11 @@ module HttpHelpers
   def mock_http_request(options = {})
     http_method = options[:method] || :get
     uri = URI.parse('http://localhost:3000/mock_response')
+    body = options[:body] || ''
+    status = options[:status] || 200
 
     # Stub request
-    stub = stub_request(http_method, uri).to_return(body: (options[:body] || ''))
+    stub = stub_request(http_method, uri).to_return(body: body, status: status)
 
     # Create the HTTP objects
     http = Net::HTTP.new(uri.host, uri.port)
