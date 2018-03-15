@@ -22,18 +22,21 @@ module Datadog
 
     API = {
       V4 = 'v0.4'.freeze => {
+        version: V4,
         traces_endpoint: '/v0.4/traces'.freeze,
         services_endpoint: '/v0.4/services'.freeze,
         encoder: Encoding::MsgpackEncoder,
         fallback: 'v0.3'.freeze
       }.freeze,
       V3 = 'v0.3'.freeze => {
+        version: V3,
         traces_endpoint: '/v0.3/traces'.freeze,
         services_endpoint: '/v0.3/services'.freeze,
         encoder: Encoding::MsgpackEncoder,
         fallback: 'v0.2'.freeze
       }.freeze,
       V2 = 'v0.2'.freeze => {
+        version: V2,
         traces_endpoint: '/v0.2/traces'.freeze,
         services_endpoint: '/v0.2/services'.freeze,
         encoder: Encoding::JSONEncoder

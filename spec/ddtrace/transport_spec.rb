@@ -79,14 +79,10 @@ RSpec.describe Datadog::HTTPTransport do
         end
 
         it 'appropriately downgrades the API' do
-          expect(transport.instance_variable_get(:@encoder)).to be_a_kind_of(Datadog::Encoding::MsgpackEncoder)
-          expect(transport.instance_variable_get(:@headers)['Content-Type']).to eq('application/msgpack')
-
+          expect(transport.instance_variable_get(:@api)[:version]).to eq(described_class::V3)
           code = transport.send(:traces, traces)
-
           # HTTPTransport should downgrade the encoder and API level
-          expect(transport.instance_variable_get(:@encoder)).to be_a_kind_of(Datadog::Encoding::JSONEncoder)
-          expect(transport.instance_variable_get(:@headers)['Content-Type']).to eq('application/json')
+          expect(transport.instance_variable_get(:@api)[:version]).to eq(described_class::V2)
           expect(transport.success?(code)).to be true
         end
       end
@@ -113,14 +109,10 @@ RSpec.describe Datadog::HTTPTransport do
         end
 
         it 'appropriately downgrades the API' do
-          expect(transport.instance_variable_get(:@encoder)).to be_a_kind_of(Datadog::Encoding::MsgpackEncoder)
-          expect(transport.instance_variable_get(:@headers)['Content-Type']).to eq('application/msgpack')
-
+          expect(transport.instance_variable_get(:@api)[:version]).to eq(described_class::V3)
           code = transport.send(:services, services)
-
           # HTTPTransport should downgrade the encoder and API level
-          expect(transport.instance_variable_get(:@encoder)).to be_a_kind_of(Datadog::Encoding::JSONEncoder)
-          expect(transport.instance_variable_get(:@headers)['Content-Type']).to eq('application/json')
+          expect(transport.instance_variable_get(:@api)[:version]).to eq(described_class::V2)
           expect(transport.success?(code)).to be true
         end
       end
