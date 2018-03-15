@@ -75,11 +75,15 @@ module Datadog
       case endpoint
       when :services
         payload = @encoder.encode_services(data)
-        status_code = post(@api[:services_endpoint], payload)
+        status_code = post(@api[:services_endpoint], payload) do |response|
+          process_callback(:services, response)
+        end
       when :traces
         count = data.length
         payload = @encoder.encode_traces(data)
-        status_code = post(@api[:traces_endpoint], payload, count)
+        status_code = post(@api[:traces_endpoint], payload, count) do |response|
+          process_callback(:traces, response)
+        end
       else
         Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
         return nil
@@ -95,17 +99,21 @@ module Datadog
 
     # send data to the trace-agent; the method is thread-safe
     def post(url, data, count = nil)
-      Datadog::Tracer.log.debug("Sending data from process: #{Process.pid}")
-      headers = count.nil? ? {} : { TRACE_COUNT_HEADER => count.to_s }
-      headers = headers.merge(@headers)
-      request = Net::HTTP::Post.new(url, headers)
-      request.body = data
+      begin
+        Datadog::Tracer.log.debug("Sending data from process: #{Process.pid}")
+        headers = count.nil? ? {} : { TRACE_COUNT_HEADER => count.to_s }
+        headers = headers.merge(@headers)
+        request = Net::HTTP::Post.new(url, headers)
+        request.body = data
 
-      response = Net::HTTP.start(@hostname, @port, read_timeout: TIMEOUT) { |http| http.request(request) }
-      handle_response(response)
-    rescue StandardError => e
-      Datadog::Tracer.log.error(e.message)
-      500
+        response = Net::HTTP.start(@hostname, @port, read_timeout: TIMEOUT) { |http| http.request(request) }
+        handle_response(response)
+      rescue StandardError => e
+        Datadog::Tracer.log.error(e.message)
+        500
+      end.tap do
+        yield(response) if block_given?
+      end
     end
 
     # Downgrade the connection to a compatibility version of the HTTPTransport;
@@ -173,8 +181,6 @@ module Datadog
         @mutex.synchronize { @count_server_error += 1 }
       end
 
-      process_callback(response)
-
       status_code
     rescue StandardError => e
       Datadog::Tracer.log.error(e.message)
@@ -195,10 +201,10 @@ module Datadog
 
     private
 
-    def process_callback(response)
+    def process_callback(action, response)
       return unless @response_callback && @response_callback.respond_to?(:call)
 
-      @response_callback.call(response, @api)
+      @response_callback.call(action, response, @api)
     rescue => e
       Tracer.log.debug("Error processing callback: #{e}")
     end

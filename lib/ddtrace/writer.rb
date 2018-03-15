@@ -117,8 +117,8 @@ module Datadog
 
     private
 
-    def sampling_updater(response, api)
-      return unless response.is_a?(Net::HTTPOK)
+    def sampling_updater(action, response, api)
+      return unless action == :traces && response.is_a?(Net::HTTPOK)
 
       if api[:version] == HTTPTransport::V4
         service_rates = JSON.parse(response.body)
