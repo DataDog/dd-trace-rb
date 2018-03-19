@@ -119,7 +119,7 @@ module Datadog
                   span.service = pin.service
                   span.span_type = Datadog::Ext::HTTP::TYPE
 
-                  span.resource = host_address
+                  span.resource = "#{host_address}:#{host_port}"
                   span.set_tag(Datadog::Ext::HTTP::URL, req.path)
                   span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
 

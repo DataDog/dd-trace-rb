@@ -33,7 +33,7 @@ class HTTPMiniAppTest < Minitest::Test
   def check_span_get(span, parent_id, trace_id)
     assert_equal('http.request', span.name)
     assert_equal('net/http', span.service)
-    assert_equal(ELASTICSEARCH_HOST, span.resource)
+    assert_equal("#{ELASTICSEARCH_HOST}:#{ELASTICSEARCH_PORT}", span.resource)
     assert_equal('_cluster/health', span.get_tag('http.url'))
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
