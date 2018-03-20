@@ -28,7 +28,7 @@ module Datadog
           span.service = pin.service
           span.span_type = pin.app_type
           span.name = context.safely(:resource)
-          span.resource = RESOURCE
+          span.resource = context.safely(:resource)
           span.set_tag('aws.agent', AGENT)
           span.set_tag('aws.operation', context.safely(:operation))
           span.set_tag('aws.region', context.safely(:region))
