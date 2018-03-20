@@ -1,0 +1,63 @@
+require 'set'
+require 'ddtrace/contrib/active_support/notifications/subscription'
+
+module Datadog
+  module Contrib
+    module ActiveSupport
+      module Notifications
+        module Subscriber
+          def self.included(base)
+            base.send(:extend, ClassMethods)
+          end
+
+          module ClassMethods
+            # Returns a list of subscriptions created for this class.
+            def subscriptions
+              @subscriptions ||= Set.new
+            end
+
+            # Returns whether subscriptions have been activated, via #subscribe!
+            def subscribed?
+              subscribed == true
+            end
+
+            protected
+
+            # Defines a callback for when subscribe! is called.
+            # Should contain subscription setup, defined by the inheriting class.
+            def on_subscribe(&block)
+              @on_subscribe_block = block
+            end
+
+            # Runs the on_subscribe callback once, to activate subscriptions.
+            # Should be triggered by the inheriting class.
+            def subscribe!
+              return subscribed? if subscribed? || on_subscribe_block.nil?
+              on_subscribe_block.call
+              @subscribed = true
+            end
+
+            # Creates a subscription and immediately activates it.
+            def subscribe(pattern, span_name, options = {}, tracer = Datadog.tracer, &block)
+              subscription(span_name, options, tracer, &block).tap do |subscription|
+                subscription.subscribe(pattern)
+              end
+            end
+
+            # Creates a subscription without activating it.
+            # Subscription is added to the inheriting class' list of subscriptions.
+            def subscription(span_name, options = {}, tracer = Datadog.tracer, &block)
+              Subscription.new(tracer, span_name, options, &block).tap do |subscription|
+                subscriptions << subscription
+              end
+            end
+
+            private
+
+            attr_reader :subscribed, :on_subscribe_block
+          end
+        end
+      end
+    end
+  end
+end

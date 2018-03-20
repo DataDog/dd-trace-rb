@@ -41,6 +41,7 @@ namespace :spec do
 
   [
     :active_record,
+    :active_support,
     :aws,
     :dalli,
     :elasticsearch,
@@ -58,7 +59,7 @@ namespace :spec do
     :sucker_punch
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t|
-      t.pattern = "spec/ddtrace/contrib/#{contrib}/*_spec.rb"
+      t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
     end
   end
 end
