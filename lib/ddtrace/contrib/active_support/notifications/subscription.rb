@@ -5,7 +5,13 @@ module Datadog
     module ActiveSupport
       module Notifications
         class Subscription
+          attr_reader \
+            :tracer,
+            :span_name,
+            :options
+
           def initialize(tracer, span_name, options, &block)
+            raise ArgumentError.new('Must be given a block!') unless block_given?
             @tracer = tracer
             @span_name = span_name
             @options = options
@@ -14,11 +20,11 @@ module Datadog
 
           def start(_name, _id, _payload)
             ensure_clean_context!
-            @tracer.trace(@span_name, @options)
+            tracer.trace(@span_name, @options)
           end
 
           def finish(name, id, payload)
-            span = @tracer.active_span
+            span = tracer.active_span
 
             # The subscriber block needs to remember to set the name of the span.
             @block.call(span, name, id, payload)
@@ -55,9 +61,8 @@ module Datadog
           private
 
           def ensure_clean_context!
-            return unless @tracer.call_context.current_span
-
-            @tracer.provider.context = Context.new
+            return unless tracer.call_context.current_span
+            tracer.provider.context = Context.new
           end
         end
       end
