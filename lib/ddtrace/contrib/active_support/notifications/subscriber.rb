@@ -5,11 +5,14 @@ module Datadog
   module Contrib
     module ActiveSupport
       module Notifications
+        # For classes that listen to ActiveSupport::Notification events.
+        # Creates subscriptions that are wrapped with tracing.
         module Subscriber
           def self.included(base)
             base.send(:extend, ClassMethods)
           end
 
+          # Class methods that are implemented in the inheriting class.
           module ClassMethods
             # Returns a list of subscriptions created for this class.
             def subscriptions

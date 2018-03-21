@@ -4,6 +4,7 @@ module Datadog
   module Contrib
     module ActiveSupport
       module Notifications
+        # An ActiveSupport::Notification subscription that wraps events with tracing.
         class Subscription
           attr_reader \
             :tracer,
@@ -11,7 +12,7 @@ module Datadog
             :options
 
           def initialize(tracer, span_name, options, &block)
-            raise ArgumentError.new('Must be given a block!') unless block_given?
+            raise ArgumentError, 'Must be given a block!' unless block_given?
             @tracer = tracer
             @span_name = span_name
             @options = options
