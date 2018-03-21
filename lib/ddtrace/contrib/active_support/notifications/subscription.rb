@@ -9,7 +9,8 @@ module Datadog
           attr_reader \
             :tracer,
             :span_name,
-            :options
+            :options,
+            :block
 
           def initialize(tracer, span_name, options, &block)
             raise ArgumentError, 'Must be given a block!' unless block_given?
@@ -25,12 +26,11 @@ module Datadog
           end
 
           def finish(name, id, payload)
-            span = tracer.active_span
-
-            # The subscriber block needs to remember to set the name of the span.
-            @block.call(span, name, id, payload)
-
-            span.finish
+            tracer.active_span.tap do |span|
+              return nil if span.nil?
+              block.call(span, name, id, payload)
+              span.finish
+            end
           end
 
           def subscribe(pattern)
