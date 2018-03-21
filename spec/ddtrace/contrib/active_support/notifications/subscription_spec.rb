@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'ddtrace'
 
+require 'active_support/notifications'
 require 'ddtrace/contrib/active_support/notifications/subscription'
 
 RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do

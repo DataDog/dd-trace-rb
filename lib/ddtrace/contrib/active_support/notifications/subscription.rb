@@ -1,5 +1,3 @@
-require 'active_support/notifications'
-
 module Datadog
   module Contrib
     module ActiveSupport
