@@ -24,14 +24,11 @@ module Datadog
         def self.sql(_name, start, finish, _id, payload)
           tracer = Datadog.configuration[:rails][:tracer]
           database_service = Datadog.configuration[:rails][:database_service]
-          adapter_name = Datadog::Contrib::Rails::Utils.adapter_name
-          database_name = Datadog::Contrib::Rails::Utils.database_name
-          adapter_host = Datadog::Contrib::Rails::Utils.adapter_host
-          adapter_port = Datadog::Contrib::Rails::Utils.adapter_port
+          connection_config = Datadog::Contrib::Rails::Utils.connection_config(payload[:connection_id])
           span_type = Datadog::Ext::SQL::TYPE
 
           span = tracer.trace(
-            "#{adapter_name}.query",
+            "#{connection_config[:adapter_name]}.query",
             resource: payload.fetch(:sql),
             service: database_service,
             span_type: span_type
@@ -46,11 +43,11 @@ module Datadog
           # so that the ``sql.query`` tag will be set in the agent with an
           # obfuscated version
           span.span_type = Datadog::Ext::SQL::TYPE
-          span.set_tag('rails.db.vendor', adapter_name)
-          span.set_tag('rails.db.name', database_name)
+          span.set_tag('rails.db.vendor', connection_config[:adapter_name])
+          span.set_tag('rails.db.name', connection_config[:database_name])
           span.set_tag('rails.db.cached', cached) if cached
-          span.set_tag('out.host', adapter_host)
-          span.set_tag('out.port', adapter_port)
+          span.set_tag('out.host', connection_config[:adapter_host])
+          span.set_tag('out.port', connection_config[:adapter_port])
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
