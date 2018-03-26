@@ -17,6 +17,14 @@ RSpec.describe 'Racecar patcher' do
     Datadog.configure do |c|
       c.use :racecar, tracer: tracer
     end
+
+    # Make sure to update the subscription tracer,
+    # so we aren't writing to a stale tracer.
+    if Datadog::Contrib::Racecar::Patcher.patched?
+      Datadog::Contrib::Racecar::Patcher.subscriptions.each do |subscription|
+        allow(subscription).to receive(:tracer).and_return(tracer)
+      end
+    end
   end
 
   describe 'for single message processing' do
