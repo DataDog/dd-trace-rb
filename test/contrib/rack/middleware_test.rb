@@ -64,6 +64,35 @@ class TracerTest < RackBaseTest
     assert_equal('200', span.get_tag('http.status_code'))
     # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
     # it uses REQUEST_URI, which has query string parameters.
+    # However, that query string will be quantized.
+    assert_equal('/success?foo', span.get_tag('http.url'))
+    assert_equal('http://example.org', span.get_tag('http.base_url'))
+    assert_equal(0, span.status)
+    assert_nil(span.parent)
+  end
+
+  def test_request_middleware_get_with_request_uri_and_quantize_option
+    Datadog.configure do |c|
+      c.use :rack, quantize: { query: { show: ['foo'] } }
+    end
+
+    # ensure the Rack request is properly traced
+    get '/success?foo=bar', {}, 'REQUEST_URI' => '/success?foo=bar'
+    assert last_response.ok?
+
+    spans = @tracer.writer.spans
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('rack.request', span.name)
+    assert_equal('http', span.span_type)
+    assert_equal('rack', span.service)
+    assert_equal('GET 200', span.resource)
+    assert_equal('GET', span.get_tag('http.method'))
+    assert_equal('200', span.get_tag('http.status_code'))
+    # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
+    # it uses REQUEST_URI, which has query string parameters.
+    # However, that query string will be quantized.
     assert_equal('/success?foo=bar', span.get_tag('http.url'))
     assert_equal('http://example.org', span.get_tag('http.base_url'))
     assert_equal(0, span.status)

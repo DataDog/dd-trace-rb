@@ -104,7 +104,8 @@ module Datadog
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
           end
           if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
-            request_span.set_tag(Datadog::Ext::HTTP::URL, url)
+            options = Datadog.configuration[:rack][:quantize]
+            request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
           end
           if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
             request_obj = ::Rack::Request.new(env)
