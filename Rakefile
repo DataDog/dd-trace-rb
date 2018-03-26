@@ -41,6 +41,7 @@ namespace :spec do
 
   [
     :active_record,
+    :active_support,
     :aws,
     :dalli,
     :elasticsearch,
@@ -58,7 +59,7 @@ namespace :spec do
     :sucker_punch
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t|
-      t.pattern = "spec/ddtrace/contrib/#{contrib}/*_spec.rb"
+      t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
     end
   end
 end
@@ -225,12 +226,14 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:resque'
     # RSpec
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_record'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_support'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:faraday'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:graphql'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:redis'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_record'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_support'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:faraday'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:redis'
