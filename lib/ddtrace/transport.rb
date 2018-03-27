@@ -8,6 +8,7 @@ module Datadog
   # Transport class that handles the spans delivery to the
   # local trace-agent. The class wraps a Net:HTTP instance
   # so that the Transport is thread-safe.
+  # rubocop:disable Metrics/ClassLength
   class HTTPTransport
     attr_accessor :hostname, :port
     attr_reader :traces_endpoint, :services_endpoint
@@ -21,18 +22,21 @@ module Datadog
 
     API = {
       V4 = 'v0.4'.freeze => {
+        version: V4,
         traces_endpoint: '/v0.4/traces'.freeze,
         services_endpoint: '/v0.4/services'.freeze,
         encoder: Encoding::MsgpackEncoder,
         fallback: 'v0.3'.freeze
       }.freeze,
       V3 = 'v0.3'.freeze => {
+        version: V3,
         traces_endpoint: '/v0.3/traces'.freeze,
         services_endpoint: '/v0.3/services'.freeze,
         encoder: Encoding::MsgpackEncoder,
         fallback: 'v0.2'.freeze
       }.freeze,
       V2 = 'v0.2'.freeze => {
+        version: V2,
         traces_endpoint: '/v0.2/traces'.freeze,
         services_endpoint: '/v0.2/services'.freeze,
         encoder: Encoding::JSONEncoder
@@ -81,9 +85,12 @@ module Datadog
         return nil
       end
 
-      downgrade! && send(endpoint, data) if downgrade?(status_code)
-
-      status_code
+      if downgrade?(status_code)
+        downgrade!
+        send(endpoint, data)
+      else
+        status_code
+      end
     end
 
     # send data to the trace-agent; the method is thread-safe
@@ -191,7 +198,7 @@ module Datadog
     def process_callback(response)
       return unless @response_callback && @response_callback.respond_to?(:call)
 
-      @response_callback.call(response)
+      @response_callback.call(response, @api)
     rescue => e
       Tracer.log.debug("Error processing callback: #{e}")
     end
