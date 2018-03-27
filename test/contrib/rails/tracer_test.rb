@@ -29,6 +29,7 @@ class TracerTest < ActionDispatch::IntegrationTest
     services = Datadog.configuration[:rails][:tracer].services
     Datadog::Contrib::Rails::Framework.setup
     adapter_name = get_adapter_name()
+    refute_equal(adapter_name, 'defaultdb')
     assert_equal(
       {
         app_name => {
