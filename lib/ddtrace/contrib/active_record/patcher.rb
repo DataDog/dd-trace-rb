@@ -1,5 +1,6 @@
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/rails/utils'
 
 module Datadog
   module Contrib
@@ -8,8 +9,10 @@ module Datadog
       module Patcher
         include Base
         register_as :active_record, auto_patch: false
-        option :service_name do |value|
-          value.tap { @database_service_name = nil }
+        option :service_name, depends_on: [:tracer] do |value|
+          (value || Datadog::Contrib::Rails::Utils.adapter_name).tap do |v|
+            get_option(:tracer).set_service_info(v, 'active_record', Ext::AppTypes::DB)
+          end
         end
         option :orm_service_name
         option :tracer, default: Datadog.tracer
@@ -26,8 +29,6 @@ module Datadog
         def patch
           if !@patched && defined?(::ActiveRecord)
             begin
-              require 'ddtrace/contrib/rails/utils'
-
               patch_active_record
               @patched = true
             rescue StandardError => e
@@ -57,36 +58,13 @@ module Datadog
             && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
         end
 
-        # NOTE: Resolve this here instead of in the option defaults,
-        #       because resolving adapter name as a default causes ActiveRecord to connect,
-        #       which isn't a good idea at initialization time.
-        def self.database_service_name
-          @database_service_name ||= (get_option(:service_name) || adapter_name).tap do |name|
-            get_option(:tracer).set_service_info(name, 'active_record', Ext::AppTypes::DB)
-          end
-        end
-
-        def self.adapter_name
-          @adapter_name ||= Datadog::Contrib::Rails::Utils.adapter_name
-        end
-
-        def self.database_name
-          @database_name ||= Datadog::Contrib::Rails::Utils.database_name
-        end
-
-        def self.adapter_host
-          @adapter_host ||= Datadog::Contrib::Rails::Utils.adapter_host
-        end
-
-        def self.adapter_port
-          @adapter_port ||= Datadog::Contrib::Rails::Utils.adapter_port
-        end
-
         def self.sql(_name, start, finish, _id, payload)
+          connection_config = Datadog::Contrib::Rails::Utils.connection_config(payload[:connection_id])
+
           span = get_option(:tracer).trace(
-            "#{adapter_name}.query",
+            "#{connection_config[:adapter_name]}.query",
             resource: payload.fetch(:sql),
-            service: database_service_name,
+            service: get_option(:service_name),
             span_type: Datadog::Ext::SQL::TYPE
           )
 
@@ -98,11 +76,12 @@ module Datadog
           # the span should have the query ONLY in the Resource attribute,
           # so that the ``sql.query`` tag will be set in the agent with an
           # obfuscated version
-          span.set_tag('active_record.db.vendor', adapter_name)
-          span.set_tag('active_record.db.name', database_name)
+          span.span_type = Datadog::Ext::SQL::TYPE
+          span.set_tag('active_record.db.vendor', connection_config[:adapter_name])
+          span.set_tag('active_record.db.name', connection_config[:database_name])
           span.set_tag('active_record.db.cached', cached) if cached
-          span.set_tag('out.host', adapter_host)
-          span.set_tag('out.port', adapter_port)
+          span.set_tag('out.host', connection_config[:adapter_host])
+          span.set_tag('out.port', connection_config[:adapter_port])
           span.start_time = start
           span.finish(finish)
         rescue StandardError => e
