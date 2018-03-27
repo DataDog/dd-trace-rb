@@ -74,10 +74,14 @@ RSpec.describe Datadog::Writer do
             let(:response) { { body: body } }
             let(:body) { 'body' }
 
-            shared_examples_for 'an API version' do
+            shared_examples_for 'a traces API' do
               context 'that succeeds' do
                 before(:each) do
-                  expect(callback).to receive(:call).with(a_kind_of(Net::HTTPOK), a_kind_of(Hash)) do |response, api|
+                  expect(callback).to receive(:call).with(
+                    :traces,
+                    a_kind_of(Net::HTTPOK),
+                    a_kind_of(Hash)
+                  ) do |action, response, api|
                     expect(api[:version]).to eq(api_version)
                   end
                 end
@@ -96,7 +100,11 @@ RSpec.describe Datadog::Writer do
 
                 before(:each) do
                   call_count = 0
-                  allow(callback).to receive(:call).with(a_kind_of(Net::HTTPResponse), a_kind_of(Hash)) do |response, api|
+                  allow(callback).to receive(:call).with(
+                    :traces,
+                    a_kind_of(Net::HTTPResponse),
+                    a_kind_of(Hash)
+                  ) do |action, response, api|
                     call_count += 1
                     if call_count == 1
                       expect(response).to be_a_kind_of(Net::HTTPNotFound)
@@ -116,14 +124,14 @@ RSpec.describe Datadog::Writer do
             end
 
             context 'API v4' do
-              it_behaves_like 'an API version' do
+              it_behaves_like 'a traces API' do
                 let(:api_version) { Datadog::HTTPTransport::V4 }
                 let(:fallback_version) { Datadog::HTTPTransport::V3 }
               end
             end
 
             context 'API v3' do
-              it_behaves_like 'an API version' do
+              it_behaves_like 'a traces API' do
                 let(:api_version) { Datadog::HTTPTransport::V3 }
                 let(:fallback_version) { Datadog::HTTPTransport::V2 }
               end
@@ -133,39 +141,47 @@ RSpec.describe Datadog::Writer do
       end
 
       describe '#sampling_updater' do
-        subject(:result) { writer.send(:sampling_updater, response, api) }
-
+        subject(:result) { writer.send(:sampling_updater, action, response, api) }
         let(:options) { { priority_sampler: sampler } }
         let(:sampler) { instance_double(Datadog::PrioritySampler) }
+        let(:action) { :traces }
+        let(:response) { double('response') }
         let(:api) { double('api') }
 
         context 'given a response that' do
           context 'isn\'t OK' do
-            let(:response) { double('failure response') }
+            let(:response) { mock_http_request(method: :post, status: 404)[:response] }
+            it { is_expected.to be nil }
+          end
+
+          context 'isn\'t a :traces action' do
+            let(:action) { :services }
             it { is_expected.to be nil }
           end
 
           context 'is OK' do
             let(:response) { mock_http_request(method: :post, body: body)[:response] }
 
-            context 'and is API v4' do
-              let(:api) { { version: Datadog::HTTPTransport::V4 } }
-              let(:service_rates) { { 'service:a,env:test' => 0.1, 'service:b,env:test' => 0.5 } }
-              let(:body) { service_rates.to_json }
+            context 'and is a :traces action' do
+              context 'and is API v4' do
+                let(:api) { { version: Datadog::HTTPTransport::V4 } }
+                let(:service_rates) { { 'service:a,env:test' => 0.1, 'service:b,env:test' => 0.5 } }
+                let(:body) { service_rates.to_json }
 
-              it do
-                expect(sampler).to receive(:update).with(service_rates)
-                is_expected.to be true
+                it do
+                  expect(sampler).to receive(:update).with(service_rates)
+                  is_expected.to be true
+                end
               end
-            end
 
-            context 'and is API v3' do
-              let(:api) { { version: Datadog::HTTPTransport::V3 } }
-              let(:body) { 'OK' }
+              context 'and is API v3' do
+                let(:api) { { version: Datadog::HTTPTransport::V3 } }
+                let(:body) { 'OK' }
 
-              it do
-                expect(sampler).to_not receive(:update)
-                is_expected.to be false
+                it do
+                  expect(sampler).to_not receive(:update)
+                  is_expected.to be false
+                end
               end
             end
           end
