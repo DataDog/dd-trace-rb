@@ -142,8 +142,43 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``service_name`` | Service name used when tracing application requests | rack |
 | ``distributed_tracing`` | Enables [distributed tracing](#Distributed_Tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
 | ``middleware_names`` | Enable this if you want to use the middleware classes as the resource names for `rack` spans. Must provide the ``application`` option with it. | ``false`` |
+| ``quantize`` | Hash containing options for quantization. May include `:query` or `:fragment`. | {} |
+| ``quantize.query`` | Hash containing options for query portion of URL quantization. May include `:show` or `:exclude`. See options below. Option must be nested inside the `quantize` option. | {} |
+| ``quantize.query.show`` | Defines which values should always be shown. Shows no values by default. May be an Array of strings, or `:all` to show all values. Option must be nested inside the `query` option. | ``nil`` |
+| ``quantize.query.exclude`` | Defines which values should be removed entirely. Excludes nothing by default. May be an Array of strings, or `:all` to remove the query string entirely. Option must be nested inside the `query` option. | ``nil`` |
+| ``quantize.fragment`` | Defines behavior for URL fragments. Removes fragments by default. May be `:show` to show URL fragments. Option must be nested inside the `quantize` option. | ``nil`` |
 | ``application`` | Your Rack application. Necessary for enabling middleware resource names. | ``nil`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+
+Configuring URL quantization behavior:
+
+```
+Datadog.configure do |c|
+  # Default behavior: all values are quantized, fragment is removed.
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id&sort_by
+  # http://example.com/path?categories[]=1&categories[]=2 --> http://example.com/path?categories[]
+
+  # Show values for any query string parameter matching 'category_id' exactly
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id=1&sort_by
+  c.use :rack, quantize: { query: { show: ['category_id'] } }
+
+  # Show all values for all query string parameters
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id=1&sort_by=asc
+  c.use :rack, quantize: { query: { show: :all } }
+
+  # Totally exclude any query string parameter matching 'sort_by' exactly
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id
+  c.use :rack, quantize: { query: { exclude: ['sort_by'] } }
+
+  # Remove the query string entirely
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path
+  c.use :rack, quantize: { query: { exclude: :all } }
+
+  # Show URL fragments
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id&sort_by#featured
+  c.use :rack, quantize: { fragment: :show }
+end
+```
 
 ## Other libraries
 

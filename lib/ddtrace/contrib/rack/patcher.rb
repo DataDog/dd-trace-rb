@@ -8,6 +8,7 @@ module Datadog
         option :tracer, default: Datadog.tracer
         option :distributed_tracing, default: false
         option :middleware_names, default: false
+        option :quantize, default: {}
         option :application
         option :service_name, default: 'rack', depends_on: [:tracer] do |value|
           get_option(:tracer).set_service_info(value, 'rack', Ext::AppTypes::WEB)
