@@ -30,7 +30,7 @@ module Datadog
         attr_reader :app, :options, :tracer
 
         def annotate!(span, env)
-          span.resource = env[:method].to_s.upcase
+          span.resource = [env[:method].to_s.upcase, env[:url].host].join(" ")
           span.service = service_name(env)
           span.span_type = Ext::HTTP::TYPE
           span.set_tag(Ext::HTTP::URL, env[:url].path)
