@@ -33,7 +33,7 @@ module Datadog
 
           assert_equal(SERVICE, span.service)
           assert_equal(NAME, span.name)
-          assert_equal('GET', span.resource)
+          assert_equal('GET example.com', span.resource)
           assert_equal('GET', span.get_tag(Ext::HTTP::METHOD))
           assert_equal('200', span.get_tag(Ext::HTTP::STATUS_CODE))
           assert_equal('/success', span.get_tag(Ext::HTTP::URL))
@@ -49,7 +49,7 @@ module Datadog
 
           assert_equal(SERVICE, span.service)
           assert_equal(NAME, span.name)
-          assert_equal('POST', span.resource)
+          assert_equal('POST example.com', span.resource)
           assert_equal('POST', span.get_tag(Ext::HTTP::METHOD))
           assert_equal('/failure', span.get_tag(Ext::HTTP::URL))
           assert_equal('500', span.get_tag(Ext::HTTP::STATUS_CODE))
@@ -82,7 +82,7 @@ module Datadog
 
           assert_equal(span.name, NAME)
           assert_equal(span.service, 'example.com')
-          assert_equal(span.resource, 'GET')
+          assert_equal(span.resource, 'GET example.com')
         end
 
         def test_default_tracing_headers
