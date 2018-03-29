@@ -24,6 +24,17 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.11.2...v0.12.0.beta1
 - ActiveRecord object instantiation tracing (#311, #334)
 - `http.request_id` tag to Rack spans (#335)
 
+## [0.11.4] - 2018-03-29
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.11.4
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.11.3...v0.11.4
+
+### Fixed
+- Transport body parsing when downgrading (#369)
+- Transport incorrectly attempting to apply sampling to service metadata (#370)
+- `sql.active_record` traces showing incorrect adapter settings when non-default adapter used (#383)
+
 ## [0.11.3] - 2018-03-06
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.11.3
@@ -214,6 +225,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta2...0.12-dev
 [0.12.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta1...v0.12.0.beta2
 [0.12.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.2...v0.12.0.beta1
+[0.11.4]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.3...v0.11.4
 [0.11.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.2...v0.11.3
 [0.11.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.0...v0.11.1
