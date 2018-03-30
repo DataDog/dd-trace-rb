@@ -342,14 +342,21 @@ class ContextFlushPartialTest < Minitest::Test
   def test_tracer_configure
     tracer = get_test_tracer
 
-    old_context_flush = tracer.context_flush
-    tracer.configure()
-    assert_equal(old_context_flush, tracer.context_flush, 'the same context_flush should be reused')
+    # By default, context flush doesn't exist.
+    assert_nil(tracer.context_flush)
 
+    # If given a partial_flush option, then uses default context flush.
+    flush_tracer = Datadog::Tracer.new(writer: FauxWriter.new, partial_flush: true)
+    refute_nil(flush_tracer.context_flush)
+
+    # If not configured with any flush options, context flush still doesn't exist.
+    tracer.configure
+    assert_nil(tracer.context_flush)
+
+    # If configured with flush options, context flush gets set.
     tracer.configure(min_spans_before_partial_flush: 3,
                      max_spans_before_partial_flush: 3)
-
-    refute_equal(old_context_flush, tracer.context_flush, 'another context_flush should be have been created')
+    refute_nil(tracer.context_flush)
   end
 
   def test_tracer_hard_limit_overrides_soft_limit

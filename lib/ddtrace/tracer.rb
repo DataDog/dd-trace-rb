@@ -98,7 +98,7 @@ module Datadog
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
-      @context_flush = Datadog::ContextFlush.new(options)
+      @context_flush = Datadog::ContextFlush.new(options) if options[:partial_flush]
 
       @mutex = Mutex.new
       @services = {}
@@ -307,14 +307,22 @@ module Datadog
       context = context.context if context.is_a?(Datadog::Span)
       return if context.nil?
       trace, sampled = context.get
-      if sampled
-        if trace.nil? || trace.empty?
-          @context_flush.each_partial_trace(context) do |t|
-            write(t)
+
+      # If context flushing is configured...
+      if @context_flush
+        if sampled
+          if trace.nil? || trace.empty?
+            @context_flush.each_partial_trace(context) do |t|
+              write(t)
+            end
+          else
+            write(trace)
           end
-        else
-          write(trace)
         end
+      # Default behavior
+      else
+        ready = !trace.nil? && !trace.empty? && sampled
+        write(trace) if ready
       end
     end
 
