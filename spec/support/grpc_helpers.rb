@@ -1,10 +1,15 @@
 require 'grpc'
 
 module GRPCHelpers
-  def run_service(service_location)
-    client = TestService.rpc_stub_class.new(service_location, :this_channel_is_insecure, interceptors: [::GRPC::DatadogClientInterceptor.new])
+  def client
+    @client ||= TestService.rpc_stub_class.new(service_location, :this_channel_is_insecure)
+  end
 
-    server = GRPC::RpcServer.new(interceptors: [::GRPC::DatadogServerInterceptor.new])
+  def server
+    @server ||= GRPC::RpcServer.new
+  end
+
+  def run_service(service_location)
     server.add_http2_port(service_location, :this_port_is_insecure)
     server.handle(TestService)
 

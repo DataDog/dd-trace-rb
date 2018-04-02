@@ -8,11 +8,21 @@ RSpec.describe 'gRPC client messages' do
 
   before(:each) do
     Datadog.configure do |c|
-      c.use :grpc, tracer: tracer
+      c.use :grpc,
+            tracer: tracer,
+            service_name: 'example',
+            client_stubs: [client],
+            service_implementations: [server]
     end
   end
 
+  after(:each) do
+    Datadog::Contrib::GRPC::Patcher.instance_variable_set(:@patched, false)
+  end
+
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:spans) { tracer.writer.spans }
+  let(:parent_span) { spans.first }
 
   describe 'request response call' do
     let(:service_location) { '0.0.0.0:50051' }
@@ -22,12 +32,12 @@ RSpec.describe 'gRPC client messages' do
         client.basic(test_message)
       end
 
-      span = tracer.writer.spans.first
-
-      expect(span.name).to eq 'grcp.client'
-      expect(span.span_type).to eq 'grpc'
-      expect(span.resource).to eq 'grpchelpers.basic'
-      expect(span.get_tag('error.stack')).to be_nil
+      expect(spans.count).to eq 2
+      expect(parent_span.name).to eq 'grcp.client'
+      expect(parent_span.span_type).to eq 'grpc'
+      expect(parent_span.service).to eq 'example'
+      expect(parent_span.resource).to eq 'grpchelpers.basic'
+      expect(parent_span.get_tag('error.stack')).to be_nil
     end
   end
 
@@ -39,12 +49,12 @@ RSpec.describe 'gRPC client messages' do
         client.stream_from_client([test_message, test_message])
       end
 
-      span = tracer.writer.spans.first
-
-      expect(span.name).to eq 'grcp.client'
-      expect(span.span_type).to eq 'grpc'
-      expect(span.resource).to eq 'grpchelpers.stream_from_client'
-      expect(span.get_tag('error.stack')).to be_nil
+      expect(spans.count).to eq 2
+      expect(parent_span.name).to eq 'grcp.client'
+      expect(parent_span.span_type).to eq 'grpc'
+      expect(parent_span.service).to eq 'example'
+      expect(parent_span.resource).to eq 'grpchelpers.stream_from_client'
+      expect(parent_span.get_tag('error.stack')).to be_nil
     end
   end
 
@@ -56,12 +66,12 @@ RSpec.describe 'gRPC client messages' do
         client.stream_from_server(test_message)
       end
 
-      span = tracer.writer.spans.first
-
-      expect(span.name).to eq 'grcp.client'
-      expect(span.span_type).to eq 'grpc'
-      expect(span.resource).to eq 'grpchelpers.stream_from_server'
-      expect(span.get_tag('error.stack')).to be_nil
+      expect(spans.count).to eq 2
+      expect(parent_span.name).to eq 'grcp.client'
+      expect(parent_span.span_type).to eq 'grpc'
+      expect(parent_span.service).to eq 'example'
+      expect(parent_span.resource).to eq 'grpchelpers.stream_from_server'
+      expect(parent_span.get_tag('error.stack')).to be_nil
     end
   end
 
@@ -73,12 +83,12 @@ RSpec.describe 'gRPC client messages' do
         client.stream_both_ways([test_message, test_message])
       end
 
-      span = tracer.writer.spans.first
-
-      expect(span.name).to eq 'grcp.client'
-      expect(span.span_type).to eq 'grpc'
-      expect(span.resource).to eq 'grpchelpers.stream_both_ways'
-      expect(span.get_tag('error.stack')).to be_nil
+      expect(spans.count).to eq 2
+      expect(parent_span.name).to eq 'grcp.client'
+      expect(parent_span.span_type).to eq 'grpc'
+      expect(parent_span.service).to eq 'example'
+      expect(parent_span.resource).to eq 'grpchelpers.stream_both_ways'
+      expect(parent_span.get_tag('error.stack')).to be_nil
     end
   end
 end

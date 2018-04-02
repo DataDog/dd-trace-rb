@@ -28,11 +28,18 @@ module Datadog
 
         private
 
+        def datadog_pin
+          @datadog_pin ||= Datadog::Pin.get_from(self.class)
+        end
+
+        def ddtracer
+          datadog_pin.tracer
+        end
+
         def trace_server(proto_method_name, metadata = {})
-          ddtracer = Datadog.configuration[:grpc][:tracer]
           tracer_options = {
-            service: Datadog.configuration[:grpc][:service_name],
             span_type: Datadog::Ext::GRPC::TYPE,
+            service: datadog_pin.service_name,
             resource: "server.#{proto_method_name}"
           }
           ddtracer.provider.context = Datadog::GRPCPropagator.extract(metadata)
