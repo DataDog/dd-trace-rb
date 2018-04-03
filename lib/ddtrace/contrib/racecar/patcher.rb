@@ -16,8 +16,17 @@ module Datadog
         option :service_name, default: 'racecar'
 
         on_subscribe do
-          subscribe('process_message.racecar', self::NAME_MESSAGE, {}, configuration[:tracer], &method(:process))
-          subscribe('process_batch.racecar', self::NAME_BATCH, {}, configuration[:tracer], &method(:process))
+          # Subscribe to single messages
+          subscription(self::NAME_MESSAGE, {}, configuration[:tracer], &method(:process)).tap do |subscription|
+            subscription.before_trace(&method(:ensure_clean_context!))
+            subscription.subscribe('process_message.racecar')
+          end
+
+          # Subscribe to batch messages
+          subscription(self::NAME_BATCH, {}, configuration[:tracer], &method(:process)).tap do |subscription|
+            subscription.before_trace(&method(:ensure_clean_context!))
+            subscription.subscribe('process_batch.racecar')
+          end
         end
 
         class << self
@@ -60,6 +69,15 @@ module Datadog
 
           def compatible?
             defined?(::Racecar) && defined?(::ActiveSupport::Notifications)
+          end
+
+          # Context objects are thread-bound.
+          # If Racecar re-uses threads, context from a previous trace
+          # could leak into the new trace. This "cleans" current context,
+          # preventing such a leak.
+          def ensure_clean_context!
+            return unless tracer.call_context.current_span
+            tracer.provider.context = Context.new
           end
         end
       end
