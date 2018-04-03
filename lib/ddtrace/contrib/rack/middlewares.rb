@@ -125,7 +125,8 @@ module Datadog
           # So when its not available, we want the original, unmutated PATH_INFO, which
           # is just the relative path without query strings.
           url = env['REQUEST_URI'] || original_env['PATH_INFO']
-          request_id = get_request_id(headers, env)
+          request_headers = parse_request_headers(env)
+          response_headers = parse_response_headers(headers || {})
 
           request_span.resource ||= resource_name_for(env, status)
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
@@ -150,8 +151,15 @@ module Datadog
           if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
             request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
           end
-          if request_span.get_tag(Datadog::Ext::HTTP::REQUEST_ID).nil? && request_id
-            request_span.set_tag(Datadog::Ext::HTTP::REQUEST_ID, request_id)
+
+          # Request headers
+          request_headers.each do |name, value|
+            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
+          end
+
+          # Response headers
+          response_headers.each do |name, value|
+            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
           end
 
           # detect if the status code is a 5xx and flag the request span as an error
@@ -161,12 +169,22 @@ module Datadog
           end
         end
 
-        # If Rails is present, it will sanitize & use the Request ID header,
-        # or generate a UUID if no request ID header is present, then set that as headers['X-Request-Id'].
-        # Othewise use whatever Rack variables are present (they should all be the same.)
-        def get_request_id(headers, env)
-          headers ||= {}
-          headers['X-Request-Id'] || headers['X-Request-ID'] || env['HTTP_X_REQUEST_ID']
+        def parse_request_headers(env)
+          {}.tap do |result|
+            env.each do |name, value|
+              tag = Datadog::Ext::HTTP::RequestHeaders.from_name(name.to_s.sub('HTTP_', ''))
+              result[tag] = value unless tag.nil? || value.to_s.empty?
+            end
+          end
+        end
+
+        def parse_response_headers(headers)
+          {}.tap do |result|
+            headers.each do |name, value|
+              tag = Datadog::Ext::HTTP::ResponseHeaders.from_name(name)
+              result[tag] = value unless tag.nil? || value.to_s.empty?
+            end
+          end
         end
 
         private
