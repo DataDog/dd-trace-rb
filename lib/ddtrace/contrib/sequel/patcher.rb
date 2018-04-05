@@ -3,14 +3,8 @@
 module Datadog
   module Contrib
     module Sequel
-      URL = 'sequel.url'.freeze
-      METHOD = 'sequel.method'.freeze
-      PARAMS = 'sequel.params'.freeze
-      BODY = 'sequel.body'.freeze
-
       SERVICE = 'sequel'.freeze
 
-      # Patcher enables patching of 'sequel/transport' module.
       module Patcher
         include Base
         register_as :sequel, auto_patch: true
@@ -23,7 +17,7 @@ module Datadog
 
         # patch applies our patch if needed
         def patch
-          if !@patched && (defined?(::Sequel))
+          if !@patched && defined?(::Sequel)
             begin
               require 'uri'
               require 'json'
@@ -42,9 +36,7 @@ module Datadog
         end
 
         # rubocop:disable Metrics/MethodLength
-        # rubocop:disable Metrics/AbcSize
         def patch_sequel_log
-          # rubocop:disable Metrics/BlockLength
           ::Sequel::Database.class_eval do
             alias_method :initialize_without_datadog, :initialize
             Datadog::Patcher.without_warnings do
@@ -54,14 +46,13 @@ module Datadog
             def initialize(*args)
               service = Datadog.configuration[:sequel][:service_name]
               pin = Datadog::Pin.new(service,
-                app: 'sequel',
-                app_type: Datadog::Ext::AppTypes::DB,
-                tags: {
-                  'sequel.db.vendor' => args.first[:adapter],
-                  'sequel.db.name' => args.first[:database],
-                  'sequel.db.host' => args.first[:host],
-                }
-              )
+                                     app: 'sequel',
+                                     app_type: Datadog::Ext::AppTypes::DB,
+                                     tags: {
+                                       'sequel.db.vendor' => args.first[:adapter],
+                                       'sequel.db.name' => args.first[:database],
+                                       'sequel.db.host' => args.first[:host]
+                                     })
               pin.onto(self)
               initialize_without_datadog(*args)
             end
@@ -84,7 +75,7 @@ module Datadog
               span_type = Datadog::Ext::SQL::TYPE
 
               span = pin.tracer.trace(
-                "#{self.database_type}.query",
+                "#{database_type}.query",
                 resource: message,
                 service: pin.service,
                 span_type: span_type
