@@ -16,10 +16,20 @@ module Datadog
             @span_name = span_name
             @options = options
             @block = block
+            @before_trace_callbacks = []
+            @after_trace_callbacks = []
+          end
+
+          def before_trace(&block)
+            @before_trace_callbacks << block if block_given?
+          end
+
+          def after_trace(&block)
+            @after_trace_callbacks << block if block_given?
           end
 
           def start(_name, _id, _payload)
-            ensure_clean_context!
+            run_callbacks(@before_trace_callbacks)
             tracer.trace(@span_name, @options)
           end
 
@@ -28,6 +38,7 @@ module Datadog
               return nil if span.nil?
               block.call(span, name, id, payload)
               span.finish
+              run_callbacks(@after_trace_callbacks)
             end
           end
 
@@ -57,11 +68,14 @@ module Datadog
             @subscribers ||= {}
           end
 
-          private
-
-          def ensure_clean_context!
-            return unless tracer.call_context.current_span
-            tracer.provider.context = Context.new
+          def run_callbacks(callbacks)
+            callbacks.each do |callback|
+              begin
+                callback.call
+              rescue StandardError => e
+                Datadog::Tracer.log.debug("ActiveSupport::Notifications callback failed: #{e.message}")
+              end
+            end
           end
         end
       end

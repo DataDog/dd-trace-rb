@@ -48,6 +48,66 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         end
       end
 
+      describe '#before_trace' do
+        context 'given a block' do
+          let(:callback_block) { Proc.new { callback_spy.call } }
+          let(:callback_spy) { double('callback spy') }
+          before(:each) { subscription.before_trace(&callback_block) }
+
+          shared_examples_for 'a before_trace callback' do
+            context 'on #start' do
+              it do
+                expect(callback_spy).to receive(:call).ordered
+                expect(tracer).to receive(:trace).ordered
+                subscription.start(double('name'), double('id'), double('payload'))
+              end
+            end
+          end
+
+          context 'that doesn\'t raise an error' do
+            let(:callback_block) { Proc.new { callback_spy.call } }
+            it_behaves_like 'a before_trace callback'
+          end
+
+          context 'that raises an error' do
+            let(:callback_block) { Proc.new { callback_spy.call; raise ArgumentError.new('Fail!') } }
+            it_behaves_like 'a before_trace callback'
+          end
+        end
+      end
+
+      describe '#after_trace' do
+        context 'given a block' do
+          let(:callback_block) { Proc.new { callback_spy.call } }
+          let(:callback_spy) { double('callback spy') }
+          before(:each) { subscription.after_trace(&callback_block) }
+
+          shared_examples_for 'an after_trace callback' do
+            context 'on #finish' do
+              let(:span) { instance_double(Datadog::Span) }
+
+              it do
+                expect(tracer).to receive(:active_span).and_return(span).ordered
+                expect(spy).to receive(:call).ordered
+                expect(span).to receive(:finish).ordered
+                expect(callback_spy).to receive(:call).ordered
+                subscription.finish(double('name'), double('id'), double('payload'))
+              end
+            end
+          end
+
+          context 'that doesn\'t raise an error' do
+            let(:callback_block) { Proc.new { callback_spy.call } }
+            it_behaves_like 'an after_trace callback'
+          end
+
+          context 'that raises an error' do
+            let(:callback_block) { Proc.new { callback_spy.call; raise ArgumentError.new('Fail!') } }
+            it_behaves_like 'an after_trace callback'
+          end
+        end
+      end
+
       describe '#subscribe' do
         subject(:result) { subscription.subscribe(pattern) }
         let(:pattern) { double('pattern') }
