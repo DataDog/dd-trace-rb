@@ -1,6 +1,7 @@
 require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 
+require 'ddtrace/contrib/active_record/utils'
 require 'ddtrace/contrib/grape/endpoint'
 require 'ddtrace/contrib/rack/middlewares'
 
@@ -50,7 +51,7 @@ module Datadog
           return unless defined?(::ActiveRecord)
 
           config = Datadog.configuration[:rails]
-          adapter_name = Utils.adapter_name
+          adapter_name = Contrib::ActiveRecord::Utils.adapter_name
           config[:database_service] ||= "#{config[:service_name]}-#{adapter_name}"
           config[:tracer].set_service_info(config[:database_service], adapter_name, Ext::AppTypes::DB)
         rescue => e

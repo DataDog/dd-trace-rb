@@ -74,10 +74,10 @@ class TracerActiveRecordTest < TracerTestBase
     sinatra_span = spans[0]
     sqlite_span = spans[spans.length - 1]
 
-    adapter_name = Datadog::Contrib::Rails::Utils.adapter_name
-    database_name = Datadog::Contrib::Rails::Utils.database_name
-    adapter_host = Datadog::Contrib::Rails::Utils.adapter_host
-    adapter_port = Datadog::Contrib::Rails::Utils.adapter_port
+    adapter_name = Datadog::Contrib::ActiveRecord::Utils.adapter_name
+    database_name = Datadog::Contrib::ActiveRecord::Utils.database_name
+    adapter_host = Datadog::Contrib::ActiveRecord::Utils.adapter_host
+    adapter_port = Datadog::Contrib::ActiveRecord::Utils.adapter_port
 
     assert_equal('sqlite', sqlite_span.service)
     assert_equal('SELECT 42', sqlite_span.resource)

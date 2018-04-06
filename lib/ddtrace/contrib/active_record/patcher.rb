@@ -1,6 +1,6 @@
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
-require 'ddtrace/contrib/rails/utils'
+require 'ddtrace/contrib/active_record/utils'
 
 module Datadog
   module Contrib
@@ -10,7 +10,7 @@ module Datadog
         include Base
         register_as :active_record, auto_patch: false
         option :service_name, depends_on: [:tracer] do |value|
-          (value || Datadog::Contrib::Rails::Utils.adapter_name).tap do |v|
+          (value || Utils.adapter_name).tap do |v|
             get_option(:tracer).set_service_info(v, 'active_record', Ext::AppTypes::DB)
           end
         end
@@ -59,7 +59,7 @@ module Datadog
         end
 
         def self.sql(_name, start, finish, _id, payload)
-          connection_config = Datadog::Contrib::Rails::Utils.connection_config(payload[:connection_id])
+          connection_config = Utils.connection_config(payload[:connection_id])
 
           span = get_option(:tracer).trace(
             "#{connection_config[:adapter_name]}.query",

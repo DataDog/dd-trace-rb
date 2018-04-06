@@ -1,5 +1,5 @@
 require 'ddtrace/ext/sql'
-require 'ddtrace/contrib/rails/utils'
+require 'ddtrace/contrib/active_record/utils'
 
 module Datadog
   module Contrib
@@ -30,7 +30,7 @@ module Datadog
         def self.sql(_name, start, finish, _id, payload)
           tracer = Datadog.configuration[:rails][:tracer]
           database_service = Datadog.configuration[:rails][:database_service]
-          connection_config = Datadog::Contrib::Rails::Utils.connection_config(payload[:connection_id])
+          connection_config = Datadog::Contrib::ActiveRecord::Utils.connection_config(payload[:connection_id])
 
           span = tracer.trace(
             "#{connection_config[:adapter_name]}.query",
