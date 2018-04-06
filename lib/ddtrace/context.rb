@@ -29,16 +29,6 @@ module Datadog
       reset(options)
     end
 
-    def reset(options = {})
-      @trace = []
-      @parent_trace_id = options.fetch(:trace_id, nil)
-      @parent_span_id = options.fetch(:span_id, nil)
-      @sampled = options.fetch(:sampled, false)
-      @sampling_priority = options.fetch(:sampling_priority, nil)
-      @finished_spans = 0
-      @current_span = nil
-    end
-
     def trace_id
       @mutex.synchronize do
         @parent_trace_id
@@ -70,17 +60,6 @@ module Datadog
     def current_span
       @mutex.synchronize do
         return @current_span
-      end
-    end
-
-    def set_current_span(span)
-      @current_span = span
-      if span
-        @parent_trace_id = span.trace_id
-        @parent_span_id = span.span_id
-        @sampled = span.sampled
-      else
-        @parent_span_id = nil
       end
     end
 
@@ -122,12 +101,6 @@ module Datadog
           end
         end
       end
-    end
-
-    # Returns if the trace for the current Context is finished or not.
-    # Low-level internal function, not thread-safe.
-    def check_finished_spans
-      @finished_spans > 0 && @trace.length == @finished_spans
     end
 
     # Returns if the trace for the current Context is finished or not. A \Context
@@ -173,6 +146,35 @@ module Datadog
         # rubocop:disable Metrics/LineLength
         "Context(trace.length:#{@trace.length},sampled:#{@sampled},finished_spans:#{@finished_spans},current_span:#{@current_span})"
       end
+    end
+
+    private
+
+    def reset(options = {})
+      @trace = []
+      @parent_trace_id = options.fetch(:trace_id, nil)
+      @parent_span_id = options.fetch(:span_id, nil)
+      @sampled = options.fetch(:sampled, false)
+      @sampling_priority = options.fetch(:sampling_priority, nil)
+      @finished_spans = 0
+      @current_span = nil
+    end
+
+    def set_current_span(span)
+      @current_span = span
+      if span
+        @parent_trace_id = span.trace_id
+        @parent_span_id = span.span_id
+        @sampled = span.sampled
+      else
+        @parent_span_id = nil
+      end
+    end
+
+    # Returns if the trace for the current Context is finished or not.
+    # Low-level internal function, not thread-safe.
+    def check_finished_spans
+      @finished_spans > 0 && @trace.length == @finished_spans
     end
 
     def attach_sampling_priority
@@ -225,11 +227,6 @@ module Datadog
         end
       end
     end
-
-    private :reset
-    private :check_finished_spans
-    private :set_current_span
-    private :attach_sampling_priority
   end
 
   # ThreadLocalContext can be used as a tracer global reference to create

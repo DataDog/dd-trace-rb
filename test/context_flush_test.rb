@@ -65,7 +65,7 @@ class ContextFlushEachTest < Minitest::Test
       flunk("nothing should be partially flushed, got: #{t}")
     end
 
-    assert_equal(0, context.length, 'everything should be written by now')
+    assert_equal(0, context.send(:length), 'everything should be written by now')
   end
 
   def test_each_partial_trace_typical
@@ -132,7 +132,7 @@ class ContextFlushEachTest < Minitest::Test
     action12.verify
     action3456.verify
 
-    assert_equal(0, context.length, 'everything should be written by now')
+    assert_equal(0, context.send(:length), 'everything should be written by now')
   end
 
   # rubocop:disable Metrics/MethodLength
@@ -177,7 +177,7 @@ class ContextFlushEachTest < Minitest::Test
       end
     end
 
-    assert_equal(8, context.length)
+    assert_equal(8, context.send(:length))
 
     [root, child1, child3, child6].each do |span|
       span.finish
@@ -253,7 +253,7 @@ class ContextFlushEachTest < Minitest::Test
       flunk("nothing should be partially flushed, got: #{t}")
     end
 
-    assert_equal(0, context.length, 'everything should be written by now')
+    assert_equal(0, context.send(:length), 'everything should be written by now')
   end
 end
 
@@ -322,7 +322,7 @@ class ContextFlushPartialTest < Minitest::Test
       # - then 99 spans (10 from 1st batch, 89 from second batch) are put in context
       # - then the 101th comes (the 90th from the second batch) and triggers a flush of everything but root span
       # - then the last 10 spans from second batch are thrown in, so that's 10 left + the root span
-      assert_equal(1 + MIN_SPANS, tracer.call_context.length, 'some spans should have been sent')
+      assert_equal(1 + MIN_SPANS, tracer.call_context.send(:length), 'some spans should have been sent')
       assert_equal(MAX_SPANS, spans.length)
       spans.each do |span|
         write1.call_with_name(span.name)

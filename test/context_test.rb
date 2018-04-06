@@ -278,30 +278,30 @@ class ContextTest < Minitest::Test
     tracer = get_test_tracer
     ctx = Datadog::Context.new
 
-    assert_equal(0, ctx.length)
+    assert_equal(0, ctx.send(:length))
     10.times do |i|
       span = Datadog::Span.new(tracer, "test.op#{i}")
-      assert_equal(i, ctx.length)
+      assert_equal(i, ctx.send(:length))
       ctx.add_span(span)
-      assert_equal(i + 1, ctx.length)
+      assert_equal(i + 1, ctx.send(:length))
       ctx.close_span(span)
-      assert_equal(i + 1, ctx.length)
+      assert_equal(i + 1, ctx.send(:length))
     end
 
     ctx.get
 
-    assert_equal(0, ctx.length)
+    assert_equal(0, ctx.send(:length))
   end
 
   def test_start_time
     tracer = get_test_tracer
     ctx = tracer.call_context
 
-    assert_nil(ctx.start_time)
+    assert_nil(ctx.send(:start_time))
     tracer.trace('test.op') do |span|
-      assert_equal(span.start_time, ctx.start_time)
+      assert_equal(span.start_time, ctx.send(:start_time))
     end
-    assert_nil(ctx.start_time)
+    assert_nil(ctx.send(:start_time))
   end
 
   def test_each_span
@@ -311,7 +311,7 @@ class ContextTest < Minitest::Test
 
     action = MiniTest::Mock.new
     action.expect(:call_with_name, nil, ['test.op'])
-    ctx.each_span do |s|
+    ctx.send(:each_span) do |s|
       action.call_with_name(s.name)
     end
     action.verify
@@ -325,20 +325,20 @@ class ContextTest < Minitest::Test
     action.expect(:call_with_name, nil, ['test.op2'])
     tracer.trace('test.op1') do
       tracer.trace('test.op2') do
-        assert_equal(2, ctx.length)
-        ctx.delete_span_if { |span| span.name == 'test.op1' }
-        assert_equal(1, ctx.length)
-        ctx.each_span do |s|
+        assert_equal(2, ctx.send(:length))
+        ctx.send(:delete_span_if) { |span| span.name == 'test.op1' }
+        assert_equal(1, ctx.send(:length))
+        ctx.send(:each_span) do |s|
           action.call_with_name(s.name)
         end
         assert_equal(false, ctx.finished?, 'context is not finished as op2 is not finished')
         tracer.trace('test.op3') do
         end
-        assert_equal(2, ctx.length)
-        ctx.delete_span_if { |span| span.name == 'test.op3' }
-        assert_equal(1, ctx.length)
+        assert_equal(2, ctx.send(:length))
+        ctx.send(:delete_span_if) { |span| span.name == 'test.op3' }
+        assert_equal(1, ctx.send(:length))
       end
-      assert_equal(0, ctx.length, 'op2 has been finished, so context has been finished too')
+      assert_equal(0, ctx.send(:length), 'op2 has been finished, so context has been finished too')
     end
     action.verify
   end
@@ -359,13 +359,13 @@ class ContextTest < Minitest::Test
       spans << span
     end
 
-    assert_equal(max_length, ctx.length)
+    assert_equal(max_length, ctx.send(:length))
     trace, = ctx.get
     assert_nil(trace)
 
     spans.each(&:finish)
 
-    assert_equal(0, ctx.length, "context #{ctx}")
+    assert_equal(0, ctx.send(:length), "context #{ctx}")
   end
 end
 

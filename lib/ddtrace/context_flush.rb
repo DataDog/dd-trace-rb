@@ -52,7 +52,7 @@ module Datadog
       # 1st step, taint all parents of an unfinished span as unflushable
       unflushable_ids = Set.new
 
-      context.each_span do |span|
+      context.send(:each_span) do |span|
         next if span.finished? || unflushable_ids.include?(span.span_id)
         unflushable_ids.add span.span_id
         while span.parent
@@ -66,7 +66,7 @@ module Datadog
       # children but only for the ones we're interested it.
       roots = []
       children_map = {}
-      context.each_span do |span|
+      context.send(:each_span) do |span|
         # There's no point in trying to put the real root in those partial roots, if
         # it's flushable, the default algorithm would figure way more quickly.
         if span.parent && !unflushable_ids.include?(span.span_id)
@@ -102,14 +102,14 @@ module Datadog
       # We need to reject by span ID and not by value, because a span
       # value may be altered (typical example: it's finished by some other thread)
       # since we lock only the context, not all the spans which belong to it.
-      context.delete_span_if { |span| flushed_ids.include? span.span_id }
+      context.send(:delete_span_if) { |span| flushed_ids.include? span.span_id }
       traces
     end
 
     # Performs an operation which each partial trace it can get from the context.
     def each_partial_trace(context)
-      start_time = context.start_time
-      length = context.length
+      start_time = context.send(:start_time)
+      length = context.send(:length)
       # Stop and do not flush anything if there are not enough spans.
       return if length <= @min_spans_before_partial_flush
       # If there are enough spans, but not too many, check for start time.
