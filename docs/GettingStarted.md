@@ -798,6 +798,7 @@ Available options are:
  - ``env``: set the environment. Rails users may set it to ``Rails.env`` to use their application settings.
  - ``tags``: set global tags that should be applied to all spans. Defaults to an empty hash
  - ``log``: defines a custom logger.
+ - ``partial_flush``: set to ``true`` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
 
 #### Custom logging
 
