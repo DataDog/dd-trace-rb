@@ -4,7 +4,7 @@ module Datadog
       module Notifications
         # An ActiveSupport::Notification subscription that wraps events with tracing.
         class Subscription
-          attr_reader \
+          attr_accessor \
             :tracer,
             :span_name,
             :options
