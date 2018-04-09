@@ -7,39 +7,39 @@ module Datadog
           attr_reader \
             :tracer,
             :span_name,
-            :options,
-            :block
+            :options
 
           def initialize(tracer, span_name, options, &block)
             raise ArgumentError, 'Must be given a block!' unless block_given?
             @tracer = tracer
             @span_name = span_name
             @options = options
-            @block = block
-            @before_trace_callbacks = []
-            @after_trace_callbacks = []
+            @handler = Handler.new(&block)
+            @callbacks = Callbacks.new
+          end
+
+          # ActiveSupport 3.x calls this
+          def call(name, start, finish, id, payload)
+            start_span(name, id, payload, start)
+            finish_span(name, id, payload, finish)
+          end
+
+          # ActiveSupport 4+ calls this on start
+          def start(name, id, payload)
+            start_span(name, id, payload)
+          end
+
+          # ActiveSupport 4+ calls this on finish
+          def finish(name, id, payload)
+            finish_span(name, id, payload)
           end
 
           def before_trace(&block)
-            @before_trace_callbacks << block if block_given?
+            callbacks.add(:before_trace, &block) if block_given?
           end
 
           def after_trace(&block)
-            @after_trace_callbacks << block if block_given?
-          end
-
-          def start(_name, _id, _payload)
-            run_callbacks(@before_trace_callbacks)
-            tracer.trace(@span_name, @options)
-          end
-
-          def finish(name, id, payload)
-            tracer.active_span.tap do |span|
-              return nil if span.nil?
-              block.call(span, name, id, payload)
-              span.finish
-              run_callbacks(@after_trace_callbacks)
-            end
+            callbacks.add(:after_trace, &block) if block_given?
           end
 
           def subscribe(pattern)
@@ -63,18 +63,89 @@ module Datadog
 
           protected
 
+          attr_reader \
+            :handler,
+            :callbacks
+
+          def start_span(name, id, payload, start = nil)
+            # Run callbacks
+            callbacks.run(name, :before_trace, id, payload, start)
+
+            # Start a trace
+            tracer.trace(@span_name, @options).tap do |span|
+              # Assign start time if provided
+              span.start_time = start unless start.nil?
+            end
+          end
+
+          def finish_span(name, id, payload, finish = nil)
+            tracer.active_span.tap do |span|
+              # If no active span, return.
+              return nil if span.nil?
+
+              # Run handler for event
+              handler.run(span, name, id, payload)
+
+              # Finish the span
+              span.finish(finish)
+
+              # Run callbacks
+              callbacks.run(name, :after_trace, span, id, payload, finish)
+            end
+          end
+
           # Pattern => ActiveSupport:Notifications::Subscribers
           def subscribers
             @subscribers ||= {}
           end
 
-          def run_callbacks(callbacks)
-            callbacks.each do |callback|
-              begin
-                callback.call
-              rescue StandardError => e
-                Datadog::Tracer.log.debug("ActiveSupport::Notifications callback failed: #{e.message}")
+          # Wrapper for subscription handler
+          class Handler
+            attr_reader :block
+
+            def initialize(&block)
+              @block = block
+            end
+
+            def run(span, name, id, payload)
+              run!(span, name, id, payload)
+            rescue StandardError => e
+              Datadog::Tracer.log.debug("ActiveSupport::Notifications handler for '#{name}' failed: #{e.message}")
+            end
+
+            def run!(*args)
+              @block.call(*args)
+            end
+          end
+
+          # Wrapper for subscription callbacks
+          class Callbacks
+            attr_reader :blocks
+
+            def initialize
+              @blocks = {}
+            end
+
+            def add(key, &block)
+              blocks_for(key) << block if block_given?
+            end
+
+            def run(event, key, *args)
+              blocks_for(key).each do |callback|
+                begin
+                  callback.call(event, key, *args)
+                rescue StandardError => e
+                  Datadog::Tracer.log.debug(
+                    "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.message}"
+                  )
+                end
               end
+            end
+
+            private
+
+            def blocks_for(key)
+              blocks[key] ||= []
             end
           end
         end

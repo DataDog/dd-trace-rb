@@ -17,14 +17,24 @@ module Datadog
 
         on_subscribe do
           # Subscribe to single messages
-          subscription(self::NAME_MESSAGE, {}, configuration[:tracer], &method(:process)).tap do |subscription|
-            subscription.before_trace(&method(:ensure_clean_context!))
+          subscription(
+            self::NAME_MESSAGE,
+            { service: configuration[:service_name] },
+            configuration[:tracer],
+            &method(:process)
+          ).tap do |subscription|
+            subscription.before_trace { ensure_clean_context! }
             subscription.subscribe('process_message.racecar')
           end
 
           # Subscribe to batch messages
-          subscription(self::NAME_BATCH, {}, configuration[:tracer], &method(:process)).tap do |subscription|
-            subscription.before_trace(&method(:ensure_clean_context!))
+          subscription(
+            self::NAME_BATCH,
+            { service: configuration[:service_name] },
+            configuration[:tracer],
+            &method(:process)
+          ).tap do |subscription|
+            subscription.before_trace { ensure_clean_context! }
             subscription.subscribe('process_batch.racecar')
           end
         end
@@ -76,8 +86,8 @@ module Datadog
           # could leak into the new trace. This "cleans" current context,
           # preventing such a leak.
           def ensure_clean_context!
-            return unless tracer.call_context.current_span
-            tracer.provider.context = Context.new
+            return unless configuration[:tracer].call_context.current_span
+            configuration[:tracer].provider.context = Context.new
           end
         end
       end

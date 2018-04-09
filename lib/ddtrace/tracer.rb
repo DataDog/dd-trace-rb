@@ -98,7 +98,7 @@ module Datadog
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
-      @context_flush = Datadog::ContextFlush.new(options) if options[:partial_flush]
+      @context_flush = options[:partial_flush] ? Datadog::ContextFlush.new(options) : nil
 
       @mutex = Mutex.new
       @services = {}
