@@ -1,3 +1,5 @@
+require 'ddtrace/contrib/rails/utils'
+
 module Datadog
   module Contrib
     module Rails
