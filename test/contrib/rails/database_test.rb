@@ -80,7 +80,10 @@ class DatabaseTracingTest < ActiveSupport::TestCase
         end
         spans = @tracer.writer.spans
         assert_equal(3, spans.length)
-        instantiation_span, parent_span, _query_span = spans
+        parent_span = spans.find { |s| s.name == 'parent.span' }
+        instantiation_span = spans.find { |s| s.name == 'active_record.instantiation' }
+
+        assert_equal(parent_span.service, 'parent-service')
 
         assert_equal(instantiation_span.name, 'active_record.instantiation')
         assert_equal(instantiation_span.span_type, 'custom')
