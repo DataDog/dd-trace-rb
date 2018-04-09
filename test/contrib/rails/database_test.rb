@@ -5,19 +5,25 @@ class DatabaseTracingTest < ActiveSupport::TestCase
   setup do
     @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer
-    Datadog.configuration[:rails][:database_service] = get_adapter_name
-    Datadog.configuration[:rails][:tracer] = @tracer
+
+    Datadog.configure do |c|
+      c.use :rails, database_service: get_adapter_name, tracer: @tracer
+    end
+
+    Datadog.configuration[:active_record][:service_name] = get_adapter_name
+    Datadog.configuration[:active_record][:tracer] = @tracer
   end
 
   teardown do
     Datadog.configuration[:rails][:tracer] = @original_tracer
+    Datadog.configuration[:active_record][:tracer] = @original_tracer
   end
 
   test 'active record is properly traced' do
     # make the query and assert the proper spans
     Article.count
     spans = @tracer.writer.spans
-    assert_equal(spans.length, 1)
+    assert_equal(1, spans.length)
 
     span = spans.first
     adapter_name = get_adapter_name
@@ -27,9 +33,9 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     assert_equal(span.name, "#{adapter_name}.query")
     assert_equal(span.span_type, 'sql')
     assert_equal(span.service, adapter_name)
-    assert_equal(span.get_tag('rails.db.vendor'), adapter_name)
-    assert_equal(span.get_tag('rails.db.name'), database_name)
-    assert_nil(span.get_tag('rails.db.cached'))
+    assert_equal(span.get_tag('active_record.db.vendor'), adapter_name)
+    assert_equal(span.get_tag('active_record.db.name'), database_name)
+    assert_nil(span.get_tag('active_record.db.cached'))
     assert_equal(adapter_host.to_s, span.get_tag('out.host'))
     assert_equal(adapter_port.to_s, span.get_tag('out.port'))
     assert_includes(span.resource, 'SELECT COUNT(*) FROM')
@@ -38,7 +44,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
   end
 
   test 'active record traces instantiation' do
-    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+    if Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
       begin
         Article.create(title: 'Instantiation test')
         @tracer.writer.spans # Clear spans
@@ -51,7 +57,34 @@ class DatabaseTracingTest < ActiveSupport::TestCase
         instantiation_span = spans.first
         assert_equal(instantiation_span.name, 'active_record.instantiation')
         assert_equal(instantiation_span.span_type, 'custom')
-        assert_equal(instantiation_span.service, Datadog.configuration[:rails][:service_name])
+        # Because no parent, and doesn't belong to database service
+        assert_equal(instantiation_span.service, 'active_record')
+        assert_equal(instantiation_span.resource, 'Article')
+        assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'Article')
+        assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), '1')
+      ensure
+        Article.delete_all
+      end
+    end
+  end
+
+  test 'active record traces instantiation inside parent trace' do
+    if Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
+      begin
+        Article.create(title: 'Instantiation test')
+        @tracer.writer.spans # Clear spans
+
+        # make the query and assert the proper spans
+        @tracer.trace('parent.span', service: 'parent-service') do
+          Article.all.entries
+        end
+        spans = @tracer.writer.spans
+        assert_equal(3, spans.length)
+        instantiation_span, parent_span, _query_span = spans
+
+        assert_equal(instantiation_span.name, 'active_record.instantiation')
+        assert_equal(instantiation_span.span_type, 'custom')
+        assert_equal(instantiation_span.service, parent_span.service) # Because within parent
         assert_equal(instantiation_span.resource, 'Article')
         assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'Article')
         assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), '1')
@@ -70,13 +103,13 @@ class DatabaseTracingTest < ActiveSupport::TestCase
 
       # Assert correct number of spans
       spans = @tracer.writer.spans
-      assert_equal(spans.length, 2)
+      assert_equal(2, spans.length)
 
       # Assert cached flag not present on first query
-      assert_nil(spans.first.get_tag('rails.db.cached'))
+      assert_nil(spans.first.get_tag('active_record.db.cached'))
 
       # Assert cached flag set correctly on second query
-      assert_equal('true', spans.last.get_tag('rails.db.cached'))
+      assert_equal('true', spans.last.get_tag('active_record.db.cached'))
     end
   end
 
@@ -86,8 +119,8 @@ class DatabaseTracingTest < ActiveSupport::TestCase
 
     # make the query and assert the proper spans
     Article.count
-    spans = @tracer.writer.spans()
-    assert_equal(spans.length, 1)
+    spans = @tracer.writer.spans
+    assert_equal(1, spans.length)
 
     span = spans.first
     assert_equal(span.service, 'customer-db')

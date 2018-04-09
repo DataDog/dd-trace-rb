@@ -28,7 +28,7 @@ class TracerTest < ActionDispatch::IntegrationTest
   test 'a default service and database should be properly set' do
     services = Datadog.configuration[:rails][:tracer].services
     Datadog::Contrib::Rails::Framework.setup
-    adapter_name = get_adapter_name()
+    adapter_name = get_adapter_name
     refute_equal(adapter_name, 'defaultdb')
     assert_equal(
       {
@@ -36,7 +36,7 @@ class TracerTest < ActionDispatch::IntegrationTest
           'app' => 'rails', 'app_type' => 'web'
         },
         "#{app_name}-#{adapter_name}" => {
-          'app' => adapter_name, 'app_type' => 'db'
+          'app' => 'active_record', 'app_type' => 'db'
         },
         "#{app_name}-cache" => {
           'app' => 'rails', 'app_type' => 'cache'
@@ -49,7 +49,6 @@ class TracerTest < ActionDispatch::IntegrationTest
   test 'database service can be changed by user' do
     update_config(:database_service, 'customer-db')
     tracer = Datadog.configuration[:rails][:tracer]
-    adapter_name = get_adapter_name()
 
     assert_equal(
       {
@@ -57,7 +56,7 @@ class TracerTest < ActionDispatch::IntegrationTest
           'app' => 'rails', 'app_type' => 'web'
         },
         'customer-db' => {
-          'app' => adapter_name, 'app_type' => 'db'
+          'app' => 'active_record', 'app_type' => 'db'
         },
         "#{app_name}-cache" => {
           'app' => 'rails', 'app_type' => 'cache'
@@ -81,7 +80,7 @@ class TracerTest < ActionDispatch::IntegrationTest
           'app' => 'rails', 'app_type' => 'web'
         },
         "#{app_name}-#{adapter_name}" => {
-          'app' => adapter_name, 'app_type' => 'db'
+          'app' => 'active_record', 'app_type' => 'db'
         },
         "#{app_name}-cache" => {
           'app' => 'rails', 'app_type' => 'cache'
@@ -102,7 +101,7 @@ class TracerTest < ActionDispatch::IntegrationTest
           'app' => 'rails', 'app_type' => 'web'
         },
         "#{app_name}-#{adapter_name}" => {
-          'app' => adapter_name, 'app_type' => 'db'
+          'app' => 'active_record', 'app_type' => 'db'
         },
         'service-cache' => {
           'app' => 'rails', 'app_type' => 'cache'

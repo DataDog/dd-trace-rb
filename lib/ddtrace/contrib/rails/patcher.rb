@@ -6,10 +6,17 @@ module Datadog
         include Base
         register_as :rails, auto_patch: true
 
-        option :service_name
+        option :service_name do |value|
+          value || Utils.app_name
+        end
         option :controller_service
         option :cache_service
-        option :database_service
+        option :database_service, depends_on: [:service_name] do |value|
+          (value || "#{get_option(:service_name)}-#{Contrib::ActiveRecord::Utils.adapter_name}").tap do |v|
+            # Update ActiveRecord service name too
+            Datadog.configuration[:active_record][:service_name] = v
+          end
+        end
         option :middleware_names, default: false
         option :distributed_tracing, default: false
         option :template_base_path, default: 'views/'
@@ -36,11 +43,6 @@ module Datadog
             return if ENV['DISABLE_DATADOG_RAILS']
 
             defined?(::Rails::VERSION) && ::Rails::VERSION::MAJOR.to_i >= 3
-          end
-
-          def active_record_instantiation_tracing_supported?
-            Gem.loaded_specs['activerecord'] \
-              && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
           end
         end
       end
