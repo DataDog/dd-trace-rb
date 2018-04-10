@@ -37,7 +37,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # spans are sorted alphabetically, and ... controller names start
     # either by m or p (MySQL or PostGreSQL) so the database span is always
     # the first one. Would fail with an adapter named z-something.
-    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+    if Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
       assert_equal(spans.length, 6)
       instantiation_span, database_span, request_span, controller_span, cache_span, render_span = spans
     else
@@ -67,13 +67,13 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(database_span.name, "#{adapter_name}.query")
     assert_equal(database_span.span_type, 'sql')
     assert_equal(database_span.service, adapter_name)
-    assert_equal(database_span.get_tag('rails.db.vendor'), adapter_name)
-    assert_nil(database_span.get_tag('rails.db.cached'))
+    assert_equal(adapter_name, database_span.get_tag('active_record.db.vendor'))
+    assert_nil(database_span.get_tag('active_record.db.cached'))
     assert_includes(database_span.resource, 'SELECT')
     assert_includes(database_span.resource, 'FROM')
     assert_includes(database_span.resource, 'articles')
 
-    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+    if Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
       assert_equal(instantiation_span.name, 'active_record.instantiation')
       assert_equal(instantiation_span.span_type, 'custom')
       assert_equal(instantiation_span.service, Datadog.configuration[:rails][:service_name])

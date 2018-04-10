@@ -8,9 +8,19 @@ RSpec.describe 'ActiveRecord instrumentation' do
   let(:configuration_options) { { tracer: tracer } }
 
   before(:each) do
+    # Prevent extra spans during tests
+    Article.count
+
+    # Reset options (that might linger from other tests)
+    Datadog.configuration[:active_record].reset_options!
+
     Datadog.configure do |c|
       c.use :active_record, configuration_options
     end
+  end
+
+  after(:each) do
+    Datadog.configuration[:active_record].reset_options!
   end
 
   it 'calls the instrumentation when is used standalone' do

@@ -117,7 +117,7 @@ class TracingControllerTest < ActionController::TestCase
     spans = @tracer.writer.spans
 
     # rubocop:disable Style/IdenticalConditionalBranches
-    if Datadog::Contrib::Rails::Patcher.active_record_instantiation_tracing_supported?
+    if Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
       assert_equal(spans.length, 5)
       span_instantiation, span_database, span_request, span_cache, span_template = spans
 

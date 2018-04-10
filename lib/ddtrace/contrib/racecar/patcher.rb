@@ -12,8 +12,15 @@ module Datadog
         NAME_MESSAGE = 'racecar.message'.freeze
         NAME_BATCH = 'racecar.batch'.freeze
         register_as :racecar
-        option :tracer, default: Datadog.tracer
         option :service_name, default: 'racecar'
+        option :tracer, default: Datadog.tracer do |value|
+          (value || Datadog.tracer).tap do |v|
+            # Make sure to update tracers of all subscriptions
+            subscriptions.each do |subscription|
+              subscription.tracer = v
+            end
+          end
+        end
 
         on_subscribe do
           # Subscribe to single messages
