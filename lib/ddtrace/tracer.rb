@@ -125,7 +125,7 @@ module Datadog
       sampler = options.fetch(:sampler, nil)
       priority_sampling = options[:priority_sampling]
       max_spans_before_partial_flush = options.fetch(:max_spans_before_partial_flush, nil)
-      min_spans_before_partial_flush = options.fetch(:max_spans_before_partial_flush, nil)
+      min_spans_before_partial_flush = options.fetch(:min_spans_before_partial_flush, nil)
       partial_flush_timeout = options.fetch(:partial_flush_timeout, nil)
 
       @enabled = enabled unless enabled.nil?
