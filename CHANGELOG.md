@@ -4,6 +4,38 @@
 
 ## [Unreleased (beta)]
 
+## [0.12.0.rc1] - 2018-04-11
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.12.0.rc1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.11.4...v0.12.0.rc1
+
+### Added
+- GraphQL integration (supporting graphql 1.7.9+) (#295)
+- ActiveRecord object instantiation tracing (#311, #334)
+- Subscriber module for ActiveSupport::Notifications tracing (#324, #380, #390, #395) (@dasch)
+- HTTP quantization module (#384)
+- Partial flushing option to tracer (#247, #397)
+
+### Changed
+- Rack applies URL quantization by default (#371)
+- Elasticsearch applies body quantization by default (#362)
+- Context for a single trace now has hard limit of 100,000 spans (#247)
+- Tags with `rails.db.x` to `active_record.db.x` instead (#396)
+
+### Fixed
+- Loading the ddtrace library after Rails has fully initialized can result in load errors. (#357)
+- Some scenarios where `middleware_names` could result in bad resource names (#354)
+- ActionController instrumentation conflicting with some gems that monkey patch Rails (#391)
+
+### Deprecated
+- Use of `:datadog_rack_request_span` variable in favor of `'datadog.rack_request_span'` in Rack. (#365, #392)
+
+### Refactored
+- Racecar to use ActiveSupport::Notifications Subscriber module (#381)
+- Rails to use ActiveRecord integration instead of its own implementation (#396)
+- ActiveRecord to use ActiveSupport::Notifications Subscriber module (#396)
+
 ## [0.12.0.beta2] - 2018-02-28
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.12.0.beta2
@@ -221,8 +253,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.3...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta2...0.12-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.4...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.rc1...0.12-dev
+[0.12.0.rc1]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.4...v0.12.0.rc1
 [0.12.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta1...v0.12.0.beta2
 [0.12.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.2...v0.12.0.beta1
 [0.11.4]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.3...v0.11.4
