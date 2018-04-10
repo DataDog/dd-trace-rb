@@ -21,22 +21,26 @@ module Datadog
       module Framework
         # configure Datadog settings
         def self.setup
-          config = Datadog.configuration[:rails]
-          config[:service_name] ||= Utils.app_name
-          tracer = config[:tracer]
+          config = config_with_defaults
 
           activate_rack!(config)
           activate_active_record!(config)
-
-          config[:controller_service] ||= config[:service_name]
-          config[:cache_service] ||= "#{config[:service_name]}-cache"
-
-          tracer.set_service_info(config[:controller_service], 'rails', Ext::AppTypes::WEB)
-          tracer.set_service_info(config[:cache_service], 'rails', Ext::AppTypes::CACHE)
+          set_service_info!(config)
 
           # By default, default service would be guessed from the script
           # being executed, but here we know better, get it from Rails config.
-          tracer.default_service = config[:service_name]
+          config[:tracer].default_service = config[:service_name]
+        end
+
+        def self.config_with_defaults
+          # We set defaults here instead of in the patcher because we need to wait
+          # for the Rails application to be fully initialized.
+          Datadog.configuration[:rails].tap do |config|
+            config[:service_name] ||= Utils.app_name
+            config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
+            config[:controller_service] ||= config[:service_name]
+            config[:cache_service] ||= "#{config[:service_name]}-cache"
+          end
         end
 
         def self.activate_rack!(config)
@@ -51,11 +55,19 @@ module Datadog
         end
 
         def self.activate_active_record!(config)
+          return unless defined?(::ActiveRecord)
+
           Datadog.configuration.use(
             :active_record,
             service_name: config[:database_service],
             tracer: config[:tracer]
           )
+        end
+
+        def self.set_service_info!(config)
+          tracer = config[:tracer]
+          tracer.set_service_info(config[:controller_service], 'rails', Ext::AppTypes::WEB)
+          tracer.set_service_info(config[:cache_service], 'rails', Ext::AppTypes::CACHE)
         end
       end
     end

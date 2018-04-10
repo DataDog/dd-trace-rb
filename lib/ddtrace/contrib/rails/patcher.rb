@@ -8,15 +8,13 @@ module Datadog
         include Base
         register_as :rails, auto_patch: true
 
-        option :service_name do |value|
-          value || Utils.app_name
-        end
+        option :service_name
         option :controller_service
         option :cache_service
         option :database_service, depends_on: [:service_name] do |value|
-          (value || "#{get_option(:service_name)}-#{Contrib::ActiveRecord::Utils.adapter_name}").tap do |v|
+          value.tap do
             # Update ActiveRecord service name too
-            Datadog.configuration[:active_record][:service_name] = v
+            Datadog.configuration[:active_record][:service_name] = value
           end
         end
         option :middleware_names, default: false
