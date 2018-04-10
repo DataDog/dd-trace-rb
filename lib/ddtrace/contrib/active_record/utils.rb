@@ -8,8 +8,6 @@ module Datadog
           case vendor
           when nil
             'defaultdb'
-          when 'mysql2'
-            'mysql'
           when 'postgresql'
             'postgres'
           when 'sqlite3'

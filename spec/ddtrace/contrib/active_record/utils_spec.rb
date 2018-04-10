@@ -20,7 +20,7 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Utils do
 
       context 'mysql2' do
         let(:value) { 'mysql2' }
-        it { is_expected.to eq('mysql') }
+        it { is_expected.to eq('mysql2') }
       end
 
       context 'postgresql' do

@@ -30,14 +30,14 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
     # expect service and trace is sent
     expect(spans.size).to eq(1)
-    expect(services['mysql']).to eq({'app'=>'active_record', 'app_type'=>'db'})
+    expect(services['mysql2']).to eq({'app'=>'active_record', 'app_type'=>'db'})
 
     span = spans[0]
-    expect(span.service).to eq('mysql')
-    expect(span.name).to eq('mysql.query')
+    expect(span.service).to eq('mysql2')
+    expect(span.name).to eq('mysql2.query')
     expect(span.span_type).to eq('sql')
     expect(span.resource.strip).to eq('SELECT COUNT(*) FROM `articles`')
-    expect(span.get_tag('active_record.db.vendor')).to eq('mysql')
+    expect(span.get_tag('active_record.db.vendor')).to eq('mysql2')
     expect(span.get_tag('active_record.db.name')).to eq('mysql')
     expect(span.get_tag('active_record.db.cached')).to eq(nil)
     expect(span.get_tag('out.host')).to eq('127.0.0.1')
@@ -55,7 +55,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
     context 'is not set' do
       let(:configuration_options) { super().merge({ service_name: nil }) }
-      it { expect(query_span.service).to eq('mysql') }
+      it { expect(query_span.service).to eq('mysql2') }
     end
 
     context 'is set' do
