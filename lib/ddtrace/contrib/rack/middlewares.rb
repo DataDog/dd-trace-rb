@@ -156,7 +156,7 @@ module Datadog
           :datadog_rack_request_span is considered an internal symbol in the Rack env,
           and has been been DEPRECATED. Public support for its usage is discontinued.
           If you need the Rack request span, try using `Datadog.tracer.active_span`.
-          This key will be removed in version 0.13.0).freeze
+          This key will be removed in version 0.14.0).freeze
 
         def add_deprecation_warnings(env)
           env.instance_eval do
