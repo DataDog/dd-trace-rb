@@ -22,6 +22,10 @@ module Datadog
       # requests.
       module Tracer
         include Base
+
+        ENV_REQUEST_SPAN = 'datadog.sinatra_request_span'.freeze
+        ENV_ROUTE = 'datadog.sinatra_route'.freeze
+
         register_as :sinatra
 
         option :service_name, default: 'sinatra', depends_on: [:tracer] do |value|
@@ -39,11 +43,11 @@ module Datadog
           condition do
             # If the option to prepend script names is enabled, then
             # prepend the script name from the request onto the action.
-            @datadog_route = if Datadog.configuration[:sinatra][:resource_script_names]
-                               "#{request.script_name}#{action}"
-                             else
-                               action
-                             end
+            request.env[ENV_ROUTE] = if Datadog.configuration[:sinatra][:resource_script_names]
+                                     "#{request.script_name}#{action}"
+                                   else
+                                     action
+                                   end
           end
 
           super
@@ -74,14 +78,6 @@ module Datadog
           app.before do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            if instance_variable_defined? :@datadog_request_span
-              if @datadog_request_span
-                Datadog::Tracer.log.error('request span active in :before hook')
-                @datadog_request_span.finish()
-                @datadog_request_span = nil
-              end
-            end
-
             tracer = Datadog.configuration[:sinatra][:tracer]
             distributed_tracing = Datadog.configuration[:sinatra][:distributed_tracing]
 
@@ -96,27 +92,18 @@ module Datadog
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
 
-            @datadog_request_span = span
+            request.env[ENV_REQUEST_SPAN] = span
           end
 
           app.after do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            span = @datadog_request_span
-            begin
-              unless span
-                Datadog::Tracer.log.error('missing request span in :after hook')
-                return
-              end
-
-              span.resource = "#{request.request_method} #{@datadog_route}"
-              span.set_tag('sinatra.route.path', @datadog_route)
-              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
-              span.set_error(env['sinatra.error']) if response.server_error?
-              span.finish()
-            ensure
-              @datadog_request_span = nil
-            end
+            span = request.env[ENV_REQUEST_SPAN]
+            span.resource = "#{request.request_method} #{request.env[ENV_ROUTE]}"
+            span.set_tag('sinatra.route.path', request.env[ENV_ROUTE])
+            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
+            span.set_error(env['sinatra.error']) if response.server_error?
+            span.finish
           end
         end
       end
