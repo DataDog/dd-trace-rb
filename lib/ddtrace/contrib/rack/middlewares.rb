@@ -40,7 +40,6 @@ module Datadog
           env[RACK_REQUEST_SPAN] = request_span
 
           # TODO: For backwards compatibility; this attribute is deprecated.
-          #       Will be removed in version 0.13.0.
           env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
 
           # Add deprecation warnings
