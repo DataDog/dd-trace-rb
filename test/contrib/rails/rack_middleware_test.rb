@@ -37,7 +37,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # spans are sorted alphabetically, and ... controller names start
     # either by m or p (MySQL or PostGreSQL) so the database span is always
     # the first one. Would fail with an adapter named z-something.
-    if Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
+    if Datadog::Contrib::ActiveRecord::Events::Instantiation.supported?
       assert_equal(spans.length, 6)
       instantiation_span, database_span, request_span, controller_span, cache_span, render_span = spans
     else
@@ -73,7 +73,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_includes(database_span.resource, 'FROM')
     assert_includes(database_span.resource, 'articles')
 
-    if Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
+    if Datadog::Contrib::ActiveRecord::Events::Instantiation.supported?
       assert_equal(instantiation_span.name, 'active_record.instantiation')
       assert_equal(instantiation_span.span_type, 'custom')
       assert_equal(instantiation_span.service, Datadog.configuration[:rails][:service_name])

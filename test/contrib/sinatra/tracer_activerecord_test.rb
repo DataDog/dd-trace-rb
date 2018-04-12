@@ -120,7 +120,7 @@ class TracerActiveRecordTest < TracerTestBase
 
   def test_instantiation_tracing
     # Only supported in Rails 4.2+
-    skip unless Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
+    skip unless Datadog::Contrib::ActiveRecord::Events::Instantiation.supported?
 
     # Make sure Article table exists
     migrate_db

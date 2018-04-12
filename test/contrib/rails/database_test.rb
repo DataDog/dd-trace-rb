@@ -44,7 +44,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
   end
 
   test 'active record traces instantiation' do
-    if Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
+    if Datadog::Contrib::ActiveRecord::Events::Instantiation.supported?
       begin
         Article.create(title: 'Instantiation test')
         @tracer.writer.spans # Clear spans
@@ -69,7 +69,7 @@ class DatabaseTracingTest < ActiveSupport::TestCase
   end
 
   test 'active record traces instantiation inside parent trace' do
-    if Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
+    if Datadog::Contrib::ActiveRecord::Events::Instantiation.supported?
       begin
         Article.create(title: 'Instantiation test')
         @tracer.writer.spans # Clear spans
