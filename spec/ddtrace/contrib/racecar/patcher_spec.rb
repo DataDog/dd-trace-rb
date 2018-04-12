@@ -17,14 +17,6 @@ RSpec.describe 'Racecar patcher' do
     Datadog.configure do |c|
       c.use :racecar, tracer: tracer
     end
-
-    # Make sure to update the subscription tracer,
-    # so we aren't writing to a stale tracer.
-    if Datadog::Contrib::Racecar::Patcher.patched?
-      Datadog::Contrib::Racecar::Patcher.subscriptions.each do |subscription|
-        allow(subscription).to receive(:tracer).and_return(tracer)
-      end
-    end
   end
 
   describe 'for single message processing' do
@@ -42,7 +34,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:racecar_span) do
-      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Patcher::NAME_MESSAGE }.first
+      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Events::Message::SPAN_NAME }.first
     end
 
     context 'that doesn\'t raise an error' do
@@ -110,7 +102,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:racecar_span) do
-      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Patcher::NAME_BATCH }.first
+      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Events::Batch::SPAN_NAME }.first
     end
 
     context 'that doesn\'t raise an error' do
