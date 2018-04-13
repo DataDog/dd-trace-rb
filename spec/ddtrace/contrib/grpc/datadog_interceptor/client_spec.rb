@@ -9,7 +9,9 @@ RSpec.describe 'tracing on the client connection' do
 
   before do
     Datadog.configure do |c|
-      c.use :grpc, tracer: get_test_tracer
+      c.use :grpc,
+        tracer: get_test_tracer,
+        service_name: 'rspec'
     end
   end
 
@@ -28,7 +30,7 @@ RSpec.describe 'tracing on the client connection' do
     specify do
       expect(span.name).to eq 'grpc.client'
       expect(span.span_type).to eq 'grpc'
-      expect(span.service).to eq 'grpc.client'
+      expect(span.service).to eq 'rspec'
       expect(span.resource).to eq 'myservice.endpoint'
       expect(span.get_tag('error.stack')).to be_nil
       expect(span.get_tag(:some)).to eq 'datum'
@@ -49,7 +51,7 @@ RSpec.describe 'tracing on the client connection' do
     specify do
       expect(span.name).to eq 'grpc.client'
       expect(span.span_type).to eq 'grpc'
-      expect(span.service).to eq 'grpc.client'
+      expect(span.service).to eq 'rspec'
       expect(span.resource).to eq 'myservice.endpoint'
       expect(span.get_tag('error.stack')).to be_nil
       expect(span.get_tag(:some)).to eq 'datum'
@@ -71,7 +73,7 @@ RSpec.describe 'tracing on the client connection' do
     specify do
       expect(span.name).to eq 'grpc.client'
       expect(span.span_type).to eq 'grpc'
-      expect(span.service).to eq 'grpc.client'
+      expect(span.service).to eq 'rspec'
       expect(span.resource).to eq 'myservice.endpoint'
       expect(span.get_tag('error.stack')).to be_nil
       expect(span.get_tag(:some)).to eq 'datum'
@@ -93,7 +95,7 @@ RSpec.describe 'tracing on the client connection' do
     specify do
       expect(span.name).to eq 'grpc.client'
       expect(span.span_type).to eq 'grpc'
-      expect(span.service).to eq 'grpc.client'
+      expect(span.service).to eq 'rspec'
       expect(span.resource).to eq 'myservice.endpoint'
       expect(span.get_tag('error.stack')).to be_nil
       expect(span.get_tag(:some)).to eq 'datum'
