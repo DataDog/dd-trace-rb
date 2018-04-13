@@ -20,16 +20,15 @@ module Datadog
           @app = app
         end
 
-        def compute_queueing_time(env, tracer)
+        def compute_queue_time(env, tracer)
           return unless Datadog.configuration[:rack][:request_queuing]
 
-          # parse the request enqueue time
+          # parse the request queue time
           request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
           return if request_start.nil?
 
-          Datadog::Tracer.log.debug('[experimental] creating request.enqueuing span')
           tracer.trace(
-            'request.enqueuing',
+            'http_server.queue',
             start_time: request_start,
             service: Datadog.configuration[:rack][:web_service_name]
           )
@@ -41,7 +40,7 @@ module Datadog
 
           # [experimental] create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
-          frontend_span = compute_queueing_time(env, tracer)
+          frontend_span = compute_queue_time(env, tracer)
 
           trace_options = {
             service: Datadog.configuration[:rack][:service_name],
