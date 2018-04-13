@@ -24,8 +24,8 @@ module Datadog
           request_start.utc > now ? nil : request_start
         rescue StandardError => e
           # in case of an Exception we don't create a
-          # `request.enqueuing` span
-          Datadog::Tracer.log.debug("[experimental] unable to parse request enqueuing: #{e}")
+          # `request.queuing` span
+          Datadog::Tracer.log.debug("[rack] unable to parse request queue headers: #{e}")
           nil
         end
       end
