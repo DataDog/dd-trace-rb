@@ -3,7 +3,7 @@ require 'contrib/rack/helpers'
 class RequestQueuingTest < RackBaseTest
   def setup
     super
-    # enable request_queueing
+    # enable request_queuing
     Datadog.configuration[:rack][:request_queuing] = true
   end
 
@@ -14,13 +14,13 @@ class RequestQueuingTest < RackBaseTest
     get '/success/'
     assert last_response.ok?
 
-    spans = @tracer.writer.spans()
+    spans = @tracer.writer.spans
     assert_equal(2, spans.length)
 
-    rack_span = spans[0]
-    frontend_span = spans[1]
-    assert_equal('rack.request', rack_span.name)
-    assert_equal('request.enqueuing', frontend_span.name)
+    rack_span = spans.find { |s| s.name == 'rack.request' }
+    frontend_span = spans.find { |s| s.name == 'http_server.queue' }
+    refute_nil(rack_span)
+    refute_nil(frontend_span)
 
     assert_equal('http', rack_span.span_type)
     assert_equal('rack', rack_span.service)
@@ -42,13 +42,13 @@ class RequestQueuingTest < RackBaseTest
     get '/success/'
     assert last_response.ok?
 
-    spans = @tracer.writer.spans()
+    spans = @tracer.writer.spans
     assert_equal(2, spans.length)
 
-    rack_span = spans[0]
-    frontend_span = spans[1]
-    assert_equal('rack.request', rack_span.name)
-    assert_equal('request.enqueuing', frontend_span.name)
+    rack_span = spans.find { |s| s.name == 'rack.request' }
+    frontend_span = spans.find { |s| s.name == 'http_server.queue' }
+    refute_nil(rack_span)
+    refute_nil(frontend_span)
 
     assert_equal('http', rack_span.span_type)
     assert_equal('rack', rack_span.service)
@@ -71,13 +71,13 @@ class RequestQueuingTest < RackBaseTest
     get '/success/'
     assert last_response.ok?
 
-    spans = @tracer.writer.spans()
+    spans = @tracer.writer.spans
     assert_equal(2, spans.length)
 
-    rack_span = spans[0]
-    frontend_span = spans[1]
-    assert_equal('rack.request', rack_span.name)
-    assert_equal('request.enqueuing', frontend_span.name)
+    rack_span = spans.find { |s| s.name == 'rack.request' }
+    frontend_span = spans.find { |s| s.name == 'http_server.queue' }
+    refute_nil(rack_span)
+    refute_nil(frontend_span)
 
     assert_equal('nginx', frontend_span.service)
   end
@@ -90,7 +90,7 @@ class RequestQueuingTest < RackBaseTest
     get '/success/'
     assert last_response.ok?
 
-    spans = @tracer.writer.spans()
+    spans = @tracer.writer.spans
     assert_equal(1, spans.length)
 
     rack_span = spans[0]
@@ -103,7 +103,7 @@ class RequestQueuingTest < RackBaseTest
     get '/success/'
     assert last_response.ok?
 
-    spans = @tracer.writer.spans()
+    spans = @tracer.writer.spans
     assert_equal(1, spans.length)
 
     rack_span = spans[0]
@@ -115,7 +115,7 @@ class RequestQueuingTest < RackBaseTest
     get '/success/'
     assert last_response.ok?
 
-    spans = @tracer.writer.spans()
+    spans = @tracer.writer.spans
     assert_equal(1, spans.length)
 
     rack_span = spans[0]
