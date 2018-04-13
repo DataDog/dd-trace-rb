@@ -17,18 +17,18 @@ RSpec.describe 'tracing on the server connection' do
     let(:keywords) do
       { request: instance_double(Object),
         call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-        method: instance_double(Method, name: 'endpoint') }
+        method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
     end
 
     before do
-      subject.request_response(keywords) { }
+      subject.request_response(keywords) {}
     end
 
     specify do
       expect(span.name).to eq 'grpc.service'
       expect(span.span_type).to eq 'grpc'
       expect(span.service).to eq 'rspec'
-      expect(span.resource).to eq 'server.endpoint'
+      expect(span.resource).to eq 'my.server.endpoint'
       expect(span.get_tag('error.stack')).to be_nil
       expect(span.get_tag(:some)).to eq 'datum'
     end
@@ -36,19 +36,19 @@ RSpec.describe 'tracing on the server connection' do
 
   describe '#client_streamer' do
     let(:keywords) do
-      { call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum'}),
-        method: instance_double(Method, name: 'endpoint') }
+      { call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
+        method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
     end
 
     before do
-      subject.client_streamer(keywords) { }
+      subject.client_streamer(keywords) {}
     end
 
     specify do
       expect(span.name).to eq 'grpc.service'
       expect(span.span_type).to eq 'grpc'
       expect(span.service).to eq 'rspec'
-      expect(span.resource).to eq 'server.endpoint'
+      expect(span.resource).to eq 'my.server.endpoint'
       expect(span.get_tag('error.stack')).to be_nil
       expect(span.get_tag(:some)).to eq 'datum'
     end
@@ -57,19 +57,19 @@ RSpec.describe 'tracing on the server connection' do
   describe '#server_streamer' do
     let(:keywords) do
       { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum'}),
-        method: instance_double(Method, name: 'endpoint') }
+        call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
+        method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
     end
 
     before do
-      subject.server_streamer(keywords) {  }
+      subject.server_streamer(keywords) {}
     end
 
     specify do
       expect(span.name).to eq 'grpc.service'
       expect(span.span_type).to eq 'grpc'
       expect(span.service).to eq 'rspec'
-      expect(span.resource).to eq 'server.endpoint'
+      expect(span.resource).to eq 'my.server.endpoint'
       expect(span.get_tag('error.stack')).to be_nil
       expect(span.get_tag(:some)).to eq 'datum'
     end
@@ -78,19 +78,19 @@ RSpec.describe 'tracing on the server connection' do
   describe '#bidi_streamer' do
     let(:keywords) do
       { requests: instance_double(Array),
-        call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum'}),
-        method: instance_double(Method, name: 'endpoint') }
+        call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
+        method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
     end
 
     before do
-      subject.bidi_streamer(keywords) {  }
+      subject.bidi_streamer(keywords) {}
     end
 
     specify do
       expect(span.name).to eq 'grpc.service'
       expect(span.span_type).to eq 'grpc'
       expect(span.service).to eq 'rspec'
-      expect(span.resource).to eq 'server.endpoint'
+      expect(span.resource).to eq 'my.server.endpoint'
       expect(span.get_tag('error.stack')).to be_nil
       expect(span.get_tag(:some)).to eq 'datum'
     end

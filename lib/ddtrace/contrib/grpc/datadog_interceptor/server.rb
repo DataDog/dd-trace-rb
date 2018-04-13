@@ -12,7 +12,7 @@ module Datadog
             options = {
               span_type: Datadog::Ext::GRPC::TYPE,
               service: pin.service_name,
-              resource: format_resource(keywords[:method].name)
+              resource: format_resource(keywords[:method])
             }
             metadata = keywords[:call].metadata
 
@@ -38,7 +38,12 @@ module Datadog
           end
 
           def format_resource(proto_method)
-            "server.#{proto_method}"
+            proto_method.owner
+                        .to_s
+                        .downcase
+                        .split('::')
+                        .<<(proto_method.name)
+                        .join('.')
           end
         end
       end

@@ -10,7 +10,7 @@ module GRPCHelper
   end
 
   def run_server_streamer
-    runner('0.0.0.0:50054'){ |c| c.stream_from_server(TestMessage.new) }
+    runner('0.0.0.0:50054') { |c| c.stream_from_server(TestMessage.new) }
   end
 
   def run_bidi_streamer
@@ -34,14 +34,19 @@ module GRPCHelper
 
   class TestMessage
     class << self
-      def marshal(_o); ''; end
-      def unmarshal(_o); new; end
+      def marshal(_o)
+        ''
+      end
+
+      def unmarshal(_o)
+        new
+      end
     end
   end
 
   class TestService
     include GRPC::GenericService
-    
+
     rpc :basic, TestMessage, TestMessage
     rpc :stream_from_client, stream(TestMessage), TestMessage
     rpc :stream_from_server, TestMessage, stream(TestMessage)
