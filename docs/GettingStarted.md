@@ -47,6 +47,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Sampling](#sampling)
          - [Priority sampling](#priority-sampling)
      - [Distributed tracing](#distributed-tracing)
+     - [HTTP request queuing](#http-request-queuing)
      - [Processing pipeline](#processing-pipeline)
          - [Filtering](#filtering)
          - [Processing](#processing)
@@ -582,6 +583,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``quantize.fragment`` | Defines behavior for URL fragments. Removes fragments by default. May be `:show` to show URL fragments. Option must be nested inside the `quantize` option. | ``nil`` |
 | ``application`` | Your Rack application. Necessary for enabling middleware resource names. | ``nil`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+| ``request_queuing`` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | ``false`` |
+| ``web_service_name`` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | ``'web-server'`` |
 
 **Configuring URL quantization behavior**
 
@@ -947,6 +950,30 @@ end
 [Rack](#rack) and [Net/HTTP](#nethttp) have experimental support for this, they can send and receive these headers automatically and tie spans together automatically, provided you pass a ``:distributed_tracing`` option set to ``true``.
 
 Distributed tracing is disabled by default.
+
+### HTTP request queuing
+
+Traces that originate from HTTP requests can be configured to include the time spent in a frontend web server or load balancer queue, before the request reaches the Ruby application.
+
+This functionality is **experimental** and deactivated by default.
+
+To activate this feature, you must add a ``X-Request-Start`` or ``X-Queue-Start`` header from your web server (i.e. Nginx). The following is an Nginx configuration example:
+
+```
+# /etc/nginx/conf.d/ruby_service.conf
+server {
+    listen 8080;
+
+    location / {
+      proxy_set_header X-Request-Start "t=${msec}";
+      proxy_pass http://web:3000;
+    }
+}
+```
+
+Then you must enable the request queuing feature in the integration handling the request.
+
+For Rack based applications, see the [documentation](#rack) for details for enabling this feature.
 
 ### Processing Pipeline
 

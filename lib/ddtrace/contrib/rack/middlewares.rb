@@ -1,6 +1,7 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/rack/request_queue'
 
 module Datadog
   module Contrib
@@ -19,9 +20,27 @@ module Datadog
           @app = app
         end
 
+        def compute_queue_time(env, tracer)
+          return unless Datadog.configuration[:rack][:request_queuing]
+
+          # parse the request queue time
+          request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
+          return if request_start.nil?
+
+          tracer.trace(
+            'http_server.queue',
+            start_time: request_start,
+            service: Datadog.configuration[:rack][:web_service_name]
+          )
+        end
+
         def call(env)
           # retrieve integration settings
           tracer = Datadog.configuration[:rack][:tracer]
+
+          # [experimental] create a root Span to keep track of frontend web servers
+          # (i.e. Apache, nginx) if the header is properly set
+          frontend_span = compute_queue_time(env, tracer)
 
           trace_options = {
             service: Datadog.configuration[:rack][:service_name],
@@ -77,6 +96,7 @@ module Datadog
           # ensure the request_span is finished and the context reset;
           # this assumes that the Rack middleware creates a root span
           request_span.finish
+          frontend_span.finish unless frontend_span.nil?
 
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding
