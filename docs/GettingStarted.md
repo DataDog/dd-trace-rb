@@ -885,68 +885,144 @@ span.context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
 
 ### Distributed Tracing
 
-To trace requests across hosts, the spans on the secondary hosts must be linked together by setting ``trace_id`` and ``parent_id``:
+Distributed tracing allows traces to be propagated across multiple instrumented applications, so that a request can be presented as a single trace, rather than a separate trace per service.
 
-```ruby
-def request_on_secondary_host(parent_trace_id, parent_span_id)
-    tracer.trace('web.request') do |span|
-       span.parent_id = parent_span_id
-       span.trace_id = parent_trace_id
+To trace requests across application boundaries, the following must be propagated between each application:
 
-       # perform user code
-    end
-end
+| Property              | Type    | Description                                                                                                                 |
+| --------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Trace ID**          | Integer | ID of the trace. This value should be the same across all requests that belong to the same trace.                           |
+| **Parent Span ID**    | Integer | ID of the span in the service originating the request. This value will always be different for each request within a trace. |
+| **Sampling Priority** | Integer | Sampling priority level for the trace. This value should be the same across all requests that belong to the same trace.     |
+
+Such propagation can be visualized as:
+
+```
+Service A:
+  Trace ID:  100000000000000001
+  Parent ID: 0
+  Span ID:   100000000000000123
+  Priority:  1
+
+  |
+  | Service B Request:
+  |   Metadata:
+  |     Trace ID:  100000000000000001
+  |     Parent ID: 100000000000000123
+  |     Priority:  1
+  |
+  V
+
+Service B:
+  Trace ID:  100000000000000001
+  Parent ID: 100000000000000123
+  Span ID:   100000000000000456
+  Priority:  1
+
+  |
+  | Service C Request:
+  |   Metadata:
+  |     Trace ID:  100000000000000001
+  |     Parent ID: 100000000000000456
+  |     Priority:  1
+  |
+  V
+
+Service C:
+  Trace ID:  100000000000000001
+  Parent ID: 100000000000000456
+  Span ID:   100000000000000789
+  Priority:  1
 ```
 
-Users can pass along the ``parent_trace_id`` and ``parent_span_id`` via whatever method best matches the RPC framework.
+**Via HTTP**
 
-Below is an example using Net/HTTP and Sinatra, where we bypass the integrations to demo how distributed tracing works.
+For HTTP requests between instrumented applications, this trace metadata is propagated by use of HTTP Request headers:
+
+| Property              | Type    | HTTP Header name              |
+| --------------------- | ------- | ----------------------------- |
+| **Trace ID**          | Integer | `x-datadog-trace-id`          |
+| **Parent Span ID**    | Integer | `x-datadog-parent-id`         |
+| **Sampling Priority** | Integer | `x-datadog-sampling-priority` |
+
+Such that:
+
+```
+Service A:
+  Trace ID:  100000000000000001
+  Parent ID: 0
+  Span ID:   100000000000000123
+  Priority:  1
+
+  |
+  | Service B HTTP Request:
+  |   Headers:
+  |     x-datadog-trace-id:          100000000000000001
+  |     x-datadog-parent-id:         100000000000000123
+  |     x-datadog-sampling-priority: 1
+  |
+  V
+
+Service B:
+  Trace ID:  100000000000000001
+  Parent ID: 100000000000000123
+  Span ID:   100000000000000456
+  Priority:  1
+
+  |
+  | Service B HTTP Request:
+  |   Headers:
+  |     x-datadog-trace-id:          100000000000000001
+  |     x-datadog-parent-id:         100000000000000456
+  |     x-datadog-sampling-priority: 1
+  |
+  V
+
+Service C:
+  Trace ID:  100000000000000001
+  Parent ID: 100000000000000456
+  Span ID:   100000000000000789
+  Priority:  1
+```
+
+**Activating distributed tracing for integrations**
+
+Many integrations included in `ddtrace` support distributed tracing. Distributed tracing is disabled by default, but can be activated via configuration settings.
+
+- If your application receives requests from services with distributed tracing activated, you must activate distributed tracing on the integrations that handle these requests (e.g. Rails)
+- If your application send requests to services with distributed tracing activated, you must activate distributed tracing on the integrations that send these requests (e.g. Faraday)
+- If your application both sends and receives requests implementing distributed tracing, it must activate all integrations which handle these requests.
+
+For more details on how to activate distributed tracing for integrations, see their documentation:
+
+- [Faraday](#faraday)
+- [Net/HTTP](#nethttp)
+- [Rack](#rack)
+- [Rails](#rails)
+- [Sinatra](#sinatra)
+
+**Using the HTTP propagator**
+
+To make the process of propagating this metadata easier, you can use the `Datadog::HTTPPropagator` module.
 
 On the client:
 
 ```ruby
-require 'net/http'
-require 'ddtrace'
-
-uri = URI('http://localhost:4567/')
-
 Datadog.tracer.trace('web.call') do |span|
-  req = Net::HTTP::Get.new(uri)
-  req['x-datadog-trace-id'] = span.trace_id.to_s
-  req['x-datadog-parent-id'] = span.span_id.to_s
-
-  response = Net::HTTP.start(uri.hostname, uri.port) do |http|
-    http.request(req)
-  end
-
-  puts response.body
+  # Inject span context into headers (`env` must be a Hash)
+  Datadog::HTTPPropagator.inject!(span.context, env)
 end
 ```
 
 On the server:
 
 ```ruby
-require 'sinatra'
-require 'ddtrace'
-
-get '/' do
-  parent_trace_id = request.env['HTTP_X_DATADOG_TRACE_ID']
-  parent_span_id = request.env['HTTP_X_DATADOG_PARENT_ID']
-
-  Datadog.tracer.trace('web.work') do |span|
-     if parent_trace_id && parent_span_id
-       span.trace_id = parent_trace_id.to_i
-       span.parent_id = parent_span_id.to_i
-     end
-
-    'Hello world!'
-  end
+Datadog.tracer.trace('web.work') do |span|
+  # Build a context from headers (`env` must be a Hash)
+  context = HTTPPropagator.extract(request.env)
+  Datadog.tracer.provider.context = context if context.trace_id
 end
 ```
-
-[Rack](#rack) and [Net/HTTP](#nethttp) have experimental support for this, they can send and receive these headers automatically and tie spans together automatically, provided you pass a ``:distributed_tracing`` option set to ``true``.
-
-Distributed tracing is disabled by default.
 
 ### Processing Pipeline
 
