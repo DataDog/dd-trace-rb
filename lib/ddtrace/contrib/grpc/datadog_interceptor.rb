@@ -23,8 +23,12 @@ module Datadog
 
           private
 
+          def pin
+            Pin.get_from(::GRPC)
+          end
+
           def tracer
-            Pin.get_from(::GRPC).tracer
+            pin.tracer
           end
         end
 

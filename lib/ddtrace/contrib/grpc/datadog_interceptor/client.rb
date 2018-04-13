@@ -12,7 +12,7 @@ module Datadog
 
             options = {
               span_type: Datadog::Ext::GRPC::TYPE,
-              service: 'grpc.client',
+              service: pin.service_name,
               resource: format_resource(keywords[:method])
             }
 
