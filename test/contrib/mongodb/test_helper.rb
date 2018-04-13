@@ -1,2 +1,0 @@
-require 'ddtrace'
-require 'mongo'
