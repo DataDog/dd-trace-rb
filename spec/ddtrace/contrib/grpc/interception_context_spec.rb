@@ -13,7 +13,7 @@ RSpec.describe GRPC::InterceptionContext do
         c.use :grpc, tracer: get_test_tracer, service_name: 'rspec'
       end
 
-      subject.intercept!(type, keywords) { }
+      subject.intercept!(type, keywords) {}
     end
 
     context 'when intercepting on the client' do
@@ -41,7 +41,7 @@ RSpec.describe GRPC::InterceptionContext do
         let(:keywords) do
           { call: instance_double('GRPC::ActiveCall'),
             method: 'MyService.Endpoint',
-            metadata: { some: 'datum'}}
+            metadata: { some: 'datum' } }
         end
 
         specify do
@@ -60,7 +60,7 @@ RSpec.describe GRPC::InterceptionContext do
           { request: instance_double(Object),
             call: instance_double('GRPC::ActiveCall'),
             method: 'MyService.Endpoint',
-            metadata: { some: 'datum'}}
+            metadata: { some: 'datum' } }
         end
 
         specify do
@@ -79,7 +79,7 @@ RSpec.describe GRPC::InterceptionContext do
           { requests: instance_double(Array),
             call: instance_double('GRPC::ActiveCall'),
             method: 'MyService.Endpoint',
-            metadata: { some: 'datum'} }
+            metadata: { some: 'datum' } }
         end
 
         specify do
@@ -93,21 +93,20 @@ RSpec.describe GRPC::InterceptionContext do
       end
     end
 
-
     context 'when intercepting on the server' do
       context 'request response call type' do
         let(:type) { :request_response }
         let(:keywords) do
           { request: instance_double(Object),
             call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-            method: instance_double(Method, name: 'endpoint') }
+            method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
         end
 
         specify do
           expect(span.name).to eq 'grpc.service'
           expect(span.span_type).to eq 'grpc'
           expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'server.endpoint'
+          expect(span.resource).to eq 'my.server.endpoint'
           expect(span.get_tag('error.stack')).to be_nil
           expect(span.get_tag(:some)).to eq 'datum'
         end
@@ -116,15 +115,15 @@ RSpec.describe GRPC::InterceptionContext do
       context 'client streaming call type' do
         let(:type) { :client_streamer }
         let(:keywords) do
-          { call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum'}),
-            method: instance_double(Method, name: 'endpoint') }
+          { call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
+            method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
         end
 
         specify do
           expect(span.name).to eq 'grpc.service'
           expect(span.span_type).to eq 'grpc'
           expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'server.endpoint'
+          expect(span.resource).to eq 'my.server.endpoint'
           expect(span.get_tag('error.stack')).to be_nil
           expect(span.get_tag(:some)).to eq 'datum'
         end
@@ -134,15 +133,15 @@ RSpec.describe GRPC::InterceptionContext do
         let(:type) { :server_streamer }
         let(:keywords) do
           { request: instance_double(Object),
-            call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum'}),
-            method: instance_double(Method, name: 'endpoint') }
+            call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
+            method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
         end
 
         specify do
           expect(span.name).to eq 'grpc.service'
           expect(span.span_type).to eq 'grpc'
           expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'server.endpoint'
+          expect(span.resource).to eq 'my.server.endpoint'
           expect(span.get_tag('error.stack')).to be_nil
           expect(span.get_tag(:some)).to eq 'datum'
         end
@@ -152,15 +151,15 @@ RSpec.describe GRPC::InterceptionContext do
         let(:type) { :bidi_streamer }
         let(:keywords) do
           { requests: instance_double(Array),
-            call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum'}),
-            method: instance_double(Method, name: 'endpoint') }
+            call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
+            method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
         end
 
         specify do
           expect(span.name).to eq 'grpc.service'
           expect(span.span_type).to eq 'grpc'
           expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'server.endpoint'
+          expect(span.resource).to eq 'my.server.endpoint'
           expect(span.get_tag('error.stack')).to be_nil
           expect(span.get_tag(:some)).to eq 'datum'
         end

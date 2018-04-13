@@ -10,8 +10,8 @@ RSpec.describe 'tracing on the client connection' do
   before do
     Datadog.configure do |c|
       c.use :grpc,
-        tracer: get_test_tracer,
-        service_name: 'rspec'
+            tracer: get_test_tracer,
+            service_name: 'rspec'
     end
   end
 
@@ -24,7 +24,7 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     before do
-      subject.request_response(keywords) { }
+      subject.request_response(keywords) {}
     end
 
     specify do
@@ -41,11 +41,11 @@ RSpec.describe 'tracing on the client connection' do
     let(:keywords) do
       { call: instance_double('GRPC::ActiveCall'),
         method: 'MyService.Endpoint',
-        metadata: { some: 'datum'}}
+        metadata: { some: 'datum' } }
     end
 
     before do
-      subject.client_streamer(keywords) { }
+      subject.client_streamer(keywords) {}
     end
 
     specify do
@@ -63,11 +63,11 @@ RSpec.describe 'tracing on the client connection' do
       { request: instance_double(Object),
         call: instance_double('GRPC::ActiveCall'),
         method: 'MyService.Endpoint',
-        metadata: { some: 'datum'}}
+        metadata: { some: 'datum' } }
     end
 
     before do
-      subject.server_streamer(keywords) {  }
+      subject.server_streamer(keywords) {}
     end
 
     specify do
@@ -85,11 +85,11 @@ RSpec.describe 'tracing on the client connection' do
       { requests: instance_double(Array),
         call: instance_double('GRPC::ActiveCall'),
         method: 'MyService.Endpoint',
-        metadata: { some: 'datum'} }
+        metadata: { some: 'datum' } }
     end
 
     before do
-      subject.bidi_streamer(keywords) {  }
+      subject.bidi_streamer(keywords) {}
     end
 
     specify do
