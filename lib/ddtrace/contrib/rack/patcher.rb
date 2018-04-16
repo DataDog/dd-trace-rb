@@ -5,10 +5,12 @@ module Datadog
       module Patcher
         include Base
 
-        DEFAULT_HEADERS = [
-          'Content-Type',
-          'X-Request-ID'
-        ].freeze
+        DEFAULT_HEADERS = {
+          response: [
+            'Content-Type',
+            'X-Request-ID'
+          ]
+        }.freeze
 
         register_as :rack
         option :tracer, default: Datadog.tracer
