@@ -213,6 +213,13 @@ module Datadog
             Datadog.configuration[:rack][:headers].each do |header|
               if headers.key?(header)
                 result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
+              else
+                # For case-insensitive matching, e.g. X-Request-Id vs X-Request-ID
+                uppercased_header = header.to_s.upcase
+                uppercased_headers = headers.map { |k, v| [k.upcase, v] }.to_h
+                if uppercased_headers.key?(uppercased_header)
+                  result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = uppercased_headers[uppercased_header]
+                end
               end
             end
           end
