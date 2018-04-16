@@ -169,24 +169,6 @@ module Datadog
           end
         end
 
-        def parse_request_headers(env)
-          {}.tap do |result|
-            env.each do |name, value|
-              tag = Datadog::Ext::HTTP::RequestHeaders.from_name(name.to_s.sub('HTTP_', ''))
-              result[tag] = value unless tag.nil? || value.to_s.empty?
-            end
-          end
-        end
-
-        def parse_response_headers(headers)
-          {}.tap do |result|
-            headers.each do |name, value|
-              tag = Datadog::Ext::HTTP::ResponseHeaders.from_name(name)
-              result[tag] = value unless tag.nil? || value.to_s.empty?
-            end
-          end
-        end
-
         private
 
         REQUEST_SPAN_DEPRECATION_WARNING = %(
@@ -213,6 +195,31 @@ module Datadog
               super
             end
           end
+        end
+
+        def parse_request_headers(env)
+          {}.tap do |result|
+            Datadog.configuration[:rack][:headers].each do |header|
+              rack_header = header_to_rack_header(header)
+              if env.key?(rack_header)
+                result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
+              end
+            end
+          end
+        end
+
+        def parse_response_headers(headers)
+          {}.tap do |result|
+            Datadog.configuration[:rack][:headers].each do |header|
+              if headers.key?(header)
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
+              end
+            end
+          end
+        end
+
+        def header_to_rack_header(name)
+          "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
         end
       end
     end

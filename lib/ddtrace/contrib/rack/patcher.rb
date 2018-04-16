@@ -4,6 +4,12 @@ module Datadog
       # Provides instrumentation for `rack`
       module Patcher
         include Base
+
+        DEFAULT_HEADERS = [
+          'Content-Type',
+          'X-Request-ID'
+        ].freeze
+
         register_as :rack
         option :tracer, default: Datadog.tracer
         option :distributed_tracing, default: false
@@ -21,6 +27,7 @@ module Datadog
           end
           value
         end
+        option :headers, default: DEFAULT_HEADERS
 
         module_function
 
