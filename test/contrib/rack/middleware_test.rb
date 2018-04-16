@@ -361,6 +361,7 @@ class TracerTest < RackBaseTest
   end
 
   # rubocop:disable Metrics/MethodLength
+  # rubocop:disable Metrics/AbcSize
   def test_request_middleware_headers
     # Configure to tag headers
     Datadog.configure do |c|
@@ -371,7 +372,9 @@ class TracerTest < RackBaseTest
         'ETag',
         'Expires',
         'Last-Modified',
-        'X-Request-ID'
+        # This lowercase 'Id' header doesn't match.
+        # Ensure middleware allows for case-insensitive matching.
+        'X-Request-Id'
       ]
     end
 
@@ -411,6 +414,7 @@ class TracerTest < RackBaseTest
     assert_equal('max-age=3600', span.get_tag('http.response.headers.cache_control'))
     assert_equal('"737060cd8c284d8af7ad3082f209582d"', span.get_tag('http.response.headers.etag'))
     assert_equal('Tue, 15 Nov 1994 12:45:26 GMT', span.get_tag('http.response.headers.last_modified'))
+    assert_equal('f058ebd6-02f7-4d3f-942e-904344e8cde5', span.get_tag('http.response.headers.x_request_id'))
     # Make sure non-whitelisted headers don't become tags.
     assert_nil(span.get_tag('http.request.headers.x_fake_response'))
   end
