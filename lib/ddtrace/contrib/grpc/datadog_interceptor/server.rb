@@ -11,7 +11,7 @@ module Datadog
           def trace(keywords)
             options = {
               span_type: Datadog::Ext::GRPC::TYPE,
-              service: pin.service_name,
+              service: datadog_pin.service_name,
               resource: format_resource(keywords[:method])
             }
             metadata = keywords[:call].metadata
