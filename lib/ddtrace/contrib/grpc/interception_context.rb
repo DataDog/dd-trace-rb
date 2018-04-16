@@ -8,7 +8,7 @@ module GRPC
     # our tracing middleware into the head of the call chain.
     module InterceptWithDatadog
       def intercept!(type, args = {})
-        unless defined?(@trace_started) && @trace_started
+        if should_prepend?
           datadog_interceptor = choose_datadog_interceptor(args)
 
           @interceptors.unshift(datadog_interceptor.new) if datadog_interceptor
@@ -20,6 +20,20 @@ module GRPC
       end
 
       private
+
+      def should_prepend?
+        !trace_started? && !already_prepended?
+      end
+
+      def trace_started?
+        defined?(@trace_started) && @trace_started
+      end
+
+      def already_prepended?
+        @interceptors.any? do |interceptor|
+          interceptor.class.ancestors.include?(Datadog::Contrib::GRPC::DatadogInterceptor::Base)
+        end
+      end
 
       def choose_datadog_interceptor(args)
         if args.key?(:metadata)

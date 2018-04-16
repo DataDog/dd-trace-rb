@@ -15,6 +15,31 @@ RSpec.describe 'gRPC integration test' do
     end
   end
 
+  context 'multiple client configurations' do
+    let(:configured_interceptor) do
+      Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
+        c.service_name = 'awesome sauce'
+      end
+    end
+    let(:alternate_client) do
+      GRPCHelper::TestService.rpc_stub_class.new(
+        '0.0.0.0:50051',
+        :this_channel_is_insecure,
+        interceptors: [configured_interceptor]
+      )
+    end
+
+    it 'uses the correct configuration information' do
+      run_request_reply
+      span = spans.first
+      expect(span.service).to eq 'rspec'
+
+      run_request_reply('0.0.0.0:50051', alternate_client)
+      span = configured_interceptor.datadog_pin.tracer.writer.spans.first
+      expect(span.service).to eq 'awesome sauce'
+    end
+  end
+
   shared_examples 'associates child spans with the parent' do
     let(:parent_span) { spans.first }
     let(:child_span) { spans.last }

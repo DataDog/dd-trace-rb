@@ -1,23 +1,23 @@
 require 'grpc'
 
 module GRPCHelper
-  def run_request_reply
-    runner('0.0.0.0:50052') { |c| c.basic(TestMessage.new) }
+  def run_request_reply(address = '0.0.0.0:50052', client = nil)
+    runner(address, client) { |c| c.basic(TestMessage.new) }
   end
 
-  def run_client_streamer
-    runner('0.0.0.0:50053') { |c| c.stream_from_client([TestMessage.new]) }
+  def run_client_streamer(address = '0.0.0.0:50053', client = nil)
+    runner(address, client) { |c| c.stream_from_client([TestMessage.new]) }
   end
 
-  def run_server_streamer
-    runner('0.0.0.0:50054') { |c| c.stream_from_server(TestMessage.new) }
+  def run_server_streamer(address = '0.0.0.0:50054', client = nil)
+    runner(address, client) { |c| c.stream_from_server(TestMessage.new) }
   end
 
-  def run_bidi_streamer
-    runner('0.0.0.0:50055') { |c| c.stream_both_ways([TestMessage.new]) }
+  def run_bidi_streamer(address = '0.0.0.0:50055', client = nil)
+    runner(address, client) { |c| c.stream_both_ways([TestMessage.new]) }
   end
 
-  def runner(address)
+  def runner(address, client)
     server = GRPC::RpcServer.new
     server.add_http2_port(address, :this_port_is_insecure)
     server.handle(TestService)
@@ -25,7 +25,9 @@ module GRPCHelper
     t = Thread.new { server.run }
     server.wait_till_running
 
-    yield TestService.rpc_stub_class.new(address, :this_channel_is_insecure)
+    client ||= TestService.rpc_stub_class.new(address, :this_channel_is_insecure)
+
+    yield client
 
     server.stop
     until server.stopped?; end

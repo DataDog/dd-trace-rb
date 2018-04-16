@@ -5,13 +5,42 @@ require 'ddtrace'
 RSpec.describe 'tracing on the client connection' do
   subject { Datadog::Contrib::GRPC::DatadogInterceptor::Client.new }
 
-  let(:span) { Datadog::Pin.get_from(::GRPC).tracer.writer.spans.first }
+  let(:span) { subject.datadog_pin.tracer.writer.spans.first }
 
   before do
     Datadog.configure do |c|
       c.use :grpc,
             tracer: get_test_tracer,
             service_name: 'rspec'
+    end
+  end
+
+  context 'using client-specific configurations' do
+    let(:keywords) do
+      { request: instance_double(Object),
+        call: instance_double('GRPC::ActiveCall'),
+        method: 'MyService.Endpoint',
+        metadata: { some: 'datum' } }
+    end
+
+    let(:default_client_interceptor) do
+      Datadog::Contrib::GRPC::DatadogInterceptor::Client.new
+    end
+
+    let(:configured_client_interceptor) do
+      Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
+        c.service_name = 'cepsr'
+      end
+    end
+
+    it 'replaces default service name' do
+      default_client_interceptor.request_response(keywords) {}
+      span = default_client_interceptor.datadog_pin.tracer.writer.spans.first
+      expect(span.service).to eq 'rspec'
+
+      configured_client_interceptor.request_response(keywords) {}
+      span = configured_client_interceptor.datadog_pin.tracer.writer.spans.first
+      expect(span.service).to eq 'cepsr'
     end
   end
 
