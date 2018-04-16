@@ -365,23 +365,27 @@ class TracerTest < RackBaseTest
   def test_request_middleware_headers
     # Configure to tag headers
     Datadog.configure do |c|
-      c.use :rack, headers: [
-        'Content-Type',
-        'Cache-Control',
-        'Content-Type',
-        'ETag',
-        'Expires',
-        'Last-Modified',
-        # This lowercase 'Id' header doesn't match.
-        # Ensure middleware allows for case-insensitive matching.
-        'X-Request-Id'
-      ]
+      c.use :rack, headers: {
+        request: [
+          'Cache-Control'
+        ],
+        response: [
+          'Content-Type',
+          'Cache-Control',
+          'Content-Type',
+          'ETag',
+          'Expires',
+          'Last-Modified',
+          # This lowercase 'Id' header doesn't match.
+          # Ensure middleware allows for case-insensitive matching.
+          'X-Request-Id'
+        ]
+      }
     end
 
-    request_id = SecureRandom.uuid
     request_headers = {
       'HTTP_CACHE_CONTROL' => 'no-cache',
-      'HTTP_X_REQUEST_ID' => request_id,
+      'HTTP_X_REQUEST_ID' => SecureRandom.uuid,
       'HTTP_X_FAKE_REQUEST' => 'Don\'t tag me.'
     }
 
@@ -404,9 +408,9 @@ class TracerTest < RackBaseTest
     assert_nil(span.parent)
 
     # Request headers
-    assert_equal(request_id, span.get_tag('http.request.headers.x_request_id'))
     assert_equal('no-cache', span.get_tag('http.request.headers.cache_control'))
     # Make sure non-whitelisted headers don't become tags.
+    assert_nil(span.get_tag('http.request.headers.x_request_id'))
     assert_nil(span.get_tag('http.request.headers.x_fake_request'))
 
     # Response headers
