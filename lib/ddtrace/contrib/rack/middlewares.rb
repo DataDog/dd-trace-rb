@@ -199,7 +199,8 @@ module Datadog
 
         def parse_request_headers(env)
           {}.tap do |result|
-            Datadog.configuration[:rack][:headers].each do |header|
+            whitelist = Datadog.configuration[:rack][:headers][:request] || []
+            whitelist.each do |header|
               rack_header = header_to_rack_header(header)
               if env.key?(rack_header)
                 result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
@@ -210,15 +211,16 @@ module Datadog
 
         def parse_response_headers(headers)
           {}.tap do |result|
-            Datadog.configuration[:rack][:headers].each do |header|
+            whitelist = Datadog.configuration[:rack][:headers][:response] || []
+            whitelist.each do |header|
               if headers.key?(header)
                 result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
               else
-                # For case-insensitive matching, e.g. X-Request-Id vs X-Request-ID
+                # Try a case-insensitive lookup
                 uppercased_header = header.to_s.upcase
-                uppercased_headers = headers.map { |k, v| [k.upcase, v] }.to_h
-                if uppercased_headers.key?(uppercased_header)
-                  result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = uppercased_headers[uppercased_header]
+                matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
+                if matching_header
+                  result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
                 end
               end
             end

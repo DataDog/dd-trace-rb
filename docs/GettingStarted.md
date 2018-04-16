@@ -585,7 +585,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 | ``request_queuing`` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | ``false`` |
 | ``web_service_name`` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | ``'web-server'`` |
-| ``headers`` | Array of HTTP request or response headers to add as tags to the `rack.request`. e.g. `['Last-Modified']`. Headers are case-sensitive. Adds `http.request.headers.*` and `http.response.headers.*` tags. | ``['Content-Type', 'X-Request-ID']`` |
+| ``headers`` | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | ``{ response: ['Content-Type', 'X-Request-ID'] }`` |
 
 **Configuring URL quantization behavior**
 
