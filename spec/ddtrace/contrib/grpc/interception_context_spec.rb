@@ -17,6 +17,15 @@ RSpec.describe GRPC::InterceptionContext do
     end
 
     context 'when intercepting on the client' do
+      shared_examples 'span data contents' do
+        specify { expect(span.name).to eq 'grpc.client' }
+        specify { expect(span.span_type).to eq 'grpc' }
+        specify { expect(span.service).to eq 'rspec' }
+        specify { expect(span.resource).to eq 'myservice.endpoint' }
+        specify { expect(span.get_tag('error.stack')).to be_nil }
+        specify { expect(span.get_tag(:some)).to eq 'datum' }
+      end
+
       context 'request response call type' do
         let(:type) { :request_response }
         let(:keywords) do
@@ -26,14 +35,7 @@ RSpec.describe GRPC::InterceptionContext do
             metadata: { some: 'datum' } }
         end
 
-        specify do
-          expect(span.name).to eq 'grpc.client'
-          expect(span.span_type).to eq 'grpc'
-          expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'myservice.endpoint'
-          expect(span.get_tag('error.stack')).to be_nil
-          expect(span.get_tag(:some)).to eq 'datum'
-        end
+        it_behaves_like 'span data contents'
       end
 
       context 'client streaming call type' do
@@ -44,14 +46,7 @@ RSpec.describe GRPC::InterceptionContext do
             metadata: { some: 'datum' } }
         end
 
-        specify do
-          expect(span.name).to eq 'grpc.client'
-          expect(span.span_type).to eq 'grpc'
-          expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'myservice.endpoint'
-          expect(span.get_tag('error.stack')).to be_nil
-          expect(span.get_tag(:some)).to eq 'datum'
-        end
+        it_behaves_like 'span data contents'
       end
 
       context 'server streaming call type' do
@@ -82,18 +77,20 @@ RSpec.describe GRPC::InterceptionContext do
             metadata: { some: 'datum' } }
         end
 
-        specify do
-          expect(span.name).to eq 'grpc.client'
-          expect(span.span_type).to eq 'grpc'
-          expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'myservice.endpoint'
-          expect(span.get_tag('error.stack')).to be_nil
-          expect(span.get_tag(:some)).to eq 'datum'
-        end
+        it_behaves_like 'span data contents'
       end
     end
 
     context 'when intercepting on the server' do
+      shared_examples 'span data contents' do
+        specify { expect(span.name).to eq 'grpc.service' }
+        specify { expect(span.span_type).to eq 'grpc' }
+        specify { expect(span.service).to eq 'rspec' }
+        specify { expect(span.resource).to eq 'my.server.endpoint' }
+        specify { expect(span.get_tag('error.stack')).to be_nil }
+        specify { expect(span.get_tag(:some)).to eq 'datum' }
+      end
+
       context 'request response call type' do
         let(:type) { :request_response }
         let(:keywords) do
@@ -102,14 +99,7 @@ RSpec.describe GRPC::InterceptionContext do
             method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
         end
 
-        specify do
-          expect(span.name).to eq 'grpc.service'
-          expect(span.span_type).to eq 'grpc'
-          expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'my.server.endpoint'
-          expect(span.get_tag('error.stack')).to be_nil
-          expect(span.get_tag(:some)).to eq 'datum'
-        end
+        it_behaves_like 'span data contents'
       end
 
       context 'client streaming call type' do
@@ -119,14 +109,7 @@ RSpec.describe GRPC::InterceptionContext do
             method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
         end
 
-        specify do
-          expect(span.name).to eq 'grpc.service'
-          expect(span.span_type).to eq 'grpc'
-          expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'my.server.endpoint'
-          expect(span.get_tag('error.stack')).to be_nil
-          expect(span.get_tag(:some)).to eq 'datum'
-        end
+        it_behaves_like 'span data contents'
       end
 
       context 'server streaming call type' do
@@ -137,14 +120,7 @@ RSpec.describe GRPC::InterceptionContext do
             method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
         end
 
-        specify do
-          expect(span.name).to eq 'grpc.service'
-          expect(span.span_type).to eq 'grpc'
-          expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'my.server.endpoint'
-          expect(span.get_tag('error.stack')).to be_nil
-          expect(span.get_tag(:some)).to eq 'datum'
-        end
+        it_behaves_like 'span data contents'
       end
 
       context 'bidirectional streaming call type do' do
@@ -155,14 +131,7 @@ RSpec.describe GRPC::InterceptionContext do
             method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
         end
 
-        specify do
-          expect(span.name).to eq 'grpc.service'
-          expect(span.span_type).to eq 'grpc'
-          expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'my.server.endpoint'
-          expect(span.get_tag('error.stack')).to be_nil
-          expect(span.get_tag(:some)).to eq 'datum'
-        end
+        it_behaves_like 'span data contents'
       end
     end
   end
