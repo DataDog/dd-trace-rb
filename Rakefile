@@ -114,7 +114,6 @@ namespace :test do
     :elasticsearch,
     :grape,
     :http,
-    :mongodb,
     :resque,
     :rack,
     :resque,
@@ -212,7 +211,6 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:rack'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:grape'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:aws'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:mongodb'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sucker_punch'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:resque'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:monkey'
@@ -221,7 +219,6 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sinatra'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:rack'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:aws'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:mongodb'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sucker_punch'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:resque'
     # RSpec
@@ -230,12 +227,14 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:faraday'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:graphql'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:mongodb'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:redis'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_record'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_support'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:faraday'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:mongodb'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:redis'
   when 2
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
