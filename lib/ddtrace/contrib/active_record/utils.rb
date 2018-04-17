@@ -1,3 +1,5 @@
+require 'ddtrace/contrib/active_record/configuration'
+
 module Datadog
   module Contrib
     module ActiveRecord
@@ -25,7 +27,8 @@ module Datadog
             adapter_name: Datadog::Utils::Database.normalize_vendor(config[:adapter]),
             adapter_host: config[:host],
             adapter_port: config[:port],
-            database_name: config[:database]
+            database_name: config[:database],
+            tracer_settings: Configuration.database_settings(config)
           }
         end
 
