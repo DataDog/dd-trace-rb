@@ -360,9 +360,36 @@ class TracerTest < RackBaseTest
     assert_nil(span.parent)
   end
 
-  def test_request_middleware_request_id
-    request_id = SecureRandom.uuid
-    get '/success/', {}, 'HTTP_X_REQUEST_ID' => request_id
+  # rubocop:disable Metrics/MethodLength
+  # rubocop:disable Metrics/AbcSize
+  def test_request_middleware_headers
+    # Configure to tag headers
+    Datadog.configure do |c|
+      c.use :rack, headers: {
+        request: [
+          'Cache-Control'
+        ],
+        response: [
+          'Content-Type',
+          'Cache-Control',
+          'Content-Type',
+          'ETag',
+          'Expires',
+          'Last-Modified',
+          # This lowercase 'Id' header doesn't match.
+          # Ensure middleware allows for case-insensitive matching.
+          'X-Request-Id'
+        ]
+      }
+    end
+
+    request_headers = {
+      'HTTP_CACHE_CONTROL' => 'no-cache',
+      'HTTP_X_REQUEST_ID' => SecureRandom.uuid,
+      'HTTP_X_FAKE_REQUEST' => 'Don\'t tag me.'
+    }
+
+    get '/headers/', {}, request_headers
     assert last_response.ok?
 
     spans = @tracer.writer.spans
@@ -375,10 +402,24 @@ class TracerTest < RackBaseTest
     assert_equal('GET 200', span.resource)
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('200', span.get_tag('http.status_code'))
-    assert_equal('/success/', span.get_tag('http.url'))
+    assert_equal('/headers/', span.get_tag('http.url'))
     assert_equal('http://example.org', span.get_tag('http.base_url'))
-    assert_equal(request_id, span.get_tag('http.request_id'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
+
+    # Request headers
+    assert_equal('no-cache', span.get_tag('http.request.headers.cache_control'))
+    # Make sure non-whitelisted headers don't become tags.
+    assert_nil(span.get_tag('http.request.headers.x_request_id'))
+    assert_nil(span.get_tag('http.request.headers.x_fake_request'))
+
+    # Response headers
+    assert_equal('text/html', span.get_tag('http.response.headers.content_type'))
+    assert_equal('max-age=3600', span.get_tag('http.response.headers.cache_control'))
+    assert_equal('"737060cd8c284d8af7ad3082f209582d"', span.get_tag('http.response.headers.etag'))
+    assert_equal('Tue, 15 Nov 1994 12:45:26 GMT', span.get_tag('http.response.headers.last_modified'))
+    assert_equal('f058ebd6-02f7-4d3f-942e-904344e8cde5', span.get_tag('http.response.headers.x_request_id'))
+    # Make sure non-whitelisted headers don't become tags.
+    assert_nil(span.get_tag('http.request.headers.x_fake_response'))
   end
 end
