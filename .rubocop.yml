@@ -1,5 +1,14 @@
 AllCops:
   TargetRubyVersion: 2.1
+  Include:
+    - 'lib/**/*.rb'
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
+    - 'Gemfile'
+    - 'Rakefile'
+  Exclude:
+    - 'Appraisals'
+    - '*.gemspec'
 
 # 80 characters is a nice goal, but not worth currently changing in existing
 # code for the sake of changing it to conform to a length set in 1928 (IBM).
