@@ -9,6 +9,8 @@ AllCops:
   Exclude:
     - 'Appraisals'
     - '*.gemspec'
+    # TODO: Remove this when we remove Rails 3.2 support.
+    - 'lib/ddtrace/contrib/active_record/configuration/connection_specification.rb'
 
 # 80 characters is a nice goal, but not worth currently changing in existing
 # code for the sake of changing it to conform to a length set in 1928 (IBM).
