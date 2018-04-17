@@ -1,5 +1,6 @@
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/active_record/configuration'
 require 'ddtrace/contrib/active_record/utils'
 require 'ddtrace/contrib/active_record/events'
 
@@ -14,6 +15,12 @@ module Datadog
         option :service_name, depends_on: [:tracer] do |value|
           (value || Utils.adapter_name).tap do |v|
             get_option(:tracer).set_service_info(v, 'active_record', Ext::AppTypes::DB)
+          end
+        end
+        option :databases, default: {} do |value|
+          value.tap do
+            Configuration.clear_database_settings!
+            Configuration.database_settings = value
           end
         end
         option :orm_service_name

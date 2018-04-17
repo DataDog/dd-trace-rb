@@ -22,6 +22,12 @@ module Datadog
         option :template_base_path, default: 'views/'
         option :exception_controller, default: nil
         option :tracer, default: Datadog.tracer
+        option :databases, default: {} do |value|
+          # Update ActiveRecord databases too
+          value.tap do
+            Datadog.configuration[:active_record][:databases] = value
+          end
+        end
 
         @patched = false
 
