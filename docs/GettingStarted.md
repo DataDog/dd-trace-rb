@@ -293,6 +293,40 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | --- | --- |
 | ``service_name`` | Service name used for database portion of `active_record` instrumentation. | Name of database adapter (e.g. `mysql2`) |
 | ``orm_service_name`` | Service name used for the Ruby ORM portion of `active_record` instrumentation. Overrides service name for ORM spans if explicitly set, which otherwise inherit their service from their parent.  | ``active_record`` |
+| ``databases`` | Hash of tracer settings to use for each database connection. Useful if you use ActiveRecord to connect to multiple databases, and want to assign them different service names. See details below. | ``{}`` |
+
+**Configuring trace settings per database**
+
+You can provide the `databases` option to configure trace settings by database connection:
+
+```ruby
+Datadog.configure do |c|
+  c.use :active_record, service_name: 'default-db', databases: {
+    # Any of the following keys are acceptable, and equivalent to one another.
+    # Values must be a Hash, and can only contain :service_name as a setting.
+
+    # Symbol matching your database connection in config/database.yml
+    # Only available if you are using Rails with ActiveRecord.
+    secondary_database: { service_name: 'secondary-db' },
+
+    # Connection string with the following connection settings:
+    # Adapter, user, host, port, database
+    'mysql2://root@127.0.0.1:3306/mysql' => { service_name: 'secondary-db' },
+
+    # Hash with following connection settings
+    # Adapter, user, host, port, database
+    {
+      adapter:  'mysql2',
+      host:     '127.0.0.1',
+      port:     '3306',
+      database: 'mysql',
+      username: 'root'
+    } => { service_name: 'secondary-db' }
+  }
+end
+```
+
+If ActiveRecord traces an event that uses a connection described within `databases`, it will use the trace settings assigned to that connection. If the connection does not match any in the `databases` option, it will use settings defined by `c.use :active_record` instead.
 
 ### AWS
 
@@ -756,6 +790,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``middleware_names`` | Enables any short-circuited middleware requests to display the middleware name as resource for the trace. | `false` |
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+| ``databases`` | Hash of tracer settings to use for each database connection. See [ActiveRecord](#activerecord) for more details. | ``{}`` |
 
 ### Rake
 
