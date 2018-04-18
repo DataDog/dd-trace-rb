@@ -1,4 +1,4 @@
-require 'ddtrace/contrib/rails/utils'
+require 'ddtrace/contrib/active_record/utils'
 
 module Datadog
   module Contrib
@@ -6,7 +6,7 @@ module Datadog
       # General purpose functions for Sequel
       module Utils
         def adapter_name
-          @adapter_name ||= Datadog::Contrib::Rails::Utils.normalize_vendor(
+          @adapter_name ||= Datadog::Contrib::ActiveRecord::Utils.normalize_vendor(
             db.adapter_scheme.to_s
           )
         end

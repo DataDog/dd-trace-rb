@@ -1,8 +1,17 @@
 require 'time'
-require 'contrib/sequel/test_helper'
 require 'helper'
 
+require 'sequel'
+require 'ddtrace'
+require 'ddtrace/contrib/sequel/patcher'
+
 class SequelMiniAppTest < Minitest::Test
+  def setup
+    Datadog.configure do |c|
+      c.use :sequel
+    end
+  end
+
   def check_span_publish(span)
     assert_equal('publish', span.name)
     assert_equal('webapp', span.service)
