@@ -15,27 +15,39 @@ module Datadog
         # Instance methods for instrumenting Sequel::Database
         module InstanceMethods
           def initialize(*args)
-            pin = Datadog::Pin.new(Patcher::SERVICE, app: Patcher::APP, app_type: Datadog::Ext::AppTypes::DB)
+            pin = Datadog::Pin.new(
+              Datadog.configuration[:sequel][:service_name],
+              app: Patcher::APP,
+              app_type: Datadog::Ext::AppTypes::DB
+            )
             pin.onto(self)
             super(*args)
           end
 
           def run(sql, options = ::Sequel::OPTS)
-            pin = Datadog::Pin.get_from(self)
-            return super(sql, options) unless pin && pin.tracer
-
+            tracer_options = datadog_tracer_options
             opts = parse_opts(sql, options)
 
             response = nil
 
-            pin.tracer.trace('sequel.query') do |span|
-              span.service = pin.service
+            tracer_options[:tracer].trace('sequel.query') do |span|
+              span.service = tracer_options[:service]
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
               span.set_tag('sequel.db.vendor', adapter_name)
               response = super(sql, options)
             end
             response
+          end
+
+          private
+
+          def datadog_tracer_options
+            pin = Datadog::Pin.get_from(self)
+            {
+              tracer: (pin.nil? ? nil : pin.tracer) || Datadog.configuration[:sequel][:tracer],
+              service: (pin.nil? ? nil : pin.service) || Datadog.configuration[:sequel][:service_name]
+            }
           end
         end
       end
