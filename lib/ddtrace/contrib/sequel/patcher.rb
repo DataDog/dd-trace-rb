@@ -1,3 +1,7 @@
+require 'ddtrace/ext/sql'
+require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/sequel/utils'
+
 module Datadog
   # rubocop:disable Metrics/ModuleLength
   module Contrib
@@ -5,8 +9,12 @@ module Datadog
       # Patcher enables patching of 'sequel' module.
       # This is used in monkey.rb to manually apply patches
       module Patcher
+        include Base
+
         SERVICE = 'sequel'.freeze
         APP = 'sequel'.freeze
+
+        register_as :sequel, auto_patch: false
 
         @patched = false
 
@@ -20,12 +28,8 @@ module Datadog
         def patch
           if !@patched && defined?(::Sequel)
             begin
-              require 'ddtrace/ext/sql'
-              require 'ddtrace/ext/app_types'
-              require 'ddtrace/contrib/sequel/utils'
-
-              patch_sequel_database()
-              patch_sequel_dataset()
+              patch_sequel_database
+              patch_sequel_dataset
 
               @patched = true
             rescue StandardError
@@ -41,7 +45,7 @@ module Datadog
           ::Sequel::Database.send(:include, Datadog::Contrib::Sequel::Utils)
           ::Sequel::Database.class_eval do
             alias_method :initialize_without_datadog, :initialize
-            Datadog::Monkey.without_warnings do
+            Datadog::Patcher.without_warnings do
               remove_method :initialize
             end
 
@@ -80,7 +84,7 @@ module Datadog
           ::Sequel::Dataset.send(:include, Datadog::Contrib::Sequel::Utils)
           ::Sequel::Dataset.class_eval do
             alias_method :initialize_without_datadog, :initialize
-            Datadog::Monkey.without_warnings do
+            Datadog::Patcher.without_warnings do
               remove_method :initialize
             end
 
