@@ -9,10 +9,12 @@ module Datadog
       module Patcher
         include Base
 
-        SERVICE = 'sequel'.freeze
+        DEFAULT_SERVICE = 'sequel'.freeze
         APP = 'sequel'.freeze
 
         register_as :sequel, auto_patch: false
+        option :service_name, default: DEFAULT_SERVICE
+        option :tracer, default: Datadog.tracer
 
         @patched = false
 
@@ -24,7 +26,7 @@ module Datadog
         end
 
         def patch
-          if !@patched && defined?(::Sequel)
+          if !@patched && compatible?
             begin
               patch_sequel_database
               patch_sequel_dataset
@@ -36,6 +38,10 @@ module Datadog
           end
 
           @patched
+        end
+
+        def compatible?
+          defined?(::Sequel)
         end
 
         def patch_sequel_database
