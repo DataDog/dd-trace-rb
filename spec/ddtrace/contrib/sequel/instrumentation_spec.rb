@@ -7,14 +7,24 @@ require 'ddtrace/contrib/sequel/patcher'
 
 RSpec.describe 'Sequel instrumentation' do
   let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
-  let(:sequel) { Sequel.sqlite(':memory:') }
-  let(:pin) { Datadog::Pin.get_from(sequel).tap { |p| p.tracer = tracer } }
+  let(:configuration_options) { { tracer: tracer } }
+  let(:sequel) do
+    Sequel.sqlite(':memory:').tap do |s|
+      Datadog.configure(s, tracer: tracer)
+    end
+  end
 
   let(:spans) { tracer.writer.spans }
 
   before(:each) do
+    skip unless Datadog::Contrib::Sequel::Patcher.compatible?
+    
+    # Reset options (that might linger from other tests)
+    Datadog.configuration[:sequel].reset_options!
+
+    # Patch Sequel
     Datadog.configure do |c|
-      c.use :sequel
+      c.use :sequel, configuration_options
     end
   end
 
@@ -22,6 +32,32 @@ RSpec.describe 'Sequel instrumentation' do
     before(:each) do
       sequel.create_table(:table) do
         String :name
+      end
+    end
+
+    describe 'when configured' do
+      let(:span) { spans.first }
+
+      shared_examples_for 'a configured Sequel::Database' do
+        before(:each) { sequel[:table].insert(name: 'data1') }
+        it { expect(span.service).to eq(service_name) }
+      end
+
+      context 'only with defaults' do
+        let(:service_name) { 'sequel' }
+        it_behaves_like 'a configured Sequel::Database'
+      end
+
+      context 'with options set via #use' do
+        let(:configuration_options) { super().merge(service_name: service_name) }
+        let(:service_name) { 'my-sequel' }
+        it_behaves_like 'a configured Sequel::Database'
+      end
+
+      context 'with options set on Sequel::Database' do
+        let(:service_name) { 'custom-sequel' }
+        before(:each) { Datadog.configure(sequel, service_name: service_name) }
+        it_behaves_like 'a configured Sequel::Database'
       end
     end
 
