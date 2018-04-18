@@ -19,7 +19,7 @@ module Datadog
         def parse_opts(sql, opts)
           db_opts = if ::Sequel::VERSION < '3.41.0' && self.class.to_s !~ /Dataset$/
                       @opts
-                    elsif @pool
+                    elsif instance_variable_defined?(:@pool) && @pool
                       @pool.db.opts
                     else
                       @db.opts
