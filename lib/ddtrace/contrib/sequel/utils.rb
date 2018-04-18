@@ -6,9 +6,7 @@ module Datadog
       # General purpose functions for Sequel
       module Utils
         def adapter_name
-          @adapter_name ||= Datadog::Contrib::ActiveRecord::Utils.normalize_vendor(
-            db.adapter_scheme.to_s
-          )
+          Datadog::Contrib::ActiveRecord::Utils.normalize_vendor(db.adapter_scheme.to_s)
         end
 
         def sanitize_sql(sql)
