@@ -44,7 +44,8 @@ RSpec.describe 'Sequel instrumentation' do
       end
 
       context 'only with defaults' do
-        let(:service_name) { 'sequel' }
+        # Expect it to be the normalized adapter name.
+        let(:service_name) { 'sqlite' }
         it_behaves_like 'a configured Sequel::Database'
       end
 
@@ -61,7 +62,25 @@ RSpec.describe 'Sequel instrumentation' do
       end
     end
 
-    describe 'when queried multiple times' do
+    describe 'when queried through a Sequel::Database object' do
+      before(:each) { sequel.run(query) }
+      let(:query) { 'SELECT * FROM \'table\' WHERE `name` = \'John Doe\'' }
+      let(:span) { spans.first }
+
+      it 'traces the command' do
+        expect(span.name).to eq('sequel.query')
+        # Expect it to be the normalized adapter name.
+        expect(span.service).to eq('sqlite')
+        expect(span.span_type).to eq('sql')
+        expect(span.get_tag('sequel.db.vendor')).to eq('sqlite')
+        # Expect non-quantized query: agent does SQL quantization.
+        expect(span.resource).to eq(query)
+        expect(span.status).to eq(0)
+        expect(span.parent_id).to eq(0)
+      end
+    end
+
+    describe 'when queried through a Sequel::Dataset' do
       let(:process_span) { spans[0] }
       let(:publish_span) { spans[1] }
       let(:sequel_cmd1_span) { spans[2] }
@@ -112,7 +131,8 @@ RSpec.describe 'Sequel instrumentation' do
           [sequel_cmd4_span, 'SELECT sqlite_version()']
         ].each do |command_span, query|
           expect(command_span.name).to eq('sequel.query')
-          expect(command_span.service).to eq('sequel')
+          # Expect it to be the normalized adapter name.
+          expect(command_span.service).to eq('sqlite')
           expect(command_span.span_type).to eq('sql')
           expect(command_span.get_tag('sequel.db.vendor')).to eq('sqlite')
           # Expect non-quantized query: agent does SQL quantization.

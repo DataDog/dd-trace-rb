@@ -9,11 +9,10 @@ module Datadog
       module Patcher
         include Base
 
-        DEFAULT_SERVICE = 'sequel'.freeze
         APP = 'sequel'.freeze
 
         register_as :sequel, auto_patch: false
-        option :service_name, default: DEFAULT_SERVICE
+        option :service_name
         option :tracer, default: Datadog.tracer
 
         @patched = false

@@ -8,30 +8,31 @@ module Datadog
       # Adds instrumentation to Sequel::Database
       module Database
         def self.included(base)
-          base.send(:include, Utils)
           base.send(:prepend, InstanceMethods)
         end
 
         # Instance methods for instrumenting Sequel::Database
         module InstanceMethods
           def initialize(*args)
+            # Setup configuration for this database
             pin = Datadog::Pin.new(
-              Datadog.configuration[:sequel][:service_name],
+              Datadog.configuration[:sequel][:service_name] || adapter_name,
               app: Patcher::APP,
-              app_type: Datadog::Ext::AppTypes::DB
+              app_type: Datadog::Ext::AppTypes::DB,
+              tracer: Datadog.configuration[:sequel][:tracer] || Datadog.tracer
             )
             pin.onto(self)
             super(*args)
           end
 
           def run(sql, options = ::Sequel::OPTS)
-            tracer_options = datadog_tracer_options
+            pin = Datadog::Pin.get_from(self)
             opts = parse_opts(sql, options)
 
             response = nil
 
-            tracer_options[:tracer].trace('sequel.query') do |span|
-              span.service = tracer_options[:service]
+            pin.tracer.trace('sequel.query') do |span|
+              span.service = pin.service
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
               span.set_tag('sequel.db.vendor', adapter_name)
@@ -42,12 +43,17 @@ module Datadog
 
           private
 
-          def datadog_tracer_options
-            pin = Datadog::Pin.get_from(self)
-            {
-              tracer: (pin.nil? ? nil : pin.tracer) || Datadog.configuration[:sequel][:tracer],
-              service: (pin.nil? ? nil : pin.service) || Datadog.configuration[:sequel][:service_name]
-            }
+          def adapter_name
+            Utils.adapter_name(self)
+          end
+
+          def parse_opts(sql, opts)
+            db_opts = if ::Sequel::VERSION < '3.41.0' && self.class.to_s !~ /Dataset$/
+                        @opts
+                      elsif instance_variable_defined?(:@pool) && @pool
+                        @pool.db.opts
+                      end
+            Utils.parse_opts(sql, opts, db_opts)
           end
         end
       end
