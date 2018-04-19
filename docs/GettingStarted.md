@@ -37,6 +37,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Rails](#rails)
      - [Redis](#redis)
      - [Resque](#resque)
+     - [Sequel](#sequel)
      - [Sidekiq](#sidekiq)
      - [Sinatra](#sinatra)
      - [Sucker Punch](#sucker-punch)
@@ -254,6 +255,7 @@ For a list of available integrations, and their configuration options, please re
 | Rails          | `rails`         | `>= 3.2, < 5.2`        | *[Link](#rails)*          | *[Link](https://github.com/rails/rails)*                                       |
 | Redis          | `redis`         | `>= 3.2, < 4.0`        | *[Link](#redis)*          | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Resque         | `resque`        | `>= 1.0, < 2.0`        | *[Link](#resque)*         | *[Link](https://github.com/resque/resque)*                                     |
+| Sequel         | `sidekiq`       | `>= 3.41`              | *[Link](#sequel)*         | *[Link](https://github.com/jeremyevans/sequel)*                                |
 | Sidekiq        | `sidekiq`       | `>= 4.0`               | *[Link](#sidekiq)*        | *[Link](https://github.com/mperham/sidekiq)*                                   |
 | Sinatra        | `sinatra`       | `>= 1.4.5`             | *[Link](#sinatra)*        | *[Link](https://github.com/sinatra/sinatra)*                                   |
 | Sucker Punch   | `sucker_punch`  | `>= 2.0`               | *[Link](#sucker-punch)*   | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
@@ -706,6 +708,54 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | --- | --- |
 | ``service_name`` | Service name used for `resque` instrumentation | resque |
 | ``workers`` | An array including all worker classes you want to trace (eg ``[MyJob]``) | ``[]`` |
+
+### Sequel
+
+The Sequel integration traces queries made to your database.
+
+```ruby
+require 'sequel'
+require 'ddtrace'
+
+# Connect to database
+database = Sequel.sqlite
+
+# Create a table
+database.create_table :articles do
+  primary_key :id
+  String :name
+end
+
+Datadog.configure do |c|
+  c.use :sequel, options
+end
+
+# Perform a query
+articles = database[:articles]
+articles.all
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `sequel.query` spans. | Name of database adapter (e.g. `mysql2`) |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+
+Only Ruby 2.0+ is supported.
+
+**Configuring databases to use different service names**
+
+If you use multiple databases with Sequel, you can give each of them different service names by configuring their respective `Sequel::Database` objects:
+
+```ruby
+sqlite_database = Sequel.sqlite
+postgres_database = Sequel.connect('postgres://user:password@host:port/database_name')
+
+# Configure each database with different service names
+Datadog.configure(sqlite_database, service_name: 'my-sqlite-db')
+Datadog.configure(postgres_database, service_name: 'my-postgres-db')
+```
 
 ### Sidekiq
 
