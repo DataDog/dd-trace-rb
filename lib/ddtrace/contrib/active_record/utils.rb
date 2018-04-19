@@ -3,20 +3,6 @@ module Datadog
     module ActiveRecord
       # Common utilities for Rails
       module Utils
-        # Return a canonical name for a type of database
-        def self.normalize_vendor(vendor)
-          case vendor
-          when nil
-            'defaultdb'
-          when 'postgresql'
-            'postgres'
-          when 'sqlite3'
-            'sqlite'
-          else
-            vendor
-          end
-        end
-
         def self.adapter_name
           connection_config[:adapter_name]
         end
@@ -36,7 +22,7 @@ module Datadog
         def self.connection_config(object_id = nil)
           config = object_id.nil? ? default_connection_config : connection_config_by_id(object_id)
           {
-            adapter_name: normalize_vendor(config[:adapter]),
+            adapter_name: Datadog::Utils::Database.normalize_vendor(config[:adapter]),
             adapter_host: config[:host],
             adapter_port: config[:port],
             database_name: config[:database]

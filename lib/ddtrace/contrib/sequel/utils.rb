@@ -1,12 +1,10 @@
-require 'ddtrace/contrib/active_record/utils'
-
 module Datadog
   module Contrib
     module Sequel
       # General purpose functions for Sequel
       module Utils
         def adapter_name
-          Datadog::Contrib::ActiveRecord::Utils.normalize_vendor(db.adapter_scheme.to_s)
+          Datadog::Utils::Database.normalize_vendor(db.adapter_scheme.to_s)
         end
 
         def parse_opts(sql, opts)

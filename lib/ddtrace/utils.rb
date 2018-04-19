@@ -1,3 +1,5 @@
+require 'ddtrace/utils/database'
+
 module Datadog
   # Utils contains low-level utilities, typically to provide pseudo-random trace IDs.
   module Utils
