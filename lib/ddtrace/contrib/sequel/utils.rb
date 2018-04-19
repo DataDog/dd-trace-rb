@@ -9,11 +9,6 @@ module Datadog
           Datadog::Contrib::ActiveRecord::Utils.normalize_vendor(db.adapter_scheme.to_s)
         end
 
-        def sanitize_sql(sql)
-          regexp = Regexp.new('(\'[\s\S][^\']*\'|\d*\.\d+|\d+|NULL)', Regexp::IGNORECASE)
-          sql.to_s.gsub(regexp, '?')
-        end
-
         def parse_opts(sql, opts)
           db_opts = if ::Sequel::VERSION < '3.41.0' && self.class.to_s !~ /Dataset$/
                       @opts
@@ -30,7 +25,7 @@ module Datadog
 
           {
             name: opts[:type],
-            query: sanitize_sql(sql),
+            query: sql,
             database: db_opts[:database],
             host: db_opts[:host]
           }

@@ -106,8 +106,8 @@ RSpec.describe 'Sequel instrumentation' do
 
         # Check each command span
         [
-          [sequel_cmd1_span, 'INSERT INTO `table` (`name`) VALUES (?)'],
-          [sequel_cmd2_span, 'INSERT INTO `table` (`name`) VALUES (?)'],
+          [sequel_cmd1_span, 'INSERT INTO `table` (`name`) VALUES (\'data1\')'],
+          [sequel_cmd2_span, 'INSERT INTO `table` (`name`) VALUES (\'data2\')'],
           [sequel_cmd3_span, 'SELECT * FROM `table`'],
           [sequel_cmd4_span, 'SELECT sqlite_version()']
         ].each do |command_span, query|
@@ -115,6 +115,7 @@ RSpec.describe 'Sequel instrumentation' do
           expect(command_span.service).to eq('sequel')
           expect(command_span.span_type).to eq('sql')
           expect(command_span.get_tag('sequel.db.vendor')).to eq('sqlite')
+          # Expect non-quantized query: agent does SQL quantization.
           expect(command_span.resource).to eq(query)
           expect(command_span.status).to eq(0)
           expect(command_span.parent_id).to eq(process_span.span_id)
