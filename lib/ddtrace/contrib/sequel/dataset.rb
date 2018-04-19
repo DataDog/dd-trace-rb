@@ -8,7 +8,6 @@ module Datadog
       # Adds instrumentation to Sequel::Dataset
       module Dataset
         def self.included(base)
-          base.send(:include, Utils)
           base.send(:prepend, InstanceMethods)
         end
 
@@ -33,12 +32,12 @@ module Datadog
           private
 
           def trace_execute(super_method, sql, options, &block)
-            tracer_options = datadog_tracer_options
-            opts = parse_opts(sql, options)
+            pin = Datadog::Pin.get_from(db)
+            opts = Utils.parse_opts(sql, options, db.opts)
             response = nil
 
-            tracer_options[:tracer].trace('sequel.query') do |span|
-              span.service = tracer_options[:service]
+            pin.tracer.trace('sequel.query') do |span|
+              span.service = pin.service
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
               span.set_tag('sequel.db.vendor', adapter_name)
@@ -47,12 +46,8 @@ module Datadog
             response
           end
 
-          def datadog_tracer_options
-            pin = Datadog::Pin.get_from(db)
-            {
-              tracer: (pin.nil? ? nil : pin.tracer) || Datadog.configuration[:sequel][:tracer],
-              service: (pin.nil? ? nil : pin.service) || Datadog.configuration[:sequel][:service_name]
-            }
+          def adapter_name
+            Utils.adapter_name(db)
           end
         end
       end
