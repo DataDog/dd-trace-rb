@@ -40,7 +40,7 @@ module Datadog
         end
 
         def compatible?
-          defined?(::Sequel)
+          RUBY_VERSION >= '2.0.0' && defined?(::Sequel)
         end
 
         def patch_sequel_database
