@@ -10,7 +10,7 @@ module Datadog
         end
 
         def parse_opts(sql, opts, db_opts)
-          if ::Sequel::VERSION > '4.36.0' && !sql.is_a?(String)
+          if ::Sequel::VERSION >= '4.37.0' && !sql.is_a?(String)
             # In 4.37.0, sql was converted to a prepared statement object
             sql = sql.prepared_sql unless sql.is_a?(Symbol)
           end

@@ -143,7 +143,7 @@ else
     gem 'rack-test', '0.7.0'
     gem 'sinatra', '1.4.5'
     gem 'sqlite3'
-    gem 'sequel'
+    gem 'sequel', '~> 4.0', '< 4.37'
     gem 'activerecord', '3.2.22.5'
     gem 'sidekiq', '4.0.0'
     gem 'aws-sdk', '~> 2.0'
