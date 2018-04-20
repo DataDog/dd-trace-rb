@@ -744,9 +744,9 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 Only Ruby 2.0+ is supported.
 
-**Configuring databases to use different service names**
+**Configuring databases to use different settings**
 
-If you use multiple databases with Sequel, you can give each of them different service names by configuring their respective `Sequel::Database` objects:
+If you use multiple databases with Sequel, you can give each of them different settings by configuring their respective `Sequel::Database` objects:
 
 ```ruby
 sqlite_database = Sequel.sqlite
