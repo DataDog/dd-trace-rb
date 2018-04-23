@@ -45,6 +45,7 @@ namespace :spec do
     :aws,
     :dalli,
     :elasticsearch,
+    :excon,
     :faraday,
     :grape,
     :graphql,
@@ -222,6 +223,7 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_record'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_support'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:excon'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:faraday'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:graphql'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:mongodb'
@@ -232,6 +234,7 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_record'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_support'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:excon'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:faraday'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:mongodb'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:redis'
