@@ -4,6 +4,7 @@ source "https://rubygems.org"
 
 gem "pry-nav", git: "https://github.com/nixme/pry-nav.git", branch: "master"
 gem "elasticsearch-transport"
+gem "excon"
 gem "mongo", "< 2.5"
 gem "graphql"
 gem "grape"
