@@ -27,6 +27,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [AWS](#aws)
      - [Dalli](#dalli)
      - [Elastic Search](#elastic-search)
+     - [Excon](#excon)
      - [Faraday](#faraday)
      - [Grape](#grape)
      - [GraphQL](#graphql)
@@ -245,6 +246,7 @@ For a list of available integrations, and their configuration options, please re
 | AWS            | `aws`           | `>= 2.0`               | *[Link](#aws)*            | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Dalli          | `dalli`         | `>= 2.7`               | *[Link](#dalli)*          | *[Link](https://github.com/petergoldstein/dalli)*                              |
 | Elastic Search | `elasticsearch` | `>= 6.0`               | *[Link](#elastic-search)* | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
+| Excon          | `excon`         | `>= 0.62`              | *[Link](#excon)*          | *[Link](https://github.com/excon/excon)*                                       |
 | Faraday        | `faraday`       | `>= 0.14`              | *[Link](#faraday)*        | *[Link](https://github.com/lostisland/faraday)*                                |
 | Grape          | `grape`         | `>= 1.0`               | *[Link](#grape)*          | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL        | `graphql`       | `>= 1.7.9`             | *[Link](#graphql)*        | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
@@ -355,6 +357,58 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``service_name`` | Service name used for `elasticsearch` instrumentation | elasticsearch |
 | ``quantize`` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | {} |
 
+### Excon
+
+The `excon` integration is available through the `ddtrace` middleware:
+
+```ruby
+require 'excon'
+require 'ddtrace'
+
+# Configure default Excon tracing behavior
+Datadog.configure do |c|
+  c.use :excon, service_name: 'excon'
+end
+
+connection = Excon.new('https://example.com')
+connection.get
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| `service_name` | Service name for Excon instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'excon'` |
+| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
+| `tracer` | A `Datadog::Tracer` instance used to instrument the application. Usually you don't need to set that. | `Datadog.tracer` |
+
+**Configuring connections to use different settings**
+
+If you use multiple connections with Excon, you can give each of them different settings by configuring their constructors with middleware:
+
+```ruby
+# Wrap the Datadog tracing middleware around the default middleware stack
+Excon.new(
+  'http://example.com',
+  middlewares: Datadog::Contrib::Excon::Middleware.with(options).around_default_stack
+)
+
+# Insert the middleware into a custom middleware stack.
+# NOTE: Trace middleware must be inserted after ResponseParser!
+Excon.new(
+  'http://example.com',
+  middlewares: [
+    Excon::Middleware::ResponseParser,
+    Datadog::Contrib::Excon::Middleware.with(options),
+    Excon::Middleware::Idempotent
+  ]
+)
+```
+
+Where `options` is a Hash that contains any of the parameters listed in the table above.
+
 ### Faraday
 
 The `faraday` integration is available through the `ddtrace` middleware:
@@ -377,12 +431,13 @@ connection.get('/foo')
 
 Where `options` is an optional `Hash` that accepts the following parameters:
 
-| Key | Default | Description |
+| Key | Description | Default |
 | --- | --- | --- |
-| `service_name` | Global service name (default: `faraday`) | Service name for this specific connection object. |
-| `split_by_domain` | `false` | Uses the request domain as the service name when set to `true`. |
-| `distributed_tracing` | `false` | Propagates tracing context along the HTTP request when set to `true`. |
-| `error_handler` | ``5xx`` evaluated as errors | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. |
+| `service_name` | Service name for Faraday instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'faraday'` |
+| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | ``5xx`` evaluated as errors |
+| `tracer` | A `Datadog::Tracer` instance used to instrument the application. Usually you don't need to set that. | `Datadog.tracer` |
 
 ### Grape
 
@@ -518,7 +573,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | --- | --- |
 | ``service_name`` | Service name used for `http` instrumentation | http |
-| ``distributed_tracing`` | Enables distributed tracing | ``false`` |
+| ``distributed_tracing`` | Enables [distributed tracing](#distributed-tracing) | ``false`` |
 
 If you wish to configure each connection object individually, you may use the ``Datadog.configure`` as it follows:
 
@@ -1049,6 +1104,7 @@ Many integrations included in `ddtrace` support distributed tracing. Distributed
 
 For more details on how to activate distributed tracing for integrations, see their documentation:
 
+- [Excon](#excon)
 - [Faraday](#faraday)
 - [Net/HTTP](#nethttp)
 - [Rack](#rack)
