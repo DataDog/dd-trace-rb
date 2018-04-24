@@ -18,6 +18,10 @@ module Datadog
         @integration.set_option(param, value)
       end
 
+      def option?(param)
+        @integration.option?(param)
+      end
+
       def_delegators :@integration, :to_h, :reset_options!
       def_delegators :to_h, :to_hash, :merge
     end

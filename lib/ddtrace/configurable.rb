@@ -25,6 +25,10 @@ module Datadog
         __options[name][:value]
       end
 
+      def option?(name)
+        __valid?(name)
+      end
+
       def to_h
         __options.each_with_object({}) do |(key, _), hash|
           hash[key] = get_option(key)
@@ -55,8 +59,12 @@ module Datadog
         @__options ||= {}
       end
 
+      def __valid?(name)
+        __options.key?(name)
+      end
+
       def __assert_valid!(name)
-        return if __options.key?(name)
+        return if __valid?(name)
         raise(InvalidOptionError, "#{__pretty_name} doesn't have the option: #{name}")
       end
 
