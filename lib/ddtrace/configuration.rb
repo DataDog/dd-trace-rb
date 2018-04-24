@@ -2,6 +2,7 @@ require_relative 'configuration/proxy'
 require_relative 'configuration/resolver'
 require_relative 'configuration/pin_setup'
 require_relative 'configuration/proxy_pin'
+require_relative 'configuration/fallback_pin'
 
 module Datadog
   # Configuration provides a unique access point for configurations
