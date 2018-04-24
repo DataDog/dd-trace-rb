@@ -12,8 +12,7 @@ module Datadog
     def self.inject!(context, metadata)
       metadata[GRPC_METADATA_TRACE_ID] = context.trace_id.to_s
       metadata[GRPC_METADATA_PARENT_ID] = context.span_id.to_s
-      metadata[GRPC_METADATA_SAMPLING_PRIORITY] = context.sampling_priority.to_s
-      metadata.delete(GRPC_METADATA_SAMPLING_PRIORITY) unless context.sampling_priority
+      metadata[GRPC_METADATA_SAMPLING_PRIORITY] = context.sampling_priority.to_s if context.sampling_priority
     end
 
     def self.extract(metadata)
@@ -47,8 +46,8 @@ module Datadog
       end
 
       def sampling_priority
-        value = @metadata.fetch(GRPC_METADATA_SAMPLING_PRIORITY, -1).to_i
-        value if value >= 0
+        value = @metadata[GRPC_METADATA_SAMPLING_PRIORITY]
+        value && value.to_i
       end
     end
   end

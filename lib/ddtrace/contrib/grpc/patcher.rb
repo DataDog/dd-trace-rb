@@ -23,7 +23,7 @@ module Datadog
           require 'ddtrace/ext/grpc'
           require 'ddtrace/propagation/grpc_propagator'
           require 'ddtrace/contrib/grpc/datadog_interceptor'
-          require 'ddtrace/contrib/grpc/interception_context'
+          require 'ddtrace/contrib/grpc/intercept_with_datadog'
 
           add_pin
           prepend_interceptor
@@ -54,7 +54,7 @@ module Datadog
 
         def prepend_interceptor
           ::GRPC::InterceptionContext
-            .prepend(::GRPC::InterceptionContext::InterceptWithDatadog)
+            .prepend(Datadog::Contrib::GRPC::InterceptWithDatadog)
         end
       end
     end
