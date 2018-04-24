@@ -3,7 +3,7 @@ require 'grpc'
 require 'ddtrace'
 
 RSpec.describe 'tracing on the server connection' do
-  subject { Datadog::Contrib::GRPC::DatadogInterceptor::Server.new }
+  subject(:server) { Datadog::Contrib::GRPC::DatadogInterceptor::Server.new }
 
   before do
     Datadog.configure do |c|

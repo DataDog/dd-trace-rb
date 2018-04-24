@@ -3,7 +3,7 @@ require 'grpc'
 require 'ddtrace'
 
 RSpec.describe 'tracing on the client connection' do
-  subject { Datadog::Contrib::GRPC::DatadogInterceptor::Client.new }
+  subject(:client) { Datadog::Contrib::GRPC::DatadogInterceptor::Client.new }
 
   let(:span) { subject.datadog_pin.tracer.writer.spans.first }
 

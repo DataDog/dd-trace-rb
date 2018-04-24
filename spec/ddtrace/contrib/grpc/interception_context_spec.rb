@@ -3,7 +3,7 @@ require 'grpc'
 require 'ddtrace'
 
 RSpec.describe GRPC::InterceptionContext do
-  subject { described_class.new }
+  subject(:interception_context) { described_class.new }
 
   describe '#intercept!' do
     let(:span) { Datadog::Pin.get_from(::GRPC).tracer.writer.spans.first }
