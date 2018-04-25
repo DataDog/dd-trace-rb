@@ -19,6 +19,7 @@ gem "sidekiq"
 gem "aws-sdk"
 gem "sucker_punch"
 gem "dalli"
+gem "rake"
 gem "resque", "< 2.0"
 gem "racecar", ">= 0.3.5"
 gem "mysql2", "< 0.5", platform: :ruby
