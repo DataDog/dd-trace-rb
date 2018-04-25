@@ -53,6 +53,7 @@ namespace :spec do
     :mongodb,
     :racecar,
     :rack,
+    :rake,
     :redis,
     :resque,
     :sequel,
@@ -228,6 +229,7 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:mongodb'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:grpc'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:rake'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:redis'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:resque'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:sequel'
@@ -236,6 +238,7 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:faraday'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:mongodb'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:rake'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:redis'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:resque'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:sequel'

@@ -130,6 +130,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
     gem 'aws-sdk'
     gem 'sucker_punch'
     gem 'dalli'
+    gem 'rake'
     gem 'resque', '< 2.0'
     gem 'racecar', '>= 0.3.5'
     gem 'mysql2', '< 0.5', platform: :ruby
@@ -150,6 +151,7 @@ else
     gem 'aws-sdk', '~> 2.0'
     gem 'sucker_punch'
     gem 'dalli'
+    gem 'rake'
     gem 'resque', '< 2.0'
     gem 'mysql2', '0.3.21', platform: :ruby
     gem 'activerecord-mysql-adapter', platform: :ruby
