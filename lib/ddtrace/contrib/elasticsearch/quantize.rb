@@ -6,7 +6,11 @@ module Datadog
         PLACEHOLDER = '?'.freeze
         EXCLUDE_KEYS = [].freeze
         SHOW_KEYS = [:_index, :_type, :_id].freeze
-        DEFAULT_OPTIONS = { exclude: EXCLUDE_KEYS, show: SHOW_KEYS }.freeze
+        DEFAULT_OPTIONS = {
+          exclude: EXCLUDE_KEYS,
+          show: SHOW_KEYS,
+          placeholder: PLACEHOLDER
+        }.freeze
 
         ID_REGEXP = %r{\/([0-9]+)([\/\?]|$)}
         ID_PLACEHOLDER = '/?\2'.freeze
@@ -25,7 +29,7 @@ module Datadog
         def format_body(body, options = {})
           format_body!(body, options)
         rescue StandardError
-          PLACEHOLDER
+          options[:placeholder] || PLACEHOLDER
         end
 
         def format_body!(body, options = {})
@@ -36,46 +40,10 @@ module Datadog
 
           # Parse each statement and quantize them.
           statements.collect do |string|
-            reserialize_json(string) do |obj|
-              format_statement(obj, options)
+            reserialize_json(string, options[:placeholder]) do |obj|
+              Datadog::Quantization::Hash.format(obj, options)
             end
           end.join("\n")
-        end
-
-        def format_statement(statement, options = {})
-          return statement if options[:show] == :all
-
-          case statement
-          when Hash
-            statement.each_with_object({}) do |(key, value), quantized|
-              if options[:show].include?(key.to_sym)
-                quantized[key] = value
-              elsif !options[:exclude].include?(key.to_sym)
-                quantized[key] = format_value(value, options)
-              end
-            end
-          else
-            format_value(statement, options)
-          end
-        end
-
-        def format_value(value, options = {})
-          return value if options[:show] == :all
-
-          case value
-          when Hash
-            format_statement(value, options)
-          when Array
-            # If any are objects, format them.
-            if value.any? { |v| v.class <= Hash || v.class <= Array }
-              value.collect { |i| format_value(i, options) }
-            # Otherwise short-circuit and return single placeholder
-            else
-              PLACEHOLDER
-            end
-          else
-            PLACEHOLDER
-          end
         end
 
         def merge_options(original, additional)
