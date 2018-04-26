@@ -13,7 +13,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
   let(:span) { spans.first }
 
   before(:each) do
-    skip unless Datadog::Contrib::Rake::Patcher.compatible?
+    skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Patcher.compatible?
     
     # Reset options (that might linger from other tests)
     Datadog.configuration[:rake].reset_options!
