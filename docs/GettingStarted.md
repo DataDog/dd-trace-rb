@@ -28,6 +28,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Dalli](#dalli)
      - [Elastic Search](#elastic-search)
      - [Faraday](#faraday)
+     - [gRPC](#grpc)
      - [Grape](#grape)
      - [GraphQL](#graphql)
      - [MongoDB](#mongodb)
@@ -246,6 +247,7 @@ For a list of available integrations, and their configuration options, please re
 | Dalli          | `dalli`         | `>= 2.7`               | *[Link](#dalli)*          | *[Link](https://github.com/petergoldstein/dalli)*                              |
 | Elastic Search | `elasticsearch` | `>= 6.0`               | *[Link](#elastic-search)* | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
 | Faraday        | `faraday`       | `>= 0.14`              | *[Link](#faraday)*        | *[Link](https://github.com/lostisland/faraday)*                                |
+| gRPC           | `grpc`          | `>= 1.10`              | *[Link](#grpc)*           | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
 | Grape          | `grape`         | `>= 1.0`               | *[Link](#grape)*          | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL        | `graphql`       | `>= 1.7.9`             | *[Link](#graphql)*        | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | MongoDB        | `mongo`         | `>= 2.0, < 2.5`        | *[Link](#mongodb)*        | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
@@ -383,6 +385,56 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `split_by_domain` | `false` | Uses the request domain as the service name when set to `true`. |
 | `distributed_tracing` | `false` | Propagates tracing context along the HTTP request when set to `true`. |
 | `error_handler` | ``5xx`` evaluated as errors | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. |
+
+### gRPC
+
+The `grpc` integration adds both client and server interceptors, which run as middleware prior to executing the service's remote procedure call. As gRPC applications are often distributed, the integration shares trace information between client and server. 
+
+To setup your integration, use the ``Datadog.configure`` method like so:
+
+```ruby
+require 'grpc'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :grpc, options
+end
+
+# run your application normally
+
+# server side
+server = GRPC::RpcServer.new
+server.add_http2_port('localhost:50051', :this_port_is_insecure)
+server.handle(Demo)
+server.run_till_terminated
+
+# client side
+client = Demo.rpc_stub_class.new('localhost:50051', :this_channel_is_insecure)
+client.my_endpoint(DemoMessage.new(contents: 'hello!'))
+```
+
+In situations where you have multiple clients calling multiple distinct services, you may pass the Datadog interceptor directly, like so
+
+```ruby
+configured_interceptor = Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
+  c.service_name = "Alternate"
+end
+
+alternate_client = Demo::Echo::Service.rpc_stub_class.new(
+  'localhost:50052',
+  :this_channel_is_insecure,
+  :interceptors => [configured_interceptor]
+)
+```
+
+The integration will ensure that the ``configured_interceptor`` establishes a unique tracing setup for that client instance.
+
+The following configuration options are supported:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `grpc` instrumentation | grape |
+| ``tracer`` | Datadog tracer used for `grpc` instrumentation | Datadog.tracer |
 
 ### Grape
 
