@@ -13,36 +13,43 @@ module Datadog
         # Instance methods for Rake instrumentation
         module InstanceMethods
           def invoke(*args)
-            if enabled?
-              tracer.trace(SPAN_NAME_INVOKE) do |span|
-                super
-                annotate!(span)
-                # TODO: Add quantization
-                span.set_tag('rake.args', args)
-              end
-            else
+            return super unless enabled?
+
+            tracer.trace(SPAN_NAME_INVOKE) do |span|
               super
+              annotate_invoke!(span, args)
             end
           end
 
           def execute(args = nil)
-            if enabled?
-              tracer.trace(SPAN_NAME_EXECUTE) do |span|
-                super
-                annotate!(span)
-                # TODO: Add quantization
-                span.set_tag('rake.args', args.to_hash) unless args.nil?
-              end
-            else
+            return super unless enabled?
+
+            tracer.trace(SPAN_NAME_EXECUTE) do |span|
               super
+              annotate_execute!(span, args)
             end
           end
 
           private
 
-          def annotate!(span)
+          def annotate_invoke!(span, args)
             span.resource = name
             span.set_tag('rake.arg_names', arg_names)
+            span.set_tag('rake.args', quantize(args)) unless args.nil?
+          rescue StandardError => e
+            Datadog::Tracer.log.debug("Error while tracing Rake invoke: #{e.message}")
+          end
+
+          def annotate_execute!(span, args)
+            span.resource = name
+            span.set_tag('rake.args', quantize(args.to_hash)) unless args.nil?
+          rescue StandardError => e
+            Datadog::Tracer.log.debug("Error while tracing Rake execute: #{e.message}")
+          end
+
+          def quantize(args)
+            quantize_options = Datadog.configuration[:rake][:quantize]
+            Datadog::Quantization::Hash.format(args, quantize_options)
           end
 
           def enabled?

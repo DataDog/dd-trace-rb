@@ -12,6 +12,7 @@ module Datadog
         option :service_name, default: 'rake'
         option :tracer, default: Datadog.tracer
         option :enabled, default: true
+        option :quantize, default: {}
 
         module_function
 
