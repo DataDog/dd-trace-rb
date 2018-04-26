@@ -16,20 +16,34 @@ module Datadog
             }
             metadata = keywords[:call].metadata
 
-            tracer.provider.context = Datadog::GRPCPropagator
-                                      .extract(metadata)
+            set_distributed_context!(tracer, metadata)
 
             tracer.trace('grpc.service', options) do |span|
-              metadata.each do |header, value|
-                next if reserved_headers.include?(header)
-                span.set_tag(header, value)
-              end
+              annotate!(span, metadata)
 
               yield
             end
           end
 
           private
+
+          def set_distributed_context!(tracer, metadata)
+            tracer.provider.context = Datadog::GRPCPropagator
+                                      .extract(metadata)
+          rescue StandardError => e
+            Datadog::Tracer.log.debug(
+              "unable to propagate GRPC metadata to context: #{e}"
+            )
+          end
+
+          def annotate!(span, metadata)
+            metadata.each do |header, value|
+              next if reserved_headers.include?(header)
+              span.set_tag(header, value)
+            end
+          rescue StandardError => e
+            Datadog::Tracer.log.debug("GRPC client trace failed: #{e}")
+          end
 
           def reserved_headers
             [Datadog::Ext::DistributedTracing::GRPC_METADATA_TRACE_ID,

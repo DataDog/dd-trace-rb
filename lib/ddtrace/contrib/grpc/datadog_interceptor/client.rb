@@ -17,18 +17,24 @@ module Datadog
             }
 
             tracer.trace('grpc.client', options) do |span|
-              keywords[:metadata].each do |header, value|
-                span.set_tag(header, value)
-              end
-
-              Datadog::GRPCPropagator
-                .inject!(span.context, keywords[:metadata])
+              annotate!(span, keywords[:metadata])
 
               yield
             end
           end
 
           private
+
+          def annotate!(span, metadata)
+            metadata.each do |header, value|
+              span.set_tag(header, value)
+            end
+
+            Datadog::GRPCPropagator
+              .inject!(span.context, metadata)
+          rescue StandardError => e
+            Datadog::Tracer.log.debug("GRPC client trace failed: #{e}")
+          end
 
           def format_resource(proto_method)
             proto_method.downcase
