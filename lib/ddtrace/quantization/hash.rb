@@ -53,7 +53,7 @@ module Datadog
             value.collect { |i| format_value(i, options) }
           # Otherwise short-circuit and return single placeholder
           else
-            options[:placeholder]
+            [options[:placeholder]]
           end
         else
           options[:placeholder]
