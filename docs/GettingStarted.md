@@ -433,7 +433,7 @@ The following configuration options are supported:
 
 | Key | Description | Default |
 | --- | --- | --- |
-| ``service_name`` | Service name used for `grpc` instrumentation | grape |
+| ``service_name`` | Service name used for `grpc` instrumentation | grpc |
 | ``tracer`` | Datadog tracer used for `grpc` instrumentation | Datadog.tracer |
 
 ### Grape
