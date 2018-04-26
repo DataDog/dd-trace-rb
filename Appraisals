@@ -151,7 +151,7 @@ else
     gem 'aws-sdk', '~> 2.0'
     gem 'sucker_punch'
     gem 'dalli'
-    gem 'rake'
+    gem 'rake', '< 12.3'
     gem 'resque', '< 2.0'
     gem 'mysql2', '0.3.21', platform: :ruby
     gem 'activerecord-mysql-adapter', platform: :ruby
