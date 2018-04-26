@@ -91,7 +91,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
       let(:task_arg_names) { args_hash.keys }
       let(:args) { args_hash.values }
 
-      def define_task!
+      let(:define_task!) do
         reset_task!(task_name)
         Rake::Task.define_task(task_name, *task_arg_names, &task_body)
       end
@@ -99,12 +99,40 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
       before(:each) { define_task! }
 
       context 'without args' do
-        it_behaves_like 'a single task execution'
+        it_behaves_like 'a single task execution' do
+          describe '\'rake.invoke\' span tags' do
+            it do
+              expect(invoke_span.get_tag('rake.arg_names')).to eq([].to_s)
+              expect(invoke_span.get_tag('rake.args')).to eq(['?'].to_s)
+            end
+          end
+
+          describe '\'rake.execute\' span tags' do
+            it do
+              expect(execute_span.get_tag('rake.arg_names')).to be nil
+              expect(execute_span.get_tag('rake.args')).to eq({}.to_s)
+            end
+          end
+        end
       end
 
       context 'with args' do
         let(:args_hash) { { one: 1, two: 2, three: 3 } }
-        it_behaves_like 'a single task execution'
+        it_behaves_like 'a single task execution' do
+          describe '\'rake.invoke\' span tags' do
+            it do
+              expect(invoke_span.get_tag('rake.arg_names')).to eq([:one, :two, :three].to_s)
+              expect(invoke_span.get_tag('rake.args')).to eq(['?'].to_s)
+            end
+          end
+
+          describe '\'rake.execute\' span tags' do
+            it do
+              expect(execute_span.get_tag('rake.arg_names')).to be nil
+              expect(execute_span.get_tag('rake.args')).to eq({ one: '?', two: '?', three: '?' }.to_s)
+            end
+          end
+        end
       end
 
       context 'with a prerequisite task' do
@@ -113,7 +141,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
         let(:prerequisite_spy) { double('prerequisite spy') }
         let(:prerequisite_task) { Rake::Task[prerequisite_task_name] }
 
-        def define_task!
+        let(:define_task!) do
           reset_task!(task_name)
           reset_task!(prerequisite_task_name)
           Rake::Task.define_task(prerequisite_task_name, &prerequisite_task_body)
@@ -157,6 +185,8 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
             expect(invoke_span.name).to eq(described_class::SPAN_NAME_INVOKE)
             expect(invoke_span.resource).to eq(task_name.to_s)
             expect(invoke_span.parent_id).to eq(0)
+            expect(invoke_span.get_tag('rake.arg_names')).to eq([].to_s)
+            expect(invoke_span.get_tag('rake.args')).to eq(['?'].to_s)
           end
         end
 
@@ -165,6 +195,8 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
             expect(prerequisite_task_execute_span.name).to eq(described_class::SPAN_NAME_EXECUTE)
             expect(prerequisite_task_execute_span.resource).to eq(prerequisite_task_name.to_s)
             expect(prerequisite_task_execute_span.parent_id).to eq(invoke_span.span_id)
+            expect(prerequisite_task_execute_span.get_tag('rake.arg_names')).to be nil
+            expect(prerequisite_task_execute_span.get_tag('rake.args')).to eq({}.to_s)
           end
         end
 
@@ -173,12 +205,14 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
             expect(task_execute_span.name).to eq(described_class::SPAN_NAME_EXECUTE)
             expect(task_execute_span.resource).to eq(task_name.to_s)
             expect(task_execute_span.parent_id).to eq(invoke_span.span_id)
+            expect(task_execute_span.get_tag('rake.arg_names')).to be nil
+            expect(task_execute_span.get_tag('rake.args')).to eq({}.to_s)
           end
         end
       end
 
       context 'defined by a class' do
-        def define_task!
+        let(:define_task!) do
           reset_task!(task_name)
           task_class.new(task_name, *task_arg_names)
         end
