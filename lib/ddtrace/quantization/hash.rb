@@ -14,21 +14,24 @@ module Datadog
       module_function
 
       def format(hash_obj, options = {})
+        options ||= {}
         format!(hash_obj, options)
       rescue StandardError
         options[:placeholder] || PLACEHOLDER
       end
 
       def format!(hash_obj, options = {})
+        options ||= {}
         options = merge_options(DEFAULT_OPTIONS, options)
         format_hash(hash_obj, options)
       end
 
       def format_hash(hash_obj, options = {})
-        return hash_obj if options[:show] == :all
-
         case hash_obj
         when ::Hash
+          return {} if options[:exclude] == :all
+          return hash_obj if options[:show] == :all
+
           hash_obj.each_with_object({}) do |(key, value), quantized|
             if options[:show].include?(key.to_sym)
               quantized[key] = value
@@ -71,7 +74,13 @@ module Datadog
                            end
 
           # Exclude
-          options[:exclude] = (original[:exclude] || []).dup.concat(additional[:exclude] || []).uniq
+          # If either is :all, value becomes :all
+          options[:exclude] = if original[:exclude] == :all || additional[:exclude] == :all
+                                :all
+                              else
+                                (original[:exclude] || []).dup.concat(additional[:exclude] || []).uniq
+                              end
+
           options[:placeholder] = additional[:placeholder] || original[:placeholder]
         end
       end
