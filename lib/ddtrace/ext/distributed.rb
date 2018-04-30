@@ -7,6 +7,11 @@ module Datadog
       HTTP_HEADER_PARENT_ID = 'x-datadog-parent-id'.freeze
       HTTP_HEADER_SAMPLING_PRIORITY = 'x-datadog-sampling-priority'.freeze
       SAMPLING_PRIORITY_KEY = '_sampling_priority_v1'.freeze
+
+      # gRPC metadata keys for distributed tracing. https://github.com/grpc/grpc-go/blob/v1.10.x/Documentation/grpc-metadata.md
+      GRPC_METADATA_TRACE_ID = 'x-datadog-trace-id'.freeze
+      GRPC_METADATA_PARENT_ID = 'x-datadog-parent-id'.freeze
+      GRPC_METADATA_SAMPLING_PRIORITY = 'x-datadog-sampling-priority'.freeze
     end
   end
 end
