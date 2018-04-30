@@ -27,7 +27,7 @@ class ESQuantizeTest < Minitest::Test
   def test_body
     # MGet format
     body = "{\"ids\":[\"1\",\"2\",\"3\"]}"
-    quantized_body = "{\"ids\":\"?\"}"
+    quantized_body = "{\"ids\":[\"?\"]}"
     assert_equal(quantized_body, Datadog::Contrib::Elasticsearch::Quantize.format_body(body))
 
     # Search format
