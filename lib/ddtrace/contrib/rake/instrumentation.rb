@@ -34,21 +34,21 @@ module Datadog
 
           def annotate_invoke!(span, args)
             span.resource = name
-            span.set_tag('rake.arg_names', arg_names)
-            span.set_tag('rake.args', quantize(args)) unless args.nil?
+            span.set_tag('rake.task.arg_names', arg_names)
+            span.set_tag('rake.invoke.args', quantize_args(args)) unless args.nil?
           rescue StandardError => e
             Datadog::Tracer.log.debug("Error while tracing Rake invoke: #{e.message}")
           end
 
           def annotate_execute!(span, args)
             span.resource = name
-            span.set_tag('rake.args', quantize(args.to_hash)) unless args.nil?
+            span.set_tag('rake.execute.args', quantize_args(args.to_hash)) unless args.nil?
           rescue StandardError => e
             Datadog::Tracer.log.debug("Error while tracing Rake execute: #{e.message}")
           end
 
-          def quantize(args)
-            quantize_options = Datadog.configuration[:rake][:quantize]
+          def quantize_args(args)
+            quantize_options = Datadog.configuration[:rake][:quantize][:args]
             Datadog::Quantization::Hash.format(args, quantize_options)
           end
 
