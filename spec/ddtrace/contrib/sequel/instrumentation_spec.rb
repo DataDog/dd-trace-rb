@@ -35,33 +35,6 @@ RSpec.describe 'Sequel instrumentation' do
       end
     end
 
-    describe 'when configured' do
-      let(:span) { spans.first }
-
-      shared_examples_for 'a configured Sequel::Database' do
-        before(:each) { sequel[:table].insert(name: 'data1') }
-        it { expect(span.service).to eq(service_name) }
-      end
-
-      context 'only with defaults' do
-        # Expect it to be the normalized adapter name.
-        let(:service_name) { 'sqlite' }
-        it_behaves_like 'a configured Sequel::Database'
-      end
-
-      context 'with options set via #use' do
-        let(:configuration_options) { super().merge(service_name: service_name) }
-        let(:service_name) { 'my-sequel' }
-        it_behaves_like 'a configured Sequel::Database'
-      end
-
-      context 'with options set on Sequel::Database' do
-        let(:service_name) { 'custom-sequel' }
-        before(:each) { Datadog.configure(sequel, service_name: service_name) }
-        it_behaves_like 'a configured Sequel::Database'
-      end
-    end
-
     describe 'when queried through a Sequel::Database object' do
       before(:each) { sequel.run(query) }
       let(:query) { 'SELECT * FROM \'table\' WHERE `name` = \'John Doe\'' }
