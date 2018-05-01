@@ -10,11 +10,11 @@ module GRPCHelper
   end
 
   def run_server_streamer(address = '0.0.0.0:50054', client = nil)
-    runner(address, client) { |c| c.stream_from_server(TestMessage.new); sleep 0.01 }
+    runner(address, client) { |c| c.stream_from_server(TestMessage.new); sleep 0.05 }
   end
 
   def run_bidi_streamer(address = '0.0.0.0:50055', client = nil)
-    runner(address, client) { |c| c.stream_both_ways([TestMessage.new]) }
+    runner(address, client) { |c| c.stream_both_ways([TestMessage.new]); sleep 0.05 }
   end
 
   def runner(address, client)
