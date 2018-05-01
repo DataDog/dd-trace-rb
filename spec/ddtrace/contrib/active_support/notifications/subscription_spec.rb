@@ -9,7 +9,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
     subject(:subscription) { described_class.new(tracer, span_name, options, &block) }
     let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
     let(:span_name) { double('span_name') }
-    let(:options) { double('options') }
+    let(:options) { {} }
     let(:block) do
       Proc.new do |span, name, id, payload|
         spy.call(span, name, id, payload)
@@ -67,6 +67,11 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         it do
           expect(tracer).to receive(:trace).with(span_name, options).and_return(span)
           is_expected.to be(span)
+        end
+
+        it 'sets the parent span' do
+          parent = tracer.trace('parent_span')
+          expect(subject.parent_id).to eq parent.span_id
         end
       end
 

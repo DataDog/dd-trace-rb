@@ -40,6 +40,7 @@ namespace :spec do
   end
 
   [
+    :active_model_serializers,
     :active_record,
     :active_support,
     :aws,
@@ -219,6 +220,7 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:aws'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sucker_punch'
     # RSpec
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_model_serializers'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_record'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_support'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
@@ -229,6 +231,7 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:redis'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:resque'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:sequel'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_model_serializers'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_record'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_support'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
