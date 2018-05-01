@@ -56,6 +56,7 @@ end
 require 'ddtrace/contrib/base'
 require 'ddtrace/contrib/rack/patcher'
 require 'ddtrace/contrib/rails/patcher'
+require 'ddtrace/contrib/active_model_serializers/patcher'
 require 'ddtrace/contrib/active_record/patcher'
 require 'ddtrace/contrib/sequel/patcher'
 require 'ddtrace/contrib/elasticsearch/patcher'
