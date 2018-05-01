@@ -7,7 +7,7 @@ RSpec.describe Datadog::Configuration do
   let(:registry) { Datadog::Registry.new }
 
   describe '#use' do
-    subject(:result) { configuration.use name, options }
+    subject(:result) { configuration.use(name, options) }
     let(:name) { :example }
     let(:integration) { double('integration') }
     let(:options) { {} }
@@ -110,6 +110,34 @@ RSpec.describe Datadog::Configuration do
         end
 
         it { expect(configuration[name].to_h).to eq(option1: :foo, option2: :bar) }
+      end
+    end
+
+    context 'for an integration that includes Datadog::Contrib::Integration' do
+      let(:integration_class) do
+        Class.new do
+          include Datadog::Contrib::Integration
+        end
+      end
+
+      let(:integration) do
+        integration_class.new(name)
+      end
+
+      context 'which is provided only a name' do
+        it do
+          expect(integration).to receive(:configure).with(:default, {})
+          configuration.use(name)
+        end
+      end
+
+      context 'which is provided a block' do
+        it do
+          expect(integration).to receive(:configure).with(:default, {}).and_call_original
+          expect { |b| configuration.use(name, options, &b) }.to yield_with_args(
+            a_kind_of(Datadog::Contrib::Configuration::Settings)
+          )
+        end
       end
     end
   end
