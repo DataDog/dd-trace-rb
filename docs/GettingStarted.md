@@ -37,6 +37,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Racecar](#racecar)
      - [Rack](#rack)
      - [Rails](#rails)
+     - [Rake](#rake)
      - [Redis](#redis)
      - [Resque](#resque)
      - [Sequel](#sequel)
@@ -257,6 +258,7 @@ For a list of available integrations, and their configuration options, please re
 | Racecar        | `racecar`       | `>= 0.3.5`             | *[Link](#racecar)*        | *[Link](https://github.com/zendesk/racecar)*                                   |
 | Rack           | `rack`          | `>= 1.4.7`             | *[Link](#rack)*           | *[Link](https://github.com/rack/rack)*                                         |
 | Rails          | `rails`         | `>= 3.2, < 5.2`        | *[Link](#rails)*          | *[Link](https://github.com/rails/rails)*                                       |
+| Rake           | `rake`          | `>= 12.0`              | *[Link](#rake)*           | *[Link](https://github.com/ruby/rake)*                                         |
 | Redis          | `redis`         | `>= 3.2, < 4.0`        | *[Link](#redis)*          | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Resque         | `resque`        | `>= 1.0, < 2.0`        | *[Link](#resque)*         | *[Link](https://github.com/resque/resque)*                                     |
 | Sequel         | `sidekiq`       | `>= 3.41`              | *[Link](#sequel)*         | *[Link](https://github.com/jeremyevans/sequel)*                                |
@@ -753,6 +755,71 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``middleware_names`` | Enables any short-circuited middleware requests to display the middleware name as resource for the trace. | `false` |
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+
+### Rake
+
+You can add instrumentation around your Rake tasks by activating the `rake` integration. Each task and its subsequent subtasks will be traced.
+
+To activate Rake task tracing, add the following to your `Rakefile`:
+
+```ruby
+# At the top of your Rakefile:
+require 'rake'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :rake, options
+end
+
+task :my_task do
+  # Do something task work here...
+end
+
+Rake::Task['my_task'].invoke
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``enabled`` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | ``true`` |
+| ``quantize`` | Hash containing options for quantization of task arguments. See below for more details and examples. | ``{}`` |
+| ``service_name`` | Service name which the Rake task traces should be grouped under. | ``rake`` |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+
+**Configuring task quantization behavior**
+
+```ruby
+Datadog.configure do |c|
+  # Given a task that accepts :one, :two, :three...
+  # Invoked with 'foo', 'bar', 'baz'.
+
+  # Default behavior: all arguments are quantized.
+  # `rake.invoke.args` tag  --> ['?']
+  # `rake.execute.args` tag --> { one: '?', two: '?', three: '?' }
+  c.use :rake
+
+  # Show values for any argument matching :two exactly
+  # `rake.invoke.args` tag  --> ['?']
+  # `rake.execute.args` tag --> { one: '?', two: 'bar', three: '?' }
+  c.use :rake, quantize: { args: { show: [:two] } }
+
+  # Show all values for all arguments.
+  # `rake.invoke.args` tag  --> ['foo', 'bar', 'baz']
+  # `rake.execute.args` tag --> { one: 'foo', two: 'bar', three: 'baz' }
+  c.use :rake, quantize: { args: { show: :all } }
+
+  # Totally exclude any argument matching :three exactly
+  # `rake.invoke.args` tag  --> ['?']
+  # `rake.execute.args` tag --> { one: '?', two: '?' }
+  c.use :rake, quantize: { args: { exclude: [:three] } }
+
+  # Remove the arguments entirely
+  # `rake.invoke.args` tag  --> ['?']
+  # `rake.execute.args` tag --> {}
+  c.use :rake, quantize: { args: { exclude: :all } }
+end
+```
 
 ### Redis
 
