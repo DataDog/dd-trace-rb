@@ -115,6 +115,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
   appraise 'contrib' do
     gem 'active_model_serializers', '>= 0.10.0'
     gem 'elasticsearch-transport'
+    gem 'excon'
     gem 'mongo', '< 2.5'
     gem 'graphql'
     gem 'grape'
@@ -139,6 +140,7 @@ else
   appraise 'contrib-old' do
     gem 'active_model_serializers', '~> 0.9.0'
     gem 'elasticsearch-transport'
+    gem 'excon'
     gem 'mongo', '< 2.5'
     gem 'redis', '< 4.0'
     gem 'hiredis'
