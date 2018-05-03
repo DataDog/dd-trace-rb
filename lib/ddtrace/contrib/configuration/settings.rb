@@ -1,42 +1,33 @@
+require 'ddtrace/contrib/configuration/options'
+
 module Datadog
   module Contrib
     module Configuration
       # Common settings for all integrations
       class Settings
-        attr_reader \
-          :service_name,
-          :tracer
+        include Options
 
-        attr_writer \
-          :service_name,
-          :tracer
+        option :service_name
+        option :tracer, default: Datadog.tracer
 
         def initialize(options = {})
-          configure(default_options.merge(options))
-        end
-
-        def reset_options!
-          configure(default_options)
+          configure(options)
         end
 
         def configure(options = {})
-          options.each { |k, v| self[k] = v }
+          self.class.options.dependency_order.each do |name|
+            self[name] = options.fetch(name, self[name])
+          end
+
           yield(self) if block_given?
         end
 
-        def [](param)
-          send(param)
+        def [](name)
+          respond_to?(name) ? send(name) : get_option(name)
         end
 
-        def []=(param, value)
-          send("#{param}=", value)
-        end
-
-        def default_options
-          {
-            service_name: nil,
-            tracer: Datadog.tracer
-          }
+        def []=(name, value)
+          respond_to?("#{name}=") ? send("#{name}=", value) : set_option(name, value)
         end
       end
     end

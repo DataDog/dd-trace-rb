@@ -27,7 +27,8 @@ module Datadog
 
       if integration.class <= Datadog::Contrib::Integration
         configuration_name = options[:describes] || :default
-        integration.configure(configuration_name, options, &block)
+        filtered_options = options.reject { |k, _v| k == :describes }
+        integration.configure(configuration_name, filtered_options, &block)
       else
         settings = Proxy.new(integration)
         integration.sorted_options.each do |name|
