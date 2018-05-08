@@ -25,6 +25,10 @@ class TracerActiveRecordTest < TracerTestBase
         Article.count
       end
     end
+
+    get '/select_request' do
+      Article.all.entries.to_s
+    end
   end
 
   def app
@@ -70,10 +74,10 @@ class TracerActiveRecordTest < TracerTestBase
     sinatra_span = spans[0]
     sqlite_span = spans[spans.length - 1]
 
-    adapter_name = Datadog::Contrib::Rails::Utils.adapter_name
-    database_name = Datadog::Contrib::Rails::Utils.database_name
-    adapter_host = Datadog::Contrib::Rails::Utils.adapter_host
-    adapter_port = Datadog::Contrib::Rails::Utils.adapter_port
+    adapter_name = Datadog::Contrib::ActiveRecord::Utils.adapter_name
+    database_name = Datadog::Contrib::ActiveRecord::Utils.database_name
+    adapter_host = Datadog::Contrib::ActiveRecord::Utils.adapter_host
+    adapter_port = Datadog::Contrib::ActiveRecord::Utils.adapter_port
 
     assert_equal('sqlite', sqlite_span.service)
     assert_equal('SELECT 42', sqlite_span.resource)
@@ -112,6 +116,34 @@ class TracerActiveRecordTest < TracerTestBase
 
     # Assert cached flag set correctly on second query
     assert_equal('true', spans.last.get_tag('active_record.db.cached'))
+  end
+
+  def test_instantiation_tracing
+    # Only supported in Rails 4.2+
+    skip unless Datadog::Contrib::ActiveRecord::Patcher.instantiation_tracing_supported?
+
+    # Make sure Article table exists
+    migrate_db
+    Article.create(title: 'Instantiation test')
+    @writer.spans # Clear spans
+
+    # Run query
+    get '/select_request'
+    assert_equal(200, last_response.status)
+
+    spans = @writer.spans
+    assert_equal(3, spans.length)
+
+    instantiation_span, sinatra_span, sqlite_span = spans
+
+    assert_equal(instantiation_span.name, 'active_record.instantiation')
+    assert_equal(instantiation_span.span_type, 'custom')
+    assert_equal(instantiation_span.service, sinatra_span.service)
+    assert_equal(instantiation_span.resource, 'TracerActiveRecordTest::Article')
+    assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'TracerActiveRecordTest::Article')
+    assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), '1')
+    assert_equal(sinatra_span, instantiation_span.parent)
+    assert_equal(sinatra_span, sqlite_span.parent)
   end
 
   private

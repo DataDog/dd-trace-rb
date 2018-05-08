@@ -13,21 +13,20 @@ module Datadog
   # \Context, it will be related to the original trace.
   #
   # This data structure is thread-safe.
+  # rubocop:disable Metrics/ClassLength
   class Context
+    # 100k spans is about a 100Mb footprint
+    DEFAULT_MAX_LENGTH = 100_000
+
+    attr_reader :max_length
+
     # Initialize a new thread-safe \Context.
     def initialize(options = {})
       @mutex = Mutex.new
+      # max_length is the amount of spans above which, for a given trace,
+      # the context will simply drop and ignore spans, avoiding high memory usage.
+      @max_length = options.fetch(:max_length, DEFAULT_MAX_LENGTH)
       reset(options)
-    end
-
-    def reset(options = {})
-      @trace = []
-      @parent_trace_id = options.fetch(:trace_id, nil)
-      @parent_span_id = options.fetch(:span_id, nil)
-      @sampled = options.fetch(:sampled, false)
-      @sampling_priority = options.fetch(:sampling_priority, nil)
-      @finished_spans = 0
-      @current_span = nil
     end
 
     def trace_id
@@ -64,20 +63,19 @@ module Datadog
       end
     end
 
-    def set_current_span(span)
-      @current_span = span
-      if span
-        @parent_trace_id = span.trace_id
-        @parent_span_id = span.span_id
-        @sampled = span.sampled
-      else
-        @parent_span_id = nil
-      end
-    end
-
     # Add a span to the context trace list, keeping it as the last active span.
     def add_span(span)
       @mutex.synchronize do
+        # If hitting the hard limit, just drop spans. This is really a rare case
+        # as it means despite the soft limit, the hard limit is reached, so the trace
+        # by default has 10000 spans, all of which belong to unfinished parts of a
+        # larger trace. This is a catch-all to reduce global memory usage.
+        if @max_length > 0 && @trace.length >= @max_length
+          Datadog::Tracer.log.debug("context full, ignoring span #{span.name}")
+          # Detach the span from any context, it's being dropped and ignored.
+          span.context = nil
+          return
+        end
         set_current_span(span)
         @trace << span
         span.context = self
@@ -105,12 +103,6 @@ module Datadog
       end
     end
 
-    # Returns if the trace for the current Context is finished or not.
-    # Low-level internal function, not thread-safe.
-    def check_finished_spans
-      @finished_spans > 0 && @trace.length == @finished_spans
-    end
-
     # Returns if the trace for the current Context is finished or not. A \Context
     # is considered finished if all spans in this context are finished.
     def finished?
@@ -135,14 +127,16 @@ module Datadog
     # This operation is thread-safe.
     def get
       @mutex.synchronize do
-        return nil, nil unless check_finished_spans
-
         trace = @trace
         sampled = @sampled
+
         attach_sampling_priority if sampled && @sampling_priority
 
+        # still return sampled attribute, even if context is not finished
+        return nil, sampled unless check_finished_spans()
+
         reset
-        return trace, sampled
+        [trace, sampled]
       end
     end
 
@@ -154,6 +148,35 @@ module Datadog
       end
     end
 
+    private
+
+    def reset(options = {})
+      @trace = []
+      @parent_trace_id = options.fetch(:trace_id, nil)
+      @parent_span_id = options.fetch(:span_id, nil)
+      @sampled = options.fetch(:sampled, false)
+      @sampling_priority = options.fetch(:sampling_priority, nil)
+      @finished_spans = 0
+      @current_span = nil
+    end
+
+    def set_current_span(span)
+      @current_span = span
+      if span
+        @parent_trace_id = span.trace_id
+        @parent_span_id = span.span_id
+        @sampled = span.sampled
+      else
+        @parent_span_id = nil
+      end
+    end
+
+    # Returns if the trace for the current Context is finished or not.
+    # Low-level internal function, not thread-safe.
+    def check_finished_spans
+      @finished_spans > 0 && @trace.length == @finished_spans
+    end
+
     def attach_sampling_priority
       @trace.first.set_metric(
         Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
@@ -161,10 +184,49 @@ module Datadog
       )
     end
 
-    private :reset
-    private :check_finished_spans
-    private :set_current_span
-    private :attach_sampling_priority
+    # Return the start time of the root span, or nil if there are no spans or this is undefined.
+    def start_time
+      @mutex.synchronize do
+        return nil if @trace.empty?
+        @trace[0].start_time
+      end
+    end
+
+    # Return the length of the current trace held by this context.
+    def length
+      @mutex.synchronize do
+        @trace.length
+      end
+    end
+
+    # Iterate on each span within the trace. This is thread safe.
+    def each_span
+      @mutex.synchronize do
+        @trace.each do |span|
+          yield span
+        end
+      end
+    end
+
+    # Delete any span matching the condition. This is thread safe.
+    def delete_span_if
+      @mutex.synchronize do
+        @trace.delete_if do |span|
+          finished = span.finished?
+          delete_span = yield span
+          if delete_span
+            # We need to detach the span from the context, else, some code
+            # finishing it afterwards would mess up with the number of
+            # finished_spans and possibly cause other side effects.
+            span.context = nil
+            # Acknowledge there's one span less to finish, if needed.
+            # It's very important to keep this balanced.
+            @finished_spans -= 1 if finished
+          end
+          delete_span
+        end
+      end
+    end
   end
 
   # ThreadLocalContext can be used as a tracer global reference to create

@@ -5,11 +5,22 @@ require_relative 'app'
 
 RSpec.describe 'ActiveRecord instrumentation' do
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:configuration_options) { { tracer: tracer } }
 
   before(:each) do
+    # Prevent extra spans during tests
+    Article.count
+
+    # Reset options (that might linger from other tests)
+    Datadog.configuration[:active_record].reset_options!
+
     Datadog.configure do |c|
-      c.use :active_record, tracer: tracer
+      c.use :active_record, configuration_options
     end
+  end
+
+  after(:each) do
+    Datadog.configuration[:active_record].reset_options!
   end
 
   it 'calls the instrumentation when is used standalone' do
@@ -32,5 +43,26 @@ RSpec.describe 'ActiveRecord instrumentation' do
     expect(span.get_tag('out.host')).to eq('127.0.0.1')
     expect(span.get_tag('out.port')).to eq('53306')
     expect(span.get_tag('sql.query')).to eq(nil)
+  end
+
+  context 'when service_name' do
+    subject(:spans) do
+      Article.count
+      tracer.writer.spans
+    end
+
+    let(:query_span) { spans.first }
+
+    context 'is not set' do
+      let(:configuration_options) { super().merge({ service_name: nil }) }
+      it { expect(query_span.service).to eq('mysql2') }
+    end
+
+    context 'is set' do
+      let(:service_name) { 'test_active_record' }
+      let(:configuration_options) { super().merge({ service_name: service_name }) }
+
+      it { expect(query_span.service).to eq(service_name) }
+    end
   end
 end

@@ -8,6 +8,7 @@ module Datadog
         option :tracer, default: Datadog.tracer
         option :distributed_tracing, default: false
         option :middleware_names, default: false
+        option :quantize, default: {}
         option :application
         option :service_name, default: 'rack', depends_on: [:tracer] do |value|
           get_option(:tracer).set_service_info(value, 'rack', Ext::AppTypes::WEB)
@@ -17,12 +18,24 @@ module Datadog
         module_function
 
         def patch
-          return true if patched?
+          unless patched?
+            require_relative 'middlewares'
+            @patched = true
+          end
 
-          require_relative 'middlewares'
-          @patched = true
+          if !@middleware_patched && get_option(:middleware_names)
+            if get_option(:application)
+              enable_middleware_names
+              @middleware_patched = true
+            else
+              Datadog::Tracer.log.warn(%(
+              Rack :middleware_names requires you to also pass :application.
+              Middleware names have NOT been patched; please provide :application.
+              e.g. use: :rack, middleware_names: true, application: my_rack_app).freeze)
+            end
+          end
 
-          enable_middleware_names if get_option(:middleware_names)
+          @patched || @middleware_patched
         end
 
         def patched?
@@ -30,19 +43,13 @@ module Datadog
         end
 
         def enable_middleware_names
-          root = get_option(:application) || rails_app
-          retain_middleware_name(root)
+          retain_middleware_name(get_option(:application))
         rescue => e
           # We can safely ignore these exceptions since they happen only in the
           # context of middleware patching outside a Rails server process (eg. a
           # process that doesn't serve HTTP requests but has Rails environment
           # loaded such as a Resque master process)
           Tracer.log.debug("Error patching middleware stack: #{e}")
-        end
-
-        def rails_app
-          return unless Datadog.registry[:rails].compatible?
-          ::Rails.application.app
         end
 
         def retain_middleware_name(middleware)

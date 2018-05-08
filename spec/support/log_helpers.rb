@@ -12,4 +12,14 @@ module LogHelpers
       $VERBOSE = v
     end
   end
+
+  def without_errors
+    level = Datadog::Tracer.log.level
+    Datadog::Tracer.log.level = Logger::FATAL
+    begin
+      yield
+    ensure
+      Datadog::Tracer.log.level = level
+    end
+  end
 end

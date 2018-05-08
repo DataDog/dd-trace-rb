@@ -78,24 +78,24 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
 
   if RUBY_VERSION >= '2.2.2'
     appraise 'rails5-mysql2' do
-      gem 'rails', '5.0.1'
+      gem 'rails', '5.1.5'
       gem 'mysql2', '< 0.5', platform: :ruby
     end
 
     appraise 'rails5-postgres' do
-      gem 'rails', '5.0.1'
+      gem 'rails', '5.1.5'
       gem 'pg', '< 1.0', platform: :ruby
     end
 
     appraise 'rails5-postgres-redis' do
-      gem 'rails', '5.0.1'
+      gem 'rails', '5.1.5'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis-rails'
       gem 'redis'
     end
 
     appraise 'rails5-postgres-sidekiq' do
-      gem 'rails', '5.0.1'
+      gem 'rails', '5.1.5'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sidekiq'
       gem 'activejob'
@@ -115,6 +115,7 @@ if RUBY_VERSION >= '2.2.2' && RUBY_PLATFORM != 'java'
   appraise 'contrib' do
     gem 'elasticsearch-transport'
     gem 'mongo', '< 2.5'
+    gem 'graphql'
     gem 'grape'
     gem 'rack'
     gem 'rack-test'

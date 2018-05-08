@@ -157,40 +157,79 @@ module Datadog
 
     def patch_process_action
       do_once(:patch_process_action) do
-        ::ActionController::Instrumentation.class_eval do
-          def process_action_with_datadog(*args)
-            # mutable payload with a tracing context that is used in two different
-            # signals; it propagates the request span so that it can be finished
-            # no matter what
-            payload = {
-              controller: self.class,
-              action: action_name,
-              headers: {
-                # The exception this controller was given in the request,
-                # which is typical if the controller is configured to handle exceptions.
-                request_exception: request.headers['action_dispatch.exception']
-              },
-              tracing_context: {}
-            }
+        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
+          # Patch Rails controller base class
+          ::ActionController::Metal.send(:prepend, ActionControllerPatch)
+        else
+          # Rewrite module that gets composed into the Rails controller base class
+          ::ActionController::Instrumentation.class_eval do
+            def process_action_with_datadog(*args)
+              # mutable payload with a tracing context that is used in two different
+              # signals; it propagates the request span so that it can be finished
+              # no matter what
+              payload = {
+                controller: self.class,
+                action: action_name,
+                headers: {
+                  # The exception this controller was given in the request,
+                  # which is typical if the controller is configured to handle exceptions.
+                  request_exception: request.headers['action_dispatch.exception']
+                },
+                tracing_context: {}
+              }
 
-            begin
-              # process and catch request exceptions
-              Datadog::Contrib::Rails::ActionController.start_processing(payload)
-              result = process_action_without_datadog(*args)
-              payload[:status] = response.status
-              result
-            rescue Exception => e
-              payload[:exception] = [e.class.name, e.message]
-              payload[:exception_object] = e
-              raise e
+              begin
+                # process and catch request exceptions
+                Datadog::Contrib::Rails::ActionController.start_processing(payload)
+                result = process_action_without_datadog(*args)
+                payload[:status] = response.status
+                result
+              rescue Exception => e
+                payload[:exception] = [e.class.name, e.message]
+                payload[:exception_object] = e
+                raise e
+              end
+            ensure
+              Datadog::Contrib::Rails::ActionController.finish_processing(payload)
             end
-          ensure
-            Datadog::Contrib::Rails::ActionController.finish_processing(payload)
-          end
 
-          alias_method :process_action_without_datadog, :process_action
-          alias_method :process_action, :process_action_with_datadog
+            alias_method :process_action_without_datadog, :process_action
+            alias_method :process_action, :process_action_with_datadog
+          end
         end
+      end
+    end
+
+    # ActionController patch for Ruby 2.0+
+    module ActionControllerPatch
+      def process_action(*args)
+        # mutable payload with a tracing context that is used in two different
+        # signals; it propagates the request span so that it can be finished
+        # no matter what
+        payload = {
+          controller: self.class,
+          action: action_name,
+          headers: {
+            # The exception this controller was given in the request,
+            # which is typical if the controller is configured to handle exceptions.
+            request_exception: request.headers['action_dispatch.exception']
+          },
+          tracing_context: {}
+        }
+
+        begin
+          # process and catch request exceptions
+          Datadog::Contrib::Rails::ActionController.start_processing(payload)
+          result = super(*args)
+          payload[:status] = response.status
+          result
+        rescue Exception => e
+          payload[:exception] = [e.class.name, e.message]
+          payload[:exception_object] = e
+          raise e
+        end
+      ensure
+        Datadog::Contrib::Rails::ActionController.finish_processing(payload)
       end
     end
   end

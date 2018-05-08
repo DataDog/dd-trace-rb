@@ -13,6 +13,8 @@ module Datadog
       # application. If request tags are not set by the app, they will be set using
       # information available at the Rack level.
       class TraceMiddleware
+        RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
+
         def initialize(app)
           @app = app
         end
@@ -35,7 +37,13 @@ module Datadog
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
           request_span = tracer.trace('rack.request', trace_options)
-          env[:datadog_rack_request_span] = request_span
+          env[RACK_REQUEST_SPAN] = request_span
+
+          # TODO: For backwards compatibility; this attribute is deprecated.
+          env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
+
+          # Add deprecation warnings
+          add_deprecation_warnings(env)
 
           # Copy the original env, before the rest of the stack executes.
           # Values may change; we want values before that happens.
@@ -77,7 +85,7 @@ module Datadog
         end
 
         def resource_name_for(env, status)
-          if Datadog.configuration[:rack][:middleware_names]
+          if Datadog.configuration[:rack][:middleware_names] && env['RESPONSE_MIDDLEWARE']
             "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
           else
             "#{env['REQUEST_METHOD']} #{status}".strip
@@ -104,7 +112,8 @@ module Datadog
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
           end
           if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
-            request_span.set_tag(Datadog::Ext::HTTP::URL, url)
+            options = Datadog.configuration[:rack][:quantize]
+            request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
           end
           if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
             request_obj = ::Rack::Request.new(env)
@@ -138,6 +147,34 @@ module Datadog
         def get_request_id(headers, env)
           headers ||= {}
           headers['X-Request-Id'] || headers['X-Request-ID'] || env['HTTP_X_REQUEST_ID']
+        end
+
+        private
+
+        REQUEST_SPAN_DEPRECATION_WARNING = %(
+          :datadog_rack_request_span is considered an internal symbol in the Rack env,
+          and has been been DEPRECATED. Public support for its usage is discontinued.
+          If you need the Rack request span, try using `Datadog.tracer.active_span`.
+          This key will be removed in version 0.14.0).freeze
+
+        def add_deprecation_warnings(env)
+          env.instance_eval do
+            def [](key)
+              if key == :datadog_rack_request_span && !@request_span_warning_issued
+                Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                @request_span_warning_issued = true
+              end
+              super
+            end
+
+            def []=(key, value)
+              if key == :datadog_rack_request_span && !@request_span_warning_issued
+                Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                @request_span_warning_issued = true
+              end
+              super
+            end
+          end
         end
       end
     end

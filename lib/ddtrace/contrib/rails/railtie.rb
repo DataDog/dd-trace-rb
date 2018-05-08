@@ -15,7 +15,6 @@ module Datadog
       Datadog::Contrib::Rails::Framework.setup
       Datadog::Contrib::Rails::ActionController.instrument
       Datadog::Contrib::Rails::ActionView.instrument
-      Datadog::Contrib::Rails::ActiveRecord.instrument
       Datadog::Contrib::Rails::ActiveSupport.instrument
     end
   end

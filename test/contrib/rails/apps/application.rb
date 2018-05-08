@@ -45,7 +45,6 @@ module RailsTrace
         c.use :rails
         c.use :redis
       end
-      Rails.application.config.active_job.queue_adapter = :sidekiq
 
       # Initialize the Rails application
       require 'contrib/rails/apps/controllers'

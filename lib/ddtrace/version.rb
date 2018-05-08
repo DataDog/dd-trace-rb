@@ -1,9 +1,10 @@
 module Datadog
   module VERSION
     MAJOR = 0
-    MINOR = 11
-    PATCH = 4
+    MINOR = 12
+    PATCH = 0
+    PRE = nil
 
-    STRING = [MAJOR, MINOR, PATCH].compact.join('.')
+    STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
   end
 end
