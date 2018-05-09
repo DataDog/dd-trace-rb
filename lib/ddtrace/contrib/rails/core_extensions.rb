@@ -221,7 +221,8 @@ module Datadog
           # process and catch request exceptions
           Datadog::Contrib::Rails::ActionController.start_processing(payload)
           result = super(*args)
-          payload[:status] = response.status
+          status = response_status
+          payload[:status] = status unless status.nil?
           result
         rescue Exception => e
           payload[:exception] = [e.class.name, e.message]
@@ -230,6 +231,19 @@ module Datadog
         end
       ensure
         Datadog::Contrib::Rails::ActionController.finish_processing(payload)
+      end
+
+      # rubocop:disable Style/EmptyElse
+      def response_status
+        case response
+        when ActionDispatch::Response
+          response.status
+        when Array
+          status = response.first
+          status.class <= Integer ? status : nil
+        else
+          nil
+        end
       end
     end
   end
