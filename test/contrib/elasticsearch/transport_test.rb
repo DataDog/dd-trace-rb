@@ -1,5 +1,6 @@
 require 'time'
 require 'contrib/elasticsearch/test_helper'
+require 'contrib/elasticsearch/dummy_faraday_middleware'
 require 'ddtrace'
 require 'helper'
 
@@ -15,13 +16,22 @@ class ESTransportTest < Minitest::Test
     # wait until it's really running, docker-compose can be slow
     wait_http_server ELASTICSEARCH_SERVER, 60
 
-    @client = Elasticsearch::Client.new url: ELASTICSEARCH_SERVER
+    @client = Elasticsearch::Client.new url: ELASTICSEARCH_SERVER do |faraday|
+      faraday.use DummyFaradayMiddleware
+    end
     pin = Datadog::Pin.get_from(@client)
     pin.tracer = @tracer
   end
 
   def teardown
     @client.perform_request 'DELETE', '*'
+  end
+
+  def test_faraday_middleware_load
+    assert_includes(
+      @client.transport.connections.first.connection.builder.handlers,
+      DummyFaradayMiddleware
+    )
   end
 
   def test_perform_request
