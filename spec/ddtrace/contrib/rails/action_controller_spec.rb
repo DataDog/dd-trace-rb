@@ -73,6 +73,32 @@ RSpec.describe 'ActionController tracing' do
               expect(all_spans.first.name).to eq('rails.action_controller')
             end
           end
+
+          context 'with some unknown kind of object' do
+            let(:response_object) do
+              double(
+                'response object',
+                to_a: [200, double('headers'), double('body')]
+              )
+            end
+
+            before(:each) do
+              expect_any_instance_of(controller).to receive(:response)
+                .at_least(:once)
+                .and_wrap_original do |m, *args|
+                  m.receiver.response = response_object
+                  m.call(*args)
+                end
+            end
+
+            it do
+              expect { result }.to_not raise_error
+              expect(result).to be_a_kind_of(Array)
+              expect(result).to have(3).items
+              expect(all_spans).to have(1).items
+              expect(all_spans.first.name).to eq('rails.action_controller')
+            end
+          end
         end
       end
     end

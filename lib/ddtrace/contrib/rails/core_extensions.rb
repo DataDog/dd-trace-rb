@@ -233,16 +233,14 @@ module Datadog
         Datadog::Contrib::Rails::ActionController.finish_processing(payload)
       end
 
-      # rubocop:disable Style/EmptyElse
       def response_status
         case response
         when ActionDispatch::Response
           response.status
         when Array
+          # Likely a Rack response array: first element is the status.
           status = response.first
           status.class <= Integer ? status : nil
-        else
-          nil
         end
       end
     end
