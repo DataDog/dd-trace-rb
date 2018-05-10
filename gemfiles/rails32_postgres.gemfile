@@ -7,5 +7,6 @@ gem "test-unit"
 gem "rails", "3.2.22.5"
 gem "pg", "0.15.1", platform: :ruby
 gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
+gem "rack-cache", "1.7.1"
 
 gemspec path: "../"

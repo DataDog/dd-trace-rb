@@ -6,6 +6,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'activerecord-mysql-adapter', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+      gem 'rack-cache', '1.7.1'
     end
   end
 
@@ -15,6 +16,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'rails', '3.0.20'
       gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+      gem 'rack-cache', '1.7.1'
     end
 
     if RUBY_VERSION < '2.2.2'
@@ -24,6 +26,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
         gem 'pg', '0.15.1', platform: :ruby
         gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
         gem 'sidekiq', '4.0.0'
+        gem 'rack-cache', '1.7.1'
       end
     end
 
@@ -32,6 +35,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'rails', '3.2.22.5'
       gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+      gem 'rack-cache', '1.7.1'
     end
 
     appraise 'rails32-postgres-redis' do
@@ -41,6 +45,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
       gem 'redis', '< 4.0'
+      gem 'rack-cache', '1.7.1'
     end
 
     if RUBY_VERSION < '2.2.2'
@@ -50,6 +55,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
         gem 'pg', '0.15.1', platform: :ruby
         gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
         gem 'sidekiq', '4.0.0'
+        gem 'rack-cache', '1.7.1'
       end
     end
   end
@@ -147,6 +153,7 @@ else
     gem 'hiredis'
     gem 'rack', '1.4.7'
     gem 'rack-test', '0.7.0'
+    gem 'rack-cache', '1.7.1'
     gem 'sinatra', '1.4.5'
     gem 'sqlite3'
     gem 'sequel', '~> 4.0', '< 4.37'
