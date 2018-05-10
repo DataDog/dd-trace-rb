@@ -33,6 +33,7 @@ EOS
   spec.require_paths = ['lib']
 
   spec.add_dependency 'msgpack'
+  spec.add_dependency 'concurrent-ruby'
 
   spec.add_development_dependency 'rake', '~> 10.5'
   spec.add_development_dependency 'rubocop', '= 0.49.1' if RUBY_VERSION >= '2.1.0'

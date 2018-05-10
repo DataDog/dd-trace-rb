@@ -1,6 +1,8 @@
 require 'time'
 require 'thread'
 
+require 'concurrent/utility/monotonic_time'
+
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
 
@@ -269,7 +271,7 @@ module Datadog
     private
 
     def duration_marker
-      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      Concurrent.monotonic_time
     end
   end
 end
