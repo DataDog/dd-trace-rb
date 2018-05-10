@@ -103,6 +103,7 @@ module Datadog
       set_tag(Ext::Errors::STACK, e.backtrace) unless e.backtrace.empty?
     end
 
+    # Mark the span started at the current time.
     def start(start_time = nil)
       # A span should not be started twice. Note that this is not thread-safe,
       # start is called from multiple threads, a given span might be started
@@ -122,8 +123,9 @@ module Datadog
       self
     end
 
+    # Return whether the span is started or not
     def started?
-      !!@start_time
+      !@start_time.nil?
     end
 
     # for backwards compatibility
@@ -227,10 +229,9 @@ module Datadog
       h
     end
 
+    # Return the duration of the span, or 0 if no duration can be calculated.
     def duration
-      ((@duration_end - @duration_start) * 1e9).to_i
-    rescue
-      0
+      ((@duration_end - @duration_start) * 1e9).to_i rescue 0
     end
 
     # Return a human readable version of the span
