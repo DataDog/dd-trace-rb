@@ -19,12 +19,12 @@ module Datadog
     MAX_ID = 2**63
 
     attr_accessor :name, :service, :resource, :span_type,
-                  :start_time, :end_time,
+                  :end_time,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
                   :tracer, :context
 
-    attr_reader :parent
+    attr_reader :parent, :start_time
 
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
     # and then <tt>finish()</tt> once the tracer operation is over.
@@ -56,8 +56,11 @@ module Datadog
       @parent = nil
       @sampled = true
 
-      @start_time = nil # set by Tracer.start_span
-      @end_time = nil # set by Span.finish
+      @start_time = nil # set by Span#start
+      @duration_start = nil # set by Span#start
+      @end_time = nil # set by Span#finish
+      @duration_end = nil # set by Span#finish
+      @manually_assigned_time = false
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -100,6 +103,35 @@ module Datadog
       set_tag(Ext::Errors::STACK, e.backtrace) unless e.backtrace.empty?
     end
 
+    def start(start_time = nil)
+      # A span should not be started twice. Note that this is not thread-safe,
+      # start is called from multiple threads, a given span might be started
+      # several times. Again, one should not do this, so this test is more a
+      # fallback to avoid very bad things and protect you in most common cases.
+      return if started?
+
+      if start_time
+        @start_time = start_time
+        @duration_start = start_time
+        @manually_assigned_time = true
+      else
+        @start_time = Time.now.utc
+        @duration_start = duration_marker
+      end
+
+      self
+    end
+
+    def started?
+      !!@start_time
+    end
+
+    # for backwards compatibility
+    def start_time=(time)
+      start(time)
+      time
+    end
+
     # Mark the span finished at the current time and submit it.
     def finish(finish_time = nil)
       # A span should not be finished twice. Note that this is not thread-safe,
@@ -107,13 +139,22 @@ module Datadog
       # several times. Again, one should not do this, so this test is more a
       # fallback to avoid very bad things and protect you in most common cases.
       return if finished?
+      now = Time.now.utc
 
       # Provide a default start_time if unset, but this should have been set by start_span.
       # Using now here causes 0-duration spans, still, this is expected, as we never
       # explicitely say when it started.
-      @start_time ||= Time.now.utc
+      start(finish_time || now) unless started?
 
-      @end_time = finish_time.nil? ? Time.now.utc : finish_time # finish this
+      if finish_time
+        @end_time = finish_time
+        @duration_start = @start_time
+        @duration_end = finish_time
+        @manually_assigned_time = true
+      else
+        @end_time = now
+        @duration_end = @manually_assigned_time ? @end_time : duration_marker
+      end
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
@@ -180,17 +221,22 @@ module Datadog
 
       if !@start_time.nil? && !@end_time.nil?
         h[:start] = (@start_time.to_f * 1e9).to_i
-        h[:duration] = ((@end_time - @start_time) * 1e9).to_i
+        h[:duration] = duration
       end
 
       h
+    end
+
+    def duration
+      ((@duration_end - @duration_start) * 1e9).to_i
+    rescue
+      0
     end
 
     # Return a human readable version of the span
     def pretty_print(q)
       start_time = (@start_time.to_f * 1e9).to_i rescue '-'
       end_time = (@end_time.to_f * 1e9).to_i rescue '-'
-      duration = ((@end_time - @start_time) * 1e9).to_i rescue 0
       q.group 0 do
         q.breakable
         q.text "Name: #{@name}\n"
@@ -217,6 +263,12 @@ module Datadog
           end
         end
       end
+    end
+
+    private
+
+    def duration_marker
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
   end
 end

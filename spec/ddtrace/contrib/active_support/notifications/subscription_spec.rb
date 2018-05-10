@@ -30,7 +30,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
         it do
           expect(tracer).to receive(:trace).with(span_name, options).and_return(span).ordered
-          expect(span).to receive(:start_time=).with(start).and_return(span).ordered
+          expect(span).to receive(:start).with(start).and_return(span).ordered
           expect(tracer).to receive(:active_span).and_return(span).ordered
           expect(spy).to receive(:call).with(span, name, id, payload).ordered
           expect(span).to receive(:finish).with(finish).and_return(span).ordered
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
           it 'finishes tracing anyways' do
             expect(tracer).to receive(:trace).with(span_name, options).and_return(span).ordered
-            expect(span).to receive(:start_time=).with(start).and_return(span).ordered
+            expect(span).to receive(:start).with(start).and_return(span).ordered
             expect(tracer).to receive(:active_span).and_return(span).ordered
             expect(span).to receive(:finish).with(finish).and_return(span).ordered
             is_expected.to be(span)

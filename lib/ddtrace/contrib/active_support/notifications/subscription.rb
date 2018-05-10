@@ -73,8 +73,8 @@ module Datadog
 
             # Start a trace
             tracer.trace(@span_name, @options).tap do |span|
-              # Assign start time if provided
-              span.start_time = start unless start.nil?
+              # start span if time is provided
+              span.start(start) unless start.nil?
             end
           end
 
