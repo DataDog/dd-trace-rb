@@ -15,6 +15,10 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::Excon::Middleware::SPAN_NAME }
   end
 
+  let(:all_request_spans) do
+    tracer.writer.spans(:keep).find_all { |span| span.name == Datadog::Contrib::Excon::Middleware::SPAN_NAME }
+  end
+
   before(:each) do
     Datadog.configure do |c|
       c.use :excon, configuration_options
@@ -111,6 +115,15 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.finished?).to eq(true)
       expect(request_span.status).to eq(Datadog::Ext::Errors::STATUS)
       expect(request_span.get_tag('error.type')).to eq('Excon::Error::Timeout')
+    end
+
+    context 'when the request is idempotent' do
+      subject(:response) { connection.get(path: '/timeout', idempotent: true, retry_limit: 4) }
+      it 'records separate spans' do
+        expect { subject }.to raise_error
+        expect(all_request_spans.size).to eq(4)
+        expect(all_request_spans.all? { |span| span.finished? }).to eq(true)
+      end
     end
   end
 
