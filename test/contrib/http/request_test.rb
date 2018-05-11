@@ -5,11 +5,9 @@ require 'helper'
 require 'json'
 
 class HTTPRequestTest < Minitest::Test
-  ELASTICSEARCH_HOST = '127.0.0.1'.freeze
-  ELASTICSEARCH_PORT = 49200
-  ELASTICSEARCH_SERVER = ('http://' +
-                          HTTPIntegrationTest::ELASTICSEARCH_HOST + ':' +
-                          HTTPIntegrationTest::ELASTICSEARCH_PORT.to_s).freeze
+  ELASTICSEARCH_HOST = ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze
+  ELASTICSEARCH_PORT = ENV.fetch('TEST_ELASTICSEARCH_PORT', 9200).freeze
+  ELASTICSEARCH_SERVER = "http://#{ELASTICSEARCH_HOST}:#{ELASTICSEARCH_PORT}".freeze
 
   def setup
     Datadog.configure do |c|
@@ -19,7 +17,7 @@ class HTTPRequestTest < Minitest::Test
     @tracer = get_test_tracer
 
     # wait until it's really running, docker-compose can be slow
-    wait_http_server 'http://' + ELASTICSEARCH_HOST + ':' + ELASTICSEARCH_PORT.to_s, 60
+    wait_http_server ELASTICSEARCH_SERVER, 60
 
     @client = Net::HTTP.new(ELASTICSEARCH_HOST, ELASTICSEARCH_PORT)
     pin = Datadog::Pin.get_from(@client)
@@ -55,8 +53,8 @@ class HTTPRequestTest < Minitest::Test
     assert_equal('POST', span.resource)
     assert_equal('/my/thing/42', span.get_tag('http.url'))
     assert_equal('POST', span.get_tag('http.method'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('49200', span.get_tag('out.port'))
+    assert_equal(ELASTICSEARCH_HOST, span.get_tag('out.host'))
+    assert_equal(ELASTICSEARCH_PORT.to_s, span.get_tag('out.port'))
     assert_equal(0, span.status, 'this should not be an error')
   end
 
@@ -72,8 +70,8 @@ class HTTPRequestTest < Minitest::Test
     assert_equal('/admin.php?user=admin&passwd=123456', span.get_tag('http.url'))
     assert_equal('GET', span.get_tag('http.method'))
     assert_equal('404', span.get_tag('http.status_code'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('49200', span.get_tag('out.port'))
+    assert_equal(ELASTICSEARCH_HOST, span.get_tag('out.host'))
+    assert_equal(ELASTICSEARCH_PORT.to_s, span.get_tag('out.port'))
     assert_equal(1, span.status, 'this should be an error (404)')
     assert_equal('Net::HTTPNotFound', span.get_tag('error.type'))
   end
@@ -97,8 +95,8 @@ class HTTPRequestTest < Minitest::Test
       assert_equal('/_cluster/health', span.get_tag('http.url'))
       assert_equal('GET', span.get_tag('http.method'))
       assert_equal('200', span.get_tag('http.status_code'))
-      assert_equal('127.0.0.1', span.get_tag('out.host'))
-      assert_equal('49200', span.get_tag('out.port'))
+      assert_equal(ELASTICSEARCH_HOST, span.get_tag('out.host'))
+      assert_equal(ELASTICSEARCH_PORT.to_s, span.get_tag('out.port'))
     end
   end
 

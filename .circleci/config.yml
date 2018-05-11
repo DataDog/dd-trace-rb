@@ -40,8 +40,27 @@ jobs:
     # To see the list of pre-built images that CircleCI provides for most common languages see
     # https://circleci.com/docs/2.0/circleci-images/
     docker:
-    - image: circleci/build-image:ubuntu-14.04-XXL-upstart-1189-5614f37
+    - image: circleci/buildpack-deps:xenial
       command: /sbin/init
+    - image: postgres:9.6
+      env:
+        - POSTGRES_PASSWORD=postgres
+        - POSTGRES_USER=postgres
+        - POSTGRES_DB=postgres
+    - image: mysql:5.6
+      env:
+        - MYSQL_ROOT_PASSWORD=root
+        - MYSQL_PASSWORD=mysql
+        - MYSQL_USER=mysql
+    - image: elasticsearch:2.4
+    - image: redis:3.0
+    - image: mongo:3.5
+    - image: memcached:1.5-alpine
+    - image: datadog/docker-dd-agent
+      env:
+        - DD_APM_ENABLED=true
+        - DD_BIND_HOST=0.0.0.0
+        - DD_API_KEY=invalid_key_but_this_is_fine
     steps:
     # Machine Setup
     #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
@@ -51,10 +70,25 @@ jobs:
     # In many cases you can simplify this from what is generated here.
     # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
-    # This is based on your 1.0 configuration file or project settings
     - run:
-        working_directory: ~/DataDog/dd-trace-rb
-        command: 'sudo docker info >/dev/null 2>&1 || sudo service docker start; '
+        name: Set VERSION_SUFFIX
+        command: |
+          echo 'export VERSION_SUFFIX=.pre.$CIRCLE_BUILD_NUM' >> $BASH_ENV
+          source $BASH_ENV
+    - run:
+        name: Install dependencies
+        command: |
+          set -ex
+          sudo apt-get update
+          sudo apt-get install -y tzdata rsync openjdk-8-jre-headless ca-certificates-java
+    - run:
+        name: Install RVM
+        command: |
+          command curl -sSL https://rvm.io/mpapis.asc | gpg --import -
+          curl -sSL https://get.rvm.io | bash -s stable
+          source /home/circleci/.rvm/scripts/rvm
+          rvm requirements
+          rvm install 2.2.7
     - run:
         working_directory: ~/DataDog/dd-trace-rb
         command: rm -f DataDog/dd-trace-rb/.rvmrc; echo 2.2.7 > DataDog/dd-trace-rb/.ruby-version; rvm use 2.2.7 --default
@@ -69,11 +103,6 @@ jobs:
         - v1-dep-master-
         # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
         - v1-dep-
-    # This is based on your 1.0 configuration file or project settings
-    - run: mkdir -p ~/rubies_cache
-    - run: rsync -a -v --ignore-existing ~/rubies_cache/ /opt/circleci/.rvm/rubies
-    - run: pip install docker-compose==1.7.1
-    - run: docker-compose up -d | cat
     - run: |
         for version in $(echo "$MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS" | tr "," "\n"); do
           $(rvm list | grep -q $version) || rvm install $version --rubygems 2.6.11
@@ -81,32 +110,18 @@ jobs:
     - run: gem install bundler
     - run: bundle inject msgpack 1.1.0 && sed -i "y/\"/'/" Gemfile
     - run: bundle install
-    # This is based on your 1.0 configuration file or project settings
     - run: rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do gem install bundler
     - run: rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do bundle install
     - run: rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do bundle exec appraisal install || echo FIX-ME
-    # This is based on your 1.0 configuration file or project settings
-    - run: rsync -a -v --ignore-existing /opt/circleci/.rvm/rubies/ ~/rubies_cache
     # Save dependency cache
     - save_cache:
         key: v1-dep-{{ .Branch }}-{{ epoch }}
         paths:
-        # This is a broad list of cache paths to include many possible development environments
-        # You can probably delete some of these entries
         - vendor/bundle
-        - ~/virtualenvs
-        - ~/.m2
-        - ~/.ivy2
         - ~/.bundle
-        - ~/.go_workspace
-        - ~/.gradle
-        - ~/.cache/bower
-        # These cache paths were specified in the 1.0 config
-        - /opt/circleci/.rvm/
-        - ~/rubies_cache
+        - /home/circleci/.rvm/
     # Test
     #   This would typically be a build job when using workflows, possibly combined with build
-    # This is based on your 1.0 configuration file or project settings
     - run:
         name: rvm $EARLY_STABLE --verbose do bundle exec rake rubocop
         command: if [ "$CIRCLE_NODE_INDEX" == "0" ]; then rvm $EARLY_STABLE --verbose do bundle exec rake rubocop; fi
@@ -126,3 +141,8 @@ jobs:
         path: /tmp/circleci-artifacts
     - store_artifacts:
         path: /tmp/circleci-test-results
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build

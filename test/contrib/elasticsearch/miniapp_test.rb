@@ -6,7 +6,9 @@ require 'helper'
 # in a custom application, which is already traced. It shows
 # how to have ES spans be children of application spans.
 class ESMiniAppTest < Minitest::Test
-  ELASTICSEARCH_SERVER = 'http://127.0.0.1:49200'.freeze
+  ELASTICSEARCH_HOST = ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze
+  ELASTICSEARCH_PORT = ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').freeze
+  ELASTICSEARCH_SERVER = "http://#{ELASTICSEARCH_HOST}:#{ELASTICSEARCH_PORT}".freeze
 
   def setup
     Datadog.configure do |c|

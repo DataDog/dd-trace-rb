@@ -20,8 +20,8 @@ RSpec.describe 'Redis test' do
 
   shared_examples_for 'a Redis driver' do |driver|
     let(:redis) { Redis.new(host: host, port: port, driver: driver) }
-    let(:host) { '127.0.0.1' }
-    let(:port) { 46379 }
+    let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
+    let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
     let(:client) do
       if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('4.0.0')
@@ -39,8 +39,8 @@ RSpec.describe 'Redis test' do
     shared_examples_for 'a span with common tags' do
       it do
         expect(span).to_not be nil
-        expect(span.get_tag('out.host')).to eq('127.0.0.1')
-        expect(span.get_tag('out.port')).to eq('46379')
+        expect(span.get_tag('out.host')).to eq(host)
+        expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.get_tag('out.redis_db')).to eq('0')
       end
     end
