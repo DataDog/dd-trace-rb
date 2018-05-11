@@ -30,6 +30,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       Excon.stub({ method: :get, path: '/success' }, { body: 'OK', status: 200 })
       Excon.stub({ method: :post, path: '/failure' }, { body: 'Boom!', status: 500 })
       Excon.stub({ method: :get, path: '/not_found' }, { body: 'Not Found.', status: 404 })
+      Excon.stub({ method: :get, path: '/timeout' }, lambda { |request_params| raise Excon::Errors::Timeout.new('READ TIMEOUT') })
     end
   end
 
@@ -98,10 +99,21 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     end
   end
 
-  context 'when there is a connection error' do
+  context 'when the path is not found' do
     subject!(:response) { connection.get(path: '/not_found') }
     it { expect(request_span.status).to_not eq(Datadog::Ext::Errors::STATUS) }
   end
+
+  context 'when the request times out' do
+    subject(:response) { connection.get(path: '/timeout') }
+    it do
+      expect { subject }.to raise_error
+      expect(request_span.finished?).to eq(true)
+      expect(request_span.status).to eq(Datadog::Ext::Errors::STATUS)
+      expect(request_span.get_tag('error.type')).to eq('Excon::Error::Timeout')
+    end
+  end
+
 
   context 'when there is custom error handling' do
     subject!(:response) { connection.get(path: 'not_found') }    

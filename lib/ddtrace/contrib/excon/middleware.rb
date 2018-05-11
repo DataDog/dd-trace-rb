@@ -42,9 +42,8 @@ module Datadog
         end
 
         def error_call(datum)
-          @stack.error_call(datum).tap do |d|
-            handle_response(d)
-          end
+          handle_response(datum)
+          @stack.error_call(datum)
         end
 
         # Returns a child class of this trace middleware
