@@ -1,148 +1,558 @@
-# This configuration was automatically generated from a CircleCI 1.0 config.
-# It should include any build commands you had along with commands that CircleCI
-# inferred from your project structure. We strongly recommend you read all the
-# comments in this file to understand the structure of CircleCI 2.0, as the idiom
-# for configuration has changed substantially in 2.0 to allow arbitrary jobs rather
-# than the prescribed lifecycle of 1.0. In general, we recommend using this generated
-# configuration as a reference rather than using it in production, though in most
-# cases it should duplicate the execution of your original 1.0 config.
-version: 2
+version: 2.0
 jobs:
-  build:
+  checkout-1.9:
     working_directory: ~/DataDog/dd-trace-rb
-    parallelism: 3
     shell: /bin/bash --login
-    # CircleCI 2.0 does not support environment variables that refer to each other the same way as 1.0 did.
-    # If any of these refer to each other, rewrite them so that they don't or see https://circleci.com/docs/2.0/env-vars/#interpolating-environment-variables-to-set-other-environment-variables .
-    environment:
-      RAILS3_VERSIONS: 2.3.4,2.2.7,2.1.10,2.0.0,1.9.3
-      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
-      RAILS3_SIDEKIQ_VERSIONS: 2.1.10,2.0.0
-      EARLY_STABLE: 2.2.7
-      TEST_DATADOG_INTEGRATION: 1
-      LAST_STABLE: 2.4.1
-      RAILS4_VERSIONS: 2.3.4,2.2.7,2.1.10
-      RAILS5_VERSIONS: 2.3.4,2.2.7
-      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
-      MRI_VERSIONS: 2.4.1,2.3.4,2.2.7
-      RAILS4_SIDEKIQ_VERSIONS: 2.3.4,2.2.7
-      JRUBY_VERSIONS: jruby-9.1.13.0
-      AGENT_BUILD_PATH: /home/ubuntu/agent
-      MRI_OLD_VERSIONS: 2.1.10,2.0.0,1.9.3
-      SIDEKIQ_OLD_VERSIONS: 2.1.10,2.0.0
-    # In CircleCI 1.0 we used a pre-configured image with a large number of languages and other packages.
-    # In CircleCI 2.0 you can now specify your own image, or use one of our pre-configured images.
-    # The following configuration line tells CircleCI to use the specified docker image as the runtime environment for you job.
-    # We have selected a pre-built image that mirrors the build environment we use on
-    # the 1.0 platform, but we recommend you choose an image more tailored to the needs
-    # of each job. For more information on choosing an image (or alternatively using a
-    # VM instead of a container) see https://circleci.com/docs/2.0/executor-types/
-    # To see the list of pre-built images that CircleCI provides for most common languages see
-    # https://circleci.com/docs/2.0/circleci-images/
     docker:
-    - image: circleci/buildpack-deps:xenial
-      command: /sbin/init
-    - image: postgres:9.6
-      env:
-        - POSTGRES_PASSWORD=postgres
-        - POSTGRES_USER=postgres
-        - POSTGRES_DB=postgres
-    - image: mysql:5.6
-      env:
-        - MYSQL_ROOT_PASSWORD=root
-        - MYSQL_PASSWORD=mysql
-        - MYSQL_USER=mysql
-    - image: elasticsearch:2.4
-    - image: redis:3.0
-    - image: mongo:3.5
-    - image: memcached:1.5-alpine
-    - image: datadog/docker-dd-agent
-      env:
-        - DD_APM_ENABLED=true
-        - DD_BIND_HOST=0.0.0.0
-        - DD_API_KEY=invalid_key_but_this_is_fine
+      - image: delner/dd-trace-rb:1.9.3-ci
     steps:
-    # Machine Setup
-    #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
-    # The following `checkout` command checks out your code to your working directory. In 1.0 we did this implicitly. In 2.0 you can choose where in the course of a job your code should be checked out.
-    - checkout
-    # Prepare for artifact and test results  collection equivalent to how it was done on 1.0.
-    # In many cases you can simplify this from what is generated here.
-    # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
-    - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
-    - run:
-        name: Set VERSION_SUFFIX
-        command: |
-          echo 'export VERSION_SUFFIX=.pre.$CIRCLE_BUILD_NUM' >> $BASH_ENV
-          source $BASH_ENV
-    - run:
-        name: Install dependencies
-        command: |
-          set -ex
-          sudo apt-get update
-          sudo apt-get install -y tzdata rsync openjdk-8-jre-headless ca-certificates-java
-    - run:
-        name: Install RVM
-        command: |
-          command curl -sSL https://rvm.io/mpapis.asc | gpg --import -
-          curl -sSL https://get.rvm.io | bash -s stable
-          source /home/circleci/.rvm/scripts/rvm
-          rvm requirements
-          rvm install 2.2.7
-    - run:
-        working_directory: ~/DataDog/dd-trace-rb
-        command: rm -f DataDog/dd-trace-rb/.rvmrc; echo 2.2.7 > DataDog/dd-trace-rb/.ruby-version; rvm use 2.2.7 --default
-    # Dependencies
-    #   This would typically go in either a build or a build-and-test job when using workflows
-    # Restore the dependency cache
-    - restore_cache:
-        keys:
-        # This branch if available
-        - v1-dep-{{ .Branch }}-
-        # Default branch if not
-        - v1-dep-master-
-        # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
-        - v1-dep-
-    - run: |
-        for version in $(echo "$MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS" | tr "," "\n"); do
-          $(rvm list | grep -q $version) || rvm install $version --rubygems 2.6.11
-        done
-    - run: gem install bundler
-    - run: bundle inject msgpack 1.1.0 && sed -i "y/\"/'/" Gemfile
-    - run: bundle install
-    - run: rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do gem install bundler
-    - run: rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do bundle install
-    - run: rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS --verbose do bundle exec appraisal install || echo FIX-ME
-    # Save dependency cache
-    - save_cache:
-        key: v1-dep-{{ .Branch }}-{{ epoch }}
-        paths:
-        - vendor/bundle
-        - ~/.bundle
-        - /home/circleci/.rvm/
-    # Test
-    #   This would typically be a build job when using workflows, possibly combined with build
-    - run:
-        name: rvm $EARLY_STABLE --verbose do bundle exec rake rubocop
-        command: if [ "$CIRCLE_NODE_INDEX" == "0" ]; then rvm $EARLY_STABLE --verbose do bundle exec rake rubocop; fi
-    - run: bundle exec rake ci
-    # Deployment
-    # Your existing circle.yml file contains deployment steps.
-    # The config translation tool does not support translating deployment steps
-    # since deployment in CircleCI 2.0 are better handled through workflows.
-    # See the documentation for more information https://circleci.com/docs/2.0/workflows/
-    # Teardown
-    #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
-    # Save test results
-    - store_test_results:
-        path: /tmp/circleci-test-results
-    # Save artifacts
-    - store_artifacts:
-        path: /tmp/circleci-artifacts
-    - store_artifacts:
-        path: /tmp/circleci-test-results
+      - checkout
+      - save_cache:
+          key: v1-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+  build-1.9:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:1.9.3-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}
+            - v1-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Initialize bundle cache key
+          command: |
+            touch .circleci/bundle_checksum
+      - restore_cache:
+          keys:
+            - v1-bundle-1.9-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Install gem dependencies
+          command: bundle install
+      - run:
+          name: Install Appraisal gems
+          command: bundle exec appraisal install
+      - run:
+          name: Compute bundle checksum
+          command: |
+            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - save_cache:
+          key: v1-bundled-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+      - save_cache:
+          key: v1-bundle-1.9-{{ checksum ".circleci/bundle_checksum" }}
+          paths:
+            - /home/circleci/bundle
+  test-1.9:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:1.9.3-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+          - TEST_DATADOG_INTEGRATION: 1
+      - image: postgres:9.6
+        environment:
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_USER=postgres
+          - POSTGRES_DB=postgres
+      - image: mysql:5.6
+        environment:
+          - MYSQL_ROOT_PASSWORD=root
+          - MYSQL_PASSWORD=mysql
+          - MYSQL_USER=mysql
+      - image: elasticsearch:2.4
+      - image: redis:3.0
+      - image: mongo:3.5
+      - image: memcached:1.5-alpine
+      - image: datadog/docker-dd-agent
+        environment:
+          - DD_APM_ENABLED=true
+          - DD_BIND_HOST=0.0.0.0
+          - DD_API_KEY=invalid_key_but_this_is_fine
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          keys:
+            - v1-bundle-1.9-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Run tests
+          command: bundle exec rake ci
+  checkout-2.0:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.0.0-ci
+    steps:
+      - checkout
+      - save_cache:
+          key: v1-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+  build-2.0:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.0.0-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}
+            - v1-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Initialize bundle cache key
+          command: |
+            touch .circleci/bundle_checksum
+      - restore_cache:
+          keys:
+            - v1-bundle-2.0-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Install gem dependencies
+          command: bundle install
+      - run:
+          name: Install Appraisal gems
+          command: bundle exec appraisal install
+      - run:
+          name: Compute bundle checksum
+          command: |
+            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - save_cache:
+          key: v1-bundled-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+      - save_cache:
+          key: v1-bundle-2.0-{{ checksum ".circleci/bundle_checksum" }}
+          paths:
+            - /home/circleci/bundle
+  test-2.0:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.0.0-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+          - TEST_DATADOG_INTEGRATION: 1
+      - image: postgres:9.6
+        environment:
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_USER=postgres
+          - POSTGRES_DB=postgres
+      - image: mysql:5.6
+        environment:
+          - MYSQL_ROOT_PASSWORD=root
+          - MYSQL_PASSWORD=mysql
+          - MYSQL_USER=mysql
+      - image: elasticsearch:2.4
+      - image: redis:3.0
+      - image: mongo:3.5
+      - image: memcached:1.5-alpine
+      - image: datadog/docker-dd-agent
+        environment:
+          - DD_APM_ENABLED=true
+          - DD_BIND_HOST=0.0.0.0
+          - DD_API_KEY=invalid_key_but_this_is_fine
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          keys:
+            - v1-bundle-2.0-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Run tests
+          command: bundle exec rake ci
+  checkout-2.1:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.1.10-ci
+    steps:
+      - checkout
+      - save_cache:
+          key: v1-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+  build-2.1:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.1.10-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}
+            - v1-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Initialize bundle cache key
+          command: |
+            touch .circleci/bundle_checksum
+      - restore_cache:
+          keys:
+            - v1-bundle-2.1-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Install gem dependencies
+          command: bundle install
+      - run:
+          name: Install Appraisal gems
+          command: bundle exec appraisal install
+      - run:
+          name: Compute bundle checksum
+          command: |
+            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - save_cache:
+          key: v1-bundled-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+      - save_cache:
+          key: v1-bundle-2.1-{{ checksum ".circleci/bundle_checksum" }}
+          paths:
+            - /home/circleci/bundle
+  test-2.1:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.1.10-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+          - TEST_DATADOG_INTEGRATION: 1
+      - image: postgres:9.6
+        environment:
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_USER=postgres
+          - POSTGRES_DB=postgres
+      - image: mysql:5.6
+        environment:
+          - MYSQL_ROOT_PASSWORD=root
+          - MYSQL_PASSWORD=mysql
+          - MYSQL_USER=mysql
+      - image: elasticsearch:2.4
+      - image: redis:3.0
+      - image: mongo:3.5
+      - image: memcached:1.5-alpine
+      - image: datadog/docker-dd-agent
+        environment:
+          - DD_APM_ENABLED=true
+          - DD_BIND_HOST=0.0.0.0
+          - DD_API_KEY=invalid_key_but_this_is_fine
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          keys:
+            - v1-bundle-2.1-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Run tests
+          command: bundle exec rake ci
+  checkout-2.2:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.2.10-ci
+    steps:
+      - checkout
+      - save_cache:
+          key: v1-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+  build-2.2:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.2.10-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}
+            - v1-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Initialize bundle cache key
+          command: |
+            touch .circleci/bundle_checksum
+      - restore_cache:
+          keys:
+            - v1-bundle-2.2-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Install gem dependencies
+          command: bundle install
+      - run:
+          name: Install Appraisal gems
+          command: bundle exec appraisal install
+      - run:
+          name: Compute bundle checksum
+          command: |
+            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - save_cache:
+          key: v1-bundled-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+      - save_cache:
+          key: v1-bundle-2.2-{{ checksum ".circleci/bundle_checksum" }}
+          paths:
+            - /home/circleci/bundle
+  test-2.2:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.2.10-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+          - TEST_DATADOG_INTEGRATION: 1
+      - image: postgres:9.6
+        environment:
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_USER=postgres
+          - POSTGRES_DB=postgres
+      - image: mysql:5.6
+        environment:
+          - MYSQL_ROOT_PASSWORD=root
+          - MYSQL_PASSWORD=mysql
+          - MYSQL_USER=mysql
+      - image: elasticsearch:2.4
+      - image: redis:3.0
+      - image: mongo:3.5
+      - image: memcached:1.5-alpine
+      - image: datadog/docker-dd-agent
+        environment:
+          - DD_APM_ENABLED=true
+          - DD_BIND_HOST=0.0.0.0
+          - DD_API_KEY=invalid_key_but_this_is_fine
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          keys:
+            - v1-bundle-2.2-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Run tests
+          command: bundle exec rake ci
+  checkout-2.3:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.3.7-ci
+    steps:
+      - checkout
+      - save_cache:
+          key: v1-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+  build-2.3:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.3.7-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}
+            - v1-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Initialize bundle cache key
+          command: |
+            touch .circleci/bundle_checksum
+      - restore_cache:
+          keys:
+            - v1-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Install gem dependencies
+          command: bundle install
+      - run:
+          name: Install Appraisal gems
+          command: bundle exec appraisal install
+      - run:
+          name: Compute bundle checksum
+          command: |
+            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - save_cache:
+          key: v1-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+      - save_cache:
+          key: v1-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}
+          paths:
+            - /home/circleci/bundle
+  test-2.3:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.3.7-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+          - TEST_DATADOG_INTEGRATION: 1
+      - image: postgres:9.6
+        environment:
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_USER=postgres
+          - POSTGRES_DB=postgres
+      - image: mysql:5.6
+        environment:
+          - MYSQL_ROOT_PASSWORD=root
+          - MYSQL_PASSWORD=mysql
+          - MYSQL_USER=mysql
+      - image: elasticsearch:2.4
+      - image: redis:3.0
+      - image: mongo:3.5
+      - image: memcached:1.5-alpine
+      - image: datadog/docker-dd-agent
+        environment:
+          - DD_APM_ENABLED=true
+          - DD_BIND_HOST=0.0.0.0
+          - DD_API_KEY=invalid_key_but_this_is_fine
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          keys:
+            - v1-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Run tests
+          command: bundle exec rake ci
+  checkout-2.4:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.4.4-ci
+    steps:
+      - checkout
+      - save_cache:
+          key: v1-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+  build-2.4:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.4.4-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}
+            - v1-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Initialize bundle cache key
+          command: |
+            touch .circleci/bundle_checksum
+      - restore_cache:
+          keys:
+            - v1-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Install gem dependencies
+          command: bundle install
+      - run:
+          name: Install Appraisal gems
+          command: bundle exec appraisal install
+      - run:
+          name: Compute bundle checksum
+          command: |
+            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - save_cache:
+          key: v1-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/DataDog/dd-trace-rb
+      - save_cache:
+          key: v1-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}
+          paths:
+            - /home/circleci/bundle
+  test-2.4:
+    working_directory: ~/DataDog/dd-trace-rb
+    shell: /bin/bash --login
+    docker:
+      - image: delner/dd-trace-rb:2.4.4-ci
+        environment:
+          - BUNDLE_PATH: /home/circleci/bundle
+          - TEST_DATADOG_INTEGRATION: 1
+      - image: postgres:9.6
+        environment:
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_USER=postgres
+          - POSTGRES_DB=postgres
+      - image: mysql:5.6
+        environment:
+          - MYSQL_ROOT_PASSWORD=root
+          - MYSQL_PASSWORD=mysql
+          - MYSQL_USER=mysql
+      - image: elasticsearch:2.4
+      - image: redis:3.0
+      - image: mongo:3.5
+      - image: memcached:1.5-alpine
+      - image: datadog/docker-dd-agent
+        environment:
+          - DD_APM_ENABLED=true
+          - DD_BIND_HOST=0.0.0.0
+          - DD_API_KEY=invalid_key_but_this_is_fine
+    steps:
+      - restore_cache:
+          keys:
+            - v1-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          keys:
+            - v1-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}
+      - run:
+          name: Run tests
+          command: bundle exec rake ci
 workflows:
   version: 2
-  build_and_test:
+  build-and-test:
     jobs:
-      - build
+      - checkout-1.9
+      - build-1.9:
+          requires:
+            - checkout-1.9
+      - test-1.9:
+          requires:
+            - build-1.9
+      - checkout-2.0
+      - build-2.0:
+          requires:
+            - checkout-2.0
+      - test-2.0:
+          requires:
+            - build-2.0
+      - checkout-2.1
+      - build-2.1:
+          requires:
+            - checkout-2.1
+      - test-2.1:
+          requires:
+            - build-2.1
+      - checkout-2.2
+      - build-2.2:
+          requires:
+            - checkout-2.2
+      - test-2.2:
+          requires:
+            - build-2.2
+      - checkout-2.3
+      - build-2.3:
+          requires:
+            - checkout-2.3
+      - test-2.3:
+          requires:
+            - build-2.3
+      - checkout-2.4
+      - build-2.4:
+          requires:
+            - checkout-2.4
+      - test-2.4:
+          requires:
+            - build-2.4
