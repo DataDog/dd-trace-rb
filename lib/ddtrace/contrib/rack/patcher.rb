@@ -1,16 +1,11 @@
+require 'ddtrace/utils/header_tagger'
+
 module Datadog
   module Contrib
     module Rack
       # Provides instrumentation for `rack`
       module Patcher
         include Base
-
-        DEFAULT_HEADERS = {
-          response: [
-            'Content-Type',
-            'X-Request-ID'
-          ]
-        }.freeze
 
         register_as :rack
         option :tracer, default: Datadog.tracer
@@ -29,7 +24,7 @@ module Datadog
           end
           value
         end
-        option :headers, default: DEFAULT_HEADERS
+        option :headers, default: Utils::HeaderTagger::DEFAULT_HEADERS
 
         module_function
 

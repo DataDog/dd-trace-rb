@@ -2,6 +2,10 @@ module Datadog
   module Utils
     # Helper class to used to tag configured headers
     class HeaderTagger
+      DEFAULT_HEADERS = {
+        response: %w[Content-Type X-Request-ID]
+      }.freeze
+
       attr_reader :configuration
 
       def initialize(configuration)
