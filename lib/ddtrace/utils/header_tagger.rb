@@ -1,61 +1,58 @@
 module Datadog
   module Utils
     # Helper class to used to tag configured headers
-    class HeaderTagger
+    module HeaderTagger
       DEFAULT_HEADERS = {
-        response: %w[Content-Type X-Request-ID]
+          response: %w[Content-Type X-Request-ID]
       }.freeze
 
-      attr_reader :configuration
+      # Tag headers from Rack requests
+      module RackRequest
+        extend self
 
-      def initialize(configuration)
-        @configuration = configuration
-      end
-
-      def tag_headers(request_span, env, response_headers)
-        # Request headers
-        parse_request_headers(env).each do |name, value|
-          request_span.set_tag(name, value) if request_span.get_tag(name).nil?
+        def name(header)
+          Datadog::Ext::HTTP::RequestHeaders.to_tag(header)
         end
 
-        # Response headers
-        parse_response_headers(response_headers || {}).each do |name, value|
-          request_span.set_tag(name, value) if request_span.get_tag(name).nil?
+        def value(header, env)
+          rack_header = "HTTP_#{header.to_s.upcase.gsub(/[-\s]/, '_')}"
+
+          env[rack_header]
         end
       end
 
-      private
+      # Tag headers from Rack responses
+      module RackResponse
+        extend self
 
-      def parse_request_headers(env)
-        whitelist = configuration[:headers][:request] || []
-        whitelist.each_with_object({}) do |header, result|
-          header_value = request_header(env, header)
-          result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = header_value if header_value
+        def name(header)
+          Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)
         end
-      end
 
-      def parse_response_headers(headers)
-        whitelist = configuration[:headers][:response] || []
-        whitelist.each_with_object({}) do |header, result|
+        def value(header, headers)
+          return if headers.nil?
+
           if headers.key?(header)
-            result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
+            headers[header]
           else
             # Try a case-insensitive lookup
             uppercased_header = header.to_s.upcase
-            matching_header = headers.keys.find {|h| h.upcase == uppercased_header}
-            if matching_header
-              result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
-            end
+            _, matching_header_value = headers.find {|h,| h.upcase == uppercased_header}
+            matching_header_value
           end
         end
       end
 
-      def request_header(env, header)
-        env[header_to_rack_header(header)]
-      end
+      def self.tag_whitelisted_headers(request_span, whitelist, tagger, source)
+        return if whitelist.nil?
 
-      def header_to_rack_header(name)
-        "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
+        whitelist.each do |header|
+          tag_name = tagger.name(header)
+          next unless request_span.get_tag(tag_name).nil?
+
+          tag_value = tagger.value(header, source)
+          request_span.set_tag(tag_name, tag_value) if tag_value
+        end
       end
     end
   end

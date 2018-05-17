@@ -29,9 +29,9 @@ module Datadog
           return if request_start.nil?
 
           tracer.trace(
-            'http_server.queue',
-            start_time: request_start,
-            service: configuration[:web_service_name]
+              'http_server.queue',
+              start_time: request_start,
+              service: configuration[:web_service_name]
           )
         end
 
@@ -44,9 +44,9 @@ module Datadog
           frontend_span = compute_queue_time(env, tracer)
 
           trace_options = {
-            service: configuration[:service_name],
-            resource: nil,
-            span_type: Datadog::Ext::HTTP::TYPE
+              service: configuration[:service_name],
+              resource: nil,
+              span_type: Datadog::Ext::HTTP::TYPE
           }
 
           if configuration[:distributed_tracing]
@@ -70,14 +70,14 @@ module Datadog
           original_env = env.dup
 
           # call the rest of the stack
-          status, headers, = @app.call(env)
+          status, headers, response = @app.call(env)
 
-        # rubocop:disable Lint/RescueException
-        # Here we really want to catch *any* exception, not only StandardError,
-        # as we really have no clue of what is in the block,
-        # and it is user code which should be executed no matter what.
-        # It's not a problem since we re-raise it afterwards so for example a
-        # SignalException::Interrupt would still bubble up.
+            # rubocop:disable Lint/RescueException
+            # Here we really want to catch *any* exception, not only StandardError,
+            # as we really have no clue of what is in the block,
+            # and it is user code which should be executed no matter what.
+            # It's not a problem since we re-raise it afterwards so for example a
+            # SignalException::Interrupt would still bubble up.
         rescue Exception => e
           # catch exceptions that may be raised in the middleware chain
           # Note: if a middleware catches an Exception without re raising,
@@ -91,8 +91,7 @@ module Datadog
           # the result for this request; `resource` and `tags` are expected to
           # be set in another level but if they're missing, reasonable defaults
           # are used.
-          set_request_tags!(request_span, env, status, original_env)
-          Datadog::Utils::HeaderTagger.new(configuration).tag_headers(request_span, env, headers)
+          set_request_tags!(request_span, env, status, headers, response, original_env)
 
           # ensure the request_span is finished and the context reset;
           # this assumes that the Rack middleware creates a root span
@@ -113,7 +112,7 @@ module Datadog
           end
         end
 
-        def set_request_tags!(request_span, env, status, original_env)
+        def set_request_tags!(request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
           # URL for the current request; but some frameworks may override that
@@ -150,6 +149,8 @@ module Datadog
           if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
             request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
           end
+
+          set_header_tags!(request_span, env, headers)
 
           # detect if the status code is a 5xx and flag the request span as an error
           # unless it has been already set by the underlying framework
@@ -188,6 +189,22 @@ module Datadog
               super
             end
           end
+        end
+
+        def set_header_tags!(span, env, headers)
+          Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
+              span,
+              Datadog.configuration[:rack][:headers][:request],
+              Datadog::Utils::HeaderTagger::RackRequest,
+              env
+          )
+
+          Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
+              span,
+              Datadog.configuration[:rack][:headers][:response],
+              Datadog::Utils::HeaderTagger::RackResponse,
+              headers
+          )
         end
       end
     end

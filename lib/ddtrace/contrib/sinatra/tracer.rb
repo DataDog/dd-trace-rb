@@ -1,4 +1,3 @@
-
 require 'sinatra/base'
 
 require 'ddtrace/ext/app_types'
@@ -11,7 +10,7 @@ sinatra_vs = Gem::Version.new(Sinatra::VERSION)
 sinatra_min_vs = Gem::Version.new('1.4.0')
 if sinatra_vs < sinatra_min_vs
   raise "sinatra version #{sinatra_vs} is not supported yet " \
-        + "(supporting versions >=#{sinatra_min_vs})"
+          + "(supporting versions >=#{sinatra_min_vs})"
 end
 
 Datadog::Tracer.log.info("activating instrumentation for sinatra #{sinatra_vs}")
@@ -46,10 +45,10 @@ module Datadog
             # If the option to prepend script names is enabled, then
             # prepend the script name from the request onto the action.
             request.env[ENV_ROUTE] = if Datadog.configuration[:sinatra][:resource_script_names]
-                                     "#{request.script_name}#{action}"
-                                   else
-                                     action
-                                   end
+                                       "#{request.script_name}#{action}"
+                                     else
+                                       action
+                                     end
           end
 
           super
@@ -106,8 +105,19 @@ module Datadog
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
             span.set_error(env['sinatra.error']) if response.server_error?
 
-            Datadog::Utils::HeaderTagger.new(Datadog.configuration[:sinatra])
-                                        .tag_headers(span, request.env, response.headers)
+            Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
+                span,
+                Datadog.configuration[:sinatra][:headers][:request],
+                Datadog::Utils::HeaderTagger::RackRequest,
+                request.env
+            )
+
+            Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
+                span,
+                Datadog.configuration[:sinatra][:headers][:response],
+                Datadog::Utils::HeaderTagger::RackResponse,
+                response.headers
+            )
 
             span.finish
           end
