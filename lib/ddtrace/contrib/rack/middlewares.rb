@@ -2,6 +2,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/rack/request_queue'
+require 'ddtrace/utils/header_tagger'
 
 module Datadog
   module Contrib
@@ -21,7 +22,7 @@ module Datadog
         end
 
         def compute_queue_time(env, tracer)
-          return unless Datadog.configuration[:rack][:request_queuing]
+          return unless configuration[:request_queuing]
 
           # parse the request queue time
           request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
@@ -30,25 +31,25 @@ module Datadog
           tracer.trace(
             'http_server.queue',
             start_time: request_start,
-            service: Datadog.configuration[:rack][:web_service_name]
+            service: configuration[:web_service_name]
           )
         end
 
         def call(env)
           # retrieve integration settings
-          tracer = Datadog.configuration[:rack][:tracer]
+          tracer = configuration[:tracer]
 
           # [experimental] create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
           frontend_span = compute_queue_time(env, tracer)
 
           trace_options = {
-            service: Datadog.configuration[:rack][:service_name],
+            service: configuration[:service_name],
             resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE
           }
 
-          if Datadog.configuration[:rack][:distributed_tracing]
+          if configuration[:distributed_tracing]
             context = HTTPPropagator.extract(env)
             tracer.provider.context = context if context.trace_id
           end
@@ -69,8 +70,7 @@ module Datadog
           original_env = env.dup
 
           # call the rest of the stack
-          status, headers, response = @app.call(env)
-          [status, headers, response]
+          status, headers, = @app.call(env)
 
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -91,7 +91,8 @@ module Datadog
           # the result for this request; `resource` and `tags` are expected to
           # be set in another level but if they're missing, reasonable defaults
           # are used.
-          set_request_tags!(request_span, env, status, headers, response, original_env)
+          set_request_tags!(request_span, env, status, original_env)
+          Datadog::Utils::HeaderTagger.new(configuration).tag_headers(request_span, env, headers)
 
           # ensure the request_span is finished and the context reset;
           # this assumes that the Rack middleware creates a root span
@@ -105,14 +106,14 @@ module Datadog
         end
 
         def resource_name_for(env, status)
-          if Datadog.configuration[:rack][:middleware_names] && env['RESPONSE_MIDDLEWARE']
+          if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
             "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
           else
             "#{env['REQUEST_METHOD']} #{status}".strip
           end
         end
 
-        def set_request_tags!(request_span, env, status, headers, response, original_env)
+        def set_request_tags!(request_span, env, status, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
           # URL for the current request; but some frameworks may override that
@@ -125,15 +126,13 @@ module Datadog
           # So when its not available, we want the original, unmutated PATH_INFO, which
           # is just the relative path without query strings.
           url = env['REQUEST_URI'] || original_env['PATH_INFO']
-          request_headers = parse_request_headers(env)
-          response_headers = parse_response_headers(headers || {})
 
           request_span.resource ||= resource_name_for(env, status)
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
           end
           if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
-            options = Datadog.configuration[:rack][:quantize]
+            options = configuration[:quantize]
             request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
           end
           if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
@@ -152,21 +151,15 @@ module Datadog
             request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
           end
 
-          # Request headers
-          request_headers.each do |name, value|
-            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
-          end
-
-          # Response headers
-          response_headers.each do |name, value|
-            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
-          end
-
           # detect if the status code is a 5xx and flag the request span as an error
           # unless it has been already set by the underlying framework
           if status.to_s.start_with?('5') && request_span.status.zero?
             request_span.status = 1
           end
+        end
+
+        def configuration
+          Datadog.configuration[:rack]
         end
 
         private
@@ -195,40 +188,6 @@ module Datadog
               super
             end
           end
-        end
-
-        def parse_request_headers(env)
-          {}.tap do |result|
-            whitelist = Datadog.configuration[:rack][:headers][:request] || []
-            whitelist.each do |header|
-              rack_header = header_to_rack_header(header)
-              if env.key?(rack_header)
-                result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
-              end
-            end
-          end
-        end
-
-        def parse_response_headers(headers)
-          {}.tap do |result|
-            whitelist = Datadog.configuration[:rack][:headers][:response] || []
-            whitelist.each do |header|
-              if headers.key?(header)
-                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
-              else
-                # Try a case-insensitive lookup
-                uppercased_header = header.to_s.upcase
-                matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
-                if matching_header
-                  result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
-                end
-              end
-            end
-          end
-        end
-
-        def header_to_rack_header(name)
-          "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
         end
       end
     end
