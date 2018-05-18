@@ -24,11 +24,11 @@ class TracerTest < TracerTestBase
     end
 
     get '/template' do
-      erb :msg, locals: {msg: 'hello'}
+      erb :msg, locals: { msg: 'hello' }
     end
 
     get '/literal-template' do
-      erb '<%= msg %>', locals: {msg: 'hello'}
+      erb '<%= msg %>', locals: { msg: 'hello' }
     end
 
     before do
