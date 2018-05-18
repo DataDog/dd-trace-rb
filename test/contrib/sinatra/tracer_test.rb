@@ -24,15 +24,15 @@ class TracerTest < TracerTestBase
     end
 
     get '/template' do
-      erb :msg, locals: { msg: 'hello' }
+      erb :msg, locals: {msg: 'hello'}
     end
 
     get '/literal-template' do
-      erb '<%= msg %>', locals: { msg: 'hello' }
+      erb '<%= msg %>', locals: {msg: 'hello'}
     end
 
     before do
-      response.headers['X-Request-ID'] = 'trace-id'
+      response.headers['X-Request-ID'] = 'request-id'
     end
   end
 
@@ -80,7 +80,7 @@ class TracerTest < TracerTestBase
     assert_equal('GET', span.get_tag(Datadog::Ext::HTTP::METHOD))
     assert_equal('/request', span.get_tag(Datadog::Ext::HTTP::URL))
     assert_equal(Datadog::Ext::HTTP::TYPE, span.span_type)
-    assert_equal('trace-id', span.get_tag('http.response.headers.x_request_id'))
+    assert_equal('request-id', span.get_tag('http.response.headers.x_request_id'))
 
     assert_equal(0, span.status)
     assert_nil(span.parent)
@@ -90,10 +90,10 @@ class TracerTest < TracerTestBase
     # Enable distributed tracing
     Datadog.configuration.use(:sinatra, distributed_tracing: true)
 
-    response = get  '/request', {},
-                    'HTTP_X_DATADOG_TRACE_ID' => '1',
-                    'HTTP_X_DATADOG_PARENT_ID' => '2',
-                    'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s
+    response = get '/request', {},
+                   'HTTP_X_DATADOG_TRACE_ID' => '1',
+                   'HTTP_X_DATADOG_PARENT_ID' => '2',
+                   'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s
 
     assert_equal(200, response.status)
 
@@ -243,5 +243,29 @@ class TracerTest < TracerTestBase
     assert_equal(Datadog::Ext::HTTP::TYPE, root.span_type)
     assert_equal(0, root.status)
     assert_nil(root.parent)
+  end
+
+  def test_tagging_request_headers
+    Datadog.configuration.use(:sinatra, headers: { request: ['X-Request-Header'] })
+
+    get '/request#foo?a=1', {}, 'HTTP_X_REQUEST_HEADER' => 'header_value'
+
+    assert_equal(200, last_response.status)
+
+    spans = @writer.spans()
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('sinatra', span.service)
+    assert_equal('GET /request', span.resource)
+    assert_equal('GET', span.get_tag(Datadog::Ext::HTTP::METHOD))
+    assert_equal('/request', span.get_tag(Datadog::Ext::HTTP::URL))
+    assert_equal(Datadog::Ext::HTTP::TYPE, span.span_type)
+    assert_equal('header_value', span.get_tag('http.request.headers.x_request_header'))
+
+    assert_equal(0, span.status)
+    assert_nil(span.parent)
+  ensure
+    Datadog.configuration.use(:sinatra, headers: Datadog::Utils::MassTagger::DEFAULT_HEADERS)
   end
 end
