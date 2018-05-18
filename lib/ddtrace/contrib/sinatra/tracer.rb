@@ -106,17 +106,17 @@ module Datadog
             span.set_error(env['sinatra.error']) if response.server_error?
 
             Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
-                span,
-                Datadog.configuration[:sinatra][:headers][:request],
-                Datadog::Utils::HeaderTagger::RackRequest,
-                request.env
+              span,
+              Datadog.configuration[:sinatra][:headers][:request],
+              Datadog::Utils::HeaderTagger::RackRequest,
+              request.env
             )
 
             Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
-                span,
-                Datadog.configuration[:sinatra][:headers][:response],
-                Datadog::Utils::HeaderTagger::RackResponse,
-                response.headers
+              span,
+              Datadog.configuration[:sinatra][:headers][:response],
+              Datadog::Utils::HeaderTagger::RackResponse,
+              response.headers
             )
 
             span.finish

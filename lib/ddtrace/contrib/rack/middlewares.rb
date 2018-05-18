@@ -29,9 +29,9 @@ module Datadog
           return if request_start.nil?
 
           tracer.trace(
-              'http_server.queue',
-              start_time: request_start,
-              service: configuration[:web_service_name]
+            'http_server.queue',
+            start_time: request_start,
+            service: configuration[:web_service_name]
           )
         end
 
@@ -44,9 +44,9 @@ module Datadog
           frontend_span = compute_queue_time(env, tracer)
 
           trace_options = {
-              service: configuration[:service_name],
-              resource: nil,
-              span_type: Datadog::Ext::HTTP::TYPE
+            service: configuration[:service_name],
+            resource: nil,
+            span_type: Datadog::Ext::HTTP::TYPE
           }
 
           if configuration[:distributed_tracing]
@@ -72,12 +72,12 @@ module Datadog
           # call the rest of the stack
           status, headers, response = @app.call(env)
 
-            # rubocop:disable Lint/RescueException
-            # Here we really want to catch *any* exception, not only StandardError,
-            # as we really have no clue of what is in the block,
-            # and it is user code which should be executed no matter what.
-            # It's not a problem since we re-raise it afterwards so for example a
-            # SignalException::Interrupt would still bubble up.
+        # rubocop:disable Lint/RescueException
+        # Here we really want to catch *any* exception, not only StandardError,
+        # as we really have no clue of what is in the block,
+        # and it is user code which should be executed no matter what.
+        # It's not a problem since we re-raise it afterwards so for example a
+        # SignalException::Interrupt would still bubble up.
         rescue Exception => e
           # catch exceptions that may be raised in the middleware chain
           # Note: if a middleware catches an Exception without re raising,
@@ -193,17 +193,17 @@ module Datadog
 
         def set_header_tags!(span, env, headers)
           Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
-              span,
-              Datadog.configuration[:rack][:headers][:request],
-              Datadog::Utils::HeaderTagger::RackRequest,
-              env
+            span,
+            Datadog.configuration[:rack][:headers][:request],
+            Datadog::Utils::HeaderTagger::RackRequest,
+            env
           )
 
           Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
-              span,
-              Datadog.configuration[:rack][:headers][:response],
-              Datadog::Utils::HeaderTagger::RackResponse,
-              headers
+            span,
+            Datadog.configuration[:rack][:headers][:response],
+            Datadog::Utils::HeaderTagger::RackResponse,
+            headers
           )
         end
       end
