@@ -2,7 +2,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/rack/request_queue'
-require 'ddtrace/utils/header_tagger'
+require 'ddtrace/utils/mass_tagger'
 
 module Datadog
   module Contrib
@@ -192,17 +192,17 @@ module Datadog
         end
 
         def set_header_tags!(span, env, headers)
-          Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
+          Datadog::Utils::MassTagger.tag(
             span,
             Datadog.configuration[:rack][:headers][:request],
-            Datadog::Utils::HeaderTagger::RackRequest,
+            Datadog::Utils::MassTagger::RackRequest,
             env
           )
 
-          Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
+          Datadog::Utils::MassTagger.tag(
             span,
             Datadog.configuration[:rack][:headers][:response],
-            Datadog::Utils::HeaderTagger::RackResponse,
+            Datadog::Utils::MassTagger::RackResponse,
             headers
           )
         end

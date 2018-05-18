@@ -1,7 +1,7 @@
 module Datadog
   module Utils
     # Helper class to used to tag configured headers
-    module HeaderTagger
+    module MassTagger
       DEFAULT_HEADERS = {
         response: %w[Content-Type X-Request-ID]
       }.freeze
@@ -43,7 +43,7 @@ module Datadog
         end
       end
 
-      def self.tag_whitelisted_headers(request_span, whitelist, tagger, source)
+      def self.tag(request_span, whitelist, tagger, source)
         return if whitelist.nil?
 
         whitelist.each do |header|

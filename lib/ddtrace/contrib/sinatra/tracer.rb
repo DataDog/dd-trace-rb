@@ -4,7 +4,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
-require 'ddtrace/utils/header_tagger'
+require 'ddtrace/utils/mass_tagger'
 
 sinatra_vs = Gem::Version.new(Sinatra::VERSION)
 sinatra_min_vs = Gem::Version.new('1.4.0')
@@ -36,7 +36,7 @@ module Datadog
         option :tracer, default: Datadog.tracer
         option :resource_script_names, default: false
         option :distributed_tracing, default: false
-        option :headers, default: Utils::HeaderTagger::DEFAULT_HEADERS
+        option :headers, default: Utils::MassTagger::DEFAULT_HEADERS
 
         def route(verb, action, *)
           # Keep track of the route name when the app is instantiated for an
@@ -105,19 +105,11 @@ module Datadog
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
             span.set_error(env['sinatra.error']) if response.server_error?
 
-            Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
-              span,
-              Datadog.configuration[:sinatra][:headers][:request],
-              Datadog::Utils::HeaderTagger::RackRequest,
-              request.env
-            )
+            Datadog::Utils::MassTagger.tag(span, Datadog.configuration[:sinatra][:headers][:request],
+                                           Datadog::Utils::MassTagger::RackRequest, request.env)
 
-            Datadog::Utils::HeaderTagger.tag_whitelisted_headers(
-              span,
-              Datadog.configuration[:sinatra][:headers][:response],
-              Datadog::Utils::HeaderTagger::RackResponse,
-              response.headers
-            )
+            Datadog::Utils::MassTagger.tag(span, Datadog.configuration[:sinatra][:headers][:response],
+                                           Datadog::Utils::MassTagger::RackResponse, response.headers)
 
             span.finish
           end
