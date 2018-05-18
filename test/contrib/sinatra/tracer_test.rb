@@ -30,6 +30,10 @@ class TracerTest < TracerTestBase
     get '/literal-template' do
       erb '<%= msg %>', locals: { msg: 'hello' }
     end
+
+    before do
+      response.headers['X-Request-ID'] = 'trace-id'
+    end
   end
 
   def app
@@ -38,7 +42,7 @@ class TracerTest < TracerTestBase
 
   def setup
     @writer = FauxWriter.new()
-    app().set :datadog_test_writer, @writer
+    app.set :datadog_test_writer, @writer
 
     tracer = Datadog::Tracer.new(writer: @writer, enabled: true)
     Datadog.configuration.use(:sinatra, tracer: tracer)
@@ -63,9 +67,7 @@ class TracerTest < TracerTestBase
   end
 
   def test_request
-    request_id = SecureRandom.uuid
-
-    get '/request#foo?a=1', 'HTTP_X_REQUEST_ID' => request_id
+    get '/request#foo?a=1'
 
     assert_equal(200, last_response.status)
 
@@ -78,7 +80,7 @@ class TracerTest < TracerTestBase
     assert_equal('GET', span.get_tag(Datadog::Ext::HTTP::METHOD))
     assert_equal('/request', span.get_tag(Datadog::Ext::HTTP::URL))
     assert_equal(Datadog::Ext::HTTP::TYPE, span.span_type)
-    assert_equal(request_id, span.get_tag('http.response.headers.x_request_id'))
+    assert_equal('trace-id', span.get_tag('http.response.headers.x_request_id'))
 
     assert_equal(0, span.status)
     assert_nil(span.parent)

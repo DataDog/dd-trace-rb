@@ -3,12 +3,12 @@ module Datadog
     # Helper class to used to tag configured headers
     module HeaderTagger
       DEFAULT_HEADERS = {
-          response: %w[Content-Type X-Request-ID]
+        response: %w[Content-Type X-Request-ID]
       }.freeze
 
       # Tag headers from Rack requests
       module RackRequest
-        extend self
+        module_function
 
         def name(header)
           Datadog::Ext::HTTP::RequestHeaders.to_tag(header)
@@ -23,7 +23,7 @@ module Datadog
 
       # Tag headers from Rack responses
       module RackResponse
-        extend self
+        module_function
 
         def name(header)
           Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)
@@ -37,7 +37,7 @@ module Datadog
           else
             # Try a case-insensitive lookup
             uppercased_header = header.to_s.upcase
-            _, matching_header_value = headers.find {|h,| h.upcase == uppercased_header}
+            _, matching_header_value = headers.find { |h,| h.upcase == uppercased_header }
             matching_header_value
           end
         end
