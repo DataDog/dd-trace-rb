@@ -245,14 +245,23 @@ class TracerTest < TracerTestBase
     assert_nil(root.parent)
   end
 
-  def test_tagging_request_headers
-    Datadog.configuration.use(:sinatra, headers: { request: ['X-Request-Header'] })
+  def test_tagging_connection_headers
+    Datadog.configuration.use(:sinatra,
+                              headers: {
+                                response: ['Content-Type'],
+                                request: ['X-Request-Header']
+                              })
 
-    get '/request#foo?a=1', {}, 'HTTP_X_REQUEST_HEADER' => 'header_value'
+    request_headers = {
+      'HTTP_X_REQUEST_HEADER' => 'header_value',
+      'HTTP_X_HEADER' => "don't tag me"
+    }
+
+    get '/request#foo?a=1', {}, request_headers
 
     assert_equal(200, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_equal(1, spans.length)
 
     span = spans[0]
@@ -262,6 +271,8 @@ class TracerTest < TracerTestBase
     assert_equal('/request', span.get_tag(Datadog::Ext::HTTP::URL))
     assert_equal(Datadog::Ext::HTTP::TYPE, span.span_type)
     assert_equal('header_value', span.get_tag('http.request.headers.x_request_header'))
+    assert_equal('text/html;charset=utf-8', span.get_tag('http.response.headers.content_type'))
+    assert_nil(span.get_tag('http.request.headers.x_header'))
 
     assert_equal(0, span.status)
     assert_nil(span.parent)

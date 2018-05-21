@@ -16,6 +16,10 @@ module Datadog
           Datadog::Utils::MassTagger.tag(span, response_headers_whitelist, Datadog::Utils::MassTagger::RackResponse, headers)
         end
 
+        def request_span!(env)
+          env[env_request_span] ||= build_request_span(env)
+        end
+
         protected
 
         def configuration
@@ -30,16 +34,16 @@ module Datadog
           raise NotImplementedError
         end
 
+        def tracer
+          configuration[:tracer]
+        end
+
         def request_headers_whitelist
           configuration[:headers][:request]
         end
 
         def response_headers_whitelist
           configuration[:headers][:response]
-        end
-
-        def request_span!(env)
-          env[env_request_span] ||= build_request_span(env)
         end
       end
     end

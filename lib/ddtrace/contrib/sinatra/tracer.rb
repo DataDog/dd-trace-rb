@@ -4,13 +4,13 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
-require 'ddtrace/utils/mass_tagger'
+require 'ddtrace/contrib/sinatra/middleware'
 
 sinatra_vs = Gem::Version.new(Sinatra::VERSION)
 sinatra_min_vs = Gem::Version.new('1.4.0')
 if sinatra_vs < sinatra_min_vs
   raise "sinatra version #{sinatra_vs} is not supported yet " \
-          + "(supporting versions >=#{sinatra_min_vs})"
+            + "(supporting versions >=#{sinatra_min_vs})"
 end
 
 Datadog::Tracer.log.info("activating instrumentation for sinatra #{sinatra_vs}")
@@ -22,8 +22,6 @@ module Datadog
       # requests.
       module Tracer
         include Base
-
-        ENV_REQUEST_SPAN = 'datadog.sinatra_request_span'.freeze
         ENV_ROUTE = 'datadog.sinatra_route'.freeze
 
         register_as :sinatra
@@ -53,9 +51,6 @@ module Datadog
 
           super
         end
-
-        # rubocop:disable Metrics/AbcSize
-        # rubocop:disable Metrics/MethodLength
         def self.registered(app)
           ::Sinatra::Base.module_eval do
             def render(engine, data, *)
@@ -76,40 +71,24 @@ module Datadog
             end
           end
 
+          app.use Datadog::Contrib::Sinatra::Middleware
+
           app.before do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            tracer = Datadog.configuration[:sinatra][:tracer]
-            distributed_tracing = Datadog.configuration[:sinatra][:distributed_tracing]
-
-            if distributed_tracing && tracer.provider.context.trace_id.nil?
-              context = HTTPPropagator.extract(request.env)
-              tracer.provider.context = context if context.trace_id
-            end
-
-            span = tracer.trace('sinatra.request',
-                                service: Datadog.configuration[:sinatra][:service_name],
-                                span_type: Datadog::Ext::HTTP::TYPE)
+            span = Datadog::Contrib::Sinatra::Middleware.request_span(request.env)
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
-
-            request.env[ENV_REQUEST_SPAN] = span
           end
 
           app.after do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            span = request.env[ENV_REQUEST_SPAN]
+            span = Datadog::Contrib::Sinatra::Middleware.request_span(request.env)
             span.resource = "#{request.request_method} #{request.env[ENV_ROUTE]}"
             span.set_tag('sinatra.route.path', request.env[ENV_ROUTE])
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
             span.set_error(env['sinatra.error']) if response.server_error?
-
-            Datadog::Utils::MassTagger.tag(span, Datadog.configuration[:sinatra][:headers][:request],
-                                           Datadog::Utils::MassTagger::RackRequest, request.env)
-
-            Datadog::Utils::MassTagger.tag(span, Datadog.configuration[:sinatra][:headers][:response],
-                                           Datadog::Utils::MassTagger::RackResponse, response.headers)
 
             span.finish
           end

@@ -17,10 +17,6 @@ module Datadog
       class TraceMiddleware < Utils::Rack::EnvSpanTaggerMiddleware
         RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
 
-        def initialize(app)
-          @app = app
-        end
-
         def compute_queue_time(env, tracer)
           return unless configuration[:request_queuing]
 
@@ -47,7 +43,6 @@ module Datadog
           # TODO: For backwards compatibility; this attribute is deprecated.
           env[:datadog_rack_request_span] = request_span
           original_env = env.dup
-
 
           # Add deprecation warnings
           add_deprecation_warnings(env)
@@ -154,9 +149,9 @@ module Datadog
           tracer = configuration[:tracer]
 
           trace_options = {
-              service: configuration[:service_name],
-              resource: nil,
-              span_type: Datadog::Ext::HTTP::TYPE
+            service: configuration[:service_name],
+            resource: nil,
+            span_type: Datadog::Ext::HTTP::TYPE
           }
 
           if configuration[:distributed_tracing]
