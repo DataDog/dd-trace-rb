@@ -1,15 +1,16 @@
-require 'ddtrace/utils/mass_tagger'
-require 'ddtrace/utils/base_tagger'
-require 'ddtrace/contrib/rack/tagging/response_tagger'
-require 'ddtrace/contrib/rack/tagging/request_tagger'
+require 'ddtrace/utils/tagger'
+require 'ddtrace/utils/base_tag_converter'
+require 'ddtrace/contrib/rack/tagging/response_tag_converter'
+require 'ddtrace/contrib/rack/tagging/request_tag_converter'
 
 module Datadog
   module Contrib
     module Rack
       module Tagging
+        # Abstract middleware used for automatically tagging configured headers
         class HeadersMiddleware
           DEFAULT_HEADERS = {
-              response: %w[Content-Type X-Request-ID]
+            response: %w[Content-Type X-Request-ID]
           }.freeze
 
           def initialize(app)
@@ -18,10 +19,10 @@ module Datadog
 
           def call(env)
             span = request_span!(env)
-            Datadog::Utils::MassTagger.tag(span, request_headers_whitelist, RequestTagger.instance, env)
+            Datadog::Utils::Tagger.tag(span, request_headers_whitelist, RequestTagConverter.instance, env)
             _, headers, = @app.call(env)
           ensure
-            Datadog::Utils::MassTagger.tag(span, response_headers_whitelist, ResponseTagger.instance, headers)
+            Datadog::Utils::Tagger.tag(span, response_headers_whitelist, ResponseTagger.instance, headers)
           end
 
           def request_span!(env)

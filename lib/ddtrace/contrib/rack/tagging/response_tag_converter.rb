@@ -1,11 +1,11 @@
-require 'ddtrace/utils/base_tagger'
+require 'ddtrace/utils/base_tag_converter'
 
 module Datadog
   module Contrib
     module Rack
       module Tagging
         # Tag headers from Rack responses
-        class ResponseTagger < Datadog::Utils::BaseTagger
+        class ResponseTagger < Datadog::Utils::BaseTagConverter
           include Singleton
 
           def name(header)

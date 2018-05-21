@@ -1,7 +1,7 @@
 module Datadog
   module Utils
     # Base class for converting data source to tags
-    class BaseTagger
+    class BaseTagConverter
       def name(_name)
         raise NotImplementedError
       end
