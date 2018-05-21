@@ -2,7 +2,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/rack/request_queue'
-require 'ddtrace/utils/mass_tagger'
+require 'ddtrace/utils/rack/env_span_tagger_middleware'
 
 module Datadog
   module Contrib
@@ -14,7 +14,7 @@ module Datadog
       # in the Rack environment so that it can be retrieved by the underlying
       # application. If request tags are not set by the app, they will be set using
       # information available at the Rack level.
-      class TraceMiddleware
+      class TraceMiddleware < Utils::Rack::EnvSpanTaggerMiddleware
         RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
 
         def initialize(app)
@@ -43,34 +43,21 @@ module Datadog
           # (i.e. Apache, nginx) if the header is properly set
           frontend_span = compute_queue_time(env, tracer)
 
-          trace_options = {
-            service: configuration[:service_name],
-            resource: nil,
-            span_type: Datadog::Ext::HTTP::TYPE
-          }
-
-          if configuration[:distributed_tracing]
-            context = HTTPPropagator.extract(env)
-            tracer.provider.context = context if context.trace_id
-          end
-
-          # start a new request span and attach it to the current Rack environment;
-          # we must ensure that the span `resource` is set later
-          request_span = tracer.trace('rack.request', trace_options)
-          env[RACK_REQUEST_SPAN] = request_span
-
+          request_span = request_span!(env)
           # TODO: For backwards compatibility; this attribute is deprecated.
-          env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
+          env[:datadog_rack_request_span] = request_span
+          original_env = env.dup
+
 
           # Add deprecation warnings
           add_deprecation_warnings(env)
 
           # Copy the original env, before the rest of the stack executes.
           # Values may change; we want values before that happens.
-          original_env = env.dup
+          # original_env = env.dup
 
           # call the rest of the stack
-          status, headers, response = @app.call(env)
+          status, headers, response = super(env)
 
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -150,13 +137,36 @@ module Datadog
             request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
           end
 
-          set_header_tags!(request_span, env, headers)
-
           # detect if the status code is a 5xx and flag the request span as an error
           # unless it has been already set by the underlying framework
           if status.to_s.start_with?('5') && request_span.status.zero?
             request_span.status = 1
           end
+        end
+
+        protected
+
+        def env_request_span
+          RACK_REQUEST_SPAN
+        end
+
+        def build_request_span(env)
+          tracer = configuration[:tracer]
+
+          trace_options = {
+              service: configuration[:service_name],
+              resource: nil,
+              span_type: Datadog::Ext::HTTP::TYPE
+          }
+
+          if configuration[:distributed_tracing]
+            context = HTTPPropagator.extract(env)
+            tracer.provider.context = context if context.trace_id
+          end
+
+          # start a new request span and attach it to the current Rack environment;
+          # we must ensure that the span `resource` is set later
+          tracer.trace('rack.request', trace_options)
         end
 
         def configuration
@@ -189,22 +199,6 @@ module Datadog
               super
             end
           end
-        end
-
-        def set_header_tags!(span, env, headers)
-          Datadog::Utils::MassTagger.tag(
-            span,
-            Datadog.configuration[:rack][:headers][:request],
-            Datadog::Utils::MassTagger::RackRequest,
-            env
-          )
-
-          Datadog::Utils::MassTagger.tag(
-            span,
-            Datadog.configuration[:rack][:headers][:response],
-            Datadog::Utils::MassTagger::RackResponse,
-            headers
-          )
         end
       end
     end
