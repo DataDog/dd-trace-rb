@@ -11,11 +11,11 @@ module Datadog
       def self.tag(request_span, whitelist, converter, source)
         return if whitelist.nil?
 
-        whitelist.each do |header|
-          tag_name = converter.name(header)
+        whitelist.each do |entry|
+          tag_name = converter.name(entry)
           next unless request_span.get_tag(tag_name).nil?
 
-          tag_value = converter.value(header, source)
+          tag_value = converter.value(entry, source)
           request_span.set_tag(tag_name, tag_value) if tag_value
         end
       end
