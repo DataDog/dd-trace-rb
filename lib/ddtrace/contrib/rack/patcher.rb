@@ -1,4 +1,4 @@
-require 'ddtrace/utils/mass_tagger'
+require 'ddtrace/utils/rack/headers_tagger_middleware'
 
 module Datadog
   module Contrib
@@ -24,7 +24,7 @@ module Datadog
           end
           value
         end
-        option :headers, default: Utils::MassTagger::DEFAULT_HEADERS
+        option :headers, default: Datadog::Utils::Rack::HeadersTaggerMiddleware::DEFAULT_HEADERS
 
         module_function
 

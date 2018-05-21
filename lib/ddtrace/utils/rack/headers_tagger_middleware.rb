@@ -1,19 +1,26 @@
 require 'ddtrace/utils/mass_tagger'
+require 'ddtrace/utils/base_tagger'
+require 'ddtrace/utils/rack/response_tagger'
+require 'ddtrace/utils/rack/request_tagger'
 
 module Datadog
   module Utils
     module Rack
-      class EnvSpanTaggerMiddleware
+      class HeadersTaggerMiddleware
+        DEFAULT_HEADERS = {
+            response: %w[Content-Type X-Request-ID]
+        }.freeze
+
         def initialize(app)
           @app = app
         end
 
         def call(env)
           span = request_span!(env)
-          Datadog::Utils::MassTagger.tag(span, request_headers_whitelist, Datadog::Utils::MassTagger::RackRequest, env)
+          Datadog::Utils::MassTagger.tag(span, request_headers_whitelist, RequestTagger.instance, env)
           _, headers, = @app.call(env)
         ensure
-          Datadog::Utils::MassTagger.tag(span, response_headers_whitelist, Datadog::Utils::MassTagger::RackResponse, headers)
+          Datadog::Utils::MassTagger.tag(span, response_headers_whitelist, ResponseTagger.instance, headers)
         end
 
         def request_span!(env)

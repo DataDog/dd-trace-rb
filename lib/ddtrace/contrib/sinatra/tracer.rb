@@ -34,7 +34,7 @@ module Datadog
         option :tracer, default: Datadog.tracer
         option :resource_script_names, default: false
         option :distributed_tracing, default: false
-        option :headers, default: Utils::MassTagger::DEFAULT_HEADERS
+        option :headers, default: Datadog::Utils::Rack::HeadersTaggerMiddleware::DEFAULT_HEADERS
 
         def route(verb, action, *)
           # Keep track of the route name when the app is instantiated for an
