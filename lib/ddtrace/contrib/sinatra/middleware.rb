@@ -1,9 +1,9 @@
-require 'ddtrace/utils/rack/headers_tagger_middleware'
+require 'ddtrace/contrib/rack/tagging/headers_middleware'
 
 module Datadog
   module Contrib
     module Sinatra
-      class Middleware < Datadog::Utils::Rack::HeadersTaggerMiddleware
+      class Middleware < Datadog::Contrib::Rack::Tagging::HeadersMiddleware
         ENV_REQUEST_SPAN = 'datadog.sinatra_request_span'.freeze
         TRACE_NAME = 'sinatra.request'.freeze
 

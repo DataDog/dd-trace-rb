@@ -2,7 +2,6 @@ module Datadog
   module Utils
     # Helper class to used to tag configured headers
     module MassTagger
-
       def self.tag(request_span, whitelist, tagger, source)
         return if whitelist.nil?
 
