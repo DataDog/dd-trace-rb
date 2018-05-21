@@ -40,7 +40,7 @@ module Datadog
           end
 
           def compatible?
-            return if ENV['DISABLE_DATADOG_RAILS']
+            return if ENV['DISABLE_DATADOG_RAILS'].match(/^(true|t|yes|y|1)?$/i)
 
             defined?(::Rails::VERSION) && ::Rails::VERSION::MAJOR.to_i >= 3
           end
