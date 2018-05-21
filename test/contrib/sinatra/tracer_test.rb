@@ -30,10 +30,6 @@ class TracerTest < TracerTestBase
     get '/literal-template' do
       erb '<%= msg %>', locals: { msg: 'hello' }
     end
-
-    before do
-      response.headers['X-Request-ID'] = 'request-id'
-    end
   end
 
   def app
@@ -80,7 +76,6 @@ class TracerTest < TracerTestBase
     assert_equal('GET', span.get_tag(Datadog::Ext::HTTP::METHOD))
     assert_equal('/request', span.get_tag(Datadog::Ext::HTTP::URL))
     assert_equal(Datadog::Ext::HTTP::TYPE, span.span_type)
-    assert_equal('request-id', span.get_tag('http.response.headers.x_request_id'))
 
     assert_equal(0, span.status)
     assert_nil(span.parent)
