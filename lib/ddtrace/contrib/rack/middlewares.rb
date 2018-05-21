@@ -2,7 +2,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/rack/request_queue'
-require 'ddtrace/contrib/rack/tagging/headers_middleware'
+require 'ddtrace/contrib/rack/tagging/request_span_middleware'
 
 module Datadog
   module Contrib
@@ -14,7 +14,7 @@ module Datadog
       # in the Rack environment so that it can be retrieved by the underlying
       # application. If request tags are not set by the app, they will be set using
       # information available at the Rack level.
-      class TraceMiddleware < Tagging::HeadersMiddleware
+      class TraceMiddleware < Tagging::RequestSpanMiddleware
         RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
 
         def compute_queue_time(env, tracer)

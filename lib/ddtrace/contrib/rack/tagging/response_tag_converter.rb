@@ -5,7 +5,7 @@ module Datadog
     module Rack
       module Tagging
         # Tag headers from Rack responses
-        class ResponseTagger < Datadog::Utils::BaseTagConverter
+        class ResponseTagConverter < Datadog::Utils::BaseTagConverter
           include Singleton
 
           def name(header)
@@ -20,7 +20,7 @@ module Datadog
             else
               # Try a case-insensitive lookup
               uppercased_header = header.to_s.upcase
-              _, matching_header_value = headers.find {|h,| h.upcase == uppercased_header}
+              _, matching_header_value = headers.find { |h,| h.upcase == uppercased_header }
               matching_header_value
             end
           end

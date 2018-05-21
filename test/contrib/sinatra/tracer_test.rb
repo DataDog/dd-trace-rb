@@ -277,6 +277,6 @@ class TracerTest < TracerTestBase
     assert_equal(0, span.status)
     assert_nil(span.parent)
   ensure
-    Datadog.configuration.use(:sinatra, headers: Datadog::Contrib::Rack::Tagging::HeadersMiddleware::DEFAULT_HEADERS)
+    Datadog.configuration.use(:sinatra, headers: Datadog::Contrib::Rack::Tagging::RequestSpanMiddleware::DEFAULT_HEADERS)
   end
 end

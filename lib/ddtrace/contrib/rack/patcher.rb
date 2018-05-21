@@ -1,4 +1,4 @@
-require 'ddtrace/contrib/rack/tagging/headers_middleware'
+require 'ddtrace/contrib/rack/tagging/request_span_middleware'
 
 module Datadog
   module Contrib
@@ -24,7 +24,7 @@ module Datadog
           end
           value
         end
-        option :headers, default: Datadog::Contrib::Rack::Tagging::HeadersMiddleware::DEFAULT_HEADERS
+        option :headers, default: Datadog::Contrib::Rack::Tagging::RequestSpanMiddleware::DEFAULT_HEADERS
 
         module_function
 

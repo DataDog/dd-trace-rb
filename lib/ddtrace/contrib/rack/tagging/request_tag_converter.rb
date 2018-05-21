@@ -5,7 +5,7 @@ module Datadog
     module Rack
       module Tagging
         # Tag headers from Rack requests
-        class RequestTagsssConverter < Datadog::Utils::BaseTagConverter
+        class RequestTagConverter < Datadog::Utils::BaseTagConverter
           include Singleton
 
           def name(header)

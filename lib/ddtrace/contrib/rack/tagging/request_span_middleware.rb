@@ -7,8 +7,8 @@ module Datadog
   module Contrib
     module Rack
       module Tagging
-        # Abstract middleware used for automatically tagging configured headers
-        class HeadersMiddleware
+        # Middleware used for automatically tagging configured headers and handle request span
+        class RequestSpanMiddleware
           DEFAULT_HEADERS = {
             response: %w[Content-Type X-Request-ID]
           }.freeze
@@ -22,7 +22,7 @@ module Datadog
             Datadog::Utils::Tagger.tag(span, request_headers_whitelist, RequestTagConverter.instance, env)
             _, headers, = @app.call(env)
           ensure
-            Datadog::Utils::Tagger.tag(span, response_headers_whitelist, ResponseTagger.instance, headers)
+            Datadog::Utils::Tagger.tag(span, response_headers_whitelist, ResponseTagConverter.instance, headers)
           end
 
           def request_span!(env)
