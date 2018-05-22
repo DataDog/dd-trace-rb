@@ -12,14 +12,10 @@ RSpec.describe 'net/http patcher' do
 
     stub_request(:any, host)
 
-    Datadog.registry[:http].instance_variable_set('@patched', false)
+    Datadog.registry[:http].reset_options!
     Datadog.configure do |c|
       c.use :http, tracer: tracer
     end
-  end
-
-  before :each do
-    tracer.writer.spans(:clean)
   end
 
   let(:request_span) do
@@ -28,7 +24,7 @@ RSpec.describe 'net/http patcher' do
 
   describe 'with default configuration' do
     it 'uses default service name' do
-      Net::HTTP.get(host)
+      Net::HTTP.get(host, '/')
 
       expect(request_span.service).to eq('net/http')
     end
@@ -44,7 +40,7 @@ RSpec.describe 'net/http patcher' do
     end
 
     it 'uses new service name' do
-      Net::HTTP.get(host)
+      Net::HTTP.get(host, '/')
 
       expect(request_span.service).to eq(new_service_name)
     end
