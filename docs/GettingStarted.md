@@ -514,7 +514,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | --- | --- |
-| ``service_name`` | Service name used for `http` instrumentation | http |
+| ``service_name`` | Service name used for `http` instrumentation | net/http |
 | ``distributed_tracing`` | Enables distributed tracing | ``false`` |
 
 If you wish to configure each connection object individually, you may use the ``Datadog.configure`` as it follows:

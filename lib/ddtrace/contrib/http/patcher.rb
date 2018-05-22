@@ -48,6 +48,7 @@ module Datadog
         include Base
         register_as :http, auto_patch: true
         option :distributed_tracing, default: false
+        option :service_name, default: SERVICE
 
         @patched = false
 
@@ -90,7 +91,9 @@ module Datadog
             end
 
             def initialize(*args)
-              pin = Datadog::Pin.new(SERVICE, app: APP, app_type: Datadog::Ext::AppTypes::WEB)
+              service = Datadog.configuration[:http][:service_name]
+
+              pin = Datadog::Pin.new(service, app: APP, app_type: Datadog::Ext::AppTypes::WEB)
               pin.onto(self)
               initialize_without_datadog(*args)
             end
