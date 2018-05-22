@@ -4,15 +4,15 @@ require 'net/http'
 
 RSpec.describe 'net/http patcher' do
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:host) { 'example.com' }
 
   before do
     WebMock.disable_net_connect!(allow_localhost: true)
     WebMock.enable!
 
-    stub_request(:any, /example.com/)
-    tracer.writer.spans(:clean)
-    Datadog.registry[:http].instance_variable_set('@patched', false)
+    stub_request(:any, host)
 
+    Datadog.registry[:http].instance_variable_set('@patched', false)
     Datadog.configure do |c|
       c.use :http, tracer: tracer
     end
@@ -28,7 +28,7 @@ RSpec.describe 'net/http patcher' do
 
   describe 'with default configuration' do
     it 'uses default service name' do
-      Net::HTTP.get('example.com', '/index.html').to_s
+      Net::HTTP.get(host)
 
       expect(request_span.service).to eq('net/http')
     end
@@ -44,7 +44,7 @@ RSpec.describe 'net/http patcher' do
     end
 
     it 'uses new service name' do
-      Net::HTTP.get('example.com', '/index.html').to_s
+      Net::HTTP.get(host)
 
       expect(request_span.service).to eq(new_service_name)
     end

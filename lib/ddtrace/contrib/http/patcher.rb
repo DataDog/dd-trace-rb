@@ -86,7 +86,8 @@ module Datadog
         # rubocop:disable Metrics/AbcSize
         def patch_http
           ::Net::HTTP.class_eval do
-            alias_method :initialize_without_datadog, :initialize unless private_instance_methods.include?(:initialize_without_datadog)
+            alias_method :initialize_without_datadog, :initialize unless private_instance_methods
+                                                                         .include?(:initialize_without_datadog)
 
             Datadog::Patcher.without_warnings do
               remove_method :initialize if private_instance_methods(false).include?(:initialize)
