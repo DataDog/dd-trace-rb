@@ -42,14 +42,13 @@ module Datadog
           request_span = request_span!(env)
           # TODO: For backwards compatibility; this attribute is deprecated.
           env[:datadog_rack_request_span] = request_span
-          original_env = env.dup
 
           # Add deprecation warnings
           add_deprecation_warnings(env)
 
           # Copy the original env, before the rest of the stack executes.
           # Values may change; we want values before that happens.
-          # original_env = env.dup
+          original_env = env.dup
 
           # call the rest of the stack
           status, headers, response = super(env)
