@@ -23,7 +23,7 @@ module Datadog
       # requests.
       module Tracer
         DEFAULT_HEADERS = {
-            response: %w[Content-Type X-Request-ID]
+          response: %w[Content-Type X-Request-ID]
         }.freeze
 
         include Base
@@ -55,7 +55,6 @@ module Datadog
           super
         end
 
-        # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/MethodLength
         def self.registered(app)
           ::Sinatra::Base.module_eval do

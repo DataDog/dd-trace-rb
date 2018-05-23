@@ -52,7 +52,7 @@ module Datadog
               else
                 # Try a case-insensitive lookup
                 uppercased_header = header.to_s.upcase
-                matching_header = headers.keys.find {|h| h.upcase == uppercased_header}
+                matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
                 if matching_header
                   result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
                 end
@@ -64,7 +64,6 @@ module Datadog
         def request_span!(env)
           env[SINATRA_REQUEST_SPAN] ||= build_request_span(env)
         end
-
 
         def build_request_span(env)
           tracer = configuration[:tracer]
