@@ -86,26 +86,24 @@ module Datadog
         # rubocop:disable Metrics/AbcSize
         def patch_http
           ::Net::HTTP.class_eval do
-            alias_method :initialize_without_datadog, :initialize
+            alias_method :request_without_datadog, :request
+            remove_method :request
 
-            Datadog::Patcher.without_warnings do
-              remove_method :initialize if private_instance_methods(false).include?(:initialize)
+            def datadog_fetch_pin
+              Datadog::Pin.get_from(self) || datadog_initialize_pin
             end
 
-            def initialize(*args)
+            def datadog_initialize_pin
               service = Datadog.configuration[:http][:service_name]
               tracer = Datadog.configuration[:http][:tracer]
 
               pin = Datadog::Pin.new(service, app: APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
               pin.onto(self)
-              initialize_without_datadog(*args)
+              pin
             end
 
-            alias_method :request_without_datadog, :request
-            remove_method :request
-
             def request(req, body = nil, &block) # :yield: +response+
-              pin = Datadog::Pin.get_from(self)
+              pin = datadog_fetch_pin
 
               return request_without_datadog(req, body, &block) unless pin && pin.tracer
 
