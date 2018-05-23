@@ -4,6 +4,7 @@ require 'contrib/sinatra/tracer_test_base'
 class TracerTest < TracerTestBase
   class TracerTestApp < Sinatra::Application
     get '/request' do
+      headers['X-Request-Id'] = request.env['HTTP_X_REQUEST_ID']
       'hello world'
     end
 
@@ -240,7 +241,29 @@ class TracerTest < TracerTestBase
     assert_nil(root.parent)
   end
 
-  def test_tagging_connection_headers
+  def test_tagging_default_connection_headers
+    request_id = SecureRandom.uuid
+    get '/request', {}, 'HTTP_X_REQUEST_ID' => request_id
+
+    assert_equal(200, last_response.status)
+
+    spans = @writer.spans
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('sinatra', span.service)
+    assert_equal('GET /request', span.resource)
+    assert_equal('GET', span.get_tag(Datadog::Ext::HTTP::METHOD))
+    assert_equal('/request', span.get_tag(Datadog::Ext::HTTP::URL))
+    assert_equal(Datadog::Ext::HTTP::TYPE, span.span_type)
+    assert_equal(request_id, span.get_tag('http.response.headers.x_request_id'))
+    assert_equal('text/html;charset=utf-8', span.get_tag('http.response.headers.content_type'))
+
+    assert_equal(0, span.status)
+    assert_nil(span.parent)
+  end
+
+  def test_tagging_configured_connection_headers
     Datadog.configuration.use(:sinatra,
                               headers: {
                                 response: ['Content-Type'],
@@ -272,6 +295,6 @@ class TracerTest < TracerTestBase
     assert_equal(0, span.status)
     assert_nil(span.parent)
   ensure
-    Datadog.configuration.use(:sinatra, headers: Datadog::Contrib::Rack::Tagging::RequestSpanMiddleware::DEFAULT_HEADERS)
+    Datadog.configuration.use(:sinatra, headers: Datadog::Contrib::Sinatra::Tracer::DEFAULT_HEADERS)
   end
 end
