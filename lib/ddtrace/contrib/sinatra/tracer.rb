@@ -1,4 +1,3 @@
-
 require 'sinatra/base'
 
 require 'ddtrace/ext/app_types'
@@ -6,11 +5,13 @@ require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
 
+require 'ddtrace/contrib/sinatra/request_span_middleware'
+
 sinatra_vs = Gem::Version.new(Sinatra::VERSION)
 sinatra_min_vs = Gem::Version.new('1.4.0')
 if sinatra_vs < sinatra_min_vs
   raise "sinatra version #{sinatra_vs} is not supported yet " \
-        + "(supporting versions >=#{sinatra_min_vs})"
+         + "(supporting versions >=#{sinatra_min_vs})"
 end
 
 Datadog::Tracer.log.info("activating instrumentation for sinatra #{sinatra_vs}")
@@ -21,6 +22,10 @@ module Datadog
       # Datadog::Contrib::Sinatra::Tracer is a Sinatra extension which traces
       # requests.
       module Tracer
+        DEFAULT_HEADERS = {
+            response: %w[Content-Type X-Request-ID]
+        }.freeze
+
         include Base
         register_as :sinatra
 
@@ -32,6 +37,7 @@ module Datadog
         option :tracer, default: Datadog.tracer
         option :resource_script_names, default: false
         option :distributed_tracing, default: false
+        option :headers, default: DEFAULT_HEADERS
 
         def route(verb, action, *)
           # Keep track of the route name when the app is instantiated for an
@@ -71,6 +77,8 @@ module Datadog
             end
           end
 
+          app.use RequestSpanMiddleware
+
           app.before do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
@@ -82,17 +90,7 @@ module Datadog
               end
             end
 
-            tracer = Datadog.configuration[:sinatra][:tracer]
-            distributed_tracing = Datadog.configuration[:sinatra][:distributed_tracing]
-
-            if distributed_tracing && tracer.provider.context.trace_id.nil?
-              context = HTTPPropagator.extract(request.env)
-              tracer.provider.context = context if context.trace_id
-            end
-
-            span = tracer.trace('sinatra.request',
-                                service: Datadog.configuration[:sinatra][:service_name],
-                                span_type: Datadog::Ext::HTTP::TYPE)
+            span = RequestSpanMiddleware.fetch_sinatra_trace(request.env)
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
 
