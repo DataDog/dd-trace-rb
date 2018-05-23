@@ -34,8 +34,6 @@ module Datadog
             connector
           end
 
-          private
-
           def load_pg_adapter!
             require 'pg'
 
