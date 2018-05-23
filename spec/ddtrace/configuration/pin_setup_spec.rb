@@ -29,8 +29,8 @@ RSpec.describe Datadog::Configuration::PinSetup do
       it do
         expect(target.datadog_pin.service).to eq('my-service')
         expect(target.datadog_pin.app).to eq('my-app')
-        expect(target.datadog_pin.tags).to eq({ env: :prod })
-        expect(target.datadog_pin.config).to eq({ distributed_tracing: true })
+        expect(target.datadog_pin.tags).to eq(env: :prod)
+        expect(target.datadog_pin.config).to eq(distributed_tracing: true)
         expect(target.datadog_pin.tracer).to eq(tracer)
       end
     end
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Configuration::PinSetup do
 
     it do
       expect(target.datadog_pin.service).to eq(:foo)
-      expect(target.datadog_pin.config).to eq({ extra: :bar })
+      expect(target.datadog_pin.config).to eq(extra: :bar)
     end
   end
 end

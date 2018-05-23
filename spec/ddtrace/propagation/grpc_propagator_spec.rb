@@ -16,7 +16,7 @@ RSpec.describe Datadog::GRPCPropagator do
 
     let(:metadata) { {} }
 
-    before { subject.inject!(span_context, metadata)}
+    before { subject.inject!(span_context, metadata) }
 
     it 'injects the context trace id into the gRPC metadata' do
       expect(metadata).to include('x-datadog-trace-id' => '1234567890')
@@ -41,12 +41,11 @@ RSpec.describe Datadog::GRPCPropagator do
     end
   end
 
-
   describe '.extract' do
     subject { described_class.extract(metadata) }
 
     context 'given empty metadata' do
-      let(:metadata)  { {} }
+      let(:metadata) { {} }
 
       it 'returns an empty context' do
         expect(subject.trace_id).to be_nil
@@ -63,8 +62,8 @@ RSpec.describe Datadog::GRPCPropagator do
       end
 
       it 'returns a populated context' do
-        expect(subject.trace_id).to eq 1234567890 
-        expect(subject.span_id).to eq 9876543210 
+        expect(subject.trace_id).to eq 1234567890
+        expect(subject.span_id).to eq 9876543210
         expect(subject.sampling_priority).to be_zero
       end
     end

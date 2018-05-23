@@ -1,4 +1,5 @@
 # encoding: utf-8
+
 require 'spec_helper'
 
 require 'ddtrace/quantization/hash'
@@ -12,12 +13,12 @@ RSpec.describe Datadog::Quantization::Hash do
       let(:hash) { { one: 'foo', two: 'bar', three: 'baz' } }
 
       context 'default behavior' do
-        it { is_expected.to eq({ one: '?', two: '?', three: '?' }) }
+        it { is_expected.to eq(one: '?', two: '?', three: '?') }
       end
 
       context 'with show: value' do
         let(:options) { { show: [:two] } }
-        it { is_expected.to eq({ one: '?', two: 'bar', three: '?' }) }
+        it { is_expected.to eq(one: '?', two: 'bar', three: '?') }
       end
 
       context 'with show: :all' do
@@ -27,7 +28,7 @@ RSpec.describe Datadog::Quantization::Hash do
 
       context 'with exclude: value' do
         let(:options) { { exclude: [:three] } }
-        it { is_expected.to eq({ one: '?', two: '?' }) }
+        it { is_expected.to eq(one: '?', two: '?') }
       end
 
       context 'with exclude: :all' do
@@ -37,7 +38,7 @@ RSpec.describe Datadog::Quantization::Hash do
     end
 
     context 'given an Array' do
-      let(:hash) { [ 'foo', 'bar', 'baz' ] }
+      let(:hash) { %w[foo bar baz] }
 
       context 'default behavior' do
         it { is_expected.to eq(['?']) }

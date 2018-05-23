@@ -24,20 +24,20 @@ RSpec.shared_context 'Rails base application' do
     middleware = rails_middleware
     debug_mw = debug_middleware
 
-    Proc.new do
+    proc do
       config.middleware.insert_after ActionDispatch::ShowExceptions, debug_mw
       middleware.each { |m| config.middleware.use m }
     end
   end
 
   let(:before_test_initialize_block) do
-    Proc.new do
+    proc do
       append_routes!
     end
   end
 
   let(:after_test_initialize_block) do
-    Proc.new do
+    proc do
       # Force connection to initialize, and dump some spans
       application_record.connection
     end

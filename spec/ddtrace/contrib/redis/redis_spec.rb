@@ -198,7 +198,7 @@ RSpec.describe 'Redis test' do
 
       it do
         expect(services).to have(1).items
-        expect(services[service_name]).to eq({ 'app' => 'redis', 'app_type' => 'cache' })
+        expect(services[service_name]).to eq('app' => 'redis', 'app_type' => 'cache')
       end
     end
   end

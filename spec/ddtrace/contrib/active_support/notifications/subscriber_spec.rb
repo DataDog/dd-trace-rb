@@ -27,7 +27,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
                 double('span name'),
                 double('options'),
                 double('tracer'),
-                &Proc.new { }
+                &proc {}
               )
 
               is_expected.to contain_exactly(subscription)
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
 
           context 'after #subscribe! has been called' do
             before(:each) do
-              test_class.send(:on_subscribe, &Proc.new { })
+              test_class.send(:on_subscribe, &proc {})
               test_class.send(:subscribe!)
             end
 
@@ -58,7 +58,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
 
             context 'when #on_subscribe' do
               context 'is defined' do
-                let(:on_subscribe_block) { Proc.new { spy.call } }
+                let(:on_subscribe_block) { proc { spy.call } }
                 let(:spy) { double(:spy) }
 
                 before(:each) { test_class.send(:on_subscribe, &on_subscribe_block) }
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
             let(:tracer) { double('tracer') }
-            let(:block) { Proc.new { } }
+            let(:block) { proc {} }
 
             before(:each) do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
             let(:tracer) { double('tracer') }
-            let(:block) { Proc.new { } }
+            let(:block) { proc {} }
 
             before(:each) do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)

@@ -28,7 +28,7 @@ RSpec.describe Datadog::Pin do
       it 'sets the service info' do
         expect(tracer.services.key?(service_name)).to be true
         expect(tracer.services[service_name]).to eq(
-          { 'app' => 'test-app', 'app_type' => 'test-type' }
+          'app' => 'test-app', 'app_type' => 'test-type'
         )
       end
     end

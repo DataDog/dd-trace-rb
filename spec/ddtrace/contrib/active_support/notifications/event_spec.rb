@@ -20,7 +20,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
 
     let(:event_name) { double('event_name') }
     let(:span_name) { double('span_name') }
-    let(:process_block) { Proc.new { spy.call } }
+    let(:process_block) { proc { spy.call } }
     let(:spy) { double(:spy) }
 
     describe 'class' do

@@ -26,7 +26,7 @@ RSpec.describe Datadog::Configurable do
         end
 
         context 'block' do
-          let(:block) { Proc.new { |value| "#{value.upcase}!" } }
+          let(:block) { proc { |value| "#{value.upcase}!" } }
           it { expect(configurable.get_option(name)).to eq('LOUD!') }
         end
       end
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Configurable do
         configurable.set_option(:y, 100)
       end
 
-      it { is_expected.to eq({ x: 1, y: 100 }) }
+      it { is_expected.to eq(x: 1, y: 100) }
     end
 
     describe '#sorted_options' do

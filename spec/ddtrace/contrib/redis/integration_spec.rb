@@ -29,8 +29,8 @@ RSpec.describe 'Redis integration test' do
   let(:port) { 46379 }
 
   it do
-    expect(redis.set 'FOO', 'bar').to eq('OK')
-    expect(redis.get 'FOO').to eq('bar')
+    expect(redis.set('FOO', 'bar')).to eq('OK')
+    expect(redis.get('FOO')).to eq('bar')
     try_wait_until(attempts: 30) { tracer.writer.stats[:traces_flushed] >= 2 }
     expect(tracer.writer.stats[:traces_flushed]).to be >= 2
   end

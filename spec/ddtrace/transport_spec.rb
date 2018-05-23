@@ -30,7 +30,7 @@ RSpec.describe Datadog::HTTPTransport do
   end
 
   describe '#send' do
-    before(:each) { skip "TEST_DATADOG_INTEGRATION not set." unless ENV['TEST_DATADOG_INTEGRATION'] }
+    before(:each) { skip 'TEST_DATADOG_INTEGRATION not set.' unless ENV['TEST_DATADOG_INTEGRATION'] }
 
     shared_examples_for 'an encoded transport' do
       context 'for a JSON-encoded transport' do

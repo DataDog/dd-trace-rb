@@ -38,6 +38,9 @@ Metrics/ClassLength:
 
 Metrics/BlockLength:
   Max: 42
+  Exclude:
+    - test/**/*
+    - spec/**/*
 
 Metrics/ParameterLists:
   Enabled: false

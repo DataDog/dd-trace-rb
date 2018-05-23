@@ -14,7 +14,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
   before(:each) do
     skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Patcher.compatible?
-    
+
     # Reset options (that might linger from other tests)
     Datadog.configuration[:rake].reset_options!
 
@@ -39,7 +39,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
   end
 
   let(:task_name) { :test_rake_instrumentation }
-  let(:task_body) { Proc.new { |task, args| spy.call(task, args) } }
+  let(:task_body) { proc { |task, args| spy.call(task, args) } }
   let(:task_arg_names) { [] }
   let(:task_class) do
     stub_const('RakeInstrumentationTestTask', Class.new(Rake::TaskLib)).tap do |task_class|
@@ -137,7 +137,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
       context 'with a prerequisite task' do
         let(:prerequisite_task_name) { :test_rake_instrumentation_prerequisite }
-        let(:prerequisite_task_body) { Proc.new { |task, args| prerequisite_spy.call(task, args) } }
+        let(:prerequisite_task_body) { proc { |task, args| prerequisite_spy.call(task, args) } }
         let(:prerequisite_spy) { double('prerequisite spy') }
         let(:prerequisite_task) { Rake::Task[prerequisite_task_name] }
 
