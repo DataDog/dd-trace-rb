@@ -89,22 +89,17 @@ module Datadog
             alias_method :request_without_datadog, :request
             remove_method :request
 
-            def datadog_fetch_pin
-              Datadog::Pin.get_from(self) || datadog_initialize_pin
-            end
+            def datadog_pin
+              @datadog_pindatadog_pin ||= begin
+                service = Datadog.configuration[:http][:service_name]
+                tracer = Datadog.configuration[:http][:tracer]
 
-            def datadog_initialize_pin
-              service = Datadog.configuration[:http][:service_name]
-              tracer = Datadog.configuration[:http][:tracer]
-
-              pin = Datadog::Pin.new(service, app: APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
-              pin.onto(self)
-              pin
+                Datadog::Pin.new(service, app: APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
+              end
             end
 
             def request(req, body = nil, &block) # :yield: +response+
-              pin = datadog_fetch_pin
-
+              pin = datadog_pin
               return request_without_datadog(req, body, &block) unless pin && pin.tracer
 
               transport = pin.tracer.writer.transport
