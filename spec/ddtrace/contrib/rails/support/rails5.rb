@@ -64,6 +64,7 @@ RSpec.shared_context 'Rails 5 base application' do
       initialize!
       after_test_init.call
     end
+    klass
   end
 
   def append_routes!
