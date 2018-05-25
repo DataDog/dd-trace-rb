@@ -7,7 +7,11 @@ require 'ddtrace'
 
 RSpec.describe 'Redis integration test' do
   # Use real tracer
-  let(:tracer) { Datadog::Tracer.new }
+  let(:tracer) do
+    Datadog::Tracer.new.tap do |tracer|
+      tracer.configure(hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost'))
+    end
+  end
 
   before(:each) do
     skip unless ENV['TEST_DATADOG_INTEGRATION']
