@@ -1,25 +1,30 @@
-require 'delayed/worker'
+require 'delayed/plugin'
 
 module Datadog
   module Contrib
     module DelayedJob
-      # instrument Delayed::Worker methods
-      module Instrumentation
-        def run(job)
+      class Plugin < Delayed::Plugin
+        def self.instrument(worker, job, &block)
           pin = Pin.get_from(::Delayed::Worker)
-          return super(job) unless pin && pin.tracer
+
+          return block.call(worker, job) unless pin && pin.tracer
 
           pin.tracer.trace('delayed.job', service: pin.service) do |span|
             span.resource = job.name
             span.set_tag('delayed.job.id', job.id)
-            span.set_tag('delayed.job.queue', job.queue)
+            span.set_tag('delayed.job.queue', job.queue) if job.queue
+            span.set_tag('delayed.job.priority', job.priority)
             span.set_tag('delayed.job.attempts', job.attempts)
             span.span_type = pin.app_type
 
-            super(job)
+            block.call(worker, job)
 
             span.service = pin.service
           end
+        end
+
+        callbacks do |lifecycle|
+          lifecycle.around(:perform, &method(:instrument))
         end
       end
     end
