@@ -5,7 +5,8 @@ require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
 
-require 'ddtrace/contrib/sinatra/request_span_middleware'
+require 'ddtrace/contrib/sinatra/header_tagger_middleware'
+require 'ddtrace/contrib/sinatra/request_span'
 
 sinatra_vs = Gem::Version.new(Sinatra::VERSION)
 sinatra_min_vs = Gem::Version.new('1.4.0')
@@ -76,7 +77,7 @@ module Datadog
             end
           end
 
-          app.use RequestSpanMiddleware
+          app.use HeaderTaggerMiddleware
 
           app.before do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
@@ -89,7 +90,7 @@ module Datadog
               end
             end
 
-            span = RequestSpanMiddleware.fetch_sinatra_trace(request.env)
+            span = RequestSpan.span!(request.env)
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
 
