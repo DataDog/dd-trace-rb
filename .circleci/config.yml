@@ -1,7 +1,7 @@
 version: 2.0
 jobs:
   checkout-1.9:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:1.9.3-ci
@@ -10,14 +10,12 @@ jobs:
       - save_cache:
           key: v1-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
   build-1.9:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:1.9.3-ci
-        environment:
-          - BUNDLE_PATH: /home/circleci/bundle
     steps:
       - restore_cache:
           keys:
@@ -43,18 +41,17 @@ jobs:
       - save_cache:
           key: v1-bundled-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
       - save_cache:
           key: v1-bundle-1.9-{{ checksum ".circleci/bundle_checksum" }}
           paths:
-            - /home/circleci/bundle
+            - /usr/local/bundle
   test-1.9:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:1.9.3-ci
         environment:
-          - BUNDLE_PATH: /home/circleci/bundle
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
         environment:
@@ -86,7 +83,7 @@ jobs:
           name: Run tests
           command: bundle exec rake ci
   checkout-2.0:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.0.0-ci
@@ -95,14 +92,12 @@ jobs:
       - save_cache:
           key: v1-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
   build-2.0:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.0.0-ci
-        environment:
-          - BUNDLE_PATH: /home/circleci/bundle
     steps:
       - restore_cache:
           keys:
@@ -128,18 +123,17 @@ jobs:
       - save_cache:
           key: v1-bundled-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
       - save_cache:
           key: v1-bundle-2.0-{{ checksum ".circleci/bundle_checksum" }}
           paths:
-            - /home/circleci/bundle
+            - /usr/local/bundle
   test-2.0:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.0.0-ci
         environment:
-          - BUNDLE_PATH: /home/circleci/bundle
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
         environment:
@@ -171,7 +165,7 @@ jobs:
           name: Run tests
           command: bundle exec rake ci
   checkout-2.1:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.1.10-ci
@@ -180,14 +174,12 @@ jobs:
       - save_cache:
           key: v1-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
   build-2.1:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.1.10-ci
-        environment:
-          - BUNDLE_PATH: /home/circleci/bundle
     steps:
       - restore_cache:
           keys:
@@ -213,18 +205,17 @@ jobs:
       - save_cache:
           key: v1-bundled-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
       - save_cache:
           key: v1-bundle-2.1-{{ checksum ".circleci/bundle_checksum" }}
           paths:
-            - /home/circleci/bundle
+            - /usr/local/bundle
   test-2.1:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.1.10-ci
         environment:
-          - BUNDLE_PATH: /home/circleci/bundle
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
         environment:
@@ -256,7 +247,7 @@ jobs:
           name: Run tests
           command: bundle exec rake ci
   checkout-2.2:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.2.10-ci
@@ -265,14 +256,12 @@ jobs:
       - save_cache:
           key: v1-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
   build-2.2:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.2.10-ci
-        environment:
-          - BUNDLE_PATH: /home/circleci/bundle
     steps:
       - restore_cache:
           keys:
@@ -298,18 +287,17 @@ jobs:
       - save_cache:
           key: v1-bundled-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
       - save_cache:
           key: v1-bundle-2.2-{{ checksum ".circleci/bundle_checksum" }}
           paths:
-            - /home/circleci/bundle
+            - /usr/local/bundle
   test-2.2:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.2.10-ci
         environment:
-          - BUNDLE_PATH: /home/circleci/bundle
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
         environment:
@@ -341,7 +329,7 @@ jobs:
           name: Run tests
           command: bundle exec rake ci
   checkout-2.3:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.3.7-ci
@@ -350,14 +338,12 @@ jobs:
       - save_cache:
           key: v1-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
   build-2.3:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.3.7-ci
-        environment:
-          - BUNDLE_PATH: /home/circleci/bundle
     steps:
       - restore_cache:
           keys:
@@ -383,18 +369,17 @@ jobs:
       - save_cache:
           key: v1-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
       - save_cache:
           key: v1-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}
           paths:
-            - /home/circleci/bundle
+            - /usr/local/bundle
   test-2.3:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.3.7-ci
         environment:
-          - BUNDLE_PATH: /home/circleci/bundle
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
         environment:
@@ -426,7 +411,7 @@ jobs:
           name: Run tests
           command: bundle exec rake ci
   checkout-2.4:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.4.4-ci
@@ -435,14 +420,12 @@ jobs:
       - save_cache:
           key: v1-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
   build-2.4:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.4.4-ci
-        environment:
-          - BUNDLE_PATH: /home/circleci/bundle
     steps:
       - restore_cache:
           keys:
@@ -468,18 +451,17 @@ jobs:
       - save_cache:
           key: v1-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - /home/circleci/DataDog/dd-trace-rb
+            - /app
       - save_cache:
           key: v1-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}
           paths:
-            - /home/circleci/bundle
+            - /usr/local/bundle
   test-2.4:
-    working_directory: ~/DataDog/dd-trace-rb
+    working_directory: /app
     shell: /bin/bash --login
     docker:
       - image: delner/dd-trace-rb:2.4.4-ci
         environment:
-          - BUNDLE_PATH: /home/circleci/bundle
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
         environment:

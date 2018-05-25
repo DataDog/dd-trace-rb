@@ -62,19 +62,12 @@ RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cac
 RUN gem update --system
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
-# Add CircleCI User
-RUN groupadd --gid 3434 circleci \
-  && useradd --uid 3434 --gid circleci --shell /bin/bash --create-home circleci \
-  && echo 'circleci ALL=NOPASSWD: ALL' >> /etc/sudoers.d/50-circleci \
-  && echo 'Defaults    env_keep += "DEBIAN_FRONTEND"' >> /etc/sudoers.d/env_keep
-
-USER circleci
-WORKDIR /home/circleci
-
-# Install Bundler
+# Install RubyGems
+RUN gem update --system
 RUN gem install bundler
-ENV BUNDLE_PATH /home/circleci/bundle
-ENV BUNDLE_BIN /home/circleci/bundle/bin
-ENV PATH $BUNDLE_BIN:$PATH
+ENV BUNDLE_SILENCE_ROOT_WARNING 1
+
+RUN mkdir /app
+WORKDIR /app
 
 CMD ["/bin/sh"]
