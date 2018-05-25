@@ -15,6 +15,10 @@ module Datadog
           end
         end
 
+        def self.custom_span_tags
+          @@custom_span_tags ||= {}
+        end
+
         def self.start_processing(payload)
           # trace the execution
           tracer = Datadog.configuration[:rails][:tracer]
@@ -49,6 +53,10 @@ module Datadog
 
             span.set_tag('rails.route.action', payload.fetch(:action))
             span.set_tag('rails.route.controller', payload.fetch(:controller))
+
+            custom_span_tags.each do |k, v|
+              span.set_tag(k, v)
+            end
 
             exception = payload[:exception_object]
             if exception.nil?
