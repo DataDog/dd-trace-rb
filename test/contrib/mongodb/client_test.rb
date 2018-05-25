@@ -4,8 +4,8 @@ require 'helper'
 # rubocop:disable Metrics/ClassLength
 # rubocop:disable Metrics/LineLength
 class MongoDBTest < Minitest::Test
-  MONGO_HOST = '127.0.0.1'.freeze
-  MONGO_PORT = 57017
+  MONGO_HOST = ENV.fetch('TEST_MONGODB_HOST', '127.0.0.1').freeze
+  MONGO_PORT = ENV.fetch('TEST_MONGODB_PORT', 27017).freeze
   MONGO_DB = 'test'.freeze
 
   def setup
@@ -76,8 +76,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('artists', span.get_tag('mongodb.collection'))
     assert_equal('1', span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
   end
 
   def test_drop_operation
@@ -92,8 +92,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('1', span.get_tag('mongodb.collection'))
     assert_nil(span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
   end
 
   def test_insert_array_operation
@@ -108,8 +108,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
     assert_equal('1', span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
   end
 
   def test_insert_many_array_operation
@@ -129,8 +129,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
     assert_equal('2', span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
   end
 
   def test_find_all
@@ -154,8 +154,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
     assert_nil(span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
   end
 
   def test_find_matching_document
@@ -177,8 +177,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
     assert_nil(span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
   end
 
   def test_update_one_document
@@ -200,8 +200,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
     assert_equal('1', span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
     # validity check
     assert_equal('555-555-5555', collection.find(name: 'Sally').first[:phone_number])
   end
@@ -229,8 +229,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
     assert_equal('2', span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
     # validity checks
     assert_equal('555-555-5555', collection.find(name: 'Sally').first[:phone_number])
     assert_equal('555-555-5555', collection.find(name: 'Steve').first[:phone_number])
@@ -255,8 +255,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
     assert_equal('1', span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
     # validity check
     assert_equal(0, collection.find(name: 'Sally').count)
   end
@@ -284,8 +284,8 @@ class MongoDBTest < Minitest::Test
     assert_equal('test', span.get_tag('mongodb.db'))
     assert_equal('people', span.get_tag('mongodb.collection'))
     assert_equal('2', span.get_tag('mongodb.rows'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
     # validity check
     assert_equal(0, collection.find(name: 'Sally').count)
     assert_equal(0, collection.find(name: 'Steve').count)
@@ -306,7 +306,7 @@ class MongoDBTest < Minitest::Test
     assert_nil(span.get_tag('mongodb.rows'))
     assert_equal(1, span.status)
     assert_equal('ns not found (26)', span.get_tag('error.msg'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('57017', span.get_tag('out.port'))
+    assert_equal(MONGO_HOST, span.get_tag('out.host'))
+    assert_equal(MONGO_PORT.to_s, span.get_tag('out.port'))
   end
 end
