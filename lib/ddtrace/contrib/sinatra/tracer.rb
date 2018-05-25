@@ -12,7 +12,7 @@ sinatra_vs = Gem::Version.new(Sinatra::VERSION)
 sinatra_min_vs = Gem::Version.new('1.4.0')
 if sinatra_vs < sinatra_min_vs
   raise "sinatra version #{sinatra_vs} is not supported yet " \
-         + "(supporting versions >=#{sinatra_min_vs})"
+          + "(supporting versions >=#{sinatra_min_vs})"
 end
 
 Datadog::Tracer.log.info("activating instrumentation for sinatra #{sinatra_vs}")
@@ -56,7 +56,6 @@ module Datadog
           super
         end
 
-        # rubocop:disable Metrics/MethodLength
         def self.registered(app)
           ::Sinatra::Base.module_eval do
             def render(engine, data, *)
@@ -82,39 +81,26 @@ module Datadog
           app.before do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            if instance_variable_defined? :@datadog_request_span
-              if @datadog_request_span
-                Datadog::Tracer.log.error('request span active in :before hook')
-                @datadog_request_span.finish()
-                @datadog_request_span = nil
-              end
-            end
-
             span = RequestSpan.span!(request.env)
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
-
-            @datadog_request_span = span
           end
 
           app.after do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            span = @datadog_request_span
-            begin
-              unless span
-                Datadog::Tracer.log.error('missing request span in :after hook')
-                return
-              end
+            span = RequestSpan.fetch_span(request.env)
 
-              span.resource = "#{request.request_method} #{@datadog_route}"
-              span.set_tag('sinatra.route.path', @datadog_route)
-              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
-              span.set_error(env['sinatra.error']) if response.server_error?
-              span.finish()
-            ensure
-              @datadog_request_span = nil
+            unless span
+              Datadog::Tracer.log.error('missing request span in :after hook')
+              return
             end
+
+            span.resource = "#{request.request_method} #{@datadog_route}"
+            span.set_tag('sinatra.route.path', @datadog_route)
+            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
+            span.set_error(env['sinatra.error']) if response.server_error?
+            span.finish
           end
         end
       end

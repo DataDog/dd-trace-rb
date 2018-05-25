@@ -12,6 +12,10 @@ module Datadog
           env[SINATRA_REQUEST_SPAN] ||= build_span(env)
         end
 
+        def fetch_span(env)
+          env[SINATRA_REQUEST_SPAN]
+        end
+
         def build_span(env)
           tracer = configuration[:tracer]
           distributed_tracing = configuration[:distributed_tracing]
