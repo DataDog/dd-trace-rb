@@ -3,7 +3,7 @@
 source "https://rubygems.org"
 
 gem "pry-nav", git: "https://github.com/nixme/pry-nav.git", branch: "master"
-gem "rails", "5.1.5"
+gem "rails", "~> 5.1.6"
 gem "pg", "< 1.0", platform: :ruby
 
 gemspec path: "../"
