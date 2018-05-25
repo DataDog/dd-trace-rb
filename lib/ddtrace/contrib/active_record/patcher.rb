@@ -21,6 +21,7 @@ module Datadog
           end
         end
         option :orm_service_name
+        option :trace_events, default: [:instantiation, :sql]
         option :tracer, default: Datadog.tracer do |value|
           (value || Datadog.tracer).tap do |v|
             # Make sure to update tracers of all subscriptions
@@ -34,16 +35,18 @@ module Datadog
 
         on_subscribe do
           # sql.active_record
-          subscribe(
-            self::NAME_SQL,                         # Event name
-            'active_record.sql',                    # Span name
-            { service: get_option(:service_name) }, # Span options
-            get_option(:tracer),                    # Tracer
-            &method(:sql)                           # Handler
-          )
+          if get_option(:trace_events).include?(:sql)
+            subscribe(
+              self::NAME_SQL,                         # Event name
+              'active_record.sql',                    # Span name
+              { service: get_option(:service_name) }, # Span options
+              get_option(:tracer),                    # Tracer
+              &method(:sql)                           # Handler
+            )
+          end
 
           # instantiation.active_record
-          if instantiation_tracing_supported?
+          if get_option(:trace_events).include?(:instantiation) && instantiation_tracing_supported?
             subscribe(
               self::NAME_INSTANTIATION,               # Event name
               'active_record.instantiation',          # Span name
