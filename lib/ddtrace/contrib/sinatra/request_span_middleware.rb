@@ -12,17 +12,20 @@ module Datadog
 
         def call(env)
           span = request_span!(env)
-          _, headers, = @app.call(env)
-        ensure
+
           # Request headers
           parse_request_headers(env).each do |name, value|
             span.set_tag(name, value) if span.get_tag(name).nil?
           end
 
+          status, headers, response_body = @app.call(env)
+
           # Response headers
           parse_response_headers(headers).each do |name, value|
             span.set_tag(name, value) if span.get_tag(name).nil?
           end
+
+          [status, headers, response_body]
         end
 
         def self.fetch_sinatra_trace(env)
