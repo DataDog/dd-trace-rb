@@ -21,7 +21,7 @@ module Datadog
 
             # Returns whether subscriptions have been activated, via #subscribe!
             def subscribed?
-              @subscriptions.size > 0
+              !@subscriptions.empty?
             end
 
             def unsubscribe_all
