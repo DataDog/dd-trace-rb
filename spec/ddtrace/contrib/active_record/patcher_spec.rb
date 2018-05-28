@@ -186,20 +186,26 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
     end
   end
 
-  #
-  # context 'when service_name' do
-  #   let(:query_span) { spans.first }
-  #
-  #   context 'is not set' do
-  #     let(:configuration_options) { super().merge(service_name: nil) }
-  #     it { expect(query_span.service).to eq('mysql2') }
-  #   end
-  #
-  #   context 'is set' do
-  #     let(:service_name) { 'test_active_record' }
-  #     let(:configuration_options) { super().merge(service_name: service_name) }
-  #
-  #     it { expect(query_span.service).to eq(service_name) }
-  #   end
-  # end
+  context 'when service_name' do
+    let(:query_span) { spans.first }
+
+    context 'is not set' do
+      let(:configuration_options) { super().merge(service_name: nil) }
+      it 'uses default service name' do
+        Article.count
+
+        expect(query_span.service).to eq('mysql2')
+      end
+    end
+
+    context 'is set' do
+      let(:service_name) { 'test_active_record' }
+      let(:configuration_options) { super().merge(service_name: service_name) }
+
+      it 'uses configured service name' do
+        Article.count
+        expect(query_span.service).to eq(service_name)
+      end
+    end
+  end
 end
