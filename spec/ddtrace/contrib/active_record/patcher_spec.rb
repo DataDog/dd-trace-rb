@@ -5,7 +5,7 @@ require_relative 'app'
 
 RSpec.describe 'ActiveRecord instrumentation' do
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { { tracer: tracer, trace_events: [:instantiation] } }
 
   before(:each) do
     # Prevent extra spans during tests
