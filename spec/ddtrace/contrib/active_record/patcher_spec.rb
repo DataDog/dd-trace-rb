@@ -2,18 +2,18 @@ require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/contrib/active_record/patcher'
 
-
 require_relative 'app'
 
 RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
-  let(:tracer) {::Datadog::Tracer.new(writer: FauxWriter.new)}
-  let(:services) {tracer.writer.services}
-  let(:configuration_options) {{tracer: tracer}}
+  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:services) { tracer.writer.services }
+  let(:configuration_options) { { tracer: tracer } }
 
-  let(:spans) {tracer.writer.spans}
+  let(:spans) { tracer.writer.spans }
 
   before do
-    Article.count
+    # prepopulate db
+    Article.create(title: :test)
 
     described_class.unsubscribe_all
 
@@ -26,8 +26,8 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
   end
 
   describe 'simple query' do
-    subject(:query) {Article.count}
-    let(:span) {spans.first}
+    subject(:query) { Article.count }
+    let(:span) { spans.first }
 
     shared_examples_for 'having only sql span' do
       it 'sends mysql2 service trace' do
@@ -66,13 +66,13 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
     it_behaves_like 'having only sql span'
 
     context 'when tracing only sql events' do
-      let(:configuration_options) {{tracer: tracer, trace_events: [:sql]}}
+      let(:configuration_options) { { tracer: tracer, trace_events: [:sql] } }
 
       it_behaves_like 'having only sql span'
     end
 
     context 'when tracing only instantiations' do
-      let(:configuration_options) {{tracer: tracer, trace_events: [:instantiation]}}
+      let(:configuration_options) { { tracer: tracer, trace_events: [:instantiation] } }
 
       it "doesn't create any spans" do
         query
@@ -83,10 +83,10 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
   end
 
   describe 'creating model instance' do
-    let(:article) {Article.create(title: :test)}
-    let(:sql_spans) {spans.select {|s| s.name == 'mysql2.query'}}
-    let(:instantation_spans) {spans.select {|s| s.name != 'mysql2.query'}}
+    let(:article) { Article.first }
 
+    let(:sql_spans) { spans.select { |s| s.name == 'mysql2.query' } }
+    let(:instantation_spans) { spans.select { |s| s.name == 'active_record.instantiation' } }
 
     shared_examples_for 'having sql spans' do
       it 'creates multiple spans' do
@@ -127,12 +127,34 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
     end
 
     shared_examples_for 'having instantation span' do
+      let(:span) { spans.first }
+
       it 'has exactly one instantation span' do
         article
 
         expect(instantation_spans.size).to eq(1)
-        expect(instantation_spans.first.name).to eq("fas")
+      end
 
+      it 'sends service trace' do
+        article
+
+        expect(services['mysql2']).to eq('app' => 'active_record', 'app_type' => 'db')
+      end
+
+      it 'creates span describing the instantiation' do
+        article
+
+        expect(span.service).to eq('active_record')
+        expect(span.name).to eq('active_record.instantiation')
+        expect(span.span_type).to eq('custom')
+        expect(span.resource).to eq('Article')
+      end
+
+      it 'tags span' do
+        article
+
+        expect(span.get_tag('active_record.instantiation.class_name')).to eq('Article')
+        expect(span.get_tag('active_record.instantiation.record_count')).to eq('1')
       end
     end
 
@@ -140,7 +162,7 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
     it_behaves_like 'having instantation span'
 
     context 'when tracing only sql spans' do
-      let(:configuration_options) {{tracer: tracer, trace_events: [:sql]}}
+      let(:configuration_options) { { tracer: tracer, trace_events: [:sql] } }
 
       it_behaves_like 'having sql spans'
 
@@ -152,7 +174,9 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
     end
 
     context 'when tracing only instantiations' do
-      let(:configuration_options) {{tracer: tracer, trace_events: [:instantiation]}}
+      let(:configuration_options) { { tracer: tracer, trace_events: [:instantiation] } }
+
+      it_behaves_like 'having instantation span'
 
       it "doesn't create any sql spans" do
         article
@@ -162,29 +186,6 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
     end
   end
 
-  context 'when tracing only instantiation events' do
-    let(:configuration_options) {{tracer: tracer, trace_events: [:instantiation]}}
-    let!(:article) {Article.create(title: :test)}
-
-    it 'successfully traces active record' do
-      expect(Article.first.title).to eq('test')
-      expect(Article.count).to eq(1)
-      expect(spans.size).to eq(1)
-
-      services = tracer.writer.services
-
-      # expect service and trace is sent
-      expect(services['mysql2']).to eq('app' => 'active_record', 'app_type' => 'db')
-
-      span = spans[0]
-      expect(span.service).to eq('active_record')
-      expect(span.name).to eq('active_record.instantiation')
-      expect(span.span_type).to eq('custom')
-      expect(span.resource).to eq('Article')
-      expect(span.get_tag('active_record.instantiation.class_name')).to eq('Article')
-      expect(span.get_tag('active_record.instantiation.record_count')).to eq('1')
-    end
-  end
   #
   # context 'when service_name' do
   #   let(:query_span) { spans.first }
