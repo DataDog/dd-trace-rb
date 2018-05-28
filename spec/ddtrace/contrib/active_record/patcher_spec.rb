@@ -1,4 +1,6 @@
 require 'spec_helper'
+require 'support/database_cleaner'
+
 require 'ddtrace'
 require 'ddtrace/contrib/active_record/patcher'
 
