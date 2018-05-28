@@ -1,66 +1,174 @@
 require 'spec_helper'
 require 'ddtrace'
+require 'ddtrace/contrib/active_record/patcher'
+
 
 require_relative 'app'
 
-RSpec.describe 'ActiveRecord instrumentation' do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
-  let(:configuration_options) { { tracer: tracer } }
+RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
+  let(:tracer) {::Datadog::Tracer.new(writer: FauxWriter.new)}
+  let(:services) {tracer.writer.services}
+  let(:configuration_options) {{tracer: tracer}}
 
-  subject(:spans) do
-    Article.count
-    tracer.writer.spans
-  end
+  let(:spans) {tracer.writer.spans}
 
-  before(:each) do
-    # Prevent extra spans during tests
+  before do
     Article.count
 
-    # Reset options (that might linger from other tests)
+    described_class.unsubscribe_all
+
     Datadog.configuration[:active_record].reset_options!
+    described_class.instance_variable_set(:@patched, false)
 
     Datadog.configure do |c|
       c.use :active_record, configuration_options
     end
   end
 
-  after(:each) do
-    Datadog.configuration[:active_record].reset_options!
-  end
+  describe 'simple query' do
+    subject(:query) {Article.count}
+    let(:span) {spans.first}
 
-  it 'calls the instrumentation when is used standalone' do
-    expect(spans.size).to eq(1)
+    shared_examples_for 'having only sql span' do
+      it 'sends mysql2 service trace' do
+        query
 
-    services = tracer.writer.services
+        expect(services['mysql2']).to eq('app' => 'active_record', 'app_type' => 'db')
+      end
 
-    # expect service and trace is sent
-    expect(services['mysql2']).to eq('app' => 'active_record', 'app_type' => 'db')
+      it 'creates exactly once span' do
+        query
 
-    span = spans[0]
-    expect(span.service).to eq('mysql2')
-    expect(span.name).to eq('mysql2.query')
-    expect(span.span_type).to eq('sql')
-    expect(span.resource.strip).to eq('SELECT COUNT(*) FROM `articles`')
-    expect(span.get_tag('active_record.db.vendor')).to eq('mysql2')
-    expect(span.get_tag('active_record.db.name')).to eq('mysql')
-    expect(span.get_tag('active_record.db.cached')).to eq(nil)
-    expect(span.get_tag('out.host')).to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
-    expect(span.get_tag('out.port')).to eq(ENV.fetch('TEST_MYSQL_PORT', 3306).to_s)
-    expect(span.get_tag('sql.query')).to eq(nil)
-  end
+        expect(spans.size).to eq(1)
+      end
 
-  context 'when tracing only sql events' do
-    let(:configuration_options) { { tracer: tracer, trace_events: [:sql] } }
+      it 'creates span describing the query' do
+        query
 
-    before(:each) do
-      Datadog.configure do |c|
-        c.use :active_record, configuration_options
+        expect(span.service).to eq('mysql2')
+        expect(span.name).to eq('mysql2.query')
+        expect(span.span_type).to eq('sql')
+        expect(span.resource.strip).to eq('SELECT COUNT(*) FROM `articles`')
+      end
+
+      it 'tags the span' do
+        query
+
+        expect(span.get_tag('active_record.db.vendor')).to eq('mysql2')
+        expect(span.get_tag('active_record.db.name')).to eq('mysql')
+        expect(span.get_tag('active_record.db.cached')).to eq(nil)
+        expect(span.get_tag('out.host')).to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
+        expect(span.get_tag('out.port')).to eq(ENV.fetch('TEST_MYSQL_PORT', 3306).to_s)
+        expect(span.get_tag('sql.query')).to eq(nil)
       end
     end
 
-    let(:query_span) { spans.first }
+    it_behaves_like 'having only sql span'
+
+    context 'when tracing only sql events' do
+      let(:configuration_options) {{tracer: tracer, trace_events: [:sql]}}
+
+      it_behaves_like 'having only sql span'
+    end
+
+    context 'when tracing only instantiations' do
+      let(:configuration_options) {{tracer: tracer, trace_events: [:instantiation]}}
+
+      it "doesn't create any spans" do
+        query
+
+        expect(spans.size).to eq(0)
+      end
+    end
+  end
+
+  describe 'creating model instance' do
+    let(:article) {Article.create(title: :test)}
+    let(:sql_spans) {spans.select {|s| s.name == 'mysql2.query'}}
+    let(:instantation_spans) {spans.select {|s| s.name != 'mysql2.query'}}
+
+
+    shared_examples_for 'having sql spans' do
+      it 'creates multiple spans' do
+        article
+
+        expect(sql_spans.size).to be > 0
+      end
+
+      it 'sends mysql service trace' do
+        article
+
+        expect(services['mysql2']).to eq('app' => 'active_record', 'app_type' => 'db')
+      end
+
+      it 'creates spans describing the query' do
+        article
+
+        sql_spans.each do |span|
+          expect(span.service).to eq('mysql2')
+          expect(span.name).to eq('mysql2.query')
+          expect(span.span_type).to eq('sql')
+          expect(span.resource).not_to be_nil
+        end
+      end
+
+      it 'tags all spans' do
+        article
+
+        sql_spans.each do |span|
+          expect(span.get_tag('active_record.db.vendor')).to eq('mysql2')
+          expect(span.get_tag('active_record.db.name')).to eq('mysql')
+          expect(span.get_tag('active_record.db.cached')).to eq(nil)
+          expect(span.get_tag('out.host')).to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
+          expect(span.get_tag('out.port')).to eq(ENV.fetch('TEST_MYSQL_PORT', 3306).to_s)
+          expect(span.get_tag('sql.query')).to eq(nil)
+        end
+      end
+    end
+
+    shared_examples_for 'having instantation span' do
+      it 'has exactly one instantation span' do
+        article
+
+        expect(instantation_spans.size).to eq(1)
+        expect(instantation_spans.first.name).to eq("fas")
+
+      end
+    end
+
+    it_behaves_like 'having sql spans'
+    it_behaves_like 'having instantation span'
+
+    context 'when tracing only sql spans' do
+      let(:configuration_options) {{tracer: tracer, trace_events: [:sql]}}
+
+      it_behaves_like 'having sql spans'
+
+      it "doesn't have instantation spans" do
+        article
+
+        expect(instantation_spans.size).to eq(0)
+      end
+    end
+
+    context 'when tracing only instantiations' do
+      let(:configuration_options) {{tracer: tracer, trace_events: [:instantiation]}}
+
+      it "doesn't create any sql spans" do
+        article
+
+        expect(sql_spans.size).to eq(0)
+      end
+    end
+  end
+
+  context 'when tracing only instantiation events' do
+    let(:configuration_options) {{tracer: tracer, trace_events: [:instantiation]}}
+    let!(:article) {Article.create(title: :test)}
 
     it 'successfully traces active record' do
+      expect(Article.first.title).to eq('test')
+      expect(Article.count).to eq(1)
       expect(spans.size).to eq(1)
 
       services = tracer.writer.services
@@ -69,35 +177,28 @@ RSpec.describe 'ActiveRecord instrumentation' do
       expect(services['mysql2']).to eq('app' => 'active_record', 'app_type' => 'db')
 
       span = spans[0]
-      expect(span.service).to eq('mysql2')
-      expect(span.name).to eq('mysql2.query')
-      expect(span.span_type).to eq('sql')
-      expect(span.resource.strip).to eq('SELECT COUNT(*) FROM `articles`')
-      expect(span.get_tag('active_record.db.vendor')).to eq('mysql2')
-      expect(span.get_tag('active_record.db.name')).to eq('mysql')
-      expect(span.get_tag('active_record.db.cached')).to eq(nil)
-      expect(span.get_tag('out.host')).to eq('127.0.0.1')
-      expect(span.get_tag('out.port')).to eq('53306')
-      expect(span.get_tag('sql.query')).to eq(nil)
+      expect(span.service).to eq('active_record')
+      expect(span.name).to eq('active_record.instantiation')
+      expect(span.span_type).to eq('custom')
+      expect(span.resource).to eq('Article')
+      expect(span.get_tag('active_record.instantiation.class_name')).to eq('Article')
+      expect(span.get_tag('active_record.instantiation.record_count')).to eq('1')
     end
   end
-
-
-
-
-  context 'when service_name' do
-    let(:query_span) { spans.first }
-
-    context 'is not set' do
-      let(:configuration_options) { super().merge(service_name: nil) }
-      it { expect(query_span.service).to eq('mysql2') }
-    end
-
-    context 'is set' do
-      let(:service_name) { 'test_active_record' }
-      let(:configuration_options) { super().merge(service_name: service_name) }
-
-      it { expect(query_span.service).to eq(service_name) }
-    end
-  end
+  #
+  # context 'when service_name' do
+  #   let(:query_span) { spans.first }
+  #
+  #   context 'is not set' do
+  #     let(:configuration_options) { super().merge(service_name: nil) }
+  #     it { expect(query_span.service).to eq('mysql2') }
+  #   end
+  #
+  #   context 'is set' do
+  #     let(:service_name) { 'test_active_record' }
+  #     let(:configuration_options) { super().merge(service_name: service_name) }
+  #
+  #     it { expect(query_span.service).to eq(service_name) }
+  #   end
+  # end
 end

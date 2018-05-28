@@ -21,7 +21,12 @@ module Datadog
 
             # Returns whether subscriptions have been activated, via #subscribe!
             def subscribed?
-              subscribed == true
+              @subscriptions.size > 0
+            end
+
+            def unsubscribe_all
+              subscriptions.each(&:unsubscribe_all)
+              @subscriptions = Set.new
             end
 
             protected
@@ -37,7 +42,6 @@ module Datadog
             def subscribe!
               return subscribed? if subscribed? || on_subscribe_block.nil?
               on_subscribe_block.call
-              @subscribed = true
             end
 
             # Creates a subscription and immediately activates it.
@@ -57,7 +61,7 @@ module Datadog
 
             private
 
-            attr_reader :subscribed, :on_subscribe_block
+            attr_reader :on_subscribe_block
           end
         end
       end
