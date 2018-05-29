@@ -21,7 +21,7 @@ module Datadog
 
             # Returns whether subscriptions have been activated, via #subscribe!
             def subscribed?
-              !@subscriptions.empty?
+              !subscriptions.empty?
             end
 
             def unsubscribe_all
@@ -41,7 +41,7 @@ module Datadog
             # Should be triggered by the inheriting class.
             def subscribe!
               return subscribed? if subscribed? || on_subscribe_block.nil?
-              on_subscribe_block.call
+              instance_eval &on_subscribe_block
             end
 
             # Creates a subscription and immediately activates it.
