@@ -10,7 +10,7 @@ module Datadog
           end
 
           def fetch(key, value)
-            return get(key) if original.has_key?(key)
+            return get(key) if original.key?(key)
             value.tap { set(key, value) }
           end
 
