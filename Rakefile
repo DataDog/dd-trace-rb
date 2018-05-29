@@ -142,7 +142,7 @@ end
 if RUBY_VERSION >= '2.1.0'
   RuboCop::RakeTask.new(:rubocop) do |t|
     t.options << ['-D']
-    t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
+    t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'spec/**/*.rb', 'Gemfile', 'Rakefile']
   end
 end
 

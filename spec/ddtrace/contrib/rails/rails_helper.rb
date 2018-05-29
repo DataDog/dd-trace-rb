@@ -51,7 +51,7 @@ logger.info "Testing against Rails #{Rails.version} with adapter '#{adapter}'"
 #
 #   let(:routes) { { '/' => 'test#index' } }
 #   let(:controllers) { [controller] }
-#   
+#
 #   let(:controller) do
 #     stub_const('TestController', Class.new(ActionController::Base) do
 #       def index
@@ -82,7 +82,7 @@ logger.info "Testing against Rails #{Rails.version} with adapter '#{adapter}'"
 #   include_context 'Rails test application'
 #
 #   let(:rails_middleware) { [middleware] }
-#   
+#
 #   let(:middleware) do
 #     stub_const('TestMiddleware', Class.new do
 #       def initialize(app)
