@@ -6,6 +6,13 @@ require 'ddtrace/contrib/active_record/patcher'
 
 require_relative 'app'
 
+RSpec.configure do |config|
+  config.around(:example, :skip_when_unsupported) do |ex|
+    ex.run if Gem.loaded_specs['activerecord'] \
+            && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
+  end
+end
+
 RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
   let(:services) { tracer.writer.services }
@@ -128,8 +135,8 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
       end
     end
 
-    shared_examples_for 'having instantation span' do
-      let(:span) { spans.first }
+    shared_examples_for 'having instantation span', :skip_when_unsupported do
+      let(:span) { instantation_spans.first }
 
       it 'has exactly one instantation span' do
         article
