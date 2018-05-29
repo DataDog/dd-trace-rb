@@ -196,6 +196,9 @@ jobs:
           name: Install gem dependencies
           command: bundle install
       - run:
+          name: Delint with Rubocop
+          command: bundle exec rake rubocop
+      - run:
           name: Install Appraisal gems
           command: bundle exec appraisal install
       - run:
@@ -277,6 +280,9 @@ jobs:
       - run:
           name: Install gem dependencies
           command: bundle install
+      - run:
+          name: Delint with Rubocop
+          command: bundle exec rake rubocop
       - run:
           name: Install Appraisal gems
           command: bundle exec appraisal install
@@ -360,6 +366,9 @@ jobs:
           name: Install gem dependencies
           command: bundle install
       - run:
+          name: Delint with Rubocop
+          command: bundle exec rake rubocop
+      - run:
           name: Install Appraisal gems
           command: bundle exec appraisal install
       - run:
@@ -441,6 +450,9 @@ jobs:
       - run:
           name: Install gem dependencies
           command: bundle install
+      - run:
+          name: Delint with Rubocop
+          command: bundle exec rake rubocop
       - run:
           name: Install Appraisal gems
           command: bundle exec appraisal install

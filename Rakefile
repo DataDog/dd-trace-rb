@@ -196,6 +196,7 @@ task :'release:docs' => :docs do
   sh "aws s3 cp --recursive doc/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
 end
 
+# rubocop:disable Style/YodaCondition
 desc 'CI task; it runs all tests for current version of Ruby'
 task :ci do
   if RUBY_VERSION < '1.9.3'
