@@ -52,7 +52,7 @@ Metrics/PerceivedComplexity:
   Max: 15
 
 Lint/UnusedMethodArgument:
-    Enabled: false
+  Enabled: false
 
 # Disabling advices that would lead to incompatible Ruby 1.9 code
 Style/SymbolArray:

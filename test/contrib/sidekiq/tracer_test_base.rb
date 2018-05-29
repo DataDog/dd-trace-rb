@@ -5,8 +5,8 @@ require 'ddtrace/contrib/sidekiq/tracer'
 require 'helper'
 
 class TracerTestBase < Minitest::Test
-  REDIS_HOST = '127.0.0.1'.freeze()
-  REDIS_PORT = 46379
+  REDIS_HOST = ENV.fetch('TEST_REDIS_HOST', '127.0.0.1').freeze
+  REDIS_PORT = ENV.fetch('TEST_REDIS_PORT', 6379)
 
   def setup
     @writer = FauxWriter.new()

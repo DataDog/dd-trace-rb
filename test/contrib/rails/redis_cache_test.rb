@@ -1,4 +1,6 @@
-ENV['REDIS_URL'] = 'redis://127.0.0.1:46379'
+host = ENV.fetch('TEST_REDIS_HOST', '127.0.0.1')
+port = ENV.fetch('TEST_REDIS_PORT', 6379)
+ENV['REDIS_URL'] = "redis://#{host}:#{port}"
 
 # It's important that there's *NO* "require 'redis-rails'" or
 # even "require 'redis'" here. Because people using Rails do not
