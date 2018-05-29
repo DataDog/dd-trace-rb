@@ -4,7 +4,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:1.9.3-ci
+      - image: datadog/docker-library:ddtrace_rb_1_9_3
     steps:
       - checkout
       - save_cache:
@@ -15,7 +15,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:1.9.3-ci
+      - image: datadog/docker-library:ddtrace_rb_1_9_3
     steps:
       - restore_cache:
           keys:
@@ -50,7 +50,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:1.9.3-ci
+      - image: datadog/docker-library:ddtrace_rb_1_9_3
         environment:
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
@@ -86,7 +86,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.0.0-ci
+      - image: datadog/docker-library:ddtrace_rb_2_0_0
     steps:
       - checkout
       - save_cache:
@@ -97,7 +97,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.0.0-ci
+      - image: datadog/docker-library:ddtrace_rb_2_0_0
     steps:
       - restore_cache:
           keys:
@@ -132,7 +132,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.0.0-ci
+      - image: datadog/docker-library:ddtrace_rb_2_0_0
         environment:
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
@@ -168,7 +168,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.1.10-ci
+      - image: datadog/docker-library:ddtrace_rb_2_1_10
     steps:
       - checkout
       - save_cache:
@@ -179,7 +179,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.1.10-ci
+      - image: datadog/docker-library:ddtrace_rb_2_1_10
     steps:
       - restore_cache:
           keys:
@@ -217,7 +217,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.1.10-ci
+      - image: datadog/docker-library:ddtrace_rb_2_1_10
         environment:
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
@@ -253,7 +253,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.2.10-ci
+      - image: datadog/docker-library:ddtrace_rb_2_2_10
     steps:
       - checkout
       - save_cache:
@@ -264,7 +264,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.2.10-ci
+      - image: datadog/docker-library:ddtrace_rb_2_2_10
     steps:
       - restore_cache:
           keys:
@@ -302,7 +302,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.2.10-ci
+      - image: datadog/docker-library:ddtrace_rb_2_2_10
         environment:
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
@@ -338,7 +338,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.3.7-ci
+      - image: datadog/docker-library:ddtrace_rb_2_3_7
     steps:
       - checkout
       - save_cache:
@@ -349,7 +349,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.3.7-ci
+      - image: datadog/docker-library:ddtrace_rb_2_3_7
     steps:
       - restore_cache:
           keys:
@@ -387,7 +387,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.3.7-ci
+      - image: datadog/docker-library:ddtrace_rb_2_3_7
         environment:
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
@@ -423,7 +423,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.4.4-ci
+      - image: datadog/docker-library:ddtrace_rb_2_4_4
     steps:
       - checkout
       - save_cache:
@@ -434,7 +434,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.4.4-ci
+      - image: datadog/docker-library:ddtrace_rb_2_4_4
     steps:
       - restore_cache:
           keys:
@@ -472,7 +472,7 @@ jobs:
     working_directory: /app
     shell: /bin/bash --login
     docker:
-      - image: delner/dd-trace-rb:2.4.4-ci
+      - image: datadog/docker-library:ddtrace_rb_2_4_4
         environment:
           - TEST_DATADOG_INTEGRATION: 1
       - image: postgres:9.6
