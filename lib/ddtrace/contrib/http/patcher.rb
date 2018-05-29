@@ -48,6 +48,8 @@ module Datadog
         include Base
         register_as :http, auto_patch: true
         option :distributed_tracing, default: false
+        option :service_name, default: SERVICE
+        option :tracer, default: Datadog.tracer
 
         @patched = false
 
@@ -64,7 +66,7 @@ module Datadog
               require 'ddtrace/ext/net'
               require 'ddtrace/ext/distributed'
 
-              patch_http()
+              patch_http
 
               @patched = true
             rescue StandardError => e
@@ -74,7 +76,7 @@ module Datadog
           @patched
         end
 
-        # patched? tells wether patch has been successfully applied
+        # patched? tells whether patch has been successfully applied
         def patched?
           @patched
         end
@@ -84,27 +86,27 @@ module Datadog
         # rubocop:disable Metrics/AbcSize
         def patch_http
           ::Net::HTTP.class_eval do
-            alias_method :initialize_without_datadog, :initialize
-            Datadog::Patcher.without_warnings do
-              remove_method :initialize
-            end
-
-            def initialize(*args)
-              pin = Datadog::Pin.new(SERVICE, app: APP, app_type: Datadog::Ext::AppTypes::WEB)
-              pin.onto(self)
-              initialize_without_datadog(*args)
-            end
-
             alias_method :request_without_datadog, :request
             remove_method :request
 
+            def datadog_pin
+              @datadog_pindatadog_pin ||= begin
+                service = Datadog.configuration[:http][:service_name]
+                tracer = Datadog.configuration[:http][:tracer]
+
+                Datadog::Pin.new(service, app: APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
+              end
+            end
+
             def request(req, body = nil, &block) # :yield: +response+
-              pin = Datadog::Pin.get_from(self)
+              pin = datadog_pin
               return request_without_datadog(req, body, &block) unless pin && pin.tracer
 
               transport = pin.tracer.writer.transport
-              return request_without_datadog(req, body, &block) if
-                Datadog::Contrib::HTTP.should_skip_tracing?(req, @address, @port, transport, pin)
+
+              if Datadog::Contrib::HTTP.should_skip_tracing?(req, @address, @port, transport, pin)
+                return request_without_datadog(req, body, &block)
+              end
 
               pin.tracer.trace(NAME) do |span|
                 begin

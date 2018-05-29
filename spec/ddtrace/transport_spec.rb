@@ -3,7 +3,13 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::HTTPTransport do
-  let(:transport) { described_class.new('localhost', '8126', options) }
+  let(:transport) do
+    described_class.new(
+      ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
+      ENV.fetch('TEST_DDAGENT_PORT', 8126),
+      options
+    )
+  end
   let(:options) { {} }
 
   before(:each) do
@@ -30,7 +36,7 @@ RSpec.describe Datadog::HTTPTransport do
   end
 
   describe '#send' do
-    before(:each) { skip "TEST_DATADOG_INTEGRATION not set." unless ENV['TEST_DATADOG_INTEGRATION'] }
+    before(:each) { skip 'TEST_DATADOG_INTEGRATION not set.' unless ENV['TEST_DATADOG_INTEGRATION'] }
 
     shared_examples_for 'an encoded transport' do
       context 'for a JSON-encoded transport' do

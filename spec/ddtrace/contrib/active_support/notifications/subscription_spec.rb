@@ -11,7 +11,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
     let(:span_name) { double('span_name') }
     let(:options) { {} }
     let(:block) do
-      Proc.new do |span, name, id, payload|
+      proc do |span, name, id, payload|
         spy.call(span, name, id, payload)
       end
     end
@@ -39,8 +39,8 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
         context 'when block raises an error' do
           let(:block) do
-            Proc.new do |span, name, id, payload|
-              raise ArgumentError.new('Fail!')
+            proc do |_span, _name, _id, _payload|
+              raise ArgumentError, 'Fail!'
             end
           end
 
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
       describe '#before_trace' do
         context 'given a block' do
-          let(:callback_block) { Proc.new { callback_spy.call } }
+          let(:callback_block) { proc { callback_spy.call } }
           let(:callback_spy) { double('callback spy') }
           before(:each) { subscription.before_trace(&callback_block) }
 
@@ -108,12 +108,17 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
           end
 
           context 'that doesn\'t raise an error' do
-            let(:callback_block) { Proc.new { callback_spy.call } }
+            let(:callback_block) { proc { callback_spy.call } }
             it_behaves_like 'a before_trace callback'
           end
 
           context 'that raises an error' do
-            let(:callback_block) { Proc.new { callback_spy.call; raise ArgumentError.new('Fail!') } }
+            let(:callback_block) do
+              proc do
+                callback_spy.call
+                raise ArgumentError, 'Fail!'
+              end
+            end
             around(:each) { |example| without_errors { example.run } }
             it_behaves_like 'a before_trace callback'
           end
@@ -122,7 +127,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
       describe '#after_trace' do
         context 'given a block' do
-          let(:callback_block) { Proc.new { callback_spy.call } }
+          let(:callback_block) { proc { callback_spy.call } }
           let(:callback_spy) { double('callback spy') }
           before(:each) { subscription.after_trace(&callback_block) }
 
@@ -141,12 +146,17 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
           end
 
           context 'that doesn\'t raise an error' do
-            let(:callback_block) { Proc.new { callback_spy.call } }
+            let(:callback_block) { proc { callback_spy.call } }
             it_behaves_like 'an after_trace callback'
           end
 
           context 'that raises an error' do
-            let(:callback_block) { Proc.new { callback_spy.call; raise ArgumentError.new('Fail!') } }
+            let(:callback_block) do
+              proc do
+                callback_spy.call
+                raise ArgumentError, 'Fail!'
+              end
+            end
             around(:each) { |example| without_errors { example.run } }
             it_behaves_like 'an after_trace callback'
           end

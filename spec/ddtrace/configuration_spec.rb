@@ -109,7 +109,7 @@ RSpec.describe Datadog::Configuration do
           end
         end
 
-        it { expect(configuration[name].to_h).to eq({ option1: :foo, option2: :bar }) }
+        it { expect(configuration[name].to_h).to eq(option1: :foo, option2: :bar) }
       end
     end
   end

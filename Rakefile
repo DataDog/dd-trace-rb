@@ -144,7 +144,7 @@ end
 if RUBY_VERSION >= '2.1.0'
   RuboCop::RakeTask.new(:rubocop) do |t|
     t.options << ['-D']
-    t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
+    t.patterns = ['lib/**/*.rb', 'spec/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
   end
 end
 
@@ -230,8 +230,9 @@ task :ci do
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:excon'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:faraday'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:graphql'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:mongodb'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:grpc'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:http'
+    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:mongodb'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:rake'
     sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:redis'
@@ -245,6 +246,7 @@ task :ci do
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:faraday'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:mongodb'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:rake'
+    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:http'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:redis'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:resque'
     sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:sequel'

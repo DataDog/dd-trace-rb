@@ -94,7 +94,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         it_behaves_like 'a MongoDB trace'
 
         it 'has operation-specific properties' do
-          expect(span.resource).to eq("{:operation=>:insert, :database=>\"#{database}\", :collection=>\"#{collection}\", \"documents\"=>{:name=>\"?\"}, \"ordered\"=>\"?\"}")
+          expect(span.resource).to eq("{:operation=>:insert, :database=>\"#{database}\", :collection=>\"#{collection}\","\
+' "documents"=>{:name=>"?"}, "ordered"=>"?"}')
           expect(span.get_tag('mongodb.rows')).to eq('1')
         end
       end
@@ -106,7 +107,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         it_behaves_like 'a MongoDB trace'
 
         it 'has operation-specific properties' do
-          expect(span.resource).to eq("{:operation=>:insert, :database=>\"#{database}\", :collection=>\"#{collection}\", \"documents\"=>{:name=>\"?\", :hobbies=>\"?\"}, \"ordered\"=>\"?\"}")
+          expect(span.resource).to eq("{:operation=>:insert, :database=>\"#{database}\", :collection=>\"#{collection}\","\
+' "documents"=>{:name=>"?", :hobbies=>"?"}, "ordered"=>"?"}')
           expect(span.get_tag('mongodb.rows')).to eq('1')
         end
       end
@@ -128,7 +130,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         it_behaves_like 'a MongoDB trace'
 
         it 'has operation-specific properties' do
-          expect(span.resource).to eq("{:operation=>:insert, :database=>\"#{database}\", :collection=>\"#{collection}\", \"documents\"=>{:name=>\"?\", :hobbies=>\"?\"}, \"ordered\"=>\"?\"}")
+          expect(span.resource).to eq("{:operation=>:insert, :database=>\"#{database}\", :collection=>\"#{collection}\","\
+' "documents"=>{:name=>"?", :hobbies=>"?"}, "ordered"=>"?"}')
           expect(span.get_tag('mongodb.rows')).to eq('2')
         end
       end
@@ -151,7 +154,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{:operation=>\"find\", :database=>\"#{database}\", :collection=>\"#{collection}\", \"filter\"=>{}}")
+        expect(span.resource).to eq("{:operation=>\"find\", :database=>\"#{database}\", :collection=>\"#{collection}\","\
+' "filter"=>{}}')
         expect(span.get_tag('mongodb.rows')).to be nil
       end
     end
@@ -172,7 +176,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{:operation=>\"find\", :database=>\"#{database}\", :collection=>\"#{collection}\", \"filter\"=>{\"name\"=>\"?\"}}")
+        expect(span.resource).to eq("{:operation=>\"find\", :database=>\"#{database}\", :collection=>\"#{collection}\","\
+' "filter"=>{"name"=>"?"}}')
         expect(span.get_tag('mongodb.rows')).to be nil
       end
     end
@@ -197,7 +202,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{:operation=>:update, :database=>\"#{database}\", :collection=>\"#{collection}\", \"updates\"=>{\"q\"=>{\"name\"=>\"?\"}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}, \"ordered\"=>\"?\"}")
+        expect(span.resource).to eq("{:operation=>:update, :database=>\"#{database}\", :collection=>\"#{collection}\","\
+' "updates"=>{"q"=>{"name"=>"?"}, "u"=>{"$set"=>{"phone_number"=>"?"}}, "multi"=>"?", "upsert"=>"?"},'\
+' "ordered"=>"?"}')
         expect(span.get_tag('mongodb.rows')).to eq('1')
       end
     end
@@ -230,7 +237,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{:operation=>:update, :database=>\"#{database}\", :collection=>\"#{collection}\", \"updates\"=>{\"q\"=>{}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}, \"ordered\"=>\"?\"}")
+        expect(span.resource).to eq("{:operation=>:update, :database=>\"#{database}\", :collection=>\"#{collection}\","\
+' "updates"=>{"q"=>{}, "u"=>{"$set"=>{"phone_number"=>"?"}}, "multi"=>"?", "upsert"=>"?"},'\
+' "ordered"=>"?"}')
         expect(span.get_tag('mongodb.rows')).to eq('2')
       end
     end
@@ -255,7 +264,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{:operation=>:delete, :database=>\"#{database}\", :collection=>\"#{collection}\", \"deletes\"=>{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}, \"ordered\"=>\"?\"}")
+        expect(span.resource).to eq("{:operation=>:delete, :database=>\"#{database}\", :collection=>\"#{collection}\","\
+' "deletes"=>{"q"=>{"name"=>"?"}, "limit"=>"?"}, "ordered"=>"?"}')
         expect(span.get_tag('mongodb.rows')).to eq('1')
       end
     end
@@ -288,7 +298,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{:operation=>:delete, :database=>\"#{database}\", :collection=>\"#{collection}\", \"deletes\"=>{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}, \"ordered\"=>\"?\"}")
+        expect(span.resource).to eq("{:operation=>:delete, :database=>\"#{database}\", :collection=>\"#{collection}\","\
+' "deletes"=>{"q"=>{"name"=>"?"}, "limit"=>"?"}, "ordered"=>"?"}')
         expect(span.get_tag('mongodb.rows')).to eq('2')
       end
     end

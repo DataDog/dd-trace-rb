@@ -88,7 +88,7 @@ RSpec.describe 'Rails request' do
 
           def call(env)
             @app.call(env)
-            raise NotImplementedError.new
+            raise NotImplementedError
           end
         end)
       end
@@ -129,7 +129,7 @@ RSpec.describe 'Rails request' do
 
           def call(env)
             @app.call(env)
-            raise ActionController::RoutingError.new('/missing_route')
+            raise ActionController::RoutingError, '/missing_route'
           end
         end)
       end
@@ -190,7 +190,7 @@ RSpec.describe 'Rails request' do
 
           def call(env)
             @app.call(env)
-            raise CustomError.new
+            raise CustomError
           end
         end)
       end
@@ -209,10 +209,7 @@ RSpec.describe 'Rails request' do
           expect(span.span_type).to eq('http')
           expect(span.resource).to eq('TestController#index')
 
-          if Rails.version >= '3.2'
-            expect(span.get_tag('http.url')).to eq('/')
-          else
-          end
+          expect(span.get_tag('http.url')).to eq('/') if Rails.version >= '3.2'
 
           expect(span.get_tag('http.method')).to eq('GET')
           expect(span.get_tag('http.status_code')).to eq('500')
@@ -228,8 +225,8 @@ RSpec.describe 'Rails request' do
           # TODO: Make a cleaner API for injecting into Rails application configuration
           let(:initialize_block) do
             super_block = super()
-            Proc.new do
-              self.instance_exec(&super_block)
+            proc do
+              instance_exec(&super_block)
               config.action_dispatch.rescue_responses.merge!(
                 'CustomError' => :not_found
               )
