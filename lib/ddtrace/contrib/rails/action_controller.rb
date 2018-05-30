@@ -54,9 +54,8 @@ module Datadog
             span.set_tag('rails.route.action', payload.fetch(:action))
             span.set_tag('rails.route.controller', payload.fetch(:controller))
 
-            custom_span_tags.each do |k, v|
-              span.set_tag(k, v)
-            end
+            # Custom span tags defined by customer's application
+            span.set_tags(custom_span_tags)
 
             exception = payload[:exception_object]
             if exception.nil?
