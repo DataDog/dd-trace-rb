@@ -1,10 +1,83 @@
+# Common variables, containers, jobs and steps.
+job_defaults: &job_defaults
+  working_directory: /app
+  shell: /bin/bash --login
+
+ruby_containers: &ruby_containers
+  - &container-1_9
+    image: datadog/docker-library:ddtrace_rb_1_9_3
+  - &container-2_0
+    image: datadog/docker-library:ddtrace_rb_2_0_0
+  - &container-2_1
+    image: datadog/docker-library:ddtrace_rb_2_1_10
+  - &container-2_2
+    image: datadog/docker-library:ddtrace_rb_2_2_10
+  - &container-2_3
+    image: datadog/docker-library:ddtrace_rb_2_3_7
+  - &container-2_4
+    image: datadog/docker-library:ddtrace_rb_2_4_4
+
+test_containers: &test_containers
+  - &container_postgres
+    image: postgres:9.6
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+  - &container_mysql
+    image: mysql:5.6
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_PASSWORD=mysql
+      - MYSQL_USER=mysql
+  - &container_elasticsearch
+    image: elasticsearch:2.4
+  - &container_redis
+    image: redis:3.0
+  - &container_mongo
+    image: mongo:3.5
+  - &container_memcached
+    image: memcached:1.5-alpine
+  - &container_agent
+    image: datadog/docker-dd-agent
+    environment:
+      - DD_APM_ENABLED=true
+      - DD_BIND_HOST=0.0.0.0
+      - DD_API_KEY=invalid_key_but_this_is_fine
+
+step_init_bundle_checksum: &step_init_bundle_checksum
+  run:
+    name: Initialize bundle cache key
+    command: |
+      touch .circleci/bundle_checksum
+step_bundle_install: &step_bundle_install
+  run:
+    name: Install gem dependencies
+    command: bundle install
+step_rubocop: &step_rubocop
+  run:
+    name: Delint with Rubocop
+    command: bundle exec rake rubocop
+step_appraisal_install: &step_appraisal_install
+  run:
+    name: Install Appraisal gems
+    command: bundle exec appraisal install
+step_compute_bundle_checksum: &step_compute_bundle_checksum
+  run:
+    name: Compute bundle checksum
+    command: |
+      cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+step_run_all_tests: &step_run_all_tests
+  run:
+    name: Run tests
+    command: bundle exec rake ci
+
 version: 2.0
 jobs:
   checkout-1.9:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_1_9_3
+      - *container-1_9
     steps:
       - checkout
       - save_cache:
@@ -12,32 +85,21 @@ jobs:
           paths:
             - /app
   build-1.9:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_1_9_3
+      - *container-1_9
     steps:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}'
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}'
-      - run:
-          name: Initialize bundle cache key
-          command: |
-            touch .circleci/bundle_checksum
+      - *step_init_bundle_checksum
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-1.9-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Install gem dependencies
-          command: bundle install
-      - run:
-          name: Install Appraisal gems
-          command: bundle exec appraisal install
-      - run:
-          name: Compute bundle checksum
-          command: |
-            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - *step_bundle_install
+      - *step_appraisal_install
+      - *step_compute_bundle_checksum
       - save_cache:
           key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}'
           paths:
@@ -47,31 +109,18 @@ jobs:
           paths:
             - /usr/local/bundle
   test-1.9:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_1_9_3
+      - <<: *container-1_9
         environment:
           - TEST_DATADOG_INTEGRATION: 1
-      - image: postgres:9.6
-        environment:
-          - POSTGRES_PASSWORD=postgres
-          - POSTGRES_USER=postgres
-          - POSTGRES_DB=postgres
-      - image: mysql:5.6
-        environment:
-          - MYSQL_ROOT_PASSWORD=root
-          - MYSQL_PASSWORD=mysql
-          - MYSQL_USER=mysql
-      - image: elasticsearch:2.4
-      - image: redis:3.0
-      - image: mongo:3.5
-      - image: memcached:1.5-alpine
-      - image: datadog/docker-dd-agent
-        environment:
-          - DD_APM_ENABLED=true
-          - DD_BIND_HOST=0.0.0.0
-          - DD_API_KEY=invalid_key_but_this_is_fine
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
     steps:
       - restore_cache:
           keys:
@@ -79,14 +128,11 @@ jobs:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-1.9-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Run tests
-          command: bundle exec rake ci
+      - *step_run_all_tests
   checkout-2.0:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_0_0
+      - *container-2_0
     steps:
       - checkout
       - save_cache:
@@ -94,32 +140,21 @@ jobs:
           paths:
             - /app
   build-2.0:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_0_0
+      - *container-2_0
     steps:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
-      - run:
-          name: Initialize bundle cache key
-          command: |
-            touch .circleci/bundle_checksum
+      - *step_init_bundle_checksum
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.0-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Install gem dependencies
-          command: bundle install
-      - run:
-          name: Install Appraisal gems
-          command: bundle exec appraisal install
-      - run:
-          name: Compute bundle checksum
-          command: |
-            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - *step_bundle_install
+      - *step_appraisal_install
+      - *step_compute_bundle_checksum
       - save_cache:
           key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
           paths:
@@ -129,31 +164,18 @@ jobs:
           paths:
             - /usr/local/bundle
   test-2.0:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_0_0
+      - <<: *container-2_0
         environment:
           - TEST_DATADOG_INTEGRATION: 1
-      - image: postgres:9.6
-        environment:
-          - POSTGRES_PASSWORD=postgres
-          - POSTGRES_USER=postgres
-          - POSTGRES_DB=postgres
-      - image: mysql:5.6
-        environment:
-          - MYSQL_ROOT_PASSWORD=root
-          - MYSQL_PASSWORD=mysql
-          - MYSQL_USER=mysql
-      - image: elasticsearch:2.4
-      - image: redis:3.0
-      - image: mongo:3.5
-      - image: memcached:1.5-alpine
-      - image: datadog/docker-dd-agent
-        environment:
-          - DD_APM_ENABLED=true
-          - DD_BIND_HOST=0.0.0.0
-          - DD_API_KEY=invalid_key_but_this_is_fine
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
     steps:
       - restore_cache:
           keys:
@@ -161,14 +183,11 @@ jobs:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.0-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Run tests
-          command: bundle exec rake ci
+      - *step_run_all_tests
   checkout-2.1:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_1_10
+      - *container-2_1
     steps:
       - checkout
       - save_cache:
@@ -176,35 +195,22 @@ jobs:
           paths:
             - /app
   build-2.1:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_1_10
+      - *container-2_1
     steps:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}'
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}'
-      - run:
-          name: Initialize bundle cache key
-          command: |
-            touch .circleci/bundle_checksum
+      - *step_init_bundle_checksum
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.1-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Install gem dependencies
-          command: bundle install
-      - run:
-          name: Delint with Rubocop
-          command: bundle exec rake rubocop
-      - run:
-          name: Install Appraisal gems
-          command: bundle exec appraisal install
-      - run:
-          name: Compute bundle checksum
-          command: |
-            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - *step_bundle_install
+      - *step_rubocop
+      - *step_appraisal_install
+      - *step_compute_bundle_checksum
       - save_cache:
           key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}'
           paths:
@@ -214,31 +220,18 @@ jobs:
           paths:
             - /usr/local/bundle
   test-2.1:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_1_10
+      - <<: *container-2_1
         environment:
           - TEST_DATADOG_INTEGRATION: 1
-      - image: postgres:9.6
-        environment:
-          - POSTGRES_PASSWORD=postgres
-          - POSTGRES_USER=postgres
-          - POSTGRES_DB=postgres
-      - image: mysql:5.6
-        environment:
-          - MYSQL_ROOT_PASSWORD=root
-          - MYSQL_PASSWORD=mysql
-          - MYSQL_USER=mysql
-      - image: elasticsearch:2.4
-      - image: redis:3.0
-      - image: mongo:3.5
-      - image: memcached:1.5-alpine
-      - image: datadog/docker-dd-agent
-        environment:
-          - DD_APM_ENABLED=true
-          - DD_BIND_HOST=0.0.0.0
-          - DD_API_KEY=invalid_key_but_this_is_fine
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
     steps:
       - restore_cache:
           keys:
@@ -246,14 +239,11 @@ jobs:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.1-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Run tests
-          command: bundle exec rake ci
+      - *step_run_all_tests
   checkout-2.2:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_2_10
+      - *container-2_2
     steps:
       - checkout
       - save_cache:
@@ -261,35 +251,22 @@ jobs:
           paths:
             - /app
   build-2.2:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_2_10
+      - *container-2_2
     steps:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}'
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}'
-      - run:
-          name: Initialize bundle cache key
-          command: |
-            touch .circleci/bundle_checksum
+      - *step_init_bundle_checksum
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.2-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Install gem dependencies
-          command: bundle install
-      - run:
-          name: Delint with Rubocop
-          command: bundle exec rake rubocop
-      - run:
-          name: Install Appraisal gems
-          command: bundle exec appraisal install
-      - run:
-          name: Compute bundle checksum
-          command: |
-            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - *step_bundle_install
+      - *step_rubocop
+      - *step_appraisal_install
+      - *step_compute_bundle_checksum
       - save_cache:
           key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}'
           paths:
@@ -299,31 +276,18 @@ jobs:
           paths:
             - /usr/local/bundle
   test-2.2:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_2_10
+      - <<: *container-2_2
         environment:
           - TEST_DATADOG_INTEGRATION: 1
-      - image: postgres:9.6
-        environment:
-          - POSTGRES_PASSWORD=postgres
-          - POSTGRES_USER=postgres
-          - POSTGRES_DB=postgres
-      - image: mysql:5.6
-        environment:
-          - MYSQL_ROOT_PASSWORD=root
-          - MYSQL_PASSWORD=mysql
-          - MYSQL_USER=mysql
-      - image: elasticsearch:2.4
-      - image: redis:3.0
-      - image: mongo:3.5
-      - image: memcached:1.5-alpine
-      - image: datadog/docker-dd-agent
-        environment:
-          - DD_APM_ENABLED=true
-          - DD_BIND_HOST=0.0.0.0
-          - DD_API_KEY=invalid_key_but_this_is_fine
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
     steps:
       - restore_cache:
           keys:
@@ -331,14 +295,11 @@ jobs:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.2-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Run tests
-          command: bundle exec rake ci
+      - *step_run_all_tests
   checkout-2.3:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_3_7
+      - *container-2_3
     steps:
       - checkout
       - save_cache:
@@ -346,35 +307,22 @@ jobs:
           paths:
             - /app
   build-2.3:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_3_7
+      - *container-2_3
     steps:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
-      - run:
-          name: Initialize bundle cache key
-          command: |
-            touch .circleci/bundle_checksum
+      - *step_init_bundle_checksum
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Install gem dependencies
-          command: bundle install
-      - run:
-          name: Delint with Rubocop
-          command: bundle exec rake rubocop
-      - run:
-          name: Install Appraisal gems
-          command: bundle exec appraisal install
-      - run:
-          name: Compute bundle checksum
-          command: |
-            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - *step_bundle_install
+      - *step_rubocop
+      - *step_appraisal_install
+      - *step_compute_bundle_checksum
       - save_cache:
           key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
           paths:
@@ -384,31 +332,18 @@ jobs:
           paths:
             - /usr/local/bundle
   test-2.3:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_3_7
+      - <<: *container-2_3
         environment:
           - TEST_DATADOG_INTEGRATION: 1
-      - image: postgres:9.6
-        environment:
-          - POSTGRES_PASSWORD=postgres
-          - POSTGRES_USER=postgres
-          - POSTGRES_DB=postgres
-      - image: mysql:5.6
-        environment:
-          - MYSQL_ROOT_PASSWORD=root
-          - MYSQL_PASSWORD=mysql
-          - MYSQL_USER=mysql
-      - image: elasticsearch:2.4
-      - image: redis:3.0
-      - image: mongo:3.5
-      - image: memcached:1.5-alpine
-      - image: datadog/docker-dd-agent
-        environment:
-          - DD_APM_ENABLED=true
-          - DD_BIND_HOST=0.0.0.0
-          - DD_API_KEY=invalid_key_but_this_is_fine
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
     steps:
       - restore_cache:
           keys:
@@ -416,14 +351,11 @@ jobs:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Run tests
-          command: bundle exec rake ci
+      - *step_run_all_tests
   checkout-2.4:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_4_4
+      - *container-2_4
     steps:
       - checkout
       - save_cache:
@@ -431,35 +363,22 @@ jobs:
           paths:
             - /app
   build-2.4:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_4_4
+      - *container-2_4
     steps:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
-      - run:
-          name: Initialize bundle cache key
-          command: |
-            touch .circleci/bundle_checksum
+      - *step_init_bundle_checksum
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Install gem dependencies
-          command: bundle install
-      - run:
-          name: Delint with Rubocop
-          command: bundle exec rake rubocop
-      - run:
-          name: Install Appraisal gems
-          command: bundle exec appraisal install
-      - run:
-          name: Compute bundle checksum
-          command: |
-            cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      - *step_bundle_install
+      - *step_rubocop
+      - *step_appraisal_install
+      - *step_compute_bundle_checksum
       - save_cache:
           key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
           paths:
@@ -469,31 +388,18 @@ jobs:
           paths:
             - /usr/local/bundle
   test-2.4:
-    working_directory: /app
-    shell: /bin/bash --login
+    <<: *job_defaults
     docker:
-      - image: datadog/docker-library:ddtrace_rb_2_4_4
+      - <<: *container-2_4
         environment:
           - TEST_DATADOG_INTEGRATION: 1
-      - image: postgres:9.6
-        environment:
-          - POSTGRES_PASSWORD=postgres
-          - POSTGRES_USER=postgres
-          - POSTGRES_DB=postgres
-      - image: mysql:5.6
-        environment:
-          - MYSQL_ROOT_PASSWORD=root
-          - MYSQL_PASSWORD=mysql
-          - MYSQL_USER=mysql
-      - image: elasticsearch:2.4
-      - image: redis:3.0
-      - image: mongo:3.5
-      - image: memcached:1.5-alpine
-      - image: datadog/docker-dd-agent
-        environment:
-          - DD_APM_ENABLED=true
-          - DD_BIND_HOST=0.0.0.0
-          - DD_API_KEY=invalid_key_but_this_is_fine
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
     steps:
       - restore_cache:
           keys:
@@ -501,9 +407,7 @@ jobs:
       - restore_cache:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Run tests
-          command: bundle exec rake ci
+      - *step_run_all_tests
 workflows:
   version: 2
   build-and-test:
