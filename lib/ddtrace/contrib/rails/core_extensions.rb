@@ -192,7 +192,6 @@ module Datadog
         # mutable payload with a tracing context that is used in two different
         # signals; it propagates the request span so that it can be finished
         # no matter what
-
         payload = {
           controller: self.class,
           action: action_name,
