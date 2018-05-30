@@ -24,6 +24,7 @@ module Datadog
             span.set_tag(name, value) if span.get_tag(name).nil?
           end
 
+          span.finish
           [status, headers, response_body]
         end
 

@@ -100,7 +100,6 @@ module Datadog
             span.set_tag('sinatra.route.path', @datadog_route)
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
             span.set_error(env['sinatra.error']) if response.server_error?
-            span.finish
           end
         end
       end
