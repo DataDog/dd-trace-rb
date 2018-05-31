@@ -15,6 +15,10 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::Excon::Middleware::SPAN_NAME }
   end
 
+  let(:all_request_spans) do
+    tracer.writer.spans(:keep).find_all { |span| span.name == Datadog::Contrib::Excon::Middleware::SPAN_NAME }
+  end
+
   before(:each) do
     Datadog.configure do |c|
       c.use :excon, configuration_options
@@ -30,6 +34,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       Excon.stub({ method: :get, path: '/success' }, { body: 'OK', status: 200 })
       Excon.stub({ method: :post, path: '/failure' }, { body: 'Boom!', status: 500 })
       Excon.stub({ method: :get, path: '/not_found' }, { body: 'Not Found.', status: 404 })
+      Excon.stub({ method: :get, path: '/timeout' }, lambda { |request_params| raise Excon::Errors::Timeout.new('READ TIMEOUT') })
     end
   end
 
@@ -98,10 +103,30 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     end
   end
 
-  context 'when there is a connection error' do
+  context 'when the path is not found' do
     subject!(:response) { connection.get(path: '/not_found') }
     it { expect(request_span.status).to_not eq(Datadog::Ext::Errors::STATUS) }
   end
+
+  context 'when the request times out' do
+    subject(:response) { connection.get(path: '/timeout') }
+    it do
+      expect { subject }.to raise_error
+      expect(request_span.finished?).to eq(true)
+      expect(request_span.status).to eq(Datadog::Ext::Errors::STATUS)
+      expect(request_span.get_tag('error.type')).to eq('Excon::Error::Timeout')
+    end
+
+    context 'when the request is idempotent' do
+      subject(:response) { connection.get(path: '/timeout', idempotent: true, retry_limit: 4) }
+      it 'records separate spans' do
+        expect { subject }.to raise_error
+        expect(all_request_spans.size).to eq(4)
+        expect(all_request_spans.all? { |span| span.finished? }).to eq(true)
+      end
+    end
+  end
+
 
   context 'when there is custom error handling' do
     subject!(:response) { connection.get(path: 'not_found') }    
