@@ -5,7 +5,7 @@ require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
 
-require 'ddtrace/contrib/sinatra/header_tagger_middleware'
+require 'ddtrace/contrib/sinatra/tracer_middleware'
 require 'ddtrace/contrib/sinatra/request_span'
 
 sinatra_vs = Gem::Version.new(Sinatra::VERSION)
