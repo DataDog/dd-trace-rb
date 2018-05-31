@@ -2,13 +2,11 @@ require 'spec_helper'
 require 'ddtrace/contrib/graphql/test_types'
 
 require 'ddtrace'
-
-# rubocop:disable Metrics/BlockLength
 RSpec.describe 'GraphQL patcher' do
   include_context 'GraphQL test schema'
 
   # GraphQL generates tons of warnings.
-  # This suppresses those warnings. 
+  # This suppresses those warnings.
   around(:each) do |example|
     without_warnings do
       example.run

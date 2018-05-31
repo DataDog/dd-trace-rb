@@ -24,14 +24,14 @@ module Datadog
                     ::Rails::Application::Configuration.class_eval do
                       def database_configuration
                         { 'test' => { 'adapter' => 'postgresql',
-                                    'encoding' => 'utf8',
-                                    'reconnect' => false,
-                                    'database' => ENV.fetch('TEST_POSTGRES_DB', 'postgres'),
-                                    'pool' => 5,
-                                    'username' => ENV.fetch('TEST_POSTGRES_USER', 'postgres'),
-                                    'password' => ENV.fetch('TEST_POSTGRES_PASSWORD', 'postgres'),
-                                    'host' => ENV.fetch('TEST_POSTGRES_HOST', '127.0.0.1'),
-                                    'port' => ENV.fetch('TEST_POSTGRES_PORT', 5432) } }
+                                      'encoding' => 'utf8',
+                                      'reconnect' => false,
+                                      'database' => ENV.fetch('TEST_POSTGRES_DB', 'postgres'),
+                                      'pool' => 5,
+                                      'username' => ENV.fetch('TEST_POSTGRES_USER', 'postgres'),
+                                      'password' => ENV.fetch('TEST_POSTGRES_PASSWORD', 'postgres'),
+                                      'host' => ENV.fetch('TEST_POSTGRES_HOST', '127.0.0.1'),
+                                      'port' => ENV.fetch('TEST_POSTGRES_PORT', 5432) } }
                       end
                     end
                   end

@@ -11,8 +11,6 @@ class RackBaseTest < Minitest::Test
   # rubocop:disable Metrics/MethodLength
   def app
     tracer = @tracer
-
-    # rubocop:disable Metrics/BlockLength
     Rack::Builder.new do
       use Datadog::Contrib::Rack::TraceMiddleware
 

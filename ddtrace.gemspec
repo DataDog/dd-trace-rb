@@ -12,11 +12,11 @@ Gem::Specification.new do |spec|
   spec.email                 = ['dev@datadoghq.com']
 
   spec.summary     = 'Datadog tracing code for your Ruby applications'
-  spec.description = <<-EOS
-ddtrace is Datadog’s tracing client for Ruby. It is used to trace requests
-as they flow across web servers, databases and microservices so that developers
-have great visiblity into bottlenecks and troublesome requests.
-EOS
+  spec.description = <<-EOS.gsub(/^[\s]+/, '')
+    ddtrace is Datadog’s tracing client for Ruby. It is used to trace requests
+    as they flow across web servers, databases and microservices so that developers
+    have great visiblity into bottlenecks and troublesome requests.
+  EOS
 
   spec.homepage = 'https://github.com/DataDog/dd-trace-rb'
   spec.license  = 'BSD-3-Clause'
