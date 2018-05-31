@@ -6,7 +6,7 @@ require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
 
 require 'ddtrace/contrib/sinatra/tracer_middleware'
-require 'ddtrace/contrib/sinatra/request_span'
+require 'ddtrace/contrib/sinatra/env'
 
 sinatra_vs = Gem::Version.new(Sinatra::VERSION)
 sinatra_min_vs = Gem::Version.new('1.4.0')
@@ -81,7 +81,7 @@ module Datadog
           app.before do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            span = RequestSpan.span!(request.env)
+            span = env.datadog_span
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
           end
@@ -89,7 +89,7 @@ module Datadog
           app.after do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            span = RequestSpan.fetch_span(request.env)
+            span = env.datadog_span
 
             unless span
               Datadog::Tracer.log.error('missing request span in :after hook')

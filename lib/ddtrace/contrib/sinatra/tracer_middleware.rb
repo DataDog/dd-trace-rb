@@ -1,64 +1,61 @@
-require 'ddtrace/contrib/sinatra/request_span'
+require 'ddtrace/contrib/sinatra/env'
+require 'ddtrace/contrib/sinatra/headers'
 
 module Datadog
   module Contrib
     module Sinatra
       # Middleware used for automatically tagging configured headers and handle request span
       class TracerMiddleware
+        REQUEST_TRACE_NAME = 'sinatra.request'.freeze
+
         def initialize(app)
           @app = app
         end
 
         def call(env)
-          span = RequestSpan.span!(env)
+          # Extend the Env with Sinatra tracing functions
+          env.extend(Sinatra::Env)
 
-          # Request headers
-          parse_request_headers(env).each do |name, value|
-            span.set_tag(name, value) if span.get_tag(name).nil?
+          # Set the trace context (e.g. distributed tracing)
+          if configuration[:distributed_tracing] && tracer.provider.context.trace_id.nil?
+            context = HTTPPropagator.extract(env)
+            tracer.provider.context = context if context.trace_id
           end
 
-          status, headers, response_body = @app.call(env)
+          # Begin the trace
+          tracer.trace(
+            REQUEST_TRACE_NAME,
+            service: configuration[:service_name],
+            span_type: Datadog::Ext::HTTP::TYPE
+          ) do |span|
+            # Set the span on the Env
+            env.datadog_span = span
 
-          # Response headers
-          parse_response_headers(headers).each do |name, value|
-            span.set_tag(name, value) if span.get_tag(name).nil?
+            # Tag request headers
+            env.request_header_tags(configuration[:headers][:request]).each do |name, value|
+              span.set_tag(name, value) if span.get_tag(name).nil?
+            end
+
+            # Run application stack
+            status, headers, response_body = @app.call(env)
+
+            # Extend the Headers with Sinatra tracing functions
+            headers.extend(Sinatra::Headers)
+
+            # Tag response headers
+            headers.response_header_tags(configuration[:headers][:response]).each do |name, value|
+              span.set_tag(name, value) if span.get_tag(name).nil?
+            end
+
+            # Return response
+            [status, headers, response_body]
           end
-
-          [status, headers, response_body]
-        ensure
-          span.finish
         end
 
         private
 
-        def parse_request_headers(env)
-          {}.tap do |result|
-            whitelist = configuration[:headers][:request] || []
-            whitelist.each do |header|
-              rack_header = header_to_rack_header(header)
-              if env.key?(rack_header)
-                result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
-              end
-            end
-          end
-        end
-
-        def parse_response_headers(headers)
-          {}.tap do |result|
-            whitelist = configuration[:headers][:response] || []
-            whitelist.each do |header|
-              if headers.key?(header)
-                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
-              else
-                # Try a case-insensitive lookup
-                uppercased_header = header.to_s.upcase
-                matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
-                if matching_header
-                  result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
-                end
-              end
-            end
-          end
+        def tracer
+          configuration[:tracer]
         end
 
         def configuration
