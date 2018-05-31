@@ -157,18 +157,7 @@ module Datadog
 
     def patch_process_action
       do_once(:patch_process_action) do
-        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
-          # Patch Rails controller base class
-          ::ActionController::Metal.send(:prepend, ActionControllerPatch)
-        else
-          # Rewrite module that gets composed into the Rails controller base class
-          ::ActionController::Instrumentation.class_eval do
-            alias_method :process_action_without_datadog, :process_action
-            remove_method :process_action
-
-            include ActionControllerPatch
-          end
-        end
+        ActionControllerPatch.instrument(::ActionController::Metal)
       end
     end
 
@@ -179,14 +168,22 @@ module Datadog
       end
     end
 
-    # ActionController patch for Ruby 2.0+
+    # ActionController patch
     module ActionControllerPatch
+      def self.instrument(klass)
+        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
+          klass.send(:prepend, ActionControllerPatch)
+        else
+          klass.class_eval do
+            alias_method :process_action_without_datadog, :process_action
+
+            include ActionControllerPatch
+          end
+        end
+      end
+
       # compat for Ruby versions not supporting #prepend
       include CompatActionControllerPatch unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
-
-      def datadog_current_span
-        Datadog::Contrib::Rails::ActionController.current_request_span(datadog_context_payload)
-      end
 
       def process_action(*args)
         # mutable payload with a tracing context that is used in two different
@@ -256,6 +253,7 @@ module Datadog
       do_once(:patch_cache_store_read) do
         cache_store_class(:read).class_eval do
           alias_method :read_without_datadog, :read
+
           def read(*args, &block)
             payload = {
               action: 'GET',
@@ -283,6 +281,7 @@ module Datadog
       do_once(:patch_cache_store_fetch) do
         cache_store_class(:fetch).class_eval do
           alias_method :fetch_without_datadog, :fetch
+
           def fetch(*args, &block)
             payload = {
               action: 'GET',
@@ -310,6 +309,7 @@ module Datadog
       do_once(:patch_cache_store_write) do
         cache_store_class(:write).class_eval do
           alias_method :write_without_datadog, :write
+
           def write(*args, &block)
             payload = {
               action: 'SET',
@@ -337,6 +337,7 @@ module Datadog
       do_once(:patch_cache_store_delete) do
         cache_store_class(:delete).class_eval do
           alias_method :delete_without_datadog, :delete
+
           def delete(*args, &block)
             payload = {
               action: 'DELETE',
