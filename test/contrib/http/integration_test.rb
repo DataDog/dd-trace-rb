@@ -11,6 +11,7 @@ class HTTPIntegrationTest < Minitest::Test
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
 
     Datadog.configure do |c|
+      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :http
     end
 

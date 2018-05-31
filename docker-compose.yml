@@ -1,11 +1,181 @@
-version: '3'
+version: '3.2'
 services:
+  tracer-1.9:
+    build:
+      context: ./.circleci/images/primary
+      dockerfile: Dockerfile-1.9.3
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - redis
+    env_file: ./.env
+    environment:
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_DDAGENT_HOST=ddagent
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-1.9:/usr/local/bundle
+  tracer-2.0:
+    build:
+      context: ./.circleci/images/primary
+      dockerfile: Dockerfile-2.0.0
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - redis
+    env_file: ./.env
+    environment:
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_DDAGENT_HOST=ddagent
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-2.0:/usr/local/bundle
+  tracer-2.1:
+    build:
+      context: ./.circleci/images/primary
+      dockerfile: Dockerfile-2.1.10
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - redis
+    env_file: ./.env
+    environment:
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_DDAGENT_HOST=ddagent
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-2.1:/usr/local/bundle
+  tracer-2.2:
+    build:
+      context: ./.circleci/images/primary
+      dockerfile: Dockerfile-2.2.10
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - redis
+    env_file: ./.env
+    environment:
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_DDAGENT_HOST=ddagent
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-2.2:/usr/local/bundle
+  tracer-2.3:
+    build:
+      context: ./.circleci/images/primary
+      dockerfile: Dockerfile-2.3.7
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - redis
+    env_file: ./.env
+    environment:
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_DDAGENT_HOST=ddagent
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-2.3:/usr/local/bundle
+  tracer-2.4:
+    build:
+      context: ./.circleci/images/primary
+      dockerfile: Dockerfile-2.4.4
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - redis
+    env_file: ./.env
+    environment:
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_DDAGENT_HOST=ddagent
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-2.4:/usr/local/bundle
   ddagent:
     image: datadog/docker-dd-agent
     environment:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
       - DD_API_KEY=invalid_key_but_this_is_fine
+    expose:
+      - "8126"
     ports:
       - "${TEST_DDAGENT_PORT}:8126"
   elasticsearch:
@@ -14,15 +184,22 @@ services:
     # see https://github.com/docker-library/elasticsearch/issues/98 for details
     # For now, just rely on a 2.X server.
     image: elasticsearch:2.4
+    expose:
+      - "9200"
+      - "9300"
     ports:
       - "${TEST_ELASTICSEARCH_REST_PORT}:9200"
       - "${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
   memcached:
     image: memcached:1.5-alpine
+    expose:
+      - "11211"
     ports:
       - "${TEST_MEMCACHED_PORT}:11211"
   mongodb:
     image: mongo:3.5
+    expose:
+      - "27017"
     ports:
       - "${TEST_MONGODB_PORT}:27017"
   mysql:
@@ -31,6 +208,8 @@ services:
       - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
       - MYSQL_PASSWORD=$TEST_MYSQL_PASSWORD
       - MYSQL_USER=$TEST_MYSQL_USER
+    expose:
+      - "3306"
     ports:
       - "${TEST_MYSQL_PORT}:3306"
   postgres:
@@ -39,9 +218,20 @@ services:
       - POSTGRES_PASSWORD=$TEST_POSTGRES_PASSWORD
       - POSTGRES_USER=$TEST_POSTGRES_USER
       - POSTGRES_DB=$TEST_POSTGRES_DB
+    expose:
+      - "5432"
     ports:
       - "${TEST_POSTGRES_PORT}:5432"
   redis:
     image: redis:3.0
+    expose:
+      - "6379"
     ports:
       - "${TEST_REDIS_PORT}:6379"
+volumes:
+  bundle-1.9:
+  bundle-2.0:
+  bundle-2.1:
+  bundle-2.2:
+  bundle-2.3:
+  bundle-2.4:
