@@ -76,7 +76,7 @@ module Datadog
             end
           end
 
-          app.use HeaderTaggerMiddleware
+          app.use TracerMiddleware
 
           app.before do
             return unless Datadog.configuration[:sinatra][:tracer].enabled

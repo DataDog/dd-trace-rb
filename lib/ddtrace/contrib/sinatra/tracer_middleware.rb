@@ -4,7 +4,7 @@ module Datadog
   module Contrib
     module Sinatra
       # Middleware used for automatically tagging configured headers and handle request span
-      class HeaderTaggerMiddleware
+      class TracerMiddleware
         def initialize(app)
           @app = app
         end
