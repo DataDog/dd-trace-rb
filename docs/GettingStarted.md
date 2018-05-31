@@ -221,6 +221,23 @@ def finish(name, id, payload)
   end
 end
 ```
+#####Enriching traces from nested methods
+
+You can tag additional information to current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil. 
+
+```ruby
+# e.g. Adding authenticated tag to active span from within controller method.
+class TracingController < ActionController::Base
+  def index
+    return head :not_found unless authenticated?
+    
+    tracer = Datadog.configuration[:rails][:tracer]
+    tracer.active_span&.set_tag('authenticated', true)
+
+    head :ok
+  end
+end
+```
 
 ## Integration instrumentation
 
