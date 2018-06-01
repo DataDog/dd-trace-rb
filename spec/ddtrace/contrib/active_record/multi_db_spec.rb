@@ -10,6 +10,19 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
   let(:configuration_options) { { tracer: tracer, service_name: default_db_service_name } }
   let(:default_db_service_name) { 'default-db' }
 
+  let(:mysql) do
+    {
+      database: ENV.fetch('TEST_MYSQL_DB', 'mysql'),
+      host: ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'),
+      password: ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root'),
+      port: ENV.fetch('TEST_MYSQL_PORT', '3306')
+    }
+  end
+
+  def mysql_connection_string
+    "mysql2://root:#{mysql[:password]}@#{mysql[:host]}:#{mysql[:port]}/#{mysql[:database]}"
+  end
+
   let(:application_record) do
     stub_const('ApplicationRecord', Class.new(ActiveRecord::Base) do
       self.abstract_class = true
@@ -19,7 +32,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
   let!(:gadget_class) do
     stub_const('Gadget', Class.new(application_record)).tap do |klass|
       # Connect to the default database
-      ActiveRecord::Base.establish_connection('mysql2://root:root@127.0.0.1:53306/mysql')
+      ActiveRecord::Base.establish_connection(mysql_connection_string)
 
       begin
         klass.count
@@ -71,6 +84,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
     Datadog.configuration[:active_record].reset_options!
 
     Datadog.configure do |c|
+      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :active_record, configuration_options
     end
   end
@@ -93,12 +107,12 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
           allow(ActiveRecord::Base).to receive(:configurations).and_return(
             'gadget' => {
               'encoding' => 'utf8',
-              'adapter'=>'mysql2',
-              'username'=>'root',
-              'host' => '127.0.0.1',
-              'port' => 53306,
-              'password' => nil,
-              'database' => 'mysql'
+              'adapter' => 'mysql2',
+              'username' => 'root',
+              'host' => mysql[:host],
+              'port' => mysql[:port].to_i,
+              'password' => mysql[:password],
+              'database' => mysql[:database]
             },
             'widget' => {
               'adapter' => 'sqlite3',
@@ -123,7 +137,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
 
     context 'a String that\'s a URL' do
       context 'for a typical server' do
-        let(:databases) { { 'mysql2://root@127.0.0.1:53306/mysql' => gadget_db_configuration_options } }
+        let(:databases) { { mysql_connection_string => gadget_db_configuration_options } }
 
         it do
           # Gadget is configured to show up as its own database service
