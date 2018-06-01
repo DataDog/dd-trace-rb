@@ -3,11 +3,15 @@ require 'contrib/elasticsearch/test_helper'
 require 'helper'
 
 class ESIntegrationTest < Minitest::Test
-  ELASTICSEARCH_SERVER = 'http://127.0.0.1:49200'.freeze
+  ELASTICSEARCH_HOST = ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze
+  ELASTICSEARCH_PORT = ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').freeze
+  ELASTICSEARCH_SERVER = "http://#{ELASTICSEARCH_HOST}:#{ELASTICSEARCH_PORT}".freeze
+
   def setup
     skip unless ENV['TEST_DATADOG_INTEGRATION'] # requires a running agent
 
     Datadog.configure do |c|
+      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :elasticsearch
     end
 

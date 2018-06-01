@@ -5,7 +5,11 @@ logger = Logger.new(STDOUT)
 logger.level = Logger::INFO
 
 # connecting to any kind of database is enough to test the integration
-ActiveRecord::Base.establish_connection('mysql2://root:root@127.0.0.1:53306/mysql')
+root_pw = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')
+host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
+port = ENV.fetch('TEST_MYSQL_PORT', '3306')
+db = ENV.fetch('TEST_MYSQL_DB', 'mysql')
+ActiveRecord::Base.establish_connection("mysql2://root:#{root_pw}@#{host}:#{port}/#{db}")
 
 class ApplicationRecord < ActiveRecord::Base
   self.abstract_class = true

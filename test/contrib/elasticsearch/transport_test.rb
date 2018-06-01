@@ -1,10 +1,14 @@
 require 'time'
 require 'contrib/elasticsearch/test_helper'
+require 'contrib/elasticsearch/dummy_faraday_middleware'
 require 'ddtrace'
 require 'helper'
 
 class ESTransportTest < Minitest::Test
-  ELASTICSEARCH_SERVER = 'http://127.0.0.1:49200'.freeze
+  ELASTICSEARCH_HOST = ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze
+  ELASTICSEARCH_PORT = ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').freeze
+  ELASTICSEARCH_SERVER = "http://#{ELASTICSEARCH_HOST}:#{ELASTICSEARCH_PORT}".freeze
+
   def setup
     Datadog.configure do |c|
       c.use :elasticsearch
@@ -15,13 +19,22 @@ class ESTransportTest < Minitest::Test
     # wait until it's really running, docker-compose can be slow
     wait_http_server ELASTICSEARCH_SERVER, 60
 
-    @client = Elasticsearch::Client.new url: ELASTICSEARCH_SERVER
+    @client = Elasticsearch::Client.new url: ELASTICSEARCH_SERVER do |faraday|
+      faraday.use DummyFaradayMiddleware
+    end
     pin = Datadog::Pin.get_from(@client)
     pin.tracer = @tracer
   end
 
   def teardown
     @client.perform_request 'DELETE', '*'
+  end
+
+  def test_faraday_middleware_load
+    assert_includes(
+      @client.transport.connections.first.connection.builder.handlers,
+      DummyFaradayMiddleware
+    )
   end
 
   def test_perform_request
@@ -38,8 +51,8 @@ class ESTransportTest < Minitest::Test
     assert_equal('200', span.get_tag('http.status_code'))
     assert_nil(span.get_tag('elasticsearch.params'))
     assert_nil(span.get_tag('elasticsearch.body'))
-    assert_equal('127.0.0.1', span.get_tag('out.host'))
-    assert_equal('49200', span.get_tag('out.port'))
+    assert_equal(ELASTICSEARCH_HOST, span.get_tag('out.host'))
+    assert_equal(ELASTICSEARCH_PORT, span.get_tag('out.port'))
   end
 
   def test_perform_request_with_encoded_body

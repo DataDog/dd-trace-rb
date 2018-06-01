@@ -8,8 +8,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
   let(:client) { Mongo::Client.new(*client_options) }
   let(:client_options) { [["#{host}:#{port}"], { database: database }] }
-  let(:host) { '127.0.0.1' }
-  let(:port) { 57017 }
+  let(:host) { ENV.fetch('TEST_MONGODB_HOST', '127.0.0.1') }
+  let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017) }
   let(:database) { 'test' }
   let(:collection) { :artists }
 

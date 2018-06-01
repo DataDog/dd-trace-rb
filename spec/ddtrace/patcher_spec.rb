@@ -23,7 +23,7 @@ RSpec.describe Datadog::Patcher do
           expect(integration).to receive(:patch).once.and_return(patch_result)
           expect(result).to be(patch_result)
         end
-        
+
         context 'then called a second time' do
           context 'without a key' do
             subject(:result) do

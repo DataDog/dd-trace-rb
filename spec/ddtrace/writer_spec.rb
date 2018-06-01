@@ -68,7 +68,7 @@ RSpec.describe Datadog::Writer do
           context 'when the transport uses' do
             let(:options) { super().merge!(transport_options: { api_version: api_version, response_callback: callback }) }
             let(:callback) { double('callback method') }
-            
+
             let!(:request) { stub_request(:post, endpoint).to_return(response) }
             let(:endpoint) { "#{Datadog::Writer::HOSTNAME}:#{Datadog::Writer::PORT}/#{api_version}/traces" }
             let(:response) { { body: body } }
@@ -81,7 +81,7 @@ RSpec.describe Datadog::Writer do
                     :traces,
                     a_kind_of(Net::HTTPOK),
                     a_kind_of(Hash)
-                  ) do |action, response, api|
+                  ) do |_action, _response, api|
                     expect(api[:version]).to eq(api_version)
                   end
                 end
@@ -95,7 +95,9 @@ RSpec.describe Datadog::Writer do
               context 'but falls back to v3' do
                 let(:response) { super().merge!(status: 404) }
                 let!(:fallback_request) { stub_request(:post, fallback_endpoint).to_return(body: body) }
-                let(:fallback_endpoint) { "#{Datadog::Writer::HOSTNAME}:#{Datadog::Writer::PORT}/#{fallback_version}/traces" }
+                let(:fallback_endpoint) do
+                  "#{Datadog::Writer::HOSTNAME}:#{Datadog::Writer::PORT}/#{fallback_version}/traces"
+                end
                 let(:body) { 'body' }
 
                 before(:each) do
@@ -104,7 +106,7 @@ RSpec.describe Datadog::Writer do
                     :traces,
                     a_kind_of(Net::HTTPResponse),
                     a_kind_of(Hash)
-                  ) do |action, response, api|
+                  ) do |_action, response, api|
                     call_count += 1
                     if call_count == 1
                       expect(response).to be_a_kind_of(Net::HTTPNotFound)

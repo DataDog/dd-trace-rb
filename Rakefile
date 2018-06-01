@@ -1,6 +1,6 @@
 require 'bundler/gem_tasks'
 require 'ddtrace/version'
-require 'rubocop/rake_task' if RUBY_VERSION >= '2.1.0'
+require 'rubocop/rake_task' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
 require 'rspec/core/rake_task'
 require 'rake/testtask'
 require 'appraisal'
@@ -141,10 +141,10 @@ Rake::TestTask.new(:benchmark) do |t|
   t.test_files = FileList['test/benchmark_test.rb']
 end
 
-if RUBY_VERSION >= '2.1.0'
+if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
   RuboCop::RakeTask.new(:rubocop) do |t|
     t.options << ['-D']
-    t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'Gemfile', 'Rakefile']
+    t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'spec/**/*.rb', 'Gemfile', 'Rakefile']
   end
 end
 
@@ -198,90 +198,292 @@ task :'release:docs' => :docs do
   sh "aws s3 cp --recursive doc/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
 end
 
-desc 'CI dependent task; it runs all parallel tests'
+# rubocop:disable Style/YodaCondition
+desc 'CI task; it runs all tests for current version of Ruby'
 task :ci do
-  # CircleCI uses this environment to store the node index (starting from 0)
-  # check: https://circleci.com/docs/parallel-manual-setup/#env-splitting
-  case ENV['CIRCLE_NODE_INDEX'].to_i
-  when 0
-    sh 'rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do rake test:main'
-    # RSpec
-    sh 'rvm $MRI_VERSIONS,$MRI_OLD_VERSIONS,$JRUBY_VERSIONS --verbose do rake spec:main'
-  when 1
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:elasticsearch'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:http'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sinatra'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:rack'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:grape'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:aws'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sucker_punch'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:monkey'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:elasticsearch'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:http'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sinatra'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:rack'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:aws'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sucker_punch'
-    # RSpec
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_model_serializers'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_record'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:active_support'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:dalli'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:excon'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:faraday'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:graphql'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:mongodb'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:grpc'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:racecar'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:rake'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:redis'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:resque'
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake spec:sequel'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_model_serializers'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_record'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:active_support'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:dalli'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:excon'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:faraday'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:mongodb'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:rake'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:redis'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:resque'
-    sh 'rvm $MRI_OLD_VERSIONS --verbose do appraisal contrib-old rake spec:sequel'
-  when 2
-    sh 'rvm $MRI_VERSIONS --verbose do appraisal contrib rake test:sidekiq'
-    sh 'rvm $SIDEKIQ_OLD_VERSIONS --verbose do appraisal contrib-old rake test:sidekiq'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake test:rails'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake test:railsdisableenv'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-mysql2 rake test:rails'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-postgres rake test:rails'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-postgres-redis rake test:railsredis'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-postgres rake test:railsdisableenv'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-mysql2 rake test:rails'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:rails'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres-redis rake test:railsredis'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake test:railsdisableenv'
-    sh 'rvm $RAILS3_SIDEKIQ_VERSIONS --verbose do appraisal rails30-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS3_SIDEKIQ_VERSIONS --verbose do appraisal rails32-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS4_SIDEKIQ_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS4_SIDEKIQ_VERSIONS --verbose do appraisal rails4-postgres-sidekiq rake test:railsactivejob'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake test:rails'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:rails'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-redis rake test:railsredis'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railssidekiq'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres-sidekiq rake test:railsactivejob'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake test:railsdisableenv'
-    # RSpec
-    sh 'rvm $LAST_STABLE --verbose do rake benchmark'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails30-postgres rake spec:rails'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-mysql2 rake spec:rails'
-    sh 'rvm $RAILS3_VERSIONS --verbose do appraisal rails32-postgres rake spec:rails'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-mysql2 rake spec:rails'
-    sh 'rvm $RAILS4_VERSIONS --verbose do appraisal rails4-postgres rake spec:rails'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-mysql2 rake spec:rails'
-    sh 'rvm $RAILS5_VERSIONS --verbose do appraisal rails5-postgres rake spec:rails'
-  else
-    puts 'Too many workers than parallel tasks'
+  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('1.9.3')
+    raise NotImplementedError, 'Ruby versions < 1.9.3 are not supported!'
+  elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+    # Main library
+    sh 'bundle exec rake test:main'
+    sh 'bundle exec rake spec:main'
+
+    if RUBY_PLATFORM != 'java'
+      # Contrib minitests
+      sh 'bundle exec appraisal contrib-old rake test:aws'
+      sh 'bundle exec appraisal contrib-old rake test:elasticsearch'
+      sh 'bundle exec appraisal contrib-old rake test:http'
+      sh 'bundle exec appraisal contrib-old rake test:monkey'
+      sh 'bundle exec appraisal contrib-old rake test:rack'
+      sh 'bundle exec appraisal contrib-old rake test:sinatra'
+      sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
+      # Contrib specs
+      sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
+      sh 'bundle exec appraisal contrib-old rake spec:active_record'
+      sh 'bundle exec appraisal contrib-old rake spec:active_support'
+      sh 'bundle exec appraisal contrib-old rake spec:dalli'
+      sh 'bundle exec appraisal contrib-old rake spec:excon'
+      sh 'bundle exec appraisal contrib-old rake spec:faraday'
+      sh 'bundle exec appraisal contrib-old rake spec:http'
+      sh 'bundle exec appraisal contrib-old rake spec:mongodb'
+      sh 'bundle exec appraisal contrib-old rake spec:rake'
+      sh 'bundle exec appraisal contrib-old rake spec:redis'
+      sh 'bundle exec appraisal contrib-old rake spec:resque'
+      sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      # Rails minitests
+      sh 'bundle exec appraisal rails30-postgres rake test:rails'
+      sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails32-postgres rake test:railsdisableenv'
+      # Rails specs
+      sh 'bundle exec appraisal rails30-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails32-postgres rake spec:rails'
+    end
+  elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
+    # Main library
+    sh 'bundle exec rake test:main'
+    sh 'bundle exec rake spec:main'
+
+    if RUBY_PLATFORM != 'java'
+      # Contrib minitests
+      sh 'bundle exec appraisal contrib-old rake test:aws'
+      sh 'bundle exec appraisal contrib-old rake test:elasticsearch'
+      sh 'bundle exec appraisal contrib-old rake test:http'
+      sh 'bundle exec appraisal contrib-old rake test:monkey'
+      sh 'bundle exec appraisal contrib-old rake test:rack'
+      sh 'bundle exec appraisal contrib-old rake test:sinatra'
+      sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
+      # Contrib specs
+      sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
+      sh 'bundle exec appraisal contrib-old rake spec:active_record'
+      sh 'bundle exec appraisal contrib-old rake spec:active_support'
+      sh 'bundle exec appraisal contrib-old rake spec:dalli'
+      sh 'bundle exec appraisal contrib-old rake spec:excon'
+      sh 'bundle exec appraisal contrib-old rake spec:faraday'
+      sh 'bundle exec appraisal contrib-old rake spec:http'
+      sh 'bundle exec appraisal contrib-old rake spec:mongodb'
+      sh 'bundle exec appraisal contrib-old rake spec:rake'
+      sh 'bundle exec appraisal contrib-old rake spec:redis'
+      sh 'bundle exec appraisal contrib-old rake spec:resque'
+      sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      # Rails minitests
+      sh 'bundle exec appraisal contrib-old rake test:sidekiq'
+      sh 'bundle exec appraisal rails30-postgres rake test:rails'
+      sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails32-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails30-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails32-postgres-sidekiq rake test:railssidekiq'
+      # Rails specs
+      sh 'bundle exec appraisal rails30-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails32-postgres rake spec:rails'
+    end
+  elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+    # Main library
+    sh 'bundle exec rake test:main'
+    sh 'bundle exec rake spec:main'
+
+    if RUBY_PLATFORM != 'java'
+      # Contrib minitests
+      sh 'bundle exec appraisal contrib-old rake test:aws'
+      sh 'bundle exec appraisal contrib-old rake test:elasticsearch'
+      sh 'bundle exec appraisal contrib-old rake test:http'
+      sh 'bundle exec appraisal contrib-old rake test:monkey'
+      sh 'bundle exec appraisal contrib-old rake test:rack'
+      sh 'bundle exec appraisal contrib-old rake test:sinatra'
+      sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
+      # Contrib specs
+      sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
+      sh 'bundle exec appraisal contrib-old rake spec:active_record'
+      sh 'bundle exec appraisal contrib-old rake spec:active_support'
+      sh 'bundle exec appraisal contrib-old rake spec:dalli'
+      sh 'bundle exec appraisal contrib-old rake spec:excon'
+      sh 'bundle exec appraisal contrib-old rake spec:faraday'
+      sh 'bundle exec appraisal contrib-old rake spec:http'
+      sh 'bundle exec appraisal contrib-old rake spec:mongodb'
+      sh 'bundle exec appraisal contrib-old rake spec:rake'
+      sh 'bundle exec appraisal contrib-old rake spec:redis'
+      sh 'bundle exec appraisal contrib-old rake spec:resque'
+      sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      # Rails minitests
+      sh 'bundle exec appraisal contrib-old rake test:sidekiq'
+      sh 'bundle exec appraisal rails30-postgres rake test:rails'
+      sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails32-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails4-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails4-postgres rake test:rails'
+      sh 'bundle exec appraisal rails4-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails4-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails30-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails32-postgres-sidekiq rake test:railssidekiq'
+      # Rails specs
+      sh 'bundle exec appraisal rails30-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails32-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails4-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails4-postgres rake spec:rails'
+    end
+  elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+    # Main library
+    sh 'bundle exec rake test:main'
+    sh 'bundle exec rake spec:main'
+
+    if RUBY_PLATFORM != 'java'
+      # Contrib minitests
+      sh 'bundle exec appraisal contrib rake test:aws'
+      sh 'bundle exec appraisal contrib rake test:elasticsearch'
+      sh 'bundle exec appraisal contrib rake test:grape'
+      sh 'bundle exec appraisal contrib rake test:http'
+      sh 'bundle exec appraisal contrib rake test:rack'
+      sh 'bundle exec appraisal contrib rake test:sinatra'
+      sh 'bundle exec appraisal contrib rake test:sucker_punch'
+      # Contrib specs
+      sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
+      sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:active_support'
+      sh 'bundle exec appraisal contrib rake spec:dalli'
+      sh 'bundle exec appraisal contrib rake spec:excon'
+      sh 'bundle exec appraisal contrib rake spec:faraday'
+      sh 'bundle exec appraisal contrib rake spec:graphql'
+      sh 'bundle exec appraisal contrib rake spec:grpc'
+      sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:mongodb'
+      sh 'bundle exec appraisal contrib rake spec:racecar'
+      sh 'bundle exec appraisal contrib rake spec:rake'
+      sh 'bundle exec appraisal contrib rake spec:redis'
+      sh 'bundle exec appraisal contrib rake spec:resque'
+      sh 'bundle exec appraisal contrib rake spec:sequel'
+      # Rails minitests
+      sh 'bundle exec appraisal contrib rake test:sidekiq'
+      sh 'bundle exec appraisal rails30-postgres rake test:rails'
+      sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails32-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails4-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails4-postgres rake test:rails'
+      sh 'bundle exec appraisal rails4-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails4-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails4-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails4-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      # Rails specs
+      sh 'bundle exec appraisal rails30-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails32-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails4-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails4-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+    end
+  elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
+    # Main library
+    sh 'bundle exec rake test:main'
+    sh 'bundle exec rake spec:main'
+
+    if RUBY_PLATFORM != 'java'
+            # Contrib minitests
+      sh 'bundle exec appraisal contrib rake test:aws'
+      sh 'bundle exec appraisal contrib rake test:elasticsearch'
+      sh 'bundle exec appraisal contrib rake test:grape'
+      sh 'bundle exec appraisal contrib rake test:http'
+      sh 'bundle exec appraisal contrib rake test:rack'
+      sh 'bundle exec appraisal contrib rake test:sinatra'
+      sh 'bundle exec appraisal contrib rake test:sucker_punch'
+      # Contrib specs
+      sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
+      sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:active_support'
+      sh 'bundle exec appraisal contrib rake spec:dalli'
+      sh 'bundle exec appraisal contrib rake spec:excon'
+      sh 'bundle exec appraisal contrib rake spec:faraday'
+      sh 'bundle exec appraisal contrib rake spec:graphql'
+      sh 'bundle exec appraisal contrib rake spec:grpc'
+      sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:mongodb'
+      sh 'bundle exec appraisal contrib rake spec:racecar'
+      sh 'bundle exec appraisal contrib rake spec:rake'
+      sh 'bundle exec appraisal contrib rake spec:redis'
+      sh 'bundle exec appraisal contrib rake spec:resque'
+      sh 'bundle exec appraisal contrib rake spec:sequel'
+      # Rails minitests
+      sh 'bundle exec appraisal contrib rake test:sidekiq'
+      sh 'bundle exec appraisal rails30-postgres rake test:rails'
+      sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres rake test:rails'
+      sh 'bundle exec appraisal rails32-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails32-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails4-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails4-postgres rake test:rails'
+      sh 'bundle exec appraisal rails4-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails4-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails4-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails4-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      # Rails specs
+      sh 'bundle exec appraisal rails30-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails32-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails4-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails4-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+    end
+  elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
+    # Main library
+    sh 'bundle exec rake test:main'
+    sh 'bundle exec rake spec:main'
+
+    if RUBY_PLATFORM != 'java'
+            # Contrib minitests
+      sh 'bundle exec appraisal contrib rake test:aws'
+      sh 'bundle exec appraisal contrib rake test:elasticsearch'
+      sh 'bundle exec appraisal contrib rake test:grape'
+      sh 'bundle exec appraisal contrib rake test:http'
+      sh 'bundle exec appraisal contrib rake test:rack'
+      sh 'bundle exec appraisal contrib rake test:sinatra'
+      sh 'bundle exec appraisal contrib rake test:sucker_punch'
+      # Contrib specs
+      sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
+      sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:active_support'
+      sh 'bundle exec appraisal contrib rake spec:dalli'
+      sh 'bundle exec appraisal contrib rake spec:excon'
+      sh 'bundle exec appraisal contrib rake spec:faraday'
+      sh 'bundle exec appraisal contrib rake spec:graphql'
+      sh 'bundle exec appraisal contrib rake spec:grpc'
+      sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:mongodb'
+      sh 'bundle exec appraisal contrib rake spec:racecar'
+      sh 'bundle exec appraisal contrib rake spec:rake'
+      sh 'bundle exec appraisal contrib rake spec:redis'
+      sh 'bundle exec appraisal contrib rake spec:resque'
+      sh 'bundle exec appraisal contrib rake spec:sequel'
+      # Rails minitests
+      sh 'bundle exec appraisal contrib rake test:sidekiq'
+      sh 'bundle exec rake benchmark'
+    end
   end
 end
 

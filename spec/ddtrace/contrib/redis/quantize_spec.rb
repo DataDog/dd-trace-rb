@@ -41,7 +41,13 @@ RSpec.describe Datadog::Contrib::Redis::Quantize do
 
       context 'an object that can\'t be converted to a string' do
         let(:arg) { object_class.new }
-        let(:object_class) { Class.new { def to_s; raise "can't make a string of me" end } }
+        let(:object_class) do
+          Class.new do
+            def to_s
+              raise "can't make a string of me"
+            end
+          end
+        end
         it { is_expected.to eq('?') }
       end
 

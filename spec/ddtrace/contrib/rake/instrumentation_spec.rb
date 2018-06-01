@@ -35,6 +35,12 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
     if Rake::Task.task_defined?(task_name)
       Rake::Task[task_name].reenable
       Rake::Task[task_name].clear
+
+      # Rake prior to version 12.0 doesn't clear args when #clear is invoked.
+      # Perform a more invasive reset, to make sure its reusable.
+      if Gem::Version.new(Rake::VERSION) < Gem::Version.new('12.0')
+        Rake::Task[task_name].instance_variable_set(:@arg_names, nil)
+      end
     end
   end
 

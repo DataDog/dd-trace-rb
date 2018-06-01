@@ -47,7 +47,7 @@ class TracerTest < Minitest::Test
     assert_equal(span.name, 'something')
     assert_equal(span.get_tag('error.msg'), 'divided by 0')
     assert_equal(span.get_tag('error.type'), 'ZeroDivisionError')
-    assert span.get_tag('error.stack').include?('dd-trace-rb')
+    assert span.get_tag('error.stack').include?('tracer_test.rb')
   end
 
   def test_trace_non_standard_error
@@ -71,7 +71,7 @@ class TracerTest < Minitest::Test
     assert_equal(span.name, 'something')
     assert_equal(span.get_tag('error.msg'), 'NoMemoryError')
     assert_equal(span.get_tag('error.type'), 'NoMemoryError')
-    assert span.get_tag('error.stack').include?('dd-trace-rb')
+    assert span.get_tag('error.stack').include?('tracer_test.rb')
   end
 
   def test_trace_child

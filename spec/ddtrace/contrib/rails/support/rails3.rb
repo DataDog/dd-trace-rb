@@ -32,7 +32,7 @@ RSpec.shared_context 'Rails 3 base application' do
   let(:rails_base_application) do
     reset_rails_configuration!
     during_init = initialize_block
-    Class.new(Rails::Application) do
+    klass = Class.new(Rails::Application) do
       redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
       file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
 
@@ -44,28 +44,29 @@ RSpec.shared_context 'Rails 3 base application' do
       config.action_view.javascript_expansions = {}
       config.action_view.stylesheet_expansions = {}
       config.middleware.delete ActionDispatch::DebugExceptions if Rails.version >= '3.2.22.5'
-      self.instance_eval(&during_init)
-    end.tap do |klass|
-      klass.send(:define_method, :initialize) do |*args|
-        super(*args)
-        self.instance_eval(&during_init)
-      end
-
-      before_test_init = before_test_initialize_block
-      after_test_init = after_test_initialize_block
-
-      klass.send(:define_method, :test_initialize!) do
-        # Enables the auto-instrumentation for the testing application
-        Datadog.configure do |c|
-          c.use :rails
-          c.use :redis
-        end
-
-        before_test_init.call
-        initialize!
-        after_test_init.call
-      end
+      instance_eval(&during_init)
     end
+
+    klass.send(:define_method, :initialize) do |*args|
+      super(*args)
+      instance_eval(&during_init)
+    end
+
+    before_test_init = before_test_initialize_block
+    after_test_init = after_test_initialize_block
+
+    klass.send(:define_method, :test_initialize!) do
+      # Enables the auto-instrumentation for the testing application
+      Datadog.configure do |c|
+        c.use :rails
+        c.use :redis
+      end
+
+      before_test_init.call
+      initialize!
+      after_test_init.call
+    end
+    klass
   end
 
   def append_routes!
@@ -120,7 +121,7 @@ RSpec.shared_context 'Rails 3 base application' do
   def app_middleware
     current = Rails::Railtie::Configuration.class_variable_get(:@@app_middleware)
     Datadog::Contrib::Rails::Test::Configuration.fetch(:app_middleware, current).dup.tap do |copy|
-      copy.instance_variable_set(:@operations, (copy.instance_variable_get(:@operations) || [] ).dup)
+      copy.instance_variable_set(:@operations, (copy.instance_variable_get(:@operations) || []).dup)
       copy.instance_variable_set(:@delete_operations, (copy.instance_variable_get(:@delete_operations) || []).dup)
     end
   end

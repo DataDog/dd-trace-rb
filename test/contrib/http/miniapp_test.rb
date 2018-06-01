@@ -10,16 +10,18 @@ require 'helper'
 # as ES happens to A) serve http and B) be supported with
 # a dedicated integration, so it's already there in our CI.
 class HTTPMiniAppTest < Minitest::Test
-  ELASTICSEARCH_HOST = '127.0.0.1'.freeze
-  ELASTICSEARCH_PORT = 49200
+  ELASTICSEARCH_HOST = ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze
+  ELASTICSEARCH_PORT = ENV.fetch('TEST_ELASTICSEARCH_PORT', 9200).freeze
+  ELASTICSEARCH_SERVER = "http://#{ELASTICSEARCH_HOST}:#{ELASTICSEARCH_PORT}".freeze
 
   def setup
     Datadog.configure do |c|
+      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :http
     end
 
     # wait until it's really running, docker-compose can be slow
-    wait_http_server 'http://' + ELASTICSEARCH_HOST + ':' + ELASTICSEARCH_PORT.to_s(), 60
+    wait_http_server ELASTICSEARCH_SERVER, 60
   end
 
   def check_span_page(span)

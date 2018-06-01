@@ -1,8 +1,6 @@
 require 'spec_helper'
 
 require 'ddtrace'
-
-# rubocop:disable Metrics/BlockLength
 RSpec.describe Datadog::Registry do
   describe 'instance' do
     subject(:registry) { described_class.new }

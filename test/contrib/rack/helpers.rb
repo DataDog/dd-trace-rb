@@ -11,8 +11,6 @@ class RackBaseTest < Minitest::Test
   # rubocop:disable Metrics/MethodLength
   def app
     tracer = @tracer
-
-    # rubocop:disable Metrics/BlockLength
     Rack::Builder.new do
       use Datadog::Contrib::Rack::TraceMiddleware
 
@@ -109,6 +107,7 @@ class RackBaseTest < Minitest::Test
     @tracer = get_test_tracer
 
     Datadog.configure do |c|
+      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :http
       c.use :rack, tracer: @tracer
     end

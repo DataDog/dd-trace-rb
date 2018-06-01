@@ -6,17 +6,17 @@ require 'ddtrace/version'
 
 Gem::Specification.new do |spec|
   spec.name                  = 'ddtrace'
-  spec.version               = "#{Datadog::VERSION::STRING}#{ENV['VERSION_SUFFIX']}"
+  spec.version               = Datadog::VERSION::STRING
   spec.required_ruby_version = '>= 1.9.1'
   spec.authors               = ['Datadog, Inc.']
   spec.email                 = ['dev@datadoghq.com']
 
   spec.summary     = 'Datadog tracing code for your Ruby applications'
-  spec.description = <<-EOS
-ddtrace is Datadog’s tracing client for Ruby. It is used to trace requests
-as they flow across web servers, databases and microservices so that developers
-have great visiblity into bottlenecks and troublesome requests.
-EOS
+  spec.description = <<-EOS.gsub(/^[\s]+/, '')
+    ddtrace is Datadog’s tracing client for Ruby. It is used to trace requests
+    as they flow across web servers, databases and microservices so that developers
+    have great visiblity into bottlenecks and troublesome requests.
+  EOS
 
   spec.homepage = 'https://github.com/DataDog/dd-trace-rb'
   spec.license  = 'BSD-3-Clause'
@@ -34,7 +34,7 @@ EOS
 
   spec.add_dependency 'msgpack'
 
-  spec.add_development_dependency 'rake', '~> 10.5'
+  spec.add_development_dependency 'rake', '>= 10.5'
   spec.add_development_dependency 'rubocop', '= 0.49.1' if RUBY_VERSION >= '2.1.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'rspec-collection_matchers', '~> 1.1'

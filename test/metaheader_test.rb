@@ -68,7 +68,11 @@ class MetaHeaderTest < Minitest::Test
     @thread = Thread.new { @server.start }
 
     tracer = Datadog::Tracer.new
-    tracer.configure(enabled: true, hostname: '127.0.0.1', port: TEST_PORT)
+    tracer.configure(
+      enabled: true,
+      hostname: '127.0.0.1',
+      port: TEST_PORT
+    )
 
     tracer.trace('op1') do |span|
       span.service = 'my.service'
