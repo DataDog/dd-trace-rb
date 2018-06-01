@@ -31,10 +31,15 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   let(:connection) do
     Excon.new('http://example.com', connection_options).tap do
-      Excon.stub({ method: :get, path: '/success' }, { body: 'OK', status: 200 })
-      Excon.stub({ method: :post, path: '/failure' }, { body: 'Boom!', status: 500 })
-      Excon.stub({ method: :get, path: '/not_found' }, { body: 'Not Found.', status: 404 })
-      Excon.stub({ method: :get, path: '/timeout' }, lambda { |request_params| raise Excon::Errors::Timeout.new('READ TIMEOUT') })
+      Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200)
+      Excon.stub({ method: :post, path: '/failure' }, body: 'Boom!', status: 500)
+      Excon.stub({ method: :get, path: '/not_found' }, body: 'Not Found.', status: 404)
+      Excon.stub(
+        { method: :get, path: '/timeout' },
+        lambda do |_request_params|
+          raise Excon::Errors::Timeout, 'READ TIMEOUT'
+        end
+      )
     end
   end
 
@@ -73,13 +78,13 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span).to_not be nil
       expect(request_span.service).to eq(Datadog::Contrib::Excon::Patcher::DEFAULT_SERVICE)
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Middleware::SPAN_NAME)
-      expect(request_span.resource).to eq('GET') 
-      expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET') 
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200') 
-      expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success') 
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com') 
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80') 
-      expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE) 
+      expect(request_span.resource).to eq('GET')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+      expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE)
       expect(request_span.status).to_not eq(Datadog::Ext::Errors::STATUS)
     end
   end
@@ -122,14 +127,13 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       it 'records separate spans' do
         expect { subject }.to raise_error
         expect(all_request_spans.size).to eq(4)
-        expect(all_request_spans.all? { |span| span.finished? }).to eq(true)
+        expect(all_request_spans.all?(&:finished?)).to eq(true)
       end
     end
   end
 
-
   context 'when there is custom error handling' do
-    subject!(:response) { connection.get(path: 'not_found') }    
+    subject!(:response) { connection.get(path: 'not_found') }
     let(:configuration_options) { super().merge(error_handler: custom_handler) }
     let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
     after(:each) { Datadog.configuration[:excon][:error_handler] = nil }
@@ -232,7 +236,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     after(:each) { Datadog.configure { |c| c.use :excon, service_name: @old_service_name } }
 
     it do
-      Excon.stub({ method: :get, path: '/success' }, { body: 'OK', status: 200 })
+      Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200)
       connection.get(path: '/success')
       expect(request_span.service).to eq(service_name)
     end
@@ -240,7 +244,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   context 'service name per request' do
     subject!(:response) do
-      Excon.stub({ method: :get, path: '/success' }, { body: 'OK', status: 200 })
+      Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200)
       connection.get(path: '/success')
     end
 

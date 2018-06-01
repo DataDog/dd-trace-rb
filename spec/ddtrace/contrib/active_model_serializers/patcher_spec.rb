@@ -7,7 +7,6 @@ require 'ddtrace'
 require 'ddtrace/contrib/active_model_serializers/patcher'
 require 'ddtrace/ext/http'
 
-# rubocop:disable Metrics/BlockLength
 RSpec.describe 'ActiveModelSerializers patcher' do
   include_context 'AMS serializer'
 
