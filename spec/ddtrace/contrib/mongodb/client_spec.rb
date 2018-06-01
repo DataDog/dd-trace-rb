@@ -72,6 +72,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     end
   end
 
+  # rubocop:disable Metrics/LineLength
   describe 'tracing' do
     shared_examples_for 'a MongoDB trace' do
       it 'has basic properties' do

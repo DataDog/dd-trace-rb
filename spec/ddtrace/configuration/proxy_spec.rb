@@ -27,17 +27,17 @@ RSpec.describe Datadog::Configuration::Proxy do
 
   describe '#to_h' do
     subject(:hash) { proxy.to_h }
-    it { is_expected.to eq({ x: :a, y: :b }) }
+    it { is_expected.to eq(x: :a, y: :b) }
   end
 
   describe '#to_hash' do
     subject(:hash) { proxy.to_hash }
-    it { is_expected.to eq({ x: :a, y: :b }) }
+    it { is_expected.to eq(x: :a, y: :b) }
   end
 
   describe '#merge' do
     subject(:result) { proxy.merge(hash) }
     let(:hash) { { z: :c } }
-    it { is_expected.to eq({ x: :a, y: :b, z: :c }) }
+    it { is_expected.to eq(x: :a, y: :b, z: :c) }
   end
 end

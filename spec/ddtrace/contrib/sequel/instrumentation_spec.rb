@@ -18,7 +18,7 @@ RSpec.describe 'Sequel instrumentation' do
 
   before(:each) do
     skip unless Datadog::Contrib::Sequel::Patcher.compatible?
-    
+
     # Reset options (that might linger from other tests)
     Datadog.configuration[:sequel].reset_options!
 

@@ -198,12 +198,12 @@ task :'release:docs' => :docs do
   sh "aws s3 cp --recursive doc/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
 end
 
-# rubocop:disable Style/YodaCondition
 desc 'CI task; it runs all tests for current version of Ruby'
 task :ci do
   if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('1.9.3')
     raise NotImplementedError, 'Ruby versions < 1.9.3 are not supported!'
-  elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+  elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
+        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -242,7 +242,8 @@ task :ci do
       sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails32-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
+  elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
+        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -284,7 +285,8 @@ task :ci do
       sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails32-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+  elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
+        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -332,7 +334,8 @@ task :ci do
       sh 'bundle exec appraisal rails4-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails4-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+  elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION)\
+        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -391,13 +394,14 @@ task :ci do
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
+  elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
+        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
 
     if RUBY_PLATFORM != 'java'
-            # Contrib minitests
+      # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:aws'
       sh 'bundle exec appraisal contrib rake test:elasticsearch'
       sh 'bundle exec appraisal contrib rake test:grape'
@@ -456,7 +460,7 @@ task :ci do
     sh 'bundle exec rake spec:main'
 
     if RUBY_PLATFORM != 'java'
-            # Contrib minitests
+      # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:aws'
       sh 'bundle exec appraisal contrib rake test:elasticsearch'
       sh 'bundle exec appraisal contrib rake test:grape'
