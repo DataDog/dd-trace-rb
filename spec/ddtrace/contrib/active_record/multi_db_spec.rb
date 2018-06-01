@@ -81,7 +81,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
   let(:widget_span) { spans[1] }
 
   before(:each) do
-    Datadog.configuration[:active_record].reset_options!
+    Datadog.registry[:active_record].reset_configuration!
 
     Datadog.configure do |c|
       c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
@@ -90,19 +90,16 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
   end
 
   after(:each) do
-    Datadog.configuration[:active_record].reset_options!
+    Datadog.registry[:active_record].reset_configuration!
   end
 
-  context 'when :databases is configured with' do
-    let(:configuration_options) { super().merge(databases: databases) }
-    let(:gadget_db_configuration_options) { { service_name: gadget_db_service_name } }
+  context 'when databases are configured with' do
     let(:gadget_db_service_name) { 'gadget-db' }
-    let(:widget_db_configuration_options) { { service_name: widget_db_service_name } }
     let(:widget_db_service_name) { 'widget-db' }
 
     context 'a Symbol that matches a configuration' do
       context 'when ActiveRecord has configurations' do
-        let(:databases) do
+        before(:each) do
           # Stub ActiveRecord::Base, to pretend its been configured
           allow(ActiveRecord::Base).to receive(:configurations).and_return(
             'gadget' => {
@@ -122,8 +119,17 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
             }
           )
 
-          # Return the configuration settings
-          { gadget: gadget_db_configuration_options, widget: widget_db_configuration_options }
+          Datadog.configure do |c|
+            c.use :active_record, describes: :gadget do |gadget_db|
+              gadget_db.tracer = tracer
+              gadget_db.service_name = gadget_db_service_name
+            end
+
+            c.use :active_record, describes: :widget do |widget_db|
+              widget_db.tracer = tracer
+              widget_db.service_name = widget_db_service_name
+            end
+          end
         end
 
         it do
@@ -137,7 +143,14 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
 
     context 'a String that\'s a URL' do
       context 'for a typical server' do
-        let(:databases) { { mysql_connection_string => gadget_db_configuration_options } }
+        before(:each) do
+          Datadog.configure do |c|
+            c.use :active_record, describes: mysql_connection_string do |gadget_db|
+              gadget_db.tracer = tracer
+              gadget_db.service_name = gadget_db_service_name
+            end
+          end
+        end
 
         it do
           # Gadget is configured to show up as its own database service
@@ -148,7 +161,14 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
       end
 
       context 'for an in-memory database' do
-        let(:databases) { { 'sqlite3::memory:' => widget_db_configuration_options } }
+        before(:each) do
+          Datadog.configure do |c|
+            c.use :active_record, describes: 'sqlite3::memory:' do |widget_db|
+              widget_db.tracer = tracer
+              widget_db.service_name = widget_db_service_name
+            end
+          end
+        end
 
         it do
           # Gadget belongs to the default database
@@ -160,7 +180,16 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
     end
 
     context 'a Hash that describes a connection' do
-      let(:databases) { { { adapter: 'sqlite3', database: ':memory:' } => widget_db_configuration_options } }
+      before(:each) do
+        widget_db_connection_hash = { adapter: 'sqlite3', database: ':memory:' }
+
+        Datadog.configure do |c|
+          c.use :active_record, describes: widget_db_connection_hash do |widget_db|
+            widget_db.tracer = tracer
+            widget_db.service_name = widget_db_service_name
+          end
+        end
+      end
 
       it do
         # Gadget belongs to the default database

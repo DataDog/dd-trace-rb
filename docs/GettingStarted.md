@@ -303,36 +303,40 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | --- | --- |
 | ``service_name`` | Service name used for database portion of `active_record` instrumentation. | Name of database adapter (e.g. `mysql2`) |
 | ``orm_service_name`` | Service name used for the Ruby ORM portion of `active_record` instrumentation. Overrides service name for ORM spans if explicitly set, which otherwise inherit their service from their parent.  | ``active_record`` |
-| ``databases`` | Hash of tracer settings to use for each database connection. Useful if you use ActiveRecord to connect to multiple databases, and want to assign them different service names. See details below. | ``{}`` |
 
 **Configuring trace settings per database**
 
 You can provide the `databases` option to configure trace settings by database connection:
 
 ```ruby
+# Provide a `:describes` option with a connection key.
+# Any of the following keys are acceptable, and equivalent to one another.
+# If a block is provided, it yields a Settings object that
+# accepts any of the configuration options listed above.
+
 Datadog.configure do |c|
-  c.use :active_record, service_name: 'default-db', databases: {
-    # Any of the following keys are acceptable, and equivalent to one another.
-    # Values must be a Hash, and can only contain :service_name as a setting.
+  # Symbol matching your database connection in config/database.yml
+  # Only available if you are using Rails with ActiveRecord.
+  c.use :active_record, describes: :secondary_database, service_name: 'secondary-db'
 
-    # Symbol matching your database connection in config/database.yml
-    # Only available if you are using Rails with ActiveRecord.
-    secondary_database: { service_name: 'secondary-db' },
+  c.use :active_record, describes: :secondary_database do |second_db|
+    second_db.service_name = 'secondary-db'
+  end
 
-    # Connection string with the following connection settings:
-    # Adapter, user, host, port, database
-    'mysql2://root@127.0.0.1:3306/mysql' => { service_name: 'secondary-db' },
+  # Connection string with the following connection settings:
+  # Adapter, user, host, port, database
+  c.use :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', service_name: 'secondary-db'
 
-    # Hash with following connection settings
-    # Adapter, user, host, port, database
-    {
+  # Hash with following connection settings
+  # Adapter, user, host, port, database
+  c.use :active_record, describes: {
       adapter:  'mysql2',
       host:     '127.0.0.1',
       port:     '3306',
       database: 'mysql',
       username: 'root'
-    } => { service_name: 'secondary-db' }
-  }
+    },
+    service_name: 'secondary-db'
 end
 ```
 

@@ -1,35 +1,26 @@
-require 'ddtrace/contrib/active_record/configuration'
-
 module Datadog
   module Contrib
     module ActiveRecord
       # Common utilities for Rails
       module Utils
         def self.adapter_name
-          connection_config[:adapter_name]
+          Datadog::Utils::Database.normalize_vendor(connection_config[:adapter])
         end
 
         def self.database_name
-          connection_config[:database_name]
+          connection_config[:database]
         end
 
         def self.adapter_host
-          connection_config[:adapter_host]
+          connection_config[:host]
         end
 
         def self.adapter_port
-          connection_config[:adapter_port]
+          connection_config[:port]
         end
 
         def self.connection_config(object_id = nil)
-          config = object_id.nil? ? default_connection_config : connection_config_by_id(object_id)
-          {
-            adapter_name: Datadog::Utils::Database.normalize_vendor(config[:adapter]),
-            adapter_host: config[:host],
-            adapter_port: config[:port],
-            database_name: config[:database],
-            tracer_settings: Configuration.database_settings(config)
-          }
+          object_id.nil? ? default_connection_config : connection_config_by_id(object_id)
         end
 
         # Attempt to retrieve the connection from an object ID.

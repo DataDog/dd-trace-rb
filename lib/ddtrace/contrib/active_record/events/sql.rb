@@ -22,9 +22,13 @@ module Datadog
           end
 
           def process(span, event, _id, payload)
-            connection_config = Utils.connection_config(payload[:connection_id])
-            span.name = "#{connection_config[:adapter_name]}.query"
-            span.service = connection_config[:tracer_settings][:service_name] || configuration[:service_name]
+            config = Utils.connection_config(payload[:connection_id])
+            settings = Datadog.configuration[:active_record, config]
+            adapter_name = Datadog::Utils::Database.normalize_vendor(config[:adapter])
+            service_name = !settings.nil? ? settings.service_name : configuration[:service_name]
+
+            span.name = "#{adapter_name}.query"
+            span.service = service_name
             span.resource = payload.fetch(:sql)
             span.span_type = Datadog::Ext::SQL::TYPE
 
@@ -33,11 +37,11 @@ module Datadog
             # is simply cached from memory, so the notification is fired with start == finish.
             cached = payload[:cached] || (payload[:name] == 'CACHE')
 
-            span.set_tag('active_record.db.vendor', connection_config[:adapter_name])
-            span.set_tag('active_record.db.name', connection_config[:database_name])
+            span.set_tag('active_record.db.vendor', adapter_name)
+            span.set_tag('active_record.db.name', config[:database])
             span.set_tag('active_record.db.cached', cached) if cached
-            span.set_tag('out.host', connection_config[:adapter_host])
-            span.set_tag('out.port', connection_config[:adapter_port])
+            span.set_tag('out.host', config[:host]) if config[:host]
+            span.set_tag('out.port', config[:port]) if config[:port]
           rescue StandardError => e
             Datadog::Tracer.log.debug(e.message)
           end
