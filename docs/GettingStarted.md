@@ -96,7 +96,7 @@ The Ruby APM tracer sends trace data through the Datadog Agent.
 ### Quickstart for Rails applications
 
 1. Add the `ddtrace` gem to your Gemfile:
-    
+
     ```ruby
     source 'https://rubygems.org'
     gem 'ddtrace'
@@ -445,7 +445,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 ### gRPC
 
-The `grpc` integration adds both client and server interceptors, which run as middleware prior to executing the service's remote procedure call. As gRPC applications are often distributed, the integration shares trace information between client and server. 
+The `grpc` integration adds both client and server interceptors, which run as middleware prior to executing the service's remote procedure call. As gRPC applications are often distributed, the integration shares trace information between client and server.
 
 To setup your integration, use the ``Datadog.configure`` method like so:
 
