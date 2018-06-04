@@ -157,62 +157,9 @@ module Datadog
 
     def patch_process_action
       do_once(:patch_process_action) do
-        ActionControllerPatch.instrument(::ActionController::Metal)
-      end
-    end
+        require 'ddtrace/contrib/rails/action_controller_patch'
 
-    # Compat module for Ruby versions not supporting #prepend
-    module CompatActionControllerPatch
-      def process_action(*args)
-        process_action_without_datadog(*args)
-      end
-    end
-
-    # ActionController patch
-    module ActionControllerPatch
-      def self.instrument(klass)
-        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
-          klass.send(:prepend, ActionControllerPatch)
-        else
-          klass.class_eval do
-            alias_method :process_action_without_datadog, :process_action
-
-            include ActionControllerPatch
-          end
-        end
-      end
-
-      # compat for Ruby versions not supporting #prepend
-      include CompatActionControllerPatch unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
-
-      def process_action(*args)
-        # mutable payload with a tracing context that is used in two different
-        # signals; it propagates the request span so that it can be finished
-        # no matter what
-        payload = {
-          controller: self.class,
-          action: action_name,
-          headers: {
-            # The exception this controller was given in the request,
-            # which is typical if the controller is configured to handle exceptions.
-            request_exception: request.headers['action_dispatch.exception']
-          },
-          tracing_context: {}
-        }
-
-        begin
-          # process and catch request exceptions
-          Datadog::Contrib::Rails::ActionController.start_processing(payload)
-          result = super(*args)
-          payload[:status] = response.status
-          result
-        rescue Exception => e
-          payload[:exception] = [e.class.name, e.message]
-          payload[:exception_object] = e
-          raise e
-        end
-      ensure
-        Datadog::Contrib::Rails::ActionController.finish_processing(payload)
+        ::ActionController::Metal.include(Datadog::Contrib::Rails::ActionControllerPatch)
       end
     end
   end
