@@ -50,6 +50,7 @@ class TracerTest < TracerTestBase
     assert_equal('sidekiq', span.service)
     assert_equal('TracerTest::EmptyWorker', span.resource)
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
+    assert_not_nil(span.get_tag('sidekiq.job.delay'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
   end
@@ -71,6 +72,7 @@ class TracerTest < TracerTestBase
     assert_equal('sidekiq', span.service)
     assert_equal('TracerTest::ErrorWorker', span.resource)
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
+    assert_not_nil(span.get_tag('sidekiq.job.delay'))
     assert_equal(1, span.status)
     assert_equal('job error', span.get_tag(Datadog::Ext::Errors::MSG))
     assert_equal('TracerTest::TestError', span.get_tag(Datadog::Ext::Errors::TYPE))
@@ -92,6 +94,7 @@ class TracerTest < TracerTestBase
     assert_equal('sidekiq', empty.service)
     assert_equal('TracerTest::EmptyWorker', empty.resource)
     assert_equal('default', empty.get_tag('sidekiq.job.queue'))
+    assert_not_nil(empty.get_tag('sidekiq.job.delay'))
     assert_equal(0, empty.status)
     assert_nil(empty.parent)
 

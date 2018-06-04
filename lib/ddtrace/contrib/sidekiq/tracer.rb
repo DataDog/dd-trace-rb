@@ -32,6 +32,7 @@ module Datadog
             span.set_tag('sidekiq.job.retry', job['retry'])
             span.set_tag('sidekiq.job.queue', job['queue'])
             span.set_tag('sidekiq.job.wrapper', job['class']) if job['wrapped']
+            span.set_tag('sidekiq.job.delay', 1000.0 * (Time.now.utc.to_f - job['enqueued_at'].to_f))
 
             yield
           end
