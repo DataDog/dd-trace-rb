@@ -81,7 +81,7 @@ module Datadog
           app.before do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            span = env.datadog_span
+            span = Sinatra::Env.datadog_span(env)
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
           end
@@ -89,7 +89,7 @@ module Datadog
           app.after do
             return unless Datadog.configuration[:sinatra][:tracer].enabled
 
-            span = env.datadog_span
+            span = Sinatra::Env.datadog_span(env)
 
             unless span
               Datadog::Tracer.log.error('missing request span in :after hook')

@@ -13,9 +13,6 @@ module Datadog
         end
 
         def call(env)
-          # Extend the Env with Sinatra tracing functions
-          env.extend(Sinatra::Env)
-
           # Set the trace context (e.g. distributed tracing)
           if configuration[:distributed_tracing] && tracer.provider.context.trace_id.nil?
             context = HTTPPropagator.extract(env)
@@ -29,21 +26,18 @@ module Datadog
             span_type: Datadog::Ext::HTTP::TYPE
           ) do |span|
             # Set the span on the Env
-            env.datadog_span = span
+            Sinatra::Env.set_datadog_span(env, span)
 
             # Tag request headers
-            env.request_header_tags(configuration[:headers][:request]).each do |name, value|
+            Sinatra::Env.request_header_tags(env, configuration[:headers][:request]).each do |name, value|
               span.set_tag(name, value) if span.get_tag(name).nil?
             end
 
             # Run application stack
             status, headers, response_body = @app.call(env)
 
-            # Extend the Headers with Sinatra tracing functions
-            headers.extend(Sinatra::Headers)
-
             # Tag response headers
-            headers.response_header_tags(configuration[:headers][:response]).each do |name, value|
+            Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
               span.set_tag(name, value) if span.get_tag(name).nil?
             end
 

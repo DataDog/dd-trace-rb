@@ -8,28 +8,28 @@ module Datadog
       module Env
         ENV_SPAN = 'datadog.sinatra_request_span'.freeze
 
-        def datadog_span
-          self[ENV_SPAN]
+        module_function
+
+        def datadog_span(env)
+          env[ENV_SPAN]
         end
 
-        def datadog_span=(span)
-          self[ENV_SPAN] = span
+        def set_datadog_span(env, span)
+          env[ENV_SPAN] = span
         end
 
-        def request_header_tags(headers)
+        def request_header_tags(env, headers)
           headers ||= []
 
           {}.tap do |result|
             headers.each do |header|
               rack_header = header_to_rack_header(header)
-              if key?(rack_header)
-                result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = self[rack_header]
+              if env.key?(rack_header)
+                result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
               end
             end
           end
         end
-
-        private
 
         def header_to_rack_header(name)
           "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"

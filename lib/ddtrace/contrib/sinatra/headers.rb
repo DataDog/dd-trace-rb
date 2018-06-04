@@ -6,19 +6,21 @@ module Datadog
       # Gets and sets trace information from a Rack headers Hash
       # TODO: Extract me?
       module Headers
-        def response_header_tags(headers)
-          headers ||= []
+        module_function
+
+        def response_header_tags(headers, target_headers)
+          target_headers ||= []
 
           {}.tap do |result|
-            headers.each do |header|
-              if key?(header)
-                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = self[header]
+            target_headers.each do |header|
+              if headers.key?(header)
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
               else
                 # Try a case-insensitive lookup
                 uppercased_header = header.to_s.upcase
-                matching_header = keys.find { |h| h.upcase == uppercased_header }
+                matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
                 if matching_header
-                  result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = self[matching_header]
+                  result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
                 end
               end
             end
