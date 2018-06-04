@@ -4,8 +4,6 @@ require 'racecar'
 require 'racecar/cli'
 require 'active_support'
 require 'ddtrace'
-
-# rubocop:disable Metrics/BlockLength
 RSpec.describe 'Racecar patcher' do
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
 

@@ -17,54 +17,54 @@ RSpec.shared_context 'Rails 5 base application' do
 
   let(:rails_base_application) do
     reset_rails_configuration!
-    Class.new(Rails::Application) do
+    klass = Class.new(Rails::Application) do
       def config.database_configuration
         parsed = super
         raise parsed.to_yaml # Replace this line to add custom connections to the hash from database.yml
       end
-    end.tap do |klass|
-      during_init = initialize_block
+    end
+    during_init = initialize_block
 
-      klass.send(:define_method, :initialize) do |*args|
-        super(*args)
-        redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
-        file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
+    klass.send(:define_method, :initialize) do |*args|
+      super(*args)
+      redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
+      file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
 
-        config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
-        config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
-        config.eager_load = false
-        config.consider_all_requests_local = true
-        config.middleware.delete ActionDispatch::DebugExceptions
-        self.instance_eval(&during_init)
+      config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
+      config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
+      config.eager_load = false
+      config.consider_all_requests_local = true
+      config.middleware.delete ActionDispatch::DebugExceptions
+      instance_eval(&during_init)
 
-        if ENV['USE_SIDEKIQ']
-          config.active_job.queue_adapter = :sidekiq
-          # add Sidekiq middleware
-          Sidekiq::Testing.server_middleware do |chain|
-            chain.add(
-              Datadog::Contrib::Sidekiq::Tracer
-            )
-          end
+      if ENV['USE_SIDEKIQ']
+        config.active_job.queue_adapter = :sidekiq
+        # add Sidekiq middleware
+        Sidekiq::Testing.server_middleware do |chain|
+          chain.add(
+            Datadog::Contrib::Sidekiq::Tracer
+          )
         end
-      end
-
-      before_test_init = before_test_initialize_block
-      after_test_init = after_test_initialize_block
-
-      klass.send(:define_method, :test_initialize!) do
-        # Enables the auto-instrumentation for the testing application
-        Datadog.configure do |c|
-          c.use :rails
-          c.use :redis
-        end
-
-        Rails.application.config.active_job.queue_adapter = :sidekiq
-
-        before_test_init.call
-        initialize!
-        after_test_init.call
       end
     end
+
+    before_test_init = before_test_initialize_block
+    after_test_init = after_test_initialize_block
+
+    klass.send(:define_method, :test_initialize!) do
+      # Enables the auto-instrumentation for the testing application
+      Datadog.configure do |c|
+        c.use :rails
+        c.use :redis
+      end
+
+      Rails.application.config.active_job.queue_adapter = :sidekiq
+
+      before_test_init.call
+      initialize!
+      after_test_init.call
+    end
+    klass
   end
 
   def append_routes!
@@ -94,7 +94,7 @@ RSpec.shared_context 'Rails 5 base application' do
   def app_middleware
     current = Rails::Railtie::Configuration.class_variable_get(:@@app_middleware)
     Datadog::Contrib::Rails::Test::Configuration.fetch(:app_middleware, current).dup.tap do |copy|
-      copy.instance_variable_set(:@operations, (copy.instance_variable_get(:@operations) || [] ).dup)
+      copy.instance_variable_set(:@operations, (copy.instance_variable_get(:@operations) || []).dup)
       copy.instance_variable_set(:@delete_operations, (copy.instance_variable_get(:@delete_operations) || []).dup)
     end
   end

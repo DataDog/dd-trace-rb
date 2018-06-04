@@ -9,8 +9,10 @@ RSpec.shared_context 'Rails middleware' do
 
       def call(env)
         @app.call(env)
-      rescue Exception => e
+        # rubocop:disable Lint/RescueException
+      rescue Exception => _e
         raise
+        # ruboco:enable Lint/RescueException
       end
     end)
   end

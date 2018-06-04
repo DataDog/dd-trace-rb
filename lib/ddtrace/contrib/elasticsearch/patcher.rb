@@ -52,11 +52,11 @@ module Datadog
               remove_method :initialize
             end
 
-            def initialize(*args)
+            def initialize(*args, &block)
               service = Datadog.configuration[:elasticsearch][:service_name]
               pin = Datadog::Pin.new(service, app: 'elasticsearch', app_type: Datadog::Ext::AppTypes::DB)
               pin.onto(self)
-              initialize_without_datadog(*args)
+              initialize_without_datadog(*args, &block)
             end
 
             alias_method :perform_request_without_datadog, :perform_request

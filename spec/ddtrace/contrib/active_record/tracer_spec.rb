@@ -15,6 +15,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
     Datadog.configuration[:active_record].reset_options!
 
     Datadog.configure do |c|
+      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :active_record, configuration_options
     end
   end
@@ -30,7 +31,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
     # expect service and trace is sent
     expect(spans.size).to eq(1)
-    expect(services['mysql2']).to eq({'app'=>'active_record', 'app_type'=>'db'})
+    expect(services['mysql2']).to eq('app' => 'active_record', 'app_type' => 'db')
 
     span = spans[0]
     expect(span.service).to eq('mysql2')
@@ -54,13 +55,13 @@ RSpec.describe 'ActiveRecord instrumentation' do
     let(:query_span) { spans.first }
 
     context 'is not set' do
-      let(:configuration_options) { super().merge({ service_name: nil }) }
+      let(:configuration_options) { super().merge(service_name: nil) }
       it { expect(query_span.service).to eq('mysql2') }
     end
 
     context 'is set' do
       let(:service_name) { 'test_active_record' }
-      let(:configuration_options) { super().merge({ service_name: service_name }) }
+      let(:configuration_options) { super().merge(service_name: service_name) }
 
       it { expect(query_span.service).to eq(service_name) }
     end
