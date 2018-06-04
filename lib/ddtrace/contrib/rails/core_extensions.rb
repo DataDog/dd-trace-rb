@@ -159,7 +159,7 @@ module Datadog
       do_once(:patch_process_action) do
         require 'ddtrace/contrib/rails/action_controller_patch'
 
-        ::ActionController::Metal.include(Datadog::Contrib::Rails::ActionControllerPatch)
+        ::ActionController::Metal.send(:include, Datadog::Contrib::Rails::ActionControllerPatch)
       end
     end
   end
