@@ -24,7 +24,7 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
     # prepopulate db
     Article.create(title: :test)
 
-    described_class.unsubscribe_all
+    described_class.send(:unsubscribe_all)
 
     Datadog.configuration[:active_record].reset_options!
     described_class.instance_variable_set(:@patched, false)
