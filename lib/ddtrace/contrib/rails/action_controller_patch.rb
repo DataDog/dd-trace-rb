@@ -32,14 +32,14 @@ module Datadog
             # signals; it propagates the request span so that it can be finished
             # no matter what
             payload = {
-                controller: self.class,
-                action: action_name,
-                headers: {
-                    # The exception this controller was given in the request,
-                    # which is typical if the controller is configured to handle exceptions.
-                    request_exception: request.headers['action_dispatch.exception']
-                },
-                tracing_context: {}
+              controller: self.class,
+              action: action_name,
+              headers: {
+                # The exception this controller was given in the request,
+                # which is typical if the controller is configured to handle exceptions.
+                request_exception: request.headers['action_dispatch.exception']
+              },
+              tracing_context: {}
             }
 
             begin
@@ -49,11 +49,13 @@ module Datadog
               status = datadog_response_status
               payload[:status] = status unless status.nil?
               result
+            # rubocop:disable Lint/RescueException
             rescue Exception => e
               payload[:exception] = [e.class.name, e.message]
               payload[:exception_object] = e
               raise e
             end
+          # rubocop:enable Lint/RescueException
           ensure
             Datadog::Contrib::Rails::ActionController.finish_processing(payload)
           end
