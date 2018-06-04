@@ -30,6 +30,7 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
     described_class.instance_variable_set(:@patched, false)
 
     Datadog.configure do |c|
+      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :active_record, configuration_options
     end
   end

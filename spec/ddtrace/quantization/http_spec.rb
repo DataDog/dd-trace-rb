@@ -1,4 +1,5 @@
 # encoding: utf-8
+
 require 'spec_helper'
 
 require 'ddtrace/quantization/http'
@@ -47,7 +48,7 @@ RSpec.describe Datadog::Quantization::HTTP do
 
       context 'with Unicode characters' do
         # URLs do not permit unencoded non-ASCII characters in the URL.
-        let(:url) { "http://example.com/path?繋がってて" }
+        let(:url) { 'http://example.com/path?繋がってて' }
         it { is_expected.to eq(described_class::PLACEHOLDER) }
       end
     end

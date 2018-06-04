@@ -5,7 +5,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/dalli/patcher'
 
 RSpec.describe 'Dalli instrumentation' do
-  let(:test_host) { ENV.fetch('TEST_MEMCACHED_PORT', '127.0.0.1') }
+  let(:test_host) { ENV.fetch('TEST_MEMCACHED_HOST', '127.0.0.1') }
   let(:test_port) { ENV.fetch('TEST_MEMCACHED_PORT', '11211') }
 
   let(:client) { ::Dalli::Client.new("#{test_host}:#{test_port}") }

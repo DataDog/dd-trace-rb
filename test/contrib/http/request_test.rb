@@ -11,6 +11,7 @@ class HTTPRequestTest < Minitest::Test
 
   def setup
     Datadog.configure do |c|
+      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :http
     end
 

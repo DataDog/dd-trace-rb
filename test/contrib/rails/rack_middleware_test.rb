@@ -24,8 +24,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     Datadog.configuration[:rails][:tracer] = @rails_tracer
     Rails.application.app.instance_variable_set(:@tracer, @rack_tracer)
   end
-
-  # rubocop:disable Metrics/BlockLength
   test 'a full request is properly traced' do
     # make the request and assert the proper span
     get '/full'

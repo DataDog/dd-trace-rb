@@ -9,6 +9,7 @@ RSpec.describe 'Redis replace method test' do
     skip unless ENV['TEST_DATADOG_INTEGRATION']
 
     Datadog.configure do |c|
+      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :redis
     end
   end

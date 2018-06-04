@@ -31,7 +31,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
                 double('span name'),
                 double('options'),
                 double('tracer'),
-                &Proc.new { }
+                &proc {}
               )
 
               is_expected.to contain_exactly(subscription)
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
 
           context 'after #subscribe! has been called' do
             before(:each) do
-              test_class.send(:on_subscribe, &Proc.new { subscribe(:event, :span) {} })
+              test_class.send(:on_subscribe, &proc { subscribe(:event, :span) {} })
               test_class.send(:subscribe!)
             end
 
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
             let(:tracer) { double('tracer') }
-            let(:block) { Proc.new { } }
+            let(:block) { proc {} }
 
             before(:each) do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
             let(:tracer) { double('tracer') }
-            let(:block) { Proc.new { } }
+            let(:block) { proc {} }
 
             before(:each) do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
