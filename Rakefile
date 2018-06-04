@@ -15,7 +15,11 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:main) do |t|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis}/**/*_spec.rb'
+    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracing}/**/*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:opentracing) do |t|
+    t.pattern = 'spec/ddtrace/opentracing/**/*_spec.rb'
   end
 
   RSpec::Core::RakeTask.new(:rails) do |t|
@@ -240,6 +244,7 @@ task :ci do
     # Main library
     sh 'rake test:main'
     sh 'rake spec:main'
+    sh 'rake spec:opentracing'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -278,6 +283,7 @@ task :ci do
     # Main library
     sh 'rake test:main'
     sh 'rake spec:main'
+    sh 'rake spec:opentracing'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -322,6 +328,7 @@ task :ci do
     # Main library
     sh 'rake test:main'
     sh 'rake spec:main'
+    sh 'rake spec:opentracing'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -375,6 +382,7 @@ task :ci do
     # Main library
     sh 'rake test:main'
     sh 'rake spec:main'
+    sh 'rake spec:opentracing'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -428,6 +436,7 @@ task :ci do
     # Main library
     sh 'rake test:main'
     sh 'rake spec:main'
+    sh 'rake spec:opentracing'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
