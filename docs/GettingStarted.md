@@ -231,8 +231,8 @@ class TracingController < ActionController::Base
   def index
     return head :not_found unless authenticated?
     
-    tracer = Datadog.configuration[:rails][:tracer]
-    tracer.active_span&.set_tag('authenticated', true)
+    current_span = Datadog.tracer.active_span
+    current_span.set_tag('authenticated', true) unless current_span.nil?
 
     head :ok
   end
