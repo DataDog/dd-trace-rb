@@ -226,17 +226,10 @@ end
 You can tag additional information to current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil. 
 
 ```ruby
-# e.g. Adding authenticated tag to active span from within controller method.
-class TracingController < ActionController::Base
-  def index
-    return head :not_found unless authenticated?
+# e.g. adding tag to active span
     
-    current_span = Datadog.tracer.active_span
-    current_span.set_tag('authenticated', true) unless current_span.nil?
-
-    head :ok
-  end
-end
+current_span = Datadog.tracer.active_span
+current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
 
 ## Integration instrumentation
