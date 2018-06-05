@@ -221,6 +221,16 @@ def finish(name, id, payload)
   end
 end
 ```
+#####Enriching traces from nested methods
+
+You can tag additional information to current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil. 
+
+```ruby
+# e.g. adding tag to active span
+    
+current_span = Datadog.tracer.active_span
+current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
+```
 
 ## Integration instrumentation
 

@@ -157,91 +157,9 @@ module Datadog
 
     def patch_process_action
       do_once(:patch_process_action) do
-        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
-          # Patch Rails controller base class
-          ::ActionController::Metal.send(:prepend, ActionControllerPatch)
-        else
-          # Rewrite module that gets composed into the Rails controller base class
-          ::ActionController::Instrumentation.class_eval do
-            def process_action_with_datadog(*args)
-              # mutable payload with a tracing context that is used in two different
-              # signals; it propagates the request span so that it can be finished
-              # no matter what
-              payload = {
-                controller: self.class,
-                action: action_name,
-                headers: {
-                  # The exception this controller was given in the request,
-                  # which is typical if the controller is configured to handle exceptions.
-                  request_exception: request.headers['action_dispatch.exception']
-                },
-                tracing_context: {}
-              }
+        require 'ddtrace/contrib/rails/action_controller_patch'
 
-              begin
-                # process and catch request exceptions
-                Datadog::Contrib::Rails::ActionController.start_processing(payload)
-                result = process_action_without_datadog(*args)
-                payload[:status] = response.status
-                result
-              rescue Exception => e
-                payload[:exception] = [e.class.name, e.message]
-                payload[:exception_object] = e
-                raise e
-              end
-            ensure
-              Datadog::Contrib::Rails::ActionController.finish_processing(payload)
-            end
-
-            alias_method :process_action_without_datadog, :process_action
-            alias_method :process_action, :process_action_with_datadog
-          end
-        end
-      end
-    end
-
-    # ActionController patch for Ruby 2.0+
-    module ActionControllerPatch
-      def process_action(*args)
-        # mutable payload with a tracing context that is used in two different
-        # signals; it propagates the request span so that it can be finished
-        # no matter what
-        payload = {
-          controller: self.class,
-          action: action_name,
-          headers: {
-            # The exception this controller was given in the request,
-            # which is typical if the controller is configured to handle exceptions.
-            request_exception: request.headers['action_dispatch.exception']
-          },
-          tracing_context: {}
-        }
-
-        begin
-          # process and catch request exceptions
-          Datadog::Contrib::Rails::ActionController.start_processing(payload)
-          result = super(*args)
-          status = response_status
-          payload[:status] = status unless status.nil?
-          result
-        rescue Exception => e
-          payload[:exception] = [e.class.name, e.message]
-          payload[:exception_object] = e
-          raise e
-        end
-      ensure
-        Datadog::Contrib::Rails::ActionController.finish_processing(payload)
-      end
-
-      def response_status
-        case response
-        when ActionDispatch::Response
-          response.status
-        when Array
-          # Likely a Rack response array: first element is the status.
-          status = response.first
-          status.class <= Integer ? status : nil
-        end
+        ::ActionController::Metal.send(:include, Datadog::Contrib::Rails::ActionControllerPatch)
       end
     end
   end
@@ -282,6 +200,7 @@ module Datadog
       do_once(:patch_cache_store_read) do
         cache_store_class(:read).class_eval do
           alias_method :read_without_datadog, :read
+
           def read(*args, &block)
             payload = {
               action: 'GET',
@@ -309,6 +228,7 @@ module Datadog
       do_once(:patch_cache_store_fetch) do
         cache_store_class(:fetch).class_eval do
           alias_method :fetch_without_datadog, :fetch
+
           def fetch(*args, &block)
             payload = {
               action: 'GET',
@@ -336,6 +256,7 @@ module Datadog
       do_once(:patch_cache_store_write) do
         cache_store_class(:write).class_eval do
           alias_method :write_without_datadog, :write
+
           def write(*args, &block)
             payload = {
               action: 'SET',
@@ -363,6 +284,7 @@ module Datadog
       do_once(:patch_cache_store_delete) do
         cache_store_class(:delete).class_eval do
           alias_method :delete_without_datadog, :delete
+
           def delete(*args, &block)
             payload = {
               action: 'DELETE',
