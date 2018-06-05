@@ -12,7 +12,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
     end
 
     before :each do
-      test_class.unsubscribe_all
+      test_class.send(:unsubscribe_all)
     end
 
     describe 'class' do
