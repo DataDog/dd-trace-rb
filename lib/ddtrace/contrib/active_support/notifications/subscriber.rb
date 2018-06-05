@@ -36,7 +36,13 @@ module Datadog
             # Should be triggered by the inheriting class.
             def subscribe!
               return subscribed? if subscribed? || on_subscribe_block.nil?
-              instance_eval(&on_subscribe_block)
+              begin
+                on_subscribe_block.call
+              rescue => e
+                puts e
+                raise
+              end
+
               @subscribed = true
             end
 

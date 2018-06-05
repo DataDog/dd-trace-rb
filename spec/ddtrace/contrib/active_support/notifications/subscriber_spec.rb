@@ -48,8 +48,12 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
 
           context 'after #subscribe! has been called' do
             before(:each) do
-              test_class.send(:on_subscribe, &proc { subscribe(:event, :span) {} })
-              test_class.send(:subscribe!)
+              test_class.instance_eval do
+                on_subscribe do
+                  subscribe(:event, :span) {}
+                end
+                subscribe!
+              end
             end
 
             it { is_expected.to be true }
@@ -64,14 +68,13 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
               context 'is defined' do
                 let(:spy) { double(:spy, call: true) }
                 let(:on_subscribe_block) do
-                  proc do |spy, o|
-                    o.send(:subscribe, :event, :span) {}
+                  proc do
                     spy.call
                   end
                 end
 
                 before do
-                  test_class.send(:on_subscribe, &on_subscribe_block.curry[spy])
+                  test_class.send(:on_subscribe, &on_subscribe_block)
                 end
 
                 it do
