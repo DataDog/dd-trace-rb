@@ -981,6 +981,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``resource_script_names`` | Prepend resource names with script name | ``false`` |
 | ``distributed_tracing`` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+| ``headers`` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | ``{ response: ['Content-Type', 'X-Request-ID'] }`` |
 
 ### Sucker Punch
 
