@@ -4,7 +4,6 @@ module Datadog
   module Contrib
     module Sinatra
       # Gets and sets trace information from a Rack headers Hash
-      # TODO: Extract me?
       module Headers
         module_function
 

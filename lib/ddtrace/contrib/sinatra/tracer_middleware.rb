@@ -25,10 +25,8 @@ module Datadog
             service: configuration[:service_name],
             span_type: Datadog::Ext::HTTP::TYPE
           ) do |span|
-            # Set the span on the Env
             Sinatra::Env.set_datadog_span(env, span)
 
-            # Tag request headers
             Sinatra::Env.request_header_tags(env, configuration[:headers][:request]).each do |name, value|
               span.set_tag(name, value) if span.get_tag(name).nil?
             end
@@ -36,12 +34,10 @@ module Datadog
             # Run application stack
             status, headers, response_body = @app.call(env)
 
-            # Tag response headers
             Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
               span.set_tag(name, value) if span.get_tag(name).nil?
             end
 
-            # Return response
             [status, headers, response_body]
           end
         end

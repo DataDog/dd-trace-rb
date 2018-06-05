@@ -4,7 +4,6 @@ module Datadog
   module Contrib
     module Sinatra
       # Gets and sets trace information from a Rack Env
-      # TODO: Extract me?
       module Env
         ENV_SPAN = 'datadog.sinatra_request_span'.freeze
 
