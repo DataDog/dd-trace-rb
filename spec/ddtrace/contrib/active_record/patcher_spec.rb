@@ -13,7 +13,7 @@ RSpec.configure do |config|
   end
 end
 
-RSpec.describe Datadog::Contrib::ActiveRecord::Patcher do
+RSpec.describe Datadog::Contrib::ActiveRecord::Patcher, :database_cleaner do
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
   let(:services) { tracer.writer.services }
   let(:configuration_options) { { tracer: tracer } }
