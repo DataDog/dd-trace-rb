@@ -1,7 +1,7 @@
 require 'spec_helper'
+require 'ddtrace/contrib/delayed_job/patcher'
 
-require 'ddtrace/contrib/delayed_job/delayed_job'
-
+require_relative 'app'
 
 RSpec.describe Datadog::Contrib::DelayedJob do
   
