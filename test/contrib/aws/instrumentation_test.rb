@@ -29,7 +29,7 @@ module Datadog
           aws_span = all_spans[0]
 
           # check Span attributes
-          assert_equal('s3.list_buckets', aws_span.name)
+          assert_equal('aws.command', aws_span.name)
           assert_equal('aws', aws_span.service)
           assert_equal('web', aws_span.span_type)
           assert_equal('s3.list_buckets', aws_span.resource)
