@@ -24,25 +24,19 @@ module Datadog
     end
 
     def patch_template_renderer(klass)
+      # rubocop:disable Metrics/BlockLength
       do_once(:patch_template_renderer) do
         klass.class_eval do
           def render_with_datadog(*args, &block)
-            # create a tracing context and start the rendering span
-            # NOTE: Rails < 3.1 compatibility: preserve the tracing
-            # context when a partial is rendered
-            @tracing_context ||= {}
-            if @tracing_context.empty?
-              Datadog::Contrib::Rails::ActionView.start_render_template(tracing_context: @tracing_context)
+            # NOTE: This check exists purely for Rails 3.0 compatibility.
+            #       The 'if' part can be removed when support for Rails 3.0 is removed.
+            if active_datadog_span
+              render_without_datadog(*args, &block)
+            else
+              datadog_tracer.trace('rails.render_template', span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
+                with_datadog_span(span) { render_without_datadog(*args, &block) }
+              end
             end
-
-            render_without_datadog(*args, &block)
-          rescue Exception => e
-            # attach the exception to the tracing context if any
-            @tracing_context[:exception] = e
-            raise e
-          ensure
-            # ensure that the template `Span` is finished even during exceptions
-            Datadog::Contrib::Rails::ActionView.finish_render_template(tracing_context: @tracing_context)
           end
 
           def render_template_with_datadog(*args)
@@ -60,14 +54,29 @@ module Datadog
                        else
                          layout_name.try(:[], 'virtual_path')
                        end
-              @tracing_context[:template_name] = template_name
-              @tracing_context[:layout] = layout
+              active_datadog_span.set_tag('rails.template_name', template_name) if template_name
+              active_datadog_span.set_tag('rails.layout', layout) if layout
             rescue StandardError => e
               Datadog::Tracer.log.debug(e.message)
             end
 
             # execute the original function anyway
             render_template_without_datadog(*args)
+          end
+
+          private
+
+          attr_accessor :active_datadog_span
+
+          def datadog_tracer
+            Datadog.configuration[:rails][:tracer]
+          end
+
+          def with_datadog_span(span)
+            self.active_datadog_span = span
+            yield
+          ensure
+            self.active_datadog_span = nil
           end
 
           # method aliasing to patch the class
