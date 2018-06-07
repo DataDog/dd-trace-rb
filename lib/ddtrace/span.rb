@@ -49,8 +49,8 @@ module Datadog
 
       @context = options.fetch(:context, nil)
 
-      @meta = {}
-      @metrics = {}
+      #@meta = {}
+      #@metrics = {}
       @status = 0
 
       @parent = nil
@@ -65,14 +65,18 @@ module Datadog
     #
     #   span.set_tag('http.method', request.method)
     def set_tag(key, value)
-      @meta[key] = value.to_s
+      meta[key] = if value.kind_of?(String)
+                     value
+                   else
+                     value.to_s
+                   end
     rescue StandardError => e
       Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
 
     # Return the tag with the given key, nil if it doesn't exist.
     def get_tag(key)
-      @meta[key]
+      meta[key]
     end
 
     # This method sets a tag with a floating point value for the given key. It acts
@@ -80,14 +84,14 @@ module Datadog
     def set_metric(key, value)
       # enforce that the value is a floating point number
       value = Float(value)
-      @metrics[key] = value
+      metrics[key] = value
     rescue StandardError => e
       Datadog::Tracer.log.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
     end
 
     # Return the metric with the given key, nil if it doesn't exist.
     def get_metric(key)
-      @metrics[key]
+      metrics[key]
     end
 
     # Mark the span with the given error.
@@ -111,9 +115,9 @@ module Datadog
       # Provide a default start_time if unset, but this should have been set by start_span.
       # Using now here causes 0-duration spans, still, this is expected, as we never
       # explicitely say when it started.
-      @start_time ||= Time.now.utc
+      @start_time ||= Time.now.utc.to_f
 
-      @end_time = finish_time.nil? ? Time.now.utc : finish_time # finish this
+      @end_time = finish_time.nil? ? Time.now.utc.to_f : finish_time.to_f # finish this
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
@@ -173,13 +177,13 @@ module Datadog
         service: @service,
         resource: @resource,
         type: @span_type,
-        meta: @meta,
-        metrics: @metrics,
+        meta: meta,
+        metrics: metrics,
         error: @status
       }
 
       if !@start_time.nil? && !@end_time.nil?
-        h[:start] = (@start_time.to_f * 1e9).to_i
+        h[:start] = (@start_time * 1e9).to_i
         h[:duration] = ((@end_time - @start_time) * 1e9).to_i
       end
 
@@ -206,17 +210,27 @@ module Datadog
         q.text "Duration: #{duration}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
-          q.seplist @meta.each do |key, value|
+          q.seplist meta.each do |key, value|
             q.text "#{key} => #{value}"
           end
         end
         q.group(2, 'Metrics: [', ']') do
           q.breakable
-          q.seplist @metrics.each do |key, value|
+          q.seplist metrics.each do |key, value|
             q.text "#{key} => #{value}"
           end
         end
       end
+    end
+
+    private
+
+    def meta
+      @meta ||= {}
+    end
+
+    def metrics
+      @metrics ||= {}
     end
   end
 end

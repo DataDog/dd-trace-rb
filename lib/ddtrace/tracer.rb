@@ -202,14 +202,16 @@ module Datadog
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
+    ALLOWED_OPTIONS = [:service, :resource, :span_type].freeze
+
     def start_span(name, options = {})
-      start_time = options.fetch(:start_time, Time.now.utc)
+      start_time = options.fetch(:start_time, Time.now.utc).to_f
       tags = options.fetch(:tags, {})
 
       opts = options.select do |k, _v|
         # Filter options, we want no side effects with unexpected args.
         # Plus, this documents the code (Ruby 2 named args would be better but we're Ruby 1.9 compatible)
-        [:service, :resource, :span_type].include?(k)
+        ALLOWED_OPTIONS.include?(k)
       end
 
       ctx, parent = guess_context_and_parent(options[:child_of])

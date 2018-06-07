@@ -42,7 +42,7 @@ module Datadog
             &method(:sql)                           # Handler
           )
 
-          # instantiation.active_record
+          # # instantiation.active_record
           if instantiation_tracing_supported?
             subscribe(
               self::NAME_INSTANTIATION,               # Event name

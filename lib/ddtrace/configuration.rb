@@ -9,11 +9,11 @@ module Datadog
 
     def initialize(options = {})
       @registry = options.fetch(:registry, Datadog.registry)
+      @wrapped_registry = {}
     end
 
     def [](integration_name)
-      integration = fetch_integration(integration_name)
-      Proxy.new(integration)
+      @wrapped_registry[integration_name] ||= Proxy.new(fetch_integration(integration_name))
     end
 
     def use(integration_name, options = {})

@@ -34,6 +34,19 @@ module Datadog
       string.slice(0, size - omission.size) + omission
     end
 
+    def self.truncate!(value, size, omission = '...')
+      string =  if value.is_a?(String)
+                  value
+                else
+                  value.to_s
+                end
+
+      return string if string.size <= size
+
+      string[size - omission.size, size] = omission
+      string[0..size]
+    end
+
     def self.utf8_encode(str, options = {})
       str = str.to_s
 

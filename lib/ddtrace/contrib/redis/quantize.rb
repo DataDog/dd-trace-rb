@@ -13,7 +13,7 @@ module Datadog
         def format_arg(arg)
           str = arg.is_a?(Symbol) ? arg.to_s.upcase : arg.to_s
           str = Utils.utf8_encode(str, binary: true, placeholder: PLACEHOLDER)
-          Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
+          Utils.truncate!(str, VALUE_MAX_LEN, TOO_LONG_MARK)
         rescue => e
           Datadog::Tracer.log.debug("non formattable Redis arg #{str}: #{e}")
           PLACEHOLDER
@@ -21,7 +21,7 @@ module Datadog
 
         def format_command_args(command_args)
           cmd = command_args.map { |x| format_arg(x) }.join(' ')
-          Utils.truncate(cmd, CMD_MAX_LEN, TOO_LONG_MARK)
+          Utils.truncate!(cmd, CMD_MAX_LEN, TOO_LONG_MARK)
         end
       end
     end
