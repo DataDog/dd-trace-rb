@@ -10,6 +10,7 @@ module Datadog
   # spent on a distributed call on a separate machine, or the time spent in a small component
   # within a larger operation. Spans can be nested within each other, and in those instances
   # will have a parent-child relationship.
+  # rubocop:disable Metrics/ClassLength
   class Span
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
@@ -64,7 +65,7 @@ module Datadog
     #
     #   span.set_tag('http.method', request.method)
     def set_tag(key, value)
-      @meta[key] = if value.kind_of?(String)
+      @meta[key] = if value.is_a?(String)
                      value
                    else
                      value.to_s
