@@ -205,7 +205,7 @@ module Datadog
     ALLOWED_OPTIONS = [:service, :resource, :span_type].freeze
 
     def start_span(name, options = {})
-      start_time = options.fetch(:start_time, Time.now.utc).to_f
+      start_time = options.fetch(:start_time, Process.clock_gettime(Process::CLOCK_REALTIME)).to_f
       tags = options.fetch(:tags, {})
 
       opts = options.select do |k, _v|

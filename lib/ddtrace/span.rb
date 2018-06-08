@@ -115,9 +115,9 @@ module Datadog
       # Provide a default start_time if unset, but this should have been set by start_span.
       # Using now here causes 0-duration spans, still, this is expected, as we never
       # explicitely say when it started.
-      @start_time ||= Time.now.utc.to_f
+      @start_time ||= Process.clock_gettime(Process::CLOCK_REALTIME)
 
-      @end_time = finish_time.nil? ? Time.now.utc.to_f : finish_time.to_f # finish this
+      @end_time = finish_time.nil? ? Process.clock_gettime(Process::CLOCK_REALTIME) : finish_time.to_f # finish this
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
