@@ -36,7 +36,7 @@ module Datadog
       return string if string.size <= size
 
       string[size - omission.size, size] = omission
-      string[0..size]
+      string[0..size-1]
     end
 
     def self.utf8_encode(str, options = {})
