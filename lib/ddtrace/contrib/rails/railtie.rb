@@ -25,7 +25,7 @@ module Datadog
       end
     end
 
-    def datadog_configuration
+    def self.datadog_configuration
       Datadog.configuration[:rails]
     end
   end
