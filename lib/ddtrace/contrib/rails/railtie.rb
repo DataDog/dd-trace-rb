@@ -13,9 +13,20 @@ module Datadog
 
     config.after_initialize do
       Datadog::Contrib::Rails::Framework.setup
-      Datadog::Contrib::Rails::ActionController.instrument
-      Datadog::Contrib::Rails::ActionView.instrument
-      Datadog::Contrib::Rails::ActiveSupport.instrument
+
+      if datadog_configuration[:features].include?(:instrument_action_controller_processing)
+        Datadog::Contrib::Rails::ActionController.instrument
+      end
+      if datadog_configuration[:features].include?(:instrument_action_view_rendering)
+        Datadog::Contrib::Rails::ActionView.instrument
+      end
+      if datadog_configuration[:features] .include?(:instrument_active_support_caching)
+        Datadog::Contrib::Rails::ActiveSupport.instrument
+      end
+    end
+
+    def datadog_configuration
+      Datadog.configuration[:rails]
     end
   end
 end
