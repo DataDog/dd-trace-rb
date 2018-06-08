@@ -21,6 +21,11 @@ module Datadog
         option :distributed_tracing, default: false
         option :template_base_path, default: 'views/'
         option :exception_controller, default: nil
+        option :features, default: [:instrument_action_view_rendering,
+                                    :instrument_action_controller_processing,
+                                    :instrument_active_support_caching,
+                                    :use_rack_integration,
+                                    :use_active_record_integration]
         option :tracer, default: Datadog.tracer
 
         @patched = false
