@@ -15,13 +15,6 @@ module Datadog
           end
         end
 
-        TRACE_RAILS_CACHE = 'rails.cache'.freeze
-        RESOURCE_GET = 'GET'.freeze
-        SPAN_NAME = 'name'.freeze
-        RESOURCE_NAME = 'resource'.freeze
-        TAG_RAILS_CACHE_BACKEND = 'rails.cache.backend'.freeze
-        TAG_RAILS_CACHE_KEY = 'rails.cache.key'.freeze
-
         def self.start_trace_cache(payload)
           tracer = Datadog.configuration[:rails][:tracer]
 
@@ -31,16 +24,16 @@ module Datadog
           # NOTE: the ``finish_trace_cache()`` is fired but it already has a safe-guard
           # to avoid any kind of issue.
           current_span = tracer.active_span
-          return if payload[:action] == RESOURCE_GET &&
-                    current_span.try(SPAN_NAME) == TRACE_RAILS_CACHE &&
-                    current_span.try(RESOURCE_NAME) == RESOURCE_GET
+          return if payload[:action] == 'GET'.freeze &&
+                    current_span.try(:name) == 'rails.cache'.freeze &&
+                    current_span.try(:resource) == 'GET'.freeze
 
           tracing_context = payload.fetch(:tracing_context)
 
           # create a new ``Span`` and add it to the tracing context
           service = Datadog.configuration[:rails][:cache_service]
           type = Datadog::Ext::CACHE::TYPE
-          span = tracer.trace(TRACE_RAILS_CACHE, service: service, span_type: type)
+          span = tracer.trace('rails.cache'.freeze, service: service, span_type: type)
           span.resource = payload.fetch(:action)
           tracing_context[:dd_cache_span] = span
         rescue StandardError => e
@@ -56,9 +49,9 @@ module Datadog
           begin
             # discard parameters from the cache_store configuration
             store, = *Array.wrap(::Rails.configuration.cache_store).flatten
-            span.set_tag(TAG_RAILS_CACHE_BACKEND, store)
+            span.set_tag('rails.cache.backend'.freeze, store)
             cache_key = Datadog::Utils.truncate!(payload.fetch(:key), Ext::CACHE::MAX_KEY_SIZE)
-            span.set_tag(TAG_RAILS_CACHE_KEY, cache_key)
+            span.set_tag('rails.cache.key'.freeze, cache_key)
             span.set_error(payload[:exception]) if payload[:exception]
           ensure
             span.finish

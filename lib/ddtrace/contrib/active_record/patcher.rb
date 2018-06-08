@@ -42,7 +42,7 @@ module Datadog
             &method(:sql)                           # Handler
           )
 
-          # # instantiation.active_record
+          # instantiation.active_record
           if instantiation_tracing_supported?
             subscribe(
               self::NAME_INSTANTIATION,               # Event name
@@ -89,13 +89,13 @@ module Datadog
           # Find out if the SQL query has been cached in this request. This meta is really
           # helpful to users because some spans may have 0ns of duration because the query
           # is simply cached from memory, so the notification is fired with start == finish.
-          cached = payload[:cached] || (payload[:name] == 'CACHE')
+          cached = payload[:cached] || (payload[:name] == 'CACHE'.freeze)
 
-          span.set_tag('active_record.db.vendor', connection_config[:adapter_name])
-          span.set_tag('active_record.db.name', connection_config[:database_name])
-          span.set_tag('active_record.db.cached', cached) if cached
-          span.set_tag('out.host', connection_config[:adapter_host])
-          span.set_tag('out.port', connection_config[:adapter_port])
+          span.set_tag('active_record.db.vendor'.freeze, connection_config[:adapter_name])
+          span.set_tag('active_record.db.name'.freeze, connection_config[:database_name])
+          span.set_tag('active_record.db.cached'.freeze, cached) if cached
+          span.set_tag('out.host'.freeze, connection_config[:adapter_host])
+          span.set_tag('out.port'.freeze, connection_config[:adapter_port])
         rescue StandardError => e
           Datadog::Tracer.log.debug(e.message)
         end
@@ -107,13 +107,13 @@ module Datadog
                          elsif span.parent
                            span.parent.service
                          else
-                           'active_record'
+                           'active_record'.freeze
                          end
 
           span.resource = payload.fetch(:class_name)
-          span.span_type = 'custom'
-          span.set_tag('active_record.instantiation.class_name', payload.fetch(:class_name))
-          span.set_tag('active_record.instantiation.record_count', payload.fetch(:record_count))
+          span.span_type = 'custom'.freeze
+          span.set_tag('active_record.instantiation.class_name'.freeze, payload.fetch(:class_name))
+          span.set_tag('active_record.instantiation.record_count'.freeze, payload.fetch(:record_count))
         rescue StandardError => e
           Datadog::Tracer.log.debug(e.message)
         end

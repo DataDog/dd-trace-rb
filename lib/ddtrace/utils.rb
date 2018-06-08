@@ -26,15 +26,7 @@ module Datadog
 
     reset!
 
-    def self.truncate(value, size, omission = '...')
-      string = value.to_s
-
-      return string if string.size <= size
-
-      string.slice(0, size - omission.size) + omission
-    end
-
-    def self.truncate!(value, size, omission = '...')
+    def self.truncate!(value, size, omission = '...'.freeze)
       string =  if value.is_a?(String)
                   value
                 else
