@@ -19,7 +19,6 @@ module Datadog
     MAX_ID = 2**63
 
     attr_accessor :name, :service, :resource, :span_type,
-                  :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
                   :tracer, :context
@@ -115,9 +114,9 @@ module Datadog
       # Provide a default start_time if unset, but this should have been set by start_span.
       # Using now here causes 0-duration spans, still, this is expected, as we never
       # explicitely say when it started.
-      @start_time ||= Process.clock_gettime(Process::CLOCK_REALTIME)
+      @start_time ||= Utils.time_now
 
-      @end_time = finish_time.nil? ? Process.clock_gettime(Process::CLOCK_REALTIME) : finish_time.to_f # finish this
+      @end_time = finish_time.nil? ? Utils.time_now : finish_time.to_f # finish this
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
@@ -165,6 +164,24 @@ module Datadog
         @service ||= parent.service
         @sampled = parent.sampled
       end
+    end
+
+    # Expose start and end times to external API in backwards compatible way
+    # TODO: should/can we deprecate these methods signature to completely switch to floats in future?
+    def start_time
+      Time.at(@start_time).utc if @start_time
+    end
+
+    def start_time=(time)
+      @start_time = (time.to_f if time)
+    end
+
+    def end_time
+      Time.at(@end_time).utc if @end_time
+    end
+
+    def end_time=(time)
+      @end_time = (time.to_f if time)
     end
 
     # Return the hash representation of the current span.

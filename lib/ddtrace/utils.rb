@@ -56,5 +56,15 @@ module Datadog
 
       options.fetch(:placeholder, STRING_PLACEHOLDER)
     end
+
+    if defined?(Process::CLOCK_REALTIME)
+      def self.time_now
+        Process.clock_gettime(Process::CLOCK_REALTIME)
+      end
+    else
+      def self.time_now
+        Time.now.utc.to_f
+      end
+    end
   end
 end
