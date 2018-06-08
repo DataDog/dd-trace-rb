@@ -76,13 +76,13 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher, :database_cleaner do
     it_behaves_like 'having only sql span'
 
     context 'when tracing only sql events' do
-      let(:configuration_options) { { tracer: tracer, trace_events: [:sql] } }
+      let(:configuration_options) { { tracer: tracer, features: [:trace_sql_events] } }
 
       it_behaves_like 'having only sql span'
     end
 
     context 'when tracing only instantiations' do
-      let(:configuration_options) { { tracer: tracer, trace_events: [:instantiation] } }
+      let(:configuration_options) { { tracer: tracer, features: [:trace_instantiation_events] } }
 
       it "doesn't create any spans" do
         query
@@ -172,7 +172,7 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher, :database_cleaner do
     it_behaves_like 'having instantation span'
 
     context 'when tracing only sql spans' do
-      let(:configuration_options) { { tracer: tracer, trace_events: [:sql] } }
+      let(:configuration_options) { { tracer: tracer, features: [:trace_sql_events] } }
 
       it_behaves_like 'having sql spans'
 
@@ -184,7 +184,7 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Patcher, :database_cleaner do
     end
 
     context 'when tracing only instantiations' do
-      let(:configuration_options) { { tracer: tracer, trace_events: [:instantiation] } }
+      let(:configuration_options) { { tracer: tracer, features: [:trace_instantiation_events] } }
 
       it_behaves_like 'having instantation span'
 
