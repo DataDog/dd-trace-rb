@@ -6,6 +6,11 @@ module Datadog
   module RailsRendererPatcher
     include Datadog::Patcher
 
+    SPAN_NAME_RENDER_PARTIAL = 'rails.render_partial'.freeze
+    SPAN_NAME_RENDER_TEMPLATE = 'rails.render_template'.freeze
+    TAG_LAYOUT = 'rails.layout'.freeze
+    TAG_TEMPLATE_NAME = 'rails.template_name'.freeze
+
     module_function
 
     def patch_renderer
@@ -33,7 +38,10 @@ module Datadog
             if active_datadog_span
               render_without_datadog(*args, &block)
             else
-              datadog_tracer.trace('rails.render_template', span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
+              datadog_tracer.trace(
+                Datadog::RailsRendererPatcher::SPAN_NAME_RENDER_TEMPLATE,
+                span_type: Datadog::Ext::HTTP::TEMPLATE
+              ) do |span|
                 with_datadog_span(span) { render_without_datadog(*args, &block) }
               end
             end
@@ -54,8 +62,19 @@ module Datadog
                        else
                          layout_name.try(:[], 'virtual_path')
                        end
-              active_datadog_span.set_tag('rails.template_name', template_name) if template_name
-              active_datadog_span.set_tag('rails.layout', layout) if layout
+              if template_name
+                active_datadog_span.set_tag(
+                  Datadog::RailsRendererPatcher::TAG_TEMPLATE_NAME,
+                  template_name
+                )
+              end
+
+              if layout
+                active_datadog_span.set_tag(
+                  Datadog::RailsRendererPatcher::TAG_LAYOUT,
+                  layout
+                )
+              end
             rescue StandardError => e
               Datadog::Tracer.log.debug(e.message)
             end
@@ -99,7 +118,10 @@ module Datadog
       do_once(:patch_partial_renderer) do
         klass.class_eval do
           def render_with_datadog(*args, &block)
-            datadog_tracer.trace('rails.render_partial', span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
+            datadog_tracer.trace(
+              Datadog::RailsRendererPatcher::SPAN_NAME_RENDER_PARTIAL,
+              span_type: Datadog::Ext::HTTP::TEMPLATE
+            ) do |span|
               with_datadog_span(span) { render_without_datadog(*args) }
             end
           end
@@ -107,7 +129,12 @@ module Datadog
           def render_partial_with_datadog(*args)
             begin
               template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(@template.try('identifier'))
-              active_datadog_span.set_tag('rails.template_name', template_name) if template_name
+              if template_name
+                active_datadog_span.set_tag(
+                  Datadog::RailsRendererPatcher::TAG_TEMPLATE_NAME,
+                  template_name
+                )
+              end
             rescue StandardError => e
               Datadog::Tracer.log.debug(e.message)
             end
