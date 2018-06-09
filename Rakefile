@@ -53,6 +53,7 @@ namespace :spec do
     :grpc,
     :http,
     :mongodb,
+    :mysql2,
     :racecar,
     :rack,
     :rake,
@@ -72,7 +73,7 @@ end
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
-             :elasticsearch, :http, :sidekiq, :sinatra, :monkey]
+             :elasticsearch, :http, :sidekiq, :sinatra, :monkey, :mysql2]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w[test lib]
