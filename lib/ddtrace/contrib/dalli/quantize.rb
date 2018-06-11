@@ -11,7 +11,7 @@ module Datadog
           placeholder = "#{operation} BLOB (OMITTED)"
           command = [operation, *args].join(' ').strip
           command = Utils.utf8_encode(command, binary: true, placeholder: placeholder)
-          Utils.truncate!(command, MAX_CMD_LENGTH)
+          Utils.truncate(command, MAX_CMD_LENGTH)
         rescue => e
           Tracer.log.debug("Error sanitizing Dalli operation: #{e}")
           placeholder

@@ -50,7 +50,7 @@ module Datadog
             # discard parameters from the cache_store configuration
             store, = *Array.wrap(::Rails.configuration.cache_store).flatten
             span.set_tag('rails.cache.backend'.freeze, store)
-            cache_key = Datadog::Utils.truncate!(payload.fetch(:key), Ext::CACHE::MAX_KEY_SIZE)
+            cache_key = Datadog::Utils.truncate(payload.fetch(:key), Ext::CACHE::MAX_KEY_SIZE)
             span.set_tag('rails.cache.key'.freeze, cache_key)
             span.set_error(payload[:exception]) if payload[:exception]
           ensure
