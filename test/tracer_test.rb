@@ -203,7 +203,7 @@ class TracerTest < Minitest::Test
     tracer = get_test_tracer
     tracer.set_tags('env' => 'test', 'temp' => 'cool')
 
-    yesterday = Time.now.utc.to_f - 24 * 60 * 60
+    yesterday = Time.now.utc - 24 * 60 * 60
     span = tracer.start_span('op',
                              service: 'special-service',
                              resource: 'extra-resource',
@@ -218,7 +218,7 @@ class TracerTest < Minitest::Test
     assert_equal('special-service', span.service)
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
-    assert_equal(yesterday, span.start_time.to_f)
+    assert_equal(yesterday, span.start_time)
     assert_equal('test', span.get_tag('env'))
     assert_equal('cool', span.get_tag('temp'))
     assert_equal('value1', span.get_tag('tag1'))

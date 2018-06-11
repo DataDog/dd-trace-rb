@@ -10,7 +10,6 @@ module Datadog
   # spent on a distributed call on a separate machine, or the time spent in a small component
   # within a larger operation. Spans can be nested within each other, and in those instances
   # will have a parent-child relationship.
-  # rubocop:disable Metrics/ClassLength
   class Span
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
@@ -20,6 +19,7 @@ module Datadog
     MAX_ID = 2**63
 
     attr_accessor :name, :service, :resource, :span_type,
+                  :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
                   :tracer, :context
@@ -65,11 +65,7 @@ module Datadog
     #
     #   span.set_tag('http.method', request.method)
     def set_tag(key, value)
-      @meta[key] = if value.is_a?(String)
-                     value
-                   else
-                     value.to_s
-                   end
+      @meta[key] = value.to_s
     rescue StandardError => e
       Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
@@ -115,9 +111,9 @@ module Datadog
       # Provide a default start_time if unset, but this should have been set by start_span.
       # Using now here causes 0-duration spans, still, this is expected, as we never
       # explicitely say when it started.
-      @start_time ||= Utils.time_now
+      @start_time ||= Time.now.utc
 
-      @end_time = finish_time.nil? ? Utils.time_now : finish_time.to_f # finish this
+      @end_time = finish_time.nil? ? Time.now.utc : finish_time # finish this
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
@@ -167,24 +163,6 @@ module Datadog
       end
     end
 
-    # Expose start and end times to external API in backwards compatible way
-    # TODO: should/can we deprecate these methods signature to completely switch to floats in future?
-    def start_time
-      Time.at(@start_time).utc if @start_time
-    end
-
-    def start_time=(time)
-      @start_time = (time.to_f if time)
-    end
-
-    def end_time
-      Time.at(@end_time).utc if @end_time
-    end
-
-    def end_time=(time)
-      @end_time = (time.to_f if time)
-    end
-
     # Return the hash representation of the current span.
     def to_hash
       h = {
@@ -201,7 +179,7 @@ module Datadog
       }
 
       if !@start_time.nil? && !@end_time.nil?
-        h[:start] = (@start_time * 1e9).to_i
+        h[:start] = (@start_time.to_f * 1e9).to_i
         h[:duration] = ((@end_time - @start_time) * 1e9).to_i
       end
 

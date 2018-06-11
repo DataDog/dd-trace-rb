@@ -205,8 +205,7 @@ module Datadog
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
-      start_time = options.fetch(:start_time, Utils.time_now)
-      start_time = start_time.to_f unless start_time.is_a?(Float)
+      start_time = options.fetch(:start_time, Time.now.utc)
 
       tags = options.fetch(:tags, {})
 
