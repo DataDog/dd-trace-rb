@@ -96,12 +96,6 @@ class TracingControllerTest < ActionController::TestCase
                   'Missing partial tracing/ouch.html'
                 end
 
-    template_error_type = if Rails.version >= '3.2.22.5'
-                            'ActionView::Template::Error'
-                          else
-                            'ActionView::MissingTemplate'
-                          end
-
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
     span_request, span_partial, span_template = spans
@@ -131,7 +125,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.get_tag('rails.template_name'), 'tracing/missing_partial.html.erb')
     assert_equal(span_template.get_tag('rails.layout'), 'layouts/application')
     assert_includes(span_template.get_tag('error.msg'), error_msg)
-    assert_equal(span_template.get_tag('error.type'), template_error_type)
+    assert_equal(span_template.get_tag('error.type'), 'ActionView::Template::Error')
   end
 
   test 'error in the template must be traced' do
