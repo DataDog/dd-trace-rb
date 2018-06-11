@@ -9,17 +9,14 @@ module Datadog
 
           return block.call(worker, job) unless pin && pin.tracer
 
-          pin.tracer.trace('delayed.job', service: pin.service) do |span|
-            span.resource = job.name
-            span.set_tag('delayed.job.id', job.id)
-            span.set_tag('delayed.job.queue', job.queue) if job.queue
-            span.set_tag('delayed.job.priority', job.priority)
-            span.set_tag('delayed.job.attempts', job.attempts)
+          pin.tracer.trace('delayed_job', service: pin.service, resource: job.name) do |span|
+            span.set_tag('delayed_job.id', job.id)
+            span.set_tag('delayed_job.queue', job.queue) if job.queue
+            span.set_tag('delayed_job.priority', job.priority)
+            span.set_tag('delayed_job.attempts', job.attempts)
             span.span_type = pin.app_type
 
             block.call(worker, job)
-
-            span.service = pin.service
           end
         end
 
