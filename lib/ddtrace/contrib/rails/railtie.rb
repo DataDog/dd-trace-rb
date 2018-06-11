@@ -14,13 +14,13 @@ module Datadog
     config.after_initialize do
       Datadog::Contrib::Rails::Framework.setup
 
-      if datadog_configuration[:flags][:instrument_action_controller_processing]
+      if datadog_configuration[:instrument][:action_controller_processing]
         Datadog::Contrib::Rails::ActionController.instrument
       end
-      if datadog_configuration[:flags][:instrument_action_view_rendering]
+      if datadog_configuration[:instrument][:action_view_rendering]
         Datadog::Contrib::Rails::ActionView.instrument
       end
-      if datadog_configuration[:flags][:instrument_active_support_caching]
+      if datadog_configuration[:instrument][:active_support_caching]
         Datadog::Contrib::Rails::ActiveSupport.instrument
       end
     end

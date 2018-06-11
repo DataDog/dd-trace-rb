@@ -651,7 +651,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``distributed_tracing`` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
 | ``middleware_names`` | Enables any short-circuited middleware requests to display the middleware name as resource for the trace. | `false` |
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
-| ``flags`` | Flags used in `rails` instrumentation. | ```{ instrument_action_view_rendering: true, instrument_action_controller_processing: true, instrument_active_support_caching: true, use_rack_integration: true, use_active_record_integration: true}``` |
+| ``flags`` | Flags used in `rails` instrumentation. | ```{ action_view_rendering: true, action_controller_processing: true, active_support_caching: true, active_record: true}``` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ### Redis
