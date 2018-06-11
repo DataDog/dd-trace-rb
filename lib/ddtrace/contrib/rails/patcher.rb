@@ -6,6 +6,15 @@ module Datadog
       # Patcher
       module Patcher
         include Base
+
+        DEFAULT_FLAGS = {
+          instrument_action_view_rendering: true,
+          instrument_action_controller_processing: true,
+          instrument_active_support_caching: true,
+          use_rack_integration: true,
+          use_active_record_integration: true
+        }.freeze
+
         register_as :rails, auto_patch: true
 
         option :service_name
@@ -21,11 +30,7 @@ module Datadog
         option :distributed_tracing, default: false
         option :template_base_path, default: 'views/'
         option :exception_controller, default: nil
-        option :features, default: [:instrument_action_view_rendering,
-                                    :instrument_action_controller_processing,
-                                    :instrument_active_support_caching,
-                                    :use_rack_integration,
-                                    :use_active_record_integration]
+        option :flags, setter: ->(value) { DEFAULT_FLAGS.merge(value) }, default: DEFAULT_FLAGS
         option :tracer, default: Datadog.tracer
 
         @patched = false

@@ -23,8 +23,8 @@ module Datadog
         def self.setup
           config = config_with_defaults
 
-          activate_rack!(config) if datadog_configuration[:features].include?(:use_rack_integration)
-          activate_active_record!(config) if datadog_configuration[:features].include?(:use_active_record_integration)
+          activate_rack!(config) if datadog_configuration[:flags][:use_rack_integration]
+          activate_active_record!(config) if datadog_configuration[:flags][:use_active_record_integration]
 
           set_service_info!(config)
 
