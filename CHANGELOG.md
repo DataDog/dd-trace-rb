@@ -4,6 +4,28 @@
 
 ## [Unreleased (beta)]
 
+## [0.12.1] - 2018-06-12
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.12.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...v0.12.1
+
+### Changed
+ - Cache configuration `Proxy` objects (#446)
+ - `freeze` more constant strings, to improve memory usage (#446)
+ - `Utils#truncate` to use slightly less memory (#446)
+
+### Fixed
+ - Net/HTTP integration not permitting `service_name` to be overridden. (#407, #430) (@undergroundwebdesigns)
+ - Block not being passed through Elasticsearch client initialization. (#421) (@shayonj)
+ - Devise raising `NoMethodError` when bad login attempts are made. (#419, #420) (@frsantos)
+ - AWS spans using wrong resource name (#374, #377) (@jfrancoist)
+ - ActionView `NoMethodError` on very long traces. (#445, #447) (@jvalanen)
+
+### Refactored
+ - ActionController patching strategy using modules. (#439)
+ - ActionView tracing strategy. (#445, #447)
+
 ## [0.12.0] - 2018-05-08
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.12.0
@@ -285,8 +307,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...0.13-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...0.13-dev
+[0.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.4...v0.12.0
 [0.12.0.rc1]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.4...v0.12.0.rc1
 [0.12.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0.beta1...v0.12.0.beta2
