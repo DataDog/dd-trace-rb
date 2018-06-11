@@ -26,12 +26,20 @@ module Datadog
 
     reset!
 
-    def self.truncate(value, size, omission = '...')
+    def self.truncate(value, size, omission = '...'.freeze)
       string = value.to_s
 
       return string if string.size <= size
 
-      string.slice(0, size - omission.size) + omission
+      string = string.slice(0, size - 1)
+
+      if size < omission.size
+        string[0, size] = omission
+      else
+        string[size - omission.size, size] = omission
+      end
+
+      string
     end
 
     def self.utf8_encode(str, options = {})
