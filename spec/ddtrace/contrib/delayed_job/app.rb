@@ -1,5 +1,7 @@
 require 'active_record'
 require 'mysql2'
+require 'delayed_job'
+require 'delayed_job_active_record'
 
 logger = Logger.new(STDOUT)
 logger.level = Logger::INFO

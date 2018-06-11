@@ -3,6 +3,7 @@ module Datadog
     module DelayedJob
       SERVICE = 'delayed_job'.freeze
 
+      # DelayedJob integration
       module Patcher
         include Base
         register_as :delayed_job
@@ -30,6 +31,10 @@ module Datadog
           end
 
           private
+
+          def unpatch
+            @patched = false
+          end
 
           def add_instrumentation(klass)
             klass.plugins << Plugin
