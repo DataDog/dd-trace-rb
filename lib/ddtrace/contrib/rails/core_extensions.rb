@@ -6,6 +6,11 @@ module Datadog
   module RailsRendererPatcher
     include Datadog::Patcher
 
+    SPAN_NAME_RENDER_PARTIAL = 'rails.render_partial'.freeze
+    SPAN_NAME_RENDER_TEMPLATE = 'rails.render_template'.freeze
+    TAG_LAYOUT = 'rails.layout'.freeze
+    TAG_TEMPLATE_NAME = 'rails.template_name'.freeze
+
     module_function
 
     def patch_renderer
@@ -24,25 +29,22 @@ module Datadog
     end
 
     def patch_template_renderer(klass)
+      # rubocop:disable Metrics/BlockLength
       do_once(:patch_template_renderer) do
         klass.class_eval do
           def render_with_datadog(*args, &block)
-            # create a tracing context and start the rendering span
-            # NOTE: Rails < 3.1 compatibility: preserve the tracing
-            # context when a partial is rendered
-            @tracing_context ||= {}
-            if @tracing_context.empty?
-              Datadog::Contrib::Rails::ActionView.start_render_template(tracing_context: @tracing_context)
+            # NOTE: This check exists purely for Rails 3.0 compatibility.
+            #       The 'if' part can be removed when support for Rails 3.0 is removed.
+            if active_datadog_span
+              render_without_datadog(*args, &block)
+            else
+              datadog_tracer.trace(
+                Datadog::RailsRendererPatcher::SPAN_NAME_RENDER_TEMPLATE,
+                span_type: Datadog::Ext::HTTP::TEMPLATE
+              ) do |span|
+                with_datadog_span(span) { render_without_datadog(*args, &block) }
+              end
             end
-
-            render_without_datadog(*args, &block)
-          rescue Exception => e
-            # attach the exception to the tracing context if any
-            @tracing_context[:exception] = e
-            raise e
-          ensure
-            # ensure that the template `Span` is finished even during exceptions
-            Datadog::Contrib::Rails::ActionView.finish_render_template(tracing_context: @tracing_context)
           end
 
           def render_template_with_datadog(*args)
@@ -60,14 +62,40 @@ module Datadog
                        else
                          layout_name.try(:[], 'virtual_path')
                        end
-              @tracing_context[:template_name] = template_name
-              @tracing_context[:layout] = layout
+              if template_name
+                active_datadog_span.set_tag(
+                  Datadog::RailsRendererPatcher::TAG_TEMPLATE_NAME,
+                  template_name
+                )
+              end
+
+              if layout
+                active_datadog_span.set_tag(
+                  Datadog::RailsRendererPatcher::TAG_LAYOUT,
+                  layout
+                )
+              end
             rescue StandardError => e
               Datadog::Tracer.log.debug(e.message)
             end
 
             # execute the original function anyway
             render_template_without_datadog(*args)
+          end
+
+          private
+
+          attr_accessor :active_datadog_span
+
+          def datadog_tracer
+            Datadog.configuration[:rails][:tracer]
+          end
+
+          def with_datadog_span(span)
+            self.active_datadog_span = span
+            yield
+          ensure
+            self.active_datadog_span = nil
           end
 
           # method aliasing to patch the class
@@ -90,30 +118,23 @@ module Datadog
       do_once(:patch_partial_renderer) do
         klass.class_eval do
           def render_with_datadog(*args, &block)
-            # Create a tracing context and start the rendering span
-            tracing_context = {}
-            Datadog::Contrib::Rails::ActionView.start_render_partial(tracing_context: tracing_context)
-            tracing_contexts[current_span_id] = tracing_context
-
-            render_without_datadog(*args)
-          rescue Exception => e
-            # attach the exception to the tracing context if any
-            tracing_contexts[current_span_id][:exception] = e
-            raise e
-          ensure
-            # Ensure that the template `Span` is finished even during exceptions
-            # Remove the existing tracing context (to avoid leaks)
-            tracing_contexts.delete(current_span_id)
-
-            # Then finish the span associated with the context
-            Datadog::Contrib::Rails::ActionView.finish_render_partial(tracing_context: tracing_context)
+            datadog_tracer.trace(
+              Datadog::RailsRendererPatcher::SPAN_NAME_RENDER_PARTIAL,
+              span_type: Datadog::Ext::HTTP::TEMPLATE
+            ) do |span|
+              with_datadog_span(span) { render_without_datadog(*args) }
+            end
           end
 
           def render_partial_with_datadog(*args)
             begin
-              # update the tracing context with computed values before the rendering
               template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(@template.try('identifier'))
-              tracing_contexts[current_span_id][:template_name] = template_name
+              if template_name
+                active_datadog_span.set_tag(
+                  Datadog::RailsRendererPatcher::TAG_TEMPLATE_NAME,
+                  template_name
+                )
+              end
             rescue StandardError => e
               Datadog::Tracer.log.debug(e.message)
             end
@@ -122,15 +143,19 @@ module Datadog
             render_partial_without_datadog(*args)
           end
 
-          # Table of tracing contexts, one per partial/span, keyed by span_id
-          # because there will be multiple concurrent contexts, depending on how
-          # many partials are nested within one another.
-          def tracing_contexts
-            @tracing_contexts ||= {}
+          private
+
+          attr_accessor :active_datadog_span
+
+          def datadog_tracer
+            Datadog.configuration[:rails][:tracer]
           end
 
-          def current_span_id
-            Datadog.configuration[:rails][:tracer].call_context.current_span.span_id
+          def with_datadog_span(span)
+            self.active_datadog_span = span
+            yield
+          ensure
+            self.active_datadog_span = nil
           end
 
           # method aliasing to patch the class
