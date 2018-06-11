@@ -42,6 +42,7 @@ namespace :spec do
   [
     :active_model_serializers,
     :active_record,
+    :delayed_job,
     :active_support,
     :aws,
     :dalli,
@@ -220,6 +221,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib-old rake spec:active_record'
+      sh 'bundle exec appraisal contrib-old rake spec:delayed_job'
       sh 'bundle exec appraisal contrib-old rake spec:active_support'
       sh 'bundle exec appraisal contrib-old rake spec:dalli'
       sh 'bundle exec appraisal contrib-old rake spec:excon'
@@ -260,6 +262,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib-old rake spec:active_record'
+      sh 'bundle exec appraisal contrib-old rake spec:delayed_job'
       sh 'bundle exec appraisal contrib-old rake spec:active_support'
       sh 'bundle exec appraisal contrib-old rake spec:dalli'
       sh 'bundle exec appraisal contrib-old rake spec:excon'
@@ -303,6 +306,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib-old rake spec:active_record'
+      sh 'bundle exec appraisal contrib-old rake spec:delayed_job'
       sh 'bundle exec appraisal contrib-old rake spec:active_support'
       sh 'bundle exec appraisal contrib-old rake spec:dalli'
       sh 'bundle exec appraisal contrib-old rake spec:excon'
@@ -352,6 +356,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:delayed_job'
       sh 'bundle exec appraisal contrib rake spec:active_support'
       sh 'bundle exec appraisal contrib rake spec:dalli'
       sh 'bundle exec appraisal contrib rake spec:excon'
@@ -412,6 +417,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:delayed_job'
       sh 'bundle exec appraisal contrib rake spec:active_support'
       sh 'bundle exec appraisal contrib rake spec:dalli'
       sh 'bundle exec appraisal contrib rake spec:excon'
@@ -471,6 +477,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:delayed_job'
       sh 'bundle exec appraisal contrib rake spec:active_support'
       sh 'bundle exec appraisal contrib rake spec:dalli'
       sh 'bundle exec appraisal contrib rake spec:excon'
