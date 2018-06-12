@@ -363,7 +363,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
-      sh 'bundle exec appraisal contrib-old rake spec:mysql2'
+      sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:racecar'
       sh 'bundle exec appraisal contrib rake spec:rake'
       sh 'bundle exec appraisal contrib rake spec:redis'
