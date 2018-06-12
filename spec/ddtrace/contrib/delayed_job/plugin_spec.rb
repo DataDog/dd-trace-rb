@@ -64,15 +64,6 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin do
         end
       end
 
-      context 'when job id is set' do
-        let(:job_id) { 123456 }
-        let(:job_params) { { id: job_id } }
-
-        it 'span tags include job id' do
-          expect(span.get_tag('delayed_job.id')).to eq(job_id.to_s)
-        end
-      end
-
       context 'when priority is set' do
         let(:priority) { 12345 }
         let(:job_params) { { priority: priority } }
