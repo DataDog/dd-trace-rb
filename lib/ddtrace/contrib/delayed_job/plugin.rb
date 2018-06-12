@@ -3,6 +3,7 @@ require 'delayed/plugin'
 module Datadog
   module Contrib
     module DelayedJob
+      # DelayedJob plugin that instruments invoke_job hook
       class Plugin < Delayed::Plugin
         def self.instrument(job, &block)
           pin = Pin.get_from(::Delayed::Worker)
