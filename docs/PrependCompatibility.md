@@ -64,5 +64,5 @@ String.send(:include, LogToS)
 
 # running 
 "".to_s
-# will output 'to_s called' to stdout in all supported versions of Rubylude ProcessActionCompatibilityPatch unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
+# will output 'to_s called' to stdout in all supported versions of Ruby (including 1.9.3)
 ````
