@@ -10,24 +10,23 @@ RSpec.describe 'Mysql2::Client patcher' do
     Mysql2::Client.new(
       host: host,
       port: port,
-      database: database
+      database: database,
+      password: 'root'
     )
   end
 
   let(:host) { ENV.fetch('TEST_MYSQL_HOST') { '127.0.0.1' } }
   let(:port) { ENV.fetch('TEST_MYSQL_PORT') { '3306' } }
-  let(:database) { 'test' }
+  let(:database) { ENV.fetch('TEST_MYSQL_DB') { 'mysql' } }
 
-  let(:pin) { Datadog::Pin.get_from(client) }
+  let(:pin) { client.datadog_pin }
   let(:spans) { tracer.writer.spans(:keep) }
   let(:span) { spans.first }
 
   before(:each) do
     Datadog.configure do |c|
-      c.use :mysql2, service_name: 'my-sql'
+      c.use :mysql2, service_name: 'my-sql', tracer: tracer
     end
-
-    pin.tracer = tracer
   end
 
   context 'pin' do
