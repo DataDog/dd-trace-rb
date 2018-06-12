@@ -1,13 +1,13 @@
 module Datadog
   module Contrib
     module DelayedJob
-      SERVICE = 'delayed_job'.freeze
-
       # DelayedJob integration
       module Patcher
         include Base
         register_as :delayed_job
-        option :service_name, default: SERVICE
+
+        option :service_name, default: 'delayed_job'.freeze
+        option :tracer, default: Datadog.tracer
 
         @patched = false
 
@@ -41,8 +41,7 @@ module Datadog
           end
 
           def add_pin(klass)
-            Pin.new(get_option(:service_name), app: 'delayed_job', app_type: Ext::AppTypes::WORKER)
-               .onto(klass)
+            Pin.new(get_option(:service_name), app: 'delayed_job', app_type: Ext::AppTypes::WORKER).onto(klass)
           end
         end
       end
