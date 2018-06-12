@@ -6,29 +6,26 @@ require_relative 'app'
 SampleJob = Struct.new('SampleJob') { def perform; end }
 
 RSpec.describe Datadog::Contrib::DelayedJob::Plugin do
-  let(:writer) { FauxWriter.new }
-  let(:tracer) { ::Datadog::Tracer.new(writer: writer) }
   let(:pin) { Datadog::Pin.get_from(::Delayed::Worker) }
+  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
 
   before do
     Datadog::Contrib::DelayedJob::Patcher.patch
+
     pin.tracer = tracer
+    Delayed::Worker.delay_jobs = false
   end
 
-  describe 'running job' do
+  describe 'instrumented job invocation' do
     let(:job_params) { {} }
     subject(:job_run) { Delayed::Job.enqueue(SampleJob.new, job_params) }
 
-    before do
-      Delayed::Worker.delay_jobs = false
-    end
-
     it 'creates a span' do
-      expect { job_run }.to change { writer.spans.first }.to be_instance_of(Datadog::Span)
+      expect { job_run }.to change { tracer.writer.spans.first }.to be_instance_of(Datadog::Span)
     end
 
     describe 'created span' do
-      subject(:span) { writer.spans.first }
+      subject(:span) { tracer.writer.spans.first }
 
       before do
         job_run
