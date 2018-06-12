@@ -952,6 +952,27 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | --- | --- |
 | ``service_name`` | Service name used for `sidekiq` instrumentation | sidekiq |
 
+### DelayedJob
+
+The DelayedJob integration uses lifecycle hooks to trace the job executions.
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :delayed_job, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `DelayedJob` instrumentation | delayed_job |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+
 ### Sinatra
 
 The Sinatra integration traces requests and template rendering.
