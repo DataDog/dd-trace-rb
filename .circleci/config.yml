@@ -84,6 +84,17 @@ step_run_all_tests: &step_run_all_tests
     name: Run tests
     command: bundle exec rake ci
 
+filters_all_branches_and_tags: &filters_all_branches_and_tags
+  filters:
+    tags:
+      only: /.*/
+filters_only_release_tags: &filters_only_release_tags
+  filters:
+    branches:
+      ignore: /.*/
+    tags:
+      only: /^v\d+(\.\d+){0,3}(\.(alpha|beta|rc)\d+)?$/
+
 version: 2.0
 jobs:
   checkout-1.9:
@@ -424,45 +435,63 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - checkout-1.9
+      - checkout-1.9:
+          <<: *filters_all_branches_and_tags
       - build-1.9:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-1.9
       - test-1.9:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-1.9
-      - checkout-2.0
+      - checkout-2.0:
+          <<: *filters_all_branches_and_tags
       - build-2.0:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.0
       - test-2.0:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.0
-      - checkout-2.1
+      - checkout-2.1:
+          <<: *filters_all_branches_and_tags
       - build-2.1:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.1
       - test-2.1:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.1
-      - checkout-2.2
+      - checkout-2.2:
+          <<: *filters_all_branches_and_tags
       - build-2.2:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.2
       - test-2.2:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.2
-      - checkout-2.3
+      - checkout-2.3:
+          <<: *filters_all_branches_and_tags
       - build-2.3:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.3
       - test-2.3:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.3
-      - checkout-2.4
+      - checkout-2.4:
+          <<: *filters_all_branches_and_tags
       - build-2.4:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.4
       - test-2.4:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.4
