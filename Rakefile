@@ -227,6 +227,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       sh 'bundle exec appraisal contrib-old rake spec:http'
       sh 'bundle exec appraisal contrib-old rake spec:mongodb'
+      sh 'bundle exec appraisal contrib-old rake spec:mysql2'
       sh 'bundle exec appraisal contrib-old rake spec:rake'
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'

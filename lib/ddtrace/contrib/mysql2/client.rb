@@ -9,11 +9,30 @@ module Datadog
         module_function
 
         def included(base)
-          base.send(:prepend, InstanceMethods)
+          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+            base.class_eval do
+              alias_method :aliased_query, :query
+              remove_method :query
+              include InstanceMethods
+            end
+          else
+            base.send(:prepend, InstanceMethods)
+          end
+        end
+
+        # Mysql2::Client patch 1.9.3 instance methods
+        module InstanceMethodsCompatibility
+          def query(*args)
+            aliased_query(*args)
+          end
         end
 
         # Mysql2::Client patch instance methods
         module InstanceMethods
+          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+            include InstanceMethodsCompatibility
+          end
+
           def query(sql, options = {})
             datadog_pin.tracer.trace('mysql2.query') do |span|
               span.resource = sql

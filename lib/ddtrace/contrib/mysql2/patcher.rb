@@ -31,7 +31,7 @@ module Datadog
         end
 
         def compatible?
-          RUBY_VERSION >= '2.0.0' && defined?(::Mysql2)
+          defined?(::Mysql2)
         end
 
         def patch_mysql2_client
