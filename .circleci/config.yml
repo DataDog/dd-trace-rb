@@ -83,6 +83,10 @@ step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
     command: bundle exec rake ci
+step_release_docs: &step_release_docs
+  run:
+    name: Upload release docs
+    command: S3_DIR=trace bundle exec rake release:docs
 
 filters_all_branches_and_tags: &filters_all_branches_and_tags
   filters:
@@ -431,6 +435,14 @@ jobs:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
       - *step_run_all_tests
+  deploy-release:
+    <<: *job_defaults
+    docker:
+      - *container-2_4
+    steps:
+      - checkout
+      - *step_bundle_install
+      - *step_release_docs
 workflows:
   version: 2
   build-and-test:
@@ -495,3 +507,12 @@ workflows:
           <<: *filters_all_branches_and_tags
           requires:
             - build-2.4
+      - deploy-release:
+          <<: *filters_only_release_tags
+          requires:
+            - test-1.9
+            - test-2.0
+            - test-2.1
+            - test-2.2
+            - test-2.3
+            - test-2.4
