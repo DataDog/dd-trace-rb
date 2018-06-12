@@ -16,8 +16,10 @@ module Datadog
             return @patched if patched? || !defined?(::RestClient::Request)
 
             require 'ddtrace/ext/app_types'
+            require 'ddtrace/contrib/rest_client/request_patch'
 
             add_pin(::RestClient::Request)
+            add_instrumentation(::RestClient::Request)
             @patched = true
           rescue => e
             Tracer.log.error("Unable to apply RestClient integration: #{e}")
@@ -35,6 +37,7 @@ module Datadog
           end
 
           def add_instrumentation(klass)
+            klass.send(:include, RequestPatch)
           end
 
           def add_pin(klass)
