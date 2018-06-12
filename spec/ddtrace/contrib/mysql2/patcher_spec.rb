@@ -37,17 +37,17 @@ RSpec.describe 'Mysql2::Client patcher' do
     end
   end
 
-  context 'when the tracer is disabled' do
-    before(:each) { pin.tracer.enabled = false }
-
-    it 'does not write spans' do
-      client.query('SELECT 1')
-      expect(spans).to be_empty
-    end
-  end
-
   describe 'tracing' do
     describe '#query' do
+      describe 'disabled tracer' do
+        before(:each) { tracer.enabled = false }
+
+        it 'does not write spans' do
+          client.query('SELECT 1')
+          expect(spans).to be_empty
+        end
+      end
+
       it 'traces successful queries' do
         client.query('SELECT 1')
         expect(spans.count).to eq(1)
