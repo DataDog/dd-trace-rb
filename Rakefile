@@ -56,7 +56,8 @@ namespace :spec do
     :resque,
     :sidekiq,
     :sinatra,
-    :sucker_punch
+    :sucker_punch,
+    :rest_client
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t|
       t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
