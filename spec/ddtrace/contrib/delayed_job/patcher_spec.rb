@@ -4,7 +4,7 @@ require 'ddtrace'
 require_relative 'app'
 
 RSpec.describe Datadog::Contrib::DelayedJob::Patcher do
-  describe '#patch' do
+  describe '.patch' do
     let(:worker_plugins) { [] }
     let!(:delayed_worker_class) { class_double('Delayed::Worker', plugins: worker_plugins).as_stubbed_const }
 
@@ -18,7 +18,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Patcher do
       end
 
       it "shouldn't patch the code" do
-        expect { described_class.patch }.not_to change { described_class.patched? }
+        expect { described_class.patch }.not_to(change { described_class.patched? })
       end
     end
 

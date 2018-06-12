@@ -4,24 +4,24 @@ module Datadog
   module Contrib
     module DelayedJob
       class Plugin < Delayed::Plugin
-        def self.instrument(worker, job, &block)
+        def self.instrument(job, &block)
           pin = Pin.get_from(::Delayed::Worker)
 
-          return block.call(worker, job) unless pin && pin.tracer
+          return block.call(job) unless pin && pin.tracer
 
-          pin.tracer.trace('delayed_job', service: pin.service, resource: job.name) do |span|
-            span.set_tag('delayed_job.id', job.id)
-            span.set_tag('delayed_job.queue', job.queue) if job.queue
-            span.set_tag('delayed_job.priority', job.priority)
-            span.set_tag('delayed_job.attempts', job.attempts)
+          pin.tracer.trace('delayed_job'.freeze, service: pin.service, resource: job.name) do |span|
+            span.set_tag('delayed_job.id'.freeze, job.id)
+            span.set_tag('delayed_job.queue'.freeze, job.queue) if job.queue
+            span.set_tag('delayed_job.priority'.freeze, job.priority)
+            span.set_tag('delayed_job.attempts'.freeze, job.attempts)
             span.span_type = pin.app_type
 
-            block.call(worker, job)
+            block.call(job)
           end
         end
 
         callbacks do |lifecycle|
-          lifecycle.around(:perform, &method(:instrument))
+          lifecycle.around(:invoke_job, &method(:instrument))
         end
       end
     end
