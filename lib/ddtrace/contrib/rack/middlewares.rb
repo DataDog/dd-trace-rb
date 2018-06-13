@@ -106,6 +106,10 @@ module Datadog
           # is just the relative path without query strings.
           url = env['REQUEST_URI'] || original_env['PATH_INFO']
           request_id = get_request_id(headers, env)
+          etag = env['ETAG'] || original_env['ETAG']
+          cache_control = env['CACHE_CONTROL'] || original_env['CACHE_CONTROL']
+          if_modified_since = env['HTTP_IF_MODIFIED_SINCE'] || original_env['HTTP_IF_MODIFIED_SINCE']
+          if_none_match = env['HTTP_IF_NONE_MATCH'] || original_env['HTTP_IF_NONE_MATCH']
 
           request_span.resource ||= resource_name_for(env, status)
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
@@ -132,6 +136,18 @@ module Datadog
           end
           if request_span.get_tag(Datadog::Ext::HTTP::REQUEST_ID).nil? && request_id
             request_span.set_tag(Datadog::Ext::HTTP::REQUEST_ID, request_id)
+          end
+          if request_span.get_tag(Datadog::Ext::HTTP::ETAG).nil? && etag
+            request_span.set_tag(Datadog::Ext::HTTP::ETAG, etag)
+          end
+          if request_span.get_tag(Datadog::Ext::HTTP::CACHE_CONTROL).nil? && cache_control
+            request_span.set_tag(Datadog::Ext::HTTP::CACHE_CONTROL, cache_control)
+          end
+          if request_span.get_tag(Datadog::Ext::HTTP::IF_MODIFIED_SINCE).nil? && if_modified_since
+            request_span.set_tag(Datadog::Ext::HTTP::IF_MODIFIED_SINCE, if_modified_since)
+          end
+          if request_span.get_tag(Datadog::Ext::HTTP::IF_NONE_MATCH).nil? && if_none_match
+            request_span.set_tag(Datadog::Ext::HTTP::IF_NONE_MATCH, if_none_match)
           end
 
           # detect if the status code is a 5xx and flag the request span as an error
