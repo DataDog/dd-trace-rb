@@ -4,7 +4,7 @@ module Datadog
       # RestClient integration
       module Patcher
         include Base
-        register_as :delayed_job
+        register_as :rest_client
 
         option :service_name, default: 'rest_client'.freeze
         option :tracer, default: Datadog.tracer
