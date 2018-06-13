@@ -12,18 +12,16 @@ module Datadog
           placeholder: PLACEHOLDER
         }.freeze
 
-        ID_REGEXP = %r{\/([0-9]+)([\/\?]|$)}
-        ID_PLACEHOLDER = '/?\2'.freeze
-
-        INDEX_REGEXP = /[0-9]{2,}/
-        INDEX_PLACEHOLDER = '?'.freeze
+        # Taken from https://github.com/DataDog/dd-trace-java/blob/master/dd-trace-ot/src/main/java/datadog/opentracing/decorators/URLAsResourceName.java#L16
+        # Matches any path segments with numbers in them. (exception for versioning: "/v1/")
+        CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP = %r{(?<=/)(?![vV]\d\{1,2\}/)(?:[^/\d\?]*[\d]+[^/\?]*)}
+        QUERY_STRING_REGEXP = /\?.*$/
 
         module_function
 
-        # Very basic quantization, complex processing should be done in the agent
         def format_url(url)
-          quantized_url = url.gsub(ID_REGEXP, ID_PLACEHOLDER)
-          quantized_url.gsub(INDEX_REGEXP, INDEX_PLACEHOLDER)
+          url.gsub(QUERY_STRING_REGEXP, ''.freeze)
+             .gsub(CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP, PLACEHOLDER)
         end
 
         def format_body(body, options = {})
