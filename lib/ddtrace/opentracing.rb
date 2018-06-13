@@ -13,6 +13,7 @@ module Datadog
       require 'ddtrace/opentracing/tracer'
       require 'ddtrace/opentracing/span'
       require 'ddtrace/opentracing/span_context'
+      require 'ddtrace/opentracing/scope'
     end
 
     load_opentracing if supported?
