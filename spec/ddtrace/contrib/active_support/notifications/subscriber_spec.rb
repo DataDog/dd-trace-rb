@@ -11,6 +11,10 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
       end
     end
 
+    before :each do
+      test_class.send(:unsubscribe_all)
+    end
+
     describe 'class' do
       describe 'behavior' do
         describe '#subscriptions' do
@@ -44,8 +48,12 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
 
           context 'after #subscribe! has been called' do
             before(:each) do
-              test_class.send(:on_subscribe, &proc {})
-              test_class.send(:subscribe!)
+              test_class.instance_eval do
+                on_subscribe do
+                  subscribe(:event, :span) {}
+                end
+                subscribe!
+              end
             end
 
             it { is_expected.to be true }
@@ -58,10 +66,16 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
 
             context 'when #on_subscribe' do
               context 'is defined' do
-                let(:on_subscribe_block) { proc { spy.call } }
-                let(:spy) { double(:spy) }
+                let(:spy) { double(:spy, call: true) }
+                let(:on_subscribe_block) do
+                  proc do
+                    spy.call
+                  end
+                end
 
-                before(:each) { test_class.send(:on_subscribe, &on_subscribe_block) }
+                before do
+                  test_class.send(:on_subscribe, &on_subscribe_block)
+                end
 
                 it do
                   expect(spy).to receive(:call)
@@ -70,7 +84,6 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
 
                 context 'but has already been called once' do
                   before(:each) do
-                    allow(spy).to receive(:call)
                     test_class.send(:subscribe!)
                   end
 

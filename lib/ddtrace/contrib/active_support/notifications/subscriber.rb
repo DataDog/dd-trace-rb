@@ -37,6 +37,7 @@ module Datadog
             def subscribe!
               return subscribed? if subscribed? || on_subscribe_block.nil?
               on_subscribe_block.call
+
               @subscribed = true
             end
 
@@ -56,6 +57,12 @@ module Datadog
             end
 
             private
+
+            def unsubscribe_all
+              subscriptions.each(&:unsubscribe_all)
+              @subscribed = false
+              @subscriptions = Set.new
+            end
 
             attr_reader :subscribed, :on_subscribe_block
           end

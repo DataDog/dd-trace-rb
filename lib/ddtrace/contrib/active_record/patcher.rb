@@ -13,6 +13,10 @@ module Datadog
 
         NAME_SQL = 'sql.active_record'.freeze
         NAME_INSTANTIATION = 'instantiation.active_record'.freeze
+        DEFAULT_FLAGS = {
+          trace_instantiation_events: true,
+          trace_sql_events: true
+        }.freeze
 
         register_as :active_record, auto_patch: false
         option :service_name, depends_on: [:tracer] do |value|
@@ -21,6 +25,7 @@ module Datadog
           end
         end
         option :orm_service_name
+        option :flags, setter: ->(value) { DEFAULT_FLAGS.merge(value) }, default: DEFAULT_FLAGS
         option :tracer, default: Datadog.tracer do |value|
           (value || Datadog.tracer).tap do |v|
             # Make sure to update tracers of all subscriptions
@@ -34,16 +39,18 @@ module Datadog
 
         on_subscribe do
           # sql.active_record
-          subscribe(
-            self::NAME_SQL,                         # Event name
-            'active_record.sql',                    # Span name
-            { service: get_option(:service_name) }, # Span options
-            get_option(:tracer),                    # Tracer
-            &method(:sql)                           # Handler
-          )
+          if get_option(:flags)[:trace_sql_events]
+            subscribe(
+              self::NAME_SQL,                         # Event name
+              'active_record.sql',                    # Span name
+              { service: get_option(:service_name) }, # Span options
+              get_option(:tracer),                    # Tracer
+              &method(:sql)                           # Handler
+            )
+          end
 
           # instantiation.active_record
-          if instantiation_tracing_supported?
+          if get_option(:flags)[:trace_instantiation_events] && instantiation_tracing_supported?
             subscribe(
               self::NAME_INSTANTIATION,               # Event name
               'active_record.instantiation',          # Span name
