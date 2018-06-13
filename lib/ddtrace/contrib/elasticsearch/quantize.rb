@@ -13,8 +13,8 @@ module Datadog
         }.freeze
 
         # Based on regexp from https://github.com/DataDog/dd-trace-java/blob/master/dd-trace-ot/src/main/java/datadog/opentracing/decorators/URLAsResourceName.java#L16
-        # Matches any path segments with numbers in them. (exception for index name)
-        CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP = %r{(?<=/)(?![vV]\d\{1,2\}/)(?:[^/\d]*[\d]+[^/]*)}
+        # Matches any path segments with numbers in them.
+        CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP = %r{(?<=/)(?:[^/\d]*[\d]+[^/]*)}
         TOKENIZE_INDEX_NAME_REGEXP = %r{^(/?[^\d/]+)(?:\d[^/]+)}
         QUERY_STRING_REGEXP = /\?.*$/
 
