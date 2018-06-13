@@ -10,6 +10,7 @@ module Datadog
     def load_opentracing
       require 'opentracing'
       require 'opentracing/carrier'
+      require 'ddtrace/opentracing/carrier'
       require 'ddtrace/opentracing/tracer'
       require 'ddtrace/opentracing/span'
       require 'ddtrace/opentracing/span_context'
