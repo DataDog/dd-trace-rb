@@ -11,6 +11,7 @@ module Datadog
       require 'opentracing'
       require 'opentracing/carrier'
       require 'ddtrace/opentracing/tracer'
+      require 'ddtrace/opentracing/span'
     end
 
     load_opentracing if supported?
