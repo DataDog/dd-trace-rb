@@ -76,7 +76,7 @@ module Datadog
           return url unless index_end
 
           index_part = url.slice(0, index_end)
-          index_part.gsub!(/\d+/, '?')
+          index_part.gsub!(/\d+/, PLACEHOLDER)
 
           index_part << url.slice(index_end..-1)
         end
