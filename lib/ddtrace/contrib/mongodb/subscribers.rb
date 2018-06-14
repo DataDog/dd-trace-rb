@@ -28,9 +28,9 @@ module Datadog
 
           # add operation tags; the full query is stored and used as a resource,
           # since it has been quantized and reduced
-          span.set_tag(Datadog::Ext::Mongo::DB, query[:database])
-          span.set_tag(Datadog::Ext::Mongo::COLLECTION, query[:collection])
-          span.set_tag(Datadog::Ext::Mongo::OPERATION, query[:operation])
+          span.set_tag(Datadog::Ext::Mongo::DB, query['database'])
+          span.set_tag(Datadog::Ext::Mongo::COLLECTION, query['collection'])
+          span.set_tag(Datadog::Ext::Mongo::OPERATION, query['operation'])
           span.set_tag(Datadog::Ext::Mongo::QUERY, serialized_query)
           span.set_tag(Datadog::Ext::NET::TARGET_HOST, event.address.host)
           span.set_tag(Datadog::Ext::NET::TARGET_PORT, event.address.port)

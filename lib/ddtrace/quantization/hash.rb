@@ -96,7 +96,7 @@ module Datadog
                                         additional[:truncate_arrays]
                                       else
                                         original[:truncate_arrays]
-          end
+                                      end
         end
       end
 
