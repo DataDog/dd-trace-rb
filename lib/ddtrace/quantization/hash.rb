@@ -33,9 +33,9 @@ module Datadog
           return hash_obj if options[:show] == :all
 
           hash_obj.each_with_object({}) do |(key, value), quantized|
-            if options[:show].include?(key.to_sym)
+            if options[:show].any?(&indifferent_key_equals(key))
               quantized[key] = value
-            elsif !options[:exclude].include?(key.to_sym)
+            elsif options[:exclude].none?(&indifferent_key_equals(key))
               quantized[key] = format_value(value, options)
             end
           end
@@ -83,6 +83,15 @@ module Datadog
 
           options[:placeholder] = additional[:placeholder] || original[:placeholder]
         end
+      end
+
+      def indifferent_key_equals(key)
+        key = convert_key(key)
+        ->(compared_key) { key == convert_key(compared_key) }
+      end
+
+      def convert_key(key)
+        key.is_a?(Symbol) ? key.to_s : key
       end
     end
   end
