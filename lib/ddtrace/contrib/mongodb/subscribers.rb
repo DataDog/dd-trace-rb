@@ -5,10 +5,6 @@ module Datadog
       # `MongoCommandSubscriber` listens to all events from the `Monitoring`
       # system available in the Mongo driver.
       class MongoCommandSubscriber
-        EXCLUDE_KEYS = [:_id].freeze
-        SHOW_KEYS = [].freeze
-        DEFAULT_OPTIONS = { truncate_arrays: true, exclude: EXCLUDE_KEYS, show: SHOW_KEYS }.freeze
-
         def started(event)
           pin = Datadog::Pin.get_from(event.address)
           return unless pin && pin.enabled?
@@ -23,7 +19,7 @@ module Datadog
 
           # build a quantized Query using the Parser module
           query = Datadog::Contrib::MongoDB
-                  .query_builder(event.command_name, event.database_name, event.command, quantization_options)
+                  .query_builder(event.command_name, event.database_name, event.command)
           serialized_query = query.to_s
 
           # add operation tags; the full query is stored and used as a resource,
@@ -69,19 +65,6 @@ module Datadog
           # it must be finished to prevent any leak
           span.finish() unless span.nil?
           Thread.current[:datadog_mongo_span] = nil
-        end
-
-        protected
-
-        def quantization_options
-          @quantization_options ||= [Datadog::Quantization::Hash::DEFAULT_OPTIONS,
-                                     DEFAULT_OPTIONS,
-                                     configuration[:quantize]]
-                                    .reduce(&Datadog::Quantization::Hash.method(:merge_options))
-        end
-
-        def configuration
-          Datadog.configuration[:mongo]
         end
       end
     end
