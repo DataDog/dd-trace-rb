@@ -11,13 +11,15 @@ RSpec.describe 'Mysql2::Client patcher' do
       host: host,
       port: port,
       database: database,
-      password: 'root'
+      username: 'root',
+      password: password
     )
   end
 
   let(:host) { ENV.fetch('TEST_MYSQL_HOST') { '127.0.0.1' } }
   let(:port) { ENV.fetch('TEST_MYSQL_PORT') { '3306' } }
   let(:database) { ENV.fetch('TEST_MYSQL_DB') { 'mysql' } }
+  let(:password) { ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root') }
 
   let(:pin) { client.datadog_pin }
   let(:spans) { tracer.writer.spans(:keep) }
