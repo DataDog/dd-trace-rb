@@ -6,13 +6,12 @@ module Datadog
 
       # skipped keys are related to command names, since they are already
       # extracted by the query_builder
-      SKIP_KEYS = [:_id].freeze
       PLACEHOLDER = '?'.freeze
 
       # returns a formatted and normalized query
-      def query_builder(command_name, database_name, command)
-        # always skip the command name
-        skip = SKIP_KEYS | [command_name.to_s]
+      def query_builder(command_name, database_name, command, options = {})
+        # always exclude the command name
+        options = Quantization::Hash.merge_options(options, exclude: [command_name.to_s])
 
         # quantized statements keys are strings to avoid leaking Symbols in older Rubies
         # as Symbols are not GC'ed in Rubies prior to 2.2
@@ -23,7 +22,7 @@ module Datadog
         }
 
         command.each do |key, value|
-          result[key] = quantize_statement(value, skip) unless skip.include?(key)
+          result[key] = Quantization::Hash.format_value(value, options)
         end
 
         result
@@ -33,6 +32,7 @@ module Datadog
       # replace elements available in a given query, so that Arrays, Hashes and so
       # on are compacted. It ensures a low cardinality so that it can be used
       # as a Span resource.
+      # @deprecated
       def quantize_statement(statement, skip = [])
         case statement
         when Hash
@@ -44,6 +44,7 @@ module Datadog
         end
       end
 
+      # @deprecated
       def quantize_value(value, skip = [])
         case value
         when Hash
