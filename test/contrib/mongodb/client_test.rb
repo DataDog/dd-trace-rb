@@ -98,9 +98,9 @@ class MongoDBTest < Minitest::Test
 
   def test_insert_array_operation
     @client[:people].insert_one(name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing'])
-    @spans = @tracer.writer.spans()
-    assert_equal(1, @spans.length)
-    span = @spans[0]
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
     # check fields
     assert_equal('{"operation"=>:insert, "database"=>"test", "collection"=>"people", "documents"=>[{:name=>"?", :hobbies=>["?"]}], "ordered"=>"?"}', span.resource)
     assert_equal('mongodb', span.service)
