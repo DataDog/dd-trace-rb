@@ -206,6 +206,26 @@ class MongoDBTest < Minitest::Test
     assert_equal('555-555-5555', collection.find(name: 'Sally').first[:phone_number])
   end
 
+  def test_configuration_hiding
+    # prepare the test case
+    doc = { name: 'Steve', hobbies: ['hiking'] }
+
+    configuration = {
+      quantize: {
+        show: [:database, :operation]
+      }
+    }
+    Datadog::Contrib::MongoDB.stub :configuration, configuration do
+      @client[:people].insert_one(doc)
+
+      spans = @tracer.writer.spans
+      assert_equal(1, spans.length)
+      span = spans[0]
+
+      assert_equal('{"operation"=>:insert, "database"=>"test", "collection"=>"?", "documents"=>[{:name=>"?", :hobbies=>["?"]}], "ordered"=>"?"}', span.resource)
+    end
+  end
+
   def test_update_many_documents
     # prepare the test case
     docs = [
