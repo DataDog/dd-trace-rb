@@ -30,6 +30,11 @@ RSpec.describe Datadog::Quantization::Hash do
         it { is_expected.to eq(one: '?', two: '?') }
       end
 
+      context 'with exclude: value with indifferent key matching' do
+        let(:options) { { exclude: ['three'] } }
+        it { is_expected.to eq(one: '?', two: '?') }
+      end
+
       context 'with exclude: :all' do
         let(:options) { { exclude: :all } }
         it { is_expected.to eq({}) }
@@ -61,6 +66,30 @@ RSpec.describe Datadog::Quantization::Hash do
       context 'with exclude: :all' do
         let(:options) { { exclude: :all } }
         it { is_expected.to eq(['?']) }
+      end
+    end
+
+    context 'given a Array with nested arrays' do
+      let(:hash) { [%w[foo bar baz], %w[foo], %w[bar], %w[baz]] }
+
+      it { is_expected.to eq([['?'], ['?'], ['?'], ['?']]) }
+
+      context 'with truncate_arrays: true' do
+        let(:options) { { truncate_arrays: true } }
+
+        it { is_expected.to eq([['?'], '?']) }
+      end
+    end
+
+    context 'given a Array with nested hashes' do
+      let(:hash) { [{ foo: 1 }, { bar: 1 }] }
+
+      it { is_expected.to eq([{ foo: '?' }, { bar: '?' }]) }
+
+      context 'with truncate_arrays: true' do
+        let(:options) { { truncate_arrays: true } }
+
+        it { is_expected.to eq([{ foo: '?' }, '?']) }
       end
     end
   end
