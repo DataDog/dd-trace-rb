@@ -1,5 +1,5 @@
 module Datadog
-  module OpenTracing
+  module OpenTracer
     class Span < ::OpenTracing::Span
     end
   end

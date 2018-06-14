@@ -1,5 +1,5 @@
 module Datadog
-  module OpenTracing
+  module OpenTracer
     class ScopeManager < ::OpenTracing::ScopeManager
     end
   end

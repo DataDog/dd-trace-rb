@@ -1,5 +1,5 @@
 module Datadog
-  module OpenTracing
+  module OpenTracer
     class Carrier < ::OpenTracing::Carrier
     end
   end

@@ -1,10 +1,10 @@
 require 'spec_helper'
 
-require 'ddtrace/opentracing'
-require 'ddtrace/opentracing/helper'
+require 'ddtrace/opentracer'
+require 'ddtrace/opentracer/helper'
 
-if Datadog::OpenTracing.supported?
-  RSpec.describe Datadog::OpenTracing::SpanContext do
+if Datadog::OpenTracer.supported?
+  RSpec.describe Datadog::OpenTracer::SpanContext do
     include_context 'OpenTracing helpers'
 
     subject(:span_context) { described_class.new }
