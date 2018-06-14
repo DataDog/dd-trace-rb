@@ -15,17 +15,13 @@ module Datadog
 
         # quantized statements keys are strings to avoid leaking Symbols in older Rubies
         # as Symbols are not GC'ed in Rubies prior to 2.2
-        result = {
+        base_info = {
           'operation' => command_name,
           'database' => database_name,
           'collection' => command.values.first
         }
 
-        command.each do |key, value|
-          result[key] = Quantization::Hash.format_value(value, options)
-        end
-
-        result
+        base_info.merge(Quantization::Hash.format(command, options))
       end
 
       # removes the values from the given query; this quantization recursively

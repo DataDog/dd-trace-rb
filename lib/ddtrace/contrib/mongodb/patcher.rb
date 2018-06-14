@@ -12,6 +12,7 @@ module Datadog
         include Base
         register_as :mongo, auto_patch: true
         option :service_name, default: SERVICE
+        option :quantize, default: {}
 
         @patched = false
 

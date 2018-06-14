@@ -7,7 +7,7 @@ module Datadog
       class MongoCommandSubscriber
         EXCLUDE_KEYS = [:_id].freeze
         SHOW_KEYS = [].freeze
-        DEFAULT_OPTIONS = { exclude: EXCLUDE_KEYS, show: SHOW_KEYS }.freeze
+        DEFAULT_OPTIONS = { truncate_arrays: true, exclude: EXCLUDE_KEYS, show: SHOW_KEYS }.freeze
 
         def started(event)
           pin = Datadog::Pin.get_from(event.address)
@@ -76,7 +76,7 @@ module Datadog
         def quantization_options
           @quantization_options ||= [Datadog::Quantization::Hash::DEFAULT_OPTIONS,
                                      DEFAULT_OPTIONS,
-                                     configuration[:quantization]]
+                                     configuration[:quantize]]
                                     .reduce(&Datadog::Quantization::Hash.method(:merge_options))
         end
 

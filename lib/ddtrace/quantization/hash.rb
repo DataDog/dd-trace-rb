@@ -8,7 +8,8 @@ module Datadog
       DEFAULT_OPTIONS = {
         exclude: EXCLUDE_KEYS,
         show: SHOW_KEYS,
-        placeholder: PLACEHOLDER
+        placeholder: PLACEHOLDER,
+        truncate_arrays: false
       }.freeze
 
       module_function
@@ -33,9 +34,9 @@ module Datadog
           return hash_obj if options[:show] == :all
 
           hash_obj.each_with_object({}) do |(key, value), quantized|
-            if options[:show].any?(&indifferent_key_equals(key))
+            if options[:show].any?(&indifferent_equals(key))
               quantized[key] = value
-            elsif options[:exclude].none?(&indifferent_key_equals(key))
+            elsif options[:exclude].none?(&indifferent_equals(key))
               quantized[key] = format_value(value, options)
             end
           end
@@ -52,14 +53,23 @@ module Datadog
           format_hash(value, options)
         when Array
           # If any are objects, format them.
-          if value.any? { |v| v.class <= ::Hash || v.class <= Array }
-            value.collect { |i| format_value(i, options) }
-          # Otherwise short-circuit and return single placeholder
-          else
-            [options[:placeholder]]
-          end
+          format_array(value, options)
         else
           options[:placeholder]
+        end
+      end
+
+      def format_array(value, options)
+        if value.any? { |v| v.class <= ::Hash || v.class <= Array }
+          if options[:truncate_arrays]
+            first_entry = format_value(value.first, options)
+            value.size > 1 ? [first_entry, options[:placeholder]] : [first_entry]
+          else
+            value.collect { |i| format_value(i, options) }
+          end
+          # Otherwise short-circuit and return single placeholder
+        else
+          [options[:placeholder]]
         end
       end
 
@@ -82,16 +92,21 @@ module Datadog
                               end
 
           options[:placeholder] = additional[:placeholder] || original[:placeholder]
+          options[:truncate_arrays] = if additional.key?(:truncate_arrays)
+                                        additional[:truncate_arrays]
+                                      else
+                                        original[:truncate_arrays]
+          end
         end
       end
 
-      def indifferent_key_equals(key)
-        key = convert_key(key)
-        ->(compared_key) { key == convert_key(compared_key) }
+      def indifferent_equals(value)
+        value = convert_value(value)
+        ->(compared_value) { value == convert_value(compared_value) }
       end
 
-      def convert_key(key)
-        key.is_a?(Symbol) ? key.to_s : key
+      def convert_value(value)
+        value.is_a?(Symbol) ? value.to_s : value
       end
     end
   end
