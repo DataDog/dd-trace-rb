@@ -14,10 +14,12 @@ module Datadog
         # always skip the command name
         skip = SKIP_KEYS | [command_name.to_s]
 
+        # quantized statements keys are strings to avoid leaking Symbols in older Rubies
+        # as Symbols are not GC'ed in Rubies prior to 2.2
         result = {
-          operation: command_name,
-          database: database_name,
-          collection: command.values.first
+          'operation' => command_name,
+          'database' => database_name,
+          'collection' => command.values.first
         }
 
         command.each do |key, value|
