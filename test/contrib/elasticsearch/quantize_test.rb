@@ -10,6 +10,10 @@ class ESQuantizeTest < Minitest::Test
     assert_equal('/my/thing/?/is/cool', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1/is/cool'))
     assert_equal('/my/thing/??is=cool', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1?is=cool'))
     assert_equal('/my/thing/?/z', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/z'))
+    assert_equal('/my/thing/?/z/', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/z/'))
+    assert_equal('/my/thing/?/z?a=b', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/z?a=b'))
+    assert_equal('/my/thing/?/abcdefg', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/abcdefg'))
+    assert_equal('/my/thing/?/abcdefg/', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/abcdefg/'))
   end
 
   def test_index
