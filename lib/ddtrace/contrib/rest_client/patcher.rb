@@ -7,6 +7,7 @@ module Datadog
         register_as :rest_client
 
         option :service_name, default: 'rest_client'.freeze
+        option :distributed_tracing, default: false
         option :tracer, default: Datadog.tracer
 
         @patched = false

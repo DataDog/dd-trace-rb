@@ -1,3 +1,5 @@
+require 'ddtrace/ext/net'
+
 module Datadog
   module Contrib
     module RestClient
@@ -10,7 +12,14 @@ module Datadog
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
           def execute(&block)
-            datadog_pin.tracer.trace('rest_client') do |span|
+            datadog_pin.tracer.trace('rest_client.request'.freeze, service: datadog_pin.service_name) do |span|
+              span.resource = method.to_s.upcase
+              span.span_type = Ext::HTTP::TYPE
+              span.set_tag(Ext::HTTP::URL, uri.path)
+              span.set_tag(Ext::HTTP::METHOD, method.to_s.upcase)
+              span.set_tag(Ext::NET::TARGET_HOST, uri.host)
+              span.set_tag(Ext::NET::TARGET_PORT, uri.port)
+
               super
             end
           end
