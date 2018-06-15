@@ -15,7 +15,11 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:main) do |t|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis}/**/*_spec.rb'
+    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer}/**/*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:opentracer) do |t|
+    t.pattern = 'spec/ddtrace/opentracer/**/*_spec.rb'
   end
 
   RSpec::Core::RakeTask.new(:rails) do |t|
@@ -308,6 +312,7 @@ task :ci do
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
+    sh 'bundle exec rake spec:opentracer'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -362,6 +367,7 @@ task :ci do
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
+    sh 'bundle exec rake spec:opentracer'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -427,6 +433,7 @@ task :ci do
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
+    sh 'bundle exec rake spec:opentracer'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -491,6 +498,7 @@ task :ci do
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
+    sh 'bundle exec rake spec:opentracer'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
