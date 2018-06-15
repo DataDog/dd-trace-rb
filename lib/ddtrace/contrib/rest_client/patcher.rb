@@ -44,7 +44,7 @@ module Datadog
           end
 
           def add_pin(klass)
-            Pin.new(get_option(:service_name), app: 'rest_client', app_type: Ext::AppTypes::WEB).onto(klass)
+            Pin.new(get_option(:service_name), app: NAME, app_type: Ext::AppTypes::WEB).onto(klass)
           end
         end
       end

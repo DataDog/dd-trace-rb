@@ -8,7 +8,7 @@ RSpec.describe 'Faraday middleware' do
   let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
 
   let(:client) do
-      ::Faraday.new('http://example.com') do |builder|
+    ::Faraday.new('http://example.com') do |builder|
       builder.use(:ddtrace, middleware_options)
       builder.adapter(:test) do |stub|
         stub.get('/success') { |_| [200, {}, 'OK'] }

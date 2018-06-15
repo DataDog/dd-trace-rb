@@ -14,10 +14,22 @@ module Datadog
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
           def execute(&block)
-            datadog_trace_request { super(&block) }
+            datadog_trace_request do |span|
+              datadog_propagate!(span.context) if datadog_configuration[:distributed_tracing] && datadog_pin.tracer.enabled
+
+              super(&block)
+            end
           end
 
           protected
+
+          def datadog_propagate!(context)
+            processed_headers[Ext::DistributedTracing::HTTP_HEADER_TRACE_ID] = context.trace_id.to_s
+            processed_headers[Ext::DistributedTracing::HTTP_HEADER_PARENT_ID] = context.span_id.to_s
+            if context.sampling_priority
+              processed_headers[Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY] = context.sampling_priority.to_s
+            end
+          end
 
           def datadog_tag_request(span)
             span.resource = method.to_s.upcase
@@ -54,11 +66,15 @@ module Datadog
 
           def datadog_pin
             @datadog_pin ||= begin
-              service = Datadog.configuration[:rest_client][:service_name]
-              tracer = Datadog.configuration[:rest_client][:tracer]
+              service = datadog_configuration[:service_name]
+              tracer = datadog_configuration[:tracer]
 
               Datadog::Pin.new(service, app: Patcher::NAME, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
             end
+          end
+
+          def datadog_configuration
+            Datadog.configuration[:rest_client]
           end
         end
       end
