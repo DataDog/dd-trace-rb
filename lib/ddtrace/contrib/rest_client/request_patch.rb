@@ -20,9 +20,11 @@ module Datadog
               span.set_tag(Ext::NET::TARGET_HOST, uri.host)
               span.set_tag(Ext::NET::TARGET_PORT, uri.port)
 
-              super
+              datadog_tag_response_code(span) { super(&block) }
             end
           end
+
+          protected
 
           def datadog_pin
             @datadog_pin ||= begin
@@ -31,6 +33,17 @@ module Datadog
 
               Datadog::Pin.new(service, app: 'rest_client'.freeze, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
             end
+          end
+
+          def datadog_tag_response_code(span)
+            response = yield
+            span.set_tag(Ext::HTTP::STATUS_CODE, response.code)
+
+            response
+          rescue ::RestClient::ExceptionWithResponse => e
+            span.set_tag(Ext::HTTP::STATUS_CODE, e.http_code)
+
+            raise e
           end
         end
       end
