@@ -15,6 +15,8 @@ class ESQuantizeTest < Minitest::Test
     assert_equal('/my/thing/?/z?a=b123', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/z?a=b123'))
     assert_equal('/my/thing/?/abcdefg', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/abcdefg'))
     assert_equal('/my/thing/?/abcdefg/', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/abcdefg/'))
+    assert_equal('/my/thing/?/_termvector', Datadog::Contrib::Elasticsearch::Quantize
+                                                .format_url('/my/thing/1447990c-811a-4a83-b7e2-c3e8a4a6ff54/_termvector'))
   end
 
   def test_index
