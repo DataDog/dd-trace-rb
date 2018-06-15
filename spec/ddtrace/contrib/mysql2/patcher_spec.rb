@@ -64,7 +64,8 @@ RSpec.describe 'Mysql2::Client patcher' do
 
         expect(spans.count).to eq(1)
         expect(span.status).to eq(1)
-        expect(span.get_tag('error.msg')).to eq("Unknown column 'INVALID' in 'field list'")
+        expect(span.get_tag('error.msg'))
+          .to eq("Unknown column 'INVALID' in 'field list'")
       end
     end
   end
