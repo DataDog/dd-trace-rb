@@ -4,9 +4,11 @@ module Datadog
       # RestClient integration
       module Patcher
         include Base
+
+        NAME = 'rest_client'.freeze
         register_as :rest_client
 
-        option :service_name, default: 'rest_client'.freeze
+        option :service_name, default: NAME
         option :distributed_tracing, default: false
         option :tracer, default: Datadog.tracer
 
