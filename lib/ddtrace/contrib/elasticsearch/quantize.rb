@@ -14,7 +14,7 @@ module Datadog
 
         # Based on regexp from https://github.com/DataDog/dd-trace-java/blob/master/dd-trace-ot/src/main/java/datadog/opentracing/decorators/URLAsResourceName.java#L16
         # Matches any path segments with numbers in them.
-        CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP = %r{(?<=/)(?:[^/\d]*[\d]+[^?/]*)}
+        CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP = %r{(?<=/)(?:[^\?/\d]*[\d]+[^\?/]*)}
 
         module_function
 
