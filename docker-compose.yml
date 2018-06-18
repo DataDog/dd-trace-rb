@@ -15,6 +15,7 @@ services:
       - redis
     env_file: ./.env
     environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
       - TEST_DATADOG_INTEGRATION=1
       - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
@@ -28,6 +29,7 @@ services:
     volumes:
       - .:/app
       - bundle-1.9:/usr/local/bundle
+      - gemfiles-1.9:/app/gemfiles
   tracer-2.0:
     build:
       context: ./.circleci/images/primary
@@ -43,6 +45,7 @@ services:
       - redis
     env_file: ./.env
     environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
       - TEST_DATADOG_INTEGRATION=1
       - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
@@ -56,6 +59,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.0:/usr/local/bundle
+      - gemfiles-2.0:/app/gemfiles
   tracer-2.1:
     build:
       context: ./.circleci/images/primary
@@ -71,6 +75,7 @@ services:
       - redis
     env_file: ./.env
     environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
       - TEST_DATADOG_INTEGRATION=1
       - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
@@ -84,6 +89,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.1:/usr/local/bundle
+      - gemfiles-2.1:/app/gemfiles
   tracer-2.2:
     build:
       context: ./.circleci/images/primary
@@ -99,6 +105,7 @@ services:
       - redis
     env_file: ./.env
     environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
       - TEST_DATADOG_INTEGRATION=1
       - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
@@ -112,6 +119,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.2:/usr/local/bundle
+      - gemfiles-2.2:/app/gemfiles
   tracer-2.3:
     build:
       context: ./.circleci/images/primary
@@ -127,6 +135,7 @@ services:
       - redis
     env_file: ./.env
     environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
       - TEST_DATADOG_INTEGRATION=1
       - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
@@ -140,6 +149,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.3:/usr/local/bundle
+      - gemfiles-2.3:/app/gemfiles
   tracer-2.4:
     build:
       context: ./.circleci/images/primary
@@ -155,6 +165,7 @@ services:
       - redis
     env_file: ./.env
     environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
       - TEST_DATADOG_INTEGRATION=1
       - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
@@ -168,6 +179,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.4:/usr/local/bundle
+      - gemfiles-2.4:/app/gemfiles
   ddagent:
     image: datadog/docker-dd-agent
     environment:
@@ -235,3 +247,9 @@ volumes:
   bundle-2.2:
   bundle-2.3:
   bundle-2.4:
+  gemfiles-1.9:
+  gemfiles-2.0:
+  gemfiles-2.1:
+  gemfiles-2.2:
+  gemfiles-2.3:
+  gemfiles-2.4:

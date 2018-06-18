@@ -15,7 +15,7 @@ require 'support/faux_writer'
 # require 'support/spy_transport'
 require 'support/tracer_helpers'
 # require 'support/rails_active_record_helpers'
-# require 'support/configuration_helpers'
+require 'support/configuration_helpers'
 require 'support/synchronization_helpers'
 require 'support/log_helpers'
 require 'support/http_helpers'
@@ -26,7 +26,7 @@ WebMock.disable!
 RSpec.configure do |config|
   config.include TracerHelpers
   # config.include RailsActiveRecordHelpers
-  # config.include ConfigurationHelpers
+  config.include ConfigurationHelpers
   config.include SynchronizationHelpers
   config.include LogHelpers
 

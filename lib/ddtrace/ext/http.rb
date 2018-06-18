@@ -1,14 +1,44 @@
 module Datadog
   module Ext
     module HTTP
-      TYPE = 'http'.freeze
-      TEMPLATE = 'template'.freeze
-      URL = 'http.url'.freeze
       BASE_URL = 'http.base_url'.freeze
-      METHOD = 'http.method'.freeze
-      REQUEST_ID = 'http.request_id'.freeze
-      STATUS_CODE = 'http.status_code'.freeze
       ERROR_RANGE = 500...600
+      METHOD = 'http.method'.freeze
+      STATUS_CODE = 'http.status_code'.freeze
+      TEMPLATE = 'template'.freeze
+      TYPE = 'http'.freeze
+      URL = 'http.url'.freeze
+
+      # General header functionality
+      module Headers
+        module_function
+
+        def to_tag(name)
+          name.to_s.downcase.gsub(/[-\s]/, '_')
+        end
+      end
+
+      # Request headers
+      module RequestHeaders
+        PREFIX = 'http.request.headers'.freeze
+
+        module_function
+
+        def to_tag(name)
+          "#{PREFIX}.#{Headers.to_tag(name)}"
+        end
+      end
+
+      # Response headers
+      module ResponseHeaders
+        PREFIX = 'http.response.headers'.freeze
+
+        module_function
+
+        def to_tag(name)
+          "#{PREFIX}.#{Headers.to_tag(name)}"
+        end
+      end
     end
   end
 end

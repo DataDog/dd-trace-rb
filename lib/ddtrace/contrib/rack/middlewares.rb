@@ -1,6 +1,7 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/rack/request_queue'
 
 module Datadog
   module Contrib
@@ -19,9 +20,27 @@ module Datadog
           @app = app
         end
 
+        def compute_queue_time(env, tracer)
+          return unless Datadog.configuration[:rack][:request_queuing]
+
+          # parse the request queue time
+          request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
+          return if request_start.nil?
+
+          tracer.trace(
+            'http_server.queue',
+            start_time: request_start,
+            service: Datadog.configuration[:rack][:web_service_name]
+          )
+        end
+
         def call(env)
           # retrieve integration settings
           tracer = Datadog.configuration[:rack][:tracer]
+
+          # [experimental] create a root Span to keep track of frontend web servers
+          # (i.e. Apache, nginx) if the header is properly set
+          frontend_span = compute_queue_time(env, tracer)
 
           trace_options = {
             service: Datadog.configuration[:rack][:service_name],
@@ -77,6 +96,7 @@ module Datadog
           # ensure the request_span is finished and the context reset;
           # this assumes that the Rack middleware creates a root span
           request_span.finish
+          frontend_span.finish unless frontend_span.nil?
 
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding
@@ -105,7 +125,8 @@ module Datadog
           # So when its not available, we want the original, unmutated PATH_INFO, which
           # is just the relative path without query strings.
           url = env['REQUEST_URI'] || original_env['PATH_INFO']
-          request_id = get_request_id(headers, env)
+          request_headers = parse_request_headers(env)
+          response_headers = parse_response_headers(headers || {})
 
           request_span.resource ||= resource_name_for(env, status)
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
@@ -130,8 +151,15 @@ module Datadog
           if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
             request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
           end
-          if request_span.get_tag(Datadog::Ext::HTTP::REQUEST_ID).nil? && request_id
-            request_span.set_tag(Datadog::Ext::HTTP::REQUEST_ID, request_id)
+
+          # Request headers
+          request_headers.each do |name, value|
+            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
+          end
+
+          # Response headers
+          response_headers.each do |name, value|
+            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
           end
 
           # detect if the status code is a 5xx and flag the request span as an error
@@ -139,14 +167,6 @@ module Datadog
           if status.to_s.start_with?('5') && request_span.status.zero?
             request_span.status = 1
           end
-        end
-
-        # If Rails is present, it will sanitize & use the Request ID header,
-        # or generate a UUID if no request ID header is present, then set that as headers['X-Request-Id'].
-        # Othewise use whatever Rack variables are present (they should all be the same.)
-        def get_request_id(headers, env)
-          headers ||= {}
-          headers['X-Request-Id'] || headers['X-Request-ID'] || env['HTTP_X_REQUEST_ID']
         end
 
         private
@@ -175,6 +195,40 @@ module Datadog
               super
             end
           end
+        end
+
+        def parse_request_headers(env)
+          {}.tap do |result|
+            whitelist = Datadog.configuration[:rack][:headers][:request] || []
+            whitelist.each do |header|
+              rack_header = header_to_rack_header(header)
+              if env.key?(rack_header)
+                result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
+              end
+            end
+          end
+        end
+
+        def parse_response_headers(headers)
+          {}.tap do |result|
+            whitelist = Datadog.configuration[:rack][:headers][:response] || []
+            whitelist.each do |header|
+              if headers.key?(header)
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
+              else
+                # Try a case-insensitive lookup
+                uppercased_header = header.to_s.upcase
+                matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
+                if matching_header
+                  result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
+                end
+              end
+            end
+          end
+        end
+
+        def header_to_rack_header(name)
+          "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
         end
       end
     end
