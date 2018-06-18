@@ -234,6 +234,17 @@ class TracingControllerTest < ActionController::TestCase
     end
   end
 
+  test 'custom tags can be set' do
+    get :custom_tag
+    assert_response :success
+    spans = @tracer.writer.spans
+    assert_equal(spans.length, 1)
+
+    spans.first.tap do |span|
+      assert_equal('custom-tag-value', span.get_tag('custom-tag'))
+    end
+  end
+
   test 'combining rails and custom tracing is supported' do
     @tracer.trace('a-parent') do
       get :index
