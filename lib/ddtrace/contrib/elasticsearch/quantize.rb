@@ -4,6 +4,7 @@ module Datadog
       # Quantize contains ES-specific resource quantization tools.
       module Quantize
         PLACEHOLDER = '?'.freeze
+        ID_PLACEHOLDER = '\1?'.freeze
         EXCLUDE_KEYS = [].freeze
         SHOW_KEYS = [:_index, :_type, :_id].freeze
         DEFAULT_OPTIONS = {
@@ -12,18 +13,11 @@ module Datadog
           placeholder: PLACEHOLDER
         }.freeze
 
-        ID_REGEXP = %r{\/([0-9]+)([\/\?]|$)}
-        ID_PLACEHOLDER = '/?\2'.freeze
-
-        INDEX_REGEXP = /[0-9]{2,}/
-        INDEX_PLACEHOLDER = '?'.freeze
-
         module_function
 
-        # Very basic quantization, complex processing should be done in the agent
         def format_url(url)
-          quantized_url = url.gsub(ID_REGEXP, ID_PLACEHOLDER)
-          quantized_url.gsub(INDEX_REGEXP, INDEX_PLACEHOLDER)
+          sanitize_fragment_with_id(url)
+            .gsub(/(?:[\d]+)/, PLACEHOLDER)
         end
 
         def format_body(body, options = {})
@@ -72,6 +66,13 @@ module Datadog
             # If it can't parse/dump, don't raise an error.
             fail_value
           end
+        end
+
+        # Sanitizes URL fragment by changing it to ? whenever a number is detected
+        # This is meant as simple heuristic that attempts to detect if particular fragment
+        # represents document Id. This is meant to reduce the cardinality in most frequent cases.
+        def sanitize_fragment_with_id(url)
+          url.gsub(%r{^(/?[^/]*/[^/]*/)(?:[^\?/\d]*[\d]+[^\?/]*)}, ID_PLACEHOLDER)
         end
       end
     end

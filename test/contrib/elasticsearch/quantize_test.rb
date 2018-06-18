@@ -9,7 +9,17 @@ class ESQuantizeTest < Minitest::Test
     assert_equal('/my/thing/?/', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1/'))
     assert_equal('/my/thing/?/is/cool', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1/is/cool'))
     assert_equal('/my/thing/??is=cool', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1?is=cool'))
-    assert_equal('/my/thing/1two3/z', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/z'))
+    assert_equal('/my/thing/?/z', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/z'))
+    assert_equal('/my/thing/?/z/', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/z/'))
+    assert_equal('/my/thing/?/z?a=b', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/z?a=b'))
+    assert_equal('/my/thing/?/z?a=b?', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/z?a=b123'))
+    assert_equal('/my/thing/?/abc', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/abc'))
+    assert_equal('/my/thing/?/abc/', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing/1two3/abc/'))
+    assert_equal('/my/thing?/?/abc/', Datadog::Contrib::Elasticsearch::Quantize.format_url('/my/thing231/1two3/abc/'))
+    assert_equal('/my/thing/?/_termvector', Datadog::Contrib::Elasticsearch::Quantize
+                                                .format_url('/my/thing/1447990c-811a-4a83-b7e2-c3e8a4a6ff54/_termvector'))
+    assert_equal('app_prod/user/?/_termvector',
+                 Datadog::Contrib::Elasticsearch::Quantize.format_url('app_prod/user/1fff2c9dc2f3e/_termvector'))
   end
 
   def test_index
