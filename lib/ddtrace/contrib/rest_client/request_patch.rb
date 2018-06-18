@@ -1,4 +1,5 @@
 require 'ddtrace/ext/net'
+require 'ddtrace/ext/distributed'
 
 module Datadog
   module Contrib
