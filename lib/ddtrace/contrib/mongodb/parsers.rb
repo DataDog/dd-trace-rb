@@ -4,7 +4,7 @@ module Datadog
     module MongoDB
       EXCLUDE_KEYS = [:_id].freeze
       SHOW_KEYS = [].freeze
-      DEFAULT_OPTIONS = { truncate_arrays: true, exclude: EXCLUDE_KEYS, show: SHOW_KEYS }.freeze
+      DEFAULT_OPTIONS = { exclude: EXCLUDE_KEYS, show: SHOW_KEYS }.freeze
 
       module_function
 

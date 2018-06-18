@@ -72,25 +72,13 @@ RSpec.describe Datadog::Quantization::Hash do
     context 'given a Array with nested arrays' do
       let(:hash) { [%w[foo bar baz], %w[foo], %w[bar], %w[baz]] }
 
-      it { is_expected.to eq([['?'], ['?'], ['?'], ['?']]) }
-
-      context 'with truncate_arrays: true' do
-        let(:options) { { truncate_arrays: true } }
-
-        it { is_expected.to eq([['?'], '?']) }
-      end
+      it { is_expected.to eq([['?'], '?']) }
     end
 
     context 'given a Array with nested hashes' do
-      let(:hash) { [{ foo: 1 }, { bar: 1 }] }
+      let(:hash) { [{ foo: { bar: 1 } }, { foo: { bar: 2 } }] }
 
-      it { is_expected.to eq([{ foo: '?' }, { bar: '?' }]) }
-
-      context 'with truncate_arrays: true' do
-        let(:options) { { truncate_arrays: true } }
-
-        it { is_expected.to eq([{ foo: '?' }, '?']) }
-      end
+      it { is_expected.to eq([{ foo: { bar: '?' } }, '?']) }
     end
   end
 end

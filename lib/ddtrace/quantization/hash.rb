@@ -8,8 +8,7 @@ module Datadog
       DEFAULT_OPTIONS = {
         exclude: EXCLUDE_KEYS,
         show: SHOW_KEYS,
-        placeholder: PLACEHOLDER,
-        truncate_arrays: false
+        placeholder: PLACEHOLDER
       }.freeze
 
       module_function
@@ -61,12 +60,8 @@ module Datadog
 
       def format_array(value, options)
         if value.any? { |v| v.class <= ::Hash || v.class <= Array }
-          if options[:truncate_arrays]
-            first_entry = format_value(value.first, options)
-            value.size > 1 ? [first_entry, options[:placeholder]] : [first_entry]
-          else
-            value.collect { |i| format_value(i, options) }
-          end
+          first_entry = format_value(value.first, options)
+          value.size > 1 ? [first_entry, options[:placeholder]] : [first_entry]
           # Otherwise short-circuit and return single placeholder
         else
           [options[:placeholder]]
@@ -92,11 +87,6 @@ module Datadog
                               end
 
           options[:placeholder] = additional[:placeholder] || original[:placeholder]
-          options[:truncate_arrays] = if additional.key?(:truncate_arrays)
-                                        additional[:truncate_arrays]
-                                      else
-                                        original[:truncate_arrays]
-                                      end
         end
       end
 
