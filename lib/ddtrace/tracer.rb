@@ -23,6 +23,8 @@ module Datadog
     attr_accessor :enabled, :writer
     attr_writer :default_service
 
+    ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
+
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
     # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
     def self.log
@@ -204,12 +206,13 @@ module Datadog
     # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
       start_time = options.fetch(:start_time, Time.now.utc)
+
       tags = options.fetch(:tags, {})
 
       opts = options.select do |k, _v|
         # Filter options, we want no side effects with unexpected args.
         # Plus, this documents the code (Ruby 2 named args would be better but we're Ruby 1.9 compatible)
-        [:service, :resource, :span_type].include?(k)
+        ALLOWED_SPAN_OPTIONS.include?(k)
       end
 
       ctx, parent = guess_context_and_parent(options[:child_of])

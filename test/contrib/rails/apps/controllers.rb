@@ -94,6 +94,13 @@ class TracingController < ActionController::Base
     tracer.active_span.resource = 'custom-resource'
     head :ok
   end
+
+  def custom_tag
+    tracer = Datadog.configuration[:rails][:tracer]
+    tracer.active_span.set_tag('custom-tag', 'custom-tag-value')
+
+    head :ok
+  end
 end
 
 class ErrorsController < ActionController::Base
@@ -116,6 +123,7 @@ routes = {
   '/missing_template' => 'tracing#missing_template',
   '/missing_partial' => 'tracing#missing_partial',
   '/custom_resource' => 'tracing#custom_resource',
+  '/custom_tag' => 'tracing#custom_tag',
   '/internal_server_error' => 'errors#internal_server_error'
 }
 
