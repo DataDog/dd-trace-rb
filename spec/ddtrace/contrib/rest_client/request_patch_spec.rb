@@ -133,6 +133,38 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
         expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to have_been_made
       end
+
+      shared_examples_for 'propagating distributed headers' do
+        it 'propagates the headers' do
+          request
+
+          span = tracer.writer.spans.first
+
+          distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.span_id.to_s,
+                                          'X-Datadog-Trace-Id' => span.trace_id.to_s }
+
+          expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to have_been_made
+        end
+      end
+
+      it_behaves_like 'propagating distributed headers'
+
+      context 'with sampling priority' do
+        let(:sampling_priority) { 0.2 }
+
+        before do
+          tracer.provider.context.sampling_priority = sampling_priority
+        end
+
+        it_behaves_like 'propagating distributed headers'
+
+        it 'propagates sampling priority' do
+          RestClient.get(url)
+
+          expect(a_request(:get, url).with(headers: { 'X-Datadog-Sampling-Priority' => sampling_priority.to_s }))
+            .to have_been_made
+        end
+      end
     end
   end
 end
