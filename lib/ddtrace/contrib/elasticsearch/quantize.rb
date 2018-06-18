@@ -4,6 +4,7 @@ module Datadog
       # Quantize contains ES-specific resource quantization tools.
       module Quantize
         PLACEHOLDER = '?'.freeze
+        ID_PLACEHOLDER = '\1?'.freeze
         EXCLUDE_KEYS = [].freeze
         SHOW_KEYS = [:_index, :_type, :_id].freeze
         DEFAULT_OPTIONS = {
@@ -12,15 +13,11 @@ module Datadog
           placeholder: PLACEHOLDER
         }.freeze
 
-        # Based on regexp from https://github.com/DataDog/dd-trace-java/blob/master/dd-trace-ot/src/main/java/datadog/opentracing/decorators/URLAsResourceName.java#L16
-        # Matches any path segments with numbers in them.
-        CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP = %r{(?<=/)(?:[^\?/\d]*[\d]+[^\?/]*)}
-
         module_function
 
         def format_url(url)
-          sanitize_index_in_url(url)
-            .gsub(CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP, PLACEHOLDER)
+          sanitize_fragment_with_id(url)
+            .gsub(/(?:[\d]+)/, PLACEHOLDER)
         end
 
         def format_body(body, options = {})
@@ -71,14 +68,11 @@ module Datadog
           end
         end
 
-        def sanitize_index_in_url(url)
-          index_end = url.index('/'.freeze, 1)
-          return url unless index_end
-
-          index_part = url.slice(0, index_end)
-          index_part.gsub!(/\d+/, PLACEHOLDER)
-
-          index_part << url.slice(index_end..-1)
+        # Sanitizes URL fragment by changing it to ? whenever a number is detected
+        # This is meant as simple heuristic that attempts to detect if particular fragment
+        # represents document Id. This is meant to reduce the cardinality in most frequent cases.
+        def sanitize_fragment_with_id(url)
+          url.gsub(%r{^(/?[^/]*/[^/]*/)(?:[^\?/\d]*[\d]+[^\?/]*)}, ID_PLACEHOLDER)
         end
       end
     end
