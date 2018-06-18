@@ -9,6 +9,43 @@ if Datadog::OpenTracer.supported?
 
     subject(:tracer) { described_class.new }
 
+    ### Datadog::OpenTracing::Tracer behavior ###
+
+    describe '#initialize' do
+      context 'when given options' do
+        subject(:tracer) { described_class.new(options) }
+        let(:options) { double('options') }
+        let(:datadog_tracer) { double('datadog_tracer') }
+
+        before(:each) do
+          expect(Datadog::Tracer).to receive(:new)
+            .with(options)
+            .and_return(datadog_tracer)
+        end
+
+        it { expect(tracer.datadog_tracer).to be(datadog_tracer) }
+      end
+    end
+
+    describe '#datadog_tracer' do
+      subject(:datadog_tracer) { tracer.datadog_tracer }
+      it { is_expected.to be_a_kind_of(Datadog::Tracer) }
+    end
+
+    describe '#configure' do
+      subject(:configure) { tracer.configure(options) }
+      let(:options) { double('options') }
+
+      before(:each) do
+        expect(tracer.datadog_tracer).to receive(:configure)
+          .with(options)
+      end
+
+      it { expect { configure }.to_not raise_error }
+    end
+
+    ### Implemented OpenTracing::Tracer behavior ###
+
     describe '#scope_manager' do
       subject(:scope_manager) { tracer.scope_manager }
       it { is_expected.to be(OpenTracing::ScopeManager::NOOP_INSTANCE) }
