@@ -410,6 +410,9 @@ jobs:
       - *step_run_all_tests
   publish-dev:
      <<: *job_defaults
+     container:
+       docker:
+         - *container-2_4
      steps:
       - run:
         name: Release
@@ -424,7 +427,13 @@ workflows:
   version: 2
   publish-def-artifact:
     jobs:
-      - publish
+      - checkout-2.4
+      - build-2.4:
+        requires:
+          - checkout-2.4
+      - publish-dev:
+        requires:
+          - build-2.4
 #      - publish:
 #          filters:
 #            tags:
