@@ -410,9 +410,8 @@ jobs:
       - *step_run_all_tests
   publish-dev:
      <<: *job_defaults
-     container:
-       docker:
-         - *container-2_4
+     docker:
+       - *container-2_4
      steps:
       - run:
         name: Release
@@ -421,7 +420,6 @@ jobs:
           S3_DIR=trace-dev bundle exec rake release:gem
       - store_artifacts:
         path: ./rubygems/
-
 
 workflows:
   version: 2
