@@ -408,49 +408,82 @@ jobs:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
       - *step_run_all_tests
+  publish-dev:
+    <<: *job_defaults
+    docker:
+      - *container-2_4
+    steps:
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
+      - run:
+          name: Release
+          command: |
+            ls -la
+            pwd
+            S3_DIR=trace-dev bundle exec rake release:docs
+            S3_DIR=trace-dev bundle exec rake release:gem
+      - store_artifacts:
+          path: ./rubygems/
+
 workflows:
   version: 2
-  build-and-test:
+  publish-def-artifact:
     jobs:
-      - checkout-1.9
-      - build-1.9:
-          requires:
-            - checkout-1.9
-      - test-1.9:
-          requires:
-            - build-1.9
-      - checkout-2.0
-      - build-2.0:
-          requires:
-            - checkout-2.0
-      - test-2.0:
-          requires:
-            - build-2.0
-      - checkout-2.1
-      - build-2.1:
-          requires:
-            - checkout-2.1
-      - test-2.1:
-          requires:
-            - build-2.1
-      - checkout-2.2
-      - build-2.2:
-          requires:
-            - checkout-2.2
-      - test-2.2:
-          requires:
-            - build-2.2
-      - checkout-2.3
-      - build-2.3:
-          requires:
-            - checkout-2.3
-      - test-2.3:
-          requires:
-            - build-2.3
       - checkout-2.4
       - build-2.4:
           requires:
             - checkout-2.4
-      - test-2.4:
+      - publish-dev:
           requires:
             - build-2.4
+#          filters:
+#            tags:
+#              only: /wip[0-9]+(\.[0-9]+)*/
+#  build-and-test:
+#    jobs:
+#      - checkout-1.9
+#      - build-1.9:
+#          requires:
+#            - checkout-1.9
+#      - test-1.9:
+#          requires:
+#            - build-1.9
+#      - checkout-2.0
+#      - build-2.0:
+#          requires:
+#            - checkout-2.0
+#      - test-2.0:
+#          requires:
+#            - build-2.0
+#      - checkout-2.1
+#      - build-2.1:
+#          requires:
+#            - checkout-2.1
+#      - test-2.1:
+#          requires:
+#            - build-2.1
+#      - checkout-2.2
+#      - build-2.2:
+#          requires:
+#            - checkout-2.2
+#      - test-2.2:
+#          requires:
+#            - build-2.2
+#      - checkout-2.3
+#      - build-2.3:
+#          requires:
+#            - checkout-2.3
+#      - test-2.3:
+#          requires:
+#            - build-2.3
+#      - checkout-2.4
+#      - build-2.4:
+#          requires:
+#            - checkout-2.4
+#      - test-2.4:
+#          requires:
+#            - build-2.4
