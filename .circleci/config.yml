@@ -413,6 +413,12 @@ jobs:
     docker:
       - *container-2_4
     steps:
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
       - run:
           name: Release
           command: |
