@@ -33,9 +33,9 @@ module Datadog
           return hash_obj if options[:show] == :all
 
           hash_obj.each_with_object({}) do |(key, value), quantized|
-            if options[:show].include?(key.to_sym)
+            if options[:show].any?(&indifferent_equals(key))
               quantized[key] = value
-            elsif !options[:exclude].include?(key.to_sym)
+            elsif options[:exclude].none?(&indifferent_equals(key))
               quantized[key] = format_value(value, options)
             end
           end
@@ -52,14 +52,19 @@ module Datadog
           format_hash(value, options)
         when Array
           # If any are objects, format them.
-          if value.any? { |v| v.class <= ::Hash || v.class <= Array }
-            value.collect { |i| format_value(i, options) }
-          # Otherwise short-circuit and return single placeholder
-          else
-            [options[:placeholder]]
-          end
+          format_array(value, options)
         else
           options[:placeholder]
+        end
+      end
+
+      def format_array(value, options)
+        if value.any? { |v| v.class <= ::Hash || v.class <= Array }
+          first_entry = format_value(value.first, options)
+          value.size > 1 ? [first_entry, options[:placeholder]] : [first_entry]
+          # Otherwise short-circuit and return single placeholder
+        else
+          [options[:placeholder]]
         end
       end
 
@@ -83,6 +88,15 @@ module Datadog
 
           options[:placeholder] = additional[:placeholder] || original[:placeholder]
         end
+      end
+
+      def indifferent_equals(value)
+        value = convert_value(value)
+        ->(compared_value) { value == convert_value(compared_value) }
+      end
+
+      def convert_value(value)
+        value.is_a?(Symbol) ? value.to_s : value
       end
     end
   end
