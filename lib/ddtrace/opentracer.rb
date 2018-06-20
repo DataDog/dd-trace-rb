@@ -4,7 +4,7 @@ module Datadog
     module_function
 
     def supported?
-      Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0')
+      Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1')
     end
 
     def load_opentracer
