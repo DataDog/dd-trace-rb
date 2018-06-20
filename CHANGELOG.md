@@ -4,6 +4,59 @@
 
 ## [Unreleased (beta)]
 
+## [0.13.0] - 2018-06-20
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.13.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...v0.13.0
+
+### Added
+
+- Sequel integration (supporting Ruby 2.0+) (#171, #367) (@randy-girard, @twe4ked, @palin)
+- gRPC integration (supporting Ruby 2.2+) (#379, #403) (@Jared-Prime)
+- ActiveModelSerializers integration (#340) (@sullimander)
+- Excon integration (#211, #426) (@walterking, @jeffjo)
+- Rake integration (supporting Ruby 2.0+, Rake 12.0+) (#409)
+- Request queuing tracing to Rack (experimental) (#272)
+- ActiveSupport::Notifications::Event helper for event tracing (#400)
+- Request and response header tags to Rack (#389)
+- Request and response header tags to Sinatra (#427, #375)
+- MySQL2 integration (#453) (@jamiehodge)
+- Sidekiq job delay tag (#443, #418) (@gottfrois)
+
+### Fixed
+
+- Elasticsearch quantization of ids (#458)
+- MongoDB to allow quantization of collection name (#463)
+
+### Refactored
+
+- Hash quantization into core library (#410)
+- MongoDB integration to use Hash quantization library (#463)
+
+### Changed 
+
+- Hash quantization truncates arrays with nested objects (#463) 
+
+## [0.13.0.beta1] - 2018-05-09
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.13.0.beta1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...v0.13.0.beta1
+
+### Added
+- Sequel integration (supporting Ruby 2.0+) (#171, #367) (@randy-girard, @twe4ked, @palin)
+- gRPC integration (supporting Ruby 2.2+) (#379, #403) (@Jared-Prime)
+- ActiveModelSerializers integration (#340) (@sullimander)
+- Excon integration (#211) (@walterking)
+- Rake integration (supporting Ruby 2.0+, Rake 12.0+) (#409)
+- Request queuing tracing to Rack (experimental) (#272)
+- ActiveSupport::Notifications::Event helper for event tracing (#400)
+- Request and response header tags to Rack (#389)
+
+### Refactored
+- Hash quantization into core library (#410)
+
 ## [0.12.1] - 2018-06-12
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.12.1
@@ -307,8 +360,10 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...0.13-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...0.14-dev
+[0.13.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...v0.13.0
+[0.13.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...v0.13.0.beta1
 [0.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.4...v0.12.0
 [0.12.0.rc1]: https://github.com/DataDog/dd-trace-rb/compare/v0.11.4...v0.12.0.rc1
