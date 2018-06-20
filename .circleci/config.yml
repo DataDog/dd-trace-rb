@@ -416,6 +416,8 @@ jobs:
       - run:
           name: Release
           command: |
+            ls -la
+            pwd
             S3_DIR=trace-dev bundle exec rake release:docs
             S3_DIR=trace-dev bundle exec rake release:gem
       - store_artifacts:
@@ -432,10 +434,9 @@ workflows:
       - publish-dev:
           requires:
             - build-2.4
-      - publish:
-          filters:
-            tags:
-              only: /wip[0-9]+(\.[0-9]+)*/
+#          filters:
+#            tags:
+#              only: /wip[0-9]+(\.[0-9]+)*/
 #  build-and-test:
 #    jobs:
 #      - checkout-1.9
