@@ -409,17 +409,17 @@ jobs:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
       - *step_run_all_tests
   publish-dev:
-     <<: *job_defaults
-     docker:
-       - *container-2_4
-     steps:
+    <<: *job_defaults
+    docker:
+      - *container-2_4
+    steps:
       - run:
-        name: Release
-        command: |
-          S3_DIR=trace-dev bundle exec rake release:docs
-          S3_DIR=trace-dev bundle exec rake release:gem
+          name: Release
+          command: |
+            S3_DIR=trace-dev bundle exec rake release:docs
+            S3_DIR=trace-dev bundle exec rake release:gem
       - store_artifacts:
-        path: ./rubygems/
+          path: ./rubygems/
 
 workflows:
   version: 2
@@ -427,15 +427,15 @@ workflows:
     jobs:
       - checkout-2.4
       - build-2.4:
-        requires:
-          - checkout-2.4
+          requires:
+            - checkout-2.4
       - publish-dev:
-        requires:
-          - build-2.4
-#      - publish:
-#          filters:
-#            tags:
-#              only: /wip[0-9]+(\.[0-9]+)*/
+          requires:
+            - build-2.4
+      - publish:
+          filters:
+            tags:
+              only: /wip[0-9]+(\.[0-9]+)*/
 #  build-and-test:
 #    jobs:
 #      - checkout-1.9
