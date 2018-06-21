@@ -4,7 +4,7 @@ module Datadog
     class SpanContext < ::OpenTracing::SpanContext
       def initialize(baggage: {})
         super
-        @baggage = baggage
+        @baggage = baggage.freeze
       end
     end
   end
