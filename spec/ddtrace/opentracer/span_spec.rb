@@ -36,14 +36,16 @@ if Datadog::OpenTracer.supported?
       subject(:result) { span.set_baggage_item(key, value) }
       let(:key) { 'account_id' }
       let(:value) { '1234' }
-      let(:baggage) { instance_double(Hash) }
+      let(:new_span_context) { instance_double(Datadog::OpenTracer::SpanContext) }
 
-      before(:each) do
-        allow(span_context).to receive(:baggage).and_return(baggage)
-        expect(baggage).to receive(:[]=).with(key, value)
+      it 'creates a new SpanContext with the baggage item' do
+        expect(Datadog::OpenTracer::SpanContextFactory).to receive(:build)
+          .with(span_context: span_context, baggage: hash_including(key => value))
+          .and_return(new_span_context)
+
+        is_expected.to be(span)
+        expect(span.context).to be(new_span_context)
       end
-
-      it { is_expected.to be(span) }
     end
 
     describe '#get_baggage_item' do

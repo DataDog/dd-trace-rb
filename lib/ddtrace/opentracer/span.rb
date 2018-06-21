@@ -36,7 +36,14 @@ module Datadog
       # @param key [String] the key of the baggage item
       # @param value [String] the value of the baggage item
       def set_baggage_item(key, value)
-        tap { context.baggage[key] = value }
+        tap do
+          # SpanContext is immutable, so to make changes
+          # build a new span context.
+          @span_context = SpanContextFactory.build(
+            span_context: context,
+            baggage: { key => value }
+          )
+        end
       end
 
       # Get a baggage item
