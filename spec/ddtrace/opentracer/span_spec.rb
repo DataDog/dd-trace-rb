@@ -39,7 +39,7 @@ if Datadog::OpenTracer.supported?
       let(:new_span_context) { instance_double(Datadog::OpenTracer::SpanContext) }
 
       it 'creates a new SpanContext with the baggage item' do
-        expect(Datadog::OpenTracer::SpanContextFactory).to receive(:build)
+        expect(Datadog::OpenTracer::SpanContextFactory).to receive(:clone)
           .with(span_context: span_context, baggage: hash_including(key => value))
           .and_return(new_span_context)
 

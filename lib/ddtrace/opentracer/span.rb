@@ -39,7 +39,7 @@ module Datadog
         tap do
           # SpanContext is immutable, so to make changes
           # build a new span context.
-          @span_context = SpanContextFactory.build(
+          @span_context = SpanContextFactory.clone(
             span_context: context,
             baggage: { key => value }
           )

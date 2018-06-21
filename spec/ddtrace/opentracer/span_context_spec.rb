@@ -7,23 +7,49 @@ if Datadog::OpenTracer.supported?
   RSpec.describe Datadog::OpenTracer::SpanContext do
     include_context 'OpenTracing helpers'
 
-    subject(:span_context) { described_class.new }
-
-    it { is_expected.to have_attributes(baggage: {}) }
-
     describe '#initialize' do
-      context 'given baggage' do
-        subject(:span_context) { described_class.new(baggage: original_baggage) }
-        let(:original_baggage) { { account_id: '1234' } }
+      context 'given span_id, trace_id, parent_id' do
+        subject(:span_context) do
+          described_class.new(
+            span_id: span_id,
+            trace_id: trace_id,
+            parent_id: parent_id
+          )
+        end
 
-        it { is_expected.to be_a_kind_of(described_class) }
+        let(:span_id) { double('span_id') }
+        let(:trace_id) { double('trace_id') }
+        let(:parent_id) { double('parent_id') }
 
-        describe 'builds a SpanContext where' do
-          describe '#baggage' do
-            subject(:baggage) { span_context.baggage }
-            it { is_expected.to be(original_baggage) }
-            it 'is immutable' do
-              expect { baggage[1] = 2 }.to raise_error(RuntimeError)
+        it do
+          is_expected.to have_attributes(
+            span_id: span_id,
+            trace_id: trace_id,
+            parent_id: parent_id,
+            baggage: {}
+          )
+        end
+
+        context 'and baggage' do
+          subject(:span_context) do
+            described_class.new(
+              span_id: span_id,
+              trace_id: trace_id,
+              parent_id: parent_id,
+              baggage: original_baggage
+            )
+          end
+          let(:original_baggage) { { account_id: '1234' } }
+
+          it { is_expected.to be_a_kind_of(described_class) }
+
+          describe 'builds a SpanContext where' do
+            describe '#baggage' do
+              subject(:baggage) { span_context.baggage }
+              it { is_expected.to be(original_baggage) }
+              it 'is immutable' do
+                expect { baggage[1] = 2 }.to raise_error(RuntimeError)
+              end
             end
           end
         end
