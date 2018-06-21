@@ -441,8 +441,13 @@ jobs:
       - *container-2_4
     steps:
       - checkout
+      - run:
+          command: |
+            apt-get -y -qq update
+            apt-get -y -qq install awscli
       - *step_bundle_install
       - *step_release_docs
+
 workflows:
   version: 2
   build-and-test:
