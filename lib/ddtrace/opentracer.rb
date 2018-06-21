@@ -15,6 +15,7 @@ module Datadog
       require 'ddtrace/opentracer/tracer'
       require 'ddtrace/opentracer/span'
       require 'ddtrace/opentracer/span_context'
+      require 'ddtrace/opentracer/span_context_factory'
       require 'ddtrace/opentracer/scope'
       require 'ddtrace/opentracer/scope_manager'
       require 'ddtrace/opentracer/global_tracer'
