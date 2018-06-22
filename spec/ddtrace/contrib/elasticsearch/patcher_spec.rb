@@ -27,6 +27,29 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       expect { request }.to change { tracer.writer.spans.first }.to Datadog::Span
     end
 
+    context 'inside a span' do
+      subject(:request_inside_a_span) do
+        tracer.trace('publish') do |span|
+          span.service = 'webapp'
+          span.resource = '/status'
+          request
+        end
+      end
+
+      it 'creates a child request span' do
+        expect { request_inside_a_span }.to change { tracer.writer.spans.length }.to 2
+      end
+
+      it 'sets request span parent id and trace id' do
+        request_inside_a_span
+
+        child, parent = tracer.writer.spans
+
+        expect(child.parent_id).to eq(parent.span_id)
+        expect(child.trace_id).to eq(parent.trace_id)
+      end
+    end
+
     describe 'health request span' do
       before { request }
 
