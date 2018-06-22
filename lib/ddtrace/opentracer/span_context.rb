@@ -3,15 +3,10 @@ module Datadog
     # OpenTracing adapter for SpanContext
     class SpanContext < ::OpenTracing::SpanContext
       attr_reader \
-        :span_id,
-        :trace_id,
-        :parent_id
+        :datadog_context
 
-      def initialize(span_id:, trace_id:, parent_id:, baggage: {})
-        super(baggage: baggage)
-        @span_id = span_id
-        @trace_id = trace_id
-        @parent_id = parent_id
+      def initialize(datadog_context:, baggage: {})
+        @datadog_context = datadog_context
         @baggage = baggage.freeze
       end
     end

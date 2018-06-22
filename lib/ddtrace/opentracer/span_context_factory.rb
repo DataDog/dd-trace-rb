@@ -4,20 +4,16 @@ module Datadog
     module SpanContextFactory
       module_function
 
-      def build(span_id:, trace_id:, parent_id:, baggage: {})
+      def build(datadog_context:, baggage: {})
         SpanContext.new(
-          span_id: span_id,
-          trace_id: trace_id,
-          parent_id: parent_id,
+          datadog_context: datadog_context,
           baggage: baggage.dup
         )
       end
 
-      def clone(span_context:, span_id: nil, trace_id: nil, parent_id: nil, baggage: {})
+      def clone(span_context:, baggage: {})
         SpanContext.new(
-          span_id: span_id || span_context.span_id,
-          trace_id: trace_id || span_context.trace_id,
-          parent_id: parent_id || span_context.parent_id,
+          datadog_context: span_context.datadog_context,
           # Merge baggage from previous SpanContext
           baggage: span_context.baggage.merge(baggage)
         )

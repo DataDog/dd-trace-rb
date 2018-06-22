@@ -8,24 +8,13 @@ if Datadog::OpenTracer.supported?
     include_context 'OpenTracing helpers'
 
     describe '#initialize' do
-      context 'given span_id, trace_id, parent_id' do
-        subject(:span_context) do
-          described_class.new(
-            span_id: span_id,
-            trace_id: trace_id,
-            parent_id: parent_id
-          )
-        end
-
-        let(:span_id) { double('span_id') }
-        let(:trace_id) { double('trace_id') }
-        let(:parent_id) { double('parent_id') }
+      context 'given a Datadog::Context' do
+        subject(:span_context) { described_class.new(datadog_context: datadog_context) }
+        let(:datadog_context) { instance_double(Datadog::Context) }
 
         it do
           is_expected.to have_attributes(
-            span_id: span_id,
-            trace_id: trace_id,
-            parent_id: parent_id,
+            datadog_context: datadog_context,
             baggage: {}
           )
         end
@@ -33,9 +22,7 @@ if Datadog::OpenTracer.supported?
         context 'and baggage' do
           subject(:span_context) do
             described_class.new(
-              span_id: span_id,
-              trace_id: trace_id,
-              parent_id: parent_id,
+              datadog_context: datadog_context,
               baggage: original_baggage
             )
           end

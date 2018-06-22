@@ -9,25 +9,18 @@ if Datadog::OpenTracer.supported?
 
     describe 'class methods' do
       describe '#build' do
-        context 'given span_id, trace_id, parent_id' do
+        context 'given Datadog::Context' do
           subject(:span_context) do
             described_class.build(
-              span_id: span_id,
-              trace_id: trace_id,
-              parent_id: parent_id
+              datadog_context: datadog_context
             )
           end
-
-          let(:span_id) { double('span_id') }
-          let(:trace_id) { double('trace_id') }
-          let(:parent_id) { double('parent_id') }
+          let(:datadog_context) { instance_double(Datadog::Context) }
 
           it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }
 
           describe 'builds a SpanContext where' do
-            it { expect(span_context.span_id).to be(span_id) }
-            it { expect(span_context.trace_id).to be(trace_id) }
-            it { expect(span_context.parent_id).to be(parent_id) }
+            it { expect(span_context.datadog_context).to be(datadog_context) }
 
             describe '#baggage' do
               subject(:baggage) { span_context.baggage }
@@ -39,9 +32,7 @@ if Datadog::OpenTracer.supported?
           context 'and baggage' do
             subject(:span_context) do
               described_class.build(
-                span_id: span_id,
-                trace_id: trace_id,
-                parent_id: parent_id,
+                datadog_context: datadog_context,
                 baggage: original_baggage
               )
             end
@@ -50,9 +41,7 @@ if Datadog::OpenTracer.supported?
             it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }
 
             describe 'builds a SpanContext where' do
-              it { expect(span_context.span_id).to be(span_id) }
-              it { expect(span_context.trace_id).to be(trace_id) }
-              it { expect(span_context.parent_id).to be(parent_id) }
+              it { expect(span_context.datadog_context).to be(datadog_context) }
 
               describe '#baggage' do
                 subject(:baggage) { span_context.baggage }
@@ -74,23 +63,17 @@ if Datadog::OpenTracer.supported?
           let(:original_span_context) do
             instance_double(
               Datadog::OpenTracer::SpanContext,
-              span_id: original_span_id,
-              trace_id: original_trace_id,
-              parent_id: original_parent_id,
+              datadog_context: original_datadog_context,
               baggage: original_baggage
             )
           end
-          let(:original_span_id) { double('original_span_id') }
-          let(:original_trace_id) { double('original_trace_id') }
-          let(:original_parent_id) { double('original_parent_id') }
+          let(:original_datadog_context) { instance_double(Datadog::Context) }
           let(:original_baggage) { {} }
 
           it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }
 
           describe 'builds a SpanContext where' do
-            it { expect(span_context.span_id).to be(original_span_id) }
-            it { expect(span_context.trace_id).to be(original_trace_id) }
-            it { expect(span_context.parent_id).to be(original_parent_id) }
+            it { expect(span_context.datadog_context).to be(original_datadog_context) }
 
             describe '#baggage' do
               subject(:baggage) { span_context.baggage }
@@ -101,27 +84,6 @@ if Datadog::OpenTracer.supported?
                 it { is_expected.to include('org_id' => '4321') }
                 it { is_expected.to_not be(original_baggage) }
               end
-            end
-          end
-
-          context 'and span_id, trace_id, parent_id' do
-            subject(:span_context) do
-              described_class.clone(
-                span_context: original_span_context,
-                span_id: span_id,
-                trace_id: trace_id,
-                parent_id: parent_id
-              )
-            end
-
-            let(:span_id) { double('span_id') }
-            let(:trace_id) { double('trace_id') }
-            let(:parent_id) { double('parent_id') }
-
-            describe 'builds a SpanContext where' do
-              it { expect(span_context.span_id).to be(span_id) }
-              it { expect(span_context.trace_id).to be(trace_id) }
-              it { expect(span_context.parent_id).to be(parent_id) }
             end
           end
 
