@@ -7,11 +7,15 @@ if Datadog::OpenTracer.supported?
   RSpec.describe Datadog::OpenTracer::Scope do
     include_context 'OpenTracing helpers'
 
-    subject(:scope) { described_class.new }
+    subject(:scope) { described_class.new(manager: manager, span: span) }
+    let(:manager) { instance_double(Datadog::OpenTracer::ScopeManager) }
+    let(:span) { instance_double(Datadog::OpenTracer::Span) }
 
-    describe '#span' do
-      subject(:span) { scope.span }
-      it { is_expected.to be(OpenTracing::Span::NOOP_INSTANCE) }
+    it do
+      is_expected.to have_attributes(
+        manager: manager,
+        span: span
+      )
     end
 
     describe '#close' do
