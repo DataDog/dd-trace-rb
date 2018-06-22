@@ -1,6 +1,6 @@
 require 'spec_helper'
 require 'ddtrace'
-require 'elasticsearch'
+require 'elasticsearch-transport'
 
 ELASTICSEARCH_HOST = ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze
 ELASTICSEARCH_PORT = ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').freeze
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
   end
 
   describe 'cluster health request' do
-    subject(:request) { client.cluster.health }
+    subject(:request) { client.perform_request 'GET', '_cluster/health' }
 
     it 'creates a span' do
       expect { request }.to change { tracer.writer.spans.first }.to Datadog::Span
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
     let(:document_type) { 'type' }
     let(:document_id) { 1 }
 
-    subject(:request) { client.index index: index_name, type: document_type, id: document_id, body: document_body }
+    subject(:request) { client.perform_request 'PUT', "#{index_name}/#{document_type}/#{document_id}", {}, document_body }
 
     it 'creates a span' do
       expect { request }.to change { tracer.writer.spans.first }.to Datadog::Span
