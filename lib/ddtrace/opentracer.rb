@@ -18,6 +18,8 @@ module Datadog
       require 'ddtrace/opentracer/span_context_factory'
       require 'ddtrace/opentracer/scope'
       require 'ddtrace/opentracer/scope_manager'
+      require 'ddtrace/opentracer/thread_local_scope'
+      require 'ddtrace/opentracer/thread_local_scope_manager'
       require 'ddtrace/opentracer/global_tracer'
 
       # Modify the OpenTracing module functions
