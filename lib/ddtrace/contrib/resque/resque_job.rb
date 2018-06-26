@@ -17,7 +17,7 @@ module Datadog
             span.service = pin.service
           end
         ensure
-          Datadog.tracer.shutdown!
+          pin.tracer.shutdown! if pin && pin.tracer
         end
       end
     end
