@@ -17,12 +17,20 @@ module Datadog
             span.set_tag('delayed_job.attempts'.freeze, job.attempts)
             span.span_type = pin.app_type
 
-            block.call(job)
+            yield job
           end
+        end
+
+        def self.flush(worker, &block)
+          yield worker
+
+          pin = Pin.get_from(::Delayed::Worker)
+          pin.tracer.shutdown! if pin && pin.tracer
         end
 
         callbacks do |lifecycle|
           lifecycle.around(:invoke_job, &method(:instrument))
+          lifecycle.around(:execute, &method(:flush))
         end
       end
     end

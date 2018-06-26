@@ -16,6 +16,25 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin do
     Delayed::Worker.delay_jobs = false
   end
 
+  describe 'instrumenting worker execution' do
+    let(:worker) { double(:worker, name: 'worker') }
+    before do
+      allow(tracer).to receive(:shutdown!).and_call_original
+    end
+
+    it 'execution callback yields control' do
+      expect { |b| Delayed::Worker.lifecycle.run_callbacks(:execute, worker, &b) }.to yield_with_args(worker)
+    end
+
+    it 'shutdown happens after yielding' do
+      Delayed::Worker.lifecycle.run_callbacks(:execute, worker) do
+        expect(tracer).not_to have_received(:shutdown!)
+      end
+
+      expect(tracer).to have_received(:shutdown!)
+    end
+  end
+
   describe 'instrumented job invocation' do
     let(:job_params) { {} }
     subject(:job_run) { Delayed::Job.enqueue(SampleJob.new, job_params) }
