@@ -33,8 +33,8 @@ module Datadog
           end
         end
 
-        def configure(name = :default, options = {}, &block)
-          name = resolver.resolve(name)
+        def configure(name, options = {}, &block)
+          name = resolver.resolve(name || :default)
 
           configurations[name].tap do |settings|
             settings.configure(options, &block)
