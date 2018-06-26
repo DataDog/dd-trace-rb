@@ -106,15 +106,17 @@ module Datadog
 
       private
 
+      def flush_data
+        callback_traces && callback_services
+      end
+
       def perform
         loop do
-          @back_off = callback_traces ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
-
-          callback_services
+          @back_off = flush_data ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
 
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty? && @service_buffer.empty?
-            @shutdown.wait(@mutex, @back_off)
+            @shutdown.wait(@mutex, @back_off) if @run # do not wait when shutting down
           end
         end
       end
