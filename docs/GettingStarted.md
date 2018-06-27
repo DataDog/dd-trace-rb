@@ -96,7 +96,7 @@ The Ruby APM tracer sends trace data through the Datadog Agent.
 ### Quickstart for Rails applications
 
 1. Add the `ddtrace` gem to your Gemfile:
-    
+
     ```ruby
     source 'https://rubygems.org'
     gem 'ddtrace'
@@ -228,11 +228,11 @@ end
 ```
 #####Enriching traces from nested methods
 
-You can tag additional information to current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil. 
+You can tag additional information to current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil.
 
 ```ruby
 # e.g. adding tag to active span
-    
+
 current_span = Datadog.tracer.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
@@ -455,7 +455,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 ### gRPC
 
-The `grpc` integration adds both client and server interceptors, which run as middleware prior to executing the service's remote procedure call. As gRPC applications are often distributed, the integration shares trace information between client and server. 
+The `grpc` integration adds both client and server interceptors, which run as middleware prior to executing the service's remote procedure call. As gRPC applications are often distributed, the integration shares trace information between client and server.
 
 To setup your integration, use the ``Datadog.configure`` method like so:
 
@@ -759,7 +759,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | --- | --- |
 | ``service_name`` | Service name used when tracing application requests (on the `rack` level) | ``<app_name>`` (inferred from your Rails application namespace) |
-| ``controller_service`` | Service name used when tracing a Rails action controller | ``<app_name>-controller`` |
+| ``controller_service`` | Service name used when tracing a Rails action controller | ``<app_name>`` |
 | ``cache_service`` | Cache service name used when tracing cache activity | ``<app_name>-cache`` |
 | ``database_service`` | Database service name used when tracing database activity | ``<app_name>-<adapter_name>`` |
 | ``exception_controller`` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | ``nil`` |
