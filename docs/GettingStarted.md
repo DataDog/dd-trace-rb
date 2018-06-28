@@ -271,7 +271,7 @@ For a list of available integrations, and their configuration options, please re
 | Rails          | `rails`         | `>= 3.2, < 5.2`        | *[Link](#rails)*          | *[Link](https://github.com/rails/rails)*                                       |
 | Rake           | `rake`          | `>= 12.0`              | *[Link](#rake)*           | *[Link](https://github.com/ruby/rake)*                                         |
 | Redis          | `redis`         | `>= 3.2, < 4.0`        | *[Link](#redis)*          | *[Link](https://github.com/redis/redis-rb)*                                    |
-| Rest Client    | `rest-client`   | `>= 2.0`               | *[Link](#restclient)*    | *[Link](https://github.com/rest-client/rest-client)*                                    |
+| Rest Client    | `rest-client`   | `>= 1.8`               | *[Link](#restclient)*     | *[Link](https://github.com/rest-client/rest-client)*                           |
 | Resque         | `resque`        | `>= 1.0, < 2.0`        | *[Link](#resque)*         | *[Link](https://github.com/resque/resque)*                                     |
 | Sequel         | `sequel`        | `>= 3.41`              | *[Link](#sequel)*         | *[Link](https://github.com/jeremyevans/sequel)*                                |
 | Sidekiq        | `sidekiq`       | `>= 4.0`               | *[Link](#sidekiq)*        | *[Link](https://github.com/mperham/sidekiq)*                                   |
