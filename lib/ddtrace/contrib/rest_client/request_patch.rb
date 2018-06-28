@@ -1,5 +1,6 @@
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/propagation/http_propagator'
 
 module Datadog
   module Contrib
@@ -40,8 +41,6 @@ module Datadog
               super(&block)
             end
           end
-
-          protected
 
           def datadog_tag_request(span)
             span.resource = method.to_s.upcase

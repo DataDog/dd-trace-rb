@@ -27,10 +27,5 @@ RSpec.describe Datadog::Contrib::RestClient::Patcher do
       expect { described_class.patch }
         .to change { rest_client_request_class.ancestors }.to include(Datadog::Contrib::RestClient::RequestPatch)
     end
-
-    it 'pins the request class' do
-      expect { described_class.patch }.to change { Datadog::Pin.get_from(rest_client_request_class) }
-        .to be_an_instance_of(Datadog::Pin)
-    end
   end
 end
