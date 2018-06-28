@@ -225,6 +225,7 @@ task :ci do
       sh 'appraisal contrib-old rake spec:faraday'
       sh 'appraisal contrib-old rake spec:http'
       sh 'appraisal contrib-old rake spec:redis'
+      sh 'appraisal contrib-old rake spec:rest_client'
       # Rails minitests
       sh 'appraisal rails30-postgres rake test:rails'
       sh 'appraisal rails30-postgres rake test:railsdisableenv'
@@ -260,6 +261,7 @@ task :ci do
       sh 'appraisal contrib-old rake spec:faraday'
       sh 'appraisal contrib-old rake spec:http'
       sh 'appraisal contrib-old rake spec:redis'
+      sh 'appraisal contrib-old rake spec:rest_client'
       # Rails minitests
       sh 'appraisal contrib-old rake test:sidekiq'
       sh 'appraisal rails30-postgres rake test:rails'
@@ -298,6 +300,7 @@ task :ci do
       sh 'appraisal contrib-old rake spec:faraday'
       sh 'appraisal contrib-old rake spec:http'
       sh 'appraisal contrib-old rake spec:redis'
+      sh 'appraisal contrib-old rake spec:rest_client'
       # Rails minitests
       sh 'appraisal contrib-old rake test:sidekiq'
       sh 'appraisal rails30-postgres rake test:rails'
@@ -343,6 +346,7 @@ task :ci do
       sh 'appraisal contrib rake spec:http'
       sh 'appraisal contrib rake spec:racecar'
       sh 'appraisal contrib rake spec:redis'
+      sh 'appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'appraisal contrib rake test:sidekiq'
       sh 'appraisal rails30-postgres rake test:rails'
@@ -396,6 +400,7 @@ task :ci do
       sh 'appraisal contrib rake spec:graphql'
       sh 'appraisal contrib rake spec:racecar'
       sh 'appraisal contrib rake spec:redis'
+      sh 'appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'appraisal contrib rake test:sidekiq'
       sh 'appraisal rails30-postgres rake test:rails'
@@ -449,6 +454,7 @@ task :ci do
       sh 'appraisal contrib rake spec:graphql'
       sh 'appraisal contrib rake spec:racecar'
       sh 'appraisal contrib rake spec:redis'
+      sh 'appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'appraisal contrib rake test:sidekiq'
       sh 'rake benchmark'
