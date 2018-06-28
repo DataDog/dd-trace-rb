@@ -32,21 +32,15 @@ module Datadog
 
           def execute(&block)
             datadog_trace_request do |span|
-              datadog_propagate!(span.context) if datadog_configuration[:distributed_tracing] && datadog_pin.tracer.enabled
+              if datadog_configuration[:distributed_tracing] && datadog_pin.tracer.enabled
+                HTTPPropagator.inject!(span.context, processed_headers)
+              end
 
               super(&block)
             end
           end
 
           protected
-
-          def datadog_propagate!(context)
-            processed_headers[Ext::DistributedTracing::HTTP_HEADER_TRACE_ID] = context.trace_id.to_s
-            processed_headers[Ext::DistributedTracing::HTTP_HEADER_PARENT_ID] = context.span_id.to_s
-            if context.sampling_priority
-              processed_headers[Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY] = context.sampling_priority.to_s
-            end
-          end
 
           def datadog_tag_request(span)
             span.resource = method.to_s.upcase
