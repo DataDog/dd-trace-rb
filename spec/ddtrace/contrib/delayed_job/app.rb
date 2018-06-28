@@ -7,9 +7,6 @@ logger.level = Logger::INFO
 
 ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
 
-# check if the migration has been executed
-# MySQL JDBC drivers require that, otherwise we get a
-# "Table '?' already exists" error
 begin
   Delayed::Job.count()
 rescue ActiveRecord::StatementInvalid
