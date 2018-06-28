@@ -6,16 +6,14 @@ module Datadog
       # DelayedJob plugin that instruments invoke_job hook
       class Plugin < Delayed::Plugin
         def self.instrument(job, &block)
-          pin = Pin.get_from(::Delayed::Worker)
+          return block.call(job) unless tracer && tracer.enabled
 
-          return block.call(job) unless pin && pin.tracer
-
-          pin.tracer.trace('delayed_job'.freeze, service: pin.service, resource: job.name) do |span|
+          tracer.trace('delayed_job'.freeze, service: configuration[:service_name], resource: job.name) do |span|
             span.set_tag('delayed_job.id'.freeze, job.id)
             span.set_tag('delayed_job.queue'.freeze, job.queue) if job.queue
             span.set_tag('delayed_job.priority'.freeze, job.priority)
             span.set_tag('delayed_job.attempts'.freeze, job.attempts)
-            span.span_type = pin.app_type
+            span.span_type = Ext::AppTypes::WORKER
 
             yield job
           end
@@ -24,8 +22,15 @@ module Datadog
         def self.flush(worker, &block)
           yield worker
 
-          pin = Pin.get_from(::Delayed::Worker)
-          pin.tracer.shutdown! if pin && pin.tracer
+          tracer.shutdown! if tracer && tracer.enabled
+        end
+
+        def self.configuration
+          Datadog.configuration[:delayed_job]
+        end
+
+        def self.tracer
+          configuration[:tracer]
         end
 
         callbacks do |lifecycle|

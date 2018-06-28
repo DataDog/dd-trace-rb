@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace'
 require 'ddtrace/contrib/delayed_job/plugin'
 
 require_relative 'app'
@@ -6,13 +7,11 @@ require_relative 'app'
 SampleJob = Struct.new('SampleJob') { def perform; end }
 
 RSpec.describe Datadog::Contrib::DelayedJob::Plugin do
-  let(:pin) { Datadog::Pin.get_from(::Delayed::Worker) }
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
 
   before do
-    Datadog::Contrib::DelayedJob::Patcher.patch
+    Datadog.configure { |c| c.use :delayed_job, tracer: tracer }
 
-    pin.tracer = tracer
     Delayed::Worker.delay_jobs = false
   end
 
@@ -46,12 +45,11 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin do
     describe 'created span' do
       subject(:span) { tracer.writer.spans.first }
 
-      before do
-        job_run
-      end
+      before { job_run }
 
-      it 'has service name taken from pin' do
-        expect(span.service).to eq(pin.service)
+      it 'has service name taken from configuration' do
+        expect(span.service).not_to be_nil
+        expect(span.service).to eq(Datadog.configuration[:delayed_job][:service_name])
       end
 
       it 'has resource name equal to job name' do
