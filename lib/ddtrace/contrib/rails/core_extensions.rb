@@ -1,6 +1,5 @@
 module Datadog
   # RailsRendererPatcher contains function to patch Rails rendering libraries.
-  # rubocop:disable Lint/RescueException
   # rubocop:disable Metrics/MethodLength
   # rubocop:disable Metrics/ModuleLength
   module RailsRendererPatcher
@@ -193,6 +192,57 @@ module Datadog
   module RailsCachePatcher
     include Datadog::Patcher
 
+    # Adds some common tracing code for caching actions
+    module CacheTracing
+      def datadog_trace_cache_with(action, key)
+        value = nil
+
+        # In most of the cases Rails ``fetch()`` and ``read()`` calls are nested.
+        # This check ensures that two reads are not nested since they don't provide
+        # interesting details.
+        if nested_within_read?(action)
+          value = yield
+        else
+          datadog_tracer.trace(
+            'rails.cache'.freeze,
+            resource: action,
+            service: Datadog.configuration[:rails][:cache_service],
+            span_type: Datadog::Ext::CACHE::TYPE
+          ) do |span|
+            begin
+              value = yield
+            ensure
+              span.set_tag(
+                'rails.cache.backend'.freeze,
+                ::Rails.configuration.cache_store.to_a.flatten.first
+              )
+              span.set_tag(
+                'rails.cache.key'.freeze,
+                Datadog::Utils.truncate(key, Ext::CACHE::MAX_KEY_SIZE)
+              )
+            end
+          end
+        end
+
+        value
+      end
+
+      def nested_within_read?(action)
+        current_span = datadog_tracer.active_span
+        if action == 'GET'.freeze \
+           && current_span.try(:name) == 'rails.cache'.freeze \
+           && current_span.try(:resource) == 'GET'.freeze
+          true
+        else
+          false
+        end
+      end
+
+      def datadog_tracer
+        Datadog.configuration[:rails][:tracer]
+      end
+    end
+
     module_function
 
     def patch_cache_store
@@ -224,26 +274,12 @@ module Datadog
     def patch_cache_store_read
       do_once(:patch_cache_store_read) do
         cache_store_class(:read).class_eval do
+          include ::Datadog::RailsCachePatcher::CacheTracing
+
           alias_method :read_without_datadog, :read
 
           def read(*args, &block)
-            payload = {
-              action: 'GET',
-              key: args[0],
-              tracing_context: {}
-            }
-
-            begin
-              # process and catch cache exceptions
-              Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(payload)
-              read_without_datadog(*args, &block)
-            rescue Exception => e
-              payload[:exception] = [e.class.name, e.message]
-              payload[:exception_object] = e
-              raise e
-            end
-          ensure
-            Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(payload)
+            datadog_trace_cache_with('GET'.freeze, args[0]) { read_without_datadog(*args, &block) }
           end
         end
       end
@@ -252,26 +288,12 @@ module Datadog
     def patch_cache_store_fetch
       do_once(:patch_cache_store_fetch) do
         cache_store_class(:fetch).class_eval do
+          include ::Datadog::RailsCachePatcher::CacheTracing
+
           alias_method :fetch_without_datadog, :fetch
 
           def fetch(*args, &block)
-            payload = {
-              action: 'GET',
-              key: args[0],
-              tracing_context: {}
-            }
-
-            begin
-              # process and catch cache exceptions
-              Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(payload)
-              fetch_without_datadog(*args, &block)
-            rescue Exception => e
-              payload[:exception] = [e.class.name, e.message]
-              payload[:exception_object] = e
-              raise e
-            end
-          ensure
-            Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(payload)
+            datadog_trace_cache_with('GET'.freeze, args[0]) { fetch_without_datadog(*args, &block) }
           end
         end
       end
@@ -280,26 +302,12 @@ module Datadog
     def patch_cache_store_write
       do_once(:patch_cache_store_write) do
         cache_store_class(:write).class_eval do
+          include ::Datadog::RailsCachePatcher::CacheTracing
+
           alias_method :write_without_datadog, :write
 
           def write(*args, &block)
-            payload = {
-              action: 'SET',
-              key: args[0],
-              tracing_context: {}
-            }
-
-            begin
-              # process and catch cache exceptions
-              Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(payload)
-              write_without_datadog(*args, &block)
-            rescue Exception => e
-              payload[:exception] = [e.class.name, e.message]
-              payload[:exception_object] = e
-              raise e
-            end
-          ensure
-            Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(payload)
+            datadog_trace_cache_with('SET'.freeze, args[0]) { write_without_datadog(*args, &block) }
           end
         end
       end
@@ -308,26 +316,12 @@ module Datadog
     def patch_cache_store_delete
       do_once(:patch_cache_store_delete) do
         cache_store_class(:delete).class_eval do
+          include ::Datadog::RailsCachePatcher::CacheTracing
+
           alias_method :delete_without_datadog, :delete
 
           def delete(*args, &block)
-            payload = {
-              action: 'DELETE',
-              key: args[0],
-              tracing_context: {}
-            }
-
-            begin
-              # process and catch cache exceptions
-              Datadog::Contrib::Rails::ActiveSupport.start_trace_cache(payload)
-              delete_without_datadog(*args, &block)
-            rescue Exception => e
-              payload[:exception] = [e.class.name, e.message]
-              payload[:exception_object] = e
-              raise e
-            end
-          ensure
-            Datadog::Contrib::Rails::ActiveSupport.finish_trace_cache(payload)
+            datadog_trace_cache_with('DELETE'.freeze, args[0]) { delete_without_datadog(*args, &block) }
           end
         end
       end
