@@ -21,7 +21,6 @@ module Datadog
             require 'ddtrace/ext/app_types'
             require 'ddtrace/contrib/rest_client/request_patch'
 
-            add_pin(::RestClient::Request)
             add_instrumentation(::RestClient::Request)
             @patched = true
           rescue => e
@@ -41,10 +40,6 @@ module Datadog
 
           def add_instrumentation(klass)
             klass.send(:include, RequestPatch)
-          end
-
-          def add_pin(klass)
-            Pin.new(get_option(:service_name), app: NAME, app_type: Ext::AppTypes::WEB).onto(klass)
           end
         end
       end
