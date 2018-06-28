@@ -43,6 +43,7 @@ module Datadog
           end
 
           def datadog_tag_request(span)
+            uri = URI.parse(url)
             span.resource = method.to_s.upcase
             span.span_type = Ext::HTTP::TYPE
             span.set_tag(Ext::HTTP::URL, uri.path)
