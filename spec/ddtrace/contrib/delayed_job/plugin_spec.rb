@@ -1,13 +1,20 @@
 require 'spec_helper'
+require 'active_record'
+require 'delayed_job'
+require 'delayed_job_active_record'
 require 'ddtrace'
 require 'ddtrace/contrib/delayed_job/plugin'
-
-require_relative 'app'
+require_relative 'active_record_setup'
 
 SampleJob = Struct.new('SampleJob') { def perform; end }
 
 RSpec.describe Datadog::Contrib::DelayedJob::Plugin do
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+
+  before do
+    logger = Logger.new(STDOUT)
+    logger.level = Logger::WARN
+  end
 
   before do
     Datadog.configure { |c| c.use :delayed_job, tracer: tracer }
