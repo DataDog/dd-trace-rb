@@ -27,7 +27,9 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [AWS](#aws)
      - [Dalli](#dalli)
      - [Elastic Search](#elastic-search)
+     - [Excon](#excon)
      - [Faraday](#faraday)
+     - [gRPC](#grpc)
      - [Grape](#grape)
      - [GraphQL](#graphql)
      - [MongoDB](#mongodb)
@@ -35,8 +37,10 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Racecar](#racecar)
      - [Rack](#rack)
      - [Rails](#rails)
+     - [Rake](#rake)
      - [Redis](#redis)
      - [Resque](#resque)
+     - [Sequel](#sequel)
      - [Sidekiq](#sidekiq)
      - [Sinatra](#sinatra)
      - [Sucker Punch](#sucker-punch)
@@ -47,6 +51,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Sampling](#sampling)
          - [Priority sampling](#priority-sampling)
      - [Distributed tracing](#distributed-tracing)
+     - [HTTP request queuing](#http-request-queuing)
      - [Processing pipeline](#processing-pipeline)
          - [Filtering](#filtering)
          - [Processing](#processing)
@@ -91,7 +96,7 @@ The Ruby APM tracer sends trace data through the Datadog Agent.
 ### Quickstart for Rails applications
 
 1. Add the `ddtrace` gem to your Gemfile:
-    
+
     ```ruby
     source 'https://rubygems.org'
     gem 'ddtrace'
@@ -223,11 +228,11 @@ end
 ```
 #####Enriching traces from nested methods
 
-You can tag additional information to current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil. 
+You can tag additional information to current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil.
 
 ```ruby
 # e.g. adding tag to active span
-    
+
 current_span = Datadog.tracer.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
@@ -253,7 +258,9 @@ For a list of available integrations, and their configuration options, please re
 | AWS            | `aws`           | `>= 2.0`               | *[Link](#aws)*            | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Dalli          | `dalli`         | `>= 2.7`               | *[Link](#dalli)*          | *[Link](https://github.com/petergoldstein/dalli)*                              |
 | Elastic Search | `elasticsearch` | `>= 6.0`               | *[Link](#elastic-search)* | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
+| Excon          | `excon`         | `>= 0.62`              | *[Link](#excon)*          | *[Link](https://github.com/excon/excon)*                                       |
 | Faraday        | `faraday`       | `>= 0.14`              | *[Link](#faraday)*        | *[Link](https://github.com/lostisland/faraday)*                                |
+| gRPC           | `grpc`          | `>= 1.10`              | *[Link](#grpc)*           | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
 | Grape          | `grape`         | `>= 1.0`               | *[Link](#grape)*          | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL        | `graphql`       | `>= 1.7.9`             | *[Link](#graphql)*        | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | MongoDB        | `mongo`         | `>= 2.0, < 2.5`        | *[Link](#mongodb)*        | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
@@ -261,8 +268,10 @@ For a list of available integrations, and their configuration options, please re
 | Racecar        | `racecar`       | `>= 0.3.5`             | *[Link](#racecar)*        | *[Link](https://github.com/zendesk/racecar)*                                   |
 | Rack           | `rack`          | `>= 1.4.7`             | *[Link](#rack)*           | *[Link](https://github.com/rack/rack)*                                         |
 | Rails          | `rails`         | `>= 3.2, < 5.2`        | *[Link](#rails)*          | *[Link](https://github.com/rails/rails)*                                       |
+| Rake           | `rake`          | `>= 12.0`              | *[Link](#rake)*           | *[Link](https://github.com/ruby/rake)*                                         |
 | Redis          | `redis`         | `>= 3.2, < 4.0`        | *[Link](#redis)*          | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Resque         | `resque`        | `>= 1.0, < 2.0`        | *[Link](#resque)*         | *[Link](https://github.com/resque/resque)*                                     |
+| Sequel         | `sequel`        | `>= 3.41`              | *[Link](#sequel)*         | *[Link](https://github.com/jeremyevans/sequel)*                                |
 | Sidekiq        | `sidekiq`       | `>= 4.0`               | *[Link](#sidekiq)*        | *[Link](https://github.com/mperham/sidekiq)*                                   |
 | Sinatra        | `sinatra`       | `>= 1.4.5`             | *[Link](#sinatra)*        | *[Link](https://github.com/sinatra/sinatra)*                                   |
 | Sucker Punch   | `sucker_punch`  | `>= 2.0`               | *[Link](#sucker-punch)*   | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
@@ -362,6 +371,58 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``service_name`` | Service name used for `elasticsearch` instrumentation | elasticsearch |
 | ``quantize`` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | {} |
 
+### Excon
+
+The `excon` integration is available through the `ddtrace` middleware:
+
+```ruby
+require 'excon'
+require 'ddtrace'
+
+# Configure default Excon tracing behavior
+Datadog.configure do |c|
+  c.use :excon, service_name: 'excon'
+end
+
+connection = Excon.new('https://example.com')
+connection.get
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| `service_name` | Service name for Excon instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'excon'` |
+| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
+| `tracer` | A `Datadog::Tracer` instance used to instrument the application. Usually you don't need to set that. | `Datadog.tracer` |
+
+**Configuring connections to use different settings**
+
+If you use multiple connections with Excon, you can give each of them different settings by configuring their constructors with middleware:
+
+```ruby
+# Wrap the Datadog tracing middleware around the default middleware stack
+Excon.new(
+  'http://example.com',
+  middlewares: Datadog::Contrib::Excon::Middleware.with(options).around_default_stack
+)
+
+# Insert the middleware into a custom middleware stack.
+# NOTE: Trace middleware must be inserted after ResponseParser!
+Excon.new(
+  'http://example.com',
+  middlewares: [
+    Excon::Middleware::ResponseParser,
+    Datadog::Contrib::Excon::Middleware.with(options),
+    Excon::Middleware::Idempotent
+  ]
+)
+```
+
+Where `options` is a Hash that contains any of the parameters listed in the table above.
+
 ### Faraday
 
 The `faraday` integration is available through the `ddtrace` middleware:
@@ -384,12 +445,63 @@ connection.get('/foo')
 
 Where `options` is an optional `Hash` that accepts the following parameters:
 
-| Key | Default | Description |
+| Key | Description | Default |
 | --- | --- | --- |
-| `service_name` | Global service name (default: `faraday`) | Service name for this specific connection object. |
-| `split_by_domain` | `false` | Uses the request domain as the service name when set to `true`. |
-| `distributed_tracing` | `false` | Propagates tracing context along the HTTP request when set to `true`. |
-| `error_handler` | ``5xx`` evaluated as errors | A callable object that receives a single argument – the request environment. If it evaluates to a *truthy* value, the trace span is marked as an error. |
+| `service_name` | Service name for Faraday instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'faraday'` |
+| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | ``5xx`` evaluated as errors |
+| `tracer` | A `Datadog::Tracer` instance used to instrument the application. Usually you don't need to set that. | `Datadog.tracer` |
+
+### gRPC
+
+The `grpc` integration adds both client and server interceptors, which run as middleware prior to executing the service's remote procedure call. As gRPC applications are often distributed, the integration shares trace information between client and server.
+
+To setup your integration, use the ``Datadog.configure`` method like so:
+
+```ruby
+require 'grpc'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :grpc, options
+end
+
+# run your application normally
+
+# server side
+server = GRPC::RpcServer.new
+server.add_http2_port('localhost:50051', :this_port_is_insecure)
+server.handle(Demo)
+server.run_till_terminated
+
+# client side
+client = Demo.rpc_stub_class.new('localhost:50051', :this_channel_is_insecure)
+client.my_endpoint(DemoMessage.new(contents: 'hello!'))
+```
+
+In situations where you have multiple clients calling multiple distinct services, you may pass the Datadog interceptor directly, like so
+
+```ruby
+configured_interceptor = Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
+  c.service_name = "Alternate"
+end
+
+alternate_client = Demo::Echo::Service.rpc_stub_class.new(
+  'localhost:50052',
+  :this_channel_is_insecure,
+  :interceptors => [configured_interceptor]
+)
+```
+
+The integration will ensure that the ``configured_interceptor`` establishes a unique tracing setup for that client instance.
+
+The following configuration options are supported:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `grpc` instrumentation | grpc |
+| ``tracer`` | Datadog tracer used for `grpc` instrumentation | Datadog.tracer |
 
 ### Grape
 
@@ -499,6 +611,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | --- | --- |
 | ``service_name`` | Service name used for `mongo` instrumentation | mongodb |
+| ``quantize`` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | ```{ show: [:collection, :database, :operation]  }``` |
 
 ### Net/HTTP
 
@@ -525,9 +638,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | --- | --- |
 | ``service_name`` | Service name used for `http` instrumentation | net/http |
-| ``distributed_tracing`` | Enables distributed tracing | ``false`` |
+| ``distributed_tracing`` | Enables [distributed tracing](#distributed-tracing) | ``false`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
-
 
 If you wish to configure each connection object individually, you may use the ``Datadog.configure`` as it follows:
 
@@ -594,6 +706,9 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``quantize.fragment`` | Defines behavior for URL fragments. Removes fragments by default. May be `:show` to show URL fragments. Option must be nested inside the `quantize` option. | ``nil`` |
 | ``application`` | Your Rack application. Necessary for enabling middleware resource names. | ``nil`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+| ``request_queuing`` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | ``false`` |
+| ``web_service_name`` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | ``'web-server'`` |
+| ``headers`` | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | ``{ response: ['Content-Type', 'X-Request-ID'] }`` |
 
 **Configuring URL quantization behavior**
 
@@ -644,7 +759,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | --- | --- |
 | ``service_name`` | Service name used when tracing application requests (on the `rack` level) | ``<app_name>`` (inferred from your Rails application namespace) |
-| ``controller_service`` | Service name used when tracing a Rails action controller | ``<app_name>-controller`` |
+| ``controller_service`` | Service name used when tracing a Rails action controller | ``<app_name>`` |
 | ``cache_service`` | Cache service name used when tracing cache activity | ``<app_name>-cache`` |
 | ``database_service`` | Database service name used when tracing database activity | ``<app_name>-<adapter_name>`` |
 | ``exception_controller`` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | ``nil`` |
@@ -652,6 +767,71 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``middleware_names`` | Enables any short-circuited middleware requests to display the middleware name as resource for the trace. | `false` |
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+
+### Rake
+
+You can add instrumentation around your Rake tasks by activating the `rake` integration. Each task and its subsequent subtasks will be traced.
+
+To activate Rake task tracing, add the following to your `Rakefile`:
+
+```ruby
+# At the top of your Rakefile:
+require 'rake'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :rake, options
+end
+
+task :my_task do
+  # Do something task work here...
+end
+
+Rake::Task['my_task'].invoke
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``enabled`` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | ``true`` |
+| ``quantize`` | Hash containing options for quantization of task arguments. See below for more details and examples. | ``{}`` |
+| ``service_name`` | Service name which the Rake task traces should be grouped under. | ``rake`` |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+
+**Configuring task quantization behavior**
+
+```ruby
+Datadog.configure do |c|
+  # Given a task that accepts :one, :two, :three...
+  # Invoked with 'foo', 'bar', 'baz'.
+
+  # Default behavior: all arguments are quantized.
+  # `rake.invoke.args` tag  --> ['?']
+  # `rake.execute.args` tag --> { one: '?', two: '?', three: '?' }
+  c.use :rake
+
+  # Show values for any argument matching :two exactly
+  # `rake.invoke.args` tag  --> ['?']
+  # `rake.execute.args` tag --> { one: '?', two: 'bar', three: '?' }
+  c.use :rake, quantize: { args: { show: [:two] } }
+
+  # Show all values for all arguments.
+  # `rake.invoke.args` tag  --> ['foo', 'bar', 'baz']
+  # `rake.execute.args` tag --> { one: 'foo', two: 'bar', three: 'baz' }
+  c.use :rake, quantize: { args: { show: :all } }
+
+  # Totally exclude any argument matching :three exactly
+  # `rake.invoke.args` tag  --> ['?']
+  # `rake.execute.args` tag --> { one: '?', two: '?' }
+  c.use :rake, quantize: { args: { exclude: [:three] } }
+
+  # Remove the arguments entirely
+  # `rake.invoke.args` tag  --> ['?']
+  # `rake.execute.args` tag --> {}
+  c.use :rake, quantize: { args: { exclude: :all } }
+end
+```
 
 ### Redis
 
@@ -715,6 +895,54 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``service_name`` | Service name used for `resque` instrumentation | resque |
 | ``workers`` | An array including all worker classes you want to trace (eg ``[MyJob]``) | ``[]`` |
 
+### Sequel
+
+The Sequel integration traces queries made to your database.
+
+```ruby
+require 'sequel'
+require 'ddtrace'
+
+# Connect to database
+database = Sequel.sqlite
+
+# Create a table
+database.create_table :articles do
+  primary_key :id
+  String :name
+end
+
+Datadog.configure do |c|
+  c.use :sequel, options
+end
+
+# Perform a query
+articles = database[:articles]
+articles.all
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `sequel.query` spans. | Name of database adapter (e.g. `mysql2`) |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+
+Only Ruby 2.0+ is supported.
+
+**Configuring databases to use different settings**
+
+If you use multiple databases with Sequel, you can give each of them different settings by configuring their respective `Sequel::Database` objects:
+
+```ruby
+sqlite_database = Sequel.sqlite
+postgres_database = Sequel.connect('postgres://user:password@host:port/database_name')
+
+# Configure each database with different service names
+Datadog.configure(sqlite_database, service_name: 'my-sqlite-db')
+Datadog.configure(postgres_database, service_name: 'my-postgres-db')
+```
+
 ### Sidekiq
 
 The Sidekiq integration is a server-side middleware which will trace job executions.
@@ -764,6 +992,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``resource_script_names`` | Prepend resource names with script name | ``false`` |
 | ``distributed_tracing`` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+| ``headers`` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | ``{ response: ['Content-Type', 'X-Request-ID'] }`` |
 
 ### Sucker Punch
 
@@ -1007,6 +1236,7 @@ Many integrations included in `ddtrace` support distributed tracing. Distributed
 
 For more details on how to activate distributed tracing for integrations, see their documentation:
 
+- [Excon](#excon)
 - [Faraday](#faraday)
 - [Net/HTTP](#nethttp)
 - [Rack](#rack)
@@ -1035,6 +1265,30 @@ Datadog.tracer.trace('web.work') do |span|
   Datadog.tracer.provider.context = context if context.trace_id
 end
 ```
+
+### HTTP request queuing
+
+Traces that originate from HTTP requests can be configured to include the time spent in a frontend web server or load balancer queue, before the request reaches the Ruby application.
+
+This functionality is **experimental** and deactivated by default.
+
+To activate this feature, you must add a ``X-Request-Start`` or ``X-Queue-Start`` header from your web server (i.e. Nginx). The following is an Nginx configuration example:
+
+```
+# /etc/nginx/conf.d/ruby_service.conf
+server {
+    listen 8080;
+
+    location / {
+      proxy_set_header X-Request-Start "t=${msec}";
+      proxy_pass http://web:3000;
+    }
+}
+```
+
+Then you must enable the request queuing feature in the integration handling the request.
+
+For Rack based applications, see the [documentation](#rack) for details for enabling this feature.
 
 ### Processing Pipeline
 

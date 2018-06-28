@@ -82,6 +82,21 @@ class RackBaseTest < Minitest::Test
 
         run(handler)
       end
+
+      map '/headers/' do
+        run(proc do |_env|
+          response_headers = {
+            'Content-Type' => 'text/html',
+            'Cache-Control' => 'max-age=3600',
+            'ETag' => '"737060cd8c284d8af7ad3082f209582d"',
+            'Expires' => 'Thu, 01 Dec 1994 16:00:00 GMT',
+            'Last-Modified' => 'Tue, 15 Nov 1994 12:45:26 GMT',
+            'X-Request-ID' => 'f058ebd6-02f7-4d3f-942e-904344e8cde5',
+            'X-Fake-Response' => 'Don\'t tag me.'
+          }
+          [200, response_headers, 'OK']
+        end)
+      end
     end.to_app
   end
 

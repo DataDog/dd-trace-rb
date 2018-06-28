@@ -6,16 +6,28 @@ job_defaults: &job_defaults
 ruby_containers: &ruby_containers
   - &container-1_9
     image: datadog/docker-library:ddtrace_rb_1_9_3
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
   - &container-2_0
     image: datadog/docker-library:ddtrace_rb_2_0_0
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
   - &container-2_1
     image: datadog/docker-library:ddtrace_rb_2_1_10
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
   - &container-2_2
     image: datadog/docker-library:ddtrace_rb_2_2_10
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
   - &container-2_3
     image: datadog/docker-library:ddtrace_rb_2_3_7
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
   - &container-2_4
     image: datadog/docker-library:ddtrace_rb_2_4_4
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
 
 test_containers: &test_containers
   - &container_postgres
@@ -71,6 +83,21 @@ step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
     command: bundle exec rake ci
+step_release_docs: &step_release_docs
+  run:
+    name: Upload release docs
+    command: S3_DIR=trace bundle exec rake release:docs
+
+filters_all_branches_and_tags: &filters_all_branches_and_tags
+  filters:
+    tags:
+      only: /.*/
+filters_only_release_tags: &filters_only_release_tags
+  filters:
+    branches:
+      ignore: /.*/
+    tags:
+      only: /^v\d+(\.\d+){0,3}(\.(alpha|beta|rc)\d+)?$/
 
 version: 2.0
 jobs:
@@ -408,49 +435,89 @@ jobs:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
       - *step_run_all_tests
+  deploy-release:
+    <<: *job_defaults
+    docker:
+      - *container-2_4
+    steps:
+      - checkout
+      - run:
+          command: |
+            apt-get -y -qq update
+            apt-get -y -qq install awscli
+      - *step_bundle_install
+      - *step_release_docs
+
 workflows:
   version: 2
   build-and-test:
     jobs:
-      - checkout-1.9
+      - checkout-1.9:
+          <<: *filters_all_branches_and_tags
       - build-1.9:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-1.9
       - test-1.9:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-1.9
-      - checkout-2.0
+      - checkout-2.0:
+          <<: *filters_all_branches_and_tags
       - build-2.0:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.0
       - test-2.0:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.0
-      - checkout-2.1
+      - checkout-2.1:
+          <<: *filters_all_branches_and_tags
       - build-2.1:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.1
       - test-2.1:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.1
-      - checkout-2.2
+      - checkout-2.2:
+          <<: *filters_all_branches_and_tags
       - build-2.2:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.2
       - test-2.2:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.2
-      - checkout-2.3
+      - checkout-2.3:
+          <<: *filters_all_branches_and_tags
       - build-2.3:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.3
       - test-2.3:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.3
-      - checkout-2.4
+      - checkout-2.4:
+          <<: *filters_all_branches_and_tags
       - build-2.4:
+          <<: *filters_all_branches_and_tags
           requires:
             - checkout-2.4
       - test-2.4:
+          <<: *filters_all_branches_and_tags
           requires:
             - build-2.4
+      - deploy-release:
+          <<: *filters_only_release_tags
+          requires:
+            - test-1.9
+            - test-2.0
+            - test-2.1
+            - test-2.2
+            - test-2.3
+            - test-2.4
