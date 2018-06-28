@@ -20,6 +20,7 @@ module Datadog
           end
         end
 
+        # Compatibility shim for Rubies not supporting `.prepend`
         module InstanceMethodsCompatibility
           def execute(&block)
             execute_without_datadog(&block)
@@ -33,7 +34,7 @@ module Datadog
           def execute(&block)
             datadog_trace_request do |span|
               if datadog_configuration[:distributed_tracing] && datadog_pin.tracer.enabled
-                HTTPPropagator.inject!(span.context, processed_headers)
+                Datadog::HTTPPropagator.inject!(span.context, processed_headers)
               end
 
               super(&block)
