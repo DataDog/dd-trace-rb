@@ -9,11 +9,27 @@ module Datadog
         REQUEST_TRACE_NAME = 'rest_client.request'.freeze
 
         def self.included(base)
-          base.prepend(InstanceMethods)
+          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+            base.class_eval do
+              alias_method :execute_without_datadog, :execute
+              remove_method :execute
+              include InstanceMethods
+            end
+          else
+            base.send(:prepend, InstanceMethods)
+          end
+        end
+
+        module InstanceMethodsCompatibility
+          def execute(&block)
+            execute_without_datadog(&block)
+          end
         end
 
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
+          include InstanceMethodsCompatibility unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
+
           def execute(&block)
             datadog_trace_request do |span|
               datadog_propagate!(span.context) if datadog_configuration[:distributed_tracing] && datadog_pin.tracer.enabled
