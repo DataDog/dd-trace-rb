@@ -81,7 +81,12 @@ module Datadog
               service = datadog_configuration[:service_name]
               tracer = datadog_configuration[:tracer]
 
-              Datadog::Pin.new(service, app: Patcher::NAME, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
+              Datadog::Pin.new(
+                service,
+                app: Patcher::NAME,
+                app_type: Datadog::Ext::AppTypes::WEB,
+                tracer: tracer
+              )
             end
           end
 

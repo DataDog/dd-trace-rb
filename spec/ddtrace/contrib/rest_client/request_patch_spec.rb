@@ -43,9 +43,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
         subject(:span) { tracer.writer.spans.first }
 
         context 'response is successfull' do
-          before do
-            request
-          end
+          before { request }
 
           it 'has tag with target host' do
             expect(span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq(host)
@@ -118,27 +116,16 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
     it_behaves_like 'instrumented request'
 
-    context 'distrubuted tracing enabled' do
+    context 'distributed tracing enabled' do
       let(:rest_client_options) { { distributed_tracing: true } }
 
       it_behaves_like 'instrumented request'
 
-      it 'propagates the headers' do
-        request
-
-        span = tracer.writer.spans.first
-
-        distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.span_id.to_s,
-                                        'X-Datadog-Trace-Id' => span.trace_id.to_s }
-
-        expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to have_been_made
-      end
-
       shared_examples_for 'propagating distributed headers' do
+        let(:span) { tracer.writer.spans.first }
+
         it 'propagates the headers' do
           request
-
-          span = tracer.writer.spans.first
 
           distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.span_id.to_s,
                                           'X-Datadog-Trace-Id' => span.trace_id.to_s }
