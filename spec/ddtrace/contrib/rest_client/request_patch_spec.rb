@@ -148,7 +148,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
       subject(:request) do
         RestClient.get(url) do |response, request|
-          Datadog.configure(request, service: service_name)
+          Datadog.configure(request, service_name: service_name)
 
           response.return!
         end

@@ -53,13 +53,23 @@ module Datadog
             span.set_tag(Ext::NET::TARGET_PORT, uri.port)
           end
 
+          def datadog_configure_span_from_pin(span)
+            span.service = datadog_pin.service
+            span.name = datadog_pin.name if datadog_pin.name
+            span.span_type = datadog_pin.app_type
+
+            datadog_pin.tags && datadog_pin.tags.each do |k, v|
+              span.set_tag(k, v)
+            end
+          end
+
           def datadog_trace_request
             span = datadog_tracer.trace(REQUEST_TRACE_NAME)
             datadog_tag_request(span)
 
             response = yield span
 
-            datadog_pin.configure_span(span)
+            datadog_configure_span_from_pin(span)
 
             span.set_tag(Ext::HTTP::STATUS_CODE, response.code)
             response

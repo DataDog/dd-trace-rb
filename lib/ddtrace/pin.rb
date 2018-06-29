@@ -60,16 +60,6 @@ module Datadog
       @service_name = name
     end
 
-    def configure_span(span)
-      span.service = service
-      span.name = name if name
-      span.span_type = app_type
-
-      tags && tags.each do |k, v|
-        span.set_tag(k, v)
-      end
-    end
-
     alias service= service_name=
     alias service service_name
 

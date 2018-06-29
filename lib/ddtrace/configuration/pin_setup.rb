@@ -22,7 +22,7 @@ module Datadog
 
       attr_reader :pin, :opts
 
-      ATTRS = [:app, :tags, :app_type, :name, :tracer, :service_name, :service].freeze
+      ATTRS = [:app, :tags, :app_type, :name, :tracer, :service_name].freeze
 
       private_constant :ATTRS
     end
