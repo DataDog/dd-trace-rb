@@ -44,40 +44,46 @@ module Datadog
             end
           end
 
-          def datadog_tag_request(span)
+          def datadog_tag_request
             uri = URI.parse(url)
-            span.resource = method.to_s.upcase
-            span.span_type = Ext::HTTP::TYPE
-            span.set_tag(Ext::HTTP::URL, uri.path)
-            span.set_tag(Ext::HTTP::METHOD, method.to_s.upcase)
-            span.set_tag(Ext::NET::TARGET_HOST, uri.host)
-            span.set_tag(Ext::NET::TARGET_PORT, uri.port)
+            @datadog_span.resource = method.to_s.upcase
+            @datadog_span.set_tag(Ext::HTTP::URL, uri.path)
+            @datadog_span.set_tag(Ext::HTTP::METHOD, method.to_s.upcase)
+            @datadog_span.set_tag(Ext::NET::TARGET_HOST, uri.host)
+            @datadog_span.set_tag(Ext::NET::TARGET_PORT, uri.port)
           end
 
           def datadog_trace_request
-            span = datadog_tracer.trace(REQUEST_TRACE_NAME,
-                                        type: Datadog::Ext::AppTypes::WEB,
-                                        service: datadog_configuration[:service_name])
+            @datadog_span = datadog_tracer.trace(REQUEST_TRACE_NAME,
+                                                 span_type: Ext::HTTP::TYPE,
+                                                 service: datadog_configuration[:service_name])
 
-            datadog_tag_request(span)
+            datadog_tag_request
+            response = yield @datadog_span
 
-            response = yield span
-
-            span.set_tag(Ext::HTTP::STATUS_CODE, response.code)
+            @datadog_span.set_tag(Ext::HTTP::STATUS_CODE, response.code)
             response
           rescue ::RestClient::ExceptionWithResponse => e
-            span.set_error(e) if Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
-            span.set_tag(Ext::HTTP::STATUS_CODE, e.http_code)
+            @datadog_span.set_error(e) if Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
+            @datadog_span.set_tag(Ext::HTTP::STATUS_CODE, e.http_code)
 
             raise e
             # rubocop:disable Lint/RescueException
           rescue Exception => e
             # rubocop:enable Lint/RescueException
-            span.set_error(e)
+            @datadog_span.set_error(e)
 
             raise e
           ensure
-            span.finish
+            @datadog_span.finish
+          end
+
+          def datadog_span
+            if block_given?
+              yield @datadog_span if @datadog_span
+            else
+              @datadog_span
+            end
           end
 
           def datadog_tracer

@@ -72,6 +72,10 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           it 'is named correctly' do
             expect(span.name).to eq('rest_client.request')
           end
+
+          it 'has correct service name' do
+            expect(span.service).to eq('rest_client')
+          end
         end
 
         context 'response has internal server error status' do
@@ -110,6 +114,33 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           it 'error is not set' do
             expect(span.get_tag(Datadog::Ext::Errors::MSG)).to be_nil
           end
+        end
+      end
+    end
+
+    context 'custom request span tag' do
+      let(:tag_value) { 'custom_tag_value' }
+      let(:tag) { 'custom_tag_name' }
+
+      subject(:request) do
+        RestClient.get(url) do |response, request|
+          Datadog::Span.get_from(request) do |span|
+            span.set_tag(tag, tag_value)
+          end
+
+          response.return!
+        end
+      end
+
+      it_behaves_like 'instrumented request'
+
+      describe 'custom span' do
+        subject(:custom_span) { tracer.writer.spans.first }
+
+        before { request }
+
+        it 'has tag with asffas' do
+          expect(custom_span.get_tag(tag)).to eq(tag_value)
         end
       end
     end
