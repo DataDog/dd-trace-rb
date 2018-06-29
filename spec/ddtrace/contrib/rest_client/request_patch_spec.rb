@@ -139,8 +139,32 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
         before { request }
 
-        it 'has tag with asffas' do
+        it 'has tag with tag_value' do
           expect(custom_span.get_tag(tag)).to eq(tag_value)
+        end
+      end
+    end
+
+    context 'custom request span service' do
+      let(:service_name) { 'custom_service_name' }
+
+      subject(:request) do
+        RestClient.get(url) do |response, request|
+          Datadog::Span.get_from(request) do |span|
+            span.service = service_name
+          end
+
+          response.return!
+        end
+      end
+
+      describe 'custom span' do
+        subject(:custom_span) { tracer.writer.spans.first }
+
+        before { request }
+
+        it 'has tag with tag_value' do
+          expect(custom_span.service).to eq(service_name)
         end
       end
     end

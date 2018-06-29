@@ -883,7 +883,13 @@ Datadog.configure do |c|
   c.use :rest_client, service_name: 'rest_client' # global service name
 end
 
-RestClient.get('http://example.com')
+RestClient.get('http://example.com') do |response, request|
+  Datadog::Span.get_from(request) do |span|
+    span.service = 'example_service_client' # custom service name
+  end
+
+  response.return!
+end
 ```
 
 Where `options` is an optional `Hash` that accepts the following parameters:
