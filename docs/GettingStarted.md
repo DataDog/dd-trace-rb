@@ -884,10 +884,7 @@ Datadog.configure do |c|
 end
 
 RestClient.get('http://example.com') do |response, request|
-  Datadog::Span.get_from(request) do |span|
-    span.service = 'example_service_client' # custom service name
-  end
-
+  Datadog.configure(request, service: 'example_service_client') # custom service name
   response.return!
 end
 ```

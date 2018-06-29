@@ -45,45 +45,51 @@ module Datadog
             end
           end
 
-          def datadog_tag_request
+          def datadog_tag_request(span)
             uri = URI.parse(url)
-            @datadog_span.resource = method.to_s.upcase
-            @datadog_span.set_tag(Ext::HTTP::URL, uri.path)
-            @datadog_span.set_tag(Ext::HTTP::METHOD, method.to_s.upcase)
-            @datadog_span.set_tag(Ext::NET::TARGET_HOST, uri.host)
-            @datadog_span.set_tag(Ext::NET::TARGET_PORT, uri.port)
+            span.resource = method.to_s.upcase
+            span.set_tag(Ext::HTTP::URL, uri.path)
+            span.set_tag(Ext::HTTP::METHOD, method.to_s.upcase)
+            span.set_tag(Ext::NET::TARGET_HOST, uri.host)
+            span.set_tag(Ext::NET::TARGET_PORT, uri.port)
           end
 
           def datadog_trace_request
-            @datadog_span = datadog_tracer.trace(REQUEST_TRACE_NAME,
-                                                 span_type: Ext::HTTP::TYPE,
-                                                 service: datadog_configuration[:service_name])
+            span = datadog_tracer.trace(REQUEST_TRACE_NAME)
+            datadog_tag_request(span)
 
-            datadog_tag_request
-            response = yield @datadog_span
+            response = yield span
 
-            @datadog_span.set_tag(Ext::HTTP::STATUS_CODE, response.code)
+            datadog_pin.configure_span(span)
+
+            span.set_tag(Ext::HTTP::STATUS_CODE, response.code)
             response
           rescue ::RestClient::ExceptionWithResponse => e
-            @datadog_span.set_error(e) if Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
-            @datadog_span.set_tag(Ext::HTTP::STATUS_CODE, e.http_code)
+            span.set_error(e) if Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
+            span.set_tag(Ext::HTTP::STATUS_CODE, e.http_code)
 
             raise e
             # rubocop:disable Lint/RescueException
           rescue Exception => e
             # rubocop:enable Lint/RescueException
-            @datadog_span.set_error(e)
+            span.set_error(e)
 
             raise e
           ensure
-            @datadog_span.finish
+            span.finish
           end
 
-          def datadog_span
-            if block_given?
-              yield @datadog_span if @datadog_span
-            else
-              @datadog_span
+          def datadog_pin
+            @datadog_pin ||= begin
+              service = datadog_configuration[:service_name]
+              tracer = datadog_configuration[:tracer]
+
+              Datadog::Pin.new(
+                service,
+                app: Patcher::NAME,
+                app_type: Datadog::Ext::AppTypes::WEB,
+                tracer: tracer
+              )
             end
           end
 

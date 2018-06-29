@@ -66,7 +66,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'is http type' do
-            expect(span.span_type).to eq('http')
+            expect(span.span_type).to eq('web')
           end
 
           it 'is named correctly' do
@@ -120,13 +120,11 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
     context 'custom request span tag' do
       let(:tag_value) { 'custom_tag_value' }
-      let(:tag) { 'custom_tag_name' }
+      let(:tags) { { custom_tag_name: tag_value } }
 
       subject(:request) do
         RestClient.get(url) do |response, request|
-          Datadog::Span.get_from(request) do |span|
-            span.set_tag(tag, tag_value)
-          end
+          Datadog.configure(request, tags: tags)
 
           response.return!
         end
@@ -140,7 +138,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
         before { request }
 
         it 'has tag with tag_value' do
-          expect(custom_span.get_tag(tag)).to eq(tag_value)
+          expect(custom_span.get_tag(:custom_tag_name)).to eq(tag_value)
         end
       end
     end
@@ -150,9 +148,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
       subject(:request) do
         RestClient.get(url) do |response, request|
-          Datadog::Span.get_from(request) do |span|
-            span.service = service_name
-          end
+          Datadog.configure(request, service: service_name)
 
           response.return!
         end
