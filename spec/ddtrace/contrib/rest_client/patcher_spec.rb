@@ -1,11 +1,18 @@
 require 'spec_helper'
 require 'ddtrace'
+require 'restclient/request'
 
 RSpec.describe Datadog::Contrib::RestClient::Patcher do
   describe '.patch' do
-    let!(:rest_client_request_class) { class_double('RestClient::Request').as_stubbed_const }
+    let(:rest_client_request_class) { class_double('RestClient::Request').as_stubbed_const }
 
     before do
+      class_double('RestClient::Request').as_stubbed_const
+
+      rest_client_request_class.class_eval do
+        alias_method :execute, :to_s unless respond_to?(:execute)
+      end
+
       described_class.send(:unpatch)
     end
 
