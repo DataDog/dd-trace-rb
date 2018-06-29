@@ -4,7 +4,7 @@ require 'delayed_job'
 require 'delayed_job_active_record'
 require 'ddtrace'
 require 'ddtrace/contrib/delayed_job/plugin'
-require_relative 'active_record_setup'
+require_relative 'delayed_job_active_record'
 
 SampleJob = Struct.new('SampleJob') { def perform; end }
 

@@ -1,6 +1,6 @@
 require 'spec_helper'
 require 'ddtrace'
-require_relative 'active_record_setup'
+require_relative 'delayed_job_active_record'
 
 RSpec.describe Datadog::Contrib::DelayedJob::Patcher, :delayed_job_active_record do
   describe '.patch' do
