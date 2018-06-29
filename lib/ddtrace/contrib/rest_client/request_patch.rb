@@ -1,6 +1,7 @@
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/http_propagator'
+require 'restclient/request'
 
 module Datadog
   module Contrib
