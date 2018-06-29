@@ -104,7 +104,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           let(:status) { 404 }
 
           before do
-            expect { request }.to raise_exception(RestClient::NotFound)
+            expect { request }.to raise_exception(RestClient::ResourceNotFound)
           end
 
           it 'has tag with status code' do
