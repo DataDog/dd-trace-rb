@@ -19,7 +19,6 @@ module Datadog
             require_relative 'plugin'
 
             add_instrumentation(::Delayed::Worker)
-            add_pin(::Delayed::Worker)
             @patched = true
           rescue => e
             Tracer.log.error("Unable to apply DelayedJob integration: #{e}")
@@ -38,10 +37,6 @@ module Datadog
 
           def add_instrumentation(klass)
             klass.plugins << Plugin
-          end
-
-          def add_pin(klass)
-            Pin.new(get_option(:service_name), app: 'delayed_job', app_type: Ext::AppTypes::WORKER).onto(klass)
           end
         end
       end

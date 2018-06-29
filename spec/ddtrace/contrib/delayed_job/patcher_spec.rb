@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'ddtrace'
 require_relative 'active_record_setup'
 
-RSpec.describe Datadog::Contrib::DelayedJob::Patcher do
+RSpec.describe Datadog::Contrib::DelayedJob::Patcher, :delayed_job_active_record do
   describe '.patch' do
     let(:worker_plugins) { [] }
     let!(:delayed_worker_class) { class_double('Delayed::Worker', plugins: worker_plugins).as_stubbed_const }
@@ -27,11 +27,6 @@ RSpec.describe Datadog::Contrib::DelayedJob::Patcher do
 
     it 'add plugin to worker class' do
       expect { described_class.patch }.to change { worker_plugins.first }.to be_truthy
-    end
-
-    it 'pins the worker class' do
-      expect { described_class.patch }.to change { Datadog::Pin.get_from(delayed_worker_class) }
-        .to be_an_instance_of(Datadog::Pin)
     end
   end
 end

@@ -8,7 +8,7 @@ require_relative 'active_record_setup'
 
 SampleJob = Struct.new('SampleJob') { def perform; end }
 
-RSpec.describe Datadog::Contrib::DelayedJob::Plugin do
+RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record do
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
 
   before do
