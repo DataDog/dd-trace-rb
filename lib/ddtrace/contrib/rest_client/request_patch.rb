@@ -33,8 +33,10 @@ module Datadog
           include InstanceMethodsCompatibility unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
 
           def execute(&block)
+            return super(&block) unless datadog_tracer.enabled
+
             datadog_trace_request do |span|
-              if datadog_configuration[:distributed_tracing] && datadog_pin.tracer.enabled
+              if datadog_configuration[:distributed_tracing]
                 Datadog::HTTPPropagator.inject!(span.context, processed_headers)
               end
 
@@ -53,7 +55,9 @@ module Datadog
           end
 
           def datadog_trace_request
-            span = datadog_pin.tracer.trace(REQUEST_TRACE_NAME, service: datadog_pin.service_name)
+            span = datadog_tracer.trace(REQUEST_TRACE_NAME,
+                                        type: Datadog::Ext::AppTypes::WEB,
+                                        service: datadog_configuration[:service_name])
 
             datadog_tag_request(span)
 
@@ -76,18 +80,8 @@ module Datadog
             span.finish
           end
 
-          def datadog_pin
-            @datadog_pin ||= begin
-              service = datadog_configuration[:service_name]
-              tracer = datadog_configuration[:tracer]
-
-              Datadog::Pin.new(
-                service,
-                app: Patcher::NAME,
-                app_type: Datadog::Ext::AppTypes::WEB,
-                tracer: tracer
-              )
-            end
+          def datadog_tracer
+            datadog_configuration[:tracer]
           end
 
           def datadog_configuration
