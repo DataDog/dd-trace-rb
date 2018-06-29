@@ -26,6 +26,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Active Record](#active-record)
      - [AWS](#aws)
      - [Dalli](#dalli)
+     - [DelayedJob](#delayedjob)
      - [Elastic Search](#elastic-search)
      - [Excon](#excon)
      - [Faraday](#faraday)
@@ -247,6 +248,7 @@ For a list of available integrations, and their configuration options, please re
 | Active Record  | `active_record` | `>= 3.2, < 5.2`        | *[Link](#active-record)*  | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | AWS            | `aws`           | `>= 2.0`               | *[Link](#aws)*            | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Dalli          | `dalli`         | `>= 2.7`               | *[Link](#dalli)*          | *[Link](https://github.com/petergoldstein/dalli)*                              |
+| DelayedJob     | `delayed_job`   | `>= 4.1`               | *[Link](#delayedjob)*     | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
 | Elastic Search | `elasticsearch` | `>= 6.0`               | *[Link](#elastic-search)* | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
 | Excon          | `excon`         | `>= 0.62`              | *[Link](#excon)*          | *[Link](https://github.com/excon/excon)*                                       |
 | Faraday        | `faraday`       | `>= 0.14`              | *[Link](#faraday)*        | *[Link](https://github.com/lostisland/faraday)*                                |
