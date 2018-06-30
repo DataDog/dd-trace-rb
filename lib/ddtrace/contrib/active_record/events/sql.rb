@@ -24,7 +24,7 @@ module Datadog
           def process(span, event, _id, payload)
             connection_config = Utils.connection_config(payload[:connection_id])
             span.name = "#{connection_config[:adapter_name]}.query"
-            span.service = configuration[:service_name]
+            span.service = connection_config[:tracer_settings][:service_name] || configuration[:service_name]
             span.resource = payload.fetch(:sql)
             span.span_type = Datadog::Ext::SQL::TYPE
 
