@@ -43,9 +43,12 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'webmock', '~> 2.0'
   spec.add_development_dependency 'builder'
+  spec.add_development_dependency 'ruby-prof'
+
   # locking transitive dependency of webmock
   spec.add_development_dependency 'addressable', '~> 2.4.0'
   spec.add_development_dependency 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
   spec.add_development_dependency 'pry', '~> 0.10.4'
   spec.add_development_dependency 'pry-stack_explorer', '~> 0.4.9.2'
+
 end

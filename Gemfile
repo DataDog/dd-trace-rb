@@ -4,3 +4,5 @@ gemspec
 
 # Add debugger for pry that's compatible with 0.10.4
 gem 'pry-nav', git: 'https://github.com/nixme/pry-nav.git', branch: 'master'
+gem 'sidekiq'
+gem 'concurrent-ruby'
