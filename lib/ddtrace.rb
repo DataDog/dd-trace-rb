@@ -14,6 +14,7 @@ require 'ddtrace/patcher'
 module Datadog
   @tracer = Tracer.new
   @registry = Registry.new
+  @configuration = Configuration.new(registry: @registry)
 
   # Default tracer that can be used as soon as +ddtrace+ is required:
   #
@@ -28,21 +29,9 @@ module Datadog
   #   tracer = Datadog::Tracer.new
   #   pin = Datadog::Pin.get_from(mypatchcomponent)
   #   pin.tracer = tracer
-
-  def self.tracer
-    @tracer
-  end
-
-  def self.registry
-    @registry
-  end
-
   class << self
-    attr_writer :configuration
-
-    def configuration
-      @configuration ||= Configuration.new
-    end
+    attr_reader :tracer, :registry
+    attr_accessor :configuration
 
     def configure(target = configuration, opts = {})
       if target.is_a?(Configuration)

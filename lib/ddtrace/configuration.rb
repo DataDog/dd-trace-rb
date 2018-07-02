@@ -8,7 +8,7 @@ module Datadog
     InvalidIntegrationError = Class.new(StandardError)
 
     def initialize(options = {})
-      @registry = options.fetch(:registry, Datadog.registry)
+      @registry = options.fetch(:registry) { Datadog.registry }
       @wrapped_registry = {}
     end
 
