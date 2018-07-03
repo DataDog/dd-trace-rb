@@ -1,3 +1,4 @@
+# rubocop:disable all
 require 'ruby-prof'
 
 require 'bundler/setup'
@@ -10,12 +11,42 @@ module SampleApp
   end
 end
 
+class Rails::Application::Configuration
+  def database_configuration
+    {
+      'development' => {
+        'development' => {
+          adapter: 'postgresql',
+          timeout: 5000,
+          database: ENV.fetch('TEST_POSTGRES_DB', 'postgres'),
+          host: ENV.fetch('TEST_POSTGRES_HOST', '127.0.0.1'),
+          port: ENV.fetch('TEST_POSTGRES_PORT', 5432),
+          username: ENV.fetch('TEST_POSTGRES_USER', 'postgres'),
+          password: ENV.fetch('TEST_POSTGRES_PASSWORD', 'postgres'),
+
+          pool: 30
+        }
+      }
+    }
+  end
+end
+
 Rails.application.configure do
   config.cache_classes = true
   config.eager_load = true
+  config.active_job.queue_adapter = :sidekiq
 end
 
 Rails.application.initialize!
+
+ActiveRecord::Schema.define do
+  drop_table(:samples) if connection.table_exists?(:samples)
+
+  create_table :samples do |t|
+    t.string :name
+    t.timestamps
+  end
+end
 
 Sidekiq.server_middleware
 Sidekiq.configure_server do |config|
@@ -23,11 +54,13 @@ Sidekiq.configure_server do |config|
   config.redis = ConnectionPool.new(size: 27, timeout: 3, &redis_conn)
 end
 
+class Sample < ActiveRecord::Base; end
+
 require 'sidekiq/launcher'
 require 'sidekiq/cli'
 require 'concurrent/atomic/atomic_fixnum'
 
-require 'ddtrace'
+# require 'ddtrace'
 
 # WIP
 class HardWorker
@@ -40,6 +73,7 @@ class HardWorker
   include Sidekiq::Worker
   def perform(name, count)
     self.class.num.increment
+    Sample.create!(name: name).save
   end
 end
 
@@ -84,27 +118,23 @@ end
 options = Sidekiq.options
 options[:tag] = 'test'
 options[:queues] << 'default'
-options[:concurrency] = 2
+options[:concurrency] = 20
 options[:timeout] = 2
 
-1000.times do |i|
+10000.times do |i|
   HardWorker.perform_async('bob'.freeze, i)
 end
 
-# require 'ruby-prof'
-
-# profile the code
-
-RubyProf.start
+# RubyProf.start
 
 launcher = Sidekiq::Launcher.new(options)
 launcher.run
 
-sleep(0.01) while HardWorker.num.value < 1000
+sleep(1) while HardWorker.num.value < 10000
 
-result = RubyProf.stop
-result.exclude_common_methods!
-
-# print a flat profile to text
-printer = RubyProf::GraphHtmlPrinter.new(result)
-printer.print(STDERR)
+# result = RubyProf.stop
+# result.exclude_common_methods!
+#
+# # print a flat profile to text
+# printer = RubyProf::GraphHtmlPrinter.new(result)
+# printer.print(STDERR)
