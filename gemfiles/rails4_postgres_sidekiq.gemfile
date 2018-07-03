@@ -3,10 +3,11 @@
 source "https://rubygems.org"
 
 gem "pry-nav", git: "https://github.com/nixme/pry-nav.git", branch: "master"
+gem "sidekiq"
+gem "concurrent-ruby"
 gem "rails", "4.2.7.1"
 gem "pg", "< 1.0", platform: :ruby
 gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
-gem "sidekiq"
 gem "activejob"
 
 gemspec path: "../"

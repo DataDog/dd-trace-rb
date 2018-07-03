@@ -3,6 +3,8 @@
 source "https://rubygems.org"
 
 gem "pry-nav", git: "https://github.com/nixme/pry-nav.git", branch: "master"
+gem "sidekiq"
+gem "concurrent-ruby"
 gem "test-unit"
 gem "rails", "3.0.20"
 gem "pg", "0.15.1", platform: :ruby
