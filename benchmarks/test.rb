@@ -74,9 +74,11 @@ class HardWorker
   def perform(name, count)
     self.class.num.increment
     Sample.create!(name: name).save
+    Sample.last
   end
 end
 
+if Datadog.respond_to?(:configure)
 Datadog.configure do |d|
   d.use :rails,
         enabled: true,
@@ -114,6 +116,19 @@ Datadog.configure do |d|
 
   Datadog::Pipeline.before_flush(processor)
 end
+end
+
+def memory
+  `ps -o rss #{$$}`.split("\n")[1].to_f/1024
+end
+
+def time
+  Process.clock_gettime(Process::CLOCK_MONOTONIC)
+end
+
+start = time
+STDERR.puts "#{time-start}, #{memory}"
+
 
 options = Sidekiq.options
 options[:tag] = 'test'
@@ -121,20 +136,29 @@ options[:queues] << 'default'
 options[:concurrency] = 20
 options[:timeout] = 2
 
-10000.times do |i|
+num = 10000
+
+num.times do |i|
   HardWorker.perform_async('bob'.freeze, i)
 end
+
+
 
 # RubyProf.start
 
 launcher = Sidekiq::Launcher.new(options)
 launcher.run
 
-sleep(1) while HardWorker.num.value < 10000
+while HardWorker.num.value < num
+  sleep(1)
+  STDERR.puts "#{time-start}, #{memory}"
+end
+
+# sleep(1) while HardWorker.num.value < 1000
 
 # result = RubyProf.stop
 # result.exclude_common_methods!
-#
-# # print a flat profile to text
+
+# print a flat profile to text
 # printer = RubyProf::GraphHtmlPrinter.new(result)
 # printer.print(STDERR)
