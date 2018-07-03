@@ -3,19 +3,13 @@ require 'ruby-prof'
 
 require 'bundler/setup'
 require 'rails/all'
-Bundler.require(*Rails.groups)
 
-module SampleApp
-  class Application < Rails::Application
-    # config.load_defaults 5.2
-  end
-end
+ENV['RAILS_ENV'] = 'production'
 
 class Rails::Application::Configuration
   def database_configuration
     {
-      'development' => {
-        'development' => {
+        'production' => {
           adapter: 'postgresql',
           timeout: 5000,
           database: ENV.fetch('TEST_POSTGRES_DB', 'postgres'),
@@ -26,10 +20,17 @@ class Rails::Application::Configuration
 
           pool: 30
         }
-      }
     }
   end
 end
+
+Bundler.require(*Rails.groups)
+
+module SampleApp
+  class Application < Rails::Application; end
+end
+
+ActiveRecord::Base.configurations = Rails.application.config.database_configuration
 
 Rails.application.configure do
   config.cache_classes = true
@@ -38,6 +39,7 @@ Rails.application.configure do
 end
 
 Rails.application.initialize!
+ActiveRecord::Base.connection_config
 
 ActiveRecord::Schema.define do
   drop_table(:samples) if connection.table_exists?(:samples)
