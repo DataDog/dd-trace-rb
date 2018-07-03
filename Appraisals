@@ -95,7 +95,7 @@ if RUBY_VERSION < '2.4.0' && RUBY_PLATFORM != 'java'
     end
 
     appraise 'rails5-postgres-sidekiq' do
-      gem 'rails', '5.1.5'
+      gem 'rails', '5.0.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sidekiq'
       gem 'activejob'

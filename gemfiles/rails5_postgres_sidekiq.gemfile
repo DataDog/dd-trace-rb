@@ -5,7 +5,7 @@ source "https://rubygems.org"
 gem "pry-nav", git: "https://github.com/nixme/pry-nav.git", branch: "master"
 gem "sidekiq"
 gem "concurrent-ruby"
-gem "rails", "5.1.5"
+gem "rails", "5.0.1"
 gem "pg", "< 1.0", platform: :ruby
 gem "activejob"
 
