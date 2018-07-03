@@ -76,7 +76,7 @@ class HardWorker
   def perform(name, count)
     self.class.num.increment
     Sample.create!(name: name).save
-    Sample.last
+    Sample.last(100).each { |s| s.name }
   end
 end
 
