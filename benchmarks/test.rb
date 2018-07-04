@@ -76,7 +76,12 @@ class HardWorker
   def perform(name, count)
     self.class.num.increment
     Sample.create!(name: name).save
-    Sample.last(100).each { |s| s.name }
+
+    100.times do
+      Sample.last.name
+    end
+
+    Sample.last(100).to_a
   end
 end
 
@@ -138,13 +143,11 @@ options[:queues] << 'default'
 options[:concurrency] = 20
 options[:timeout] = 2
 
-num = 10000
+num = 5000
 
 num.times do |i|
   HardWorker.perform_async('bob'.freeze, i)
 end
-
-
 
 # RubyProf.start
 
