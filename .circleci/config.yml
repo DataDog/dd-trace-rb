@@ -379,6 +379,24 @@ jobs:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}'
       - *step_run_all_tests
+  benchmark-2.3:
+    <<: *job_defaults
+    docker:
+      - <<: *container-2_3
+        environment:
+          - TEST_DATADOG_INTEGRATION: 1
+      - *container_postgres
+      - *container_agent
+    steps:
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}'
+      - run:
+          name: Run Benchmark
+          command: bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
   checkout-2.4:
     <<: *job_defaults
     docker:
@@ -499,6 +517,10 @@ workflows:
           requires:
             - checkout-2.3
       - test-2.3:
+          <<: *filters_all_branches_and_tags
+          requires:
+            - build-2.3
+      - benchmark-2.3:
           <<: *filters_all_branches_and_tags
           requires:
             - build-2.3
