@@ -1,12 +1,21 @@
 # rubocop:disable all
+ENV['RAILS_ENV'] = 'production'
+
 require 'bundler/setup'
 require 'rails/all'
 Bundler.require(*Rails.groups)
 
-class SampleApplication < Rails::Application; end
+module SampleApp
+  class Application < Rails::Application; end
+end
 
-class Rails::Application::Configuration
+module OverrideConfiguration
+  def paths
+    super.tap { |path| path.add 'config/database', with: 'benchmarks/postgres_database.yml' }
+  end
+
   def database_configuration
+    puts super['production']
     {
         'production' => {
             adapter: 'postgresql',
@@ -20,8 +29,11 @@ class Rails::Application::Configuration
             pool: 30
         }
     }
+    super
   end
 end
+
+Rails::Application::Configuration.prepend(OverrideConfiguration)
 
 Rails.application.configure do
   config.cache_classes = true
@@ -29,8 +41,10 @@ Rails.application.configure do
   config.active_job.queue_adapter = :sidekiq
 end
 
-Rails.application.initialize!
 ActiveRecord::Base.configurations = Rails.application.config.database_configuration
+Rails.application.initialize!
+# ActiveRecord::Base.connection_config
+
 
 ActiveRecord::Schema.define do
   drop_table(:samples) if connection.table_exists?(:samples)
@@ -52,7 +66,7 @@ Sidekiq.configure_server do |config|
   config.redis = ConnectionPool.new(size: 27, timeout: 3, &redis_conn)
 end
 
-Sidekiq.options.tap do |options|
+options = Sidekiq.options.tap do |options|
   options[:tag] = 'test'
   options[:queues] << 'default'
   options[:concurrency] = 20
@@ -112,7 +126,7 @@ def time
   Process.clock_gettime(Process::CLOCK_MONOTONIC)
 end
 
-def launch(iterations)
+def launch(iterations, options)
   iterations.times do |i|
     Worker.perform_async(i, iterations)
   end
@@ -124,15 +138,17 @@ end
 def wait_and_measure(iterations)
   start = time
 
-  STDERR.puts "#{time-start}, #{memory}"
+  STDERR.puts "#{time-start}, #{current_memory}"
 
   mutex = Mutex.new
 
   while Worker.iterations.value < iterations
-    Worker.conditional_variable.wait(mutex, 1)
-    STDERR.puts "#{time-start}, #{current_memory}"
+    mutex.synchronize do
+      Worker.conditional_variable.wait(mutex, 1)
+      STDERR.puts "#{time-start}, #{current_memory}"
+    end
   end
 end
 
-launch(10000)
-wait_and_measure(10000)
+launch(1000, options)
+wait_and_measure(1000)
