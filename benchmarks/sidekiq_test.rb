@@ -13,24 +13,6 @@ module OverrideConfiguration
   def paths
     super.tap { |path| path.add 'config/database', with: 'benchmarks/postgres_database.yml' }
   end
-
-  def database_configuration
-    puts super['production']
-    {
-        'production' => {
-            adapter: 'postgresql',
-            timeout: 5000,
-            database: ENV.fetch('TEST_POSTGRES_DB', 'postgres'),
-            host: ENV.fetch('TEST_POSTGRES_HOST', '127.0.0.1'),
-            port: ENV.fetch('TEST_POSTGRES_PORT', 5432),
-            username: ENV.fetch('TEST_POSTGRES_USER', 'postgres'),
-            password: ENV.fetch('TEST_POSTGRES_PASSWORD', 'postgres'),
-
-            pool: 30
-        }
-    }
-    super
-  end
 end
 
 Rails::Application::Configuration.prepend(OverrideConfiguration)
