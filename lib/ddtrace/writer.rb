@@ -94,12 +94,10 @@ module Datadog
       # This check ensures that if a process doesn't own the current +Writer+, async workers
       # will be initialized again (but only once for each process).
       pid = Process.pid
-      if pid != @pid
+      if pid != @pid # avoid using Mutex when pids are equal
         @mutex_after_fork.synchronize do
-          if pid != @pid
-            # we should start threads because the worker doesn't own this
-            start()
-          end
+          # we should start threads because the worker doesn't own this
+          start if pid != @pid
         end
       end
 
