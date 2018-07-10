@@ -1,0 +1,138 @@
+# rubocop:disable all
+require 'bundler/setup'
+require 'rails/all'
+Bundler.require(*Rails.groups)
+
+class SampleApplication < Rails::Application; end
+
+class Rails::Application::Configuration
+  def database_configuration
+    {
+        'production' => {
+            adapter: 'postgresql',
+            timeout: 5000,
+            database: ENV.fetch('TEST_POSTGRES_DB', 'postgres'),
+            host: ENV.fetch('TEST_POSTGRES_HOST', '127.0.0.1'),
+            port: ENV.fetch('TEST_POSTGRES_PORT', 5432),
+            username: ENV.fetch('TEST_POSTGRES_USER', 'postgres'),
+            password: ENV.fetch('TEST_POSTGRES_PASSWORD', 'postgres'),
+
+            pool: 30
+        }
+    }
+  end
+end
+
+Rails.application.configure do
+  config.cache_classes = true
+  config.eager_load = true
+  config.active_job.queue_adapter = :sidekiq
+end
+
+Rails.application.initialize!
+ActiveRecord::Base.configurations = Rails.application.config.database_configuration
+
+ActiveRecord::Schema.define do
+  drop_table(:samples) if connection.table_exists?(:samples)
+
+  create_table :samples do |t|
+    t.string :name
+    t.timestamps
+  end
+end
+
+class Sample < ActiveRecord::Base; end
+
+require 'sidekiq/launcher'
+require 'sidekiq/cli'
+require 'concurrent/atomic/atomic_fixnum'
+
+Sidekiq.configure_server do |config|
+  redis_conn = proc { Redis.new(host: 'localhost', port: 6379) }
+  config.redis = ConnectionPool.new(size: 27, timeout: 3, &redis_conn)
+end
+
+Sidekiq.options.tap do |options|
+  options[:tag] = 'test'
+  options[:queues] << 'default'
+  options[:concurrency] = 20
+  options[:timeout] = 2
+end
+
+class Worker
+  class << self
+    attr_reader :iterations, :conditional_variable
+  end
+
+  @iterations = Concurrent::AtomicFixnum.new(0)
+  @conditional_variable = ConditionVariable.new
+
+  include Sidekiq::Worker
+  def perform(iter, max_iterations)
+    self.class.iterations.increment
+    self.class.conditional_variable.broadcast if self.class.iterations.value > max_iterations
+
+    Sample.create!(name: iter.to_s).save
+
+    100.times do
+      Sample.last.name
+    end
+
+    Sample.last(100).to_a
+  end
+end
+
+if Datadog.respond_to?(:configure)
+  Datadog.configure do |d|
+    d.use :rails,
+          enabled: true,
+          auto_instrument_redis: true,
+          auto_instrument: true,
+          tags: { 'tag' => 'value' }
+
+    d.use :http
+    d.use :sidekiq, service_name: 'service'
+    d.use :redis
+    d.use :dalli
+    d.use :resque, workers: [Worker]
+
+    processor = Datadog::Pipeline::SpanProcessor.new do |span|
+      true if span.service == 'B'
+    end
+
+    Datadog::Pipeline.before_flush(processor)
+  end
+end
+
+def current_memory
+  `ps -o rss #{$$}`.split("\n")[1].to_f/1024
+end
+
+def time
+  Process.clock_gettime(Process::CLOCK_MONOTONIC)
+end
+
+def launch(iterations)
+  iterations.times do |i|
+    Worker.perform_async(i, iterations)
+  end
+
+  launcher = Sidekiq::Launcher.new(options)
+  launcher.run
+end
+
+def wait_and_measure(iterations)
+  start = time
+
+  STDERR.puts "#{time-start}, #{memory}"
+
+  mutex = Mutex.new
+
+  while Worker.iterations.value < iterations
+    Worker.conditional_variable.wait(mutex, 1)
+    STDERR.puts "#{time-start}, #{current_memory}"
+  end
+end
+
+launch(10000)
+wait_and_measure(10000)
