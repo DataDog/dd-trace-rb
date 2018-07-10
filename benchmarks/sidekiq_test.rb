@@ -25,8 +25,6 @@ end
 
 ActiveRecord::Base.configurations = Rails.application.config.database_configuration
 Rails.application.initialize!
-# ActiveRecord::Base.connection_config
-
 
 ActiveRecord::Schema.define do
   drop_table(:samples) if connection.table_exists?(:samples)
