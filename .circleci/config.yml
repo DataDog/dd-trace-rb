@@ -386,6 +386,7 @@ jobs:
         environment:
           - TEST_DATADOG_INTEGRATION: 1
       - *container_postgres
+      - *container_redis
       - *container_agent
     steps:
       - restore_cache:
