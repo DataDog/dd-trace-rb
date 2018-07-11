@@ -4,15 +4,10 @@ require 'restclient/request'
 
 RSpec.describe Datadog::Contrib::RestClient::Patcher do
   describe '.patch' do
-    let(:rest_client_request_class) { class_double('RestClient::Request').as_stubbed_const }
-
-    before do
-      described_class.undo(:rest_client)
-    end
-
     it 'adds RequestPatch to ancestors of Request class' do
-      expect { described_class.patch }
-        .to change { rest_client_request_class.ancestors }.to include(Datadog::Contrib::RestClient::RequestPatch)
+      described_class.patch
+
+      expect(RestClient::Request.ancestors).to include(Datadog::Contrib::RestClient::RequestPatch)
     end
   end
 end
