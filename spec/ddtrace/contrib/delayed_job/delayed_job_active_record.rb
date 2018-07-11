@@ -1,5 +1,5 @@
 RSpec.configure do |c|
-  c.around do |example|
+  c.around :delayed_job_active_record do |example|
     ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
     ActiveRecord::Schema.define(version: 2018_05_25_114131) do
       create_table 'delayed_jobs', force: :cascade do |t|
