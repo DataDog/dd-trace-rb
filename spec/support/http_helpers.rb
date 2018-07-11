@@ -27,13 +27,13 @@ module HttpHelpers
   end
 
   def wait_http_server(server, delay)
-    SynchronizationHelpers.try_wait_until(attempts: delay, backoff: 1) do
+    SynchronizationHelpers.try_wait_until(attempts: delay, backoff: 1) do |attempts_left|
       uri = URI(server + '/')
       begin
         res = Net::HTTP.get_response(uri)
         return true if res.code == '200'
       rescue StandardError => e
-        puts e if i >= 3 # display errors only when failing repeatedly
+        Datadog::Tracer.log.error("Failed waiting for http server #{e.message}") if attempts_left < 5
       end
     end
   end
