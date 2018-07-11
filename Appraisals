@@ -72,13 +72,13 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-test', '0.7.0'
       gem 'rake', '< 12.3'
       gem 'redis', '< 4.0'
+      gem 'rest-client'
       gem 'resque', '< 2.0'
       gem 'sequel', '~> 4.0', '< 4.37'
       gem 'sidekiq', '4.0.0'
       gem 'sinatra', '1.4.5'
       gem 'sqlite3'
       gem 'sucker_punch'
-      gem 'rest-client'
     end
   end
 elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -153,13 +153,13 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-test', '0.7.0'
       gem 'rake', '< 12.3'
       gem 'redis', '< 4.0'
+      gem 'rest-client'
       gem 'resque', '< 2.0'
       gem 'sequel', '~> 4.0', '< 4.37'
       gem 'sidekiq', '4.0.0'
       gem 'sinatra', '1.4.5'
       gem 'sqlite3'
       gem 'sucker_punch'
-      gem 'rest-client'
     end
   end
 elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -254,13 +254,13 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-test', '0.7.0'
       gem 'rake', '< 12.3'
       gem 'redis', '< 4.0'
+      gem 'rest-client'
       gem 'resque', '< 2.0'
       gem 'sequel', '~> 4.0', '< 4.37'
       gem 'sidekiq', '4.0.0'
       gem 'sinatra', '1.4.5'
       gem 'sqlite3'
       gem 'sucker_punch'
-      gem 'rest-client'
     end
   end
 elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -389,13 +389,13 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
+      gem 'rest-client'
       gem 'resque', '< 2.0'
       gem 'sequel'
       gem 'sidekiq'
       gem 'sinatra'
       gem 'sqlite3'
       gem 'sucker_punch'
-      gem 'rest-client'
     end
   end
 elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -524,13 +524,13 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
+      gem 'rest-client'
       gem 'resque', '< 2.0'
       gem 'sequel'
       gem 'sidekiq'
       gem 'sinatra'
       gem 'sqlite3'
       gem 'sucker_punch'
-      gem 'rest-client'
     end
   end
 elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
@@ -553,13 +553,13 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
+      gem 'rest-client'
       gem 'resque', '< 2.0'
       gem 'sequel'
       gem 'sidekiq'
       gem 'sinatra'
       gem 'sqlite3'
       gem 'sucker_punch'
-      gem 'rest-client'
     end
   end
 end
