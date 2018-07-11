@@ -1,5 +1,6 @@
 require 'time'
 require 'net/http'
+require 'spec/support/synchronization_helpers'
 
 module HttpHelpers
   def mock_http_request(options = {})
@@ -26,7 +27,7 @@ module HttpHelpers
   end
 
   def wait_http_server(server, delay)
-    delay.times do |i|
+    SynchronizationHelpers.try_wait_until(attempts: delay, backoff: 1) do
       uri = URI(server + '/')
       begin
         res = Net::HTTP.get_response(uri)
@@ -34,8 +35,6 @@ module HttpHelpers
       rescue StandardError => e
         puts e if i >= 3 # display errors only when failing repeatedly
       end
-      sleep 1
     end
-    false
   end
 end

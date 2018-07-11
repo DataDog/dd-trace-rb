@@ -17,4 +17,8 @@ module SynchronizationHelpers
     return 300 if RUBY_PLATFORM == 'java'
     30
   end
+
+  class << self
+    include SynchronizationHelpers
+  end
 end
