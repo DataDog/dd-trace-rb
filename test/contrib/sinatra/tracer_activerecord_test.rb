@@ -66,6 +66,7 @@ class TracerActiveRecordTest < TracerTestBase
     end
   end
 
+  # rubocop:disable Metrics/AbcSize
   def test_request
     post '/request'
     assert_equal(200, last_response.status)
@@ -86,8 +87,8 @@ class TracerActiveRecordTest < TracerTestBase
     assert_equal('SELECT 42', sqlite_span.resource)
     assert_equal(adapter_name, sqlite_span.get_tag('active_record.db.vendor'))
     assert_equal(database_name, sqlite_span.get_tag('active_record.db.name'))
-    assert_equal(adapter_host.to_s, sqlite_span.get_tag('out.host'))
-    assert_equal(adapter_port.to_s, sqlite_span.get_tag('out.port'))
+    assert_equal(adapter_host.to_s, sqlite_span.get_tag('out.host')) unless adapter_host.nil?
+    assert_equal(adapter_port.to_s, sqlite_span.get_tag('out.port')) unless adapter_port.nil?
     assert_equal(Datadog::Ext::SQL::TYPE, sqlite_span.span_type)
     assert_equal(0, sqlite_span.status)
     assert_equal(sinatra_span, sqlite_span.parent)

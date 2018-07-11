@@ -39,6 +39,10 @@ namespace :spec do
     t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'
   end
 
+  RSpec::Core::RakeTask.new(:contrib) do |t|
+    t.pattern = 'spec/**/contrib/{configurable,integration,patchable,patcher,registerable,configuration/*}_spec.rb'
+  end
+
   [
     :active_model_serializers,
     :active_record,
@@ -145,7 +149,7 @@ end
 
 if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
   RuboCop::RakeTask.new(:rubocop) do |t|
-    t.options << ['-D']
+    t.options << ['-D', '--force-exclusion']
     t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'spec/**/*.rb', 'Gemfile', 'Rakefile']
   end
 end
@@ -209,6 +213,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -251,6 +256,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -296,6 +302,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -347,6 +354,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -409,6 +417,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -470,6 +479,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests

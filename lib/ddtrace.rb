@@ -55,10 +55,11 @@ module Datadog
 end
 
 require 'ddtrace/contrib/base'
+require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/rack/patcher'
 require 'ddtrace/contrib/rails/patcher'
 require 'ddtrace/contrib/active_model_serializers/patcher'
-require 'ddtrace/contrib/active_record/patcher'
+require 'ddtrace/contrib/active_record/integration'
 require 'ddtrace/contrib/sequel/patcher'
 require 'ddtrace/contrib/elasticsearch/patcher'
 require 'ddtrace/contrib/faraday/patcher'

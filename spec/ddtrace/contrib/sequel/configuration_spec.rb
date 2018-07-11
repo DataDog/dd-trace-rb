@@ -11,7 +11,7 @@ RSpec.describe 'Sequel configuration' do
   let(:span) { spans.first }
 
   before(:each) do
-    skip unless Datadog::Contrib::Sequel::Patcher.compatible?
+    skip unless Datadog::Contrib::Sequel::Integration.compatible?
   end
 
   describe 'for a SQLite database' do
