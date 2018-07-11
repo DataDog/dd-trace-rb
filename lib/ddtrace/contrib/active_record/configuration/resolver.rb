@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/configuration/resolver'
-require 'ddtrace/contrib/active_record/configuration/connection_specification'
+require 'ddtrace/vendor/active_record/connection_specification'
 
 module Datadog
   module Contrib
@@ -20,7 +20,7 @@ module Datadog
               if defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
                 ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(configurations)
               else
-                ConnectionSpecification::Resolver.new(configurations)
+                ::Datadog::Vendor::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(configurations)
               end
             end
           end

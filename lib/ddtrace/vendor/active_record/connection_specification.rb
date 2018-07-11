@@ -5,17 +5,17 @@ require 'uri'
 #       It exists here only because it doesn't exist in Rails 3.2.
 #       When support for Rails 3.2 is dropped, this can be removed.
 module Datadog
-  module Contrib
+  module Vendor
     module ActiveRecord
-      module Configuration
-        # Copy/paste from:
-        # https://github.com/rails/rails/blob/5-2-stable/activerecord/lib/active_record/connection_handling.rb
-        module ConnectionHandling
-          RAILS_ENV = -> { (Rails.env if defined?(Rails) && defined?(Rails.env)) || ENV["RAILS_ENV"].presence || ENV["RACK_ENV"].presence }
-        end
+      # Copy/paste from:
+      # https://github.com/rails/rails/blob/5-2-stable/activerecord/lib/active_record/connection_handling.rb
+      module ConnectionHandling
+        RAILS_ENV = -> { (Rails.env if defined?(Rails) && defined?(Rails.env)) || ENV["RAILS_ENV"].presence || ENV["RACK_ENV"].presence }
+      end
 
-        # Copy/paste from:
-        # https://github.com/rails/rails/blob/5-2-stable/activerecord/lib/active_record/connection_adapters/connection_specification.rb
+      # Copy/paste from:
+      # https://github.com/rails/rails/blob/5-2-stable/activerecord/lib/active_record/connection_adapters/connection_specification.rb
+      module ConnectionAdapters
         class ConnectionSpecification
           attr_reader :name, :config, :adapter_method
 
