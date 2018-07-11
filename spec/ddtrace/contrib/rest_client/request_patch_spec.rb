@@ -2,6 +2,7 @@ require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/contrib/rest_client/request_patch'
 require 'rest_client'
+require 'restclient/request'
 
 RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
   let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }

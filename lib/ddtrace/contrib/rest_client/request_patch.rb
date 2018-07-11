@@ -95,7 +95,7 @@ module Datadog
 
               Datadog::Pin.new(
                 service,
-                app: Patcher::NAME,
+                app: Configuration::Settings::NAME,
                 app_type: Datadog::Ext::AppTypes::WEB,
                 tracer: tracer
               )
