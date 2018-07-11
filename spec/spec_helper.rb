@@ -25,7 +25,7 @@ WebMock.disable!
 
 RSpec.configure do |config|
   config.include TracerHelpers
-  # config.include RailsActiveRecordHelpers
+  config.include HttpHelpers
   config.include ConfigurationHelpers
   config.include SynchronizationHelpers
   config.include LogHelpers
