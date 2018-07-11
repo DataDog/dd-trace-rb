@@ -106,13 +106,13 @@ module Datadog
 
       private
 
-      def flush_data
-        callback_traces && callback_services
-      end
+      alias flush_data callback_traces
 
       def perform
         loop do
           @back_off = flush_data ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
+
+          callback_services
 
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty? && @service_buffer.empty?
