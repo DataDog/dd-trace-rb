@@ -7,7 +7,7 @@ module Datadog
   class Writer
     attr_reader :transport, :worker, :priority_sampler
 
-    HOSTNAME = 'localhost'.freeze
+    HOSTNAME = '127.0.0.1'.freeze
     PORT = '8126'.freeze
 
     def initialize(options = {})
