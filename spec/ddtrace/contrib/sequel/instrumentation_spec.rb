@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'time'
 require 'sequel'
 require 'ddtrace'
-require 'ddtrace/contrib/sequel/patcher'
+require 'ddtrace/contrib/sequel/integration'
 
 RSpec.describe 'Sequel instrumentation' do
   let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
@@ -17,7 +17,7 @@ RSpec.describe 'Sequel instrumentation' do
   let(:spans) { tracer.writer.spans }
 
   before(:each) do
-    skip unless Datadog::Contrib::Sequel::Patcher.compatible?
+    skip('Sequel not compatible.') unless Datadog::Contrib::Sequel::Integration.compatible?
 
     # Reset options (that might linger from other tests)
     Datadog.configuration[:sequel].reset_options!
