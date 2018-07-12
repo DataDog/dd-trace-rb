@@ -27,8 +27,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
     subject(:request) { RestClient.get(url) }
 
     before do
-      stub_request(:get, url)
-        .to_return(status: status, body: response)
+      stub_request(:get, url).to_return(status: status, body: response)
     end
 
     shared_examples_for 'instrumented request' do
@@ -115,53 +114,6 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           it 'error is not set' do
             expect(span.get_tag(Datadog::Ext::Errors::MSG)).to be_nil
           end
-        end
-      end
-    end
-
-    context 'custom request span tag' do
-      let(:tag_value) { 'custom_tag_value' }
-      let(:tags) { { custom_tag_name: tag_value } }
-
-      subject(:request) do
-        RestClient.get(url) do |response, request|
-          Datadog.configure(request, tags: tags)
-
-          response.return!
-        end
-      end
-
-      it_behaves_like 'instrumented request'
-
-      describe 'custom span' do
-        subject(:custom_span) { tracer.writer.spans.first }
-
-        before { request }
-
-        it 'has tag with tag_value' do
-          expect(custom_span.get_tag(:custom_tag_name)).to eq(tag_value)
-        end
-      end
-    end
-
-    context 'custom request span service' do
-      let(:service_name) { 'custom_service_name' }
-
-      subject(:request) do
-        RestClient.get(url) do |response, request|
-          Datadog.configure(request, service_name: service_name)
-
-          response.return!
-        end
-      end
-
-      describe 'custom span' do
-        subject(:custom_span) { tracer.writer.spans.first }
-
-        before { request }
-
-        it 'has tag with tag_value' do
-          expect(custom_span.service).to eq(service_name)
         end
       end
     end

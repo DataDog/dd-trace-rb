@@ -33,9 +33,11 @@ module Datadog
           include InstanceMethodsCompatibility unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
 
           def execute(&block)
-            return super(&block) unless datadog_tracer.enabled
+            uri = URI.parse(url)
 
-            datadog_trace_request do |span|
+            return super(&block) unless datadog_configuration[:tracer].enabled
+
+            datadog_trace_request(uri) do |span|
               if datadog_configuration[:distributed_tracing]
                 Datadog::HTTPPropagator.inject!(span.context, processed_headers)
               end
@@ -44,8 +46,7 @@ module Datadog
             end
           end
 
-          def datadog_tag_request(span)
-            uri = URI.parse(url)
+          def datadog_tag_request(uri, span)
             span.resource = method.to_s.upcase
             span.set_tag(Ext::HTTP::URL, uri.path)
             span.set_tag(Ext::HTTP::METHOD, method.to_s.upcase)
@@ -53,23 +54,14 @@ module Datadog
             span.set_tag(Ext::NET::TARGET_PORT, uri.port)
           end
 
-          def datadog_configure_span_from_pin(span)
-            span.service = datadog_pin.service
-            span.name = datadog_pin.name if datadog_pin.name
-            span.span_type = datadog_pin.app_type
+          def datadog_trace_request(uri)
+            span = datadog_configuration[:tracer].trace(REQUEST_TRACE_NAME,
+                                                        service: datadog_configuration[:service_name],
+                                                        span_type: Datadog::Ext::AppTypes::WEB)
 
-            datadog_pin.tags && datadog_pin.tags.each do |k, v|
-              span.set_tag(k, v)
-            end
-          end
+            datadog_tag_request(uri, span)
 
-          def datadog_trace_request
-            span = datadog_tracer.trace(REQUEST_TRACE_NAME)
-            datadog_tag_request(span)
-
-            response = yield span
-
-            datadog_configure_span_from_pin(span)
+            response = yield(span)
 
             span.set_tag(Ext::HTTP::STATUS_CODE, response.code)
             response
@@ -86,24 +78,6 @@ module Datadog
             raise e
           ensure
             span.finish
-          end
-
-          def datadog_pin
-            @datadog_pin ||= begin
-              service = datadog_configuration[:service_name]
-              tracer = datadog_configuration[:tracer]
-
-              Datadog::Pin.new(
-                service,
-                app: Configuration::Settings::NAME,
-                app_type: Datadog::Ext::AppTypes::WEB,
-                tracer: tracer
-              )
-            end
-          end
-
-          def datadog_tracer
-            datadog_configuration[:tracer]
           end
 
           def datadog_configuration
