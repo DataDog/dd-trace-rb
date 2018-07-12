@@ -1,7 +1,5 @@
-require('helper')
-require('minitest')
-require('minitest/autorun')
-class UtilsTest < Minitest::Test
+require('spec_helper')
+RSpec.describe Datadog::Utils do
   it('rand multithread') do
     n = 100
     mutex = Mutex.new
@@ -9,7 +7,7 @@ class UtilsTest < Minitest::Test
     threads = []
     n.times do |_i|
       thread = Thread.new do
-        r = Datadog::Utils.next_id
+        r = described_class.next_id
         mutex.synchronize { @numbers[r] = true }
       end
       mutex.synchronize { (threads << thread) }
@@ -33,28 +31,28 @@ class UtilsTest < Minitest::Test
     r, w = IO.pipe
     fork do
       r.close
-      w.write(Datadog::Utils.next_id)
+      w.write(described_class.next_id)
       w.close
     end
     w.close
     Process.wait
-    expect(r.read.chomp.to_i).to_not(eq(Datadog::Utils.next_id))
+    expect(r.read.chomp.to_i).to_not(eq(described_class.next_id))
     r.close
   end
   it('utf8 encoding happy path') do
     str = 'pristine U+FFE2'.encode(Encoding::UTF_8)
-    expect(Datadog::Utils.utf8_encode(str)).to(eq('pristine U+FFE2'))
-    expect(Datadog::Utils.utf8_encode(str).encoding).to(eq(::Encoding::UTF_8))
-    assert_same(str, Datadog::Utils.utf8_encode(str))
+    expect(described_class.utf8_encode(str)).to(eq('pristine U+FFE2'))
+    expect(described_class.utf8_encode(str).encoding).to(eq(::Encoding::UTF_8))
+    expect(described_class.utf8_encode(str)).to eq(str)
   end
   it('utf8 encoding invalid conversion') do
     time_bomb = "\xC2".force_encoding(::Encoding::ASCII_8BIT)
     expect { time_bomb.encode(Encoding::UTF_8) }.to(raise_error(Encoding::UndefinedConversionError))
-    expect(Datadog::Utils.utf8_encode(time_bomb)).to(eq(Datadog::Utils::STRING_PLACEHOLDER))
-    expect(Datadog::Utils.utf8_encode(time_bomb, placeholder: '?')).to(eq('?'))
+    expect(described_class.utf8_encode(time_bomb)).to(eq(described_class::STRING_PLACEHOLDER))
+    expect(described_class.utf8_encode(time_bomb, placeholder: '?')).to(eq('?'))
   end
   it('binary data') do
     byte_array = "keep what\xC2 is valid".force_encoding(::Encoding::ASCII_8BIT)
-    expect(Datadog::Utils.utf8_encode(byte_array, binary: true)).to(eq('keep what is valid'))
+    expect(described_class.utf8_encode(byte_array, binary: true)).to(eq('keep what is valid'))
   end
 end
