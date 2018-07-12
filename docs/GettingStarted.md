@@ -162,6 +162,7 @@ And `options` is an optional `Hash` that accepts the following parameters:
 | ``child_of``    | `Datadog::Span` / `Datadog::Context` | Parent for this span. If not provided, will automatically become current active span. | `nil` |
 | ``start_time``  | `Integer` | When the span actually starts. Useful when tracing events that have already happened. | `Time.now.utc` |
 | ``tags``        | `Hash` | Extra tags which should be added to the span. | `{}` |
+| ``on_error``    | `Proc` | Handler invoked when a block is provided to trace, and it raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
 It's highly recommended you set both `service` and `resource` at a minimum. Spans without a `service` or `resource` as `nil` will be discarded by the Datadog agent.
 
