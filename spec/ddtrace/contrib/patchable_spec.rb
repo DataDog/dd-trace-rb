@@ -11,10 +11,42 @@ RSpec.describe Datadog::Contrib::Patchable do
     end
 
     describe 'class behavior' do
+      describe '#version' do
+        subject(:compatible) { patchable_class.version }
+        it { is_expected.to be nil }
+      end
+
+      describe '#present?' do
+        subject(:compatible) { patchable_class.present? }
+
+        context 'when version' do
+          context 'is defined' do
+            let(:version) { double('version') }
+            before(:each) { allow(patchable_class).to receive(:version).and_return(version) }
+            it { is_expected.to be true }
+          end
+
+          context 'is not defined' do
+            it { is_expected.to be false }
+          end
+        end
+      end
+
       describe '#compatible?' do
         subject(:compatible) { patchable_class.compatible? }
         let(:expected_compatibility) { RUBY_VERSION >= '1.9.3' ? true : false }
-        it { is_expected.to be expected_compatibility }
+
+        context 'when version' do
+          context 'is defined' do
+            let(:version) { double('version') }
+            before(:each) { allow(patchable_class).to receive(:version).and_return(version) }
+            it { is_expected.to be expected_compatibility }
+          end
+
+          context 'is not defined' do
+            it { is_expected.to be false }
+          end
+        end
       end
     end
 
