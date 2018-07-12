@@ -15,19 +15,21 @@ module Datadog
           def invoke(*args)
             return super unless enabled?
 
-            tracer.trace(SPAN_NAME_INVOKE) do |span|
+            tracer.trace(SPAN_NAME_INVOKE, span_options) do |span|
               super
               annotate_invoke!(span, args)
             end
+            tracer.shutdown! if tracer.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)
           end
 
           def execute(args = nil)
             return super unless enabled?
 
-            tracer.trace(SPAN_NAME_EXECUTE) do |span|
+            tracer.trace(SPAN_NAME_EXECUTE, span_options) do |span|
               super
               annotate_execute!(span, args)
             end
+            tracer.shutdown! if tracer.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)
           end
 
           private
@@ -48,7 +50,7 @@ module Datadog
           end
 
           def quantize_args(args)
-            quantize_options = Datadog.configuration[:rake][:quantize][:args]
+            quantize_options = configuration[:quantize][:args]
             Datadog::Quantization::Hash.format(args, quantize_options)
           end
 
@@ -58,6 +60,10 @@ module Datadog
 
           def tracer
             configuration[:tracer]
+          end
+
+          def span_options
+            { service: configuration[:service_name] }
           end
 
           def configuration
