@@ -1,0 +1,47 @@
+require_relative('helpers')
+class ResourceNameTest < Minitest::Test
+  include(Rack::Test::Methods)
+  attr_reader(:app)
+  before do
+    @previous_configuration = Datadog.configuration[:rack].to_h
+    @tracer = get_test_tracer
+    @app = Rack::Builder.new do
+      use(Datadog::Contrib::Rack::TraceMiddleware)
+      use(AuthMiddleware)
+      run(BottomMiddleware.new)
+    end.to_app
+    remove_patch!(:rack)
+    Datadog.registry[:rack].instance_variable_set('@middleware_patched', false)
+    Datadog.configuration.use(:rack, middleware_names: true, tracer: @tracer, application: @app)
+  end
+  after { Datadog.configuration.use(:rack, @previous_configuration) }
+  it('resource name full chain') do
+    get('/', {}, 'HTTP_AUTH_TOKEN' => '1234')
+    spans = @tracer.writer.spans
+    expect(last_response.ok?).to(eq(true))
+    expect(spans.length).to(eq(1))
+    expect(spans[0].resource).to(match(/BottomMiddleware#GET/))
+  end
+  it('resource name short circuited request') do
+    get('/', {}, 'HTTP_AUTH_TOKEN' => 'Wrong')
+    spans = @tracer.writer.spans
+    expect(last_response.ok?).to(eq(false))
+    expect(spans.length).to(eq(1))
+    expect(spans[0].resource).to(match(/AuthMiddleware#GET/))
+  end
+  class AuthMiddleware
+    def initialize(app)
+      @app = app
+    end
+
+    def call(env)
+      return [401, {}, []] if env['HTTP_AUTH_TOKEN'] != '1234'
+      @app.call(env)
+    end
+  end
+  class BottomMiddleware
+    def call(_)
+      [200, {}, []]
+    end
+  end
+end
