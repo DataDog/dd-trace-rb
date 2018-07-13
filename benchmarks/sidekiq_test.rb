@@ -42,7 +42,12 @@ require 'sidekiq/cli'
 require 'concurrent/atomic/atomic_fixnum'
 
 Sidekiq.configure_server do |config|
-  redis_conn = proc { Redis.new(host: 'localhost', port: 6379) }
+  redis_conn = proc do
+    Redis.new(
+        host: ENV.fetch('TEST_REDIS_HOST', '127.0.0.1'),
+              port: ENV.fetch('TEST_REDIS_PORT', 6379)
+    )
+  end
   config.redis = ConnectionPool.new(size: 27, timeout: 3, &redis_conn)
 end
 
