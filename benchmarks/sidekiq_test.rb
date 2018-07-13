@@ -1,14 +1,37 @@
-# rubocop:disable all
 ENV['RAILS_ENV'] = 'production'
+
+# Benchmark Configuration container
+module TestConfiguration
+  module_function
+
+  def sidekiq
+    Sidekiq.options.tap do |options|
+      options[:tag] = 'test'
+      options[:queues] << 'default'
+      options[:concurrency] = 20
+      options[:timeout] = 2
+    end
+  end
+
+  def redis
+    { pool_size: 30, timeout: 3 }
+  end
+
+  def iteration_count
+    1000
+  end
+end
 
 require 'bundler/setup'
 require 'rails/all'
 Bundler.require(*Rails.groups)
 
+# Example Rails App
 module SampleApp
   class Application < Rails::Application; end
 end
 
+# Overrides rails configueration locations
 module OverrideConfiguration
   def paths
     super.tap { |path| path.add 'config/database', with: 'benchmarks/postgres_database.yml' }
@@ -44,20 +67,16 @@ require 'concurrent/atomic/atomic_fixnum'
 Sidekiq.configure_server do |config|
   redis_conn = proc do
     Redis.new(
-        host: ENV.fetch('TEST_REDIS_HOST', '127.0.0.1'),
-              port: ENV.fetch('TEST_REDIS_PORT', 6379)
+      host: ENV.fetch('TEST_REDIS_HOST', '127.0.0.1'),
+      port: ENV.fetch('TEST_REDIS_PORT', 6379)
     )
   end
-  config.redis = ConnectionPool.new(size: 27, timeout: 3, &redis_conn)
+  config.redis = ConnectionPool.new(size: TestConfiguration.redis[:pool_size],
+                                    timeout: TestConfiguration.redis[:timeout],
+                                    &redis_conn)
 end
 
-options = Sidekiq.options.tap do |options|
-  options[:tag] = 'test'
-  options[:queues] << 'default'
-  options[:concurrency] = 20
-  options[:timeout] = 2
-end
-
+# Simple Sidekiq worker performing the real benchmark
 class Worker
   class << self
     attr_reader :iterations, :conditional_variable
@@ -83,12 +102,7 @@ end
 
 if Datadog.respond_to?(:configure)
   Datadog.configure do |d|
-    d.use :rails,
-          enabled: true,
-          auto_instrument_redis: true,
-          auto_instrument: true,
-          tags: { 'tag' => 'value' }
-
+    d.use :rails, enabled: true, tags: { 'tag' => 'value' }
     d.use :http
     d.use :sidekiq, service_name: 'service'
     d.use :redis
@@ -104,7 +118,7 @@ if Datadog.respond_to?(:configure)
 end
 
 def current_memory
-  `ps -o rss #{$$}`.split("\n")[1].to_f/1024
+  `ps -o rss #{$PROCESS_ID}`.split("\n")[1].to_f / 1024
 end
 
 def time
@@ -123,17 +137,17 @@ end
 def wait_and_measure(iterations)
   start = time
 
-  STDERR.puts "#{time-start}, #{current_memory}"
+  STDERR.puts "#{time - start}, #{current_memory}"
 
   mutex = Mutex.new
 
   while Worker.iterations.value < iterations
     mutex.synchronize do
       Worker.conditional_variable.wait(mutex, 1)
-      STDERR.puts "#{time-start}, #{current_memory}"
+      STDERR.puts "#{time - start}, #{current_memory}"
     end
   end
 end
 
-launch(1000, options)
-wait_and_measure(1000)
+launch(number_of_iterations, TestConfiguration.sidekiq)
+wait_and_measure(TestConfiguration.iteration_count)
