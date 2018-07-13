@@ -43,7 +43,7 @@ module Datadog
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
           # a fatal exception
-          Datadog::Tracer.log.error("Error during traces flush: dropped #{items.length} items. Cause: #{e}")
+          Datadog::Tracer.log.error("Error during traces flush: dropped #{traces.length} items. Cause: #{e}")
         end
       end
 
@@ -58,7 +58,7 @@ module Datadog
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
           # a fatal exception
-          Datadog::Tracer.log.error("Error during services flush: dropped #{items.length} items. Cause: #{e}")
+          Datadog::Tracer.log.error("Error during services flush: dropped #{services.length} items. Cause: #{e}")
         end
       end
 
