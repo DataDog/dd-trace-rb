@@ -277,14 +277,22 @@ module Datadog
     # * +tags+: extra tags which should be added to the span.
     def trace(name, options = {})
       options[:child_of] = call_context
-      span = start_span(name, options)
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
       # a span that should be manually finished.
       if block_given?
+        span = nil
+        return_value = nil
+
         begin
-          yield(span)
+          begin
+            span = start_span(name, options)
+          rescue StandardError => e
+            Datadog::Tracer.log.debug('Failed to start span: #{e}')
+          ensure
+            return_value = yield(span)
+          end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
         # as we really have no clue of what is in the block,
@@ -292,13 +300,15 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          span.set_error(e)
+          span.set_error(e) unless span.nil?
           raise e
         ensure
-          span.finish()
+          span.finish unless span.nil?
         end
+
+        return_value
       else
-        span
+        start_span(name, options)
       end
     end
 
