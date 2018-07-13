@@ -1,10 +1,9 @@
-require('helper')
+require('spec_helper')
 require('minitest')
-require('minitest/autorun')
-class TraceBufferTest < Minitest::Test
+RSpec.describe Datadog::TraceBuffer do
   it('trace buffer thread safety') do
     thread_count = 100
-    buffer = Datadog::TraceBuffer.new(500)
+    buffer = described_class.new(500)
     threads = Array.new(thread_count) do |i|
       Thread.new do
         sleep((rand / 1000))
@@ -18,7 +17,7 @@ class TraceBufferTest < Minitest::Test
     expect(expected).to(eq(out.sort))
   end
   it('trace buffer with limit') do
-    buffer = Datadog::TraceBuffer.new(3)
+    buffer = described_class.new(3)
     buffer.push(1)
     buffer.push(2)
     buffer.push(3)
@@ -28,7 +27,7 @@ class TraceBufferTest < Minitest::Test
     expect(out.include?(4)).to(eq(true))
   end
   it('trace buffer without limit') do
-    buffer = Datadog::TraceBuffer.new(0)
+    buffer = described_class.new(0)
     buffer.push(1)
     buffer.push(2)
     buffer.push(3)
@@ -37,13 +36,13 @@ class TraceBufferTest < Minitest::Test
     expect(4).to(eq(out.length))
   end
   it('trace buffer empty') do
-    buffer = Datadog::TraceBuffer.new(1)
+    buffer = described_class.new(1)
     expect(buffer.empty?).to(eq(true))
     buffer.push(1)
     expect(!buffer.empty?).to(be_truthy)
   end
   it('trace buffer pop') do
-    buffer = Datadog::TraceBuffer.new(0)
+    buffer = described_class.new(0)
     input_traces = get_test_traces(2)
     buffer.push(input_traces[0])
     buffer.push(input_traces[1])
@@ -54,7 +53,7 @@ class TraceBufferTest < Minitest::Test
     assert_includes(output_traces, input_traces[1])
   end
   it('closed trace buffer') do
-    buffer = Datadog::TraceBuffer.new(4)
+    buffer = described_class.new(4)
     buffer.push(1)
     buffer.push(2)
     buffer.push(3)

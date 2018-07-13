@@ -1,9 +1,9 @@
-require('helper')
+require('spec_helper')
 require('ddtrace/span')
-class SpanTest < Minitest::Test
+RSpec.describe Datadog::Span do
   it('span finish') do
     tracer = nil
-    span = Datadog::Span.new(tracer, 'my.op')
+    span = described_class.new(tracer, 'my.op')
     expect(span.start_time).to(be_nil)
     expect(span.end_time).to(be_nil)
     span.finish
@@ -13,7 +13,7 @@ class SpanTest < Minitest::Test
     expect((span.to_hash[:duration] >= 0)).to(be_truthy)
   end
   it('span finish once') do
-    span = Datadog::Span.new(nil, 'span.test')
+    span = described_class.new(nil, 'span.test')
     sleep(0.001)
     span.finish
     end_time = span.end_time
@@ -22,14 +22,14 @@ class SpanTest < Minitest::Test
     expect(end_time).to(eq(span.end_time))
   end
   it('span finish at') do
-    span = Datadog::Span.new(nil, 'span.test')
+    span = described_class.new(nil, 'span.test')
     now = Time.now.utc
     sleep(0.01)
     span.finish(now)
     expect(now).to(eq(span.end_time))
   end
   it('span finish at once') do
-    span = Datadog::Span.new(nil, 'span.test')
+    span = described_class.new(nil, 'span.test')
     now = Time.now.utc
     sleep(0.01)
     span.finish(now)
@@ -37,13 +37,13 @@ class SpanTest < Minitest::Test
     expect(now).to(eq(span.end_time))
   end
   it('span finished') do
-    span = Datadog::Span.new(nil, 'span.test')
+    span = described_class.new(nil, 'span.test')
     expect(!span.finished?).to(be_truthy)
     span.finish
     expect(span.finished?).to(eq(true))
   end
   it('span ids') do
-    span = Datadog::Span.new(nil, 'my.op')
+    span = described_class.new(nil, 'my.op')
     expect(span.span_id).to(be_truthy)
     expect(span.parent_id.zero?).to(eq(true))
     expect((span.trace_id != span.span_id)).to(be_truthy)
@@ -52,15 +52,15 @@ class SpanTest < Minitest::Test
     expect(span.trace_id.nonzero?).to(eq(true))
   end
   it('span with parent') do
-    span = Datadog::Span.new(nil, 'my.op', parent_id: 12, trace_id: 13)
+    span = described_class.new(nil, 'my.op', parent_id: 12, trace_id: 13)
     expect(span.span_id).to(be_truthy)
     expect(12).to(eq(span.parent_id))
     expect(13).to(eq(span.trace_id))
     expect('my.op').to(eq(span.name))
   end
   it('span set parent') do
-    parent = Datadog::Span.new(nil, 'parent.span')
-    child = Datadog::Span.new(nil, 'child.span')
+    parent = described_class.new(nil, 'parent.span')
+    child = described_class.new(nil, 'child.span')
     child.set_parent(parent)
     expect(parent).to(eq(child.parent))
     expect(parent.trace_id).to(eq(child.trace_id))
@@ -69,8 +69,8 @@ class SpanTest < Minitest::Test
     expect(parent.service).to(be_nil)
   end
   it('span set parent keep service') do
-    parent = Datadog::Span.new(nil, 'parent.span', service: 'webapp')
-    child = Datadog::Span.new(nil, 'child.span', service: 'defaultdb')
+    parent = described_class.new(nil, 'parent.span', service: 'webapp')
+    child = described_class.new(nil, 'child.span', service: 'defaultdb')
     child.set_parent(parent)
     expect(parent).to(eq(child.parent))
     expect(parent.trace_id).to(eq(child.trace_id))
@@ -79,8 +79,8 @@ class SpanTest < Minitest::Test
     expect('defaultdb').to(eq(child.service))
   end
   it('span set parent nil') do
-    parent = Datadog::Span.new(nil, 'parent.span', service: 'webapp')
-    child = Datadog::Span.new(nil, 'child.span', service: 'defaultdb')
+    parent = described_class.new(nil, 'parent.span', service: 'webapp')
+    child = described_class.new(nil, 'child.span', service: 'defaultdb')
     child.set_parent(parent)
     child.set_parent(nil)
     expect(child.parent).to(be_nil)
@@ -89,12 +89,12 @@ class SpanTest < Minitest::Test
     expect('defaultdb').to(eq(child.service))
   end
   it('get valid metric') do
-    span = Datadog::Span.new(nil, 'test.span')
+    span = described_class.new(nil, 'test.span')
     span.set_metric('a', 10)
     expect(span.get_metric('a')).to(eq(10.0))
   end
   it('set valid metrics') do
-    span = Datadog::Span.new(nil, 'test.span')
+    span = described_class.new(nil, 'test.span')
     span.set_metric('a', 0)
     span.set_metric('b', -12)
     span.set_metric('c', 12.134)
@@ -105,7 +105,7 @@ class SpanTest < Minitest::Test
     expect(h[:metrics]).to(eq(expected))
   end
   it('invalid metrics') do
-    span = Datadog::Span.new(nil, 'test.span')
+    span = described_class.new(nil, 'test.span')
     span.set_metric('a', nil)
     span.set_metric('b', {})
     span.set_metric('c', [])
@@ -115,7 +115,7 @@ class SpanTest < Minitest::Test
     expect(h[:metrics]).to(eq({}))
   end
   it('set error') do
-    span = Datadog::Span.new(nil, 'test.span')
+    span = described_class.new(nil, 'test.span')
     error = RuntimeError.new('Something broke!')
     error.set_backtrace(%w[list of calling methods])
     displayed_backtrace = "list\nof\ncalling\nmethods\n".chomp

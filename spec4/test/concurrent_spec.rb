@@ -1,6 +1,6 @@
-require('helper')
+require('spec_helper')
 require('ddtrace/tracer')
-class ConcurrentTest < Minitest::Test
+RSpec.describe 'concurrent task' do
   def traced_task
     @tracer.trace('a-root-task') do |_root_span|
       delay = rand

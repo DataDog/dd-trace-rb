@@ -1,10 +1,20 @@
 require('helper')
 require('ddtrace/tracer')
 require('ddtrace/context_flush')
+
+module Datadog
+  class Tracer
+    attr_accessor(:context_flush)
+  end
+end
+
+
 RSpec.describe Datadog::ContextFlush do
+  context 'partial flush with some data' do
+
   it('each partial trace typical not enough traces') do
     tracer = get_test_tracer
-    context_flush = described_classFlush.new
+    context_flush = described_class.new
     context = tracer.call_context
     context_flush.each_partial_trace(context) do |_t|
       flunk('nothing should be partially flushed, no spans')
@@ -31,7 +41,7 @@ RSpec.describe Datadog::ContextFlush do
   end
   it('each partial trace typical') do
     tracer = get_test_tracer
-    context_flush = described_classFlush.new(min_spans_before_partial_flush: 1, max_spans_before_partial_flush: 1)
+    context_flush = described_class.new(min_spans_before_partial_flush: 1, max_spans_before_partial_flush: 1)
     context = tracer.call_context
     action12 = Minitest::Mock.new
     action12.expect(:call_with_names, nil, [%w[child1 child2].to_set])
@@ -59,7 +69,7 @@ RSpec.describe Datadog::ContextFlush do
   end
   it('each partial trace mixed') do
     tracer = get_test_tracer
-    context_flush = described_classFlush.new(min_spans_before_partial_flush: 1, max_spans_before_partial_flush: 1)
+    context_flush = described_class.new(min_spans_before_partial_flush: 1, max_spans_before_partial_flush: 1)
     context = tracer.call_context
     action345 = Minitest::Mock.new
     action345.expect(:call_with_names, nil, [%w[child3 child4].to_set])
@@ -100,18 +110,14 @@ RSpec.describe Datadog::ContextFlush do
     expect(context.send(:length)).to(eq(0))
   end
 end
-module Datadog
-  class Tracer
-    attr_accessor(:context_flush)
-  end
-end
-class ContextFlushPartialTest < Minitest::Test
+
+context 'partial flush with all data' do
   MIN_SPANS = 10
   MAX_SPANS = 100
   TIMEOUT = 60
   # make this very high to reduce test flakiness (1 minute here)
   def get_context_flush
-    described_classFlush.new(
+    described_class.new(
       min_spans_before_partial_flush: MIN_SPANS,
       max_spans_before_partial_flush: MAX_SPANS,
       partial_flush_timeout: TIMEOUT
@@ -178,4 +184,5 @@ class ContextFlushPartialTest < Minitest::Test
     spans = tracer.writer.spans
     expect(spans.length).to(eq(context.max_length))
   end
+end
 end

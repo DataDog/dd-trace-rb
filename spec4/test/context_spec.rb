@@ -1,5 +1,6 @@
-require('helper')
+require('spec_helper')
 require('ddtrace/tracer')
+
 RSpec.describe Datadog::Context do
   it('nil tracer') do
     ctx = described_class.new
@@ -285,16 +286,17 @@ RSpec.describe Datadog::Context do
     expect(ctx.send(:length)).to(eq(0))
   end
 end
-class ThreadLocalContextTest < Minitest::Test
+
+RSpec.describe Datadog::ThreadLocalContext do
   it('get') do
-    local_ctx = Datadog::ThreadLocalContext.new
+    local_ctx = described_class.new
     ctx = local_ctx.local
     refute_nil(ctx)
     assert_instance_of(described_class, ctx)
   end
   it('set') do
     tracer = get_test_tracer
-    local_ctx = Datadog::ThreadLocalContext.new
+    local_ctx = described_class.new
     ctx = described_class.new
     span = Datadog::Span.new(tracer, 'test.op')
     span.finish
@@ -304,7 +306,7 @@ class ThreadLocalContextTest < Minitest::Test
   end
   it('multiple threads multiple context') do
     tracer = get_test_tracer
-    local_ctx = Datadog::ThreadLocalContext.new
+    local_ctx = described_class.new
     n = 100
     threads = []
     spans = []

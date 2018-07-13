@@ -1,7 +1,8 @@
-require('helper')
+require('spec_helper')
 require('ddtrace')
-class TracerTest < Minitest::Test
+
+RSpec.describe Datadog::Tracer do
   it('default tracer') do
-    expect(Datadog.tracer.instance_of?(Datadog::Tracer)).to(eq(true))
+    expect(Datadog.tracer.instance_of?(described_class)).to(eq(true))
   end
 end

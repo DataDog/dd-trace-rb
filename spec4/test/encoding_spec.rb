@@ -1,9 +1,9 @@
-require('helper')
+require('spec_helper')
 require('ddtrace/span')
 require('ddtrace/encoding')
-class TracerTest < Minitest::Test
+RSpec.describe Datadog::Encoding::JSONEncoder do
   it('traces encoding json') do
-    encoder = Datadog::Encoding::JSONEncoder.new
+    encoder = described_class.new
     traces = get_test_traces(2)
     to_send = encoder.encode_traces(traces)
     expect(to_send.is_a?(String)).to(eq(true))

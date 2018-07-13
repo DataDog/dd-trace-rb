@@ -1,7 +1,6 @@
 require('logger')
 require('stringio')
-require('helper')
-reqiore('spec_helper')
+require('spec_helper')
 require('ddtrace/span')
 RSpec.describe('Logger') do
   it('tracer logger') do

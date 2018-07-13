@@ -1,10 +1,10 @@
-require('helper')
+require('spec_helper')
 require('ddtrace')
 require('ddtrace/tracer')
 require('stringio')
 require('thread')
 require('webrick')
-class TraceCountHeaderTest < Minitest::Test
+RSpec.describe 'Trace count headers' do
   TEST_PORT = 6218
   before do
     @log_buf = StringIO.new

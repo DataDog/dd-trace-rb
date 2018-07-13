@@ -1,11 +1,11 @@
 require('minitest')
 require('minitest/autorun')
 require('benchmark')
-require('helper')
+require('spec_helper')
 require('ddtrace')
 require('ddtrace/encoding')
 include(Benchmark)
-class TraceBufferTest < Minitest::Test
+RSpec.describe 'benchmark traces' do
   N = 100000
   it('benchmark create traces') do
     tracer = get_test_tracer
@@ -18,7 +18,8 @@ class TraceBufferTest < Minitest::Test
     expect(N).to(eq(tracer.writer.spans.length))
   end
 end
-class EncoderTest < Minitest::Test
+
+RSpec.describe 'benchmark encoding' do
   N = 10000
   it('benchmark json encoder') do
     traces = get_test_traces(50)

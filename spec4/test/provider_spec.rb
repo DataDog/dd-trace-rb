@@ -1,8 +1,8 @@
-require('helper')
+require('spec_helper')
 require('ddtrace/tracer')
-class ProviderTest < Minitest::Test
+RSpec.describe Datadog::DefaultContextProvider do
   it('default provider') do
-    provider = Datadog::DefaultContextProvider.new
+    provider = described_class.new
     ctx = provider.context
     assert_kind_of(Datadog::Context, ctx)
     ctx2 = provider.context
@@ -16,7 +16,7 @@ class ProviderTest < Minitest::Test
     expect(ctx2).to(eq(ctx))
   end
   it('setting a context') do
-    provider = Datadog::DefaultContextProvider.new
+    provider = described_class.new
     custom_context = Datadog::Context.new
     provider.context = custom_context
     assert_same(provider.context, custom_context)
