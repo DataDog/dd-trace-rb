@@ -72,7 +72,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-test', '0.7.0'
       gem 'rake', '< 12.3'
       gem 'redis', '< 4.0'
-      gem 'rest-client'
+      gem 'rest-client', '< 2.0'
       gem 'resque', '< 2.0'
       gem 'sequel', '~> 4.0', '< 4.37'
       gem 'sidekiq', '4.0.0'
