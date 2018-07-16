@@ -33,6 +33,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Grape](#grape)
      - [GraphQL](#graphql)
      - [MongoDB](#mongodb)
+     - [MySQL2](#mysql2)
      - [Net/HTTP](#nethttp)
      - [Racecar](#racecar)
      - [Rack](#rack)
@@ -264,6 +265,7 @@ For a list of available integrations, and their configuration options, please re
 | Grape          | `grape`         | `>= 1.0`               | *[Link](#grape)*          | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL        | `graphql`       | `>= 1.7.9`             | *[Link](#graphql)*        | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | MongoDB        | `mongo`         | `>= 2.0, < 2.5`        | *[Link](#mongodb)*        | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
+| MySQL2         | `mysql2`        | `>= 0.5`               | *[Link](#mysql2)*         | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP       | `http`          | *(Any supported Ruby)* | *[Link](#nethttp)*        | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
 | Racecar        | `racecar`       | `>= 0.3.5`             | *[Link](#racecar)*        | *[Link](https://github.com/zendesk/racecar)*                                   |
 | Rack           | `rack`          | `>= 1.4.7`             | *[Link](#rack)*           | *[Link](https://github.com/rack/rack)*                                         |
@@ -612,6 +614,29 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | --- | --- |
 | ``service_name`` | Service name used for `mongo` instrumentation | mongodb |
 | ``quantize`` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | ```{ show: [:collection, :database, :operation]  }``` |
+
+### MySQL2
+
+The MySQL2 integration traces any SQL command sent through `mysql2` gem.
+
+```ruby
+require 'mysql2'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :mysql2, options
+end
+
+client = Mysql2::Client.new(:host => "localhost", :username => "root")
+client.query("SELECT * FROM users WHERE group='x'")
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for MySQL2 instrumentation | `mysql2` |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ### Net/HTTP
 
