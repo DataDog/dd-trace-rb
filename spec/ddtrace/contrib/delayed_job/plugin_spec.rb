@@ -6,17 +6,14 @@ require 'ddtrace'
 require 'ddtrace/contrib/delayed_job/plugin'
 require_relative 'delayed_job_active_record'
 
-SampleJob = Struct.new('SampleJob') { def perform; end }
-
 RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record do
+  let(:sample_job_object) { double('sample_job', perform: nil) }
+  let(:sample_job_class) { class_double('SampleJob', new: sample_job_object) }
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
 
   before do
-    logger = Logger.new(STDOUT)
-    logger.level = Logger::WARN
-  end
+    sample_job_class.as_stubbed_const
 
-  before do
     Datadog.configure { |c| c.use :delayed_job, tracer: tracer }
 
     Delayed::Worker.delay_jobs = false
@@ -60,7 +57,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       end
 
       it 'has resource name equal to job name' do
-        expect(span.resource).to eq(SampleJob.name)
+        expect(span.resource).to eq(RSpec::Mocks::Double.name)
       end
 
       it "span tags doesn't include queue name" do
