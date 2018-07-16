@@ -8,7 +8,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Patcher, :delayed_job_active_record
     let!(:delayed_worker_class) { class_double('Delayed::Worker', plugins: worker_plugins).as_stubbed_const }
 
     before do
-      described_class.send(:unpatch)
+      described_class.instance_variable_set(:@patched, false)
     end
 
     context 'when delayed job is not present' do

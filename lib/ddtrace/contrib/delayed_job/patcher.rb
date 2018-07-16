@@ -31,10 +31,6 @@ module Datadog
 
           private
 
-          def unpatch
-            @patched = false
-          end
-
           def add_instrumentation(klass)
             klass.plugins << Plugin
           end
