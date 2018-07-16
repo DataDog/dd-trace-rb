@@ -635,7 +635,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | --- | --- |
-| ``service_name`` | Service name used for MySQL2 instrumentation | mysql2 |
+| ``service_name`` | Service name used for MySQL2 instrumentation | `mysql2` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ### Net/HTTP
