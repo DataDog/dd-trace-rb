@@ -19,10 +19,11 @@ module Datadog
       # is a list of spans. Before dump the string in a serialized format all
       # traces are normalized. The traces nesting is not changed.
       def encode_traces(traces)
-        to_send = []
-        traces.each do |trace|
-          to_send << trace.map(&:to_hash)
-        end
+        # to_send = []
+        # traces.each do |trace|
+        #   to_send << trace.map(&:to_hash)
+        # end
+        to_send = traces
         encode(to_send)
       end
 
@@ -46,7 +47,8 @@ module Datadog
       end
 
       def encode(obj)
-        JSON.dump(obj)
+        data = obj.map { |a| a.map(&:to_hash) }
+        JSON.dump(data)
       end
     end
 
@@ -55,10 +57,24 @@ module Datadog
       def initialize
         Datadog::Tracer.log.debug('using Msgpack encoder')
         @content_type = 'application/msgpack'
+
+        @packer = MessagePack::Packer.new
       end
 
       def encode(obj)
-        MessagePack.pack(obj)
+        @packer.clear
+        @packer.write_array_header(obj.length)
+        obj.each do |array|
+          @packer.write_array_header(array.length)
+          array.each do |elem|
+            if elem.respond_to?(:pack_msgpack)
+              elem.pack_msgpack(@packer)
+            else
+              @packer.pack(elem)
+            end
+          end
+        end
+        @packer.to_s
       end
     end
   end

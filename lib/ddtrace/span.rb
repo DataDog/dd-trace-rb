@@ -4,6 +4,7 @@ require 'thread'
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
 
+# rubocop:disable all
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
   # Each span consists of a start time and a duration. For example, a span can describe the time
@@ -160,6 +161,29 @@ module Datadog
         @parent_id = parent.span_id
         @service ||= parent.service
         @sampled = parent.sampled
+      end
+    end
+
+    def pack_msgpack(p)
+      if !@start_time.nil? && !@end_time.nil?
+        p.write_map_header(12)
+      else
+        p.write_map_header(10)
+      end
+
+      p.write(:span_id).write(@span_id)
+      p.write(:trace_id).write(@trace_id)
+      p.write(:name).write(@name)
+      p.write(:service).write(@service)
+      p.write(:resource).write(@resource)
+      p.write(:type).write(@span_type)
+      p.write(:meta).write(@meta)
+      p.write(:metrics).write(@metrics)
+      p.write(:error).write(@status)
+
+      if !@start_time.nil? && !@end_time.nil?
+        p.write(:start).write((@start_time.to_f * 1e9).to_i)
+        p.write(:duration).write(((@end_time - @start_time) * 1e9).to_i)
       end
     end
 
