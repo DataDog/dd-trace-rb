@@ -1,4 +1,5 @@
 ENV['RAILS_ENV'] = 'production'
+require 'English'
 
 # Benchmark Configuration container
 module TestConfiguration
@@ -149,5 +150,5 @@ def wait_and_measure(iterations)
   end
 end
 
-launch(number_of_iterations, TestConfiguration.sidekiq)
+launch(TestConfiguration.iteration_count, TestConfiguration.sidekiq)
 wait_and_measure(TestConfiguration.iteration_count)
