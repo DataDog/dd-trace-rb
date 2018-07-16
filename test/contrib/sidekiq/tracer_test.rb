@@ -1,4 +1,4 @@
-require 'ruby-prof'
+
 require 'contrib/sidekiq/tracer_test_base'
 
 class TracerTest < TracerTestBase
@@ -28,20 +28,7 @@ class TracerTest < TracerTestBase
     def perform(); end
   end
 
-  Minitest.after_run do
-    result = RubyProf.stop
-
-    printer = RubyProf::FlatPrinter.new(result)
-    printer.print(STDOUT, {})
-  end
-
-  # rubocop:disable Style/ClassVars
   def setup
-    @@before_run ||= begin
-      RubyProf.start
-
-      true
-    end
     super
 
     Sidekiq::Testing.server_middleware do |chain|
