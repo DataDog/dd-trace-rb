@@ -7,7 +7,7 @@ if Datadog::OpenTracer.supported?
   RSpec.describe Datadog::OpenTracer::Tracer do
     include_context 'OpenTracing helpers'
 
-    subject(:tracer) { described_class.new }
+    subject(:tracer) { described_class.new(writer: FauxWriter.new) }
 
     ### Datadog::OpenTracing::Tracer behavior ###
 
@@ -48,17 +48,21 @@ if Datadog::OpenTracer.supported?
 
     describe '#scope_manager' do
       subject(:scope_manager) { tracer.scope_manager }
-      it { is_expected.to be(OpenTracing::ScopeManager::NOOP_INSTANCE) }
+      it { is_expected.to be_a_kind_of(Datadog::OpenTracer::ThreadLocalScopeManager) }
     end
 
     describe '#start_active_span' do
       subject(:span) { tracer.start_active_span(name) }
       let(:name) { 'opentracing_span' }
 
-      it { is_expected.to be OpenTracing::Scope::NOOP_INSTANCE }
+      it { is_expected.to be_a_kind_of(Datadog::OpenTracer::ThreadLocalScope) }
 
       context 'when a block is given' do
-        it { expect { |b| tracer.start_active_span(name, &b) }.to yield_with_args(OpenTracing::Scope::NOOP_INSTANCE) }
+        it do
+          expect { |b| tracer.start_active_span(name, &b) }.to yield_with_args(
+            a_kind_of(Datadog::OpenTracer::ThreadLocalScope)
+          )
+        end
       end
     end
 
@@ -66,7 +70,7 @@ if Datadog::OpenTracer.supported?
       subject(:span) { tracer.start_span(name) }
       let(:name) { 'opentracing_span' }
 
-      it { is_expected.to be OpenTracing::Span::NOOP_INSTANCE }
+      it { is_expected.to be_a_kind_of(Datadog::OpenTracer::Span) }
     end
 
     describe '#inject' do
