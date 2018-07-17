@@ -19,7 +19,8 @@ module Datadog
               super
               annotate_invoke!(span, args)
             end
-            tracer.shutdown! if tracer.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)
+          ensure
+            shutdown_tracer!
           end
 
           def execute(args = nil)
@@ -29,10 +30,15 @@ module Datadog
               super
               annotate_execute!(span, args)
             end
-            tracer.shutdown! if tracer.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)
+          ensure
+            shutdown_tracer!
           end
 
           private
+
+          def shutdown_tracer!
+            tracer.shutdown! if tracer.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)
+          end
 
           def annotate_invoke!(span, args)
             span.resource = name
