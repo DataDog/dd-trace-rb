@@ -7,6 +7,7 @@ require 'ddtrace/propagation/http_propagator'
 
 require 'ddtrace/contrib/sinatra/tracer_middleware'
 require 'ddtrace/contrib/sinatra/env'
+require 'ddtrace/contrib/rack/middlewares'
 
 sinatra_vs = Gem::Version.new(Sinatra::VERSION)
 sinatra_min_vs = Gem::Version.new('1.4.0')
@@ -96,10 +97,14 @@ module Datadog
               return
             end
 
+            rack_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
+
             span.resource = "#{request.request_method} #{@datadog_route}"
             span.set_tag('sinatra.route.path', @datadog_route)
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
             span.set_error(env['sinatra.error']) if response.server_error?
+
+            rack_span.resource = span.resource unless rack_span.nil?
           end
         end
       end
