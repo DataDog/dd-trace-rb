@@ -11,7 +11,11 @@ module Datadog
       #  Span. It is a programming error to neglect to call Scope#close on the
       #  returned instance.
       def activate(span, finish_on_close: true)
-        ThreadLocalScope.new(manager: self, span: span).tap do |scope|
+        ThreadLocalScope.new(
+          manager: self,
+          span: span,
+          finish_on_close: finish_on_close
+        ).tap do |scope|
           set_scope(scope)
         end
       end
