@@ -2,7 +2,6 @@ require 'ddtrace'
 require 'ddtrace/contrib/rack/middlewares'
 
 class RackTest < TracerTestBase
-
   class MiddlewareApp < Sinatra::Base
     register Datadog::Contrib::Sinatra::Tracer
 
@@ -23,7 +22,6 @@ class RackTest < TracerTestBase
 
       use MiddlewareApp
       run Application.new
-
     end.to_app
   end
 
@@ -64,5 +62,4 @@ class RackTest < TracerTestBase
     assert_equal('rack', rack_span.service)
     assert_equal(resource, rack_span.resource)
   end
-
 end
