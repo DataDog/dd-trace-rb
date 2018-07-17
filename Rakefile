@@ -49,6 +49,7 @@ namespace :spec do
     :delayed_job,
     :active_support,
     :aws,
+    :concurrent_ruby,
     :dalli,
     :elasticsearch,
     :excon,
