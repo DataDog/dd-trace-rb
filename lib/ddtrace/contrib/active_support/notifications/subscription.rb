@@ -75,11 +75,12 @@ module Datadog
             tracer.trace(@span_name, @options).tap do |span|
               # Assign start time if provided
               span.start_time = start unless start.nil?
+              payload[:datadog_span] = span
             end
           end
 
           def finish_span(name, id, payload, finish = nil)
-            tracer.active_span.tap do |span|
+            payload[:datadog_span].tap do |span|
               # If no active span, return.
               return nil if span.nil?
 
