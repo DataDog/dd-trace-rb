@@ -4,6 +4,24 @@
 
 ## [Unreleased (beta)]
 
+## [0.13.1] - 2018-07-17
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.13.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...v0.13.1
+
+### Changed
+
+ - Configuration class variables don't lazy load (#477)
+ - Default tracer host `localhost` --> `127.0.0.1` (#466, #480) (@NobodysNightmare)
+
+### Fixed
+
+ - Workers not shutting down quickly in some short running processes (#475)
+ - Missing documentation for mysql2 and Rails (#476, #488)
+ - Missing variable in rescue block (#481) (@kitop)
+ - Unclosed spans in ActiveSupport::Notifications with multithreading (#431, #478) (@senny)
+
 ## [0.13.0] - 2018-06-20
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.13.0
@@ -362,6 +380,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 [Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...master
 [Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...0.14-dev
+[0.13.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...v0.13.0
 [0.13.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...v0.13.0.beta1
 [0.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...v0.12.1
