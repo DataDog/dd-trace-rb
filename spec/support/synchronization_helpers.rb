@@ -4,7 +4,7 @@ module SynchronizationHelpers
     backoff = options.fetch(:backoff, 0.1)
 
     loop do
-      break if attempts <= 0 || yield
+      break if attempts <= 0 || yield(attempts)
       sleep(backoff)
       attempts -= 1
     end
@@ -16,5 +16,9 @@ module SynchronizationHelpers
     # a few milliseconds ago")
     return 300 if RUBY_PLATFORM == 'java'
     30
+  end
+
+  class << self
+    include SynchronizationHelpers
   end
 end

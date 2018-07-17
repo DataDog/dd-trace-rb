@@ -10,6 +10,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
     let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
     let(:span_name) { double('span_name') }
     let(:options) { {} }
+    let(:payload) { {} }
     let(:block) do
       proc do |span, name, id, payload|
         spy.call(span, name, id, payload)
@@ -24,14 +25,13 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         let(:start) { double('start') }
         let(:finish) { double('finish') }
         let(:id) { double('id') }
-        let(:payload) { double('payload') }
+        let(:payload) { {} }
 
         let(:span) { instance_double(Datadog::Span) }
 
         it do
           expect(tracer).to receive(:trace).with(span_name, options).and_return(span).ordered
           expect(span).to receive(:start_time=).with(start).and_return(span).ordered
-          expect(tracer).to receive(:active_span).and_return(span).ordered
           expect(spy).to receive(:call).with(span, name, id, payload).ordered
           expect(span).to receive(:finish).with(finish).and_return(span).ordered
           is_expected.to be(span)
@@ -49,7 +49,6 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
           it 'finishes tracing anyways' do
             expect(tracer).to receive(:trace).with(span_name, options).and_return(span).ordered
             expect(span).to receive(:start_time=).with(start).and_return(span).ordered
-            expect(tracer).to receive(:active_span).and_return(span).ordered
             expect(span).to receive(:finish).with(finish).and_return(span).ordered
             is_expected.to be(span)
           end
@@ -60,9 +59,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         subject(:result) { subscription.start(name, id, payload) }
         let(:name) { double('name') }
         let(:id) { double('id') }
-        let(:payload) { double('payload') }
-
-        let(:span) { instance_double(Datadog::Span) }
+        let(:span) { double('span') }
 
         it do
           expect(tracer).to receive(:trace).with(span_name, options).and_return(span)
@@ -73,18 +70,21 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
           parent = tracer.trace('parent_span')
           expect(subject.parent_id).to eq parent.span_id
         end
+
+        it 'sets span in payload' do
+          expect { subject }.to change { payload[:datadog_span] }.to be_instance_of(Datadog::Span)
+        end
       end
 
       describe '#finish' do
         subject(:result) { subscription.finish(name, id, payload) }
         let(:name) { double('name') }
         let(:id) { double('id') }
-        let(:payload) { double('payload') }
 
         let(:span) { instance_double(Datadog::Span) }
+        let(:payload) { { datadog_span: span } }
 
         it do
-          expect(tracer).to receive(:active_span).and_return(span).ordered
           expect(spy).to receive(:call).with(span, name, id, payload).ordered
           expect(span).to receive(:finish).and_return(span).ordered
           is_expected.to be(span)
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
               it do
                 expect(callback_spy).to receive(:call).ordered
                 expect(tracer).to receive(:trace).ordered
-                subscription.start(double('name'), double('id'), double('payload'))
+                subscription.start(double('name'), double('id'), payload)
               end
             end
           end
@@ -134,13 +134,13 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
           shared_examples_for 'an after_trace callback' do
             context 'on #finish' do
               let(:span) { instance_double(Datadog::Span) }
+              let(:payload) { { datadog_span: span } }
 
               it do
-                expect(tracer).to receive(:active_span).and_return(span).ordered
                 expect(spy).to receive(:call).ordered
                 expect(span).to receive(:finish).ordered
                 expect(callback_spy).to receive(:call).ordered
-                subscription.finish(double('name'), double('id'), double('payload'))
+                subscription.finish(double('name'), double('id'), payload)
               end
             end
           end
