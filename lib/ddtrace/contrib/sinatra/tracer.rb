@@ -104,7 +104,7 @@ module Datadog
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
             span.set_error(env['sinatra.error']) if response.server_error?
 
-            rack_span.resource = span.resource unless rack_span.nil?
+            rack_span.resource ||= span.resource unless rack_span.nil?
           end
         end
       end
