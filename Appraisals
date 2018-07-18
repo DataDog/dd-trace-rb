@@ -61,6 +61,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord', '3.2.22.5'
       gem 'activerecord-mysql-adapter', platform: :ruby
       gem 'aws-sdk', '~> 2.0'
+      gem 'concurrent-ruby'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -143,6 +144,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord', '3.2.22.5'
       gem 'activerecord-mysql-adapter', platform: :ruby
       gem 'aws-sdk', '~> 2.0'
+      gem 'concurrent-ruby'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -245,6 +247,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord', '3.2.22.5'
       gem 'activerecord-mysql-adapter', platform: :ruby
       gem 'aws-sdk', '~> 2.0'
+      gem 'concurrent-ruby'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -378,6 +381,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
+      gem 'concurrent-ruby'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -514,6 +518,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
+      gem 'concurrent-ruby'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -544,6 +549,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
+      gem 'concurrent-ruby'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
