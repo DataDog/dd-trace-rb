@@ -18,10 +18,11 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
   subject(:deferred_execution) do
     outer_span = tracer.trace('outer_span')
     inner_span = nil
-    future = Concurrent::Future.execute do
+    future = Concurrent::Future.new do
       inner_span = tracer.trace('inner_span')
       inner_span.finish
     end
+    future.execute
 
     future.wait
     outer_span.finish
