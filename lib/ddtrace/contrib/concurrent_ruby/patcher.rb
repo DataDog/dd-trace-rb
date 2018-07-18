@@ -1,5 +1,4 @@
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/contrib/concurrent_ruby/future_patch'
 
 module Datadog
   module Contrib
@@ -17,6 +16,8 @@ module Datadog
         def patch
           do_once(:concurrent_ruby) do
             begin
+              require 'ddtrace/contrib/concurrent_ruby/future_patch'
+
               patch_future
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Future integration: #{e}")

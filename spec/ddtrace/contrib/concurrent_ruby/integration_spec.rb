@@ -58,8 +58,8 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
     end
 
     it 'should add FuturePatch to Future ancestors' do
-      expect { patch }.to change { ::Concurrent::Future.ancestors }
-        .to include(Datadog::Contrib::ConcurrentRuby::FuturePatch)
+      expect { patch }.to change { ::Concurrent::Future.ancestors.map(&:to_s) }
+        .to include('Datadog::Contrib::ConcurrentRuby::FuturePatch')
     end
 
     it 'should add datadog_configuration method to Future instance' do
@@ -73,10 +73,6 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
     it 'inner span should not have parent' do
       expect(inner_span.parent).to be_nil
     end
-
-    it 'Future should not have patching ancestors' do
-      expect(::Concurrent::Future.ancestors).not_to include(Datadog::Contrib::ConcurrentRuby::FuturePatch)
-    end
   end
 
   context 'when context propagation is enabled' do
@@ -86,10 +82,6 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
       Datadog.configure do |c|
         c.use :concurrent_ruby, tracer: tracer
       end
-    end
-
-    it 'Concurrent::Future should have patching ancestors' do
-      expect(::Concurrent::Future.ancestors).to include(Datadog::Contrib::ConcurrentRuby::FuturePatch)
     end
 
     it 'inner span parent should be included in outer span' do
