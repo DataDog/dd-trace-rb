@@ -20,6 +20,11 @@ module Datadog
       require 'ddtrace/opentracer/scope_manager'
       require 'ddtrace/opentracer/thread_local_scope'
       require 'ddtrace/opentracer/thread_local_scope_manager'
+      require 'ddtrace/opentracer/distributed_headers'
+      require 'ddtrace/opentracer/propagator'
+      require 'ddtrace/opentracer/text_map_propagator'
+      require 'ddtrace/opentracer/binary_propagator'
+      require 'ddtrace/opentracer/rack_propagator'
       require 'ddtrace/opentracer/global_tracer'
 
       # Modify the OpenTracing module functions

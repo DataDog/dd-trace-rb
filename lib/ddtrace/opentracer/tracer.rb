@@ -137,8 +137,12 @@ module Datadog
       # @param carrier [Carrier] A carrier object of the type dictated by the specified `format`
       def inject(span_context, format, carrier)
         case format
-        when OpenTracing::FORMAT_TEXT_MAP, OpenTracing::FORMAT_BINARY, OpenTracing::FORMAT_RACK
-          return nil
+        when OpenTracing::FORMAT_TEXT_MAP
+          TextMapPropagator.inject(span_context, carrier)
+        when OpenTracing::FORMAT_BINARY
+          BinaryPropagator.inject(span_context, carrier)
+        when OpenTracing::FORMAT_RACK
+          RackPropagator.inject(span_context, carrier)
         else
           warn 'Unknown inject format'
         end
@@ -151,8 +155,12 @@ module Datadog
       # @return [SpanContext, nil] the extracted SpanContext or nil if none could be found
       def extract(format, carrier)
         case format
-        when OpenTracing::FORMAT_TEXT_MAP, OpenTracing::FORMAT_BINARY, OpenTracing::FORMAT_RACK
-          return SpanContext::NOOP_INSTANCE
+        when OpenTracing::FORMAT_TEXT_MAP
+          TextMapPropagator.extract(carrier)
+        when OpenTracing::FORMAT_BINARY
+          BinaryPropagator.extract(carrier)
+        when OpenTracing::FORMAT_RACK
+          RackPropagator.extract(carrier)
         else
           warn 'Unknown extract format'
           nil
