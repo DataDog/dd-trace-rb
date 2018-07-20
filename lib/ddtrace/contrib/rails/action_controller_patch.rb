@@ -1,33 +1,14 @@
+require 'ddtrace/contrib/patching/base'
+
 module Datadog
   module Contrib
     module Rails
       # Instrument ActiveController processing
       module ActionControllerPatch
-        def self.included(base)
-          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
-            base.send(:prepend, ProcessActionPatch)
-          else
-            base.class_eval do
-              alias_method :process_action_without_datadog, :process_action
+        extend Datadog::Contrib::Patching::Base
 
-              include ProcessActionPatch
-            end
-          end
-        end
-
-        # Compatibility module for Ruby versions not supporting #prepend
-        module ProcessActionCompatibilityPatch
-          def process_action(*args)
-            process_action_without_datadog(*args)
-          end
-        end
-
-        # ActionController patch
-        module ProcessActionPatch
-          # compatibility module for Ruby versions not supporting #prepend
-          include ProcessActionCompatibilityPatch unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
-
-          def process_action(*args)
+        datadog_patch_method(:process_action) do |*args|
+          begin
             # mutable payload with a tracing context that is used in two different
             # signals; it propagates the request span so that it can be finished
             # no matter what
@@ -59,16 +40,16 @@ module Datadog
           ensure
             Datadog::Contrib::Rails::ActionController.finish_processing(payload)
           end
+        end
 
-          def datadog_response_status
-            case response
-            when ActionDispatch::Response
-              response.status
-            when Array
-              # Likely a Rack response array: first element is the status.
-              status = response.first
-              status.class <= Integer ? status : nil
-            end
+        def datadog_response_status
+          case response
+          when ActionDispatch::Response
+            response.status
+          when Array
+            # Likely a Rack response array: first element is the status.
+            status = response.first
+            status.class <= Integer ? status : nil
           end
         end
       end
