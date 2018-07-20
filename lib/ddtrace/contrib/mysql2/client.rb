@@ -20,6 +20,15 @@ module Datadog
             super(sql, options)
           end
         end
+
+        def datadog_pin
+          @datadog_pin ||= Datadog::Pin.new(
+            Datadog.configuration[:mysql2][:service_name],
+            app: 'mysql2',
+            app_type: Datadog::Ext::AppTypes::DB,
+            tracer: Datadog.configuration[:mysql2][:tracer]
+          )
+        end
       end
     end
   end
