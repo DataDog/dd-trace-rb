@@ -9,7 +9,7 @@ module Datadog
       module Client
         extend Patching::Base
 
-        datadog_patch_method(:query) do |sql, options|
+        datadog_patch_method(:query) do |sql, options = {}|
           datadog_pin.tracer.trace('mysql2.query') do |span|
             span.resource = sql
             span.service = datadog_pin.service
