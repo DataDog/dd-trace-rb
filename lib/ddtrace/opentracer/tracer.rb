@@ -100,21 +100,6 @@ module Datadog
                      start_time: Time.now,
                      tags: nil,
                      ignore_active_scope: false)
-        # Get the parent Datadog span
-        parent_datadog_span = case child_of
-                              when Span
-                                child_of.datadog_span
-                              else
-                                ignore_active_scope ? nil : scope_manager.active && scope_manager.active.span.datadog_span
-                              end
-
-        # Build the new Datadog span
-        datadog_span = datadog_tracer.start_span(
-          operation_name,
-          child_of: parent_datadog_span,
-          start_time: start_time,
-          tags: tags || {}
-        )
 
         # Derive the OpenTracer::SpanContext to inherit from
         parent_span_context = case child_of
@@ -125,6 +110,14 @@ module Datadog
                               else
                                 ignore_active_scope ? nil : scope_manager.active && scope_manager.active.span.context
                               end
+
+        # Build the new Datadog span
+        datadog_span = datadog_tracer.start_span(
+          operation_name,
+          child_of: parent_span_context && parent_span_context.datadog_context,
+          start_time: start_time,
+          tags: tags || {}
+        )
 
         # Build or extend the OpenTracer::SpanContext
         span_context = if parent_span_context
