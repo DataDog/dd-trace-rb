@@ -62,10 +62,6 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
       expect { patch }.to change { ::Concurrent::Future.ancestors.map(&:to_s) }
         .to include('Datadog::Contrib::ConcurrentRuby::FuturePatch')
     end
-
-    it 'should add datadog_configuration method to Future instance' do
-      expect { patch }.to change { ::Concurrent::Future.new {} }.to respond_to(:datadog_configuration)
-    end
   end
 
   context 'when context propagation is disabled' do
