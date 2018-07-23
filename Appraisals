@@ -9,6 +9,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'rack-cache', '1.7.1'
+      gem 'rake', '< 12.3'
     end
 
     appraise 'rails30-postgres-sidekiq' do
@@ -18,6 +19,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sidekiq', '4.0.0'
       gem 'rack-cache', '1.7.1'
+      gem 'rake', '< 12.3'
     end
 
     appraise 'rails32-mysql2' do
@@ -27,6 +29,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord-mysql-adapter', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'rack-cache', '1.7.1'
+      gem 'rake', '< 12.3'
     end
 
     appraise 'rails32-postgres' do
@@ -35,6 +38,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'pg', '0.15.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'rack-cache', '1.7.1'
+      gem 'rake', '< 12.3'
     end
 
     appraise 'rails32-postgres-redis' do
@@ -45,6 +49,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'redis-rails'
       gem 'redis', '< 4.0'
       gem 'rack-cache', '1.7.1'
+      gem 'rake', '< 12.3'
     end
 
     appraise 'rails32-postgres-sidekiq' do
@@ -54,6 +59,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sidekiq', '4.0.0'
       gem 'rack-cache', '1.7.1'
+      gem 'rake', '< 12.3'
     end
 
     appraise 'contrib-old' do

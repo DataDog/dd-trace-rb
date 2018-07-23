@@ -15,8 +15,6 @@ module Datadog
 
     module_function
 
-    attr_writer :registry
-
     def registry
       log_deprecation_warning('Monkey#registry')
       @registry
@@ -54,11 +52,6 @@ module Datadog
     end
 
     class << self
-      def registry
-        log_deprecation_warning('Monkey#registry')
-        @registry
-      end
-
       attr_writer :registry
     end
   end
