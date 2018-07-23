@@ -10,7 +10,7 @@ module Datadog
       obj.datadog_pin
     end
 
-    attr_accessor :service_name
+    attr_reader :service_name
     attr_accessor :app
     attr_accessor :tags
     attr_accessor :app_type
