@@ -4,6 +4,28 @@
 
 ## [Unreleased (beta)]
 
+## [0.14.0.beta1] - 2018-07-24
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.0.beta1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.13.1...v0.14.0.beta1
+
+### Changed
+
+- Resque to flush traces when Job finishes instead of using SyncWriter (#474)
+- ActiveRecord to allow configuring multiple databases (#451)
+- Integrations configuration settings (#450, #452, #451)
+
+### Fixed
+
+- Ruby warnings during tests (#499)
+- Tests failing intermittently on Ruby 1.9.3 (#497)
+
+### Added
+
+- DelayedJob integration (#393 #444)
+- Version information to integrations (#483)
+
 ## [0.13.1] - 2018-07-17
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.13.1
