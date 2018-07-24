@@ -13,8 +13,16 @@ module Datadog
 
         register_as :sequel, auto_patch: false
 
+        def self.version
+          Gem.loaded_specs['sequel'] && Gem.loaded_specs['sequel'].version
+        end
+
+        def self.present?
+          super && defined?(::Sequel)
+        end
+
         def self.compatible?
-          RUBY_VERSION >= '2.0.0' && defined?(::Sequel)
+          super && RUBY_VERSION >= '2.0.0'
         end
 
         def default_configuration
