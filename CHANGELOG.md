@@ -4,6 +4,16 @@
 
 ## [Unreleased (beta)]
 
+## [0.14.0.beta2] - 2018-07-25
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.0.beta2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0.beta1...v0.14.0.beta2
+
+### Fixed
+
+- Rake shutdown tracer after execution (#487) @kissrobber
+
 ## [0.14.0.beta1] - 2018-07-24
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.0.beta1
