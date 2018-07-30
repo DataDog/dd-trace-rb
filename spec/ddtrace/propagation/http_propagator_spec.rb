@@ -9,6 +9,15 @@ RSpec.describe Datadog::HTTPPropagator do
   describe '#inject!' do
     let(:env) { { 'something' => 'alien' } }
 
+    context 'given a nil context' do
+      it do
+        tracer.trace('caller') do |_span|
+          Datadog::HTTPPropagator.inject!(nil, env)
+          expect(env).to eq('something' => 'alien')
+        end
+      end
+    end
+
     context 'given a context and env' do
       context 'without any explicit sampling priority' do
         it do
