@@ -1,0 +1,33 @@
+require 'spec_helper'
+
+require 'ddtrace'
+
+RSpec.describe Datadog::Context do
+  subject(:context) { described_class.new(options) }
+  let(:options) { {} }
+  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+
+  describe '#current_root_span' do
+    subject(:current_root_span) { context.current_root_span }
+
+    it { is_expected.to be nil }
+
+    context 'after a span is added' do
+      let(:span) { Datadog::Span.new(tracer, 'span.one', context: context) }
+      before(:each) { context.add_span(span) }
+
+      it { is_expected.to be span }
+
+      context 'and is reset' do
+        before(:each) { context.send(:reset) }
+        it { is_expected.to be nil }
+      end
+
+      context 'followed by a second' do
+        let(:span_two) { Datadog::Span.new(tracer, 'span.two', context: context) }
+        before(:each) { context.add_span(span_two) }
+        it { is_expected.to be span }
+      end
+    end
+  end
+end
