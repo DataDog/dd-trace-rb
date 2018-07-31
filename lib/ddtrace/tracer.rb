@@ -346,6 +346,11 @@ module Datadog
       call_context.current_span
     end
 
+    # Return the current active root span or +nil+.
+    def active_root_span
+      call_context.current_root_span
+    end
+
     # Send the trace to the writer to enqueue the spans list in the agent
     # sending queue.
     def write(trace)
