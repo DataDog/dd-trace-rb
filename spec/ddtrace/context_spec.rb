@@ -18,12 +18,25 @@ RSpec.describe Datadog::Context do
 
       it { is_expected.to be span }
 
+      context 'which is a child to another span' do
+        let(:parent_span) { Datadog::Span.new(tracer, 'span.parent') }
+        let(:span) do
+          Datadog::Span.new(
+            tracer,
+            'span.child',
+            context: context
+          ).tap { |s| s.parent = parent_span }
+        end
+
+        it { is_expected.to be nil }
+      end
+
       context 'and is reset' do
         before(:each) { context.send(:reset) }
         it { is_expected.to be nil }
       end
 
-      context 'followed by a second' do
+      context 'followed by a second span' do
         let(:span_two) { Datadog::Span.new(tracer, 'span.two', context: context) }
         before(:each) { context.add_span(span_two) }
         it { is_expected.to be span }

@@ -83,7 +83,7 @@ module Datadog
           return
         end
         set_current_span(span)
-        @current_root_span = span if @trace.empty?
+        @current_root_span = span if @trace.empty? && span.parent_id.zero?
         @trace << span
         span.context = self
       end
