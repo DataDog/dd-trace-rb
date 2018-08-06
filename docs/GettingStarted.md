@@ -41,6 +41,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Rails](#rails)
      - [Rake](#rake)
      - [Redis](#redis)
+     - [Rest Client](#restclient)
      - [Resque](#resque)
      - [Sequel](#sequel)
      - [Sidekiq](#sidekiq)
@@ -275,6 +276,7 @@ For a list of available integrations, and their configuration options, please re
 | Rails          | `rails`         | `>= 3.2, < 5.2`        | *[Link](#rails)*          | *[Link](https://github.com/rails/rails)*                                       |
 | Rake           | `rake`          | `>= 12.0`              | *[Link](#rake)*           | *[Link](https://github.com/ruby/rake)*                                         |
 | Redis          | `redis`         | `>= 3.2, < 4.0`        | *[Link](#redis)*          | *[Link](https://github.com/redis/redis-rb)*                                    |
+| Rest Client    | `rest-client`   | `>= 1.8`               | *[Link](#restclient)*     | *[Link](https://github.com/rest-client/rest-client)*                           |
 | Resque         | `resque`        | `>= 1.0, < 2.0`        | *[Link](#resque)*         | *[Link](https://github.com/resque/resque)*                                     |
 | Sequel         | `sequel`        | `>= 3.41`              | *[Link](#sequel)*         | *[Link](https://github.com/jeremyevans/sequel)*                                |
 | Sidekiq        | `sidekiq`       | `>= 4.0`               | *[Link](#sidekiq)*        | *[Link](https://github.com/mperham/sidekiq)*                                   |
@@ -936,6 +938,27 @@ customer_cache.get(...) # traced call will belong to `customer-cache` service
 invoice_cache.get(...) # traced call will belong to `invoice-cache` service
 ```
 
+### Rest Client
+
+The `rest-client` integration is available through the `ddtrace` middleware:
+
+```ruby
+require 'rest_client'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :rest_client, service_name: 'rest_client' # global service name
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| `service_name` | Service name for Rest Client instrumentation. | `'rest_client'` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `tracer` | A `Datadog::Tracer` instance used to instrument the application. Usually you don't need to set that. | `Datadog.tracer` |
+
 ### Resque
 
 The Resque integration uses Resque hooks that wraps the ``perform`` method.
@@ -1326,6 +1349,7 @@ For more details on how to activate distributed tracing for integrations, see th
 
 - [Excon](#excon)
 - [Faraday](#faraday)
+- [Rest Client](#restclient)
 - [Net/HTTP](#nethttp)
 - [Rack](#rack)
 - [Rails](#rails)

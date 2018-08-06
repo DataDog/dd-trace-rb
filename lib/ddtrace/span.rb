@@ -25,7 +25,6 @@ module Datadog
                   :tracer, :context
 
     attr_reader :parent
-
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
     # and then <tt>finish()</tt> once the tracer operation is over.
     #
