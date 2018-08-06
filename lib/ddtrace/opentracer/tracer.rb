@@ -100,21 +100,6 @@ module Datadog
                      start_time: Time.now,
                      tags: nil,
                      ignore_active_scope: false)
-        # Get the parent Datadog span
-        parent_datadog_span = case child_of
-                              when Span
-                                child_of.datadog_span
-                              else
-                                ignore_active_scope ? nil : scope_manager.active && scope_manager.active.span.datadog_span
-                              end
-
-        # Build the new Datadog span
-        datadog_span = datadog_tracer.start_span(
-          operation_name,
-          child_of: parent_datadog_span,
-          start_time: start_time,
-          tags: tags || {}
-        )
 
         # Derive the OpenTracer::SpanContext to inherit from
         parent_span_context = case child_of
@@ -125,6 +110,14 @@ module Datadog
                               else
                                 ignore_active_scope ? nil : scope_manager.active && scope_manager.active.span.context
                               end
+
+        # Build the new Datadog span
+        datadog_span = datadog_tracer.start_span(
+          operation_name,
+          child_of: parent_span_context && parent_span_context.datadog_context,
+          start_time: start_time,
+          tags: tags || {}
+        )
 
         # Build or extend the OpenTracer::SpanContext
         span_context = if parent_span_context
@@ -144,8 +137,12 @@ module Datadog
       # @param carrier [Carrier] A carrier object of the type dictated by the specified `format`
       def inject(span_context, format, carrier)
         case format
-        when OpenTracing::FORMAT_TEXT_MAP, OpenTracing::FORMAT_BINARY, OpenTracing::FORMAT_RACK
-          return nil
+        when OpenTracing::FORMAT_TEXT_MAP
+          TextMapPropagator.inject(span_context, carrier)
+        when OpenTracing::FORMAT_BINARY
+          BinaryPropagator.inject(span_context, carrier)
+        when OpenTracing::FORMAT_RACK
+          RackPropagator.inject(span_context, carrier)
         else
           warn 'Unknown inject format'
         end
@@ -158,8 +155,12 @@ module Datadog
       # @return [SpanContext, nil] the extracted SpanContext or nil if none could be found
       def extract(format, carrier)
         case format
-        when OpenTracing::FORMAT_TEXT_MAP, OpenTracing::FORMAT_BINARY, OpenTracing::FORMAT_RACK
-          return SpanContext::NOOP_INSTANCE
+        when OpenTracing::FORMAT_TEXT_MAP
+          TextMapPropagator.extract(carrier)
+        when OpenTracing::FORMAT_BINARY
+          BinaryPropagator.extract(carrier)
+        when OpenTracing::FORMAT_RACK
+          RackPropagator.extract(carrier)
         else
           warn 'Unknown extract format'
           nil

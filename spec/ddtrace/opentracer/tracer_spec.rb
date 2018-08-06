@@ -78,21 +78,34 @@ if Datadog::OpenTracer.supported?
       let(:span_context) { instance_double(OpenTracing::SpanContext) }
       let(:carrier) { instance_double(OpenTracing::Carrier) }
 
+      shared_context 'by propagator' do
+        before(:each) do
+          expect(propagator).to receive(:inject)
+            .with(span_context, carrier)
+        end
+      end
+
       context 'when the format is' do
         context 'OpenTracing::FORMAT_TEXT_MAP' do
+          include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_TEXT_MAP }
+          let(:propagator) { Datadog::OpenTracer::TextMapPropagator }
           it { expect { inject }.to_not output.to_stdout }
           it { is_expected.to be nil }
         end
 
         context 'OpenTracing::FORMAT_BINARY' do
+          include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_BINARY }
+          let(:propagator) { Datadog::OpenTracer::BinaryPropagator }
           it { expect { inject }.to_not output.to_stdout }
           it { is_expected.to be nil }
         end
 
         context 'OpenTracing::FORMAT_RACK' do
+          include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_RACK }
+          let(:propagator) { Datadog::OpenTracer::RackPropagator }
           it { expect { inject }.to_not output.to_stdout }
           it { is_expected.to be nil }
         end
@@ -107,24 +120,39 @@ if Datadog::OpenTracer.supported?
     describe '#extract' do
       subject(:extract) { tracer.extract(format, carrier) }
       let(:carrier) { instance_double(OpenTracing::Carrier) }
+      let(:span_context) { instance_double(Datadog::OpenTracer::SpanContext) }
+
+      shared_context 'by propagator' do
+        before(:each) do
+          expect(propagator).to receive(:extract)
+            .with(carrier)
+            .and_return(span_context)
+        end
+      end
 
       context 'when the format is' do
         context 'OpenTracing::FORMAT_TEXT_MAP' do
+          include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_TEXT_MAP }
+          let(:propagator) { Datadog::OpenTracer::TextMapPropagator }
           it { expect { extract }.to_not output.to_stdout }
-          it { is_expected.to be OpenTracing::SpanContext::NOOP_INSTANCE }
+          it { is_expected.to be span_context }
         end
 
         context 'OpenTracing::FORMAT_BINARY' do
+          include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_BINARY }
+          let(:propagator) { Datadog::OpenTracer::BinaryPropagator }
           it { expect { extract }.to_not output.to_stdout }
-          it { is_expected.to be OpenTracing::SpanContext::NOOP_INSTANCE }
+          it { is_expected.to be span_context }
         end
 
         context 'OpenTracing::FORMAT_RACK' do
+          include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_RACK }
+          let(:propagator) { Datadog::OpenTracer::RackPropagator }
           it { expect { extract }.to_not output.to_stdout }
-          it { is_expected.to be OpenTracing::SpanContext::NOOP_INSTANCE }
+          it { is_expected.to be span_context }
         end
 
         context 'unknown' do
