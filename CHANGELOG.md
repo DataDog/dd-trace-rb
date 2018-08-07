@@ -36,6 +36,16 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.13.1...v0.14.0.beta1
 - DelayedJob integration (#393 #444)
 - Version information to integrations (#483)
 
+## [0.13.2] - 2018-08-07
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.13.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.13.1...v0.13.2
+
+### Fixed
+
+ - Context propagation for distributed traces when context is full (#502)
+
 ## [0.13.1] - 2018-07-17
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.13.1
@@ -410,8 +420,11 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...0.14-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.2...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.beta2...0.14-dev
+[0.14.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0.beta1...v0.14.beta2
+[0.14.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...v0.14.beta1
+[0.13.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...v0.13.0
 [0.13.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.0...v0.13.0.beta1
