@@ -28,7 +28,7 @@ RSpec.describe Datadog::Context do
           ).tap { |s| s.parent = parent_span }
         end
 
-        it { is_expected.to be nil }
+        it { is_expected.to be span }
       end
 
       context 'and is reset' do

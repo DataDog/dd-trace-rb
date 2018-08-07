@@ -55,10 +55,10 @@ RSpec.describe Datadog::Tracer do
       it { expect(child_span.trace_id).to eq(parent_span.trace_id) }
       it { expect(child_span.parent_id).to eq(parent_span.span_id) }
       it { expect(sampling_priority_metric(child_span)).to eq(1) }
-      # This is expected to be nil because when propagated, we don't
+      # This is expected to be child_span because when propagated, we don't
       # propagate the root span, only its ID. Therefore the span reference
-      # should be nil on the other end of the distributed trace.
-      it { expect(@child_root_span).to be nil }
+      # should be the first span on the other end of the distributed trace.
+      it { expect(@child_root_span).to be child_span }
     end
   end
 end
