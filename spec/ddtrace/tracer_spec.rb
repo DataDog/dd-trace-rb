@@ -72,4 +72,14 @@ RSpec.describe Datadog::Tracer do
       end
     end
   end
+
+  describe '#active_root_span' do
+    subject(:active_root_span) { tracer.active_root_span }
+    let(:span) { instance_double(Datadog::Span) }
+
+    it do
+      expect(tracer.call_context).to receive(:current_root_span).and_return(span)
+      is_expected.to be(span)
+    end
+  end
 end

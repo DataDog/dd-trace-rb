@@ -63,6 +63,12 @@ module Datadog
       end
     end
 
+    def current_root_span
+      @mutex.synchronize do
+        return @current_root_span
+      end
+    end
+
     # Add a span to the context trace list, keeping it as the last active span.
     def add_span(span)
       @mutex.synchronize do
@@ -77,6 +83,7 @@ module Datadog
           return
         end
         set_current_span(span)
+        @current_root_span = span if @trace.empty?
         @trace << span
         span.context = self
       end
@@ -158,6 +165,7 @@ module Datadog
       @sampling_priority = options.fetch(:sampling_priority, nil)
       @finished_spans = 0
       @current_span = nil
+      @current_root_span = nil
     end
 
     def set_current_span(span)
