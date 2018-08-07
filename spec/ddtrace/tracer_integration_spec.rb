@@ -27,9 +27,7 @@ RSpec.describe Datadog::Tracer do
           # Propagate it via headers
           headers = {}
           Datadog::HTTPPropagator.inject!(parent_span.context, headers)
-          headers = headers.collect do |k, v|
-            ["http-#{k}".upcase!.tr('-', '_'), v]
-          end.to_h
+          headers = Hash[headers.map { |k, v| ["http-#{k}".upcase!.tr('-', '_'), v] }]
 
           # Then extract it from the same headers
           propagated_context = Datadog::HTTPPropagator.extract(headers)
