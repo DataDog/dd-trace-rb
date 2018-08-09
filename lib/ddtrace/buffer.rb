@@ -18,7 +18,7 @@ module Datadog
     def push(trace)
       return if @closed
       len = @traces.length
-      @traces.delete(rand(len)) unless len < @max_size || @max_size <= 0
+      @traces.delete_at(rand(len)) if len >= @max_size && @max_size > 0
       @traces << trace
     end
 
