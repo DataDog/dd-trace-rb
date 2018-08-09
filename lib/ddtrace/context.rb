@@ -13,7 +13,6 @@ module Datadog
   # \Context, it will be related to the original trace.
   #
   # This data structure is thread-safe.
-  # rubocop:disable Metrics/ClassLength
   class Context
     # 100k spans is about a 100Mb footprint
     DEFAULT_MAX_LENGTH = 100_000
@@ -36,21 +35,15 @@ module Datadog
       @parent_span_id
     end
 
-    def sampling_priority
-      @sampling_priority
-    end
+    attr_reader :sampling_priority
 
-    def sampling_priority=(priority)
-      @sampling_priority = priority
-    end
+    attr_writer :sampling_priority
 
     # Return the last active span that corresponds to the last inserted
     # item in the trace list. This cannot be considered as the current active
     # span in asynchronous environments, because some spans can be closed
     # earlier while child spans still need to finish their traced execution.
-    def current_span
-      @current_span
-    end
+    attr_reader :current_span
 
     def current_root_span
       @mutex.synchronize do
@@ -164,8 +157,8 @@ module Datadog
 
     def attach_sampling_priority
       @trace.first.set_metric(
-          Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
-          @sampling_priority
+        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+        @sampling_priority
       )
     end
 
