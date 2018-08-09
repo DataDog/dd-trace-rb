@@ -61,7 +61,7 @@ module Datadog
         private
 
         def baggage_item?(item)
-          item.start_with?(BAGGAGE_PREFIX)
+          item.to_s.start_with?(BAGGAGE_PREFIX)
         end
 
         def item_to_baggage(key)
