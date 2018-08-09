@@ -18,12 +18,10 @@ module Datadog
     def push(trace)
       return if @closed
       len = @traces.length
-      if len < @max_size || @max_size <= 0
-        @traces << trace
-      else
-        # we should replace a random trace with the new one
-        @traces[rand(len)] = trace
+      unless len < @max_size || @max_size <= 0
+        @traces.delete(rand(len))
       end
+      @traces << trace
     end
 
     # Return the current number of stored traces.
