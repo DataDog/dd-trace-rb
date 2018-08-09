@@ -102,7 +102,6 @@ module Datadog
 
       @context_flush = options[:partial_flush] ? Datadog::ContextFlush.new(options) : nil
 
-      @mutex = Mutex.new
       @services = {}
       @tags = {}
     end
