@@ -20,7 +20,7 @@ module Datadog
 
     attr_reader :max_length
 
-    # Initialize a new thread-safe \Context.
+    # Initialize a new \Context.
     def initialize(options = {})
       # max_length is the amount of spans above which, for a given trace,
       # the context will simply drop and ignore spans, avoiding high memory usage.
@@ -49,7 +49,7 @@ module Datadog
     # span in asynchronous environments, because some spans can be closed
     # earlier while child spans still need to finish their traced execution.
     def current_span
-      return @current_span
+      @current_span
     end
 
     def current_root_span
@@ -98,13 +98,13 @@ module Datadog
     # Returns if the trace for the current Context is finished or not. A \Context
     # is considered finished if all spans in this context are finished.
     def finished?
-      return check_finished_spans
+      check_finished_spans
     end
 
     # Returns true if the context is sampled, that is, if it should be kept
     # and sent to the trace agent.
     def sampled?
-      return @sampled
+      @sampled
     end
 
     # Returns both the trace list generated in the current context and
