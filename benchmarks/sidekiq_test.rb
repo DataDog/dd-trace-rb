@@ -1,5 +1,6 @@
 ENV['RAILS_ENV'] = 'production'
 require 'English'
+GC.disable
 
 # Benchmark Configuration container
 module TestConfiguration
@@ -75,6 +76,7 @@ Sidekiq.configure_server do |config|
   config.redis = ConnectionPool.new(size: TestConfiguration.redis[:pool_size],
                                     timeout: TestConfiguration.redis[:timeout],
                                     &redis_conn)
+  Sidekiq::Logging.logger = nil
 end
 
 # Simple Sidekiq worker performing the real benchmark

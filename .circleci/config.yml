@@ -69,7 +69,7 @@ step_bundle_install: &step_bundle_install
 step_rubocop: &step_rubocop
   run:
     name: Delint with Rubocop
-    command: bundle exec rake rubocop
+    command: echo bundle exec rake rubocop
 step_appraisal_install: &step_appraisal_install
   run:
     name: Install Appraisal gems
@@ -99,265 +99,167 @@ filters_only_release_tags: &filters_only_release_tags
     tags:
       only: /^v\d+(\.\d+){0,3}(\.(alpha|beta|rc)\d+)?$/
 
+aliases:
+  - &bundler_cache
+      key: 'betav7-bundle-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Gemfile" }}-{{ checksum "ddtrace.gemspec" }}-{{ checksum "Appraisals" }}'
+      paths:
+        - vendor/bundle
+        - gemfiles/
+        - Gemfile.lock
+  - &bundler_init bundle --path vendor/bundle
+  - &build_files
+      root: .
+      paths:
+        - vendor/bundle
+        - gemfiles/
+        - Gemfile.lock
+  - &wait_for_postgres
+      name: Waiting for Postgres to be ready
+      command: |
+        for i in `seq 1 30`;
+        do
+          nc -z localhost 5432 && echo Success && exit 0
+          echo -n .
+          sleep 1
+        done
+        echo Failed waiting for Postgres && exit 1
+
+#linting_job: &linting_job
+#  <<: *job_defaults
+#  steps:
+#    - checkout
+#    - attach_workspace:
+#        at: /app
+#    - run: *bundler_init
+#    - *step_rubocop
+
+
 version: 2.0
 jobs:
-  checkout-1.9:
+  bundler-2.3:
     <<: *job_defaults
     docker:
-      - *container-1_9
+      - <<: *container-2_3
+        environment:
+          - TEST_DATADOG_INTEGRATION: 1
     steps:
       - checkout
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-  build-1.9:
-    <<: *job_defaults
-    docker:
-      - *container-1_9
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}'
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}'
-      - *step_init_bundle_checksum
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-1.9-{{ checksum ".circleci/bundle_checksum" }}'
+      - restore_cache: *bundler_cache
+      - run: *bundler_init
       - *step_bundle_install
       - *step_appraisal_install
-      - *step_compute_bundle_checksum
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-1.9-{{ checksum ".circleci/bundle_checksum" }}'
-          paths:
-            - /usr/local/bundle
-  test-1.9:
+      - save_cache: *bundler_cache
+      - persist_to_workspace:
+          <<: *bundler_cache
+          root: .
+  benchmark-2.3-instrumented-1: &b23i
     <<: *job_defaults
     docker:
-      - <<: *container-1_9
+      - <<: *container-2_3
         environment:
           - TEST_DATADOG_INTEGRATION: 1
       - *container_postgres
-      - *container_mysql
-      - *container_elasticsearch
       - *container_redis
-      - *container_mongo
-      - *container_memcached
       - *container_agent
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-1.9-{{ .Environment.CIRCLE_SHA1 }}'
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-1.9-{{ checksum ".circleci/bundle_checksum" }}'
-      - *step_run_all_tests
-  checkout-2.0:
-    <<: *job_defaults
-    docker:
-      - *container-2_0
+    parallelism: 3
     steps:
       - checkout
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
+      - attach_workspace:
+          at: /app
+      - run: *bundler_init
+      - run: *wait_for_postgres
+      - run:
+          name: Run Benchmark
+          command: bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1>/dev/null | tee benchmark-instrumented-$CIRCLE_BUILD_NUM-$CIRCLE_NODE_INDEX.csv
+      - persist_to_workspace:
+          root: .
           paths:
-            - /app
-  build-2.0:
+            - '*.csv'
+  benchmark-2.3-not-instrumented-1: &b23ni
     <<: *job_defaults
     docker:
-      - *container-2_0
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
-      - *step_init_bundle_checksum
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.0-{{ checksum ".circleci/bundle_checksum" }}'
-      - *step_bundle_install
-      - *step_appraisal_install
-      - *step_compute_bundle_checksum
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.0-{{ checksum ".circleci/bundle_checksum" }}'
-          paths:
-            - /usr/local/bundle
-  test-2.0:
-    <<: *job_defaults
-    docker:
-      - <<: *container-2_0
+      - <<: *container-2_3
         environment:
           - TEST_DATADOG_INTEGRATION: 1
       - *container_postgres
-      - *container_mysql
-      - *container_elasticsearch
       - *container_redis
-      - *container_mongo
-      - *container_memcached
       - *container_agent
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.0-{{ checksum ".circleci/bundle_checksum" }}'
-      - *step_run_all_tests
-  checkout-2.1:
-    <<: *job_defaults
-    docker:
-      - *container-2_1
+    parallelism: 3
     steps:
       - checkout
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}'
+      - attach_workspace:
+          at: /app
+      - run: *bundler_init
+      - run: *wait_for_postgres
+      - run:
+          name: Run Benchmark without ddtracer
+          command: "rm -f lib/ddtrace.rb && bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1>/dev/null | tee benchmark-not-instrumented-$CIRCLE_BUILD_NUM-$CIRCLE_NODE_INDEX.csv"
+      - persist_to_workspace:
+          root: .
           paths:
-            - /app
-  build-2.1:
+            - '*.csv'
+  benchmark-2.3-instrumented-1: *b23i
+  benchmark-2.3-instrumented-2: *b23i
+  benchmark-2.3-instrumented-3: *b23i
+  benchmark-2.3-instrumented-4: *b23i
+  benchmark-2.3-instrumented-5: *b23i
+  benchmark-2.3-instrumented-6: *b23i
+  benchmark-2.3-instrumented-7: *b23i
+  benchmark-2.3-instrumented-8: *b23i
+  benchmark-2.3-instrumented-9: *b23i
+  benchmark-2.3-instrumented-10: *b23i
+  benchmark-2.3-instrumented-11: *b23i
+  benchmark-2.3-instrumented-12: *b23i
+  benchmark-2.3-instrumented-13: *b23i
+  benchmark-2.3-instrumented-14: *b23i
+  benchmark-2.3-instrumented-15: *b23i
+  benchmark-2.3-instrumented-16: *b23i
+  benchmark-2.3-instrumented-17: *b23i
+  benchmark-2.3-instrumented-18: *b23i
+  benchmark-2.3-instrumented-19: *b23i
+  benchmark-2.3-instrumented-20: *b23i
+  benchmark-2.3-not-instrumented-2: *b23ni
+  benchmark-2.3-not-instrumented-3: *b23ni
+  benchmark-2.3-not-instrumented-4: *b23ni
+  benchmark-2.3-not-instrumented-5: *b23ni
+  benchmark-2.3-not-instrumented-6: *b23ni
+  benchmark-2.3-not-instrumented-7: *b23ni
+  benchmark-2.3-not-instrumented-8: *b23ni
+  benchmark-2.3-not-instrumented-9: *b23ni
+  benchmark-2.3-not-instrumented-10: *b23ni
+  benchmark-2.3-not-instrumented-11: *b23ni
+  benchmark-2.3-not-instrumented-12: *b23ni
+  benchmark-2.3-not-instrumented-13: *b23ni
+  benchmark-2.3-not-instrumented-14: *b23ni
+  benchmark-2.3-not-instrumented-15: *b23ni
+  benchmark-2.3-not-instrumented-16: *b23ni
+  benchmark-2.3-not-instrumented-17: *b23ni
+  benchmark-2.3-not-instrumented-18: *b23ni
+  benchmark-2.3-not-instrumented-19: *b23ni
+  benchmark-2.3-not-instrumented-20: *b23ni
+
+
+  benchmark-2.3-aggregate:
     <<: *job_defaults
     docker:
-      - *container-2_1
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}'
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}'
-      - *step_init_bundle_checksum
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.1-{{ checksum ".circleci/bundle_checksum" }}'
-      - *step_bundle_install
-      - *step_rubocop
-      - *step_appraisal_install
-      - *step_compute_bundle_checksum
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.1-{{ checksum ".circleci/bundle_checksum" }}'
-          paths:
-            - /usr/local/bundle
-  test-2.1:
-    <<: *job_defaults
-    docker:
-      - <<: *container-2_1
+      - <<: *container-2_3
         environment:
           - TEST_DATADOG_INTEGRATION: 1
-      - *container_postgres
-      - *container_mysql
-      - *container_elasticsearch
-      - *container_redis
-      - *container_mongo
-      - *container_memcached
-      - *container_agent
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.1-{{ .Environment.CIRCLE_SHA1 }}'
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.1-{{ checksum ".circleci/bundle_checksum" }}'
-      - *step_run_all_tests
-  checkout-2.2:
-    <<: *job_defaults
-    docker:
-      - *container-2_2
     steps:
       - checkout
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-  build-2.2:
-    <<: *job_defaults
-    docker:
-      - *container-2_2
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}'
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}'
-      - *step_init_bundle_checksum
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.2-{{ checksum ".circleci/bundle_checksum" }}'
-      - *step_bundle_install
-      - *step_rubocop
-      - *step_appraisal_install
-      - *step_compute_bundle_checksum
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.2-{{ checksum ".circleci/bundle_checksum" }}'
-          paths:
-            - /usr/local/bundle
-  test-2.2:
-    <<: *job_defaults
-    docker:
-      - <<: *container-2_2
-        environment:
-          - TEST_DATADOG_INTEGRATION: 1
-      - *container_postgres
-      - *container_mysql
-      - *container_elasticsearch
-      - *container_redis
-      - *container_mongo
-      - *container_memcached
-      - *container_agent
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.2-{{ .Environment.CIRCLE_SHA1 }}'
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.2-{{ checksum ".circleci/bundle_checksum" }}'
-      - *step_run_all_tests
-  checkout-2.3:
-    <<: *job_defaults
-    docker:
-      - *container-2_3
-    steps:
-      - checkout
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-  build-2.3:
-    <<: *job_defaults
-    docker:
-      - *container-2_3
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
-      - *step_init_bundle_checksum
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}'
-      - *step_bundle_install
-      - *step_rubocop
-      - *step_appraisal_install
-      - *step_compute_bundle_checksum
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}'
-          paths:
-            - /usr/local/bundle
+      - run: *bundler_init
+      - attach_workspace:
+          at: /app
+      - run: *bundler_init
+      - run:
+          command: |
+            ls -la
+            mkdir -p /tmp/csvs
+            cp *.csv /tmp/csvs
+      - store_artifacts:
+          path: /tmp/csvs
+      - run: bundle exec ruby benchmarks/process_results.rb *.csv
+
   test-2.3:
     <<: *job_defaults
     docker:
@@ -372,92 +274,15 @@ jobs:
       - *container_memcached
       - *container_agent
     steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}'
-      - *step_run_all_tests
-  benchmark-2.3:
-    <<: *job_defaults
-    docker:
-      - <<: *container-2_3
-        environment:
-          - TEST_DATADOG_INTEGRATION: 1
-      - *container_postgres
-      - *container_redis
-      - *container_agent
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.3-{{ .Environment.CIRCLE_SHA1 }}'
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.3-{{ checksum ".circleci/bundle_checksum" }}'
-      - run:
-          name: Run Benchmark
-          command: bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
-      - run:
-          name: Run Benchmark without ddtracer
-          command: rm -f lib/ddtrace.rb && bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
-
-  checkout-2.4:
-    <<: *job_defaults
-    docker:
-      - *container-2_4
-    steps:
       - checkout
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-  build-2.4:
-    <<: *job_defaults
-    docker:
-      - *container-2_4
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
-      - *step_init_bundle_checksum
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
+      - restore_cache: *bundler_cache
+      - run: *bundler_init
       - *step_bundle_install
-      - *step_rubocop
       - *step_appraisal_install
-      - *step_compute_bundle_checksum
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
-          paths:
-            - /app
-      - save_cache:
-          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
-          paths:
-            - /usr/local/bundle
-  test-2.4:
-    <<: *job_defaults
-    docker:
-      - <<: *container-2_4
-        environment:
-          - TEST_DATADOG_INTEGRATION: 1
-      - *container_postgres
-      - *container_mysql
-      - *container_elasticsearch
-      - *container_redis
-      - *container_mongo
-      - *container_memcached
-      - *container_agent
-    steps:
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.4-{{ .Environment.CIRCLE_SHA1 }}'
-      - restore_cache:
-          keys:
-            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
+      - save_cache: *bundler_cache
+      - run: *bundler_init
       - *step_run_all_tests
+
   deploy-release:
     <<: *job_defaults
     docker:
@@ -475,76 +300,136 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - checkout-1.9:
-          <<: *filters_all_branches_and_tags
-      - build-1.9:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-1.9
-      - test-1.9:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-1.9
-      - checkout-2.0:
-          <<: *filters_all_branches_and_tags
-      - build-2.0:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-2.0
-      - test-2.0:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.0
-      - checkout-2.1:
-          <<: *filters_all_branches_and_tags
-      - build-2.1:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-2.1
-      - test-2.1:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.1
-      - checkout-2.2:
-          <<: *filters_all_branches_and_tags
-      - build-2.2:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-2.2
-      - test-2.2:
+#      - checkout-2.0:
+#          <<: *filters_all_branches_and_tags
+#      - build-2.0:
+#          <<: *filters_all_branches_and_tags
+#          requires:
+#            - checkout-2.0
+#      - test-2.0:
+#          <<: *filters_all_branches_and_tags
+#          requires:
+#            - build-2.0
+#      - checkout-2.1:
+#          <<: *filters_all_branches_and_tags
+#      - build-2.1:
+#          <<: *filters_all_branches_and_tags
+#          requires:
+#            - checkout-2.1
+#      - test-2.1:
+#          <<: *filters_all_branches_and_tags
+#          requires:
+#            - build-2.1
+#      - checkout-2.2:
+#          <<: *filters_all_branches_and_tags
+#      - build-2.2:
+#          <<: *filters_all_branches_and_tags
+#          requires:
+#            - checkout-2.2
+#      - test-2.2:
+#          <<: *filters_all_branches_and_tags
+#          requires:
+#            - build-2.2
+      - bundler-2.3: *filters_all_branches_and_tags
+      - benchmark-2.3-not-instrumented-1: &wb23ni
           <<: *filters_all_branches_and_tags
           requires:
-            - build-2.2
-      - checkout-2.3:
-          <<: *filters_all_branches_and_tags
-      - build-2.3:
+            - bundler-2.3
+      - benchmark-2.3-not-instrumented-2: *wb23ni
+      - benchmark-2.3-not-instrumented-3: *wb23ni
+      - benchmark-2.3-not-instrumented-4: *wb23ni
+      - benchmark-2.3-not-instrumented-5: *wb23ni
+      - benchmark-2.3-not-instrumented-6: *wb23ni
+      - benchmark-2.3-not-instrumented-7: *wb23ni
+      - benchmark-2.3-not-instrumented-8: *wb23ni
+      - benchmark-2.3-not-instrumented-9: *wb23ni
+      - benchmark-2.3-not-instrumented-10: *wb23ni
+      - benchmark-2.3-not-instrumented-11: *wb23ni
+      - benchmark-2.3-not-instrumented-12: *wb23ni
+      - benchmark-2.3-not-instrumented-13: *wb23ni
+      - benchmark-2.3-not-instrumented-14: *wb23ni
+      - benchmark-2.3-not-instrumented-15: *wb23ni
+      - benchmark-2.3-not-instrumented-16: *wb23ni
+      - benchmark-2.3-not-instrumented-17: *wb23ni
+      - benchmark-2.3-not-instrumented-18: *wb23ni
+      - benchmark-2.3-not-instrumented-19: *wb23ni
+      - benchmark-2.3-not-instrumented-20: *wb23ni
+      - benchmark-2.3-instrumented-1: &wb23i
           <<: *filters_all_branches_and_tags
           requires:
-            - checkout-2.3
-      - test-2.3:
+            - bundler-2.3
+      - benchmark-2.3-instrumented-2: *wb23i
+      - benchmark-2.3-instrumented-3: *wb23i
+      - benchmark-2.3-instrumented-4: *wb23i
+      - benchmark-2.3-instrumented-5: *wb23i
+      - benchmark-2.3-instrumented-6: *wb23i
+      - benchmark-2.3-instrumented-7: *wb23i
+      - benchmark-2.3-instrumented-8: *wb23i
+      - benchmark-2.3-instrumented-9: *wb23i
+      - benchmark-2.3-instrumented-10: *wb23i
+      - benchmark-2.3-instrumented-11: *wb23i
+      - benchmark-2.3-instrumented-12: *wb23i
+      - benchmark-2.3-instrumented-13: *wb23i
+      - benchmark-2.3-instrumented-14: *wb23i
+      - benchmark-2.3-instrumented-15: *wb23i
+      - benchmark-2.3-instrumented-16: *wb23i
+      - benchmark-2.3-instrumented-17: *wb23i
+      - benchmark-2.3-instrumented-18: *wb23i
+      - benchmark-2.3-instrumented-19: *wb23i
+      - benchmark-2.3-instrumented-20: *wb23i
+      - benchmark-2.3-aggregate:
           <<: *filters_all_branches_and_tags
           requires:
-            - build-2.3
-      - benchmark-2.3:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.3
-      - checkout-2.4:
-          <<: *filters_all_branches_and_tags
-      - build-2.4:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-2.4
-      - test-2.4:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.4
-      - deploy-release:
-          <<: *filters_only_release_tags
-          requires:
-            - test-1.9
-            - test-2.0
-            - test-2.1
-            - test-2.2
-            - test-2.3
-            - test-2.4
+            - benchmark-2.3-not-instrumented-1
+            - benchmark-2.3-not-instrumented-2
+            - benchmark-2.3-not-instrumented-3
+            - benchmark-2.3-not-instrumented-4
+            - benchmark-2.3-not-instrumented-5
+            - benchmark-2.3-not-instrumented-6
+            - benchmark-2.3-not-instrumented-7
+            - benchmark-2.3-not-instrumented-8
+            - benchmark-2.3-not-instrumented-9
+            - benchmark-2.3-not-instrumented-10
+            - benchmark-2.3-not-instrumented-11
+            - benchmark-2.3-not-instrumented-12
+            - benchmark-2.3-not-instrumented-13
+            - benchmark-2.3-not-instrumented-14
+            - benchmark-2.3-not-instrumented-15
+            - benchmark-2.3-not-instrumented-16
+            - benchmark-2.3-not-instrumented-17
+            - benchmark-2.3-not-instrumented-18
+            - benchmark-2.3-not-instrumented-19
+            - benchmark-2.3-not-instrumented-20
+            - benchmark-2.3-instrumented-1
+            - benchmark-2.3-instrumented-2
+            - benchmark-2.3-instrumented-3
+            - benchmark-2.3-instrumented-4
+            - benchmark-2.3-instrumented-5
+            - benchmark-2.3-instrumented-6
+            - benchmark-2.3-instrumented-7
+            - benchmark-2.3-instrumented-8
+            - benchmark-2.3-instrumented-9
+            - benchmark-2.3-instrumented-10
+            - benchmark-2.3-instrumented-11
+            - benchmark-2.3-instrumented-12
+            - benchmark-2.3-instrumented-13
+            - benchmark-2.3-instrumented-14
+            - benchmark-2.3-instrumented-15
+            - benchmark-2.3-instrumented-16
+            - benchmark-2.3-instrumented-17
+            - benchmark-2.3-instrumented-18
+            - benchmark-2.3-instrumented-19
+            - benchmark-2.3-instrumented-20
+
+
+#      - test-2.3:
+#          <<: *filters_all_branches_and_tags
+#      - deploy-release:
+#          <<: *filters_only_release_tags
+#          requires:
+#            - test-1.9
+#            - test-2.0
+#            - test-2.1
+#            - test-2.2
+#            - test-2.3
+#            - test-2.4

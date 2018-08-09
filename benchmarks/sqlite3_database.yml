@@ -1,0 +1,6 @@
+production:
+  adapter: 'sqlite3'
+  database: 'tmp/test.db'
+  timeout: 5000
+  pool: 30
+  cache: shared
