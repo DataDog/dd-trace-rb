@@ -13,6 +13,7 @@ module Datadog
       # in the Rack environment so that it can be retrieved by the underlying
       # application. If request tags are not set by the app, they will be set using
       # information available at the Rack level.
+      # rubocop:disable Metrics/ClassLength
       class TraceMiddleware
         RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
 
@@ -58,11 +59,12 @@ module Datadog
           request_span = tracer.trace('rack.request', trace_options)
           env[RACK_REQUEST_SPAN] = request_span
 
-          # TODO: For backwards compatibility; this attribute is deprecated.
-          env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
-
           # Add deprecation warnings
           add_deprecation_warnings(env)
+          env.without_datadog_warnings do
+            # TODO: For backwards compatibility; this attribute is deprecated.
+            env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
+          end
 
           # Copy the original env, before the rest of the stack executes.
           # Values may change; we want values before that happens.
@@ -180,19 +182,30 @@ module Datadog
         def add_deprecation_warnings(env)
           env.instance_eval do
             def [](key)
-              if key == :datadog_rack_request_span && !@request_span_warning_issued
+              if key == :datadog_rack_request_span \
+                && !@datadog_span_warning_issued \
+                && !@datadog_deprecation_warnings_disabled
                 Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
-                @request_span_warning_issued = true
+                @datadog_span_warning_issued = true
               end
               super
             end
 
             def []=(key, value)
-              if key == :datadog_rack_request_span && !@request_span_warning_issued
+              if key == :datadog_rack_request_span \
+                && !@datadog_span_warning_issued \
+                && !@datadog_deprecation_warnings_disabled
                 Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
-                @request_span_warning_issued = true
+                @datadog_span_warning_issued = true
               end
               super
+            end
+
+            def without_datadog_warnings
+              @datadog_deprecation_warnings_disabled = true
+              yield
+            ensure
+              @datadog_deprecation_warnings_disabled = false
             end
           end
         end
