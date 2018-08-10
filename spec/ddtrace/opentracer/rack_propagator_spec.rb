@@ -83,15 +83,30 @@ if Datadog::OpenTracer.supported?
             end
           end
 
-          context 'without a proper prefix' do
-            let(:key) { 'HTTP_ACCOUNT_NAME' }
-            it { expect(span_context.baggage).to be_empty }
+          context 'with a symbol' do
+            context 'that does not have a proper prefix' do
+              let(:key) { :my_baggage_item }
+              it { expect(span_context.baggage).to be_empty }
+            end
+
+            context 'that has a proper prefix' do
+              let(:key) { :"#{described_class::BAGGAGE_PREFIX_FORMATTED}ACCOUNT_NAME" }
+              it { expect(span_context.baggage).to have(1).items }
+              it { expect(span_context.baggage).to include('account_name' => value) }
+            end
           end
 
-          context 'with a proper prefix' do
-            let(:key) { "#{described_class::BAGGAGE_PREFIX_FORMATTED}ACCOUNT_NAME" }
-            it { expect(span_context.baggage).to have(1).items }
-            it { expect(span_context.baggage).to include('account_name' => value) }
+          context 'with a string' do
+            context 'that does not have a proper prefix' do
+              let(:key) { 'HTTP_ACCOUNT_NAME' }
+              it { expect(span_context.baggage).to be_empty }
+            end
+
+            context 'that has a proper prefix' do
+              let(:key) { "#{described_class::BAGGAGE_PREFIX_FORMATTED}ACCOUNT_NAME" }
+              it { expect(span_context.baggage).to have(1).items }
+              it { expect(span_context.baggage).to include('account_name' => value) }
+            end
           end
         end
       end

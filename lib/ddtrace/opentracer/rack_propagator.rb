@@ -48,7 +48,7 @@ module Datadog
         private
 
         def baggage_header?(header)
-          header.start_with?(BAGGAGE_PREFIX_FORMATTED)
+          header.to_s.start_with?(BAGGAGE_PREFIX_FORMATTED)
         end
 
         def header_to_baggage(key)
