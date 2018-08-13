@@ -181,31 +181,37 @@ module Datadog
 
         def add_deprecation_warnings(env)
           env.instance_eval do
-            def [](key)
-              if key == :datadog_rack_request_span \
-                && !@datadog_span_warning_issued \
-                && !@datadog_deprecation_warnings_disabled
-                Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
-                @datadog_span_warning_issued = true
-              end
-              super
-            end
+            unless instance_variable_defined?(:@patched_with_datadog_warnings)
+              @patched_with_datadog_warnings = true
+              @datadog_deprecation_warnings = true
+              @datadog_span_warning = true
 
-            def []=(key, value)
-              if key == :datadog_rack_request_span \
-                && !@datadog_span_warning_issued \
-                && !@datadog_deprecation_warnings_disabled
-                Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
-                @datadog_span_warning_issued = true
+              def [](key)
+                if key == :datadog_rack_request_span \
+                  && @datadog_span_warning \
+                  && @datadog_deprecation_warnings
+                  Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                  @datadog_span_warning = true
+                end
+                super
               end
-              super
-            end
 
-            def without_datadog_warnings
-              @datadog_deprecation_warnings_disabled = true
-              yield
-            ensure
-              @datadog_deprecation_warnings_disabled = false
+              def []=(key, value)
+                if key == :datadog_rack_request_span \
+                  && @datadog_span_warning \
+                  && @datadog_deprecation_warnings
+                  Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                  @datadog_span_warning = true
+                end
+                super
+              end
+
+              def without_datadog_warnings
+                @datadog_deprecation_warnings = false
+                yield
+              ensure
+                @datadog_deprecation_warnings = true
+              end
             end
           end
         end
