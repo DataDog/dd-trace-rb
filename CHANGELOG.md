@@ -4,6 +4,31 @@
 
 ## [Unreleased (beta)]
 
+## [0.14.0] - 2018-08-14
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.13.2...v0.14.0
+
+### Added
+
+- RestClient integration (#422, #460)
+- DelayedJob integration (#393 #444)
+- Version information to integrations (#483)
+- Tracer#active_root_span helper (#503)
+
+### Changed
+
+- Resque to flush traces when Job finishes instead of using SyncWriter (#474)
+- ActiveRecord to allow configuring multiple databases (#451)
+- Integrations configuration settings (#450, #452, #451)
+
+### Fixed
+
+- Context propagation for distributed traces when context is full (#502)
+- Rake shutdown tracer after execution (#487) (@kissrobber)
+- Deprecation warnings fired using Unicorn (#508)
+
 ## [0.14.0.rc1] - 2018-08-08
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.0.rc1
@@ -435,11 +460,12 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.2...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.rc1...0.14-dev
-[0.14.0.rc1]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0.beta2...v0.14.rc1
-[0.14.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0.beta1...v0.14.beta2
-[0.14.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...v0.14.beta1
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0...0.15-dev
+[0.14.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.2...v0.14.0
+[0.14.0.rc1]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0.beta2...v0.14.0.rc1
+[0.14.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0.beta1...v0.14.0.beta2
+[0.14.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...v0.14.0.beta1
 [0.13.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...v0.13.0

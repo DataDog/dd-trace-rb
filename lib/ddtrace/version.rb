@@ -3,7 +3,7 @@ module Datadog
     MAJOR = 0
     MINOR = 14
     PATCH = 0
-    PRE = 'rc1'.freeze
+    PRE = nil
 
     STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
   end
