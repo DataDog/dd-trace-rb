@@ -32,6 +32,11 @@ module Datadog
           @done_once[key] = true
         end
       end
+
+      def done?(key)
+        return false unless instance_variable_defined?(:@done_once)
+        !@done_once.nil? && @done_once.key?(key)
+      end
     end
 
     # Extend the common methods so they're available as a module function.

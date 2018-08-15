@@ -24,6 +24,7 @@ module Datadog
     attr_writer :default_service
 
     ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
+    DEFAULT_ON_ERROR = proc { |span, error| span.set_error(error) unless span.nil? }
 
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
     # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
@@ -277,14 +278,23 @@ module Datadog
     # * +tags+: extra tags which should be added to the span.
     def trace(name, options = {})
       options[:child_of] = call_context
-      span = start_span(name, options)
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
       # a span that should be manually finished.
       if block_given?
+        span = nil
+        return_value = nil
+
         begin
-          yield(span)
+          begin
+            span = start_span(name, options)
+          # rubocop:disable Lint/UselessAssignment
+          rescue StandardError => e
+            Datadog::Tracer.log.debug('Failed to start span: #{e}')
+          ensure
+            return_value = yield(span)
+          end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
         # as we really have no clue of what is in the block,
@@ -292,13 +302,15 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          span.set_error(e)
+          (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
           raise e
         ensure
-          span.finish()
+          span.finish unless span.nil?
         end
+
+        return_value
       else
-        span
+        start_span(name, options)
       end
     end
 
@@ -332,6 +344,11 @@ module Datadog
     # Return the current active span or +nil+.
     def active_span
       call_context.current_span
+    end
+
+    # Return the current active root span or +nil+.
+    def active_root_span
+      call_context.current_root_span
     end
 
     # Send the trace to the writer to enqueue the spans list in the agent

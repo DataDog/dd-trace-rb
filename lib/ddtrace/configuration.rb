@@ -12,16 +12,28 @@ module Datadog
       @wrapped_registry = {}
     end
 
-    def [](integration_name)
-      @wrapped_registry[integration_name] ||= Proxy.new(fetch_integration(integration_name))
+    def [](integration_name, configuration_name = :default)
+      integration = fetch_integration(integration_name)
+
+      if integration.class <= Datadog::Contrib::Integration
+        integration.configuration(configuration_name)
+      else
+        @wrapped_registry[integration_name] ||= Proxy.new(integration)
+      end
     end
 
-    def use(integration_name, options = {})
+    def use(integration_name, options = {}, &block)
       integration = fetch_integration(integration_name)
-      settings = Proxy.new(integration)
 
-      integration.sorted_options.each do |name|
-        settings[name] = options.fetch(name, settings[name])
+      if integration.class <= Datadog::Contrib::Integration
+        configuration_name = options[:describes] || :default
+        filtered_options = options.reject { |k, _v| k == :describes }
+        integration.configure(configuration_name, filtered_options, &block)
+      else
+        settings = Proxy.new(integration)
+        integration.sorted_options.each do |name|
+          settings[name] = options.fetch(name, settings[name])
+        end
       end
 
       integration.patch if integration.respond_to?(:patch)

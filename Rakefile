@@ -39,9 +39,14 @@ namespace :spec do
     t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'
   end
 
+  RSpec::Core::RakeTask.new(:contrib) do |t|
+    t.pattern = 'spec/**/contrib/{configurable,integration,patchable,patcher,registerable,configuration/*}_spec.rb'
+  end
+
   [
     :active_model_serializers,
     :active_record,
+    :delayed_job,
     :active_support,
     :aws,
     :dalli,
@@ -62,7 +67,8 @@ namespace :spec do
     :sequel,
     :sidekiq,
     :sinatra,
-    :sucker_punch
+    :sucker_punch,
+    :rest_client
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t|
       t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
@@ -144,7 +150,7 @@ end
 
 if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
   RuboCop::RakeTask.new(:rubocop) do |t|
-    t.options << ['-D']
+    t.options << ['-D', '--force-exclusion']
     t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'spec/**/*.rb', 'Gemfile', 'Rakefile']
   end
 end
@@ -208,6 +214,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -221,6 +228,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib-old rake spec:active_record'
+      sh 'bundle exec appraisal contrib-old rake spec:delayed_job'
       sh 'bundle exec appraisal contrib-old rake spec:active_support'
       sh 'bundle exec appraisal contrib-old rake spec:dalli'
       sh 'bundle exec appraisal contrib-old rake spec:elasticsearch'
@@ -233,6 +241,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'
       sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      sh 'bundle exec appraisal contrib-old rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
@@ -250,6 +259,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -263,6 +273,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib-old rake spec:active_record'
+      sh 'bundle exec appraisal contrib-old rake spec:delayed_job'
       sh 'bundle exec appraisal contrib-old rake spec:active_support'
       sh 'bundle exec appraisal contrib-old rake spec:dalli'
       sh 'bundle exec appraisal contrib-old rake spec:elasticsearch'
@@ -275,6 +286,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'
       sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      sh 'bundle exec appraisal contrib-old rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
@@ -295,6 +307,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -308,6 +321,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib-old rake spec:active_record'
+      sh 'bundle exec appraisal contrib-old rake spec:delayed_job'
       sh 'bundle exec appraisal contrib-old rake spec:active_support'
       sh 'bundle exec appraisal contrib-old rake spec:dalli'
       sh 'bundle exec appraisal contrib-old rake spec:elasticsearch'
@@ -320,6 +334,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'
       sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      sh 'bundle exec appraisal contrib-old rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
@@ -346,6 +361,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -359,6 +375,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:delayed_job'
       sh 'bundle exec appraisal contrib rake spec:active_support'
       sh 'bundle exec appraisal contrib rake spec:dalli'
       sh 'bundle exec appraisal contrib rake spec:elasticsearch'
@@ -374,6 +391,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
       sh 'bundle exec appraisal contrib rake spec:sequel'
+      sh 'bundle exec appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
@@ -408,6 +426,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -421,6 +440,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:delayed_job'
       sh 'bundle exec appraisal contrib rake spec:active_support'
       sh 'bundle exec appraisal contrib rake spec:dalli'
       sh 'bundle exec appraisal contrib rake spec:excon'
@@ -436,6 +456,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
       sh 'bundle exec appraisal contrib rake spec:sequel'
+      sh 'bundle exec appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
@@ -469,6 +490,7 @@ task :ci do
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -482,6 +504,7 @@ task :ci do
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:delayed_job'
       sh 'bundle exec appraisal contrib rake spec:active_support'
       sh 'bundle exec appraisal contrib rake spec:dalli'
       sh 'bundle exec appraisal contrib rake spec:elasticsearch'
@@ -497,6 +520,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
       sh 'bundle exec appraisal contrib rake spec:sequel'
+      sh 'bundle exec appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec rake benchmark'

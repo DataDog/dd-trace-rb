@@ -106,6 +106,21 @@ RSpec.describe Datadog::Patcher do
         end
       end
     end
+
+    describe '#done?' do
+      context 'when called before do_once' do
+        subject(:done) { patcher.done?(key) }
+        let(:key) { double('key') }
+        it { is_expected.to be false }
+      end
+
+      context 'when called after do_once' do
+        subject(:done) { patcher.done?(key) }
+        let(:key) { double('key') }
+        before(:each) { patcher.do_once(key) { 'Perform patch' } }
+        it { is_expected.to be true }
+      end
+    end
   end
 
   describe 'implemented' do

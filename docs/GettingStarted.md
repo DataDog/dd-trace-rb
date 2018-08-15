@@ -26,6 +26,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Active Record](#active-record)
      - [AWS](#aws)
      - [Dalli](#dalli)
+     - [DelayedJob](#delayedjob)
      - [Elastic Search](#elastic-search)
      - [Excon](#excon)
      - [Faraday](#faraday)
@@ -40,6 +41,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Rails](#rails)
      - [Rake](#rake)
      - [Redis](#redis)
+     - [Rest Client](#restclient)
      - [Resque](#resque)
      - [Sequel](#sequel)
      - [Sidekiq](#sidekiq)
@@ -163,6 +165,7 @@ And `options` is an optional `Hash` that accepts the following parameters:
 | ``child_of``    | `Datadog::Span` / `Datadog::Context` | Parent for this span. If not provided, will automatically become current active span. | `nil` |
 | ``start_time``  | `Integer` | When the span actually starts. Useful when tracing events that have already happened. | `Time.now.utc` |
 | ``tags``        | `Hash` | Extra tags which should be added to the span. | `{}` |
+| ``on_error``    | `Proc` | Handler invoked when a block is provided to trace, and it raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
 It's highly recommended you set both `service` and `resource` at a minimum. Spans without a `service` or `resource` as `nil` will be discarded by the Datadog agent.
 
@@ -227,7 +230,7 @@ def finish(name, id, payload)
   end
 end
 ```
-#####Enriching traces from nested methods
+##### Enriching traces from nested methods
 
 You can tag additional information to current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil.
 
@@ -236,6 +239,15 @@ You can tag additional information to current active span from any method. Note 
 
 current_span = Datadog.tracer.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
+```
+
+You can also get the root span of the current active trace using the `active_root_span` method. This method will return `nil` if there is no active trace.
+
+```ruby
+# e.g. adding tag to active root span
+
+current_root_span = Datadog.tracer.active_root_span
+current_root_span.set_tag('my_tag', 'my_value') unless current_root_span.nil?
 ```
 
 ## Integration instrumentation
@@ -258,6 +270,7 @@ For a list of available integrations, and their configuration options, please re
 | Active Record  | `active_record` | `>= 3.2, < 5.2`        | *[Link](#active-record)*  | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | AWS            | `aws`           | `>= 2.0`               | *[Link](#aws)*            | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Dalli          | `dalli`         | `>= 2.7`               | *[Link](#dalli)*          | *[Link](https://github.com/petergoldstein/dalli)*                              |
+| DelayedJob     | `delayed_job`   | `>= 4.1`               | *[Link](#delayedjob)*     | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
 | Elastic Search | `elasticsearch` | `>= 6.0`               | *[Link](#elastic-search)* | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
 | Excon          | `excon`         | `>= 0.62`              | *[Link](#excon)*          | *[Link](https://github.com/excon/excon)*                                       |
 | Faraday        | `faraday`       | `>= 0.14`              | *[Link](#faraday)*        | *[Link](https://github.com/lostisland/faraday)*                                |
@@ -272,6 +285,7 @@ For a list of available integrations, and their configuration options, please re
 | Rails          | `rails`         | `>= 3.2, < 5.2`        | *[Link](#rails)*          | *[Link](https://github.com/rails/rails)*                                       |
 | Rake           | `rake`          | `>= 12.0`              | *[Link](#rake)*           | *[Link](https://github.com/ruby/rake)*                                         |
 | Redis          | `redis`         | `>= 3.2, < 4.0`        | *[Link](#redis)*          | *[Link](https://github.com/redis/redis-rb)*                                    |
+| Rest Client    | `rest-client`   | `>= 1.8`               | *[Link](#restclient)*     | *[Link](https://github.com/rest-client/rest-client)*                           |
 | Resque         | `resque`        | `>= 1.0, < 2.0`        | *[Link](#resque)*         | *[Link](https://github.com/resque/resque)*                                     |
 | Sequel         | `sequel`        | `>= 3.41`              | *[Link](#sequel)*         | *[Link](https://github.com/jeremyevans/sequel)*                                |
 | Sidekiq        | `sidekiq`       | `>= 4.0`               | *[Link](#sidekiq)*        | *[Link](https://github.com/mperham/sidekiq)*                                   |
@@ -305,6 +319,44 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | --- | --- |
 | ``service_name`` | Service name used for database portion of `active_record` instrumentation. | Name of database adapter (e.g. `mysql2`) |
 | ``orm_service_name`` | Service name used for the Ruby ORM portion of `active_record` instrumentation. Overrides service name for ORM spans if explicitly set, which otherwise inherit their service from their parent.  | ``active_record`` |
+
+**Configuring trace settings per database**
+
+You can provide the `databases` option to configure trace settings by database connection:
+
+```ruby
+# Provide a `:describes` option with a connection key.
+# Any of the following keys are acceptable, and equivalent to one another.
+# If a block is provided, it yields a Settings object that
+# accepts any of the configuration options listed above.
+
+Datadog.configure do |c|
+  # Symbol matching your database connection in config/database.yml
+  # Only available if you are using Rails with ActiveRecord.
+  c.use :active_record, describes: :secondary_database, service_name: 'secondary-db'
+
+  c.use :active_record, describes: :secondary_database do |second_db|
+    second_db.service_name = 'secondary-db'
+  end
+
+  # Connection string with the following connection settings:
+  # Adapter, user, host, port, database
+  c.use :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', service_name: 'secondary-db'
+
+  # Hash with following connection settings
+  # Adapter, user, host, port, database
+  c.use :active_record, describes: {
+      adapter:  'mysql2',
+      host:     '127.0.0.1',
+      port:     '3306',
+      database: 'mysql',
+      username: 'root'
+    },
+    service_name: 'secondary-db'
+end
+```
+
+If ActiveRecord traces an event that uses a connection described within `databases`, it will use the trace settings assigned to that connection. If the connection does not match any in the `databases` option, it will use settings defined by `c.use :active_record` instead.
 
 ### AWS
 
@@ -792,6 +844,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``middleware_names`` | Enables any short-circuited middleware requests to display the middleware name as resource for the trace. | `false` |
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
+| ``databases`` | Hash of tracer settings to use for each database connection. See [ActiveRecord](#activerecord) for more details. | ``{}`` |
 
 ### Rake
 
@@ -894,6 +947,27 @@ customer_cache.get(...) # traced call will belong to `customer-cache` service
 invoice_cache.get(...) # traced call will belong to `invoice-cache` service
 ```
 
+### Rest Client
+
+The `rest-client` integration is available through the `ddtrace` middleware:
+
+```ruby
+require 'rest_client'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :rest_client, service_name: 'rest_client' # global service name
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| `service_name` | Service name for Rest Client instrumentation. | `'rest_client'` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `tracer` | A `Datadog::Tracer` instance used to instrument the application. Usually you don't need to set that. | `Datadog.tracer` |
+
 ### Resque
 
 The Resque integration uses Resque hooks that wraps the ``perform`` method.
@@ -987,6 +1061,27 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | --- | --- |
 | ``service_name`` | Service name used for `sidekiq` instrumentation | sidekiq |
+
+### DelayedJob
+
+The DelayedJob integration uses lifecycle hooks to trace the job executions.
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :delayed_job, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| ``service_name`` | Service name used for `DelayedJob` instrumentation | delayed_job |
+| ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 
 ### Sinatra
 
@@ -1263,6 +1358,7 @@ For more details on how to activate distributed tracing for integrations, see th
 
 - [Excon](#excon)
 - [Faraday](#faraday)
+- [Rest Client](#restclient)
 - [Net/HTTP](#nethttp)
 - [Rack](#rack)
 - [Rails](#rails)
