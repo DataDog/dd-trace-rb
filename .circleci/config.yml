@@ -105,7 +105,7 @@ job_aliases:
 jobs:
   "static analysis":
     <<: *job_defaults
-    docker: [ *container-2_4 ]
+    docker: [ *container-2_3 ]
     steps:
       - checkout
       - attach_workspace: *default_workspace
@@ -115,7 +115,7 @@ jobs:
           command: bundle exec rake rubocop
   "deploy release":
     <<: *job_defaults
-    docker: [ *container-2_4 ]
+    docker: [ *container-2_3 ]
     steps:
       - checkout
       - attach_workspace: *default_workspace
@@ -200,6 +200,29 @@ jobs:
       - *container_mongo
       - *container_memcached
       - *container_agent
+  "(1/2) benchmark": &benchmark
+    <<: *job_defaults
+    docker:
+      - <<: [ *container-2_3, *docker_test_environment ]
+      - *container_postgres
+      - *container_redis
+      - *container_agent
+    parallelism: 1
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /app
+      - run: *bundler_init
+      - run: *wait_for_postgres
+      - run:
+          name: Run sidekiq benchmark
+          command: bash .circleci/run_benchmark.sh tmp/benchmarks sidekiq_test
+      - persist_to_workspace:
+          root: .
+          paths:
+            - 'tmp/benchmarks/**/*.csv'
+  "(2/2) benchmark": *benchmark
+
 
 wf_aliases:
   - &filters_all_branches_and_tags
@@ -219,26 +242,28 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - "(1.9) build": *job_default
-      - "(2.0) build": *job_default
-      - "(2.1) build": *job_default
-      - "(2.2) build": *job_default
+#      - "(1.9) build": *job_default
+#      - "(2.0) build": *job_default
+#      - "(2.1) build": *job_default
+#      - "(2.2) build": *job_default
       - "(2.3) build": *job_default
-      - "(2.4) build": *job_default
-      - "(1.9) test": { <<: [ *job_default, requires: [ "(1.9) build" ] ] }
-      - "(2.0) test": { <<: [ *job_default, requires: [ "(2.0) build" ] ] }
-      - "(2.1) test": { <<: [ *job_default, requires: [ "(2.1) build" ] ] }
-      - "(2.2) test": { <<: [ *job_default, requires: [ "(2.2) build" ] ] }
-      - "(2.3) test": { <<: [ *job_default, requires: [ "(2.3) build" ] ] }
-      - "(2.4) test": { <<: [ *job_default, requires: [ "(2.4) build" ] ] }
-      - "static analysis": { <<: [ *job_default, requires: [ "(2.4) build" ] ] }
+#      - "(2.4) build": *job_default
+#      - "(1.9) test": { <<: [ *job_default, requires: [ "(1.9) build" ] ] }
+#      - "(2.0) test": { <<: [ *job_default, requires: [ "(2.0) build" ] ] }
+#      - "(2.1) test": { <<: [ *job_default, requires: [ "(2.1) build" ] ] }
+#      - "(2.2) test": { <<: [ *job_default, requires: [ "(2.2) build" ] ] }
+#      - "(2.3) test": { <<: [ *job_default, requires: [ "(2.3) build" ] ] }
+#      - "(2.4) test": { <<: [ *job_default, requires: [ "(2.4) build" ] ] }
+      - "(1/2) benchmark": { <<: [ *job_default, requires: [ "(2.3) build" ] ] }
+      - "(2/2) benchmark": { <<: [ *job_default, requires: [ "(2.3) build" ] ] }
+      - "static analysis": { <<: [ *job_default, requires: [ "(2.3) build" ] ] }
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
-            - "(2.4) build"
-            - "(1.9) test"
-            - "(2.0) test"
-            - "(2.1) test"
-            - "(2.2) test"
-            - "(2.3) test"
-            - "(2.4) test"
+            - "(2.3) build"
+#            - "(1.9) test"
+#            - "(2.0) test"
+#            - "(2.1) test"
+#            - "(2.2) test"
+#            - "(2.3) test"
+#            - "(2.4) test"
