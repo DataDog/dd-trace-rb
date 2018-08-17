@@ -68,6 +68,7 @@ module Datadog
       @count_client_error = 0
       @count_server_error = 0
       @count_internal_error = 0
+      @count_consecutive_errors = 0
     end
 
     # route the send to the right endpoint
@@ -109,7 +110,7 @@ module Datadog
         response = Net::HTTP.start(@hostname, @port, read_timeout: TIMEOUT) { |http| http.request(request) }
         handle_response(response)
       rescue StandardError => e
-        Datadog::Tracer.log.error(e.message)
+        log_error_once(e.message)
         500
       end.tap do
         yield(response) if block_given?
@@ -170,21 +171,22 @@ module Datadog
 
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
+        @mutex.synchronize { @count_consecutive_errors = 0 }
         @mutex.synchronize { @count_success += 1 }
       elsif downgrade?(status_code)
         Datadog::Tracer.log.debug("calling the endpoint but received #{status_code}; downgrading the API")
       elsif client_error?(status_code)
-        Datadog::Tracer.log.error("Client error: #{response.message}")
+        log_error_once("Client error: #{response.message}")
         @mutex.synchronize { @count_client_error += 1 }
       elsif server_error?(status_code)
-        Datadog::Tracer.log.error("Server error: #{response.message}")
-        @mutex.synchronize { @count_server_error += 1 }
+        log_error_once("Server error: #{response.message}")
       end
 
       status_code
     rescue StandardError => e
-      Datadog::Tracer.log.error(e.message)
+      log_error_once(e.message)
       @mutex.synchronize { @count_internal_error += 1 }
+
       500
     end
 
@@ -200,6 +202,16 @@ module Datadog
     end
 
     private
+
+    def log_error_once(*args)
+      if @count_consecutive_errors > 0
+        Datadog::Tracer.log.debug(*args)
+      else
+        Datadog::Tracer.log.error(*args)
+      end
+
+      @mutex.synchronize { @count_consecutive_errors += 1 }
+    end
 
     def process_callback(action, response)
       return unless @response_callback && @response_callback.respond_to?(:call)
