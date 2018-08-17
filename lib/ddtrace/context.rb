@@ -43,13 +43,7 @@ module Datadog
     # item in the trace list. This cannot be considered as the current active
     # span in asynchronous environments, because some spans can be closed
     # earlier while child spans still need to finish their traced execution.
-    attr_reader :current_span
-
-    def current_root_span
-      @mutex.synchronize do
-        return @current_root_span
-      end
-    end
+    attr_reader :current_span, :current_root_span
 
     # Add a span to the context trace list, keeping it as the last active span.
     def add_span(span)
