@@ -47,6 +47,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'builder'
   spec.add_development_dependency 'ruby-prof'
   spec.add_development_dependency 'sqlite3'
+  spec.add_development_dependency 'descriptive-statistics'
 
   # locking transitive dependency of webmock
   spec.add_development_dependency 'addressable', '~> 2.4.0'
