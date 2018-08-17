@@ -1,9 +1,9 @@
 module Datadog
   module VERSION
     MAJOR = 0
-    MINOR = 14
+    MINOR = 15
     PATCH = 0
-    PRE = nil
+    PRE = 'beta1'.freeze
 
     STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
   end
