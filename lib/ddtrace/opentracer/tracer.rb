@@ -101,20 +101,21 @@ module Datadog
                      tags: nil,
                      ignore_active_scope: false)
 
-        # Derive the OpenTracer::SpanContext to inherit from
-        parent_span_context = case child_of
-                              when Span
-                                child_of.context
-                              when SpanContext
-                                child_of
-                              else
-                                ignore_active_scope ? nil : scope_manager.active && scope_manager.active.span.context
-                              end
+        # Derive the OpenTracer::SpanContext to inherit from.
+        parent_span_context = inherited_span_context(child_of, ignore_active_scope: ignore_active_scope)
+
+        # If no context exists, start one.
+        datadog_context = parent_span_context.nil? ? Datadog::Context.new : parent_span_context.datadog_context
+
+        # Overwrite the tracer context with the OpenTracing managed context
+        # This is mostly for the benefit of distributed tracing when SpanContexts
+        # are propagated through the tracer.
+        datadog_tracer.provider.context = datadog_context
 
         # Build the new Datadog span
         datadog_span = datadog_tracer.start_span(
           operation_name,
-          child_of: parent_span_context && parent_span_context.datadog_context,
+          child_of: datadog_context,
           start_time: start_time,
           tags: tags || {}
         )
@@ -164,6 +165,19 @@ module Datadog
         else
           warn 'Unknown extract format'
           nil
+        end
+      end
+
+      private
+
+      def inherited_span_context(parent, ignore_active_scope: false)
+        case parent
+        when Span
+          parent.context
+        when SpanContext
+          parent
+        else
+          ignore_active_scope ? nil : scope_manager.active && scope_manager.active.span.context
         end
       end
     end
