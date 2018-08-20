@@ -224,6 +224,19 @@ jobs:
   "(3/5) benchmark": *benchmark
   "(4/5) benchmark": *benchmark
   "(5/5) benchmark": *benchmark
+  "build baseline":
+    <<: *job_defaults
+    docker: [ image: "circleci/buildpack-deps:jessie" ]
+    steps:
+      - attach_workspace: *default_workspace
+      - checkout
+      - run:
+          name: Disable ddtracing gem
+          command: echo 'puts "ddtrace disabled"' > lib/ddtrace.rb
+      - persist_to_workspace:
+          root: "."
+          paths: [ "lib/ddtrace.rb" ]
+
   "aggregate benchmarks":
     <<: *job_defaults
     docker: [ *container-2_3 ]
@@ -253,38 +266,20 @@ wf_aliases:
 
 workflows:
   version: 2
-  build-and-test:
+  "baseline benchmark":
     jobs:
-      - "(1.9) build": *default_workflow
-      - "(2.0) build": *default_workflow
-      - "(2.1) build": *default_workflow
-      - "(2.2) build": *default_workflow
-      - "(2.3) build": *default_workflow
-      - "(2.4) build": *default_workflow
-      - "(1.9) test": { <<: [ *default_workflow, requires: [ "(1.9) build" ] ] }
-      - "(2.0) test": { <<: [ *default_workflow, requires: [ "(2.0) build" ] ] }
-      - "(2.1) test": { <<: [ *default_workflow, requires: [ "(2.1) build" ] ] }
-      - "(2.2) test": { <<: [ *default_workflow, requires: [ "(2.2) build" ] ] }
-      - "(2.3) test": { <<: [ *default_workflow, requires: [ "(2.3) build" ] ] }
-      - "(2.4) test": { <<: [ *default_workflow, requires: [ "(2.4) build" ] ] }
-      - "static analysis": { <<: [ *default_workflow, requires: [ "(2.3) build" ] ] }
-      - "deploy release":
-          <<: *filters_only_release_tags
-          requires:
-            - "(2.3) build"
-            - "(1.9) test"
-            - "(2.0) test"
-            - "(2.1) test"
-            - "(2.2) test"
-            - "(2.3) test"
-            - "(2.4) test"
-      - "perform benchmarks":
+      - "benchmark baseline":
           <<: *default_workflow
           type: approval
+      - "(2.3) build":
+          <<: *default_workflow
+          requires: [ "benchmark baseline" ]
+      - "build baseline":
+          <<: *default_workflow
           requires: [ "(2.3) build" ]
       - "(1/5) benchmark": &benchmark_workflow
           <<: *default_workflow
-          requires: [ "perform benchmarks" ]
+          requires: [ "build baseline" ]
       - "(2/5) benchmark": *benchmark_workflow
       - "(3/5) benchmark": *benchmark_workflow
       - "(4/5) benchmark": *benchmark_workflow
@@ -297,3 +292,47 @@ workflows:
             - "(3/5) benchmark"
             - "(4/5) benchmark"
             - "(5/5) benchmark"
+  build-and-test:
+    jobs:
+#      - "(1.9) build": *default_workflow
+#      - "(2.0) build": *default_workflow
+#      - "(2.1) build": *default_workflow
+#      - "(2.2) build": *default_workflow
+      - "(2.3) build": *default_workflow
+#      - "(2.4) build": *default_workflow
+#      - "(1.9) test": { <<: [ *default_workflow, requires: [ "(1.9) build" ] ] }
+#      - "(2.0) test": { <<: [ *default_workflow, requires: [ "(2.0) build" ] ] }
+#      - "(2.1) test": { <<: [ *default_workflow, requires: [ "(2.1) build" ] ] }
+#      - "(2.2) test": { <<: [ *default_workflow, requires: [ "(2.2) build" ] ] }
+#      - "(2.3) test": { <<: [ *default_workflow, requires: [ "(2.3) build" ] ] }
+#      - "(2.4) test": { <<: [ *default_workflow, requires: [ "(2.4) build" ] ] }
+      - "static analysis": { <<: [ *default_workflow, requires: [ "(2.3) build" ] ] }
+#      - "deploy release":
+#          <<: *filters_only_release_tags
+#          requires:
+#            - "(2.3) build"
+#            - "(1.9) test"
+#            - "(2.0) test"
+#            - "(2.1) test"
+#            - "(2.2) test"
+#            - "(2.3) test"
+#            - "(2.4) test"
+#      - "perform benchmarks":
+#          <<: *default_workflow
+#          type: approval
+#          requires: [ "(2.3) build" ]
+#      - "(1/5) benchmark": &benchmark_workflow
+#          <<: *default_workflow
+#          requires: [ "perform benchmarks" ]
+#      - "(2/5) benchmark": *benchmark_workflow
+#      - "(3/5) benchmark": *benchmark_workflow
+#      - "(4/5) benchmark": *benchmark_workflow
+#      - "(5/5) benchmark": *benchmark_workflow
+#      - "aggregate benchmarks":
+#          <<: *default_workflow
+#          requires:
+#            - "(1/5) benchmark"
+#            - "(2/5) benchmark"
+#            - "(3/5) benchmark"
+#            - "(4/5) benchmark"
+#            - "(5/5) benchmark"
