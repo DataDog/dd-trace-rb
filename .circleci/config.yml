@@ -22,13 +22,13 @@ ruby_containers: &ruby_containers
 
 test_containers: &test_containers
   - &container_postgres
-    image: postgres:9.6
+    image: circleci/postgres:9.6-alpine-ram
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
   - &container_mysql
-    image: mysql:5.6
+    image: circleci/mysql:5.6-ram
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_PASSWORD=mysql
@@ -36,9 +36,9 @@ test_containers: &test_containers
   - &container_elasticsearch
     image: elasticsearch:2.4
   - &container_redis
-    image: redis:3.0
+    image: circleci/redis:3
   - &container_mongo
-    image: mongo:3.5
+    image: circleci/mongo:3.5-ram
   - &container_memcached
     image: memcached:1.5-alpine
   - &container_agent
@@ -234,8 +234,6 @@ jobs:
           name: Sidekiq benchmark results
           command: bundle exec ruby .circleci/process_benchmarks.rb tmp/benchmarks/sidekiq_test/*.csv
 
-
-
 wf_aliases:
   - &filters_all_branches_and_tags
     filters:
@@ -252,6 +250,23 @@ wf_aliases:
 
 workflows:
   version: 2
+  benchmark:
+    jobs:
+      - "perform additional tests":
+          <<: *default_workflow
+          type: approval
+      - "(2.3) build":
+          <<: *default_workflow
+          requires: [ "perform additional tests" ]
+      - "(1/2) benchmark": &benchmark_workflow
+          <<: *default_workflow
+          requires: [ "(2.3) build" ]
+      - "(2/2) benchmark": *benchmark_workflow
+      - "aggregate benchmarks":
+          <<: *default_workflow
+          requires:
+            - "(1/2) benchmark"
+            - "(2/2) benchmark"
   build-and-test:
     jobs:
 #      - "(1.9) build": *default_workflow
@@ -266,14 +281,7 @@ workflows:
 #      - "(2.2) test": { <<: [ *default_workflow, requires: [ "(2.2) build" ] ] }
 #      - "(2.3) test": { <<: [ *default_workflow, requires: [ "(2.3) build" ] ] }
 #      - "(2.4) test": { <<: [ *default_workflow, requires: [ "(2.4) build" ] ] }
-      - "(1/2) benchmark": { <<: [ *default_workflow, requires: [ "(2.3) build" ] ] }
-      - "(2/2) benchmark": { <<: [ *default_workflow, requires: [ "(2.3) build" ] ] }
       - "static analysis": { <<: [ *default_workflow, requires: [ "(2.3) build" ] ] }
-      - "aggregate benchmarks":
-          <<: *default_workflow
-          requires:
-            - "(1/2) benchmark"
-            - "(2/2) benchmark"
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
