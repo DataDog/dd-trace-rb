@@ -229,6 +229,32 @@ if Datadog::OpenTracer.supported?
           end
         end
 
+        context 'preceded by a Datadog span' do
+          let(:parent_span_name) { 'operation.bar' }
+          let(:options) { { finish_on_close: true } }
+
+          before(:each) do
+            datadog_tracer.trace(parent_span_name) do |span|
+              @parent_span = span
+              tracer.start_active_span(span_name, **options) do |scope|
+                @scope = scope
+              end
+            end
+          end
+
+          let(:parent_datadog_span) { datadog_spans.first }
+          let(:child_datadog_span) { datadog_spans.last }
+
+          it { expect(datadog_spans).to have(2).items }
+          it { expect(parent_datadog_span.name).to eq(parent_span_name) }
+          it { expect(parent_datadog_span.parent_id).to eq(0) }
+          it { expect(parent_datadog_span.finished?).to be(true) }
+          it { expect(child_datadog_span.name).to eq(span_name) }
+          it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
+          it { expect(child_datadog_span.finished?).to be(true) }
+          it { expect(child_datadog_span.trace_id).to eq(parent_datadog_span.trace_id) }
+        end
+
         context 'followed by a Datadog span' do
           let(:child_span_name) { 'operation.bar' }
           let(:options) { { finish_on_close: true } }
