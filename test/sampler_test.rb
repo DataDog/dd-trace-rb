@@ -95,4 +95,23 @@ class SamplerTest < Minitest::Test
       assert_equal(0.5, span.get_metric(Datadog::RateSampler::SAMPLE_RATE_METRIC_KEY))
     end
   end
+
+  def test_priority_sampler_handling_existing_priority
+    tracer = get_test_tracer
+    tracer.configure(sampler: Datadog::PrioritySampler.new)
+
+    tracer.provider.context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
+    tracer.trace('test_keep', trace_id: 1) { }
+
+    tracer.provider.context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP
+    tracer.trace('test_keep', trace_id: 2) { }
+
+    tracer.provider.context.sampling_priority = Datadog::Ext::Priority::AUTO_REJECT
+    tracer.trace('test_reject', trace_id: 3) { }
+
+    tracer.provider.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
+    tracer.trace('test_reject', trace_id: 4) { }
+
+    assert_equal(tracer.writer.spans.length, 2)
+  end
 end
