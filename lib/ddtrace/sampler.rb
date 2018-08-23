@@ -98,8 +98,15 @@ module Datadog
     end
 
     def sample(span)
-      sample_with_priority(span) do
-        @base_sampler.sample(span) && @post_sampler.sample(span)
+      return perform_sampling(span) unless span.context
+      return priority_keep?(span.context.sampling_priority) if span.context.sampling_priority
+
+      perform_sampling(span).tap do |sampled|
+        span.context.sampling_priority = if sampled
+                                           Datadog::Ext::Priority::AUTO_KEEP
+                                         else
+                                           Datadog::Ext::Priority::AUTO_REJECT
+                                         end
       end
     end
 
@@ -107,19 +114,12 @@ module Datadog
 
     private
 
-    def sample_with_priority(span)
-      return yield unless span.context
+    def priority_keep?(sampling_priority)
+      sampling_priority == Datadog::Ext::Priority::USER_KEEP || sampling_priority == Datadog::Ext::Priority::AUTO_KEEP
+    end
 
-      if span.context.sampling_priority.nil?
-        span.context.sampling_priority = if yield
-                                           Datadog::Ext::Priority::AUTO_KEEP
-                                         else
-                                           Datadog::Ext::Priority::AUTO_REJECT
-                                         end
-      end
-
-      Datadog::Ext::Priority::AUTO_KEEP == span.context.sampling_priority ||
-        Datadog::Ext::Priority::AUTO_KEEP == span.context.sampling_priority
+    def perform_sampling(span)
+      @base_sampler.sample(span) && @post_sampler.sample(span)
     end
   end
 end
