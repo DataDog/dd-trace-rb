@@ -4,6 +4,17 @@
 
 ## [Unreleased (beta)]
 
+## [0.14.2] - 2018-08-23
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...v0.14.2
+
+### Fixed
+
+- Sampling priority from request headers not being used (#521)  
+
+
 ## [0.14.1] - 2018-08-21
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.1
