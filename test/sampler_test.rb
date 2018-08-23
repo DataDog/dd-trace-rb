@@ -98,20 +98,32 @@ class SamplerTest < Minitest::Test
 
   def test_priority_sampler_handling_existing_priority
     tracer = get_test_tracer
+    tracer.provider.context = Datadog::Context.new
     tracer.configure(sampler: Datadog::PrioritySampler.new)
 
     tracer.provider.context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
-    tracer.trace('test_keep', trace_id: 1) { }
+    tracer.trace('test_keep', trace_id: 1) {}
 
     tracer.provider.context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP
-    tracer.trace('test_keep', trace_id: 2) { }
+    tracer.trace('test_keep', trace_id: 2) {}
 
     tracer.provider.context.sampling_priority = Datadog::Ext::Priority::AUTO_REJECT
-    tracer.trace('test_reject', trace_id: 3) { }
+    tracer.trace('test_reject', trace_id: 3) {}
 
     tracer.provider.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
-    tracer.trace('test_reject', trace_id: 4) { }
+    tracer.trace('test_reject', trace_id: 4) {}
 
-    assert_equal(tracer.writer.spans.length, 2)
+    assert_equal(2, tracer.writer.spans.length)
+  end
+
+  def test_priority_sampler_with_no_pre_set_priority
+    tracer = get_test_tracer
+    tracer.configure(sampler: Datadog::PrioritySampler.new)
+    tracer.provider.context = Datadog::Context.new
+
+    assert_nil(tracer.provider.context.sampling_priority)
+    tracer.trace('test', trace_id: 1) {}
+
+    assert_equal(1, tracer.writer.spans.length)
   end
 end
