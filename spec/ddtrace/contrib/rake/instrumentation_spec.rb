@@ -59,12 +59,18 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
   let(:spy) { double('spy') }
 
   describe '#invoke' do
+    before(:each) do
+      ::Rake.application.instance_variable_set(:@top_level_tasks, [task_name.to_s])
+      expect(tracer).to receive(:shutdown!).with(no_args).once.and_call_original
+    end
+
     shared_examples_for 'a single task execution' do
       before(:each) do
         expect(spy).to receive(:call) do |invocation_task, invocation_args|
           expect(invocation_task).to eq(task)
           expect(invocation_args.to_hash).to eq(args_hash)
         end
+        expect(task).to receive(:shutdown_tracer!).with(no_args).twice.and_call_original
         task.invoke(*args)
       end
 
@@ -90,6 +96,16 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           expect(execute_span.parent_id).to eq(invoke_span.span_id)
         end
       end
+    end
+
+    shared_examples 'an error occurrence' do
+      before(:each) do
+        expect(spy).to receive(:call) do
+          raise 'oops'
+        end
+        expect(task).to receive(:shutdown_tracer!).with(no_args).twice.and_call_original
+      end
+      it { expect { task.invoke(*args) }.to raise_error('oops') }
     end
 
     context 'for a task' do
@@ -120,6 +136,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
             end
           end
         end
+        it_behaves_like 'an error occurrence'
       end
 
       context 'with args' do
@@ -139,6 +156,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
             end
           end
         end
+        it_behaves_like 'an error occurrence'
       end
 
       context 'with a prerequisite task' do
@@ -164,6 +182,9 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
             expect(invocation_task).to eq(task)
             expect(invocation_args.to_hash).to eq(args_hash)
           end.ordered
+
+          expect(task).to receive(:shutdown_tracer!).with(no_args).twice.and_call_original
+          expect(prerequisite_task).to receive(:shutdown_tracer!).with(no_args).once.and_call_original
 
           task.invoke(*args)
         end
@@ -224,6 +245,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
         end
 
         it_behaves_like 'a single task execution'
+        it_behaves_like 'an error occurrence'
       end
     end
   end

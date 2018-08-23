@@ -15,12 +15,16 @@ module Datadog
 
         register_as :active_record, auto_patch: false
 
+        def self.version
+          Gem.loaded_specs['activerecord'] && Gem.loaded_specs['activerecord'].version
+        end
+
+        def self.present?
+          super && defined?(::ActiveRecord)
+        end
+
         def self.compatible?
-          super \
-            && RUBY_VERSION >= '1.9.3' \
-            && Gem.loaded_specs['activerecord'] \
-            && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('3.0') \
-            && defined?(::ActiveRecord)
+          super && version >= Gem::Version.new('3.0')
         end
 
         def default_configuration

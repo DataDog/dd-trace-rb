@@ -9,8 +9,16 @@ module Datadog
 
       # Class methods for integrations
       module ClassMethods
+        def version
+          nil
+        end
+
+        def present?
+          !version.nil?
+        end
+
         def compatible?
-          RUBY_VERSION >= '1.9.3'
+          RUBY_VERSION >= '1.9.3' && present?
         end
       end
 

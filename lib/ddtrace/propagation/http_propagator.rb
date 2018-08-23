@@ -9,6 +9,12 @@ module Datadog
 
     # inject! popolates the env with span ID, trace ID and sampling priority
     def self.inject!(context, env)
+      # Prevent propagation from being attempted if context provided is nil.
+      if context.nil?
+        Datadog::Tracer.log.debug('Cannot inject context into env to propagate over HTTP: context is nil.'.freeze)
+        return
+      end
+
       env[HTTP_HEADER_TRACE_ID] = context.trace_id.to_s
       env[HTTP_HEADER_PARENT_ID] = context.span_id.to_s
       env[HTTP_HEADER_SAMPLING_PRIORITY] = context.sampling_priority.to_s

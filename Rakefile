@@ -68,7 +68,8 @@ namespace :spec do
     :sequel,
     :sidekiq,
     :sinatra,
-    :sucker_punch
+    :sucker_punch,
+    :rest_client
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t|
       t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
@@ -242,6 +243,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'
       sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      sh 'bundle exec appraisal contrib-old rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
@@ -287,6 +289,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'
       sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      sh 'bundle exec appraisal contrib-old rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
@@ -335,6 +338,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'
       sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      sh 'bundle exec appraisal contrib-old rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
@@ -392,6 +396,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
       sh 'bundle exec appraisal contrib rake spec:sequel'
+      sh 'bundle exec appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
@@ -457,6 +462,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
       sh 'bundle exec appraisal contrib rake spec:sequel'
+      sh 'bundle exec appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
@@ -521,6 +527,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
       sh 'bundle exec appraisal contrib rake spec:sequel'
+      sh 'bundle exec appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec rake benchmark'
