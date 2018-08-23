@@ -98,14 +98,28 @@ module Datadog
     end
 
     def sample(span)
-      span.context.sampling_priority = Datadog::Ext::Priority::AUTO_REJECT if span.context
-      return unless @base_sampler.sample(span)
-      return unless @post_sampler.sample(span)
-      span.context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP if span.context
-
-      true
+      sample_with_priority(span) do
+        @base_sampler.sample(span) && @post_sampler.sample(span)
+      end
     end
 
     def_delegators :@post_sampler, :update
+
+    private
+
+    def sample_with_priority(span)
+      return yield unless span.context
+
+      if span.context.sampling_priority.nil?
+        span.context.sampling_priority = if yield
+                                           Datadog::Ext::Priority::AUTO_KEEP
+                                         else
+                                           Datadog::Ext::Priority::AUTO_REJECT
+                                         end
+      end
+
+      Datadog::Ext::Priority::AUTO_KEEP == span.context.sampling_priority ||
+        Datadog::Ext::Priority::AUTO_KEEP == span.context.sampling_priority
+    end
   end
 end
