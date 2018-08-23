@@ -99,7 +99,7 @@ module Datadog
 
     def sample(span)
       return perform_sampling(span) unless span.context
-      return priority_keep?(span.context.sampling_priority) if span.context.sampling_priority
+      return sampled_by_upstream(span) if span.context.sampling_priority
 
       perform_sampling(span).tap do |sampled|
         span.context.sampling_priority = if sampled
@@ -113,6 +113,10 @@ module Datadog
     def_delegators :@post_sampler, :update
 
     private
+
+    def sampled_by_upstream(span)
+      span.sampled = priority_keep?(span.context.sampling_priority)
+    end
 
     def priority_keep?(sampling_priority)
       sampling_priority == Datadog::Ext::Priority::USER_KEEP || sampling_priority == Datadog::Ext::Priority::AUTO_KEEP
