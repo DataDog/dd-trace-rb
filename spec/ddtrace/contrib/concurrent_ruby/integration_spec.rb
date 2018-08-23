@@ -9,7 +9,6 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
 
   around do |example|
     unmodified = ::Concurrent::Future.dup
-    Datadog.registry[:concurrent_ruby].patcher.instance_variable_set(:@done_once, {})
     example.run
     ::Concurrent.send(:remove_const, :Future)
     ::Concurrent.const_set('Future', unmodified)
@@ -52,6 +51,10 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
   end
 
   describe 'patching' do
+    before do
+      Datadog.registry[:concurrent_ruby].patcher.instance_variable_set(:@done_once, {})
+    end
+
     subject(:patch) do
       Datadog.configure do |c|
         c.use :concurrent_ruby, tracer: tracer
