@@ -113,7 +113,12 @@ class SamplerTest < Minitest::Test
     tracer.provider.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
     tracer.trace('test_reject', trace_id: 4) {}
 
-    assert_equal(2, tracer.writer.spans.length)
+    spans = tracer.writer.spans
+
+    spans.each do |span|
+      assert_equal('test_keep', span.name)
+    end
+    assert_equal(2, spans.length)
   end
 
   def test_priority_sampler_with_no_pre_set_priority
