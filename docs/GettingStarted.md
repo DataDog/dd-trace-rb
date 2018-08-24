@@ -21,6 +21,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
  - [Installation](#installation)
      - [Quickstart for Rails applications](#quickstart-for-rails-applications)
      - [Quickstart for Ruby applications](#quickstart-for-ruby-applications)
+     - [Quickstart for OpenTracing](#quickstart-for-opentracing)
  - [Manual instrumentation](#manual-instrumentation)
  - [Integration instrumentation](#integration-instrumentation)
      - [Active Record](#active-record)
@@ -59,6 +60,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Processing pipeline](#processing-pipeline)
          - [Filtering](#filtering)
          - [Processing](#processing)
+     - [OpenTracing](#opentracing)
 
 ## Compatibility
 
@@ -75,10 +77,6 @@ For descriptions of terminology used in APM, take a look at the [official docume
 |       |                            | 2.4     | Full         |
 | JRuby | http://jruby.org/          | 9.1.5   | Experimental |
 
-*Full* support indicates all tracer features are available.
-
-*Experimental* indicates most features should be available, but unverified.
-
 **Supported web servers**:
 
 | Type      | Documentation                     | Version      | Support type |
@@ -86,6 +84,16 @@ For descriptions of terminology used in APM, take a look at the [official docume
 | Puma      | http://puma.io/                   | 2.16+ / 3.6+ | Full         |
 | Unicorn   | https://bogomips.org/unicorn/     | 4.8+ / 5.1+  | Full         |
 | Passenger | https://www.phusionpassenger.com/ | 5.0+         | Full         |
+
+**Supported tracing frameworks**:
+
+| Type        | Documentation                                   | Version               | Support type |
+| ----------- | ----------------------------------------------- | --------------------- | ------------ |
+| OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+ (w/ Ruby 2.1+) | Experimental |
+
+*Full* support indicates all tracer features are available.
+
+*Experimental* indicates most features should be available, but unverified.
 
 ## Installation
 
@@ -135,6 +143,36 @@ The Ruby APM tracer sends trace data through the Datadog Agent.
 3. Add or activate instrumentation by doing either of the following:
     1. Activate integration instrumentation (see [Integration instrumentation](#integration-instrumentation))
     2. Add manual instrumentation around your code (see [Manual instrumentation](#manual-instrumentation))
+
+### Quickstart for OpenTracing
+
+1. Install the gem with `gem install ddtrace`
+2. To your OpenTracing configuration file, add the following:
+
+    ```ruby
+    require 'opentracing'
+    require 'ddtrace'
+    require 'ddtrace/opentracer'
+
+    # Activate the Datadog tracer for OpenTracing
+    OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
+    ```
+
+3. (Optional) Add a configuration block to your Ruby application to configure Datadog with:
+
+    ```ruby
+    Datadog.configure do |c|
+      # Configure the Datadog tracer here.
+      # Activate integrations, change tracer settings, etc...
+      # By default without additional configuration,
+      # no additional integrations will be traced, only
+      # what you have instrumented with OpenTracing.
+    end
+    ```
+
+4. (Optional) Add or activate additional instrumentation by doing either of the following:
+    1. Activate Datadog integration instrumentation (see [Integration instrumentation](#integration-instrumentation))
+    2. Add Datadog manual instrumentation around your code (see [Manual instrumentation](#manual-instrumentation))
 
 ### Final steps for installation
 
@@ -1510,3 +1548,32 @@ Datadog::Pipeline.before_flush(
   Datadog::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
 )
 ```
+
+### OpenTracing
+
+For setting up Datadog with OpenTracing, see out [Quickstart for OpenTracing](#quickstart-for-opentracing) section for details.
+
+**Configuring Datadog tracer settings**
+
+The underlying Datadog tracer can be configured by passing options (which match `Datadog::Tracer`) when configuring the global tracer:
+
+```ruby
+# Where `options` is a Hash of options provided to Datadog::Tracer
+OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new(options)
+```
+
+It can also be configured by using `Datadog.configure` described in the [Tracer settings](#tracer-settings) section.
+
+**Activating and configuring integrations**
+
+By default, configuring OpenTracing with Datadog will not automatically activate any additional instrumentation provided by Datadog. You will only receive spans and traces from OpenTracing instrumentation you have in your application.
+
+However, additional instrumentation provided by Datadog can be activated alongside OpenTracing using `Datadog.configure`, which can be used to further enhance your tracing. To activate this, see [Integration instrumentation](#integration-instrumentation) for more details.
+
+**Supported serialization formats**
+
+| Type                           | Supported? | Additional information |
+| ------------------------------ | ---------- | ---------------------- |
+| `OpenTracing::FORMAT_TEXT_MAP` | Yes        |                        |
+| `OpenTracing::FORMAT_RACK`     | Yes        | Because of the loss of resolution in the Rack format, please note that baggage items with names containing either upper case characters or `-` will be converted to lower case and `_` in a round-trip respectively. We recommend avoiding these characters, or accommodating accordingly on the receiving end. |
+| `OpenTracing::FORMAT_BINARY`   | No         |                        |
