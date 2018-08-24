@@ -61,7 +61,7 @@ job_aliases:
       command: bundle --path vendor/bundle
   - &build_files
       root: .
-      key: 'betav8-bundle-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Gemfile" }}-{{ checksum "ddtrace.gemspec" }}-{{ checksum "Appraisals" }}'
+      key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-v1-bundle-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Gemfile" }}-{{ checksum "ddtrace.gemspec" }}-{{ checksum "Appraisals" }}'
       paths:
         - vendor/bundle
         - gemfiles/
@@ -216,6 +216,9 @@ jobs:
       - run:
           name: Run sidekiq benchmark
           command: bash .circleci/run_benchmark.sh tmp/benchmarks sidekiq_test
+      - run:
+          name: Run sidekiq benchmark
+          command: bash .circleci/run_benchmark.sh tmp/benchmarks concurrent_span_test
       - persist_to_workspace:
           root: .
           paths:
@@ -249,6 +252,9 @@ jobs:
       - run:
           name: Sidekiq benchmark results
           command: bundle exec ruby .circleci/process_benchmarks.rb tmp/benchmarks/sidekiq_test/*.csv
+      - run:
+          name: Benchmark concurrent span creation
+          command: bundle exec ruby .circleci/process_benchmarks.rb tmp/benchmarks/concurrent_span_test/*.csv
 
 wf_aliases:
   - &filters_all_branches_and_tags
