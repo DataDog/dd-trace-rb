@@ -26,7 +26,7 @@ module Datadog
             require_relative 'resque_job'
 
             add_pin
-            get_option(:workers).each { |worker| worker.extend(ResqueJob) }
+            get_option(:workers).each { |worker| worker.extend(::Datadog::Contrib::Resque::ResqueJob) }
             @patched = true
           rescue => e
             Tracer.log.error("Unable to apply Resque integration: #{e}")
