@@ -51,6 +51,30 @@ if Datadog::OpenTracer.supported?
       end
 
       context 'for a nested span' do
+        context 'when there is no active scope' do
+          before(:each) do
+            tracer.start_span('operation.outer').tap do |_outer_span|
+              tracer.start_span('operation.inner').tap do |inner_span|
+                # Assert Datadog context integrity
+                # 1 item because they each should get their own context.
+                expect(current_trace_for(inner_span)).to have(1).items
+                expect(current_trace_for(inner_span)).to include(inner_span.datadog_span)
+              end.finish
+            end.finish
+          end
+
+          let(:outer_datadog_span) { datadog_spans.last }
+          let(:inner_datadog_span) { datadog_spans.first }
+
+          it { expect(datadog_spans).to have(2).items }
+          it { expect(outer_datadog_span.name).to eq('operation.outer') }
+          it { expect(outer_datadog_span.parent_id).to eq(0) }
+          it { expect(outer_datadog_span.finished?).to be true }
+          it { expect(inner_datadog_span.name).to eq('operation.inner') }
+          it { expect(inner_datadog_span.parent_id).to eq(0) }
+          it { expect(inner_datadog_span.finished?).to be true }
+        end
+
         context 'when there is an active scope' do
           context 'which is used' do
             before(:each) do
@@ -204,6 +228,58 @@ if Datadog::OpenTracer.supported?
             end
           end
         end
+
+        context 'preceded by a Datadog span' do
+          let(:parent_span_name) { 'operation.bar' }
+          let(:options) { { finish_on_close: true } }
+
+          before(:each) do
+            datadog_tracer.trace(parent_span_name) do |span|
+              @parent_span = span
+              tracer.start_active_span(span_name, **options) do |scope|
+                @scope = scope
+              end
+            end
+          end
+
+          let(:parent_datadog_span) { datadog_spans.first }
+          let(:child_datadog_span) { datadog_spans.last }
+
+          it { expect(datadog_spans).to have(2).items }
+          it { expect(parent_datadog_span.name).to eq(parent_span_name) }
+          it { expect(parent_datadog_span.parent_id).to eq(0) }
+          it { expect(parent_datadog_span.finished?).to be(true) }
+          it { expect(child_datadog_span.name).to eq(span_name) }
+          it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
+          it { expect(child_datadog_span.finished?).to be(true) }
+          it { expect(child_datadog_span.trace_id).to eq(parent_datadog_span.trace_id) }
+        end
+
+        context 'followed by a Datadog span' do
+          let(:child_span_name) { 'operation.bar' }
+          let(:options) { { finish_on_close: true } }
+
+          before(:each) do
+            tracer.start_active_span(span_name, **options) do |scope|
+              @scope = scope
+              datadog_tracer.trace(child_span_name) do |span|
+                @child_span = span
+              end
+            end
+          end
+
+          let(:parent_datadog_span) { datadog_spans.last }
+          let(:child_datadog_span) { datadog_spans.first }
+
+          it { expect(datadog_spans).to have(2).items }
+          it { expect(parent_datadog_span.name).to eq(span_name) }
+          it { expect(parent_datadog_span.parent_id).to eq(0) }
+          it { expect(parent_datadog_span.finished?).to be(true) }
+          it { expect(child_datadog_span.name).to eq(child_span_name) }
+          it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
+          it { expect(child_datadog_span.finished?).to be(true) }
+          it { expect(child_datadog_span.trace_id).to eq(parent_datadog_span.trace_id) }
+        end
       end
 
       context 'for a nested span' do
@@ -258,7 +334,7 @@ if Datadog::OpenTracer.supported?
         context 'manually associated with child_of' do
           before(:each) do
             tracer.start_span('operation.parent').tap do |parent_span|
-              tracer.start_active_span('operation.fake_parent') do
+              tracer.start_active_span('operation.fake_parent') do |_fake_parent_span|
                 tracer.start_active_span('operation.child', child_of: parent_span) do |scope|
                   # Assert Datadog context integrity
                   expect(current_trace_for(scope)).to have(2).items
@@ -279,6 +355,9 @@ if Datadog::OpenTracer.supported?
           it { expect(child_datadog_span.name).to eq('operation.child') }
           it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
           it { expect(child_datadog_span.finished?).to be true }
+          it { expect(fake_parent_datadog_span.name).to eq('operation.fake_parent') }
+          it { expect(fake_parent_datadog_span.parent_id).to eq(0) }
+          it { expect(fake_parent_datadog_span.finished?).to be true }
         end
       end
 
