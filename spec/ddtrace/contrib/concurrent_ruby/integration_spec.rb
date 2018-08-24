@@ -4,15 +4,16 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
-  let(:configuration_options) { { tracer: tracer } }
-
   around do |example|
-    unmodified = ::Concurrent::Future.dup
+    unmodified_future = ::Concurrent::Future.dup
     example.run
     ::Concurrent.send(:remove_const, :Future)
-    ::Concurrent.const_set('Future', unmodified)
+    ::Concurrent.const_set('Future', unmodified_future)
+    Datadog.registry[:concurrent_ruby].patcher.instance_variable_set(:@done_once, {})
   end
+
+  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:configuration_options) { { tracer: tracer } }
 
   subject(:deferred_execution) do
     outer_span = tracer.trace('outer_span')
@@ -51,10 +52,6 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
   end
 
   describe 'patching' do
-    before do
-      Datadog.registry[:concurrent_ruby].patcher.instance_variable_set(:@done_once, {})
-    end
-
     subject(:patch) do
       Datadog.configure do |c|
         c.use :concurrent_ruby, tracer: tracer
