@@ -61,7 +61,7 @@ job_aliases:
       command: bundle --path vendor/bundle
   - &build_files
       root: .
-      key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-v1-bundle-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Gemfile" }}-{{ checksum "ddtrace.gemspec" }}-{{ checksum "Appraisals" }}'
+      key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".cache_buster" }}-v1-bundle-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Gemfile" }}-{{ checksum "ddtrace.gemspec" }}-{{ checksum "Appraisals" }}'
       paths:
         - vendor/bundle
         - gemfiles/
@@ -90,6 +90,14 @@ job_aliases:
     <<: *job_defaults
     steps:
       - checkout
+      - run:
+          name: Calculate Cache Buster
+          command: |
+            export DAYS_SINCE_EPOCH=$(($(date --utc --date "$1" +%s)/86400))
+            # cache build files per commit sha for at most 1 day
+            export CACHE_BUSTER="${DAYS_SINCE_EPOCH}-${CIRCLE_SHA1}"
+            curl -u "${GITHUB_LABELS_READ_USER_TOKEN}" "https://api.github.com/repos/DataDog/dd-trace-rb/pulls/${CIRCLE_PR_NUMBER}" | grep 1076040432 && CACHE_BUSTER=none
+            echo CACHE_BUSTER=$CACHE_BUSTER | tee .cache_buster
       - attach_workspace: *default_workspace
       - restore_cache: *build_files
       - run: *bundler_init
@@ -200,7 +208,7 @@ jobs:
       - *container_mongo
       - *container_memcached
       - *container_agent
-  "(1/5) benchmark": &benchmark
+  benchmark: &benchmark
     <<: *job_defaults
     docker:
       - <<: [ *container-2_3, *docker_test_environment ]
@@ -223,6 +231,7 @@ jobs:
           root: .
           paths:
             - 'tmp/benchmarks/**/*.csv'
+  "(1/5) benchmark": *benchmark
   "(2/5) benchmark": *benchmark
   "(3/5) benchmark": *benchmark
   "(4/5) benchmark": *benchmark
@@ -267,15 +276,20 @@ wf_aliases:
         ignore: /.*/
       tags:
         only: /^v\d+(\.\d+){0,3}(\.(alpha|beta|rc)\d+)?$/
+  - &only_on_master
+    filters:
+      branches:
+        only: master
   - &default_workflow
     <<: *filters_all_branches_and_tags
 
 workflows:
   version: 2
-  "baseline benchmark":
+  "benchmarks":
     jobs:
       - "(2.3) build":
           <<: *default_workflow
+          type: approval
       - "benchmark baseline":
           <<: *default_workflow
           type: approval
@@ -283,15 +297,39 @@ workflows:
       - "build baseline":
           <<: *default_workflow
           requires: [ "benchmark baseline" ]
-      - "(1/5) benchmark": &benchmark_workflow
+      - "(1/5) benchmark": *default_workflow
+      - "(2/5) benchmark": *default_workflow
+      - "(3/5) benchmark": *default_workflow
+      - "(4/5) benchmark": *default_workflow
+      - "(5/5) benchmark": *default_workflow
+      - "aggregate benchmarks":
           <<: *default_workflow
+          requires:
+            - "(1/5) benchmark"
+            - "(2/5) benchmark"
+            - "(3/5) benchmark"
+            - "(4/5) benchmark"
+            - "(5/5) benchmark"
+  "baseline benchmark":
+    jobs:
+      - "(2.3) build":
+          <<: *only_on_master
+      - "benchmark baseline":
+          <<: *only_on_master
+          type: approval
+          requires: [ "(2.3) build" ]
+      - "build baseline":
+          <<: *only_on_master
+          requires: [ "benchmark baseline" ]
+      - "(1/5) benchmark": &benchmark_workflow
+          <<: *only_on_master
           requires: [ "build baseline" ]
       - "(2/5) benchmark": *benchmark_workflow
       - "(3/5) benchmark": *benchmark_workflow
       - "(4/5) benchmark": *benchmark_workflow
       - "(5/5) benchmark": *benchmark_workflow
       - "aggregate benchmarks":
-          <<: *default_workflow
+          <<: *only_on_master
           requires:
             - "(1/5) benchmark"
             - "(2/5) benchmark"
@@ -316,29 +354,16 @@ workflows:
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
-            - "(2.3) build"
             - "(1.9) test"
             - "(2.0) test"
             - "(2.1) test"
             - "(2.2) test"
             - "(2.3) test"
             - "(2.4) test"
-      - "perform benchmarks":
+      - "benchmark": &benchmark_workflow
           <<: *default_workflow
-          type: approval
           requires: [ "(2.3) build" ]
-      - "(1/5) benchmark": &benchmark_workflow
-          <<: *default_workflow
-          requires: [ "perform benchmarks" ]
-      - "(2/5) benchmark": *benchmark_workflow
-      - "(3/5) benchmark": *benchmark_workflow
-      - "(4/5) benchmark": *benchmark_workflow
-      - "(5/5) benchmark": *benchmark_workflow
       - "aggregate benchmarks":
           <<: *default_workflow
           requires:
-            - "(1/5) benchmark"
-            - "(2/5) benchmark"
-            - "(3/5) benchmark"
-            - "(4/5) benchmark"
-            - "(5/5) benchmark"
+            - benchmark
