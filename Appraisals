@@ -143,7 +143,6 @@ common_appr 'rails32-postgres-sidekiq' do
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sidekiq', '4.0.0'
   gem 'rack-cache', '1.7.1'
-  gem 'rake', '< 12.3'
 end
 
 common_appr 'rails4-mysql2' do
@@ -164,6 +163,14 @@ common_appr 'rails4-postgres-redis' do
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'redis-rails'
   gem 'redis', '< 4.0'
+end
+
+common_appr 'rails4-postgres-sidekiq' do
+  gem 'rails', '4.2.7.1'
+  gem 'pg', '< 1.0', platform: :ruby
+  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+  gem 'sidekiq'
+  gem 'activejob'
 end
 
 common_appr 'rails5-mysql2' do
