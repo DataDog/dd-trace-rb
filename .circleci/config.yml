@@ -465,6 +465,7 @@ jobs:
       - &container-2_5
           image: circleci/ruby:2.5.1
     steps:
+      - checkout
       - restore_cache: &cache-2_5
           key: 'b1-{{ .Environment.CIRCLE_CACHE_VERSION }}-cache-2.5'
           paths:
@@ -475,14 +476,15 @@ jobs:
           name: Initializing Bundler vendor path
           command: bundle --path vendor/bundle      
       - *step_bundle_install
-      - *step_rubocop
       - *step_appraisal_install
       - save_cache: *cache-2_5
+      - *step_rubocop
       - persist_to_workspace:
           <<: *cache-2_5
           root: '.'
   test-2.5:
     <<: *job_defaults
+    working_directory: ~/app
     docker:
       - <<: *container-2_5
         environment:
@@ -498,7 +500,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: ~/app
-      - run:  &bundler_init
+      - run: *bundler_init
       - *step_run_all_tests
 
   deploy-release:

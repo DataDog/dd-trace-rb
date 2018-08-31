@@ -486,7 +486,7 @@ task :ci do
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
+  elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) # also covers 2.5
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -501,6 +501,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
+      sh 'bundle exec appraisal contrib rake test:sidekiq'
+      sh 'bundle exec rake benchmark'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
@@ -523,7 +525,31 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:rest_client'
       # Rails minitests
       sh 'bundle exec appraisal contrib rake test:sidekiq'
-      sh 'bundle exec rake benchmark'
+      # sh 'bundle exec appraisal rails30-postgres rake test:rails'
+      # sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
+      # sh 'bundle exec appraisal rails32-postgres rake test:rails'
+      # sh 'bundle exec appraisal rails32-postgres-redis rake test:railsredis'
+      # sh 'bundle exec appraisal rails32-postgres rake test:railsdisableenv'
+      # sh 'bundle exec appraisal rails4-mysql2 rake test:rails'
+      # sh 'bundle exec appraisal rails4-postgres rake test:rails'
+      # sh 'bundle exec appraisal rails4-postgres-redis rake test:railsredis'
+      # sh 'bundle exec appraisal rails4-postgres rake test:railsdisableenv'
+      # sh 'bundle exec appraisal rails4-postgres-sidekiq rake test:railssidekiq'
+      # sh 'bundle exec appraisal rails4-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      # Rails specs
+      # sh 'bundle exec appraisal rails30-postgres rake spec:rails'
+      # sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
+      # sh 'bundle exec appraisal rails32-postgres rake spec:rails'
+      # sh 'bundle exec appraisal rails4-mysql2 rake spec:rails'
+      # sh 'bundle exec appraisal rails4-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails5-postgres rake spec:rails'
     end
   end
 end
