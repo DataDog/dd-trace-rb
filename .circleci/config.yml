@@ -401,7 +401,6 @@ jobs:
       - run:
           name: Run Benchmark without ddtracer
           command: rm -f lib/ddtrace.rb && bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
-
   checkout-2.4:
     <<: *job_defaults
     docker:
@@ -458,6 +457,50 @@ jobs:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
       - *step_run_all_tests
+  
+  build-2.5:
+    <<: *job_defaults
+    working_directory: ~/app
+    docker: 
+      - &container-2_5
+          image: circleci/ruby:2.5.1
+    steps:
+      - restore_cache: &cache-2_5
+          key: 'b1-{{ .Environment.CIRCLE_CACHE_VERSION }}-cache-2.5'
+          paths:
+            - vendor/bundle
+            - gemfiles/
+            - Gemfile.lock
+      - run: &bundler_init
+          name: Initializing Bundler vendor path
+          command: bundle --path vendor/bundle      
+      - *step_bundle_install
+      - *step_rubocop
+      - *step_appraisal_install
+      - save_cache: *cache-2_5
+      - persist_at_workspace:
+          <<: *cache-2_5
+          root: '.'
+  test-2.5:
+    <<: *job_defaults
+    docker:
+      - <<: *container-2_5
+        environment:
+          - TEST_DATADOG_INTEGRATION: 1
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/app
+      - run:  &bundler_init
+      - *step_run_all_tests
+
   deploy-release:
     <<: *job_defaults
     docker:
