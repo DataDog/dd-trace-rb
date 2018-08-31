@@ -271,7 +271,6 @@ end
 ruby_version('2.4.0') do
   appr 'rails30-postgres'
   appr 'rails30-postgres-sidekiq'
-  appr 'rails32-mysql2'
   appr 'rails32-postgres'
   appr 'rails32-postgres-redis'
   appr 'rails32-postgres-sidekiq'
@@ -289,7 +288,6 @@ end
 ruby_version('2.5.0') do
   appr 'rails30-postgres'
   appr 'rails30-postgres-sidekiq'
-  appr 'rails32-mysql2'
   appr 'rails32-postgres'
   appr 'rails32-postgres-redis'
   appr 'rails32-postgres-sidekiq'
