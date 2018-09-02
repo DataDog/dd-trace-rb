@@ -16,15 +16,11 @@ module Datadog
     end
 
     def trace_id
-      value = header(HTTP_HEADER_TRACE_ID).to_i
-      return if value <= 0 || value >= Span::MAX_ID
-      value
+      id HTTP_HEADER_TRACE_ID
     end
 
     def parent_id
-      value = header(HTTP_HEADER_PARENT_ID).to_i
-      return if value <= 0 || value >= Span::MAX_ID
-      value
+      id HTTP_HEADER_PARENT_ID
     end
 
     def sampling_priority
@@ -43,6 +39,12 @@ module Datadog
       rack_header = "http-#{name}".upcase!.tr('-', '_')
 
       @env[rack_header]
+    end
+
+    def id(header)
+      value = header(header).to_i
+      return if value == 0 || value >= Span::MAX_ID
+      value < 0 ? value + 0x1_0000_0000_0000_0000 : value
     end
   end
 end
