@@ -31,7 +31,7 @@ def common_appr(name, &block)
   @common_appraisals[name] = block
 end
 
-def version(**versions)
+def version(versions={})
   proc do |appraisal_version|
     appraisal_version.merge!(versions)
   end
