@@ -233,7 +233,7 @@ ruby_version('2.3.0') do
 end
 
 ruby_version('2.4.0') do
-  rails4_version = version(rails: '>= 4.2.8')
+  rails4_version = version(rails: '~> 4.2.8')
 
   do_appraise 'rails4-mysql2', rails4_version
   do_appraise 'rails4-postgres', rails4_version
@@ -247,8 +247,7 @@ ruby_version('2.4.0') do
 end
 
 ruby_version('2.5.0') do
-  rails4_version = version(rails: '>= 4.2.8')
-
+  rails4_version = version(rails: '~> 4.2.8')
   do_appraise 'rails4-mysql2', rails4_version
   do_appraise 'rails4-postgres', rails4_version
   do_appraise 'rails4-postgres-redis', rails4_version

@@ -84,7 +84,7 @@ logger.info "Testing against Rails #{Rails.version} with connector '#{connector}
 case Rails.version
 when '5.0.1', '5.1.6'
   require 'contrib/rails/apps/rails5'
-when '4.2.7.1'
+when /^4\.2/
   require 'contrib/rails/apps/rails4'
 when '3.2.22.5'
   require 'test/unit'
@@ -95,7 +95,7 @@ when '3.0.20'
   require 'contrib/rails/apps/rails3'
   require 'contrib/rails/core_extensions'
 else
-  logger.error 'A Rails app for this version is not found!'
+  logger.error "A Rails app for #{Rails.version} is not found!"
 end
 
 def app_name
