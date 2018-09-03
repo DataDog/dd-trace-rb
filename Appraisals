@@ -9,13 +9,6 @@ end
 
 raise NotImplementedError, 'Ruby versions < 1.9.3 are not supported!' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('1.9.3')
 
-def add_deps(deps_closure, &block)
-  proc do
-    instance_eval(&deps_closure)
-    instance_eval(&block) if block_given?
-  end
-end
-
 def appr(name, *closures, &block)
   @common_appraisals ||= {}
   @versions ||= {}
@@ -25,11 +18,11 @@ def appr(name, *closures, &block)
 
   appraise(name) do
     closures.each do |closure|
-      instance_eval(&closure, versions)
+      instance_exec(versions, &closure)
     end
 
-    instance_eval(&common_appraisal, versions) if common_appraisal
-    instance_eval(&block, versions) if block_given?
+    instance_exec(versions, &common_appraisal) if common_appraisal
+    instance_exec(versions, &block) if block_given?
   end
 end
 
@@ -47,7 +40,7 @@ end
 common_appr('rails30-postgres') do
   gem 'test-unit'
   gem 'rails', '3.0.20'
-  gem 'pg', '0.18.4', platform: :ruby
+  gem 'pg', '0.15.1', platform: :ruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'rack-cache', '1.7.1'
 end
@@ -55,7 +48,7 @@ end
 common_appr 'rails30-postgres-sidekiq' do
   gem 'test-unit'
   gem 'rails', '3.0.20'
-  gem 'pg', '0.18.4', platform: :ruby
+  gem 'pg', '0.15.1', platform: :ruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sidekiq', '4.0.0'
   gem 'rack-cache', '1.7.1'
@@ -64,7 +57,7 @@ end
 common_appr('contrib-old') do
   gem 'active_model_serializers', '~> 0.9.0'
   gem 'activerecord', '3.2.22.5'
-  # gem 'activerecord-mysql-adapter', platform: :ruby
+  gem 'activerecord-mysql-adapter', platform: :ruby
   gem 'aws-sdk', '~> 2.0'
   gem 'dalli'
   gem 'delayed_job'
@@ -73,7 +66,7 @@ common_appr('contrib-old') do
   gem 'excon'
   gem 'hiredis'
   gem 'mongo', '< 2.5'
-  gem 'mysql2', '< 0.5', platform: :ruby
+  gem 'mysql2', '0.3.21', platform: :ruby
   gem 'rack', '1.4.7'
   gem 'rack-cache', '1.7.1'
   gem 'rack-test', '0.7.0'
@@ -102,7 +95,7 @@ common_appr('contrib') do
   gem 'grpc'
   gem 'hiredis'
   gem 'mongo', '< 2.5'
-  gem 'mysql2', '0.4.10', platform: :ruby
+  gem 'mysql2', '< 0.5', platform: :ruby
   gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-test'
@@ -120,7 +113,7 @@ end
 common_appr 'rails32-mysql2' do
   gem 'test-unit'
   gem 'rails', '3.2.22.5'
-  gem 'mysql2', '0.4.10', platform: :ruby
+  gem 'mysql2', '0.3.21', platform: :ruby
   gem 'activerecord-mysql-adapter', platform: :ruby
   gem 'activerecord-jdbcmysql-adapter', platform: :jruby
   gem 'rack-cache', '1.7.1'
@@ -129,7 +122,7 @@ end
 common_appr 'rails32-postgres' do
   gem 'test-unit'
   gem 'rails', '3.2.22.5'
-  gem 'pg', '0.18.4', platform: :ruby
+  gem 'pg', '0.15.1', platform: :ruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'rack-cache', '1.7.1'
 end
@@ -137,7 +130,7 @@ end
 common_appr 'rails32-postgres-redis' do
   gem 'test-unit'
   gem 'rails', '3.2.22.5'
-  gem 'pg', '0.18.4', platform: :ruby
+  gem 'pg', '0.15.1', platform: :ruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'redis-rails'
   gem 'redis', '< 4.0'
@@ -147,34 +140,34 @@ end
 common_appr 'rails32-postgres-sidekiq' do
   gem 'test-unit'
   gem 'rails', '3.2.22.5'
-  gem 'pg', '0.18.4', platform: :ruby
+  gem 'pg', '0.15.1', platform: :ruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sidekiq', '4.0.0'
   gem 'rack-cache', '1.7.1'
 end
 
 common_appr 'rails4-mysql2' do |version|
-  gem 'rails', version[:rails] || '4.2.7.1'
-  gem 'mysql2', '0.4.10', platform: :ruby
+  gem 'rails', version.fetch(:rails, '4.2.7.1')
+  gem 'mysql2', '< 0.5', platform: :ruby
   gem 'activerecord-jdbcmysql-adapter', platform: :jruby
 end
 
-common_appr 'rails4-postgres' do
-  gem 'rails', '4.2.7.1'
+common_appr 'rails4-postgres' do |version|
+  gem 'rails', version.fetch(:rails, '4.2.7.1')
   gem 'pg', '< 1.0', platform: :ruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
 end
 
-common_appr 'rails4-postgres-redis' do
-  gem 'rails', '4.2.7.1'
+common_appr 'rails4-postgres-redis' do |version|
+  gem 'rails', version.fetch(:rails, '4.2.7.1')
   gem 'pg', '< 1.0', platform: :ruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'redis-rails'
   gem 'redis', '< 4.0'
 end
 
-common_appr 'rails4-postgres-sidekiq' do
-  gem 'rails', '4.2.7.1'
+common_appr 'rails4-postgres-sidekiq' do |version|
+  gem 'rails', version.fetch(:rails, '4.2.7.1')
   gem 'pg', '< 1.0', platform: :ruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sidekiq'
@@ -295,7 +288,7 @@ end
 
 ruby_version('2.5.0') do
   rails4_version = version(rails: '>= 4.2.8')
-  
+
   appr 'rails30-postgres'
   appr 'rails30-postgres-sidekiq'
   appr 'rails32-postgres'
