@@ -467,7 +467,7 @@ jobs:
     steps:
       - checkout
       - restore_cache: &cache-2_5
-          key: 'b1-{{ .Environment.CIRCLE_CACHE_VERSION }}-cache-2.5'
+          key: 'b1-{{ .Environment.CIRCLE_CACHE_VERSION }}-cache-2.5-{{ checksum Appraisals }}-{{ checksum ddtrace.gemspec }}-{{ checksum Gemfile }}'
           paths:
             - vendor/bundle
             - gemfiles/
