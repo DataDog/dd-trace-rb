@@ -72,6 +72,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
 |       |                            | 2.2     | Full         |
 |       |                            | 2.3     | Full         |
 |       |                            | 2.4     | Full         |
+|       |                            | 2.5     | Full         |
 | JRuby | http://jruby.org/          | 9.1.5   | Experimental |
 
 *Full* support indicates all tracer features are available.
