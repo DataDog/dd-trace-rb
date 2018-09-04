@@ -1,5 +1,9 @@
 require File.expand_path('tools/appraisal_helper', Dir.pwd)
 
+if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('1.9.3')
+  raise NotImplementedError, 'Ruby versions < 1.9.3 are not supported!'
+end
+
 common_appraisal('rails30-postgres') do
   gem 'test-unit'
   gem 'rails', '3.0.20'
@@ -248,6 +252,7 @@ end
 
 ruby_version('2.5.0') do
   rails4_version = version(rails: '~> 4.2.8')
+
   do_appraise 'rails4-mysql2', rails4_version
   do_appraise 'rails4-postgres', rails4_version
   do_appraise 'rails4-postgres-redis', rails4_version

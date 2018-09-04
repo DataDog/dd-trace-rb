@@ -847,6 +847,15 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 | ``databases`` | Hash of tracer settings to use for each database connection. See [ActiveRecord](#activerecord) for more details. | ``{}`` |
 
+Supported versions
+
+| Ruby Versions | Supported Rails Versions |
+| ------------- | ------------------------ |
+|  1.9.3 - 2.0  |  3.0 - 3.2               |
+|  2.1          |  3.0 - 4.2               |
+|  2.2 - 2.3    |  3.0 - 5.1               |
+|  2.4 - 2.5    |  4.2.8 - 5.1             |
+
 ### Rake
 
 You can add instrumentation around your Rake tasks by activating the `rake` integration. Each task and its subsequent subtasks will be traced.
