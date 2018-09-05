@@ -3,10 +3,17 @@ LogHelpers.without_warnings do
 end
 
 RSpec.shared_context 'GraphQL test schema' do
-  let(:schema) do
+  let(:defined_schema) do
     qt = query_type
 
     ::GraphQL::Schema.define do
+      query(qt)
+    end
+  end
+
+  let(:derived_schema) do
+    qt = query_type
+    Class.new(::GraphQL::Schema) do
       query(qt)
     end
   end
