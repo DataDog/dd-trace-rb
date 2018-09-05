@@ -1,4 +1,3 @@
-
 LogHelpers.without_warnings do
   require 'graphql'
 end
@@ -13,14 +12,10 @@ RSpec.shared_context 'GraphQL test schema' do
   end
 
   let(:derived_schema) do
-    class DerivedSchema < ::GraphQL::Schema
-    end
-
     qt = query_type
-    DerivedSchema.class_eval do
+    Class.new(::GraphQL::Schema) do
       query(qt)
     end
-    DerivedSchema
   end
 
   let(:query_type_name) { 'Query' }
