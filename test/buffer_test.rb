@@ -31,7 +31,7 @@ class TraceBufferTest < Minitest::Test
     buffer.push(3)
     buffer.push(4)
     out = buffer.pop
-    assert_equal(out.length, 3)
+    assert_equal(3, out.length)
     assert out.include?(4)
   end
 

@@ -4,6 +4,16 @@
 
 ## [Unreleased (beta)]
 
+## [0.15.0.beta1] - 2018-08-15
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.15.0.beta1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0...v0.15.0.beta1
+
+### Changed
+
+- Reduced locking to improve multithreaded performance (#506)
+
 ## [0.14.2] - 2018-08-23
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.2

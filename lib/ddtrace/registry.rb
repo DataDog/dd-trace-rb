@@ -25,10 +25,8 @@ module Datadog
     end
 
     def [](name)
-      @mutex.synchronize do
-        entry = @data[name]
-        entry.klass if entry
-      end
+      entry = @data[name]
+      entry.klass if entry
     end
 
     def to_h
