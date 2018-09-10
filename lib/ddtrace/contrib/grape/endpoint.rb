@@ -1,5 +1,6 @@
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
+require 'ddtrace/contrib/rack/middlewares'
 
 module Datadog
   module Contrib
