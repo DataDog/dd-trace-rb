@@ -99,6 +99,23 @@ class TracerTest < RackBaseTest
     assert_nil(span.parent)
   end
 
+  def test_request_middleware_get_with_urls_in_headers
+    # The `Referer` header is not tracked by default, so we need to add it here.
+    Datadog.configure do |c|
+      c.use :rack, headers: { request: ['Referer'] }
+    end
+
+    # ensure the Rack request is properly traced
+    get '/success?foo=bar', {}, 'HTTP_REFERER' => 'http://example.com?x=y'
+    assert last_response.ok?
+
+    spans = @tracer.writer.spans
+    assert_equal(1, spans.length)
+
+    span = spans[0]
+    assert_equal('http://example.com?x=?', span.get_tag('http.request.headers.referer'))
+  end
+
   def test_request_middleware_post
     # ensure the Rack request is properly traced
     post '/success/'

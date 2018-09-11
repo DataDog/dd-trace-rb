@@ -17,6 +17,11 @@ module Datadog
       class TraceMiddleware
         RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
 
+        HEADERS_WITH_URLS = %w[
+          Location
+          Referer
+        ].freeze
+
         def initialize(app)
           @app = app
         end
@@ -130,6 +135,9 @@ module Datadog
           request_headers = parse_request_headers(env)
           response_headers = parse_response_headers(headers || {})
 
+          quantize_urls_in_headers!(request_headers)
+          quantize_urls_in_headers!(response_headers)
+
           request_span.resource ||= resource_name_for(env, status)
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
@@ -178,6 +186,15 @@ module Datadog
           and has been been DEPRECATED. Public support for its usage is discontinued.
           If you need the Rack request span, try using `Datadog.tracer.active_span`.
           This key will be removed in version 1.0).freeze
+
+        def quantize_urls_in_headers!(headers)
+          HEADERS_WITH_URLS.each do |name|
+            if headers.key?(name)
+              quantize_options = Datadog.configuration[:rack][:quantize]
+              headers[name] = Datadog::Quantization::HTTP.url(headers[name], quantize_options)
+            end
+          end
+        end
 
         def add_deprecation_warnings(env)
           env.instance_eval do
