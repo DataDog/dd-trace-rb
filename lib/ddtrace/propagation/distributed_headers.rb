@@ -43,7 +43,7 @@ module Datadog
 
     def id(header)
       value = header(header).to_i
-      return if value == 0 || value >= Span::MAX_ID
+      return if value.zero? || value >= Span::MAX_ID
       value < 0 ? value + 0x1_0000_0000_0000_0000 : value
     end
   end
