@@ -268,7 +268,7 @@ For a list of available integrations, and their configuration options, please re
 
 | Name           | Key               | Versions Supported       | How to configure          | Gem source                                                                     |
 | -------------- | ----------------- | ------------------------ | ------------------------- | ------------------------------------------------------------------------------ |
-| Active Record  | `active_record`   | `>= 3.2, < 5.2`          | *[Link](#active-record)*  | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
+| Active Record  | `active_record`   | `>= 3.2, < 6.0`          | *[Link](#active-record)*  | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | AWS            | `aws`             | `>= 2.0`                 | *[Link](#aws)*            | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Concurrent Ruby| `concurrent_ruby` | `>= 0.9`                 | *[Link](#concurrent-ruby)*| *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
 | Dalli          | `dalli`           | `>= 2.7`                 | *[Link](#dalli)*          | *[Link](https://github.com/petergoldstein/dalli)*                              |
@@ -284,7 +284,7 @@ For a list of available integrations, and their configuration options, please re
 | Net/HTTP       | `http`            | *(Any supported Ruby)*   | *[Link](#nethttp)*        | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
 | Racecar        | `racecar`         | `>= 0.3.5`               | *[Link](#racecar)*        | *[Link](https://github.com/zendesk/racecar)*                                   |
 | Rack           | `rack`            | `>= 1.4.7`               | *[Link](#rack)*           | *[Link](https://github.com/rack/rack)*                                         |
-| Rails          | `rails`           | `>= 3.2, < 5.2`          | *[Link](#rails)*          | *[Link](https://github.com/rails/rails)*                                       |
+| Rails          | `rails`           | `>= 3.2, <= 6.0`         | *[Link](#rails)*          | *[Link](https://github.com/rails/rails)*                                       |
 | Rake           | `rake`            | `>= 12.0`                | *[Link](#rake)*           | *[Link](https://github.com/ruby/rake)*                                         |
 | Redis          | `redis`           | `>= 3.2, < 4.0`          | *[Link](#redis)*          | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Rest Client    | `rest-client`     | `>= 1.8`                 | *[Link](#restclient)*     | *[Link](https://github.com/rest-client/rest-client)*                           |
@@ -873,6 +873,15 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
 | ``databases`` | Hash of tracer settings to use for each database connection. See [ActiveRecord](#activerecord) for more details. | ``{}`` |
+
+**Supported versions**
+
+| Ruby Versions | Supported Rails Versions |
+| ------------- | ------------------------ |
+|  1.9.3 - 2.0  |  3.0 - 3.2               |
+|  2.1          |  3.0 - 4.2               |
+|  2.2 - 2.3    |  3.0 - 5.2               |
+|  2.4 - 2.5    |  4.2.8 - 5.2             |
 
 ### Rake
 
