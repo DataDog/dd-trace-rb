@@ -29,12 +29,20 @@ module Datadog
             tracer = get_option(:tracer)
             service_name = get_option(:service_name)
 
-            schema.define do
-              use(
+            if schema.respond_to?(:use)
+              schema.use(
                 ::GraphQL::Tracing::DataDogTracing,
                 tracer: tracer,
                 service: service_name
               )
+            else
+              schema.define do
+                use(
+                  ::GraphQL::Tracing::DataDogTracing,
+                  tracer: tracer,
+                  service: service_name
+                )
+              end
             end
           end
 

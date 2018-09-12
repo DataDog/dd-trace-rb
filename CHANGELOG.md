@@ -4,6 +4,31 @@
 
 ## [Unreleased (beta)]
 
+## [0.14.2] - 2018-08-23
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...v0.14.2
+
+### Fixed
+
+- Sampling priority from request headers not being used (#521)  
+
+
+## [0.14.1] - 2018-08-21
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0...v0.14.1
+
+### Changed
+
+- Reduce verbosity of connection errors in log (#515)
+
+### Fixed
+
+- Sequel 'not a valid integration' error (#514, #516) (@steveh)
+
 ## [0.14.0] - 2018-08-14
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.0
@@ -460,8 +485,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0...0.15-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...0.15-dev
+[0.14.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.2...v0.14.0
 [0.14.0.rc1]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0.beta2...v0.14.0.rc1
 [0.14.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0.beta1...v0.14.0.beta2

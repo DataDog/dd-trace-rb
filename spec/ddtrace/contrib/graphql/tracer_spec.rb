@@ -22,50 +22,63 @@ RSpec.describe 'GraphQL patcher' do
   let(:all_spans) { pop_spans }
   let(:root_span) { all_spans.find { |s| s.parent.nil? } }
 
-  before(:each) do
-    Datadog.configure do |c|
-      c.use :graphql,
-            service_name: 'graphql-test',
-            tracer: tracer,
-            schemas: [schema]
+  RSpec.shared_examples 'Schema patcher' do
+    before(:each) do
+      Datadog.configuration[:graphql].instance_variable_get(:@integration).instance_variable_set(:@patched, false)
+      Datadog.configure do |c|
+        c.use :graphql,
+              service_name: 'graphql-test',
+              tracer: tracer,
+              schemas: [schema]
+      end
+    end
+
+    describe 'query trace' do
+      subject(:result) { schema.execute(query, variables: {}, context: {}, operation_name: nil) }
+
+      let(:query) { '{ foo(id: 1) { name } }' }
+      let(:variables) { {} }
+      let(:context) { {} }
+      let(:operation_name) { nil }
+
+      it do
+        # Expect no errors
+        expect(result.to_h['errors']).to be nil
+
+        # Expect nine spans
+        expect(all_spans).to have(9).items
+
+        # List of valid resource names
+        # (If this is too brittle, revist later.)
+        valid_resource_names = [
+          'Query.foo',
+          'analyze.graphql',
+          'execute.graphql',
+          'lex.graphql',
+          'parse.graphql',
+          'validate.graphql'
+        ]
+
+        # Expect root span to be 'execute.graphql'
+        expect(root_span.name).to eq('execute.graphql')
+        expect(root_span.resource).to eq('execute.graphql')
+
+        # Expect each span to be properly named
+        all_spans.each do |span|
+          expect(span.service).to eq('graphql-test')
+          expect(valid_resource_names).to include(span.resource.to_s)
+        end
+      end
     end
   end
 
-  describe 'query trace' do
-    subject(:result) { schema.execute(query, variables: {}, context: {}, operation_name: nil) }
+  context 'defined schema' do
+    let(:schema) { defined_schema }
+    it_should_behave_like 'Schema patcher'
+  end
 
-    let(:query) { '{ foo(id: 1) { name } }' }
-    let(:variables) { {} }
-    let(:context) { {} }
-    let(:operation_name) { nil }
-
-    it do
-      # Expect no errors
-      expect(result.to_h['errors']).to be nil
-
-      # Expect nine spans
-      expect(all_spans).to have(9).items
-
-      # List of valid resource names
-      # (If this is too brittle, revist later.)
-      valid_resource_names = [
-        'Query.foo',
-        'analyze.graphql',
-        'execute.graphql',
-        'lex.graphql',
-        'parse.graphql',
-        'validate.graphql'
-      ]
-
-      # Expect root span to be 'execute.graphql'
-      expect(root_span.name).to eq('execute.graphql')
-      expect(root_span.resource).to eq('execute.graphql')
-
-      # Expect each span to be properly named
-      all_spans.each do |span|
-        expect(span.service).to eq('graphql-test')
-        expect(valid_resource_names).to include(span.resource.to_s)
-      end
-    end
+  context 'derived schema' do
+    let(:schema) { derived_schema }
+    it_should_behave_like 'Schema patcher'
   end
 end
