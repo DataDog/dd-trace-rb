@@ -4,6 +4,22 @@
 
 ## [Unreleased (beta)]
 
+## [0.15.0] - 2018-09-12
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.15.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.14.2...v0.15.0
+
+### Added
+
+- Rails 5.2 support (#535)
+- Context propagation support for `Concurrent::Future` (#415, #496)
+
+### Fixed
+
+- Grape uninitialized constant TraceMiddleware (#525, #533) (@dim)
+- Signed integer trace and span IDs being discarded in distributed traces (#530) (@alloy)
+
 ## [0.14.2] - 2018-08-23
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.14.2
@@ -13,7 +29,6 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...v0.14.2
 ### Fixed
 
 - Sampling priority from request headers not being used (#521)  
-
 
 ## [0.14.1] - 2018-08-21
 
@@ -485,8 +500,10 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...0.15-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.15.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.15.0...0.16-dev
+[0.15.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.2...v0.15.0
+[0.14.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.13.2...v0.14.0
 [0.14.0.rc1]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0.beta2...v0.14.0.rc1
