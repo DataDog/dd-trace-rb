@@ -48,7 +48,8 @@ class DistributedHeadersTest < Minitest::Test
     test_cases = {
       { 'HTTP_X_DATADOG_TRACE_ID' => '123' } => 123,
       { 'HTTP_X_DATADOG_TRACE_ID' => '0' } => nil,
-      { 'HTTP_X_DATADOG_TRACE_ID' => '-1' } => nil,
+      { 'HTTP_X_DATADOG_TRACE_ID' => '-1' } => 18446744073709551615,
+      { 'HTTP_X_DATADOG_TRACE_ID' => '-8809075535603237910' } => 9637668538106313706,
       { 'HTTP_X_DATADOG_TRACE_ID' => 'ooops' } => nil,
       { 'HTTP_X_DATADOG_TRACE_TYPO' => '1' } => nil,
       { 'HTTP_X_DATADOG_TRACE_ID' => Datadog::Span::MAX_ID.to_s } => nil,
@@ -69,7 +70,8 @@ class DistributedHeadersTest < Minitest::Test
     test_cases = {
       { 'HTTP_X_DATADOG_PARENT_ID' => '123' } => 123,
       { 'HTTP_X_DATADOG_PARENT_ID' => '0' } => nil,
-      { 'HTTP_X_DATADOG_PARENT_ID' => '-1' } => nil,
+      { 'HTTP_X_DATADOG_PARENT_ID' => '-1' } => 18446744073709551615,
+      { 'HTTP_X_DATADOG_PARENT_ID' => '-8809075535603237910' } => 9637668538106313706,
       { 'HTTP_X_DATADOG_PARENT_ID' => 'ooops' } => nil,
       { 'HTTP_X_DATADOG_PARENT_TYPO' => '1' } => nil,
       { 'HTTP_X_DATADOG_PARENT_ID' => Datadog::Span::MAX_ID.to_s } => nil,
