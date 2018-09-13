@@ -64,6 +64,12 @@ if Datadog::OpenTracer.supported?
         context 'and the value is in range' do
           let(:value) { (Datadog::Span::MAX_ID - 1).to_s }
           it { is_expected.to eq value.to_i }
+
+          context 'as a negative signed integer' do
+            # Convert signed int to unsigned int.
+            let(:value) { -8809075535603237910.to_s }
+            it { is_expected.to eq 9637668538106313706 }
+          end
         end
       end
     end
@@ -90,6 +96,12 @@ if Datadog::OpenTracer.supported?
         context 'and the value is in range' do
           let(:value) { (Datadog::Span::MAX_ID - 1).to_s }
           it { is_expected.to eq value.to_i }
+
+          context 'as a negative signed integer' do
+            # Convert signed int to unsigned int.
+            let(:value) { -8809075535603237910.to_s }
+            it { is_expected.to eq 9637668538106313706 }
+          end
         end
       end
     end
