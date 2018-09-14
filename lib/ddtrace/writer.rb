@@ -18,7 +18,7 @@ module Datadog
       # priority sampling
       if options[:priority_sampler]
         @priority_sampler = options[:priority_sampler]
-        transport_options[:api_version] ||= HTTPTransport::V4
+        transport_options[:api_version] ||= HTTPTransport::V3
         transport_options[:response_callback] ||= method(:sampling_updater)
       end
 
