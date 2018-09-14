@@ -3,7 +3,7 @@ module Datadog
     MAJOR = 0
     MINOR = 14
     PATCH = 2
-    PRE = 'disableprotocolversion4'
+    PRE = 'disableprotocolversion4'.freeze
 
     STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
   end
