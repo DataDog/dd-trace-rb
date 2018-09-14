@@ -17,15 +17,11 @@ module Datadog
       end
 
       def trace_id
-        value = @carrier[HTTP_HEADER_TRACE_ID].to_i
-        return if value <= 0 || value >= Datadog::Span::MAX_ID
-        value
+        id HTTP_HEADER_TRACE_ID
       end
 
       def parent_id
-        value = @carrier[HTTP_HEADER_PARENT_ID].to_i
-        return if value <= 0 || value >= Datadog::Span::MAX_ID
-        value
+        id HTTP_HEADER_PARENT_ID
       end
 
       def sampling_priority
@@ -36,6 +32,14 @@ module Datadog
         value = hdr.to_i
         return if value < 0
         value
+      end
+
+      private
+
+      def id(header)
+        value = @carrier[header].to_i
+        return if value.zero? || value >= Datadog::Span::MAX_ID
+        value < 0 ? value + 0x1_0000_0000_0000_0000 : value
       end
     end
   end
