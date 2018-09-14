@@ -20,7 +20,7 @@ module Datadog
   # rubocop:disable Metrics/ClassLength
   class Tracer
     attr_reader :sampler, :services, :tags, :provider
-    attr_accessor :enabled, :writer
+    attr_accessor :enabled, :writer, :service_prefix
     attr_writer :default_service
 
     ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
@@ -106,6 +106,7 @@ module Datadog
       @mutex = Mutex.new
       @services = {}
       @tags = {}
+      @service_prefix = options.fetch(:service_prefix, nil)
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
@@ -123,6 +124,7 @@ module Datadog
       enabled = options.fetch(:enabled, nil)
       hostname = options.fetch(:hostname, nil)
       port = options.fetch(:port, nil)
+      @service_prefix = options.fetch(:service_prefix, nil)
 
       # Those are rare "power-user" options.
       sampler = options.fetch(:sampler, nil)

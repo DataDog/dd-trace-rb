@@ -1233,6 +1233,7 @@ Available options are:
  - ``hostname``: set the hostname of the trace agent.
  - ``port``: set the port the trace agent is listening on.
  - ``env``: set the environment. Rails users may set it to ``Rails.env`` to use their application settings.
+ - ``service_prefix``: prefix to append to all service names by default. Value should be a string e.g. `'myapp_'`.
  - ``tags``: set global tags that should be applied to all spans. Defaults to an empty hash
  - ``log``: defines a custom logger.
  - ``partial_flush``: set to ``true`` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*

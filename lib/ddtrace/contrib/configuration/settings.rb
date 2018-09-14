@@ -29,6 +29,16 @@ module Datadog
         def []=(name, value)
           respond_to?("#{name}=") ? send("#{name}=", value) : set_option(name, value)
         end
+
+        # Override set_option to allow service_prefix to be added.
+        def set_option(name, value)
+          if name.to_sym == :service_name && !value.nil?
+            tracer = get_option(:tracer)
+            super(name, "#{tracer.service_prefix}#{value}")
+          else
+            super
+          end
+        end
       end
     end
   end
