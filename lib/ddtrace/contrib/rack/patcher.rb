@@ -3,47 +3,26 @@ module Datadog
     module Rack
       # Provides instrumentation for `rack`
       module Patcher
-        include Base
-
-        DEFAULT_HEADERS = {
-          response: [
-            'Content-Type',
-            'X-Request-ID'
-          ]
-        }.freeze
-
-        register_as :rack
-        option :tracer, default: Datadog.tracer
-        option :distributed_tracing, default: false
-        option :middleware_names, default: false
-        option :quantize, default: {}
-        option :application
-        option :service_name, default: 'rack', depends_on: [:tracer] do |value|
-          get_option(:tracer).set_service_info(value, 'rack', Ext::AppTypes::WEB)
-          value
-        end
-        option :request_queuing, default: false
-        option :web_service_name, default: 'web-server', depends_on: [:tracer, :request_queuing] do |value|
-          if get_option(:request_queuing)
-            get_option(:tracer).set_service_info(value, 'webserver', Ext::AppTypes::WEB)
-          end
-          value
-        end
-        option :headers, default: DEFAULT_HEADERS
+        include Contrib::Patcher
 
         module_function
 
+        def patched?
+          done?(:rack)
+        end
+
         def patch
-          unless patched?
+          # Patch middleware
+          do_once(:rack) do
             require_relative 'middlewares'
-            @patched = true
           end
 
-          if (!instance_variable_defined?(:@middleware_patched) || !@middleware_patched) \
-             && get_option(:middleware_names)
+          # Patch middleware names
+          if !done?(:rack_middleware_names) && get_option(:middleware_names)
             if get_option(:application)
-              enable_middleware_names
-              @middleware_patched = true
+              do_once(:rack_middleware_names) do
+                patch_middleware_names
+              end
             else
               Datadog::Tracer.log.warn(%(
               Rack :middleware_names requires you to also pass :application.
@@ -51,15 +30,11 @@ module Datadog
               e.g. use: :rack, middleware_names: true, application: my_rack_app).freeze)
             end
           end
-
-          @patched || @middleware_patched
+        rescue StandardError => e
+          Datadog::Tracer.log.error("Unable to apply Rack integration: #{e}")
         end
 
-        def patched?
-          @patched ||= false
-        end
-
-        def enable_middleware_names
+        def patch_middleware_names
           retain_middleware_name(get_option(:application))
         rescue => e
           # We can safely ignore these exceptions since they happen only in the
@@ -81,8 +56,15 @@ module Datadog
             end
           end
 
-          following = middleware.instance_variable_get('@app')
+          following = if middleware.instance_variable_defined?('@app')
+                        middleware.instance_variable_get('@app')
+                      end
+
           retain_middleware_name(following)
+        end
+
+        def get_option(option)
+          Datadog.configuration[:rack].get_option(option)
         end
       end
     end
