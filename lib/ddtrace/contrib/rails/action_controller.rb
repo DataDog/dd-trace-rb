@@ -1,5 +1,7 @@
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
+require 'ddtrace/contrib/rack/ext'
+require 'ddtrace/contrib/rails/ext'
 
 module Datadog
   module Contrib
@@ -20,7 +22,7 @@ module Datadog
           tracer = Datadog.configuration[:rails][:tracer]
           service = Datadog.configuration[:rails][:controller_service]
           type = Datadog::Ext::HTTP::TYPE
-          span = tracer.trace('rails.action_controller', service: service, span_type: type)
+          span = tracer.trace(Ext::SPAN_ACTION_CONTROLLER, service: service, span_type: type)
 
           # attach the current span to the tracing context
           tracing_context = payload.fetch(:tracing_context)
@@ -43,12 +45,12 @@ module Datadog
 
             # Set the parent resource if it's a `rack.request` span,
             # but not if its an exception contoller.
-            if !span.parent.nil? && span.parent.name == 'rack.request' && !exception_controller?(payload)
+            if !span.parent.nil? && span.parent.name == Rack::Ext::SPAN_REQUEST && !exception_controller?(payload)
               span.parent.resource = span.resource
             end
 
-            span.set_tag('rails.route.action', payload.fetch(:action))
-            span.set_tag('rails.route.controller', payload.fetch(:controller))
+            span.set_tag(Ext::TAG_ROUTE_ACTION, payload.fetch(:action))
+            span.set_tag(Ext::TAG_ROUTE_CONTROLLER, payload.fetch(:controller))
 
             exception = payload[:exception_object]
             if exception.nil?

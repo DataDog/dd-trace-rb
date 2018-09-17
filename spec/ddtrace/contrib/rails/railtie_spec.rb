@@ -31,7 +31,6 @@ RSpec.describe 'Rails application' do
   end
 
   before(:each) do
-    Datadog.registry[:rails].instance_variable_set(:@patched, false)
     Datadog.configure do |c|
       c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :rails, rails_options if use_rails
