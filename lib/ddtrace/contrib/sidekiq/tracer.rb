@@ -8,9 +8,8 @@ module Datadog
       # Tracer is a Sidekiq server-side middleware which traces executed jobs
       class Tracer
         def initialize(options = {})
-          config = Datadog.configuration[:sidekiq].merge(options)
-          @tracer = config[:tracer]
-          @sidekiq_service = config[:service_name]
+          @tracer = options[:tracer] || Datadog.configuration[:sidekiq][:tracer]
+          @sidekiq_service = options[:service_name] || Datadog.configuration[:sidekiq][:service_name]
         end
 
         def call(worker, job, queue)
@@ -62,7 +61,7 @@ module Datadog
           return if @tracer.services[service]
           @tracer.set_service_info(
             service,
-            'sidekiq',
+            Integration::APP,
             Datadog::Ext::AppTypes::WORKER
           )
         end
