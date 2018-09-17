@@ -54,39 +54,39 @@ module Datadog
   # \RateByServiceSampler samples different services at different rates
   class RateByServiceSampler < Sampler
     DEFAULT_KEY = 'service:,env:'.freeze
+    PARSER = /service:([^,]*),env:(.*)$/
 
     def initialize(rate = 1.0, opts = {})
       @env = opts.fetch(:env, Datadog.tracer.tags[:env])
       @mutex = Mutex.new
       @fallback = RateSampler.new(rate)
-      @sampler = default_sampler
+      @sampler = {}
     end
 
     def sample(span)
-      key = key_for(span)
-
-      @sampler.fetch(key, @fallback).sample(span)
+      @sampler.fetch(span.service, @fallback).sample(span)
     end
 
     def update(rate_by_service)
       @mutex.synchronize do
-        new_sampler = default_sampler
+        new_fallback = @fallback
+        new_sampler = {}
 
         rate_by_service.each do |key, rate|
-          new_sampler[key] = RateSampler.new(rate)
+          match = PARSER.match(key).to_a
+          _, service, env = match && match.to_a
+          next unless service && env
+
+          if service.empty? && env.empty?
+            new_fallback = RateSampler.new(rate)
+          elsif !service.empty? && env == @env.to_s
+            new_sampler[service] = RateSampler.new(rate)
+          end
         end
+
+        @fallback = new_fallback
         @sampler = new_sampler
       end
-    end
-
-    private
-
-    def default_sampler
-      { DEFAULT_KEY => @fallback }
-    end
-
-    def key_for(span)
-      "service:#{span.service},env:#{@env}"
     end
   end
 
