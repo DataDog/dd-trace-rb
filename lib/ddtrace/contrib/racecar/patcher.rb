@@ -1,54 +1,36 @@
+require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/racecar/events'
 
 module Datadog
   module Contrib
     module Racecar
-      # Provides instrumentation for `racecar` through ActiveSupport instrumentation signals
+      # Patcher enables patching of 'racecar' module.
       module Patcher
-        include Base
+        include Contrib::Patcher
 
-        register_as :racecar
-        option :service_name, default: 'racecar'
-        option :tracer, default: Datadog.tracer do |value|
-          (value || Datadog.tracer).tap do |v|
-            # Make sure to update tracers of all subscriptions
-            Events.subscriptions.each do |subscription|
-              subscription.tracer = v
-            end
-          end
+        module_function
+
+        def patched?
+          done?(:racecar)
         end
 
-        class << self
-          def patch
-            return patched? if patched? || !compatible?
+        def patch
+          do_once(:racecar) do
+            begin
+              # Subscribe to Racecar events
+              Events.subscribe!
 
-            # Subscribe to Racecar events
-            Events.subscribe!
-
-            # Set service info
-            configuration[:tracer].set_service_info(
-              configuration[:service_name],
-              'racecar',
-              Ext::AppTypes::WORKER
-            )
-
-            @patched = true
-          end
-
-          def patched?
-            return @patched if defined?(@patched)
-            @patched = false
-          end
-
-          private
-
-          def configuration
-            Datadog.configuration[:racecar]
-          end
-
-          def compatible?
-            defined?(::Racecar) && defined?(::ActiveSupport::Notifications)
+              # Set service info
+              configuration = Datadog.configuration[:racecar]
+              configuration[:tracer].set_service_info(
+                configuration[:service_name],
+                Integration::APP,
+                Ext::AppTypes::WORKER
+              )
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply Racecar integration: #{e}")
+            end
           end
         end
       end
