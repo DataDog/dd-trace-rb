@@ -116,6 +116,6 @@ class RackBaseTest < Minitest::Test
   def teardown
     super
     # reset the configuration
-    Datadog.registry[:rack].reset_options!
+    Datadog.configuration[:rack].reset_options!
   end
 end
