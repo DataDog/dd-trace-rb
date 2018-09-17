@@ -59,29 +59,31 @@ module Datadog
       @env = opts.fetch(:env, Datadog.tracer.tags[:env])
       @mutex = Mutex.new
       @fallback = RateSampler.new(rate)
-      @sampler = { DEFAULT_KEY => @fallback }
+      @sampler = default_sampler
     end
 
     def sample(span)
       key = key_for(span)
 
-      @mutex.synchronize do
-        @sampler.fetch(key, @fallback).sample(span)
-      end
+      @sampler.fetch(key, @fallback).sample(span)
     end
 
     def update(rate_by_service)
       @mutex.synchronize do
-        @sampler.delete_if { |key, _| key != DEFAULT_KEY && !rate_by_service.key?(key) }
+        new_sampler = default_sampler
 
         rate_by_service.each do |key, rate|
-          @sampler[key] ||= RateSampler.new(rate)
-          @sampler[key].sample_rate = rate
+          new_sampler[key] = RateSampler.new(rate)
         end
+        @sampler = new_sampler
       end
     end
 
     private
+
+    def default_sampler
+      { DEFAULT_KEY => @fallback }
+    end
 
     def key_for(span)
       "service:#{span.service},env:#{@env}"
