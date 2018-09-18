@@ -71,27 +71,6 @@ module Datadog
       @count_consecutive_errors = 0
     end
 
-    def span(name, *args)
-      return unless Datadog.tracer.internal_traces
-
-      Datadog.tracer.trace(name, *args) do |span|
-        span.service = 'datadog.transport'
-        yield
-      end
-    end
-
-    def current_span
-      return unless Datadog.tracer.internal_traces
-      span = Datadog.tracer.active_span
-      yield(span) if span
-    end
-
-    def span_block(name, *args, &block)
-      block
-    end
-
-    def span_set_error(*args); end
-
     # route the send to the right endpoint
     def send(endpoint, data)
       case endpoint
@@ -240,6 +219,22 @@ module Datadog
     end
 
     private
+
+    def span(name, *args)
+      return yield unless Datadog.tracer.internal_traces
+
+      Datadog.tracer.trace(name, *args) do |span|
+        span.service = 'datadog.transport'
+        yield
+      end
+    end
+
+    def current_span
+      return unless Datadog.tracer.internal_traces
+
+      span = Datadog.tracer.active_span
+      yield(span) if span
+    end
 
     def log_error_once(*args)
       if @count_consecutive_errors > 0
