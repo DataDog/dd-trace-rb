@@ -14,25 +14,35 @@ module Datadog
 
       module_function
 
-      def should_skip_tracing?(req, address, port, transport, pin)
+      def tracing_transport?(req, address, port, transport)
         # we don't want to trace our own call to the API (they use net/http)
         # when we know the host & port (from the URI) we use it, else (most-likely
         # called with a block) rely on the URL at the end.
         if req.respond_to?(:uri) && req.uri
           if req.uri.host.to_s == transport.hostname.to_s &&
              req.uri.port.to_i == transport.port.to_i
-            return true
+            true
           end
         elsif address && port &&
               address.to_s == transport.hostname.to_s &&
               port.to_i == transport.port.to_i
-          return true
+          true
         end
+      end
+
+      def tracing_recursive_request?(tracer)
         # we don't want a "shotgun" effect with two nested traces for one
         # logical get, and request is likely to call itself recursively
-        active = pin.tracer.active_span()
+        active = tracer.active_span
         return true if active && (active.name == NAME)
         false
+      end
+
+      # @deprecated This method will be removed in 1.0
+      def should_skip_tracing?(req, address, port, transport, pin)
+        Datadog::Tracer.log.error('should_skip_tracing? will be deprecated in 1.0')
+
+        tracing_transport?(req, address, port, transport) || tracing_recursive_request?(pin.tracer)
       end
 
       def should_skip_distributed_tracing?(pin)
@@ -99,12 +109,15 @@ module Datadog
             end
 
             def request(req, body = nil, &block) # :yield: +response+
+              transport = Datadog.configuration[:http][:tracer].writer.transport
+              if Datadog::Contrib::HTTP.tracing_transport?(req, @address, @port, transport)
+                return request_without_datadog(req, body, &block)
+              end
+
               pin = datadog_pin
               return request_without_datadog(req, body, &block) unless pin && pin.tracer
 
-              transport = pin.tracer.writer.transport
-
-              if Datadog::Contrib::HTTP.should_skip_tracing?(req, @address, @port, transport, pin)
+              if Datadog::Contrib::HTTP.tracing_recursive_request?(pin.tracer)
                 return request_without_datadog(req, body, &block)
               end
 

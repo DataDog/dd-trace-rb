@@ -73,43 +73,27 @@ module Datadog
 
     # route the send to the right endpoint
     def send(endpoint, data)
-      case endpoint
-      when :services
-        payload = span('datadog.services.encode') do
-          @encoder.encode_services(data)
+      internal_span_when(-> { do_trace?(data) }, 'datadog.send') do
+        case endpoint
+        when :services
+          status_code = send_services(data)
+        when :traces
+          status_code = send_traces(data)
+        else
+          with_active_internal_span { |s| s.set_error(RuntimeError.new("Unsupported endpoint: #{endpoint}")) }
+
+          Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
+          return nil
         end
 
-        status_code = span('datadog.services.post') do
-          post(@api[:services_endpoint], payload) do |response|
-            span('datadog.services.response_callback') do
-              process_callback(:services, response)
-            end
+        if downgrade?(status_code)
+          internal_span_ensure_parent('datadog.send.downgrade') do
+            downgrade!
+            send(endpoint, data)
           end
+        else
+          status_code
         end
-      when :traces
-        count = data.length
-
-        payload = span('datadog.encode.traces') { @encoder.encode_traces(data) }
-
-        status_code = post(@api[:traces_endpoint], payload, count) do |response|
-          span('datadog.traces.response_callback') do
-            process_callback(:traces, response)
-          end
-        end
-      else
-        current_span { |s| s.set_error(RuntimeError.new("Unsupported endpoint: #{endpoint}")) }
-
-        Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
-        return nil
-      end
-
-      if downgrade?(status_code)
-        span('datadog.send.downgrade') do
-          downgrade!
-          send(endpoint, data)
-        end
-      else
-        status_code
       end
     end
 
@@ -124,7 +108,8 @@ module Datadog
         response = Net::HTTP.start(@hostname, @port, read_timeout: TIMEOUT) { |http| http.request(request) }
         handle_response(response)
       rescue StandardError => e
-        current_span { |s| s.set_error(e) }
+        with_active_internal_span { |s| s.set_error(e) }
+
         log_error_once(e.message)
         500
       end.tap do
@@ -183,7 +168,7 @@ module Datadog
     # function is handled within the HTTP mutex.synchronize so it's thread-safe.
     def handle_response(response)
       status_code = response.code.to_i
-      current_span { |s| s.set_tag('response.code', status_code) }
+      with_active_internal_span { |s| s.set_tag('response.code', status_code) }
 
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
@@ -202,7 +187,7 @@ module Datadog
     rescue StandardError => e
       log_error_once(e.message)
       @mutex.synchronize { @count_internal_error += 1 }
-      current_span { |s| s.set_error(e) }
+      with_active_internal_span { |s| s.set_error(e) }
 
       500
     end
@@ -220,16 +205,78 @@ module Datadog
 
     private
 
-    def span(name, *args)
+    def do_trace?(data)
+      # Create the span if we already are traced
+      return true if Datadog.tracer.active_span
+      return false unless data
+
+      # over 3 traces means that we most certainly send more than only internal traces
+      return true if data.length > 3
+
+      !data.respond_to?(:all?) || data.all? do |trace|
+        !trace.respond_to?(:none?) || trace.none? do |span|
+          span.respond_to?(:get_tag) && span.get_tag('datadog.internal')
+        end
+      end
+    end
+
+    def send_traces(data)
+      count = data.length
+
+      payload = internal_span_ensure_parent('datadog.encode.traces') do
+        with_active_internal_span { |s| s.set_tag('traces.count', count) }
+        @encoder.encode_traces(data)
+      end
+
+      internal_span_ensure_parent('datadog.traces.post') do
+        post(@api[:traces_endpoint], payload, count) do |response|
+          internal_span_ensure_parent('datadog.traces.response_callback') do
+            process_callback(:traces, response)
+          end
+        end
+      end
+    end
+
+    def send_services(data)
+      payload = internal_span_ensure_parent('datadog.services.encode') do
+        @encoder.encode_services(data)
+      end
+
+      internal_span_ensure_parent('datadog.services.post') do
+        post(@api[:services_endpoint], payload) do |response|
+          internal_span_ensure_parent('datadog.services.response_callback') do
+            process_callback(:services, response)
+          end
+        end
+      end
+    end
+
+    def internal_span(name, *args)
       return yield unless Datadog.tracer.internal_traces
 
       Datadog.tracer.trace(name, *args) do |span|
+        span.set_tag('datadog.internal', true)
         span.service = 'datadog.transport'
         yield
       end
     end
 
-    def current_span
+    def internal_span_when(condition, name, *args, &block)
+      return yield unless Datadog.tracer.internal_traces
+
+      condition = condition.call if condition.respond_to?(:send)
+      return yield unless condition
+
+      internal_span(name, *args, &block)
+    end
+
+    def internal_span_ensure_parent(name, *args, &block)
+      return yield unless Datadog.tracer.internal_traces
+
+      internal_span_when(-> { Datadog.tracer.active_span }, name, *args, &block)
+    end
+
+    def with_active_internal_span
       return unless Datadog.tracer.internal_traces
 
       span = Datadog.tracer.active_span
