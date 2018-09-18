@@ -20,7 +20,7 @@ module Datadog
   # rubocop:disable Metrics/ClassLength
   class Tracer
     attr_reader :sampler, :services, :tags, :provider
-    attr_accessor :enabled, :writer
+    attr_accessor :enabled, :writer, :internal_traces
     attr_writer :default_service
 
     ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
@@ -123,6 +123,7 @@ module Datadog
       enabled = options.fetch(:enabled, nil)
       hostname = options.fetch(:hostname, nil)
       port = options.fetch(:port, nil)
+      @internal_traces = options.fetch(:internal_traces, false)
 
       # Those are rare "power-user" options.
       sampler = options.fetch(:sampler, nil)

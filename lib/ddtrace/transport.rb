@@ -71,28 +71,64 @@ module Datadog
       @count_consecutive_errors = 0
     end
 
+    def span(name, *args)
+      return unless Datadog.tracer.internal_traces
+
+      Datadog.tracer.trace(name, *args) do |span|
+        span.service = 'datadog.transport'
+        yield
+      end
+    end
+
+    def current_span
+      return unless Datadog.tracer.internal_traces
+      span = Datadog.tracer.active_span
+      yield(span) if span
+    end
+
+    def span_block(name, *args, &block)
+      block
+    end
+
+    def span_set_error(*args); end
+
     # route the send to the right endpoint
     def send(endpoint, data)
       case endpoint
       when :services
-        payload = @encoder.encode_services(data)
-        status_code = post(@api[:services_endpoint], payload) do |response|
-          process_callback(:services, response)
+        payload = span('datadog.services.encode') do
+          @encoder.encode_services(data)
+        end
+
+        status_code = span('datadog.services.post') do
+          post(@api[:services_endpoint], payload) do |response|
+            span('datadog.services.response_callback') do
+              process_callback(:services, response)
+            end
+          end
         end
       when :traces
         count = data.length
-        payload = @encoder.encode_traces(data)
+
+        payload = span('datadog.encode.traces') { @encoder.encode_traces(data) }
+
         status_code = post(@api[:traces_endpoint], payload, count) do |response|
-          process_callback(:traces, response)
+          span('datadog.traces.response_callback') do
+            process_callback(:traces, response)
+          end
         end
       else
+        current_span { |s| s.set_error(RuntimeError.new("Unsupported endpoint: #{endpoint}")) }
+
         Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
         return nil
       end
 
       if downgrade?(status_code)
-        downgrade!
-        send(endpoint, data)
+        span('datadog.send.downgrade') do
+          downgrade!
+          send(endpoint, data)
+        end
       else
         status_code
       end
@@ -106,10 +142,10 @@ module Datadog
         headers = headers.merge(@headers)
         request = Net::HTTP::Post.new(url, headers)
         request.body = data
-
         response = Net::HTTP.start(@hostname, @port, read_timeout: TIMEOUT) { |http| http.request(request) }
         handle_response(response)
       rescue StandardError => e
+        current_span { |s| s.set_error(e) }
         log_error_once(e.message)
         500
       end.tap do
@@ -168,6 +204,7 @@ module Datadog
     # function is handled within the HTTP mutex.synchronize so it's thread-safe.
     def handle_response(response)
       status_code = response.code.to_i
+      current_span { |s| s.set_tag('response.code', status_code) }
 
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
@@ -186,6 +223,7 @@ module Datadog
     rescue StandardError => e
       log_error_once(e.message)
       @mutex.synchronize { @count_internal_error += 1 }
+      current_span { |s| s.set_error(e) }
 
       500
     end
