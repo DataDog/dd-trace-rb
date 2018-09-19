@@ -39,7 +39,8 @@ module Datadog
             @patched = true
           end
 
-          if !@middleware_patched && get_option(:middleware_names)
+          if (!instance_variable_defined?(:@middleware_patched) || !@middleware_patched) \
+             && get_option(:middleware_names)
             if get_option(:application)
               enable_middleware_names
               @middleware_patched = true
