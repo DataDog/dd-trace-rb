@@ -3,6 +3,7 @@ require 'net/http'
 
 require 'ddtrace/encoding'
 require 'ddtrace/version'
+require 'ddtrace/utils'
 
 module Datadog
   # Transport class that handles the spans delivery to the
@@ -10,6 +11,9 @@ module Datadog
   # so that the Transport is thread-safe.
   # rubocop:disable Metrics/ClassLength
   class HTTPTransport
+    include Datadog::Utils::InternalTraces
+    internal_trace_service 'datadog.transport'
+
     attr_accessor :hostname, :port
     attr_reader :traces_endpoint, :services_endpoint
 
@@ -208,11 +212,13 @@ module Datadog
     def do_trace?(data)
       # Create the span if we already are traced
       return true if Datadog.tracer.active_span
+      # Don't trace empty data
       return false unless data
 
       # over 3 traces means that we most certainly send more than only internal traces
       return true if data.length > 3
 
+      # all spans in all traces shouldn't be only 'datadog.internal' spans
       !data.respond_to?(:all?) || data.all? do |trace|
         !trace.respond_to?(:none?) || trace.none? do |span|
           span.respond_to?(:get_tag) && span.get_tag('datadog.internal')
@@ -249,38 +255,6 @@ module Datadog
           end
         end
       end
-    end
-
-    def internal_span(name, *args)
-      return yield unless Datadog.tracer.internal_traces
-
-      Datadog.tracer.trace(name, *args) do |span|
-        span.set_tag('datadog.internal', true)
-        span.service = 'datadog.transport'
-        yield
-      end
-    end
-
-    def internal_span_when(condition, name, *args, &block)
-      return yield unless Datadog.tracer.internal_traces
-
-      condition = condition.call if condition.respond_to?(:send)
-      return yield unless condition
-
-      internal_span(name, *args, &block)
-    end
-
-    def internal_span_ensure_parent(name, *args, &block)
-      return yield unless Datadog.tracer.internal_traces
-
-      internal_span_when(-> { Datadog.tracer.active_span }, name, *args, &block)
-    end
-
-    def with_active_internal_span
-      return unless Datadog.tracer.internal_traces
-
-      span = Datadog.tracer.active_span
-      yield(span) if span
     end
 
     def log_error_once(*args)
