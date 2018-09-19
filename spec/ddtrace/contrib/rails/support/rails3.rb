@@ -30,7 +30,6 @@ RSpec.shared_context 'Rails 3 base application' do
   include_context 'Rails models'
 
   let(:rails_base_application) do
-    reset_rails_configuration!
     during_init = initialize_block
     klass = Class.new(Rails::Application) do
       redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
@@ -113,16 +112,10 @@ RSpec.shared_context 'Rails 3 base application' do
   def reset_rails_configuration!
     Rails.class_variable_set(:@@application, nil)
     Rails::Application.class_variable_set(:@@instance, nil)
-    Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, app_middleware)
+    if Rails::Railtie::Configuration.class_variable_defined?(:@@app_middleware)
+      Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, Rails::Configuration::MiddlewareStackProxy.new)
+    end
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
-  end
-
-  def app_middleware
-    current = Rails::Railtie::Configuration.class_variable_get(:@@app_middleware)
-    Datadog::Contrib::Rails::Test::Configuration.fetch(:app_middleware, current).dup.tap do |copy|
-      copy.instance_variable_set(:@operations, (copy.instance_variable_get(:@operations) || []).dup)
-      copy.instance_variable_set(:@delete_operations, (copy.instance_variable_get(:@delete_operations) || []).dup)
-    end
   end
 end

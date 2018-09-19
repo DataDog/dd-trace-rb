@@ -1,4 +1,7 @@
 require 'ddtrace/contrib/rails/utils'
+require 'ddtrace/contrib/rails/framework'
+require 'ddtrace/contrib/rails/middlewares'
+require 'ddtrace/contrib/rack/middlewares'
 
 module Datadog
   module Contrib
@@ -17,6 +20,7 @@ module Datadog
             Datadog.configuration[:active_record][:service_name] = value
           end
         end
+        option :middleware, default: true
         option :middleware_names, default: false
         option :distributed_tracing, default: false
         option :template_base_path, default: 'views/'
@@ -28,7 +32,41 @@ module Datadog
         class << self
           def patch
             return @patched if patched? || !compatible?
-            require_relative 'framework'
+
+            # Add a callback hook to add the trace middleware before the application initializes.
+            # Otherwise the middleware stack will be frozen.
+            do_once(:rails_before_initialize_hook) do
+              ::ActiveSupport.on_load(:before_initialize) do
+                # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
+                if Datadog.configuration[:rails][:middleware]
+                  # Add trace middleware
+                  config.middleware.insert_before(0, Datadog::Contrib::Rack::TraceMiddleware)
+
+                  # Insert right after Rails exception handling middleware, because if it's before,
+                  # it catches and swallows the error. If it's too far after, custom middleware can find itself
+                  # between, and raise exceptions that don't end up getting tagged on the request properly.
+                  # e.g lost stack trace.
+                  config.middleware.insert_after(
+                    ActionDispatch::ShowExceptions,
+                    Datadog::Contrib::Rails::ExceptionMiddleware
+                  )
+                end
+              end
+            end
+
+            # Add a callback hook to finish configuring the tracer after the application is initialized.
+            # We need to wait for some things, like application name, middleware stack, etc.
+            do_once(:rails_after_initialize_hook) do
+              ::ActiveSupport.on_load(:after_initialize) do
+                Datadog::Contrib::Rails::Framework.setup
+
+                # Add instrumentation to Rails components
+                Datadog::Contrib::Rails::ActionController.instrument
+                Datadog::Contrib::Rails::ActionView.instrument
+                Datadog::Contrib::Rails::ActiveSupport.instrument
+              end
+            end
+
             @patched = true
           rescue => e
             Datadog::Tracer.log.error("Unable to apply Rails integration: #{e}")
@@ -49,5 +87,3 @@ module Datadog
     end
   end
 end
-
-require 'ddtrace/contrib/rails/railtie' if Datadog.registry[:rails].compatible?
