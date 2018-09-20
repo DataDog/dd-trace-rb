@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/racecar/ext'
 require 'ddtrace/contrib/racecar/event'
 
 module Datadog
@@ -9,7 +10,6 @@ module Datadog
           include Racecar::Event
 
           EVENT_NAME = 'process_message.racecar'.freeze
-          SPAN_NAME = 'racecar.message'.freeze
 
           module_function
 
@@ -18,7 +18,7 @@ module Datadog
           end
 
           def span_name
-            self::SPAN_NAME
+            Ext::SPAN_MESSAGE
           end
         end
       end

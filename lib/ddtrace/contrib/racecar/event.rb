@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/active_support/notifications/event'
+require 'ddtrace/contrib/racecar/ext'
 
 module Datadog
   module Contrib
@@ -35,12 +36,12 @@ module Datadog
             span.service = configuration[:service_name]
             span.resource = payload[:consumer_class]
 
-            span.set_tag('kafka.topic', payload[:topic])
-            span.set_tag('kafka.consumer', payload[:consumer_class])
-            span.set_tag('kafka.partition', payload[:partition])
-            span.set_tag('kafka.offset', payload[:offset]) if payload.key?(:offset)
-            span.set_tag('kafka.first_offset', payload[:first_offset]) if payload.key?(:first_offset)
-            span.set_tag('kafka.message_count', payload[:message_count]) if payload.key?(:message_count)
+            span.set_tag(Ext::TAG_TOPIC, payload[:topic])
+            span.set_tag(Ext::TAG_CONSUMER, payload[:consumer_class])
+            span.set_tag(Ext::TAG_PARTITION, payload[:partition])
+            span.set_tag(Ext::TAG_OFFSET, payload[:offset]) if payload.key?(:offset)
+            span.set_tag(Ext::TAG_FIRST_OFFSET, payload[:first_offset]) if payload.key?(:first_offset)
+            span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
             span.set_error(payload[:exception_object]) if payload[:exception_object]
           end
 
