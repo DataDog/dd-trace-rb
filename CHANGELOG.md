@@ -4,6 +4,17 @@
 
 ## [Unreleased (beta)]
 
+## [0.16.0] - 2018-09-18
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.16.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.15.0...v0.16.0
+
+### Added
+
+- OpenTracing support (#517)
+- `middleware` option for disabling Rails trace middleware. (#552)
+
 ## [0.15.0] - 2018-09-12
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.15.0
@@ -500,8 +511,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.15.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.15.0...0.16-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.0...0.17-dev
+[0.15.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.2...v0.15.0
 [0.14.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.0...v0.14.1
