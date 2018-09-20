@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::HTTPTransport do
-  shared_examples 'transports' do
+  shared_examples 'transport' do
     let(:transport) do
       described_class.new(
         ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
@@ -133,12 +133,56 @@ RSpec.describe Datadog::HTTPTransport do
     end
   end
 
+  shared_examples_for 'transport without post step' do
+    let(:transport) do
+      described_class.new(
+        ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
+        ENV.fetch('TEST_DDAGENT_PORT', 8126)
+      )
+    end
+    let(:writer) { FauxWriter.new(transport: transport) }
+    let(:tracer) { ::Datadog::Tracer.new(writer: writer, internal_traces: Datadog.tracer.internal_traces) }
+
+    let(:trace) do
+      tracer.trace('test') {}
+      [writer.spans]
+    end
+
+    let(:services) do
+      tracer.set_service_info('service', 'app', 'type')
+      tracer.trace('test', service: 'service') {}
+      [ writer.spans ]
+      writer.services
+    end
+
+    before do
+      allow(transport).to receive(:post).and_return(200)
+      allow(Datadog).to receive(:tracer).and_return(tracer)
+    end
+
+    it 'makes one span create only one trace' do
+      expect { tracer.trace('test') {} }.to change { writer.spans.length }.from(0).to(1)
+    end
+  end
+
   context 'internal tracing disabled' do
     it 'is disabled by default' do
       expect(Datadog.tracer.internal_traces).to be_falsey
     end
 
-    it_behaves_like 'transports'
+    it_behaves_like 'transport'
+
+    describe 'internal traces' do
+      it_behaves_like 'transport without post step' do
+        it 'makes sent traces produce no internal traces' do
+          expect { writer.send_spans(trace, transport) }.not_to change { writer.spans.length }.from(0)
+        end
+
+        it 'makes sent services produce internal traces' do
+          expect { writer.send_services(services, transport) }.not_to change { writer.spans.length }.from(0)
+        end
+      end
+    end
   end
 
   context 'internal tracing enabled' do
@@ -148,48 +192,24 @@ RSpec.describe Datadog::HTTPTransport do
       Datadog.tracer.internal_traces = false
     end
 
-    it_behaves_like 'transports'
+    it_behaves_like 'transport'
 
     describe 'internal traces' do
-      let(:transport) do
-        described_class.new(
-          ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
-          ENV.fetch('TEST_DDAGENT_PORT', 8126)
-        )
-      end
-      let(:writer) { FauxWriter.new(transport: transport) }
-      let(:tracer) { ::Datadog::Tracer.new(writer: writer, internal_traces: true) }
-      let(:trace) do
-        tracer.trace('test') {}
-        [writer.spans]
-      end
-      let(:services) do
-        tracer.set_service_info('service', 'app', 'type')
-        tracer.trace('test', service: 'service') {}
-        writer.services
-      end
+      it_behaves_like 'transport without post step' do
+        it 'makes sent traces produce internal traces' do
+          expect { writer.send_spans(trace, transport) }.to change { writer.spans.length }.to be > 0
+        end
 
-      before do
-        allow(transport).to receive(:post).and_return(200)
-        allow(Datadog).to receive(:tracer).and_return(tracer)
-      end
+        it 'makes sent services produce internal traces' do
+          expect { writer.send_services(services, transport) }.to change { writer.spans.length }.to be > 0
+        end
 
-      it 'keeps one span creating only one trace' do
-        expect { tracer.trace('test') {} }.to change { writer.spans.length }.from(0).to(1)
-      end
+        it 'ensures internal traces are all internal' do
+          writer.send_spans(trace, transport)
+          writer.send_services(services, transport)
 
-      it 'makes sent traces produce internal traces' do
-        expect { writer.send_spans(trace, transport) }.to change { writer.spans.length }.to be > 0
-      end
-
-      it 'makes sent services produce internal traces' do
-        expect { writer.send_services(services, transport) }.to change { writer.spans.length }.to be > 0
-      end
-
-      it 'ensures internal traces are all internal' do
-        writer.send_spans(trace, transport)
-
-        expect(writer.spans.map { |s| s.get_tag('datadog.internal') }).to all(be_truthy)
+          expect(writer.spans.map { |s| s.get_tag('datadog.internal') }).to all(be_truthy)
+        end
       end
     end
   end
