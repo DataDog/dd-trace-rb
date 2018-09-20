@@ -102,6 +102,7 @@ module Datadog
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
       @context_flush = options[:partial_flush] ? Datadog::ContextFlush.new(options) : nil
+      @internal_traces = options[:internal_traces] || false
 
       @mutex = Mutex.new
       @services = {}
