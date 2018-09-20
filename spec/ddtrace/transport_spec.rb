@@ -151,7 +151,7 @@ RSpec.describe Datadog::HTTPTransport do
     let(:services) do
       tracer.set_service_info('service', 'app', 'type')
       tracer.trace('test', service: 'service') {}
-      [ writer.spans ]
+      writer.spans
       writer.services
     end
 
@@ -209,6 +209,18 @@ RSpec.describe Datadog::HTTPTransport do
           writer.send_services(services, transport)
 
           expect(writer.spans.map { |s| s.get_tag('datadog.internal') }).to all(be_truthy)
+        end
+
+        it 'ensures internal only traces are not traced' do
+          writer.send_spans(trace, transport)
+          writer.send_services(services, transport)
+
+          spans = writer.spans
+
+          expect(spans.length).to be > 0
+
+          writer.send_spans([spans], transport)
+          expect(writer.spans.map { |s| s.get_tag('datadog.internal') }).to all(be_falsey)
         end
       end
     end
