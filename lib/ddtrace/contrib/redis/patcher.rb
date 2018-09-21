@@ -1,43 +1,35 @@
-# requirements should be kept minimal as Patcher is a shared requirement.
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/contrib/redis/ext'
 
 module Datadog
   module Contrib
     module Redis
-      SERVICE = 'redis'.freeze
-      DRIVER = 'redis.driver'.freeze
-
       # Patcher enables patching of 'redis' module.
       module Patcher
-        include Base
-        register_as :redis, auto_patch: true
-        option :service_name, default: SERVICE
-        option :tracer, default: Datadog.tracer
-
-        @patched = false
+        include Contrib::Patcher
 
         module_function
 
+        def patched?
+          done?(:redis)
+        end
+
         # patch applies our patch if needed
         def patch
-          if !@patched && compatible?
+          do_once(:redis) do
             begin
               # do not require these by default, but only when actually patching
+              require 'redis'
               require 'ddtrace/ext/app_types'
               require 'ddtrace/contrib/redis/tags'
               require 'ddtrace/contrib/redis/quantize'
 
               patch_redis_client
-              @patched = true
               RailsCachePatcher.reload_cache_store if Datadog.registry[:rails].patcher.patched?
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Redis integration: #{e}")
             end
           end
-          @patched
-        end
-
-        def compatible?
-          defined?(::Redis::VERSION) && Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('3.0.0')
         end
 
         # rubocop:disable Metrics/MethodLength
@@ -52,7 +44,12 @@ module Datadog
             def initialize(*args)
               service = Datadog.configuration[:redis][:service_name]
               tracer = Datadog.configuration[:redis][:tracer]
-              pin = Datadog::Pin.new(service, app: 'redis', app_type: Datadog::Ext::AppTypes::DB, tracer: tracer)
+              pin = Datadog::Pin.new(
+                service,
+                app: Ext::APP,
+                app_type: Datadog::Ext::AppTypes::DB,
+                tracer: tracer
+              )
               pin.onto(self)
               initialize_without_datadog(*args)
             end
@@ -64,9 +61,9 @@ module Datadog
               return call_without_datadog(*args, &block) unless pin && pin.tracer
 
               response = nil
-              pin.tracer.trace('redis.command') do |span|
+              pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.service = pin.service
-                span.span_type = Datadog::Ext::Redis::TYPE
+                span.span_type = Datadog::Contrib::Redis::Ext::TYPE
                 span.resource = Datadog::Contrib::Redis::Quantize.format_command_args(*args)
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
@@ -83,13 +80,13 @@ module Datadog
               return call_pipeline_without_datadog(*args, &block) unless pin && pin.tracer
 
               response = nil
-              pin.tracer.trace('redis.command') do |span|
+              pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.service = pin.service
-                span.span_type = Datadog::Ext::Redis::TYPE
+                span.span_type = Datadog::Contrib::Redis::Ext::TYPE
                 commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
                 span.resource = commands.join("\n")
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
-                span.set_metric Datadog::Ext::Redis::PIPELINE_LEN, commands.length
+                span.set_metric Datadog::Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
 
                 response = call_pipeline_without_datadog(*args, &block)
               end
@@ -97,11 +94,6 @@ module Datadog
               response
             end
           end
-        end
-
-        # patched? tells wether patch has been successfully applied
-        def patched?
-          @patched
         end
       end
     end
