@@ -83,7 +83,7 @@ module Datadog
 
           env, service = entry
 
-          if is_fallback_entry(env, service)
+          if fallback_entry?(env, service)
             new_fallback = rate_sampler(rate)
           elsif valid_entry_for_env(env, service)
             new_sampler[service] = rate_sampler(rate)
@@ -121,10 +121,10 @@ module Datadog
       match = PARSER.match(key).to_a
       _, service, env = match && match.to_a
 
-      [ env, service ] if env && service
+      [env, service] if env && service
     end
 
-    def is_fallback_entry(env, service)
+    def fallback_entry?(env, service)
       service.empty? && env.empty?
     end
   end
