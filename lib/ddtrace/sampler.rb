@@ -55,12 +55,14 @@ module Datadog
   class RateByServiceSampler < Sampler
     DEFAULT_KEY = 'service:,env:'.freeze
     PARSER = /service:([^,]*),env:(.*)$/
+    MAX_POOL_SIZE = 10000
 
     def initialize(rate = 1.0, opts = {})
       @env = opts.fetch(:env, Datadog.tracer.tags[:env])
       @mutex = Mutex.new
       @fallback = RateSampler.new(rate)
       @sampler = {}
+      @sampler_pool = []
     end
 
     def sample(span)
@@ -69,24 +71,61 @@ module Datadog
 
     def update(rate_by_service)
       @mutex.synchronize do
+        old_fallback = @fallback
+        old_sampler = @sampler
+
         new_fallback = @fallback
         new_sampler = {}
 
         rate_by_service.each do |key, rate|
-          match = PARSER.match(key).to_a
-          _, service, env = match && match.to_a
-          next unless service && env
+          entry = parse_key(key)
+          next unless entry
 
-          if service.empty? && env.empty?
-            new_fallback = RateSampler.new(rate)
-          elsif !service.empty? && env == @env.to_s
-            new_sampler[service] = RateSampler.new(rate)
+          env, service = entry
+
+          if is_fallback_entry(env, service)
+            new_fallback = rate_sampler(rate)
+          elsif valid_entry_for_env(env, service)
+            new_sampler[service] = rate_sampler(rate)
           end
         end
 
         @fallback = new_fallback
         @sampler = new_sampler
+
+        # move no longer used object into the pool of bounded size
+        if @sampler_pool.length < MAX_POOL_SIZE
+          @sampler_pool += old_sampler.values
+          @sampler_pool << old_fallback if @fallback != old_fallback
+          @sampler_pool.slice!(MAX_POOL_SIZE..-1)
+        end
       end
+    end
+
+    private
+
+    def rate_sampler(rate)
+      sampler = @sampler_pool.shift
+      if sampler
+        sampler.sampler_rate = rate
+      else
+        RateSampler.new(rate)
+      end
+    end
+
+    def valid_entry_for_env(env, service)
+      !service.empty? && env == @env.to_s
+    end
+
+    def parse_key(key)
+      match = PARSER.match(key).to_a
+      _, service, env = match && match.to_a
+
+      [ env, service ] if env && service
+    end
+
+    def is_fallback_entry(env, service)
+      service.empty? && env.empty?
     end
   end
 
