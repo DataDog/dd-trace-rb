@@ -8,25 +8,21 @@ module Datadog
 
       # ClassMethods
       module ClassMethods
-        def internal_trace_service(service_name)
-          class_eval <<-EOF
-          def internal_trace_service
-            "#{service_name}"
-          end
-          EOF
+        attr_writer :internal_trace_service
+
+        def internal_trace_service
+          @internal_trace_service ||= 'datadog.unknown'.freeze
         end
       end
 
-      def internal_trace_service
-        'datadog.unknown'
-      end
+      INTERNAL_TAG = 'datadog.internal'.freeze
 
       def internal_span(name, *args)
         return yield unless Datadog.tracer.internal_traces
 
         Datadog.tracer.trace(name, *args) do |span|
-          span.set_tag('datadog.internal', true)
-          span.service = internal_trace_service
+          span.set_tag(INTERNAL_TAG, true)
+          span.service = self.class.internal_trace_service
           yield
         end
       end
@@ -40,7 +36,7 @@ module Datadog
         internal_span(name, *args, &block)
       end
 
-      def internal_span_ensure_parent(name, *args, &block)
+      def internal_child_span(name, *args, &block)
         return yield unless Datadog.tracer.internal_traces
 
         internal_span_when(-> { Datadog.tracer.active_span }, name, *args, &block)
@@ -50,7 +46,7 @@ module Datadog
         return unless Datadog.tracer.internal_traces
 
         span = Datadog.tracer.active_span
-        yield(span) if span
+        yield(span) if span && span.get_tag(INTERNAL_TAG)
       end
     end
   end

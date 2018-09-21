@@ -204,7 +204,14 @@ RSpec.describe Datadog::HTTPTransport do
           expect { writer.send_services(services, transport) }.to change { writer.spans.length }.to be > 0
         end
 
-        it 'ensures internal traces are all internal' do
+        it 'sets correct service_name' do
+          writer.send_spans(trace, transport)
+          writer.send_services(services, transport)
+
+          expect(writer.spans.map(&:service)).to all(eq('datadog.transport'))
+        end
+
+        it 'marks traces with internal tag' do
           writer.send_spans(trace, transport)
           writer.send_services(services, transport)
 

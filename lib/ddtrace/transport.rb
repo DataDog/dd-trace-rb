@@ -12,7 +12,7 @@ module Datadog
   # rubocop:disable Metrics/ClassLength
   class HTTPTransport
     include Datadog::Utils::InternalTraces
-    internal_trace_service 'datadog.transport'
+    self.internal_trace_service = 'datadog.transport'.freeze
 
     attr_accessor :hostname, :port
     attr_reader :traces_endpoint, :services_endpoint
@@ -49,6 +49,12 @@ module Datadog
 
     private_constant :API
 
+    CONTENT_TYPE = 'Content-Type'.freeze
+    DATADOG_META_LANG = 'Datadog-Meta-Lang'.freeze
+    DATADOG_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'.freeze
+    DATADOG_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'.freeze
+    DATADOG_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'.freeze
+
     def initialize(hostname, port, options = {})
       api_version = options.fetch(:api_version, V3)
 
@@ -60,11 +66,11 @@ module Datadog
 
       # overwrite the Content-type with the one chosen in the Encoder
       @headers = options.fetch(:headers, {})
-      @headers['Content-Type'] = @encoder.content_type
-      @headers['Datadog-Meta-Lang'] = 'ruby'
-      @headers['Datadog-Meta-Lang-Version'] = RUBY_VERSION
-      @headers['Datadog-Meta-Lang-Interpreter'] = RUBY_INTERPRETER
-      @headers['Datadog-Meta-Tracer-Version'] = Datadog::VERSION::STRING
+      @headers[CONTENT_TYPE] = @encoder.content_type
+      @headers[DATADOG_META_LANG] = 'ruby'.freeze
+      @headers[DATADOG_META_LANG_VERSION] = RUBY_VERSION
+      @headers[DATADOG_META_LANG_INTERPRETER] = RUBY_INTERPRETER
+      @headers[DATADOG_META_TRACER_VERSION] = Datadog::VERSION::STRING
 
       # stats
       @mutex = Mutex.new
@@ -77,7 +83,7 @@ module Datadog
 
     # route the send to the right endpoint
     def send(endpoint, data)
-      internal_span_when(-> { do_trace?(data) }, 'datadog.send') do
+      internal_span_when(-> { do_trace?(data) }, 'datadog.send'.freeze) do
         case endpoint
         when :services
           status_code = send_services(data)
@@ -91,7 +97,7 @@ module Datadog
         end
 
         if downgrade?(status_code)
-          internal_span_ensure_parent('datadog.send.downgrade') do
+          internal_child_span('datadog.send.downgrade'.freeze) do
             downgrade!
             send(endpoint, data)
           end
@@ -130,7 +136,7 @@ module Datadog
 
         @api = API.fetch(fallback_version)
         @encoder = @api[:encoder].new
-        @headers['Content-Type'] = @encoder.content_type
+        @headers[CONTENT_TYPE] = @encoder.content_type
       end
     end
 
@@ -175,7 +181,7 @@ module Datadog
       with_active_internal_span { |s| s.set_tag('response.code', status_code) }
 
       if success?(status_code)
-        Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
+        Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.'.freeze)
         @mutex.synchronize { @count_consecutive_errors = 0 }
         @mutex.synchronize { @count_success += 1 }
       elsif downgrade?(status_code)
@@ -221,7 +227,7 @@ module Datadog
       # all spans in all traces shouldn't be only 'datadog.internal' spans
       !data.respond_to?(:all?) || data.all? do |trace|
         !trace.respond_to?(:none?) || trace.none? do |span|
-          span.respond_to?(:get_tag) && span.get_tag('datadog.internal')
+          span.respond_to?(:get_tag) && span.get_tag(Utils::InternalTraces::INTERNAL_TAG)
         end
       end
     end
@@ -229,14 +235,14 @@ module Datadog
     def send_traces(data)
       count = data.length
 
-      payload = internal_span_ensure_parent('datadog.encode.traces') do
-        with_active_internal_span { |s| s.set_tag('traces.count', count) }
+      payload = internal_child_span('datadog.encode.traces'.freeze) do
+        with_active_internal_span { |s| s.set_tag('traces.count'.freeze, count) }
         @encoder.encode_traces(data)
       end
 
-      internal_span_ensure_parent('datadog.traces.post') do
+      internal_child_span('datadog.traces.post'.freeze) do
         post(@api[:traces_endpoint], payload, count) do |response|
-          internal_span_ensure_parent('datadog.traces.response_callback') do
+          internal_child_span('datadog.traces.response_callback'.freeze) do
             process_callback(:traces, response)
           end
         end
@@ -244,13 +250,13 @@ module Datadog
     end
 
     def send_services(data)
-      payload = internal_span_ensure_parent('datadog.services.encode') do
+      payload = internal_child_span('datadog.services.encode'.freeze) do
         @encoder.encode_services(data)
       end
 
-      internal_span_ensure_parent('datadog.services.post') do
+      internal_child_span('datadog.services.post'.freeze) do
         post(@api[:services_endpoint], payload) do |response|
-          internal_span_ensure_parent('datadog.services.response_callback') do
+          internal_child_span('datadog.services.response_callback'.freeze) do
             process_callback(:services, response)
           end
         end
