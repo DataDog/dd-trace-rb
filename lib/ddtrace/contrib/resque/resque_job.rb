@@ -17,7 +17,18 @@ module Datadog
             yield
             span.service = pin.service
           end
-        ensure
+        end
+
+        def on_failure_datadog_shutdown!(*args)
+          datadog_shutdown!
+        end
+
+        def after_perform_datadog_shutdown!(*args)
+          datadog_shutdown!
+        end
+
+        def datadog_shutdown!
+          pin = Pin.get_from(::Resque)
           pin.tracer.shutdown! if pin && pin.tracer
         end
       end
