@@ -19,7 +19,7 @@ RSpec.describe GRPC::InterceptionContext do
     context 'when intercepting on the client' do
       shared_examples 'span data contents' do
         specify { expect(span.name).to eq 'grpc.client' }
-        specify { expect(span.span_type).to eq 'grpc' }
+        specify { expect(span.span_type).to eq 'http' }
         specify { expect(span.service).to eq 'rspec' }
         specify { expect(span.resource).to eq 'myservice.endpoint' }
         specify { expect(span.get_tag('error.stack')).to be_nil }
@@ -60,7 +60,7 @@ RSpec.describe GRPC::InterceptionContext do
 
         specify do
           expect(span.name).to eq 'grpc.client'
-          expect(span.span_type).to eq 'grpc'
+          expect(span.span_type).to eq 'http'
           expect(span.service).to eq 'rspec'
           expect(span.resource).to eq 'myservice.endpoint'
           expect(span.get_tag('error.stack')).to be_nil
@@ -84,7 +84,7 @@ RSpec.describe GRPC::InterceptionContext do
     context 'when intercepting on the server' do
       shared_examples 'span data contents' do
         specify { expect(span.name).to eq 'grpc.service' }
-        specify { expect(span.span_type).to eq 'grpc' }
+        specify { expect(span.span_type).to eq 'http' }
         specify { expect(span.service).to eq 'rspec' }
         specify { expect(span.resource).to eq 'my.server.endpoint' }
         specify { expect(span.get_tag('error.stack')).to be_nil }
