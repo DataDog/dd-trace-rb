@@ -1,3 +1,5 @@
+require 'ddtrace/contrib/aws/ext'
+
 module Datadog
   module Contrib
     module Aws
@@ -15,7 +17,7 @@ module Datadog
 
           return @handler.call(context) unless pin && pin.enabled?
 
-          pin.tracer.trace(RESOURCE) do |span|
+          pin.tracer.trace(Ext::SPAN_COMMAND) do |span|
             result = @handler.call(context)
             annotate!(span, pin, ParsedContext.new(context))
             result
@@ -27,15 +29,15 @@ module Datadog
         def annotate!(span, pin, context)
           span.service = pin.service
           span.span_type = pin.app_type
-          span.name = RESOURCE
+          span.name = Ext::SPAN_COMMAND
           span.resource = context.safely(:resource)
-          span.set_tag('aws.agent', AGENT)
-          span.set_tag('aws.operation', context.safely(:operation))
-          span.set_tag('aws.region', context.safely(:region))
-          span.set_tag('path', context.safely(:path))
-          span.set_tag('host', context.safely(:host))
-          span.set_tag(Ext::HTTP::METHOD, context.safely(:http_method))
-          span.set_tag(Ext::HTTP::STATUS_CODE, context.safely(:status_code))
+          span.set_tag(Ext::TAG_AGENT, Ext::TAG_DEFAULT_AGENT)
+          span.set_tag(Ext::TAG_OPERATION, context.safely(:operation))
+          span.set_tag(Ext::TAG_REGION, context.safely(:region))
+          span.set_tag(Ext::TAG_PATH, context.safely(:path))
+          span.set_tag(Ext::TAG_HOST, context.safely(:host))
+          span.set_tag(Datadog::Ext::HTTP::METHOD, context.safely(:http_method))
+          span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, context.safely(:status_code))
         end
       end
     end
