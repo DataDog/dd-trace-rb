@@ -36,10 +36,27 @@ module Datadog
   end
 end
 
+Resque.before_first_fork do
+  Datadog::Contrib::Resque.sync_writer = nil
+
+  pin = Datadog::Pin.get_from(Resque)
+  next unless pin && pin.tracer && Datadog.configuration[:resque][:use_sync_writer]
+
+  # Create SyncWriter instance before forking
+  Datadog::Contrib::Resque.sync_writer = if Datadog.configuration[:resque][:use_sync_writer]
+                                           Datadog::SyncWriter.new(transport: pin.tracer.writer.transport)
+                                         end
+end
+
 Resque.after_fork do
   # get the current tracer
   pin = Datadog::Pin.get_from(Resque)
   next unless pin && pin.tracer
+
   # clean the state so no CoW happens
   pin.tracer.provider.context = nil
+
+  if Datadog::Contrib::Resque.sync_writer
+    pin.tracer.writer = Datadog::Contrib::Resque.sync_writer
+  end
 end

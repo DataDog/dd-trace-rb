@@ -9,6 +9,7 @@ module Datadog
         class Settings < Contrib::Configuration::Settings
           option :service_name, default: Ext::SERVICE_NAME
           option :workers, default: []
+          option :use_sync_writer, default: false
         end
       end
     end

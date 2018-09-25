@@ -1105,6 +1105,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| ```use_sync_writer``` | *Deprecated* Use special writer that flushes span data synchronously | ```false``` |
 | `service_name` | Service name used for `resque` instrumentation | `'resque'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 | `workers` | An array including all worker classes you want to trace (eg `[MyJob]`) | `[]` |
