@@ -1,11 +1,10 @@
+require 'ddtrace/contrib/rake/ext'
+
 module Datadog
   module Contrib
     module Rake
       # Instrumentation for Rake tasks
       module Instrumentation
-        SPAN_NAME_INVOKE = 'rake.invoke'.freeze
-        SPAN_NAME_EXECUTE = 'rake.execute'.freeze
-
         def self.included(base)
           base.send(:prepend, InstanceMethods)
         end
@@ -15,7 +14,7 @@ module Datadog
           def invoke(*args)
             return super unless enabled?
 
-            tracer.trace(SPAN_NAME_INVOKE, span_options) do |span|
+            tracer.trace(Ext::SPAN_INVOKE, span_options) do |span|
               super
               annotate_invoke!(span, args)
             end
@@ -26,7 +25,7 @@ module Datadog
           def execute(args = nil)
             return super unless enabled?
 
-            tracer.trace(SPAN_NAME_EXECUTE, span_options) do |span|
+            tracer.trace(Ext::SPAN_EXECUTE, span_options) do |span|
               super
               annotate_execute!(span, args)
             end
@@ -42,15 +41,15 @@ module Datadog
 
           def annotate_invoke!(span, args)
             span.resource = name
-            span.set_tag('rake.task.arg_names', arg_names)
-            span.set_tag('rake.invoke.args', quantize_args(args)) unless args.nil?
+            span.set_tag(Ext::TAG_TASK_ARG_NAMES, arg_names)
+            span.set_tag(Ext::TAG_INVOKE_ARGS, quantize_args(args)) unless args.nil?
           rescue StandardError => e
             Datadog::Tracer.log.debug("Error while tracing Rake invoke: #{e.message}")
           end
 
           def annotate_execute!(span, args)
             span.resource = name
-            span.set_tag('rake.execute.args', quantize_args(args.to_hash)) unless args.nil?
+            span.set_tag(Ext::TAG_EXECUTE_ARGS, quantize_args(args.to_hash)) unless args.nil?
           rescue StandardError => e
             Datadog::Tracer.log.debug("Error while tracing Rake execute: #{e.message}")
           end
