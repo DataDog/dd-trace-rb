@@ -30,7 +30,7 @@ class ResourceNameTest < Minitest::Test
   def test_resource_name_full_chain
     get '/', {}, 'HTTP_AUTH_TOKEN' => '1234'
 
-    spans = @tracer.writer.spans
+    spans = @tracer.writer.spans.select { |span| span.name == 'rack.request' }
     assert(last_response.ok?)
     assert_equal(1, spans.length)
     assert_match(/BottomMiddleware#GET/, spans[0].resource)
@@ -39,7 +39,7 @@ class ResourceNameTest < Minitest::Test
   def test_resource_name_short_circuited_request
     get '/', {}, 'HTTP_AUTH_TOKEN' => 'Wrong'
 
-    spans = @tracer.writer.spans
+    spans = @tracer.writer.spans.select { |span| span.name == 'rack.request' }
     refute(last_response.ok?)
     assert_equal(1, spans.length)
     assert_match(/AuthMiddleware#GET/, spans[0].resource)
