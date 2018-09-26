@@ -257,7 +257,9 @@ module Datadog
         def patch_middleware(middleware)
           # We prepend the module to the singleton class of the instantiated middleware
           # so that we can call `super`.
-          middleware.singleton_class.prepend(MiddlewareTracing)
+          class << middleware
+            prepend MiddlewareTracing
+          end
 
           # This is just a convention, but it's reliably used.
           following = middleware.instance_variable_get(:@app)
