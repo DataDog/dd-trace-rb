@@ -332,7 +332,7 @@ module Datadog
 
     def self.reload_cache_store
       redis = Datadog.registry[:redis]
-      return unless redis && redis.patched?
+      return unless redis && redis.patcher.patched?
 
       return unless defined?(::ActiveSupport::Cache::RedisStore) &&
                     defined?(::Rails.cache) &&
