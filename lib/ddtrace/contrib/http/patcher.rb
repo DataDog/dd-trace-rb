@@ -1,63 +1,23 @@
-# requirements should be kept minimal as Patcher is a shared requirement.
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/contrib/http/ext'
 
 module Datadog
   module Contrib
     # Datadog Net/HTTP integration.
     module HTTP
-      URL = 'http.url'.freeze
-      METHOD = 'http.method'.freeze
-      BODY = 'http.body'.freeze
-
-      NAME = 'http.request'.freeze
-      APP = 'net/http'.freeze
-      SERVICE = 'net/http'.freeze
-
-      module_function
-
-      def should_skip_tracing?(req, address, port, transport, pin)
-        # we don't want to trace our own call to the API (they use net/http)
-        # when we know the host & port (from the URI) we use it, else (most-likely
-        # called with a block) rely on the URL at the end.
-        if req.respond_to?(:uri) && req.uri
-          if req.uri.host.to_s == transport.hostname.to_s &&
-             req.uri.port.to_i == transport.port.to_i
-            return true
-          end
-        elsif address && port &&
-              address.to_s == transport.hostname.to_s &&
-              port.to_i == transport.port.to_i
-          return true
-        end
-        # we don't want a "shotgun" effect with two nested traces for one
-        # logical get, and request is likely to call itself recursively
-        active = pin.tracer.active_span()
-        return true if active && (active.name == NAME)
-        false
-      end
-
-      def should_skip_distributed_tracing?(pin)
-        if pin.config && pin.config.key?(:distributed_tracing)
-          return !pin.config[:distributed_tracing]
-        end
-
-        !Datadog.configuration[:http][:distributed_tracing]
-      end
-
       # Patcher enables patching of 'net/http' module.
       module Patcher
-        include Base
-        register_as :http, auto_patch: true
-        option :distributed_tracing, default: false
-        option :service_name, default: SERVICE
-        option :tracer, default: Datadog.tracer
-
-        @patched = false
+        include Contrib::Patcher
 
         module_function
 
+        def patched?
+          done?(:http)
+        end
+
         # patch applies our patch if needed
         def patch
-          unless @patched
+          do_once(:http) do
             begin
               require 'uri'
               require 'ddtrace/pin'
@@ -67,18 +27,10 @@ module Datadog
               require 'ddtrace/ext/distributed'
 
               patch_http
-
-              @patched = true
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply net/http integration: #{e}")
             end
           end
-          @patched
-        end
-
-        # patched? tells whether patch has been successfully applied
-        def patched?
-          @patched
         end
 
         # rubocop:disable Metrics/MethodLength
@@ -94,7 +46,7 @@ module Datadog
                 service = Datadog.configuration[:http][:service_name]
                 tracer = Datadog.configuration[:http][:tracer]
 
-                Datadog::Pin.new(service, app: APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
+                Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
               end
             end
 
@@ -108,7 +60,7 @@ module Datadog
                 return request_without_datadog(req, body, &block)
               end
 
-              pin.tracer.trace(NAME) do |span|
+              pin.tracer.trace(Ext::SPAN_REQUEST) do |span|
                 begin
                   span.service = pin.service
                   span.span_type = Datadog::Ext::HTTP::TYPE

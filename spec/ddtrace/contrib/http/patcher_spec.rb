@@ -12,14 +12,14 @@ RSpec.describe 'net/http patcher' do
 
     stub_request(:any, host)
 
-    Datadog.registry[:http].reset_options!
+    Datadog.configuration[:http].reset_options!
     Datadog.configure do |c|
       c.use :http, tracer: tracer
     end
   end
 
   let(:request_span) do
-    tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::HTTP::NAME }
+    tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::HTTP::Ext::SPAN_REQUEST }
   end
 
   describe 'with default configuration' do
