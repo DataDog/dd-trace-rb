@@ -45,6 +45,8 @@ module Datadog
         ENV_KEY = 'ddtrace_middleware_trace'.freeze
 
         def call(env)
+          env['RESPONSE_MIDDLEWARE'] = self.class.to_s
+
           current_middleware_trace = env[ENV_KEY]
           is_first_middleware = !current_middleware_trace
           is_last_middleware = !defined?(@app)
