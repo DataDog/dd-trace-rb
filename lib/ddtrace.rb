@@ -46,7 +46,7 @@ end
 require 'ddtrace/contrib/base'
 require 'ddtrace/contrib/active_model_serializers/patcher'
 require 'ddtrace/contrib/active_record/integration'
-require 'ddtrace/contrib/aws/patcher'
+require 'ddtrace/contrib/aws/integration'
 require 'ddtrace/contrib/concurrent_ruby/integration'
 require 'ddtrace/contrib/dalli/patcher'
 require 'ddtrace/contrib/delayed_job/integration'
