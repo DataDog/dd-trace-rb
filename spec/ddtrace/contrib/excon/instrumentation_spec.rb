@@ -12,11 +12,11 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
   let(:configuration_options) { { tracer: tracer } }
 
   let(:request_span) do
-    tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::Excon::Middleware::SPAN_NAME }
+    tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
   end
 
   let(:all_request_spans) do
-    tracer.writer.spans(:keep).find_all { |span| span.name == Datadog::Contrib::Excon::Middleware::SPAN_NAME }
+    tracer.writer.spans(:keep).find_all { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
   end
 
   before(:each) do
@@ -76,8 +76,8 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
     it do
       expect(request_span).to_not be nil
-      expect(request_span.service).to eq(Datadog::Contrib::Excon::Patcher::DEFAULT_SERVICE)
-      expect(request_span.name).to eq(Datadog::Contrib::Excon::Middleware::SPAN_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::SERVICE_NAME)
+      expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
@@ -93,8 +93,8 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     subject!(:response) { connection.post(path: '/failure') }
 
     it do
-      expect(request_span.service).to eq(Datadog::Contrib::Excon::Patcher::DEFAULT_SERVICE)
-      expect(request_span.name).to eq(Datadog::Contrib::Excon::Middleware::SPAN_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::SERVICE_NAME)
+      expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/failure')
@@ -146,7 +146,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     after(:each) { Datadog.configuration[:excon][:split_by_domain] = false }
 
     it do
-      expect(request_span.name).to eq(Datadog::Contrib::Excon::Middleware::SPAN_NAME)
+      expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.service).to eq('example.com')
       expect(request_span.resource).to eq('GET')
     end
