@@ -2,6 +2,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/rack/request_queue'
+require 'ddtrace/contrib/rack/middleware_tracing'
 
 module Datadog
   module Contrib
@@ -19,6 +20,8 @@ module Datadog
 
         def initialize(app)
           @app = app
+
+          patch_middleware(@app)
         end
 
         def compute_queue_time(env, tracer)
@@ -248,6 +251,18 @@ module Datadog
 
         def header_to_rack_header(name)
           "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
+        end
+
+        # Adds tracing for the middleware and all nested middlewares.
+        def patch_middleware(middleware)
+          # We prepend the module to the singleton class of the instantiated middleware
+          # so that we can call `super`.
+          middleware.singleton_class.prepend(MiddlewareTracing)
+
+          # This is just a convention, but it's reliably used.
+          following = middleware.instance_variable_get(:@app)
+
+          patch_middleware(following) if following
         end
       end
     end
