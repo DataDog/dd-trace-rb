@@ -262,7 +262,7 @@ module Datadog
           end
 
           # This is just a convention, but it's reliably used.
-          following = middleware.instance_variable_get(:@app)
+          following = middleware.instance_variable_defined?(:@app) && middleware.instance_variable_get(:@app)
 
           patch_middleware(following) if following
         end
