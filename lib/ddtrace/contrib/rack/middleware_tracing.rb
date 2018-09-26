@@ -1,7 +1,7 @@
 module Datadog
   module Contrib
     module Rack
-      # A module that injects Datadog tracing into the middleware stack itself.
+      # A module that injects tracing into the middleware stack itself.
       #
       # It's rather complicated due to the limited introspective capabilities of Rack
       # middlewares, as well as the requirement that middleware spans not be nested.
@@ -15,13 +15,13 @@ module Datadog
       #
       #   [A][BB][CCCCCCC][BBBB][A]
       #
-      # Otherwise the Datadog UI goes crazy.
+      # Otherwise we get very deep nesting.
       #
       # The way we go about this is the following:
       #
-      # 1) Our middleware, when initialize, travels down the middleware stack from
-      #    where it's been inserted, prepending the MiddlewareInstrumentation
-      #    module to each middleware class.
+      # 1) Our middleware, when initialized, travels down the middleware stack from
+      #    where it's been inserted, prepending the MiddlewareTracing module to each
+      #    middleware class.
       # 2) This module overwrites `call`, allowing us to hook into the point where
       #    e.g. middleware A "hands off" the request to middleware B.
       # 3) When a request is processed, an instrumented middleware will first check
