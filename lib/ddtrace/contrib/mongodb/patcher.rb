@@ -1,56 +1,40 @@
-# requirements should be kept minimal as Patcher is a shared requirement.
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/contrib/mongodb/ext'
 
 module Datadog
   module Contrib
-    # MongoDB module includes classes and functions to instrument MongoDB clients
     module MongoDB
-      APP = 'mongodb'.freeze
-      SERVICE = 'mongodb'.freeze
-
-      # Patcher adds subscribers to the MongoDB driver so that each command is traced.
+      # Patcher enables patching of 'mongo' module.
       module Patcher
-        include Base
-        register_as :mongo, auto_patch: true
-        option :service_name, default: SERVICE
-        option :quantize, default: { show: [:collection, :database, :operation] }
-
-        @patched = false
+        include Contrib::Patcher
 
         module_function
 
         def patched?
-          @patched
+          done?(:mongo)
         end
 
         def patch
-          # versions prior to 2.1.0 don't support the Monitoring API
-          if !@patched && (defined?(::Mongo::Monitoring::Global) && \
-                  Gem::Version.new(::Mongo::VERSION) >= Gem::Version.new('2.1.0'))
+          do_once(:mongo) do
             begin
               require 'ddtrace/pin'
               require 'ddtrace/ext/net'
-              require 'ddtrace/ext/mongo'
               require 'ddtrace/ext/app_types'
+              require 'ddtrace/contrib/mongodb/ext'
               require 'ddtrace/contrib/mongodb/parsers'
               require 'ddtrace/contrib/mongodb/subscribers'
 
-              patch_mongo_client()
-              add_mongo_monitoring()
-
-              @patched = true
+              patch_mongo_client
+              add_mongo_monitoring
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply MongoDB integration: #{e}")
             end
           end
-          @patched
         end
 
         def add_mongo_monitoring
           # Subscribe to all COMMAND queries with our subscriber class
-          ::Mongo::Monitoring::Global.subscribe(
-            ::Mongo::Monitoring::COMMAND,
-            Datadog::Contrib::MongoDB::MongoCommandSubscriber.new
-          )
+          ::Mongo::Monitoring::Global.subscribe(::Mongo::Monitoring::COMMAND, MongoCommandSubscriber.new)
         end
 
         def patch_mongo_client
@@ -64,7 +48,11 @@ module Datadog
               # attach the Pin instance
               initialize_without_datadog(*args, &blk)
               service = Datadog.configuration[:mongo][:service_name]
-              pin = Datadog::Pin.new(service, app: APP, app_type: Datadog::Ext::AppTypes::DB)
+              pin = Datadog::Pin.new(
+                service,
+                app: Datadog::Contrib::MongoDB::Ext::APP,
+                app_type: Datadog::Ext::AppTypes::DB
+              )
               pin.onto(self)
             end
 
