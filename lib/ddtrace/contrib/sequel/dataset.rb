@@ -1,5 +1,6 @@
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/sequel/ext'
 require 'ddtrace/contrib/sequel/utils'
 
 module Datadog
@@ -39,11 +40,11 @@ module Datadog
             opts = Utils.parse_opts(sql, options, db.opts)
             response = nil
 
-            datadog_pin.tracer.trace('sequel.query') do |span|
+            datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
               span.service = datadog_pin.service
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
-              span.set_tag('sequel.db.vendor', adapter_name)
+              span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
               response = super_method.call(sql, options, &block)
             end
             response
