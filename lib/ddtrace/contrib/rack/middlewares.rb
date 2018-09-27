@@ -21,7 +21,10 @@ module Datadog
         def initialize(app)
           @app = app
 
-          patch_middleware(@app)
+          # The middleware tracing uses `Class#prepend`, which was introduced in Ruby 2.0.
+          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0')
+            patch_middleware(@app)
+          end
         end
 
         def compute_queue_time(env, tracer)
