@@ -1163,13 +1163,12 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 The Sinatra integration traces requests and template rendering.
 
-To start using the tracing client, make sure you import ``ddtrace`` and ``ddtrace/contrib/sinatra/tracer`` after
-either ``sinatra`` or ``sinatra/base``:
+To start using the tracing client, make sure you import ``ddtrace`` and ``use :sinatra`` after
+either ``sinatra`` or ``sinatra/base``, and before you define your application/routes:
 
 ```ruby
 require 'sinatra'
 require 'ddtrace'
-require 'ddtrace/contrib/sinatra/tracer'
 
 Datadog.configure do |c|
   c.use :sinatra, options
