@@ -5,7 +5,7 @@ module Datadog
   module Contrib
     module Racecar
       module Configuration
-        # Custom settings for the Rack integration
+        # Custom settings for the Racecar integration
         class Settings < Contrib::Configuration::Settings
           option :service_name, default: Ext::SERVICE_NAME
           option :tracer, default: Datadog.tracer do |value|

@@ -1,7 +1,7 @@
 module Datadog
   module Contrib
     module RestClient
-      # RestClient integration
+      # Patcher enables patching of 'rest_client' module.
       module Patcher
         include Contrib::Patcher
 

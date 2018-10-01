@@ -10,8 +10,16 @@ module Datadog
         include Contrib::Integration
         register_as :rest_client
 
+        def self.version
+          Gem.loaded_specs['rest-client'] && Gem.loaded_specs['rest-client'].version
+        end
+
+        def self.present?
+          super && defined?(::RestClient::Request)
+        end
+
         def self.compatible?
-          RUBY_VERSION >= '1.9.3' && defined?(::RestClient::Request)
+          super && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('1.9.3')
         end
 
         def default_configuration

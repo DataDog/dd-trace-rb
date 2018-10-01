@@ -1,14 +1,13 @@
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/rest_client/ext'
 
 module Datadog
   module Contrib
     module RestClient
       # RestClient RequestPatch
       module RequestPatch
-        REQUEST_TRACE_NAME = 'rest_client.request'.freeze
-
         def self.included(base)
           if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
             base.class_eval do
@@ -48,14 +47,14 @@ module Datadog
 
           def datadog_tag_request(uri, span)
             span.resource = method.to_s.upcase
-            span.set_tag(Ext::HTTP::URL, uri.path)
-            span.set_tag(Ext::HTTP::METHOD, method.to_s.upcase)
-            span.set_tag(Ext::NET::TARGET_HOST, uri.host)
-            span.set_tag(Ext::NET::TARGET_PORT, uri.port)
+            span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
+            span.set_tag(Datadog::Ext::HTTP::METHOD, method.to_s.upcase)
+            span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
+            span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
           end
 
           def datadog_trace_request(uri)
-            span = datadog_configuration[:tracer].trace(REQUEST_TRACE_NAME,
+            span = datadog_configuration[:tracer].trace(Ext::SPAN_REQUEST,
                                                         service: datadog_configuration[:service_name],
                                                         span_type: Datadog::Ext::AppTypes::WEB)
 
@@ -63,11 +62,11 @@ module Datadog
 
             response = yield(span)
 
-            span.set_tag(Ext::HTTP::STATUS_CODE, response.code)
+            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
             response
           rescue ::RestClient::ExceptionWithResponse => e
-            span.set_error(e) if Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
-            span.set_tag(Ext::HTTP::STATUS_CODE, e.http_code)
+            span.set_error(e) if Datadog::Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
+            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, e.http_code)
 
             raise e
             # rubocop:disable Lint/RescueException
