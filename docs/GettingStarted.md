@@ -318,7 +318,7 @@ For a list of available integrations, and their configuration options, please re
 | Grape          | `grape`           | `>= 1.0`                 | *[Link](#grape)*          | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL        | `graphql`         | `>= 1.7.9`               | *[Link](#graphql)*        | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | MongoDB        | `mongo`           | `>= 2.0, < 2.5`          | *[Link](#mongodb)*        | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
-| MySQL2         | `mysql2`          | `>= 0.5`                 | *[Link](#mysql2)*         | *[Link](https://github.com/brianmario/mysql2)*                                 |
+| MySQL2         | `mysql2`          | `>= 0.3.21`                 | *[Link](#mysql2)*         | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP       | `http`            | *(Any supported Ruby)*   | *[Link](#nethttp)*        | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
 | Racecar        | `racecar`         | `>= 0.3.5`               | *[Link](#racecar)*        | *[Link](https://github.com/zendesk/racecar)*                                   |
 | Rack           | `rack`            | `>= 1.4.7`               | *[Link](#rack)*           | *[Link](https://github.com/rack/rack)*                                         |
