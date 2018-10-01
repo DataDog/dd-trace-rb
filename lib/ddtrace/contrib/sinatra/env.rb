@@ -1,20 +1,19 @@
 require 'ddtrace/ext/http'
+require 'ddtrace/contrib/sinatra/ext'
 
 module Datadog
   module Contrib
     module Sinatra
       # Gets and sets trace information from a Rack Env
       module Env
-        ENV_SPAN = 'datadog.sinatra_request_span'.freeze
-
         module_function
 
         def datadog_span(env)
-          env[ENV_SPAN]
+          env[Ext::RACK_ENV_REQUEST_SPAN]
         end
 
         def set_datadog_span(env, span)
-          env[ENV_SPAN] = span
+          env[Ext::RACK_ENV_REQUEST_SPAN] = span
         end
 
         def request_header_tags(env, headers)
