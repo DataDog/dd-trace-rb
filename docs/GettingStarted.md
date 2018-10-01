@@ -362,7 +362,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 **Configuring trace settings per database**
 
-You can provide the `databases` option to configure trace settings by database connection:
+You can configure trace settings per database connection by using the `describes` option:
 
 ```ruby
 # Provide a `:describes` option with a connection key.
@@ -396,7 +396,7 @@ Datadog.configure do |c|
 end
 ```
 
-If ActiveRecord traces an event that uses a connection described within `databases`, it will use the trace settings assigned to that connection. If the connection does not match any in the `databases` option, it will use settings defined by `c.use :active_record` instead.
+If ActiveRecord traces an event that uses a connection that matches a key defined by `describes`, it will use the trace settings assigned to that connection. If the connection does not match any of the described connections, it will use default settings defined by `c.use :active_record` instead.
 
 ### AWS
 
@@ -911,7 +911,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``middleware_names`` | Enables any short-circuited middleware requests to display the middleware name as resource for the trace. | `false` |
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
-| ``databases`` | Hash of tracer settings to use for each database connection. See [ActiveRecord](#activerecord) for more details. | ``{}`` |
 
 **Supported versions**
 
