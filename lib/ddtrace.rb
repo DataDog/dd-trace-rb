@@ -44,7 +44,7 @@ module Datadog
 end
 
 require 'ddtrace/contrib/base'
-require 'ddtrace/contrib/active_model_serializers/patcher'
+require 'ddtrace/contrib/active_model_serializers/integration'
 require 'ddtrace/contrib/active_record/integration'
 require 'ddtrace/contrib/aws/integration'
 require 'ddtrace/contrib/concurrent_ruby/integration'
