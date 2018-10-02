@@ -24,7 +24,8 @@ module Datadog
           config = config_with_defaults
 
           activate_rack!(config)
-          activate_active_record!(config)
+          activate_active_record!(config) if datadog_configuration[:instrument][:active_record]
+
           set_service_info!(config)
 
           # By default, default service would be guessed from the script
@@ -68,6 +69,10 @@ module Datadog
           tracer = config[:tracer]
           tracer.set_service_info(config[:controller_service], 'rails', Ext::AppTypes::WEB)
           tracer.set_service_info(config[:cache_service], 'rails', Ext::AppTypes::CACHE)
+        end
+
+        def self.datadog_configuration
+          Datadog.configuration[:rails]
         end
       end
     end
