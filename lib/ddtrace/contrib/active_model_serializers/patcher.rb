@@ -1,60 +1,41 @@
+require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
-require 'ddtrace/ext/http'
+require 'ddtrace/contrib/active_model_serializers/ext'
 require 'ddtrace/contrib/active_model_serializers/events'
 
 module Datadog
   module Contrib
     module ActiveModelSerializers
-      # Provides instrumentation for ActiveModelSerializers through ActiveSupport instrumentation signals
+      # Patcher enables patching of 'active_model_serializers' module.
       module Patcher
-        include Base
+        include Contrib::Patcher
 
-        VERSION_REQUIRED = Gem::Version.new('0.9.0')
+        module_function
 
-        register_as :active_model_serializers
+        def patched?
+          done?(:active_model_serializers)
+        end
 
-        option :service_name, default: 'active_model_serializers'
-        option :tracer, default: Datadog.tracer do |value|
-          (value || Datadog.tracer).tap do |v|
-            # Make sure to update tracers of all subscriptions
-            Events.subscriptions.each do |subscription|
-              subscription.tracer = v
+        def patch
+          do_once(:active_model_serializers) do
+            begin
+              # Subscribe to ActiveModelSerializers events
+              Events.subscribe!
+
+              # Set service info
+              get_option(:tracer).set_service_info(
+                get_option(:service_name),
+                Ext::APP,
+                Datadog::Ext::AppTypes::WEB
+              )
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply ActiveModelSerializers integration: #{e}")
             end
           end
         end
 
-        class << self
-          def patch
-            return patched? if patched? || !compatible?
-
-            # Subscribe to ActiveModelSerializers events
-            Events.subscribe!
-
-            # Set service info
-            configuration[:tracer].set_service_info(
-              configuration[:service_name],
-              'active_model_serializers',
-              Ext::AppTypes::WEB
-            )
-
-            @patched = true
-          end
-
-          def patched?
-            return @patched if defined?(@patched)
-            @patched = false
-          end
-
-          private
-
-          def configuration
-            Datadog.configuration[:active_model_serializers]
-          end
-
-          def compatible?
-            Gem.loaded_specs['active_model_serializers'] && Gem.loaded_specs['activesupport'] \
-              && Gem.loaded_specs['active_model_serializers'].version >= VERSION_REQUIRED
-          end
+        def get_option(option)
+          Datadog.configuration[:active_model_serializers].get_option(option)
         end
       end
     end

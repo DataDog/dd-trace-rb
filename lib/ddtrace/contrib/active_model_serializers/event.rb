@@ -1,4 +1,6 @@
+require 'ddtrace/ext/http'
 require 'ddtrace/contrib/active_support/notifications/event'
+require 'ddtrace/contrib/active_model_serializers/ext'
 
 module Datadog
   module Contrib
@@ -31,12 +33,12 @@ module Datadog
             # Set the resource name and serializer name
             res = resource(payload[:serializer])
             span.resource = res
-            span.set_tag('active_model_serializers.serializer', res)
+            span.set_tag(Ext::TAG_SERIALIZER, res)
 
             span.span_type = Datadog::Ext::HTTP::TEMPLATE
 
             # Will be nil in 0.9
-            span.set_tag('active_model_serializers.adapter', payload[:adapter].class) unless payload[:adapter].nil?
+            span.set_tag(Ext::TAG_ADAPTER, payload[:adapter].class) unless payload[:adapter].nil?
           end
 
           private

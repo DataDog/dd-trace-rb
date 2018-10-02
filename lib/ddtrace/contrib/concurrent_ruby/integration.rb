@@ -5,14 +5,18 @@ require 'ddtrace/contrib/concurrent_ruby/configuration/settings'
 module Datadog
   module Contrib
     module ConcurrentRuby
-      # Propagate Tracing context in Concurrent::Future
+      # Describes the ConcurrentRuby integration
       class Integration
         include Contrib::Integration
 
         register_as :concurrent_ruby
 
-        def self.compatible?
-          defined?(::Concurrent::Future)
+        def self.version
+          Gem.loaded_specs['concurrent-ruby'] && Gem.loaded_specs['concurrent-ruby'].version
+        end
+
+        def self.present?
+          super && defined?(::Concurrent::Future)
         end
 
         def default_configuration

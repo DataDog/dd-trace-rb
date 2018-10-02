@@ -35,7 +35,7 @@ module Datadog
           assert_equal('sucker_punch.perform', span.name)
           assert_equal('PROCESS DummyWorker', span.resource)
           assert_equal('DummyWorker', span.get_tag('sucker_punch.queue'))
-          refute_equal(Ext::Errors::STATUS, span.status)
+          refute_equal(Datadog::Ext::Errors::STATUS, span.status)
         end
 
         def test_failed_job
@@ -47,9 +47,9 @@ module Datadog
           assert_equal('sucker_punch.perform', span.name)
           assert_equal('PROCESS DummyWorker', span.resource)
           assert_equal('DummyWorker', span.get_tag('sucker_punch.queue'))
-          assert_equal(Ext::Errors::STATUS, span.status)
-          assert_equal('ZeroDivisionError', span.get_tag(Ext::Errors::TYPE))
-          assert_equal('divided by 0', span.get_tag(Ext::Errors::MSG))
+          assert_equal(Datadog::Ext::Errors::STATUS, span.status)
+          assert_equal('ZeroDivisionError', span.get_tag(Datadog::Ext::Errors::TYPE))
+          assert_equal('divided by 0', span.get_tag(Datadog::Ext::Errors::MSG))
         end
 
         def test_async_enqueueing

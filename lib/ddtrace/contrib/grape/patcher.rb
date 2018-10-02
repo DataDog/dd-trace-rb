@@ -1,48 +1,43 @@
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/grape/ext'
+
 module Datadog
   module Contrib
     module Grape
-      SERVICE = 'grape'.freeze
-
-      # Patcher that introduces more instrumentation for Grape endpoints, so that
-      # new signals are executed at the beginning of each step (filters, render and run)
+      # Patcher enables patching of 'grape' module.
       module Patcher
-        include Base
-        register_as :grape, auto_patch: true
-        option :service_name, default: SERVICE
-
-        @patched = false
+        include Contrib::Patcher
 
         module_function
 
         def patched?
-          @patched
+          done?(:grape)
         end
 
         def patch
-          if !@patched && defined?(::Grape)
+          do_once(:grape) do
             begin
-              # do not require these by default, but only when actually patching
-              require 'ddtrace'
-              require 'ddtrace/ext/app_types'
               require 'ddtrace/contrib/grape/endpoint'
 
-              @patched = true
-              # patch all endpoints
-              patch_endpoint_run()
-              patch_endpoint_render()
+              # Patch all endpoints
+              patch_endpoint_run
+              patch_endpoint_render
 
-              # attach a PIN object globally and set the service once
-              service = get_option(:service_name)
-              pin = Datadog::Pin.new(service, app: 'grape', app_type: Datadog::Ext::AppTypes::WEB)
+              # Attach a PIN object globally and set the service once
+              pin = Datadog::Pin.new(
+                get_option(:service_name),
+                app: Ext::APP,
+                app_type: Datadog::Ext::AppTypes::WEB
+              )
               pin.onto(::Grape)
 
-              # subscribe to ActiveSupport events
-              Datadog::Contrib::Grape::Endpoint.subscribe()
+              # Subscribe to ActiveSupport events
+              Datadog::Contrib::Grape::Endpoint.subscribe
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Grape integration: #{e}")
             end
           end
-          @patched
         end
 
         def patch_endpoint_run
@@ -68,6 +63,10 @@ module Datadog
               end
             end
           end
+        end
+
+        def get_option(option)
+          Datadog.configuration[:grape].get_option(option)
         end
       end
     end

@@ -13,7 +13,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
   let(:span) { spans.first }
 
   before(:each) do
-    skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Patcher.compatible?
+    skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Integration.compatible?
 
     # Reset options (that might linger from other tests)
     Datadog.configuration[:rake].reset_options!
@@ -74,8 +74,8 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
         task.invoke(*args)
       end
 
-      let(:invoke_span) { spans.find { |s| s.name == described_class::SPAN_NAME_INVOKE } }
-      let(:execute_span) { spans.find { |s| s.name == described_class::SPAN_NAME_EXECUTE } }
+      let(:invoke_span) { spans.find { |s| s.name == Datadog::Contrib::Rake::Ext::SPAN_INVOKE } }
+      let(:execute_span) { spans.find { |s| s.name == Datadog::Contrib::Rake::Ext::SPAN_EXECUTE } }
 
       it do
         expect(spans).to have(2).items
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
       describe '\'rake.invoke\' span' do
         it do
-          expect(invoke_span.name).to eq(described_class::SPAN_NAME_INVOKE)
+          expect(invoke_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_INVOKE)
           expect(invoke_span.resource).to eq(task_name.to_s)
           expect(invoke_span.parent_id).to eq(0)
         end
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
       describe '\'rake.execute\' span' do
         it do
-          expect(execute_span.name).to eq(described_class::SPAN_NAME_EXECUTE)
+          expect(execute_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_EXECUTE)
           expect(execute_span.resource).to eq(task_name.to_s)
           expect(execute_span.parent_id).to eq(invoke_span.span_id)
         end
@@ -124,15 +124,15 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
         it_behaves_like 'a single task execution' do
           describe '\'rake.invoke\' span tags' do
             it do
-              expect(invoke_span.get_tag('rake.task.arg_names')).to eq([].to_s)
-              expect(invoke_span.get_tag('rake.invoke.args')).to eq(['?'].to_s)
+              expect(invoke_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to eq([].to_s)
+              expect(invoke_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_INVOKE_ARGS)).to eq(['?'].to_s)
             end
           end
 
           describe '\'rake.execute\' span tags' do
             it do
-              expect(execute_span.get_tag('rake.task.arg_names')).to be nil
-              expect(execute_span.get_tag('rake.execute.args')).to eq({}.to_s)
+              expect(execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to be nil
+              expect(execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_EXECUTE_ARGS)).to eq({}.to_s)
             end
           end
         end
@@ -144,15 +144,17 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
         it_behaves_like 'a single task execution' do
           describe '\'rake.invoke\' span tags' do
             it do
-              expect(invoke_span.get_tag('rake.task.arg_names')).to eq([:one, :two, :three].to_s)
-              expect(invoke_span.get_tag('rake.invoke.args')).to eq(['?'].to_s)
+              expect(invoke_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to eq([:one, :two, :three].to_s)
+              expect(invoke_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_INVOKE_ARGS)).to eq(['?'].to_s)
             end
           end
 
           describe '\'rake.execute\' span tags' do
             it do
-              expect(execute_span.get_tag('rake.arg_names')).to be nil
-              expect(execute_span.get_tag('rake.execute.args')).to eq({ one: '?', two: '?', three: '?' }.to_s)
+              expect(execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to be nil
+              expect(execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_EXECUTE_ARGS)).to eq(
+                { one: '?', two: '?', three: '?' }.to_s
+              )
             end
           end
         end
@@ -189,16 +191,16 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           task.invoke(*args)
         end
 
-        let(:invoke_span) { spans.find { |s| s.name == described_class::SPAN_NAME_INVOKE } }
+        let(:invoke_span) { spans.find { |s| s.name == Datadog::Contrib::Rake::Ext::SPAN_INVOKE } }
         let(:prerequisite_task_execute_span) do
           spans.find do |s|
-            s.name == described_class::SPAN_NAME_EXECUTE \
+            s.name == Datadog::Contrib::Rake::Ext::SPAN_EXECUTE \
             && s.resource == prerequisite_task_name.to_s
           end
         end
         let(:task_execute_span) do
           spans.find do |s|
-            s.name == described_class::SPAN_NAME_EXECUTE \
+            s.name == Datadog::Contrib::Rake::Ext::SPAN_EXECUTE \
             && s.resource == task_name.to_s
           end
         end
@@ -209,31 +211,31 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
         describe '\'rake.invoke\' span' do
           it do
-            expect(invoke_span.name).to eq(described_class::SPAN_NAME_INVOKE)
+            expect(invoke_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_INVOKE)
             expect(invoke_span.resource).to eq(task_name.to_s)
             expect(invoke_span.parent_id).to eq(0)
-            expect(invoke_span.get_tag('rake.task.arg_names')).to eq([].to_s)
-            expect(invoke_span.get_tag('rake.invoke.args')).to eq(['?'].to_s)
+            expect(invoke_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to eq([].to_s)
+            expect(invoke_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_INVOKE_ARGS)).to eq(['?'].to_s)
           end
         end
 
         describe 'prerequisite \'rake.execute\' span' do
           it do
-            expect(prerequisite_task_execute_span.name).to eq(described_class::SPAN_NAME_EXECUTE)
+            expect(prerequisite_task_execute_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_EXECUTE)
             expect(prerequisite_task_execute_span.resource).to eq(prerequisite_task_name.to_s)
             expect(prerequisite_task_execute_span.parent_id).to eq(invoke_span.span_id)
-            expect(prerequisite_task_execute_span.get_tag('rake.task.arg_names')).to be nil
-            expect(prerequisite_task_execute_span.get_tag('rake.execute.args')).to eq({}.to_s)
+            expect(prerequisite_task_execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to be nil
+            expect(prerequisite_task_execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_EXECUTE_ARGS)).to eq({}.to_s)
           end
         end
 
         describe 'task \'rake.execute\' span' do
           it do
-            expect(task_execute_span.name).to eq(described_class::SPAN_NAME_EXECUTE)
+            expect(task_execute_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_EXECUTE)
             expect(task_execute_span.resource).to eq(task_name.to_s)
             expect(task_execute_span.parent_id).to eq(invoke_span.span_id)
-            expect(task_execute_span.get_tag('rake.task.arg_names')).to be nil
-            expect(task_execute_span.get_tag('rake.execute.args')).to eq({}.to_s)
+            expect(task_execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to be nil
+            expect(task_execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_EXECUTE_ARGS)).to eq({}.to_s)
           end
         end
       end

@@ -1,51 +1,41 @@
+require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/rake/ext'
 require 'ddtrace/contrib/rake/instrumentation'
 
 module Datadog
   module Contrib
     module Rake
-      # Patcher for Rake instrumentation
+      # Patcher enables patching of 'rake' module.
       module Patcher
-        include Base
-
-        register_as :rake
-        option :service_name, default: 'rake'
-        option :tracer, default: Datadog.tracer
-        option :enabled, default: true
-        option :quantize, default: {}
+        include Contrib::Patcher
 
         module_function
 
-        def patch
-          return patched? if patched? || !compatible?
-
-          patch_rake
-
-          # Set service info
-          configuration[:tracer].set_service_info(
-            configuration[:service_name],
-            'rake',
-            Ext::AppTypes::WORKER
-          )
-
-          @patched = true
-        end
-
         def patched?
-          return @patched if defined?(@patched)
-          @patched = false
+          done?(:rake)
         end
 
-        def patch_rake
-          ::Rake::Task.send(:include, Instrumentation)
+        def patch
+          do_once(:rake) do
+            begin
+              # Add instrumentation patch to Rake task
+              ::Rake::Task.send(:include, Instrumentation)
+
+              # Set service info
+              get_option(:tracer).set_service_info(
+                get_option(:service_name),
+                Ext::APP,
+                Datadog::Ext::AppTypes::WORKER
+              )
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply Rake integration: #{e}")
+            end
+          end
         end
 
-        def compatible?
-          RUBY_VERSION >= '2.0.0' && defined?(::Rake)
-        end
-
-        def configuration
-          Datadog.configuration[:rake]
+        def get_option(option)
+          Datadog.configuration[:rake].get_option(option)
         end
       end
     end

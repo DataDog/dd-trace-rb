@@ -1,51 +1,43 @@
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/dalli/ext'
+require 'ddtrace/contrib/dalli/instrumentation'
+
 module Datadog
   module Contrib
     module Dalli
-      COMPATIBLE_WITH = Gem::Version.new('2.0.0')
-      NAME = 'memcached.command'.freeze
-      CMD_TAG = 'memcached.command'.freeze
-
-      # Responsible for hooking the instrumentation into `dalli`
+      # Patcher enables patching of 'dalli' module.
       module Patcher
-        include Base
-        register_as :dalli, auto_patch: true
-        option :service_name, default: 'memcached'
+        include Contrib::Patcher
 
-        @patched = false
+        module_function
 
-        class << self
-          def patch
-            return @patched if patched? || !compatible?
+        def patched?
+          done?(:dalli)
+        end
 
-            require 'ddtrace/ext/app_types'
-            require_relative 'instrumentation'
-
-            add_pin!
-            Instrumentation.patch!
-
-            @patched = true
-          rescue => e
-            Tracer.log.error("Unable to apply Dalli integration: #{e}")
-            @patched
+        def patch
+          do_once(:dalli) do
+            begin
+              add_pin!
+              Instrumentation.patch!
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply Dalli integration: #{e}")
+            end
           end
+        end
 
-          def patched?
-            @patched
-          end
+        def add_pin!
+          Pin
+            .new(
+              get_option(:service_name),
+              app: Ext::APP,
+              app_type: Datadog::Ext::AppTypes::CACHE
+            ).onto(::Dalli)
+        end
 
-          private
-
-          def compatible?
-            return unless defined?(::Dalli::VERSION)
-
-            Gem::Version.new(::Dalli::VERSION) > COMPATIBLE_WITH
-          end
-
-          def add_pin!
-            Pin
-              .new(get_option(:service_name), app: 'dalli', app_type: Ext::AppTypes::CACHE)
-              .onto(::Dalli)
-          end
+        def get_option(option)
+          Datadog.configuration[:dalli].get_option(option)
         end
       end
     end

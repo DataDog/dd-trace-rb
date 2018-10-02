@@ -1,3 +1,5 @@
+require 'ddtrace/contrib/rails/ext'
+
 module Datadog
   # RailsRendererPatcher contains function to patch Rails rendering libraries.
   # rubocop:disable Lint/RescueException
@@ -5,11 +7,6 @@ module Datadog
   # rubocop:disable Metrics/ModuleLength
   module RailsRendererPatcher
     include Datadog::Patcher
-
-    SPAN_NAME_RENDER_PARTIAL = 'rails.render_partial'.freeze
-    SPAN_NAME_RENDER_TEMPLATE = 'rails.render_template'.freeze
-    TAG_LAYOUT = 'rails.layout'.freeze
-    TAG_TEMPLATE_NAME = 'rails.template_name'.freeze
 
     module_function
 
@@ -39,7 +36,7 @@ module Datadog
               render_without_datadog(*args, &block)
             else
               datadog_tracer.trace(
-                Datadog::RailsRendererPatcher::SPAN_NAME_RENDER_TEMPLATE,
+                Datadog::Contrib::Rails::Ext::SPAN_RENDER_TEMPLATE,
                 span_type: Datadog::Ext::HTTP::TEMPLATE
               ) do |span|
                 with_datadog_span(span) { render_without_datadog(*args, &block) }
@@ -64,14 +61,14 @@ module Datadog
                        end
               if template_name
                 active_datadog_span.set_tag(
-                  Datadog::RailsRendererPatcher::TAG_TEMPLATE_NAME,
+                  Datadog::Contrib::Rails::Ext::TAG_TEMPLATE_NAME,
                   template_name
                 )
               end
 
               if layout
                 active_datadog_span.set_tag(
-                  Datadog::RailsRendererPatcher::TAG_LAYOUT,
+                  Datadog::Contrib::Rails::Ext::TAG_LAYOUT,
                   layout
                 )
               end
@@ -119,7 +116,7 @@ module Datadog
         klass.class_eval do
           def render_with_datadog(*args, &block)
             datadog_tracer.trace(
-              Datadog::RailsRendererPatcher::SPAN_NAME_RENDER_PARTIAL,
+              Datadog::Contrib::Rails::Ext::SPAN_RENDER_PARTIAL,
               span_type: Datadog::Ext::HTTP::TEMPLATE
             ) do |span|
               with_datadog_span(span) { render_without_datadog(*args) }
@@ -131,7 +128,7 @@ module Datadog
               template_name = Datadog::Contrib::Rails::Utils.normalize_template_name(@template.try('identifier'))
               if template_name
                 active_datadog_span.set_tag(
-                  Datadog::RailsRendererPatcher::TAG_TEMPLATE_NAME,
+                  Datadog::Contrib::Rails::Ext::TAG_TEMPLATE_NAME,
                   template_name
                 )
               end
@@ -228,7 +225,7 @@ module Datadog
 
           def read(*args, &block)
             payload = {
-              action: 'GET',
+              action: Datadog::Contrib::Rails::Ext::RESOURCE_CACHE_GET,
               key: args[0],
               tracing_context: {}
             }
@@ -256,7 +253,7 @@ module Datadog
 
           def fetch(*args, &block)
             payload = {
-              action: 'GET',
+              action: Datadog::Contrib::Rails::Ext::RESOURCE_CACHE_GET,
               key: args[0],
               tracing_context: {}
             }
@@ -284,7 +281,7 @@ module Datadog
 
           def write(*args, &block)
             payload = {
-              action: 'SET',
+              action: Datadog::Contrib::Rails::Ext::RESOURCE_CACHE_SET,
               key: args[0],
               tracing_context: {}
             }
@@ -312,7 +309,7 @@ module Datadog
 
           def delete(*args, &block)
             payload = {
-              action: 'DELETE',
+              action: Datadog::Contrib::Rails::Ext::RESOURCE_CACHE_DELETE,
               key: args[0],
               tracing_context: {}
             }
@@ -335,7 +332,7 @@ module Datadog
 
     def self.reload_cache_store
       redis = Datadog.registry[:redis]
-      return unless redis && redis.patched?
+      return unless redis && redis.patcher.patched?
 
       return unless defined?(::ActiveSupport::Cache::RedisStore) &&
                     defined?(::Rails.cache) &&

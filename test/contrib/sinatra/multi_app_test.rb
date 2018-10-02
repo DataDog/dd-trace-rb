@@ -1,35 +1,60 @@
 require 'contrib/sinatra/tracer_test_base'
-require 'contrib/sinatra/first_test_app'
-require 'contrib/sinatra/second_test_app'
 
 class MultiAppTest < TracerTestBase
   def app
     @use_multi_app ? multi_app : single_app
   end
 
+  def first_app
+    @first_app ||= Class.new(Sinatra::Base) do
+      register Datadog::Contrib::Sinatra::Tracer
+
+      get '/endpoint' do
+        '1'
+      end
+    end
+  end
+
+  def second_app
+    @second_app ||= Class.new(Sinatra::Base) do
+      register Datadog::Contrib::Sinatra::Tracer
+
+      get '/endpoint' do
+        '2'
+      end
+    end
+  end
+
   def multi_app
-    Rack::Builder.new do
+    app_one = first_app
+    app_two = second_app
+
+    @multi_app ||= Rack::Builder.new do
       map '/one' do
-        run FirstTestApp
+        run app_one
       end
 
       map '/two' do
-        run SecondTestApp
+        run app_two
       end
     end.to_app
   end
 
   def single_app
-    FirstTestApp
+    first_app
   end
 
   def setup
+    @first_app = nil
+    @second_app = nil
+    @multi_app = nil
     @writer = FauxWriter.new
-    FirstTestApp.set :datadog_test_writer, @writer
-    SecondTestApp.set :datadog_test_writer, @writer
 
     tracer = Datadog::Tracer.new(writer: @writer, enabled: true)
     Datadog.configuration[:sinatra][:tracer] = tracer
+
+    first_app.set :datadog_test_writer, @writer
+    second_app.set :datadog_test_writer, @writer
 
     super
   end

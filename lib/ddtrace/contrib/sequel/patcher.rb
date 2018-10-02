@@ -6,7 +6,6 @@ module Datadog
   module Contrib
     module Sequel
       # Patcher enables patching of 'sequel' module.
-      # This is used in monkey.rb to manually apply patches
       module Patcher
         include Contrib::Patcher
 

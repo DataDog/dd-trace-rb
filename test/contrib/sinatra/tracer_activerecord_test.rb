@@ -11,40 +11,40 @@ class TracerActiveRecordTest < TracerTestBase
   class Article < ApplicationRecord
   end
 
-  class TracerActiveRecordTestApp < Sinatra::Application
-    post '/request' do
-      conn = settings.datadog_test_conn
-      conn.connection.execute('SELECT 42')
-      ''
-    end
+  def app
+    @app ||= Class.new(Sinatra::Application) do
+      post '/request' do
+        conn = settings.datadog_test_conn
+        conn.connection.execute('SELECT 42')
+        ''
+      end
 
-    post '/cached_request' do
-      Article.cache do
-        # Do two queries (second should cache.)
-        Article.count
-        Article.count
+      post '/cached_request' do
+        Article.cache do
+          # Do two queries (second should cache.)
+          Article.count
+          Article.count
+        end
+      end
+
+      get '/select_request' do
+        Article.all.entries.to_s
       end
     end
-
-    get '/select_request' do
-      Article.all.entries.to_s
-    end
-  end
-
-  def app
-    TracerActiveRecordTestApp
   end
 
   def setup
-    @writer = FauxWriter.new()
-    app().set :datadog_test_writer, @writer
+    @app = nil
+    @writer = FauxWriter.new
 
     tracer = Datadog::Tracer.new(writer: @writer)
     Datadog.configuration.use(:sinatra, tracer: tracer)
 
+    app.set :datadog_test_writer, @writer
+
     conn = ActiveRecord::Base.establish_connection(adapter: 'sqlite3',
                                                    database: ':memory:')
-    app().set :datadog_test_conn, conn
+    app.set :datadog_test_conn, conn
 
     Datadog.configure do |c|
       c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
@@ -71,7 +71,7 @@ class TracerActiveRecordTest < TracerTestBase
     post '/request'
     assert_equal(200, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_operator(2, :<=, spans.length,
                     'there should be at least 2 spans (span like "PRAGMA foreign_keys = ON" could appear)')
 
