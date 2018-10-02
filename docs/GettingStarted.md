@@ -318,7 +318,7 @@ For a list of available integrations, and their configuration options, please re
 | Grape          | `grape`           | `>= 1.0`                 | *[Link](#grape)*          | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL        | `graphql`         | `>= 1.7.9`               | *[Link](#graphql)*        | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | MongoDB        | `mongo`           | `>= 2.0, < 2.5`          | *[Link](#mongodb)*        | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
-| MySQL2         | `mysql2`          | `>= 0.5`                 | *[Link](#mysql2)*         | *[Link](https://github.com/brianmario/mysql2)*                                 |
+| MySQL2         | `mysql2`          | `>= 0.3.21`                 | *[Link](#mysql2)*         | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP       | `http`            | *(Any supported Ruby)*   | *[Link](#nethttp)*        | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
 | Racecar        | `racecar`         | `>= 0.3.5`               | *[Link](#racecar)*        | *[Link](https://github.com/zendesk/racecar)*                                   |
 | Rack           | `rack`            | `>= 1.4.7`               | *[Link](#rack)*           | *[Link](https://github.com/rack/rack)*                                         |
@@ -362,7 +362,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 **Configuring trace settings per database**
 
-You can provide the `databases` option to configure trace settings by database connection:
+You can configure trace settings per database connection by using the `describes` option:
 
 ```ruby
 # Provide a `:describes` option with a connection key.
@@ -396,7 +396,7 @@ Datadog.configure do |c|
 end
 ```
 
-If ActiveRecord traces an event that uses a connection described within `databases`, it will use the trace settings assigned to that connection. If the connection does not match any in the `databases` option, it will use settings defined by `c.use :active_record` instead.
+If ActiveRecord traces an event that uses a connection that matches a key defined by `describes`, it will use the trace settings assigned to that connection. If the connection does not match any of the described connections, it will use default settings defined by `c.use :active_record` instead.
 
 ### AWS
 
@@ -911,7 +911,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | ``middleware_names`` | Enables any short-circuited middleware requests to display the middleware name as resource for the trace. | `false` |
 | ``template_base_path`` | Used when the template name is parsed. If you don't store your templates in the ``views/`` folder, you may need to change this value | ``views/`` |
 | ``tracer`` | A ``Datadog::Tracer`` instance used to instrument the application. Usually you don't need to set that. | ``Datadog.tracer`` |
-| ``databases`` | Hash of tracer settings to use for each database connection. See [ActiveRecord](#activerecord) for more details. | ``{}`` |
 
 **Supported versions**
 
