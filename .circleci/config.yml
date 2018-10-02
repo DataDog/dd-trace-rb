@@ -216,7 +216,7 @@ jobs:
       - *container_postgres
       - *container_redis
       - *container_agent
-    parallelism: 1
+    parallelism: 2
     steps:
       - checkout
       - attach_workspace: *default_workspace
@@ -232,11 +232,9 @@ jobs:
           root: .
           paths:
             - 'tmp/benchmarks/**/*.csv'
-  "(1/5) benchmark": *benchmark
-  "(2/5) benchmark": *benchmark
-  "(3/5) benchmark": *benchmark
-  "(4/5) benchmark": *benchmark
-  "(5/5) benchmark": *benchmark
+  "8x benchmark":
+    <<: *benchmark
+    parallelism: 8
   "build baseline":
     <<: *job_defaults
     docker: [ image: "circleci/buildpack-deps:jessie" ]
@@ -293,19 +291,11 @@ workflows:
           cron: "0 0 * * *"
     jobs:
       - "(2.3) build"
-      - "(1/5) benchmark": &baseline_benchmark
+      - "8x benchmark": &baseline_benchmark
           requires: [ "(2.3) build" ]
-      - "(2/5) benchmark": *baseline_benchmark
-      - "(3/5) benchmark": *baseline_benchmark
-      - "(4/5) benchmark": *baseline_benchmark
-      - "(5/5) benchmark": *baseline_benchmark
       - "aggregate benchmarks":
           requires:
-            - "(1/5) benchmark"
-            - "(2/5) benchmark"
-            - "(3/5) benchmark"
-            - "(4/5) benchmark"
-            - "(5/5) benchmark"
+            - "8x benchmark"
   "benchmark baseline":
     triggers:
       - schedule:
@@ -317,19 +307,11 @@ workflows:
           requires: [ "(2.3) build" ]
       - "build baseline":
           requires: [ "benchmark baseline" ]
-      - "(1/5) benchmark": &benchmark_workflow
+      - "8x benchmark":
           requires: [ "build baseline" ]
-      - "(2/5) benchmark": *benchmark_workflow
-      - "(3/5) benchmark": *benchmark_workflow
-      - "(4/5) benchmark": *benchmark_workflow
-      - "(5/5) benchmark": *benchmark_workflow
       - "aggregate benchmarks":
           requires:
-            - "(1/5) benchmark"
-            - "(2/5) benchmark"
-            - "(3/5) benchmark"
-            - "(4/5) benchmark"
-            - "(5/5) benchmark"
+            - "8x benchmark"
   build-and-test:
     jobs:
       - "(1.9) build": *default_workflow
