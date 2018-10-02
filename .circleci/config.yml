@@ -96,7 +96,8 @@ job_aliases:
             export DAYS_SINCE_EPOCH=$(($(date --utc --date "$1" +%s)/86400))
             # cache build files per commit sha for at most 1 day
             export CACHE_BUSTER="${DAYS_SINCE_EPOCH}-${CIRCLE_SHA1}"
-            curl -u "${GITHUB_LABELS_READ_USER_TOKEN}" "https://api.github.com/repos/DataDog/dd-trace-rb/pulls/${CIRCLE_PR_NUMBER}" | grep 1076040432 && CACHE_BUSTER=none
+            # check if the PR is tagged with special tag
+            curl -u "${GITHUB_LABELS_READ_USER_TOKEN}" "https://api.github.com/repos/DataDog/dd-trace-rb/pulls/${CIRCLE_PULL_REQUEST##*/}" | grep 1076040432 && CACHE_BUSTER=none
             echo CACHE_BUSTER=$CACHE_BUSTER | tee .cache_buster
       - attach_workspace: *default_workspace
       - restore_cache: *build_files
@@ -285,51 +286,44 @@ wf_aliases:
 
 workflows:
   version: 2
-  "benchmarks":
+  "benchmark":
+    triggers:
+      - schedule:
+          <<: *only_on_master
+          cron: "0 0 * * *"
     jobs:
-      - "(2.3) build":
-          <<: *default_workflow
-          type: approval
-      - "benchmark baseline":
-          <<: *default_workflow
-          type: approval
+      - "(2.3) build"
+      - "(1/5) benchmark": &baseline_benchmark
           requires: [ "(2.3) build" ]
-      - "build baseline":
-          <<: *default_workflow
-          requires: [ "benchmark baseline" ]
-      - "(1/5) benchmark": *default_workflow
-      - "(2/5) benchmark": *default_workflow
-      - "(3/5) benchmark": *default_workflow
-      - "(4/5) benchmark": *default_workflow
-      - "(5/5) benchmark": *default_workflow
+      - "(2/5) benchmark": *baseline_benchmark
+      - "(3/5) benchmark": *baseline_benchmark
+      - "(4/5) benchmark": *baseline_benchmark
+      - "(5/5) benchmark": *baseline_benchmark
       - "aggregate benchmarks":
-          <<: *default_workflow
           requires:
             - "(1/5) benchmark"
             - "(2/5) benchmark"
             - "(3/5) benchmark"
             - "(4/5) benchmark"
             - "(5/5) benchmark"
-  "baseline benchmark":
+  "benchmark baseline":
+    triggers:
+      - schedule:
+          <<: *only_on_master
+          cron: "0 0 * * *"
     jobs:
-      - "(2.3) build":
-          <<: *only_on_master
+      - "(2.3) build"
       - "benchmark baseline":
-          <<: *only_on_master
-          type: approval
           requires: [ "(2.3) build" ]
       - "build baseline":
-          <<: *only_on_master
           requires: [ "benchmark baseline" ]
       - "(1/5) benchmark": &benchmark_workflow
-          <<: *only_on_master
           requires: [ "build baseline" ]
       - "(2/5) benchmark": *benchmark_workflow
       - "(3/5) benchmark": *benchmark_workflow
       - "(4/5) benchmark": *benchmark_workflow
       - "(5/5) benchmark": *benchmark_workflow
       - "aggregate benchmarks":
-          <<: *only_on_master
           requires:
             - "(1/5) benchmark"
             - "(2/5) benchmark"
