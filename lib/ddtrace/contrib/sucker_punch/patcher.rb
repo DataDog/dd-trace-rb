@@ -31,9 +31,12 @@ module Datadog
         end
 
         def add_pin!
-          Pin.new(get_option(:service_name), app: Ext::APP, app_type: Datadog::Ext::AppTypes::WORKER).tap do |pin|
-            pin.onto(::SuckerPunch)
-          end
+          Pin.new(
+            get_option(:service_name),
+            app: Ext::APP,
+            app_type: Datadog::Ext::AppTypes::WORKER,
+            tracer: get_option(:tracer)
+          ).onto(::SuckerPunch)
         end
 
         def get_option(option)

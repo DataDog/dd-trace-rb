@@ -9,7 +9,6 @@ module Datadog
         class Settings < Contrib::Configuration::Settings
           option :distributed_tracing, default: false
           option :service_name, default: Ext::SERVICE_NAME
-          option :tracer, default: Datadog.tracer
         end
       end
     end

@@ -32,7 +32,8 @@ module Datadog
             .new(
               get_option(:service_name),
               app: Ext::APP,
-              app_type: Datadog::Ext::AppTypes::CACHE
+              app_type: Datadog::Ext::AppTypes::CACHE,
+              tracer: get_option(:tracer)
             ).onto(::Dalli)
         end
 
