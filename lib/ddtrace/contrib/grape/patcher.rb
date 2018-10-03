@@ -24,11 +24,12 @@ module Datadog
               patch_endpoint_run
               patch_endpoint_render
 
-              # Attach a PIN object globally and set the service once
+              # Attach a Pin object globally and set the service once
               pin = Datadog::Pin.new(
                 get_option(:service_name),
                 app: Ext::APP,
-                app_type: Datadog::Ext::AppTypes::WEB
+                app_type: Datadog::Ext::AppTypes::WEB,
+                tracer: get_option(:tracer)
               )
               pin.onto(::Grape)
 

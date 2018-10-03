@@ -47,11 +47,13 @@ module Datadog
             def initialize(*args, &blk)
               # attach the Pin instance
               initialize_without_datadog(*args, &blk)
+              tracer = Datadog.configuration[:mongo][:tracer]
               service = Datadog.configuration[:mongo][:service_name]
               pin = Datadog::Pin.new(
                 service,
                 app: Datadog::Contrib::MongoDB::Ext::APP,
-                app_type: Datadog::Ext::AppTypes::DB
+                app_type: Datadog::Ext::AppTypes::DB,
+                tracer: tracer
               )
               pin.onto(self)
             end

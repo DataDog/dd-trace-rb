@@ -8,7 +8,6 @@ module Datadog
         # Custom settings for the Redis integration
         class Settings < Contrib::Configuration::Settings
           option :service_name, default: Ext::SERVICE_NAME
-          option :tracer, default: Datadog.tracer
         end
       end
     end
