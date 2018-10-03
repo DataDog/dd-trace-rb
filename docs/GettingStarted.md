@@ -56,6 +56,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Environment and tags](#environment-and-tags)
      - [Sampling](#sampling)
          - [Priority sampling](#priority-sampling)
+     - [Quantization](#quantization)
      - [Distributed tracing](#distributed-tracing)
      - [HTTP request queuing](#http-request-queuing)
      - [Processing pipeline](#processing-pipeline)
@@ -1358,6 +1359,44 @@ span.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
 # Indicate to keep the trace
 span.context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
 ```
+
+### Quantization
+
+Quantization in the tracing library is the process of normalizing content of span data fields, such as tags or resources.
+
+This practice is employed for many reasons, including:
+
+ - Grouping equivalent values together for better indexing.
+ - Customizing the presentation of data.
+ - Improving performance by truncating unnecessary data.
+ - Removing sensitive data that doesn't belong in a trace.
+
+To facilitate this practice, the library defines an API with which data can be quantized, or custom quantization behaviors can be defined.
+
+**Manually quantizing values**
+
+The simplest way to quantize raw values is to use `Datadog.quantize`:
+
+```ruby
+# Generic form
+Datadog.quantize(type, object, options)
+
+# Normalizes the value as a URL
+Datadog.quantize(:http_url, request.url, query: { exclude: ['sort_by'] })
+
+# Normalizes the value as a Hash
+Datadog.quantize(:hash, request.env, show: ['HTTP_X_REQUEST_ID'])
+```
+
+Where `type` is the key name of a well known quantization type, `object` is an acceptable input for that type, and `options` are additional arugments for that operation.
+
+The following quantization types are currently supported out-of-the-box:
+
+| `type`       | `object` types accepted   | `options`                                |
+| ------------ | ------------------------- | ---------------------------------------- |
+| `hash`       | `Hash`                    | `exclude`, `placeholder`, `show`         |
+| `http_query` | `String`                  | `exclude`, `placeholder`, `show`, `uniq` |
+| `http_url`   | `String`                  | `fragment`, `placeholder`, `query`       |
 
 ### Distributed Tracing
 
