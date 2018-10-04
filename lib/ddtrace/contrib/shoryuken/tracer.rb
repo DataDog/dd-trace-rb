@@ -13,11 +13,7 @@ module Datadog
         }.freeze
 
         def initialize(options = {})
-          # check if Rails configuration is available and use it to override
-          # Shoryuken defaults
-          rails_config = ::Rails.configuration.datadog_trace rescue {}
-          base_config = DEFAULT_CONFIG.merge(rails_config)
-          user_config = base_config.merge(options)
+          user_config = DEFAULT_CONFIG.merge(options)
           @tracer = user_config[:tracer]
           @shoryuken_service = user_config[:shoryuken_service]
 
