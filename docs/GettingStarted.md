@@ -1257,7 +1257,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 To change the default behavior of the Datadog tracer, you can provide custom options inside the `Datadog.configure` block as in:
 
 ```ruby
-# config/initializers/datadog-tracer.rb
+# config/initializers/datadog.rb
 
 Datadog.configure do |c|
   c.tracer option_name: option_value, ...
@@ -1276,7 +1276,7 @@ Available options are:
  - `log`: defines a custom logger.
  - `partial_flush`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
 
-#### Custom logging
+### Custom logging
 
 By default, all logs are processed by the default Ruby logger. When using Rails, you should see the messages in your application log file.
 
