@@ -9,6 +9,12 @@ module Datadog
       TYPE = 'http'.freeze
       URL = 'http.url'.freeze
 
+      # Metadata headers
+      HEADER_META_LANG = 'Datadog-Meta-Lang'.freeze
+      HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'.freeze
+      HEADER_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'.freeze
+      HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'.freeze
+
       # General header functionality
       module Headers
         module_function

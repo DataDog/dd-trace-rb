@@ -9,6 +9,8 @@ require 'ddtrace/writer'
 require 'ddtrace/pipeline'
 
 RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
+  include_context 'metric counts'
+
   let(:hostname) { 'http://127.0.0.1' }
   let(:port) { 1234 }
   let(:flush_interval) { 0.1 }
@@ -38,20 +40,13 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
           flush_interval
         )
       )
+      w.statsd = statsd
       w.worker.start
     end
   end
 
   let(:transport) { SpyTransport.new }
 
-  def wait_for_flush(num = 1, period = 0.1)
-    (20 * flush_interval).to_i.times do
-      break if block_given? ? yield : writer.stats[:traces_flushed] >= num
-      sleep(period)
-    end
-  end
-
-  let(:stats) { writer.stats }
   let(:dump) { transport.helper_dump }
 
   describe 'when sending spans' do
@@ -72,12 +67,12 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
           s.finish
         end
 
-        wait_for_flush
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 1 }
       end
 
       it 'flushes the trace correctly' do
-        expect(stats[:traces_flushed]).to be >= 1
-        expect(stats[:services_flushed]).to eq(0)
+        expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to be >= 1
+        expect(stats[Datadog::Writer::METRIC_SERVICES_FLUSHED]).to eq(0)
 
         # Sanity checks
         expect(dump[200]).to_not be nil
@@ -110,11 +105,11 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
           s.finish
         end
 
-        wait_for_flush
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 1 }
       end
 
       it 'flushes the trace correctly' do
-        expect(stats[:traces_flushed]).to be >= 1
+        expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to be >= 1
 
         # Sanity checks
         expect(dump[200]).to_not be nil
@@ -150,7 +145,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         tracer.start_span('keep', service: 'tracer-test').finish
         tracer.start_span('discard', service: 'tracer-test').finish
 
-        wait_for_flush(2)
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 2 }
       end
 
       after(:each) { Datadog::Pipeline.processors = [] }
@@ -173,11 +168,11 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         tracer.set_service_info('my.other.service', 'golang', 'api')
         tracer.start_span('my.op').finish
 
-        wait_for_flush { writer.stats[:services_flushed] >= 1 }
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_SERVICES_FLUSHED] >= 1 }
       end
 
       it 'flushes the services correctly' do
-        expect(stats[:services_flushed]).to eq(1)
+        expect(stats[Datadog::Writer::METRIC_SERVICES_FLUSHED]).to eq(1)
 
         # Sanity checks
         expect(dump[200]).to_not be nil
