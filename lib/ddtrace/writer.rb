@@ -1,14 +1,20 @@
 require 'ddtrace/transport'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
+require 'ddtrace/metrics'
 
 module Datadog
   # Traces and services writer that periodically sends data to the trace-agent
   class Writer
+    include Datadog::Metrics
+
     attr_reader :transport, :worker, :priority_sampler
 
     HOSTNAME = '127.0.0.1'.freeze
     PORT = '8126'.freeze
+
+    METRIC_TRACES_FLUSHED = 'datadog.tracer.writer.traces_flushed'.freeze
+    METRIC_SERVICES_FLUSHED = 'datadog.tracer.writer.services_flushed'.freeze
 
     def initialize(options = {})
       # writer and transport parameters
@@ -33,6 +39,7 @@ module Datadog
       @mutex_after_fork = Mutex.new
       @pid = nil
 
+      # TODO: Remove me
       @traces_flushed = 0
       @services_flushed = 0
 
@@ -67,7 +74,8 @@ module Datadog
 
       code = transport.send(:traces, traces)
       status = !transport.server_error?(code)
-      @traces_flushed += traces.length if status
+      @traces_flushed += traces.length if status # TODO: Remove me.
+      increment(METRIC_TRACES_FLUSHED, by: traces.length) if status
 
       status
     end
@@ -78,7 +86,8 @@ module Datadog
 
       code = transport.send(:services, services)
       status = !transport.server_error?(code)
-      @services_flushed += 1 if status
+      @services_flushed += 1 if status # TODO: Remove me.
+      increment(METRIC_SERVICES_FLUSHED) if status
 
       status
     end
@@ -115,6 +124,10 @@ module Datadog
     end
 
     private
+
+    def increment(stat, options = {})
+      statsd.increment(stat, options) unless statsd.nil?
+    end
 
     def sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)

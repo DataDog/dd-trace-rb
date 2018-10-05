@@ -6,7 +6,7 @@ RSpec.describe Datadog::HTTPTransport do
   let(:transport) do
     described_class.new(
       ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
-      ENV.fetch('TEST_DDAGENT_PORT', 8126),
+      ENV.fetch('TEST_DDAGENT_TRACE_PORT', 8126),
       options
     )
   end
