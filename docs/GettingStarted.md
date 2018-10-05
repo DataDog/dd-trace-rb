@@ -63,6 +63,9 @@ For descriptions of terminology used in APM, take a look at the [official docume
          - [Filtering](#filtering)
          - [Processing](#processing)
      - [OpenTracing](#opentracing)
+     - [Debugging](#debugging)
+         - [Using debug logging](#using-debug-logging)
+         - [Using debug stats](#using-debug-stats)
 
 ## Compatibility
 
@@ -1269,7 +1272,7 @@ Available options are:
 
  - `enabled`: defines if the `tracer` is enabled or not. If set to `false` the code could be still instrumented
   because of other settings, but no spans are sent to the local trace agent.
- - `debug`: set to true to enable debug logging.
+ - `debug`: set to true to enable debug mode. See [Using debug logging](#using-debug-logging) and [Using debug stats](#using-debug-stats) for more details.
  - `hostname`: set the hostname of the trace agent.
  - `port`: set the port the trace agent is listening on.
  - `env`: set the environment. Rails users may set it to `Rails.env` to use their application settings.
@@ -1652,3 +1655,53 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 | `OpenTracing::FORMAT_TEXT_MAP` | Yes        |                        |
 | `OpenTracing::FORMAT_RACK`     | Yes        | Because of the loss of resolution in the Rack format, please note that baggage items with names containing either upper case characters or `-` will be converted to lower case and `_` in a round-trip respectively. We recommend avoiding these characters, or accommodating accordingly on the receiving end. |
 | `OpenTracing::FORMAT_BINARY`   | No         |                        |
+
+### Debugging
+
+If you are having difficulty using the tracer, the library offers a few debugging features to give you more insight into the internals of tracing.
+
+#### Using debug logging
+
+Debug logging can be activate to produce verbose logs that detail the operations of the tracer, by enabling it on the tracer settings:
+
+```ruby
+# config/initializers/datadog.rb
+require 'ddtrace'
+
+Datadog.configure do |c|
+  # Activates debug mode for the tracer
+  c.tracer debug: true
+end
+```
+
+Both the tracer and its integrations will produce detailed messages of operations to your configured log file.
+
+Be aware that *debug logging can produce many messages*, especially in applications with higher throughput. We generally recommend that this flag only be used in controlled, fail-safe environments (e.g. staging)
+
+#### Using debug stats
+
+To gather statistical data regarding the internals of the trace library (such as number of traces flushed, number of errors, etc), one can enable debug statistics, which are collected using the `dogstatsd-ruby` library.
+
+To activate, first add `gem 'dogstatsd-ruby'` to your Gemfile, then add the following to your configuration file:
+
+```ruby
+# config/initializers/datadog.rb
+require 'datadog/statsd'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  # Activates debug mode for the tracer, and configures a Statsd instance.
+  c.tracer debug: true, statsd: Datadog::Statsd.new
+end
+```
+
+After activated, the tracer will send the following statistics:
+
+| Name                                                 | Type      | Description                                           |
+| ---------------------------------------------------- | --------- | ----------------------------------------------------- |
+| `datadog.tracer.transport.http.post.client_error`    | `counter` | Number of HTTP posts to agent with a client error.    |
+| `datadog.tracer.transport.http.post.internal_error`  | `counter` | Number of HTTP posts to agent with an internal error. |
+| `datadog.tracer.transport.http.post.server_error`    | `counter` | Number of HTTP posts to agent with a server error.    |
+| `datadog.tracer.transport.http.post.success`         | `counter` | Number of successful HTTP posts to agent.             |
+| `datadog.tracer.writer.services_flushed`             | `counter` | Number of services flushed.                           |
+| `datadog.tracer.writer.traces_flushed`               | `counter` | Number of traces flushed.                             |
