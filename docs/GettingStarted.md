@@ -52,6 +52,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Sucker Punch](#sucker-punch)
  - [Advanced configuration](#advanced-configuration)
      - [Tracer settings](#tracer-settings)
+     - [Statsd settings](#statsd-settings)
      - [Custom logging](#custom-logging)
      - [Environment and tags](#environment-and-tags)
      - [Sampling](#sampling)
@@ -1275,6 +1276,40 @@ Available options are:
  - `tags`: set global tags that should be applied to all spans. Defaults to an empty hash
  - `log`: defines a custom logger.
  - `partial_flush`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
+
+### Statsd settings
+
+Some integrations might produce metrics, events, or other statistics that might be considered insightful or useful. These statistics can be collected using `dogstatsd-ruby`, an optional extension for Datadog metrics, if configured and activated.
+
+Metrics will not be sent by default. To activate, first add `gem 'dogstatsd-ruby'` to your Gemfile, then add the following to your configuration file:
+
+```ruby
+# config/initializers/datadog.rb
+require 'datadog/statsd'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  # Activates statsd using default settings.
+  # Connects to 127.0.0.1:8125.
+  c.statsd
+
+  # Defines hostname, port, and other options for statsd.
+  # See https://github.com/DataDog/dogstatsd-ruby for details.
+  c.statsd host: '127.0.0.1', port: 8125, opts: { namespace: 'my-app' }
+
+  # Define custom instance of statsd that
+  # is a subclass of Datadog::Statsd.
+  c.statsd MyStatsd.new
+end
+```
+
+The full list of options available to `statsd`:
+
+| Name      | Description                                                                                    | Default       |
+| --------- | ---------------------------------------------------------------------------------------------- | ------------- |
+| `host`    | Hostname which Statsd is located.                                                              | `'127.0.0.1'` |
+| `options` | Custom options with which to configure the client with. See `Datadog::Statsd#new` for details. | `{}`          |
+| `port`    | Port on which Statsd is running.                                                               | `8125`        |
 
 ### Custom logging
 
