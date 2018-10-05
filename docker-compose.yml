@@ -187,9 +187,11 @@ services:
       - DD_BIND_HOST=0.0.0.0
       - DD_API_KEY=invalid_key_but_this_is_fine
     expose:
+      - "8125/udp"
       - "8126"
     ports:
-      - "${TEST_DDAGENT_PORT}:8126"
+      - "${TEST_DDAGENT_METRIC_PORT}:8125/udp"
+      - "${TEST_DDAGENT_TRACE_PORT}:8126"
   elasticsearch:
     # Note: ES 5.0 dies with error:
     # max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
