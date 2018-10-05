@@ -76,6 +76,40 @@ RSpec.describe 'Rails request' do
       end
     end
 
+    context 'that itself creates a span' do
+      let(:middleware) do
+        stub_const('CustomSpanMiddleware', Class.new do
+          def initialize(app)
+            @app = app
+          end
+
+          def call(env)
+            Datadog.tracer.trace('custom.test') do
+              @app.call(env)
+            end
+          end
+        end)
+      end
+
+      context 'and added after tracing is enabled' do
+        before(:each) do
+          custom_span_middleware = middleware
+          rails_test_application.configure { config.app_middleware.use custom_span_middleware }
+        end
+
+        context 'with #middleware_names' do
+          let(:use_rack) { false }
+          let(:rails_options) { super().merge!(middleware_names: true) }
+
+          it do
+            get '/'
+            span = all_spans.find { |s| s.name == 'rack.request' }
+            expect(span.resource).to eq('TestController#index')
+          end
+        end
+      end
+    end
+
     context 'that raises an exception' do
       before(:each) { get '/' }
 

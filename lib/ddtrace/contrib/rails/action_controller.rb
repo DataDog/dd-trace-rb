@@ -34,6 +34,7 @@ module Datadog
         def self.finish_processing(payload)
           # retrieve the tracing context and the latest active span
           tracing_context = payload.fetch(:tracing_context)
+          env = payload.fetch(:env)
           span = tracing_context[:dd_request_span]
           return unless span && !span.finished?
 
@@ -43,10 +44,10 @@ module Datadog
               span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
             end
 
-            # Set the parent resource if it's a `rack.request` span,
-            # but not if its an exception contoller.
-            if !span.parent.nil? && span.parent.name == Rack::Ext::SPAN_REQUEST && !exception_controller?(payload)
-              span.parent.resource = span.resource
+            # Set the resource name of the Rack request span unless this is an exception controller.
+            unless exception_controller?(payload)
+              rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
+              rack_request_span.resource = span.resource if rack_request_span
             end
 
             span.set_tag(Ext::TAG_ROUTE_ACTION, payload.fetch(:action))
