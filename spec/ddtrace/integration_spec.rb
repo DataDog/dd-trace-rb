@@ -13,7 +13,7 @@ RSpec.describe 'Tracer integration tests' do
         t.configure(
           enabled: true,
           hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
-          port: ENV.fetch('TEST_DDAGENT_PORT', 8126)
+          port: ENV.fetch('TEST_DDAGENT_TRACE_PORT', 8126)
         )
       end
     end
@@ -190,7 +190,7 @@ RSpec.describe 'Tracer integration tests' do
       tracer.configure(
         enabled: true,
         hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
-        port: ENV.fetch('TEST_DDAGENT_PORT', 8126),
+        port: ENV.fetch('TEST_DDAGENT_TRACE_PORT', 8126),
         priority_sampling: true
       )
     end

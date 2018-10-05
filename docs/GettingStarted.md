@@ -1697,11 +1697,11 @@ end
 
 After activated, the tracer will send the following statistics:
 
-| Name                                                 | Type      | Description                                           |
-| ---------------------------------------------------- | --------- | ----------------------------------------------------- |
-| `datadog.tracer.transport.http.post.client_error`    | `counter` | Number of HTTP posts to agent with a client error.    |
-| `datadog.tracer.transport.http.post.internal_error`  | `counter` | Number of HTTP posts to agent with an internal error. |
-| `datadog.tracer.transport.http.post.server_error`    | `counter` | Number of HTTP posts to agent with a server error.    |
-| `datadog.tracer.transport.http.post.success`         | `counter` | Number of successful HTTP posts to agent.             |
-| `datadog.tracer.writer.services_flushed`             | `counter` | Number of services flushed.                           |
-| `datadog.tracer.writer.traces_flushed`               | `counter` | Number of traces flushed.                             |
+| Name                                                 | Type    | Description                                           |
+| ---------------------------------------------------- | ------- | ----------------------------------------------------- |
+| `datadog.tracer.transport.http.post.client_error`    | `count` | Number of HTTP posts to agent with a client error.    |
+| `datadog.tracer.transport.http.post.internal_error`  | `count` | Number of HTTP posts to agent with an internal error. |
+| `datadog.tracer.transport.http.post.server_error`    | `count` | Number of HTTP posts to agent with a server error.    |
+| `datadog.tracer.transport.http.post.success`         | `count` | Number of successful HTTP posts to agent.             |
+| `datadog.tracer.writer.services_flushed`             | `count` | Number of services flushed.                           |
+| `datadog.tracer.writer.traces_flushed`               | `count` | Number of traces flushed.                             |
