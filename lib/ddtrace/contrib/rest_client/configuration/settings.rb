@@ -9,7 +9,7 @@ module Datadog
         class Settings < Contrib::Configuration::Settings
           option :distributed_tracing, default: false
           option :service_name, default: Ext::SERVICE_NAME, depends_on: [:tracer] do |value|
-            get_option(:tracer).set_service_info(value, Ext::APP, Datadog::Ext::AppTypes::DB)
+            get_option(:tracer).set_service_info(value, Ext::APP, Datadog::Ext::AppTypes::WEB)
             value
           end
         end
