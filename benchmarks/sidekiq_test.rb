@@ -42,6 +42,7 @@ end
 Rails::Application::Configuration.prepend(OverrideConfiguration)
 
 Rails.application.configure do
+  config.secret_key_base = 'x'
   config.cache_classes = true
   config.eager_load = true
   config.active_job.queue_adapter = :sidekiq

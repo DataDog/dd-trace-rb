@@ -3,6 +3,7 @@ require 'net/http'
 
 require 'ddtrace/encoding'
 require 'ddtrace/version'
+require 'ddtrace/utils/safe_http_connection'
 
 module Datadog
   # Transport class that handles the spans delivery to the
@@ -62,6 +63,8 @@ module Datadog
       @headers['Datadog-Meta-Lang-Interpreter'] = RUBY_INTERPRETER
       @headers['Datadog-Meta-Tracer-Version'] = Datadog::VERSION::STRING
 
+      @conn = Datadog::Utils::SafeHttpConnection.new(@hostname, @port)
+
       # stats
       @mutex = Mutex.new
       @count_success = 0
@@ -75,11 +78,13 @@ module Datadog
     def send(endpoint, data)
       case endpoint
       when :services
+        return 500 unless warmup(@api[:services_endpoint])
         payload = @encoder.encode_services(data)
         status_code = post(@api[:services_endpoint], payload) do |response|
           process_callback(:services, response)
         end
       when :traces
+        return 500 unless warmup(@api[:traces_endpoint])
         count = data.length
         payload = @encoder.encode_traces(data)
         status_code = post(@api[:traces_endpoint], payload, count) do |response|
@@ -98,6 +103,15 @@ module Datadog
       end
     end
 
+    def warmup(url)
+      request = Net::HTTP::Head.new(url)
+      @conn.send_request(request)
+      true
+    rescue StandardError => e
+      log_error_once(e.message)
+      false
+    end
+
     # send data to the trace-agent; the method is thread-safe
     def post(url, data, count = nil)
       begin
@@ -107,9 +121,7 @@ module Datadog
         request = Net::HTTP::Post.new(url, headers)
         request.body = data
 
-        response = Net::HTTP.start(@hostname, @port, open_timeout: TIMEOUT, read_timeout: TIMEOUT) do |http|
-          http.request(request)
-        end
+        response = @conn.send_request(request)
         handle_response(response)
       rescue StandardError => e
         log_error_once(e.message)
