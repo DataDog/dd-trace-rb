@@ -11,8 +11,7 @@ module Datadog
   # so that the Transport is thread-safe.
   # rubocop:disable Metrics/ClassLength
   class HTTPTransport
-    attr_accessor :hostname, :port
-    attr_reader :traces_endpoint, :services_endpoint
+    attr_reader :hostname, :port, :traces_endpoint, :services_endpoint
 
     # seconds before the transport timeout
     TIMEOUT = 1
@@ -63,7 +62,7 @@ module Datadog
       @headers['Datadog-Meta-Lang-Interpreter'] = RUBY_INTERPRETER
       @headers['Datadog-Meta-Tracer-Version'] = Datadog::VERSION::STRING
 
-      @conn = Datadog::Utils::SafeHttpConnection.new(@hostname, @port)
+      @connection = Datadog::Utils::SafeHttpConnection.new(@hostname, @port)
 
       # stats
       @mutex = Mutex.new
@@ -76,15 +75,15 @@ module Datadog
 
     # route the send to the right endpoint
     def send(endpoint, data)
+      return 500 unless can_connect?
+
       case endpoint
       when :services
-        return 500 unless warmup(@api[:services_endpoint])
         payload = @encoder.encode_services(data)
         status_code = post(@api[:services_endpoint], payload) do |response|
           process_callback(:services, response)
         end
       when :traces
-        return 500 unless warmup(@api[:traces_endpoint])
         count = data.length
         payload = @encoder.encode_traces(data)
         status_code = post(@api[:traces_endpoint], payload, count) do |response|
@@ -103,12 +102,35 @@ module Datadog
       end
     end
 
-    def warmup(url)
-      request = Net::HTTP::Head.new(url)
-      @conn.send_request(request)
+    def port=(port)
+      if @connection && @connection.port != port
+        @connection.close
+        @connection = nil
+      end
+      @port = port
+    end
+
+    def hostname=(hostname)
+      if @connection && @connection.hostname != hostname
+        @connection.close
+        @connection = nil
+      end
+      @hostname = hostname
+    end
+
+    def connection
+      if @connection && (@connection.hostname != @hostname || @connection.port != @port)
+        @connection = nil
+      end
+      @connection ||= Datadog::Utils::SafeHttpConnection.new(@hostname, @port)
+    end
+
+    def can_connect?
+      request = Net::HTTP::Head.new('/')
+      connection.send_request(request)
       true
     rescue StandardError => e
-      log_error_once(e.message)
+      log_error_once("#{e.class} #{e.message}")
       false
     end
 
@@ -121,10 +143,10 @@ module Datadog
         request = Net::HTTP::Post.new(url, headers)
         request.body = data
 
-        response = @conn.send_request(request)
+        response = connection.send_request(request)
         handle_response(response)
       rescue StandardError => e
-        log_error_once(e.message)
+        log_error_once("#{e.class} #{e.message}")
         500
       end.tap do
         yield(response) if block_given?
@@ -218,13 +240,13 @@ module Datadog
     private
 
     def log_error_once(*args)
-      if @count_consecutive_errors > 0
-        Datadog::Tracer.log.debug(*args)
-      else
+      # if @count_consecutive_errors > 0
+      #   Datadog::Tracer.log.debug(*args)
+      # else
         Datadog::Tracer.log.error(*args)
-      end
-
-      @mutex.synchronize { @count_consecutive_errors += 1 }
+      # end
+      #
+      # @mutex.synchronize { @count_consecutive_errors += 1 }
     end
 
     def process_callback(action, response)

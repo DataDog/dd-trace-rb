@@ -1,22 +1,28 @@
 require 'net/http'
 require 'timeout'
 
+require 'ddtrace/utils/circuit_breaker'
+
 module Datadog
   module Utils
     # Safe persistent http connection
     class SafeHttpConnection
-      def initialize(address, port = nil)
-        @address = address
+      attr_reader :hostname, :port
+
+      def initialize(hostname, port = nil)
+        @hostname = hostname
         @port = port
         @open_timeout = 0.5 # second
-        @read_timeout = 1 # second
+        @read_timeout = 2 # second
         @timeout = 2 # general timeout (seconds)
         @connection = nil
+        @circuit_breaker = CircuitBreaker.new
+        @mutex = Mutex.new
       end
 
       def connection
         @connection ||= begin
-          Net::HTTP.new(@address, @port).tap do |connection|
+          Net::HTTP.new(@hostname, @port).tap do |connection|
             connection.open_timeout = @open_timeout
             connection.read_timeout = @read_timeout
           end
@@ -24,15 +30,19 @@ module Datadog
       end
 
       def send_request(request)
-        connection.start unless connection.started?
+        @circuit_breaker.with do
+          begin
+            connection.start unless connection.started?
 
-        Timeout.timeout(@timeout) do
-          connection.request(request)
+            Timeout.timeout(@timeout) do
+              connection.request(request)
+            end
+          rescue StandardError => ex
+            safe_connection_finish
+            Datadog::Tracer.log.error("cannot send request: #{ex}")
+            raise ex
+          end
         end
-      rescue StandardError => ex
-        safe_connection_finish
-        Datadog::Tracer.log.error("cannot send request: #{ex}")
-        raise ex
       end
 
       def close
