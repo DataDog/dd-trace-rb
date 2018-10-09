@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace'
+
 RSpec.describe Datadog::Registry do
   describe 'instance' do
     subject(:registry) { described_class.new }
