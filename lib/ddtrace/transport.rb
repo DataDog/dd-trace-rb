@@ -53,6 +53,8 @@ module Datadog
       @api = API.fetch(api_version)
       @encoder = options[:encoder] || @api[:encoder].new
       @response_callback = options[:response_callback]
+      @max_failures = options.fetch(:max_failures, 5)
+      @retry_after = options.fetch(:retry_after, 10000)
 
       # overwrite the Content-type with the one chosen in the Encoder
       @headers = options.fetch(:headers, {})
@@ -61,8 +63,6 @@ module Datadog
       @headers['Datadog-Meta-Lang-Version'] = RUBY_VERSION
       @headers['Datadog-Meta-Lang-Interpreter'] = RUBY_INTERPRETER
       @headers['Datadog-Meta-Tracer-Version'] = Datadog::VERSION::STRING
-
-      @connection = Datadog::Utils::SafeHttpConnection.new(@hostname, @port)
 
       # stats
       @mutex = Mutex.new
@@ -122,7 +122,7 @@ module Datadog
       if @connection && (@connection.hostname != @hostname || @connection.port != @port)
         @connection = nil
       end
-      @connection ||= Datadog::Utils::SafeHttpConnection.new(@hostname, @port)
+      @connection ||= Datadog::Utils::SafeHttpConnection.new(@hostname, @port, @max_failures, @retry_after)
     end
 
     def can_connect?
@@ -240,13 +240,13 @@ module Datadog
     private
 
     def log_error_once(*args)
-      # if @count_consecutive_errors > 0
-      #   Datadog::Tracer.log.debug(*args)
-      # else
+      if @count_consecutive_errors > 0
+        Datadog::Tracer.log.debug(*args)
+      else
         Datadog::Tracer.log.error(*args)
-      # end
-      #
-      # @mutex.synchronize { @count_consecutive_errors += 1 }
+      end
+
+      @mutex.synchronize { @count_consecutive_errors += 1 }
     end
 
     def process_callback(action, response)

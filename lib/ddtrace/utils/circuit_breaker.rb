@@ -4,10 +4,10 @@ module Datadog
     class CircuitBreaker
       CircuitBreakerException = Class.new(RuntimeError)
 
-      def initialize(threshold = 5, retry_in = 5000)
+      def initialize(max_failures = 5, retry_after = 10000)
         @failures = 0
-        @threshold = threshold
-        @retry_in = retry_in # time to attempt re-enabling failing circuit breaker msec
+        @max_failures = max_failures
+        @retry_after = retry_after # time to attempt re-enabling failing circuit breaker msec
         @opened_at = nil
         @last_exception = nil
       end
@@ -21,7 +21,7 @@ module Datadog
       end
 
       def failing?
-        @failures > @threshold
+        @failures > @max_failures
       end
 
       def open?
@@ -32,7 +32,7 @@ module Datadog
         return true if @opened_at.nil?
 
         elapsed = time_now - @opened_at
-        elapsed > @retry_in
+        elapsed > @retry_after
       end
 
       def reset!
@@ -41,7 +41,9 @@ module Datadog
       end
 
       def with
-        raise CircuitBreakerException, @last_exception if closed? && !retry?
+        return yield if @max_failures <= 0 # disable CircuitBreaker
+
+        raise CircuitBreakerException, @last_exception if open? && !retry?
 
         begin
           res = yield
