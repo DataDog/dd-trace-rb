@@ -55,6 +55,7 @@ module Datadog
       @response_callback = options[:response_callback]
       @failure_threshold = options.fetch(:failure_threshold, 0.5)
       @retry_after = options.fetch(:retry_after, 10000)
+      @connection = nil
 
       # overwrite the Content-type with the one chosen in the Encoder
       @headers = options.fetch(:headers, {})
