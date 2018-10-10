@@ -53,7 +53,7 @@ module Datadog
       @api = API.fetch(api_version)
       @encoder = options[:encoder] || @api[:encoder].new
       @response_callback = options[:response_callback]
-      @max_failures = options.fetch(:max_failures, 5)
+      @failure_threshold = options.fetch(:failure_threshold, 0.5)
       @retry_after = options.fetch(:retry_after, 10000)
 
       # overwrite the Content-type with the one chosen in the Encoder
@@ -122,7 +122,7 @@ module Datadog
       if @connection && (@connection.hostname != @hostname || @connection.port != @port)
         @connection = nil
       end
-      @connection ||= Datadog::Utils::SafeHttpConnection.new(@hostname, @port, @max_failures, @retry_after)
+      @connection ||= Datadog::Utils::SafeHttpConnection.new(@hostname, @port, @failure_threshold, @retry_after)
     end
 
     def can_connect?

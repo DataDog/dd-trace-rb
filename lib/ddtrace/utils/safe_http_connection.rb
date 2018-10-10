@@ -9,14 +9,14 @@ module Datadog
     class SafeHttpConnection
       attr_reader :hostname, :port
 
-      def initialize(hostname, port = nil, max_failures = 5, retry_after = 5000)
+      def initialize(hostname, port = nil, failure_threshold = 0.5, retry_after = 5000)
         @hostname = hostname
         @port = port
         @open_timeout = 0.5 # second
         @read_timeout = 2 # second
         @timeout = 2 # general timeout (seconds)
         @connection = nil
-        @circuit_breaker = CircuitBreaker.new(max_failures, retry_after)
+        @circuit_breaker = CircuitBreaker.new(failure_threshold, retry_after)
         @mutex = Mutex.new
       end
 
