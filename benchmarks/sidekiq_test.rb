@@ -45,6 +45,7 @@ Rails.application.configure do
   config.cache_classes = true
   config.eager_load = true
   config.active_job.queue_adapter = :sidekiq
+  config.secret_key_base = 'x'
 end
 
 ActiveRecord::Base.configurations = Rails.application.config.database_configuration
