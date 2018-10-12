@@ -39,10 +39,6 @@ module Datadog
       @mutex_after_fork = Mutex.new
       @pid = nil
 
-      # TODO: Remove me
-      @traces_flushed = 0
-      @services_flushed = 0
-
       # one worker for both services and traces, each have their own queues
       @worker = nil
     end
@@ -59,12 +55,12 @@ module Datadog
                                                      @service_handler,
                                                      @flush_interval)
 
-      @worker.start()
+      @worker.start
     end
 
     # stops both workers for spans and services.
     def stop
-      @worker.stop()
+      @worker.stop
       @worker = nil
     end
 
@@ -74,7 +70,6 @@ module Datadog
 
       code = transport.send(:traces, traces)
       status = !transport.server_error?(code)
-      @traces_flushed += traces.length if status # TODO: Remove me.
       increment(METRIC_TRACES_FLUSHED, by: traces.length) if status
 
       status
@@ -86,7 +81,6 @@ module Datadog
 
       code = transport.send(:services, services)
       status = !transport.server_error?(code)
-      @services_flushed += 1 if status # TODO: Remove me.
       increment(METRIC_SERVICES_FLUSHED) if status
 
       status
@@ -112,15 +106,6 @@ module Datadog
 
       @worker.enqueue_trace(trace)
       @worker.enqueue_service(services)
-    end
-
-    # stats returns a dictionary of stats about the writer.
-    def stats
-      {
-        traces_flushed: @traces_flushed,
-        services_flushed: @services_flushed,
-        transport: @transport.stats
-      }
     end
 
     private

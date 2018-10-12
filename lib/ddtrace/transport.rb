@@ -78,11 +78,6 @@ module Datadog
       # stats
       @mutex = Mutex.new
       @count_consecutive_errors = 0
-      # TODO: Remove me.
-      @count_success = 0
-      @count_client_error = 0
-      @count_server_error = 0
-      @count_internal_error = 0
     end
 
     # route the send to the right endpoint
@@ -188,17 +183,14 @@ module Datadog
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
         @mutex.synchronize { @count_consecutive_errors = 0 }
-        @mutex.synchronize { @count_success += 1 } # TODO: Remove me.
         increment(METRIC_POST_SUCCESS)
       elsif downgrade?(status_code)
         Datadog::Tracer.log.debug("calling the endpoint but received #{status_code}; downgrading the API")
       elsif client_error?(status_code)
         log_error_once("Client error: #{response.message}")
-        @mutex.synchronize { @count_client_error += 1 } # TODO: Remove me.
         increment(METRIC_POST_CLIENT_ERROR)
       elsif server_error?(status_code)
         log_error_once("Server error: #{response.message}")
-        @mutex.synchronize { @count_client_error += 1 } # TODO: Remove me.
         increment(METRIC_POST_SERVER_ERROR)
       end
 
@@ -206,21 +198,8 @@ module Datadog
     rescue StandardError => e
       log_error_once(e.message)
       increment(METRIC_POST_INTERNAL_ERROR)
-      @mutex.synchronize { @count_internal_error += 1 } # TODO: Remove me.
 
       500
-    end
-
-    # TODO: Remove me.
-    def stats
-      @mutex.synchronize do
-        {
-          success: @count_success,
-          client_error: @count_client_error,
-          server_error: @count_server_error,
-          internal_error: @count_internal_error
-        }
-      end
     end
 
     private
