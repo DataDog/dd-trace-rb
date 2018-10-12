@@ -19,6 +19,7 @@ require 'support/configuration_helpers'
 require 'support/synchronization_helpers'
 require 'support/log_helpers'
 require 'support/http_helpers'
+require 'support/stats_helpers'
 
 WebMock.allow_net_connect!
 WebMock.disable!
