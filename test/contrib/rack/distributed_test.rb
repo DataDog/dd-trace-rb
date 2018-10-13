@@ -1,7 +1,6 @@
 require 'stringio'
 require 'webrick'
 require 'contrib/rack/helpers'
-require 'contrib/http/test_helper'
 
 class EchoApp
   def call(env)

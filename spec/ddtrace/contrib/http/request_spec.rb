@@ -155,11 +155,22 @@ RSpec.describe 'net/http requests' do
       stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
     end
 
+    def expect_request_without_distributed_headers
+      # rubocop:disable Style/BlockDelimiters
+      expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
+        [
+          Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID,
+          Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID,
+          Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY
+        ].none? do |header|
+          req.headers.key?(header.split('-').map(&:capitalize).join('-'))
+        end
+      })
+    end
+
     context 'when enabled' do
       before(:each) { Datadog.configure { |c| c.use :http, distributed_tracing: true } }
       after(:each) { Datadog.configure { |c| c.use :http, distributed_tracing: false } }
-
-      let(:sampling_priority) { 10 }
 
       context 'and the tracer is enabled' do
         before(:each) do
@@ -170,17 +181,29 @@ RSpec.describe 'net/http requests' do
           end
         end
 
+        let(:sampling_priority) { 10 }
+        let(:distributed_tracing_headers) do
+          {
+            Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id,
+            Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id,
+            Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority
+          }
+        end
+
         let(:span) { spans.last }
 
         it 'adds distributed tracing headers' do
-          expect(span.name).to eq('http.request')
-          expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(
-            headers: {
-              Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id,
-              Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id,
-              Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority
-            }
-          )
+          # The block syntax only works with Ruby < 2.3 and the hash syntax
+          # only works with Ruby >= 2.3, so we need to support both.
+          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+            expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
+              distributed_tracing_headers.all? do |(header, value)|
+                req.headers[header.split('-').map(&:capitalize).join('-')] == value
+              end
+            })
+          else
+            expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
+          end
         end
       end
 
@@ -192,13 +215,7 @@ RSpec.describe 'net/http requests' do
 
         it 'does not add distributed tracing headers' do
           expect(spans).to be_empty
-          expect(WebMock).to_not have_requested(:get, "#{uri}#{path}").with(
-            headers: [
-              Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID,
-              Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID,
-              Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY
-            ]
-          )
+          expect_request_without_distributed_headers
         end
       end
     end
@@ -213,13 +230,7 @@ RSpec.describe 'net/http requests' do
 
       it 'does not add distributed tracing headers' do
         expect(span.name).to eq('http.request')
-        expect(WebMock).to_not have_requested(:get, "#{uri}#{path}").with(
-          headers: [
-            Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID,
-            Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID,
-            Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY
-          ]
-        )
+        expect_request_without_distributed_headers
       end
     end
   end
