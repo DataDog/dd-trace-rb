@@ -39,6 +39,8 @@ RSpec.describe 'net/http patcher' do
       end
     end
 
+    after(:each) { Datadog.configure { |c| c.use :http, service_name: Datadog::Contrib::HTTP::Ext::SERVICE_NAME } }
+
     it 'uses new service name' do
       Net::HTTP.get(host, '/')
 
