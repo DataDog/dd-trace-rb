@@ -458,7 +458,7 @@ jobs:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.4-{{ checksum ".circleci/bundle_checksum" }}'
       - *step_run_all_tests
-  deploy-release:
+  "deploy release":
     <<: *job_defaults
     docker:
       - *container-2_4
@@ -470,81 +470,120 @@ jobs:
             apt-get -y -qq install awscli
       - *step_bundle_install
       - *step_release_docs
+      - run:
+          name: Upload release Gem and rebuild index
+          command: S3_DIR=release bundle exec rake release:gem
+      - store_artifacts:
+          path: pkg/
+          destination: gem
+  "deploy prerelease Gem":
+    <<: *job_defaults
+    docker:
+      - *container-2_4
+    steps:
+      - checkout
+      - run:
+          command: |
+            apt-get -y -qq update
+            apt-get -y -qq install awscli
+      - *step_bundle_install
+      - run:
+          name: Rename to pre-release version based on branch name and build number
+          command: |
+             # create safe version string
+             PRE=$(echo "${CIRCLE_BRANCH:-unknown}.${CIRCLE_BUILD_NUM:-R$RANDOM}" | sed -e 's/[^a-zA-Z0-9+]\{1,\}/./g')
+             echo PRE=$PRE
+             sed lib/ddtrace/version.rb -i -e "s/^\([\t ]*PRE\) *=*/\1 = \'${PRE}\' #/g"
+      - run:
+          name: Upload prereleas Gem and rebuild index
+          command: S3_DIR=prerelease bundle exec rake release:gem
+      - store_artifacts:
+          path: pkg/
+          destination: gem
 
 workflows:
   version: 2
   build-and-test:
     jobs:
-      - checkout-1.9:
-          <<: *filters_all_branches_and_tags
-      - build-1.9:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-1.9
-      - test-1.9:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-1.9
-      - checkout-2.0:
-          <<: *filters_all_branches_and_tags
-      - build-2.0:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-2.0
-      - test-2.0:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.0
-      - checkout-2.1:
-          <<: *filters_all_branches_and_tags
-      - build-2.1:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-2.1
-      - test-2.1:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.1
-      - checkout-2.2:
-          <<: *filters_all_branches_and_tags
-      - build-2.2:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-2.2
-      - test-2.2:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.2
-      - checkout-2.3:
-          <<: *filters_all_branches_and_tags
-      - build-2.3:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-2.3
-      - test-2.3:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.3
-      - benchmark-2.3:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.3
-      - checkout-2.4:
-          <<: *filters_all_branches_and_tags
-      - build-2.4:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - checkout-2.4
-      - test-2.4:
-          <<: *filters_all_branches_and_tags
-          requires:
-            - build-2.4
-      - deploy-release:
-          <<: *filters_only_release_tags
-          requires:
-            - test-1.9
-            - test-2.0
-            - test-2.1
-            - test-2.2
-            - test-2.3
-            - test-2.4
+       - checkout-1.9:
+           <<: *filters_all_branches_and_tags
+       - build-1.9:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - checkout-1.9
+       - test-1.9:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-1.9
+       - checkout-2.0:
+           <<: *filters_all_branches_and_tags
+       - build-2.0:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - checkout-2.0
+       - test-2.0:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-2.0
+       - checkout-2.1:
+           <<: *filters_all_branches_and_tags
+       - build-2.1:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - checkout-2.1
+       - test-2.1:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-2.1
+       - checkout-2.2:
+           <<: *filters_all_branches_and_tags
+       - build-2.2:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - checkout-2.2
+       - test-2.2:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-2.2
+       - checkout-2.3:
+           <<: *filters_all_branches_and_tags
+       - build-2.3:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - checkout-2.3
+       - test-2.3:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-2.3
+       - benchmark-2.3:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-2.3
+       - checkout-2.4:
+           <<: *filters_all_branches_and_tags
+       - build-2.4:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - checkout-2.4
+       - test-2.4:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-2.4
+       - "deploy prerelease Gem":
+           <<: *filters_all_branches_and_tags
+           requires:
+             - test-1.9
+             - test-2.0
+             - test-2.1
+             - test-2.2
+             - test-2.3
+             - test-2.4
+       - "deploy release":
+           <<: *filters_only_release_tags
+           requires:
+             - test-1.9
+             - test-2.0
+             - test-2.1
+             - test-2.2
+             - test-2.3
+             - test-2.4
