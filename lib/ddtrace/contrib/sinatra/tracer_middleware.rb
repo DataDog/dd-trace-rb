@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/sinatra/ext'
 require 'ddtrace/contrib/sinatra/env'
 require 'ddtrace/contrib/sinatra/headers'
 
@@ -6,8 +7,6 @@ module Datadog
     module Sinatra
       # Middleware used for automatically tagging configured headers and handle request span
       class TracerMiddleware
-        REQUEST_TRACE_NAME = 'sinatra.request'.freeze
-
         def initialize(app)
           @app = app
         end
@@ -21,7 +20,7 @@ module Datadog
 
           # Begin the trace
           tracer.trace(
-            REQUEST_TRACE_NAME,
+            Ext::SPAN_REQUEST,
             service: configuration[:service_name],
             span_type: Datadog::Ext::HTTP::TYPE
           ) do |span|

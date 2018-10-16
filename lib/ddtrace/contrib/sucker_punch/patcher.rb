@@ -1,53 +1,47 @@
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/sucker_punch/ext'
+
 module Datadog
   module Contrib
     module SuckerPunch
-      SERVICE = 'sucker_punch'.freeze
-      COMPATIBLE_WITH = Gem::Version.new('2.0.0')
-
-      # Responsible for hooking the instrumentation into `sucker_punch`
+      # Patcher enables patching of 'sucker_punch' module.
       module Patcher
-        include Base
-        register_as :sucker_punch, auto_patch: true
-        option :service_name, default: SERVICE
-
-        @patched = false
+        include Contrib::Patcher
 
         module_function
 
-        def patch
-          return @patched if patched? || !compatible?
-
-          require 'ddtrace/ext/app_types'
-          require_relative 'exception_handler'
-          require_relative 'instrumentation'
-
-          add_pin!
-          ExceptionHandler.patch!
-          Instrumentation.patch!
-
-          @patched = true
-        rescue => e
-          Datadog::Tracer.log.error("Unable to apply SuckerPunch integration: #{e}")
-          @patched
-        end
-
         def patched?
-          @patched
+          done?(:sucker_punch)
         end
 
-        def compatible?
-          return unless defined?(::SuckerPunch::VERSION)
+        def patch
+          do_once(:sucker_punch) do
+            begin
+              require 'ddtrace/contrib/sucker_punch/exception_handler'
+              require 'ddtrace/contrib/sucker_punch/instrumentation'
 
-          Gem::Version.new(::SuckerPunch::VERSION) >= COMPATIBLE_WITH
-        end
-
-        def add_pin!
-          Pin.new(get_option(:service_name), app: 'sucker_punch', app_type: Ext::AppTypes::WORKER).tap do |pin|
-            pin.onto(::SuckerPunch)
+              add_pin!
+              ExceptionHandler.patch!
+              Instrumentation.patch!
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply SuckerPunch integration: #{e}")
+            end
           end
         end
 
-        private_class_method :compatible?, :add_pin!
+        def add_pin!
+          Pin.new(
+            get_option(:service_name),
+            app: Ext::APP,
+            app_type: Datadog::Ext::AppTypes::WORKER,
+            tracer: get_option(:tracer)
+          ).onto(::SuckerPunch)
+        end
+
+        def get_option(option)
+          Datadog.configuration[:sucker_punch].get_option(option)
+        end
       end
     end
   end

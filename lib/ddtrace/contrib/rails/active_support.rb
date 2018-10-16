@@ -1,5 +1,5 @@
 require 'thread'
-require 'ddtrace/ext/cache'
+require 'ddtrace/contrib/rails/ext'
 
 module Datadog
   module Contrib
@@ -24,16 +24,16 @@ module Datadog
           # NOTE: the ``finish_trace_cache()`` is fired but it already has a safe-guard
           # to avoid any kind of issue.
           current_span = tracer.active_span
-          return if payload[:action] == 'GET'.freeze &&
-                    current_span.try(:name) == 'rails.cache'.freeze &&
-                    current_span.try(:resource) == 'GET'.freeze
+          return if payload[:action] == Ext::RESOURCE_CACHE_GET &&
+                    current_span.try(:name) == Ext::SPAN_CACHE &&
+                    current_span.try(:resource) == Ext::RESOURCE_CACHE_GET
 
           tracing_context = payload.fetch(:tracing_context)
 
           # create a new ``Span`` and add it to the tracing context
           service = Datadog.configuration[:rails][:cache_service]
-          type = Datadog::Ext::CACHE::TYPE
-          span = tracer.trace('rails.cache'.freeze, service: service, span_type: type)
+          type = Ext::SPAN_TYPE_CACHE
+          span = tracer.trace(Ext::SPAN_CACHE, service: service, span_type: type)
           span.resource = payload.fetch(:action)
           tracing_context[:dd_cache_span] = span
         rescue StandardError => e
@@ -49,9 +49,9 @@ module Datadog
           begin
             # discard parameters from the cache_store configuration
             store, = *Array.wrap(::Rails.configuration.cache_store).flatten
-            span.set_tag('rails.cache.backend'.freeze, store)
-            cache_key = Datadog::Utils.truncate(payload.fetch(:key), Ext::CACHE::MAX_KEY_SIZE)
-            span.set_tag('rails.cache.key'.freeze, cache_key)
+            span.set_tag(Ext::TAG_CACHE_BACKEND, store)
+            cache_key = Datadog::Utils.truncate(payload.fetch(:key), Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
+            span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
             span.set_error(payload[:exception]) if payload[:exception]
           ensure
             span.finish

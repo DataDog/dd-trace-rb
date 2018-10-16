@@ -3,26 +3,26 @@ require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/excon/ext'
 
 module Datadog
   module Contrib
     module Excon
       # Middleware implements an excon-middleware for ddtrace instrumentation
       class Middleware < ::Excon::Middleware::Base
-        SPAN_NAME = 'excon.request'.freeze
         DEFAULT_ERROR_HANDLER = lambda do |response|
-          Ext::HTTP::ERROR_RANGE.cover?(response[:status])
+          Datadog::Ext::HTTP::ERROR_RANGE.cover?(response[:status])
         end
 
         def initialize(stack, options = {})
           super(stack)
-          @options = Datadog.configuration[:excon].merge(options)
+          @options = Datadog.configuration[:excon].to_h.merge(options)
         end
 
         def request_call(datum)
           begin
             unless datum.key?(:datadog_span)
-              tracer.trace(SPAN_NAME).tap do |span|
+              tracer.trace(Ext::SPAN_REQUEST).tap do |span|
                 datum[:datadog_span] = span
                 annotate!(span, datum)
                 propagate!(span, datum) if distributed_tracing?
@@ -97,11 +97,11 @@ module Datadog
         def annotate!(span, datum)
           span.resource = datum[:method].to_s.upcase
           span.service = service_name(datum)
-          span.span_type = Ext::HTTP::TYPE
-          span.set_tag(Ext::HTTP::URL, datum[:path])
-          span.set_tag(Ext::HTTP::METHOD, datum[:method].to_s.upcase)
-          span.set_tag(Ext::NET::TARGET_HOST, datum[:host])
-          span.set_tag(Ext::NET::TARGET_PORT, datum[:port].to_s)
+          span.span_type = Datadog::Ext::HTTP::TYPE
+          span.set_tag(Datadog::Ext::HTTP::URL, datum[:path])
+          span.set_tag(Datadog::Ext::HTTP::METHOD, datum[:method].to_s.upcase)
+          span.set_tag(Datadog::Ext::NET::TARGET_HOST, datum[:host])
+          span.set_tag(Datadog::Ext::NET::TARGET_PORT, datum[:port].to_s)
         end
 
         def handle_response(datum)
@@ -114,7 +114,7 @@ module Datadog
                 if error_handler.call(response)
                   span.set_error(["Error #{response[:status]}", response[:body]])
                 end
-                span.set_tag(Ext::HTTP::STATUS_CODE, response[:status])
+                span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response[:status])
               end
               span.set_error(datum[:error]) if datum.key?(:error)
               span.finish

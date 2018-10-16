@@ -9,8 +9,6 @@ module Datadog
       class Integration
         include Contrib::Integration
 
-        APP = 'sequel'.freeze
-
         register_as :sequel, auto_patch: false
 
         def self.version
@@ -22,7 +20,7 @@ module Datadog
         end
 
         def self.compatible?
-          super && RUBY_VERSION >= '2.0.0'
+          super && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
         end
 
         def default_configuration

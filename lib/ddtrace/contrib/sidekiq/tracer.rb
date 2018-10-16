@@ -1,6 +1,7 @@
 require 'sidekiq/api'
 
 require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/sidekiq/ext'
 
 module Datadog
   module Contrib
@@ -8,9 +9,8 @@ module Datadog
       # Tracer is a Sidekiq server-side middleware which traces executed jobs
       class Tracer
         def initialize(options = {})
-          config = Datadog.configuration[:sidekiq].merge(options)
-          @tracer = config[:tracer]
-          @sidekiq_service = config[:service_name]
+          @tracer = options[:tracer] || Datadog.configuration[:sidekiq][:tracer]
+          @sidekiq_service = options[:service_name] || Datadog.configuration[:sidekiq][:service_name]
         end
 
         def call(worker, job, queue)
@@ -26,13 +26,13 @@ module Datadog
           service = sidekiq_service(resource_worker(resource))
           set_service_info(service)
 
-          @tracer.trace('sidekiq.job', service: service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
+          @tracer.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
             span.resource = resource
-            span.set_tag('sidekiq.job.id', job['jid'])
-            span.set_tag('sidekiq.job.retry', job['retry'])
-            span.set_tag('sidekiq.job.queue', job['queue'])
-            span.set_tag('sidekiq.job.wrapper', job['class']) if job['wrapped']
-            span.set_tag('sidekiq.job.delay', 1000.0 * (Time.now.utc.to_f - job['enqueued_at'].to_f))
+            span.set_tag(Ext::TAG_JOB_ID, job['jid'])
+            span.set_tag(Ext::TAG_JOB_RETRY, job['retry'])
+            span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
+            span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
+            span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Time.now.utc.to_f - job['enqueued_at'].to_f))
 
             yield
           end
@@ -62,7 +62,7 @@ module Datadog
           return if @tracer.services[service]
           @tracer.set_service_info(
             service,
-            'sidekiq',
+            Ext::APP,
             Datadog::Ext::AppTypes::WORKER
           )
         end

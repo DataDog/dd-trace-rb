@@ -1,45 +1,34 @@
-# requirements should be kept minimal as Patcher is a shared requirement.
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/ext/app_types'
+require 'ddtrace/ext/net'
+require 'ddtrace/contrib/elasticsearch/ext'
 
 module Datadog
   module Contrib
     module Elasticsearch
-      URL = 'elasticsearch.url'.freeze
-      METHOD = 'elasticsearch.method'.freeze
-      PARAMS = 'elasticsearch.params'.freeze
-      BODY = 'elasticsearch.body'.freeze
-
-      SERVICE = 'elasticsearch'.freeze
-
-      # Patcher enables patching of 'elasticsearch/transport' module.
+      # Patcher enables patching of 'elasticsearch' module.
       module Patcher
-        include Base
-        register_as :elasticsearch, auto_patch: true
-        option :service_name, default: SERVICE
-        option :quantize, default: {}
-
-        @patched = false
+        include Contrib::Patcher
 
         module_function
 
-        # patch applies our patch if needed
+        def patched?
+          done?(:elasticsearch)
+        end
+
         def patch
-          if !@patched && (defined?(::Elasticsearch::Transport::VERSION) && \
-                           Gem::Version.new(::Elasticsearch::Transport::VERSION) >= Gem::Version.new('1.0.0'))
+          do_once(:elasticsearch) do
             begin
               require 'uri'
               require 'json'
               require 'ddtrace/pin'
-              require 'ddtrace/ext/app_types'
               require 'ddtrace/contrib/elasticsearch/quantize'
 
-              patch_elasticsearch_transport_client()
-
-              @patched = true
+              patch_elasticsearch_transport_client
             rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Elastic Search integration: #{e}")
+              Datadog::Tracer.log.error("Unable to apply Elasticsearch integration: #{e}")
             end
           end
-          @patched
         end
 
         # rubocop:disable Metrics/MethodLength
@@ -53,8 +42,15 @@ module Datadog
             end
 
             def initialize(*args, &block)
+              tracer = Datadog.configuration[:elasticsearch][:tracer]
               service = Datadog.configuration[:elasticsearch][:service_name]
-              pin = Datadog::Pin.new(service, app: 'elasticsearch', app_type: Datadog::Ext::AppTypes::DB)
+
+              pin = Datadog::Pin.new(
+                service,
+                app: Datadog::Contrib::Elasticsearch::Ext::APP,
+                app_type: Datadog::Ext::AppTypes::DB,
+                tracer: tracer
+              )
               pin.onto(self)
               initialize_without_datadog(*args, &block)
             end
@@ -74,29 +70,29 @@ module Datadog
 
               url = full_url.path
               response = nil
-              pin.tracer.trace('elasticsearch.query') do |span|
+              pin.tracer.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection
                   port = connection.host[:port] if connection
 
                   span.service = pin.service
-                  span.span_type = Ext::AppTypes::DB
+                  span.span_type = Datadog::Ext::AppTypes::DB
 
                   # load JSON for the following fields unless they're already strings
                   params = JSON.generate(params) if params && !params.is_a?(String)
                   body = JSON.generate(body) if body && !body.is_a?(String)
 
-                  span.set_tag(METHOD, method)
-                  span.set_tag(URL, url)
-                  span.set_tag(PARAMS, params) if params
+                  span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_METHOD, method)
+                  span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_URL, url)
+                  span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_PARAMS, params) if params
                   if body
                     quantize_options = Datadog.configuration[:elasticsearch][:quantize]
                     quantized_body = Datadog::Contrib::Elasticsearch::Quantize.format_body(body, quantize_options)
-                    span.set_tag(BODY, quantized_body)
+                    span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_BODY, quantized_body)
                   end
-                  span.set_tag('out.host', host) if host
-                  span.set_tag('out.port', port) if port
+                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, host) if host
+                  span.set_tag(Datadog::Ext::NET::TARGET_PORT, port) if port
 
                   quantized_url = Datadog::Contrib::Elasticsearch::Quantize.format_url(url)
                   span.resource = "#{method} #{quantized_url}"
@@ -105,17 +101,12 @@ module Datadog
                 ensure
                   # the call is still executed
                   response = perform_request_without_datadog(*args)
-                  span.set_tag('http.status_code', response.status)
+                  span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
                 end
               end
               response
             end
           end
-        end
-
-        # patched? tells wether patch has been successfully applied
-        def patched?
-          @patched
         end
       end
     end

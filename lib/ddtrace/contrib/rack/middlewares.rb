@@ -1,6 +1,7 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
 
 module Datadog
@@ -15,6 +16,8 @@ module Datadog
       # information available at the Rack level.
       # rubocop:disable Metrics/ClassLength
       class TraceMiddleware
+        # DEPRECATED: Remove in 1.0 in favor of Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN
+        # This constant will remain here until then, for backwards compatibility.
         RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
 
         def initialize(app)
@@ -29,7 +32,7 @@ module Datadog
           return if request_start.nil?
 
           tracer.trace(
-            'http_server.queue',
+            Ext::SPAN_HTTP_SERVER_QUEUE,
             start_time: request_start,
             service: Datadog.configuration[:rack][:web_service_name]
           )
@@ -56,7 +59,7 @@ module Datadog
 
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
-          request_span = tracer.trace('rack.request', trace_options)
+          request_span = tracer.trace(Ext::SPAN_REQUEST, trace_options)
           env[RACK_REQUEST_SPAN] = request_span
 
           # Add deprecation warnings

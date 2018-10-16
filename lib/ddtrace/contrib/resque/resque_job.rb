@@ -1,5 +1,6 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/sync_writer'
+require 'ddtrace/contrib/sidekiq/ext'
 require 'resque'
 
 module Datadog
@@ -10,7 +11,7 @@ module Datadog
         def around_perform(*args)
           pin = Pin.get_from(::Resque)
           return yield unless pin && pin.tracer
-          pin.tracer.trace('resque.job', service: pin.service) do |span|
+          pin.tracer.trace(Ext::SPAN_JOB, service: pin.service) do |span|
             span.resource = name
             span.span_type = pin.app_type
             yield

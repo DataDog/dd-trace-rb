@@ -1,4 +1,5 @@
 require 'delayed/plugin'
+require 'ddtrace/contrib/delayed_job/ext'
 
 module Datadog
   module Contrib
@@ -8,12 +9,12 @@ module Datadog
         def self.instrument(job, &block)
           return block.call(job) unless tracer && tracer.enabled
 
-          tracer.trace('delayed_job'.freeze, service: configuration[:service_name], resource: job.name) do |span|
-            span.set_tag('delayed_job.id'.freeze, job.id)
-            span.set_tag('delayed_job.queue'.freeze, job.queue) if job.queue
-            span.set_tag('delayed_job.priority'.freeze, job.priority)
-            span.set_tag('delayed_job.attempts'.freeze, job.attempts)
-            span.span_type = Ext::AppTypes::WORKER
+          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job.name) do |span|
+            span.set_tag(Ext::TAG_ID, job.id)
+            span.set_tag(Ext::TAG_QUEUE, job.queue) if job.queue
+            span.set_tag(Ext::TAG_PRIORITY, job.priority)
+            span.set_tag(Ext::TAG_ATTEMPTS, job.attempts)
+            span.span_type = Datadog::Ext::AppTypes::WORKER
 
             yield job
           end

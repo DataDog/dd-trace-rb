@@ -1,44 +1,28 @@
-require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/patcher'
 
 module Datadog
   module Contrib
     module Excon
-      # Responsible for hooking the instrumentation into Excon
+      # Patcher enables patching of 'excon' module.
       module Patcher
-        include Base
-
-        DEFAULT_SERVICE = 'excon'.freeze
-
-        register_as :excon
-        option :tracer, default: Datadog.tracer
-        option :service_name, default: DEFAULT_SERVICE
-        option :distributed_tracing, default: false
-        option :split_by_domain, default: false
-        option :error_handler, default: nil
-
-        @patched = false
+        include Contrib::Patcher
 
         module_function
 
-        def patch
-          return @patched if patched? || !compatible?
-
-          require 'ddtrace/contrib/excon/middleware'
-
-          add_middleware
-
-          @patched = true
-        rescue => e
-          Tracer.log.error("Unable to apply Excon integration: #{e}")
-          @patched
-        end
-
         def patched?
-          @patched
+          done?(:excon)
         end
 
-        def compatible?
-          defined?(::Excon)
+        def patch
+          do_once(:excon) do
+            begin
+              require 'ddtrace/contrib/excon/middleware'
+
+              add_middleware
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply Excon integration: #{e}")
+            end
+          end
         end
 
         def add_middleware

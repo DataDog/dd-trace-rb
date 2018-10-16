@@ -1,71 +1,56 @@
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/faraday/ext'
+
 module Datadog
   module Contrib
     module Faraday
-      COMPATIBLE_UNTIL = Gem::Version.new('1.0.0')
-      SERVICE = 'faraday'.freeze
-      NAME = 'faraday.request'.freeze
-
-      # Responsible for hooking the instrumentation into faraday
+      # Patcher enables patching of 'faraday' module.
       module Patcher
-        include Base
+        include Contrib::Patcher
 
-        register_as :faraday, auto_patch: true
+        module_function
 
-        DEFAULT_ERROR_HANDLER = lambda do |env|
-          Ext::HTTP::ERROR_RANGE.cover?(env[:status])
+        def patched?
+          done?(:faraday)
         end
 
-        option :service_name, default: SERVICE
-        option :distributed_tracing, default: false
-        option :error_handler, default: DEFAULT_ERROR_HANDLER
-        option :tracer, default: Datadog.tracer
+        def patch
+          do_once(:faraday) do
+            begin
+              require 'ddtrace/contrib/faraday/middleware'
 
-        @patched = false
-
-        class << self
-          def patch
-            return @patched if patched? || !compatible?
-
-            require 'ddtrace/ext/app_types'
-            require 'ddtrace/contrib/faraday/middleware'
-
-            add_pin
-            add_middleware
-
-            @patched = true
-          rescue => e
-            Tracer.log.error("Unable to apply Faraday integration: #{e}")
-            @patched
+              add_pin
+              add_middleware
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply Faraday integration: #{e}")
+            end
           end
+        end
 
-          def patched?
-            @patched
-          end
+        def add_pin
+          Pin.new(
+            get_option(:service_name),
+            app: Ext::APP,
+            app_type: Datadog::Ext::AppTypes::WEB,
+            tracer: get_option(:tracer)
+          ).onto(::Faraday)
+        end
 
-          def register_service(name)
-            get_option(:tracer).set_service_info(name, 'faraday', Ext::AppTypes::WEB)
-          end
+        def add_middleware
+          ::Faraday::Middleware.register_middleware(ddtrace: Middleware)
+        end
 
-          private
+        def register_service(name)
+          get_option(:tracer).set_service_info(
+            name,
+            Ext::APP,
+            Datadog::Ext::AppTypes::WEB
+          )
+        end
 
-          def compatible?
-            return unless defined?(::Faraday::VERSION)
-
-            Gem::Version.new(::Faraday::VERSION) < COMPATIBLE_UNTIL
-          end
-
-          def add_pin
-            Pin.new(
-              get_option(:service_name),
-              app: 'faraday',
-              app_type: Ext::AppTypes::WEB,
-              tracer: get_option(:tracer)
-            ).onto(::Faraday)
-          end
-
-          def add_middleware
-            ::Faraday::Middleware.register_middleware(ddtrace: Middleware)
-          end
+        def get_option(option)
+          Datadog.configuration[:faraday].get_option(option)
         end
       end
     end

@@ -46,7 +46,7 @@ RSpec.describe 'tracing on the client connection' do
 
   shared_examples 'span data contents' do
     specify { expect(span.name).to eq 'grpc.client' }
-    specify { expect(span.span_type).to eq 'grpc' }
+    specify { expect(span.span_type).to eq 'http' }
     specify { expect(span.service).to eq 'rspec' }
     specify { expect(span.resource).to eq 'myservice.endpoint' }
     specify { expect(span.get_tag('error.stack')).to be_nil }

@@ -22,7 +22,7 @@ RSpec.describe 'Faraday middleware' do
   let(:configuration_options) { { tracer: tracer } }
 
   let(:request_span) do
-    tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::Faraday::NAME }
+    tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::Faraday::Ext::SPAN_REQUEST }
   end
 
   before(:each) do
@@ -51,8 +51,8 @@ RSpec.describe 'Faraday middleware' do
 
     it do
       expect(request_span).to_not be nil
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::SERVICE)
-      expect(request_span.name).to eq(Datadog::Contrib::Faraday::NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
@@ -68,8 +68,8 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.post('/failure') }
 
     it do
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::SERVICE)
-      expect(request_span.name).to eq(Datadog::Contrib::Faraday::NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/failure')
@@ -103,7 +103,7 @@ RSpec.describe 'Faraday middleware' do
     let(:middleware_options) { { split_by_domain: true } }
 
     it do
-      expect(request_span.name).to eq(Datadog::Contrib::Faraday::NAME)
+      expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.service).to eq('example.com')
       expect(request_span.resource).to eq('GET')
     end

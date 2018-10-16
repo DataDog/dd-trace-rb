@@ -1,31 +1,31 @@
+require 'ddtrace/contrib/patcher'
+
 module Datadog
   module Contrib
     module Sidekiq
-      # Provides instrumentation support for Sidekiq
+      # Patcher enables patching of 'sidekiq' module.
       module Patcher
-        include Base
-        VERSION_REQUIRED = Gem::Version.new('4.0.0')
-        register_as :sidekiq
-        option :service_name, default: 'sidekiq'
-        option :tracer, default: Datadog.tracer
+        include Contrib::Patcher
 
         module_function
 
-        def patch
-          return unless compatible?
-
-          require_relative 'tracer'
-
-          ::Sidekiq.configure_server do |config|
-            config.server_middleware do |chain|
-              chain.add(Sidekiq::Tracer)
-            end
-          end
+        def patched?
+          done?(:sidekiq)
         end
 
-        def compatible?
-          defined?(::Sidekiq) &&
-            Gem::Version.new(::Sidekiq::VERSION) >= VERSION_REQUIRED
+        def patch
+          do_once(:sidekiq) do
+            begin
+              require 'ddtrace/contrib/sidekiq/tracer'
+              ::Sidekiq.configure_server do |config|
+                config.server_middleware do |chain|
+                  chain.add(Sidekiq::Tracer)
+                end
+              end
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply Sidekiq integration: #{e}")
+            end
+          end
         end
       end
     end

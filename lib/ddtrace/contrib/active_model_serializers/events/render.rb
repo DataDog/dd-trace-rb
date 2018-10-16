@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/active_model_serializers/ext'
 require 'ddtrace/contrib/active_model_serializers/event'
 
 module Datadog
@@ -9,7 +10,6 @@ module Datadog
           include ActiveModelSerializers::Event
 
           EVENT_NAME = 'render.active_model_serializers'.freeze
-          SPAN_NAME = 'active_model_serializers.render'.freeze
 
           module_function
 
@@ -23,7 +23,7 @@ module Datadog
           end
 
           def span_name
-            self::SPAN_NAME
+            Ext::SPAN_RENDER
           end
         end
       end

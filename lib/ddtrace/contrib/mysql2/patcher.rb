@@ -1,37 +1,27 @@
+require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/mysql2/client'
 
 module Datadog
   module Contrib
     module Mysql2
-      # Mysql2 patcher
+      # Patcher enables patching of 'mysql2' module.
       module Patcher
-        include Base
-
-        register_as :mysql2
-        option :service_name, default: 'mysql2'
-        option :tracer, default: Datadog.tracer
-
-        @patched = false
+        include Contrib::Patcher
 
         module_function
 
-        def patch
-          return @patched if patched? || !compatible?
-
-          patch_mysql2_client
-
-          @patched = true
-        rescue StandardError => e
-          Tracer.log.error("Unable to apply mysql2 integration: #{e}")
-          @patched
-        end
-
         def patched?
-          @patched
+          done?(:mysql2)
         end
 
-        def compatible?
-          defined?(::Mysql2)
+        def patch
+          do_once(:mysql2) do
+            begin
+              patch_mysql2_client
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply mysql2 integration: #{e}")
+            end
+          end
         end
 
         def patch_mysql2_client
