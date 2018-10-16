@@ -1698,11 +1698,12 @@ end
 
 After activation, the tracer will send the following statistics:
 
-| Name                                            | Type    | Description                                                      |
-| ----------------------------------------------- | ------- | ---------------------------------------------------------------- |
-| `datadog.tracer.transport.http.client_error`    | `count` | Number of HTTP requests to agent with a client error.            |
-| `datadog.tracer.transport.http.internal_error`  | `count` | Number of internal tracer errors produced during HTTP transport. |
-| `datadog.tracer.transport.http.server_error`    | `count` | Number of HTTP requests to agent with a server error.            |
-| `datadog.tracer.transport.http.success`         | `count` | Number of successful HTTP requests to agent.                     |
-| `datadog.tracer.writer.services_flushed`        | `count` | Number of services flushed.                                      |
-| `datadog.tracer.writer.traces_flushed`          | `count` | Number of traces flushed.                                        |
+| Name                                               | Type    | Description                                                      |
+| -------------------------------------------------- | ------- | ---------------------------------------------------------------- |
+| `datadog.tracer.transport.http.client_error`       | `count` | Number of HTTP requests to agent with a client error.            |
+| `datadog.tracer.transport.http.incompatible_error` | `count` | Number of HTTP requests to agent with incompatible API.          |
+| `datadog.tracer.transport.http.internal_error`     | `count` | Number of internal tracer errors produced during HTTP transport. |
+| `datadog.tracer.transport.http.server_error`       | `count` | Number of HTTP requests to agent with a server error.            |
+| `datadog.tracer.transport.http.success`            | `count` | Number of successful HTTP requests to agent.                     |
+| `datadog.tracer.writer.services_flushed`           | `count` | Number of services flushed.                                      |
+| `datadog.tracer.writer.traces_flushed`             | `count` | Number of traces flushed.                                        |

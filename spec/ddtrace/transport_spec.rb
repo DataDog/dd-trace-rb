@@ -23,30 +23,68 @@ RSpec.describe Datadog::HTTPTransport do
     Datadog::Tracer.log.level = @original_level
   end
 
-  describe '#handle_response' do
-    subject(:result) { transport.handle_response(response) }
+  shared_examples_for 'an operation that sends stats' do |stat, *options|
+    let(:transport) { super().tap { |t| t.statsd = statsd } }
+    it do
+      subject
+      expect(statsd).to have_received(:increment).with(stat, *options)
+    end
+  end
 
-    shared_examples_for 'a request that sends stats' do |stat, *options|
-      let(:transport) { super().tap { |t| t.statsd = statsd } }
-      it do
-        subject
-        expect(statsd).to have_received(:increment).with(stat, *options)
+  describe '#post' do
+    let(:url) { 'http://localhost/post/test/traces' }
+    let(:data) { '{}' }
+
+    context 'when not given a block' do
+      subject(:response_code) { transport.post(url, data) }
+
+      context 'and the request raises an internal error' do
+        before(:each) do
+          allow(Net::HTTP::Post).to receive(:new) { raise error }
+        end
+
+        let(:error) { Class.new(StandardError) }
+
+        it { is_expected.to be 500 }
+        it_behaves_like 'an operation that sends stats', described_class::METRIC_INTERNAL_ERROR
       end
     end
+
+    context 'when given a block' do
+      subject(:response_code) { transport.post(url, data, &block) }
+      let(:block) { proc { |_response| } }
+
+      context 'and the request raises an internal error' do
+        before(:each) do
+          allow(Net::HTTP::Post).to receive(:new) { raise error }
+        end
+
+        let(:error) { Class.new(StandardError) }
+
+        it { expect { |b| transport.post(url, data, &b) }.to yield_with_args(nil) }
+        it { is_expected.to be 500 }
+        it_behaves_like 'an operation that sends stats', described_class::METRIC_INTERNAL_ERROR
+      end
+    end
+  end
+
+  describe '#handle_response' do
+    subject(:result) { transport.handle_response(response) }
 
     context 'given an OK response' do
       let(:response) { Net::HTTPResponse.new(1.0, 200, 'OK') }
       it { is_expected.to be 200 }
-      it_behaves_like 'a request that sends stats', described_class::METRIC_SUCCESS
+      it_behaves_like 'an operation that sends stats', described_class::METRIC_SUCCESS
     end
 
     context 'given a not found response' do
       let(:transport) { super().tap { |t| t.statsd = statsd } }
       let(:response) { Net::HTTPResponse.new(1.0, 404, 'OK') }
       it { is_expected.to be 404 }
+      it_behaves_like 'an operation that sends stats', described_class::METRIC_INCOMPATIBLE_ERROR
 
-      # We don't expect a stat is sent because this causes a downgrade.
-      it 'doesn\'t send stats' do
+      # We don't expect a client error stat is sent because this causes a downgrade.
+      it 'doesn\'t send a client error stat' do
         response
         expect(statsd).to_not have_received(:increment).with(described_class::METRIC_CLIENT_ERROR)
       end
@@ -55,13 +93,13 @@ RSpec.describe Datadog::HTTPTransport do
     context 'given a client error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 400, 'OK') }
       it { is_expected.to be 400 }
-      it_behaves_like 'a request that sends stats', described_class::METRIC_CLIENT_ERROR
+      it_behaves_like 'an operation that sends stats', described_class::METRIC_CLIENT_ERROR
     end
 
     context 'given a server error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 500, 'OK') }
       it { is_expected.to be 500 }
-      it_behaves_like 'a request that sends stats', described_class::METRIC_SERVER_ERROR
+      it_behaves_like 'an operation that sends stats', described_class::METRIC_SERVER_ERROR
     end
 
     context 'given a response that raises an error' do
@@ -74,7 +112,7 @@ RSpec.describe Datadog::HTTPTransport do
       let(:error) { Class.new(StandardError) }
 
       it { is_expected.to be 500 }
-      it_behaves_like 'a request that sends stats', described_class::METRIC_INTERNAL_ERROR
+      it_behaves_like 'an operation that sends stats', described_class::METRIC_INTERNAL_ERROR
     end
 
     context 'given nil' do
@@ -139,6 +177,18 @@ RSpec.describe Datadog::HTTPTransport do
           expect(transport.instance_variable_get(:@api)[:version]).to eq(described_class::V2)
           expect(transport.success?(code)).to be true
         end
+      end
+
+      context 'when the response callback raises an error' do
+        let(:options) { { response_callback: block } }
+        let(:block) { proc { |_action, _response, _api| raise error } }
+        let(:error) { Class.new(StandardError) }
+
+        it { expect { code }.to_not raise_error }
+
+        # Expect a success for sending the traces, and an error from the failed callback.
+        it_behaves_like 'an operation that sends stats', described_class::METRIC_SUCCESS
+        it_behaves_like 'an operation that sends stats', described_class::METRIC_INTERNAL_ERROR
       end
     end
 
