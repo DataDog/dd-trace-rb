@@ -28,10 +28,10 @@ module Datadog
     HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'.freeze
     HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'.freeze
 
-    METRIC_POST_CLIENT_ERROR = 'datadog.tracer.transport.http.post.client_error'.freeze
-    METRIC_POST_INTERNAL_ERROR = 'datadog.tracer.transport.http.post.internal_error'.freeze
-    METRIC_POST_SERVER_ERROR = 'datadog.tracer.transport.http.post.server_error'.freeze
-    METRIC_POST_SUCCESS = 'datadog.tracer.transport.http.post.success'.freeze
+    METRIC_CLIENT_ERROR = 'datadog.tracer.transport.http.client_error'.freeze
+    METRIC_INTERNAL_ERROR = 'datadog.tracer.transport.http.internal_error'.freeze
+    METRIC_SERVER_ERROR = 'datadog.tracer.transport.http.server_error'.freeze
+    METRIC_SUCCESS = 'datadog.tracer.transport.http.success'.freeze
 
     API = {
       V4 = 'v0.4'.freeze => {
@@ -183,21 +183,21 @@ module Datadog
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
         @mutex.synchronize { @count_consecutive_errors = 0 }
-        increment(METRIC_POST_SUCCESS)
+        increment(METRIC_SUCCESS)
       elsif downgrade?(status_code)
         Datadog::Tracer.log.debug("calling the endpoint but received #{status_code}; downgrading the API")
       elsif client_error?(status_code)
         log_error_once("Client error: #{response.message}")
-        increment(METRIC_POST_CLIENT_ERROR)
+        increment(METRIC_CLIENT_ERROR)
       elsif server_error?(status_code)
         log_error_once("Server error: #{response.message}")
-        increment(METRIC_POST_SERVER_ERROR)
+        increment(METRIC_SERVER_ERROR)
       end
 
       status_code
     rescue StandardError => e
       log_error_once(e.message)
-      increment(METRIC_POST_INTERNAL_ERROR)
+      increment(METRIC_INTERNAL_ERROR)
 
       500
     end
