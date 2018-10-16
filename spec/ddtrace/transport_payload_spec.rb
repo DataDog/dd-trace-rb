@@ -42,10 +42,10 @@ RSpec.describe 'Datadog::HTTPTransport payload' do
 
       expect(WebMock).to have_requested(:post, %r{#{hostname}:#{port}/v\d+\.\d+/traces})
       expect(statsd).to have_received(:increment).with(Datadog::Writer::METRIC_TRACES_FLUSHED, by: 1).once
-      expect(statsd).to have_received(:increment).with(Datadog::HTTPTransport::METRIC_POST_SUCCESS)
-      expect(statsd).to_not have_received(:increment).with(Datadog::HTTPTransport::METRIC_POST_CLIENT_ERROR)
-      expect(statsd).to_not have_received(:increment).with(Datadog::HTTPTransport::METRIC_POST_SERVER_ERROR)
-      expect(statsd).to_not have_received(:increment).with(Datadog::HTTPTransport::METRIC_POST_INTERNAL_ERROR)
+      expect(statsd).to have_received(:increment).with(Datadog::HTTPTransport::METRIC_SUCCESS)
+      expect(statsd).to_not have_received(:increment).with(Datadog::HTTPTransport::METRIC_CLIENT_ERROR)
+      expect(statsd).to_not have_received(:increment).with(Datadog::HTTPTransport::METRIC_SERVER_ERROR)
+      expect(statsd).to_not have_received(:increment).with(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR)
     end
 
     let(:transport) { tracer.writer.transport }

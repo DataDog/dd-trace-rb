@@ -37,7 +37,7 @@ RSpec.describe Datadog::HTTPTransport do
     context 'given an OK response' do
       let(:response) { Net::HTTPResponse.new(1.0, 200, 'OK') }
       it { is_expected.to be 200 }
-      it_behaves_like 'a request that sends stats', described_class::METRIC_POST_SUCCESS
+      it_behaves_like 'a request that sends stats', described_class::METRIC_SUCCESS
     end
 
     context 'given a not found response' do
@@ -48,20 +48,20 @@ RSpec.describe Datadog::HTTPTransport do
       # We don't expect a stat is sent because this causes a downgrade.
       it 'doesn\'t send stats' do
         response
-        expect(statsd).to_not have_received(:increment).with(described_class::METRIC_POST_CLIENT_ERROR)
+        expect(statsd).to_not have_received(:increment).with(described_class::METRIC_CLIENT_ERROR)
       end
     end
 
     context 'given a client error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 400, 'OK') }
       it { is_expected.to be 400 }
-      it_behaves_like 'a request that sends stats', described_class::METRIC_POST_CLIENT_ERROR
+      it_behaves_like 'a request that sends stats', described_class::METRIC_CLIENT_ERROR
     end
 
     context 'given a server error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 500, 'OK') }
       it { is_expected.to be 500 }
-      it_behaves_like 'a request that sends stats', described_class::METRIC_POST_SERVER_ERROR
+      it_behaves_like 'a request that sends stats', described_class::METRIC_SERVER_ERROR
     end
 
     context 'given a response that raises an error' do
@@ -74,7 +74,7 @@ RSpec.describe Datadog::HTTPTransport do
       let(:error) { Class.new(StandardError) }
 
       it { is_expected.to be 500 }
-      it_behaves_like 'a request that sends stats', described_class::METRIC_POST_INTERNAL_ERROR
+      it_behaves_like 'a request that sends stats', described_class::METRIC_INTERNAL_ERROR
     end
 
     context 'given nil' do
