@@ -29,6 +29,7 @@ module Datadog
     HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'.freeze
 
     METRIC_CLIENT_ERROR = 'datadog.tracer.transport.http.client_error'.freeze
+    METRIC_INCOMPATIBLE_ERROR = 'datadog.tracer.transport.http.incompatible_error'.freeze
     METRIC_INTERNAL_ERROR = 'datadog.tracer.transport.http.internal_error'.freeze
     METRIC_SERVER_ERROR = 'datadog.tracer.transport.http.server_error'.freeze
     METRIC_SUCCESS = 'datadog.tracer.transport.http.success'.freeze
@@ -122,6 +123,7 @@ module Datadog
         handle_response(response)
       rescue StandardError => e
         log_error_once(e.message)
+        increment(METRIC_INTERNAL_ERROR)
         500
       end.tap do
         yield(response) if block_given?
@@ -186,6 +188,7 @@ module Datadog
         increment(METRIC_SUCCESS)
       elsif downgrade?(status_code)
         Datadog::Tracer.log.debug("calling the endpoint but received #{status_code}; downgrading the API")
+        increment(METRIC_INCOMPATIBLE_ERROR)
       elsif client_error?(status_code)
         log_error_once("Client error: #{response.message}")
         increment(METRIC_CLIENT_ERROR)
@@ -224,7 +227,7 @@ module Datadog
       @response_callback.call(action, response, @api)
     rescue => e
       Tracer.log.debug("Error processing callback: #{e}")
-      @mutex.synchronize { @count_internal_error += 1 }
+      increment(METRIC_INTERNAL_ERROR)
     end
   end
 end
