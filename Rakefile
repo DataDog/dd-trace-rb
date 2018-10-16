@@ -84,7 +84,7 @@ end
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
-             :elasticsearch, :sidekiq, :sinatra, :monkey]
+             :sidekiq, :sinatra, :monkey]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w[test lib]
@@ -128,7 +128,6 @@ namespace :test do
 
   [
     :aws,
-    :elasticsearch,
     :grape,
     :rack,
     :sidekiq,
@@ -223,7 +222,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:aws'
-      sh 'bundle exec appraisal contrib-old rake test:elasticsearch'
       sh 'bundle exec appraisal contrib-old rake test:monkey'
       sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
@@ -268,7 +266,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:aws'
-      sh 'bundle exec appraisal contrib-old rake test:elasticsearch'
       sh 'bundle exec appraisal contrib-old rake test:monkey'
       sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
@@ -317,7 +314,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:aws'
-      sh 'bundle exec appraisal contrib-old rake test:elasticsearch'
       sh 'bundle exec appraisal contrib-old rake test:monkey'
       sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
@@ -372,7 +368,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:aws'
-      sh 'bundle exec appraisal contrib rake test:elasticsearch'
       sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
@@ -438,7 +433,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:aws'
-      sh 'bundle exec appraisal contrib rake test:elasticsearch'
       sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
@@ -503,7 +497,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:aws'
-      sh 'bundle exec appraisal contrib rake test:elasticsearch'
       sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
