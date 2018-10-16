@@ -3,6 +3,8 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::HTTPTransport do
+  include_context 'stat counts'
+
   let(:transport) do
     described_class.new(
       ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
@@ -24,9 +26,55 @@ RSpec.describe Datadog::HTTPTransport do
   describe '#handle_response' do
     subject(:result) { transport.handle_response(response) }
 
+    shared_examples_for 'a request that sends stats' do |stat, *options|
+      let(:transport) { super().tap { |t| t.statsd = statsd } }
+      it do
+        subject
+        expect(statsd).to have_received(:increment).with(stat, *options)
+      end
+    end
+
     context 'given an OK response' do
       let(:response) { Net::HTTPResponse.new(1.0, 200, 'OK') }
       it { is_expected.to be 200 }
+      it_behaves_like 'a request that sends stats', described_class::METRIC_POST_SUCCESS
+    end
+
+    context 'given a not found response' do
+      let(:transport) { super().tap { |t| t.statsd = statsd } }
+      let(:response) { Net::HTTPResponse.new(1.0, 404, 'OK') }
+      it { is_expected.to be 404 }
+
+      # We don't expect a stat is sent because this causes a downgrade.
+      it 'doesn\'t send stats' do
+        response
+        expect(statsd).to_not have_received(:increment).with(described_class::METRIC_POST_CLIENT_ERROR)
+      end
+    end
+
+    context 'given a client error response' do
+      let(:response) { Net::HTTPResponse.new(1.0, 400, 'OK') }
+      it { is_expected.to be 400 }
+      it_behaves_like 'a request that sends stats', described_class::METRIC_POST_CLIENT_ERROR
+    end
+
+    context 'given a server error response' do
+      let(:response) { Net::HTTPResponse.new(1.0, 500, 'OK') }
+      it { is_expected.to be 500 }
+      it_behaves_like 'a request that sends stats', described_class::METRIC_POST_SERVER_ERROR
+    end
+
+    context 'given a response that raises an error' do
+      let(:response) do
+        instance_double(Net::HTTPResponse).tap do |r|
+          expect(r).to receive(:code) { raise error }
+        end
+      end
+
+      let(:error) { Class.new(StandardError) }
+
+      it { is_expected.to be 500 }
+      it_behaves_like 'a request that sends stats', described_class::METRIC_POST_INTERNAL_ERROR
     end
 
     context 'given nil' do
