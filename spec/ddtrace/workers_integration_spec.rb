@@ -67,7 +67,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
           s.finish
         end
 
-        try_wait_until { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 1 }
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 1 }
       end
 
       it 'flushes the trace correctly' do
@@ -105,7 +105,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
           s.finish
         end
 
-        try_wait_until { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 1 }
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 1 }
       end
 
       it 'flushes the trace correctly' do
@@ -145,7 +145,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         tracer.start_span('keep', service: 'tracer-test').finish
         tracer.start_span('discard', service: 'tracer-test').finish
 
-        try_wait_until { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 2 }
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 2 }
       end
 
       after(:each) { Datadog::Pipeline.processors = [] }
@@ -168,7 +168,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         tracer.set_service_info('my.other.service', 'golang', 'api')
         tracer.start_span('my.op').finish
 
-        try_wait_until { stats[Datadog::Writer::METRIC_SERVICES_FLUSHED] >= 1 }
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_SERVICES_FLUSHED] >= 1 }
       end
 
       it 'flushes the services correctly' do

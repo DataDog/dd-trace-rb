@@ -33,7 +33,7 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     def wait_for_flush(stat, num = 1)
-      try_wait_until { stats[stat] >= num }
+      try_wait_until(attempts: 30) { stats[stat] >= num }
     end
 
     def agent_receives_span_step1
@@ -160,7 +160,7 @@ RSpec.describe 'Tracer integration tests' do
           end.finish
         end.finish
 
-        try_wait_until { writer.spans(:keep).any? }
+        try_wait_until(attempts: 30) { writer.spans(:keep).any? }
       end
 
       it do
@@ -197,7 +197,7 @@ RSpec.describe 'Tracer integration tests' do
         child_span.finish
         parent_span.finish
 
-        try_wait_until(attempts: 20) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= i + 1 }
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= i + 1 }
 
         expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(i + 1)
         expect(statsd).to_not have_received(:increment).with(Datadog::HTTPTransport::METRIC_POST_CLIENT_ERROR)

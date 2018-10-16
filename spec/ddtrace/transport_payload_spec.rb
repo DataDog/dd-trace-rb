@@ -38,7 +38,7 @@ RSpec.describe 'Datadog::HTTPTransport payload' do
         sleep(0.001)
       end
 
-      try_wait_until { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 1 }
+      try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 1 }
 
       expect(WebMock).to have_requested(:post, %r{#{hostname}:#{port}/v\d+\.\d+/traces})
       expect(statsd).to have_received(:increment).with(Datadog::Writer::METRIC_TRACES_FLUSHED, by: 1).once
