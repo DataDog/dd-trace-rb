@@ -219,6 +219,7 @@ module Datadog
       @response_callback.call(action, response, @api)
     rescue => e
       Tracer.log.debug("Error processing callback: #{e}")
+      @mutex.synchronize { @count_internal_error += 1 }
     end
   end
 end

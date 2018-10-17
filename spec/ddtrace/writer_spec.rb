@@ -167,8 +167,9 @@ RSpec.describe Datadog::Writer do
             context 'and is a :traces action' do
               context 'and is API v4' do
                 let(:api) { { version: Datadog::HTTPTransport::V4 } }
+                let(:body) { sampling_response.to_json }
+                let(:sampling_response) { { 'rate_by_service' => service_rates } }
                 let(:service_rates) { { 'service:a,env:test' => 0.1, 'service:b,env:test' => 0.5 } }
-                let(:body) { service_rates.to_json }
 
                 it do
                   expect(sampler).to receive(:update).with(service_rates)

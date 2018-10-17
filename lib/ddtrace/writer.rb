@@ -120,8 +120,10 @@ module Datadog
       return unless action == :traces && response.is_a?(Net::HTTPOK)
 
       if api[:version] == HTTPTransport::V4
-        service_rates = JSON.parse(response.body)
-        @priority_sampler.update(service_rates)
+        body = JSON.parse(response.body)
+        if body.is_a?(Hash) && body.key?('rate_by_service')
+          @priority_sampler.update(body['rate_by_service'])
+        end
         true
       else
         false
