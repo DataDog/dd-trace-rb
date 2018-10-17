@@ -107,7 +107,9 @@ module Datadog
         request = Net::HTTP::Post.new(url, headers)
         request.body = data
 
-        response = Net::HTTP.start(@hostname, @port, read_timeout: TIMEOUT) { |http| http.request(request) }
+        response = Net::HTTP.start(@hostname, @port, open_timeout: TIMEOUT, read_timeout: TIMEOUT) do |http|
+          http.request(request)
+        end
         handle_response(response)
       rescue StandardError => e
         log_error_once(e.message)
@@ -219,6 +221,7 @@ module Datadog
       @response_callback.call(action, response, @api)
     rescue => e
       Tracer.log.debug("Error processing callback: #{e}")
+      @mutex.synchronize { @count_internal_error += 1 }
     end
   end
 end
