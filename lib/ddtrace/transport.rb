@@ -1,8 +1,9 @@
 require 'thread'
 require 'net/http'
 
+require 'ddtrace/ext/http'
+require 'ddtrace/ext/meta'
 require 'ddtrace/encoding'
-require 'ddtrace/version'
 require 'ddtrace/metrics'
 
 module Datadog
@@ -19,14 +20,7 @@ module Datadog
     # seconds before the transport timeout
     TIMEOUT = 1
 
-    # header containing the number of traces in a payload
-    TRACE_COUNT_HEADER = 'X-Datadog-Trace-Count'.freeze
-    RUBY_INTERPRETER = RUBY_VERSION > '1.9' ? RUBY_ENGINE + '-' + RUBY_PLATFORM : 'ruby-' + RUBY_PLATFORM
-
-    HEADER_META_LANG = 'Datadog-Meta-Lang'.freeze
-    HEADER_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'.freeze
-    HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'.freeze
-    HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'.freeze
+    HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'.freeze
 
     METRIC_CLIENT_ERROR = 'datadog.tracer.transport.http.client_error'.freeze
     METRIC_INCOMPATIBLE_ERROR = 'datadog.tracer.transport.http.incompatible_error'.freeze
@@ -71,10 +65,10 @@ module Datadog
       # overwrite the Content-type with the one chosen in the Encoder
       @headers = options.fetch(:headers, {})
       @headers['Content-Type'] = @encoder.content_type
-      @headers[HEADER_META_LANG] = 'ruby'
-      @headers[HEADER_META_LANG_VERSION] = RUBY_VERSION
-      @headers[HEADER_META_LANG_INTERPRETER] = RUBY_INTERPRETER
-      @headers[HEADER_META_TRACER_VERSION] = Datadog::VERSION::STRING
+      @headers[Ext::HTTP::HEADER_META_LANG] = Ext::Meta::LANG
+      @headers[Ext::HTTP::HEADER_META_LANG_INTERPRETER] = Ext::Meta::LANG_INTERPRETER
+      @headers[Ext::HTTP::HEADER_META_LANG_VERSION] = Ext::Meta::LANG_VERSION
+      @headers[Ext::HTTP::HEADER_META_TRACER_VERSION] = Ext::Meta::TRACER_VERSION
 
       # stats
       @mutex = Mutex.new
@@ -112,7 +106,7 @@ module Datadog
     def post(url, data, count = nil)
       begin
         Datadog::Tracer.log.debug("Sending data from process: #{Process.pid}")
-        headers = count.nil? ? {} : { TRACE_COUNT_HEADER => count.to_s }
+        headers = count.nil? ? {} : { HEADER_TRACE_COUNT => count.to_s }
         headers = headers.merge(@headers)
         request = Net::HTTP::Post.new(url, headers)
         request.body = data
