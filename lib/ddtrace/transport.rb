@@ -201,10 +201,6 @@ module Datadog
 
     private
 
-    def increment(stat)
-      @mutex.synchronize { statsd.increment(stat) } unless statsd.nil?
-    end
-
     def log_error_once(*args)
       if @count_consecutive_errors > 0
         Datadog::Tracer.log.debug(*args)
