@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::HTTPTransport do
-  include_context 'stat counts'
+  include_context 'metric counts'
 
   let(:transport) do
     described_class.new(
@@ -27,7 +27,7 @@ RSpec.describe Datadog::HTTPTransport do
     let(:transport) { super().tap { |t| t.statsd = statsd } }
     it do
       subject
-      expect(statsd).to have_received(:increment).with(stat, *options)
+      expect(statsd).to increment_stat(stat, *options)
     end
   end
 
@@ -86,7 +86,7 @@ RSpec.describe Datadog::HTTPTransport do
       # We don't expect a client error stat is sent because this causes a downgrade.
       it 'doesn\'t send a client error stat' do
         response
-        expect(statsd).to_not have_received(:increment).with(described_class::METRIC_CLIENT_ERROR)
+        expect(statsd).to_not increment_stat(described_class::METRIC_CLIENT_ERROR)
       end
     end
 
