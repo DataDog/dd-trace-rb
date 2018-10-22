@@ -101,5 +101,40 @@ module MetricHelpers
         end
       end
     end
+
+    shared_examples_for 'an operation that increments stat' do |stat, options = {}|
+      let(:transport) { super().tap { |t| t.statsd = statsd } }
+
+      it do
+        subject
+        expect(statsd).to increment_stat(stat).with(options)
+      end
+    end
+  end
+
+  shared_context 'transport metric counts' do
+    include_context 'metric counts'
+
+    def transport_options(options = {}, encoder = Datadog::Encoding::MsgpackEncoder.new)
+      # NOTE: This merge won't work if options supplied also include tags.
+      #       It will overwrite the tags instead of merging them.
+      {
+        tags: transport_tags(encoder)
+      }.merge(options)
+    end
+
+    def transport_tags(encoder = Datadog::Encoding::MsgpackEncoder.new)
+      ["#{Datadog::HTTPTransport::TAG_ENCODING_TYPE}:#{encoder.content_type}"]
+    end
+
+    shared_examples_for 'a transport operation that increments stat' do |stat, options = {}|
+      let(:encoder) { Datadog::Encoding::MsgpackEncoder.new }
+      let(:transport) { super().tap { |t| t.statsd = statsd } }
+
+      it do
+        subject
+        expect(statsd).to increment_stat(stat).with(transport_options(options, encoder))
+      end
+    end
   end
 end

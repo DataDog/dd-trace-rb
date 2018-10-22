@@ -5,7 +5,7 @@ require 'ddtrace/tracer'
 require 'thread'
 
 RSpec.describe 'Tracer integration tests' do
-  include_context 'metric counts'
+  include_context 'transport metric counts'
 
   shared_context 'agent-based test' do
     before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
@@ -56,7 +56,9 @@ RSpec.describe 'Tracer integration tests' do
       expect(stats[Datadog::Writer::METRIC_SERVICES_FLUSHED]).to eq(1)
 
       # Number of successes counts both traces and services
-      expect(statsd).to increment_stat(Datadog::HTTPTransport::METRIC_SUCCESS).exactly(2).times
+      expect(statsd).to increment_stat(Datadog::HTTPTransport::METRIC_SUCCESS)
+        .with(transport_options)
+        .exactly(2).times
       expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR)
       expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR)
       expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR)
@@ -71,7 +73,9 @@ RSpec.describe 'Tracer integration tests' do
       expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(2)
       expect(stats[Datadog::Writer::METRIC_SERVICES_FLUSHED]).to eq(1)
 
-      expect(statsd).to increment_stat(Datadog::HTTPTransport::METRIC_SUCCESS).exactly(3).times
+      expect(statsd).to increment_stat(Datadog::HTTPTransport::METRIC_SUCCESS)
+        .with(transport_options)
+        .exactly(3).times
       expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR)
       expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR)
       expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR)
