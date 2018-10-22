@@ -37,8 +37,8 @@ module MetricHelpers
 
   # RSpec matcher for Statsd#increment
   class IncrementStat < SendStat
-    def initialize(stat, *args, &block)
-      super(:increment, *args, &block)
+    def initialize(stat, &block)
+      super(:increment, &block)
       @stat = stat
     end
 
@@ -47,8 +47,7 @@ module MetricHelpers
     end
 
     def with(*args)
-      options = args.first
-      with_constraint[2] = with_constraint[2].merge(options) unless options.nil?
+      with_constraint[2] = merge_with_defaults(args.first)
       self
     end
 
@@ -58,8 +57,26 @@ module MetricHelpers
       @with_constraint ||= [
         'with',
         @stat,
-        Datadog::Metrics::DEFAULT_OPTIONS.merge(@args.first || {})
+        Datadog::Metrics::DEFAULT_OPTIONS
       ]
+    end
+
+    private
+
+    def merge_with_defaults(options)
+      if options.nil?
+        # Set default options
+        Datadog::Metrics::DEFAULT_OPTIONS.dup
+      else
+        # Add tags to options
+        options.dup.tap do |opts|
+          opts[:tags] = if opts.key?(:tags)
+                          opts[:tags].dup.concat(Datadog::Metrics::DEFAULT_TAGS)
+                        else
+                          Datadog::Metrics::DEFAULT_TAGS.dup
+                        end
+        end
+      end
     end
   end
 
