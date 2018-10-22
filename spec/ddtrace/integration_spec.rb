@@ -131,7 +131,7 @@ RSpec.describe 'Tracer integration tests' do
 
     it do
       expect(@shutdown_results.count(true)).to eq(1)
-      expect(statsd).to increment_stat(Datadog::Writer::METRIC_TRACES_FLUSHED, by: 1)
+      expect(statsd).to increment_stat(Datadog::Writer::METRIC_TRACES_FLUSHED).with(by: 1)
       expect(statsd).to increment_stat(Datadog::Writer::METRIC_SERVICES_FLUSHED)
       expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR)
       expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR)
