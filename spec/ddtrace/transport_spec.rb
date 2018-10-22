@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::HTTPTransport do
-  include_context 'metric counts'
+  include_context 'transport metric counts'
 
   let(:transport) do
     described_class.new(
@@ -23,14 +23,6 @@ RSpec.describe Datadog::HTTPTransport do
     Datadog::Tracer.log.level = @original_level
   end
 
-  shared_examples_for 'an operation that sends stats' do |stat, *options|
-    let(:transport) { super().tap { |t| t.statsd = statsd } }
-    it do
-      subject
-      expect(statsd).to increment_stat(stat, *options)
-    end
-  end
-
   describe '#post' do
     let(:url) { 'http://localhost/post/test/traces' }
     let(:data) { '{}' }
@@ -46,7 +38,7 @@ RSpec.describe Datadog::HTTPTransport do
         let(:error) { Class.new(StandardError) }
 
         it { is_expected.to be 500 }
-        it_behaves_like 'an operation that sends stats', described_class::METRIC_INTERNAL_ERROR
+        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INTERNAL_ERROR
       end
     end
 
@@ -63,7 +55,7 @@ RSpec.describe Datadog::HTTPTransport do
 
         it { expect { |b| transport.post(url, data, &b) }.to yield_with_args(nil) }
         it { is_expected.to be 500 }
-        it_behaves_like 'an operation that sends stats', described_class::METRIC_INTERNAL_ERROR
+        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INTERNAL_ERROR
       end
     end
   end
@@ -74,14 +66,14 @@ RSpec.describe Datadog::HTTPTransport do
     context 'given an OK response' do
       let(:response) { Net::HTTPResponse.new(1.0, 200, 'OK') }
       it { is_expected.to be 200 }
-      it_behaves_like 'an operation that sends stats', described_class::METRIC_SUCCESS
+      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS
     end
 
     context 'given a not found response' do
       let(:transport) { super().tap { |t| t.statsd = statsd } }
       let(:response) { Net::HTTPResponse.new(1.0, 404, 'OK') }
       it { is_expected.to be 404 }
-      it_behaves_like 'an operation that sends stats', described_class::METRIC_INCOMPATIBLE_ERROR
+      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INCOMPATIBLE_ERROR
 
       # We don't expect a client error stat is sent because this causes a downgrade.
       it 'doesn\'t send a client error stat' do
@@ -93,13 +85,13 @@ RSpec.describe Datadog::HTTPTransport do
     context 'given a client error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 400, 'OK') }
       it { is_expected.to be 400 }
-      it_behaves_like 'an operation that sends stats', described_class::METRIC_CLIENT_ERROR
+      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_CLIENT_ERROR
     end
 
     context 'given a server error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 500, 'OK') }
       it { is_expected.to be 500 }
-      it_behaves_like 'an operation that sends stats', described_class::METRIC_SERVER_ERROR
+      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SERVER_ERROR
     end
 
     context 'given a response that raises an error' do
@@ -112,7 +104,7 @@ RSpec.describe Datadog::HTTPTransport do
       let(:error) { Class.new(StandardError) }
 
       it { is_expected.to be 500 }
-      it_behaves_like 'an operation that sends stats', described_class::METRIC_INTERNAL_ERROR
+      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INTERNAL_ERROR
     end
 
     context 'given nil' do
@@ -128,11 +120,19 @@ RSpec.describe Datadog::HTTPTransport do
       context 'for a JSON-encoded transport' do
         let(:options) { { encoder: Datadog::Encoding::JSONEncoder.new } }
         it { expect(transport.success?(code)).to be true }
+
+        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS do
+          let(:encoder) { Datadog::Encoding::JSONEncoder.new }
+        end
       end
 
       context 'for a Msgpack-encoded transport' do
         let(:options) { { encoder: Datadog::Encoding::MsgpackEncoder.new } }
         it { expect(transport.success?(code)).to be true }
+
+        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS do
+          let(:encoder) { Datadog::Encoding::MsgpackEncoder.new }
+        end
       end
     end
 
@@ -187,8 +187,8 @@ RSpec.describe Datadog::HTTPTransport do
         it { expect { code }.to_not raise_error }
 
         # Expect a success for sending the traces, and an error from the failed callback.
-        it_behaves_like 'an operation that sends stats', described_class::METRIC_SUCCESS
-        it_behaves_like 'an operation that sends stats', described_class::METRIC_INTERNAL_ERROR
+        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS
+        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INTERNAL_ERROR
       end
     end
 
