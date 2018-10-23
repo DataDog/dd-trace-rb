@@ -8,7 +8,7 @@ require 'ddtrace'
 require 'ddtrace/tracer'
 
 RSpec.describe 'Datadog::HTTPTransport payload' do
-  include_context 'transport metric counts'
+  include_context 'transport metrics'
 
   before(:each) do
     WebMock.enable!

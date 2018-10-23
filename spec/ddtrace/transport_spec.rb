@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::HTTPTransport do
-  include_context 'transport metric counts'
+  include_context 'transport metrics'
 
   let(:transport) do
     described_class.new(

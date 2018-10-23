@@ -88,7 +88,7 @@ module MetricHelpers
     IncrementStat.new(*args)
   end
 
-  shared_context 'metric counts' do
+  shared_context 'metrics' do
     let(:statsd) { spy('statsd') } # TODO: Make this an instance double.
     let(:stats) { Hash.new(0) }
     let(:stats_mutex) { Mutex.new }
@@ -112,19 +112,17 @@ module MetricHelpers
     end
   end
 
-  shared_context 'transport metric counts' do
-    include_context 'metric counts'
+  shared_context 'transport metrics' do
+    include_context 'metrics'
 
     def transport_options(options = {}, encoder = Datadog::Encoding::MsgpackEncoder)
-      # NOTE: This merge won't work if options supplied also include tags.
-      #       It will overwrite the tags instead of merging them.
-      {
-        tags: transport_tags(encoder)
-      }.merge(options)
+      options.merge(tags: transport_tags(options[:tags], encoder))
     end
 
-    def transport_tags(encoder = Datadog::Encoding::MsgpackEncoder)
-      ["#{Datadog::HTTPTransport::TAG_ENCODING_TYPE}:#{encoder.content_type}"]
+    def transport_tags(tags = [], encoder = Datadog::Encoding::MsgpackEncoder)
+      ["#{Datadog::HTTPTransport::TAG_ENCODING_TYPE}:#{encoder.content_type}"].tap do |default_tags|
+        default_tags.concat(tags) unless tags.nil?
+      end
     end
 
     shared_examples_for 'a transport operation that increments stat' do |stat, options = {}|

@@ -5,7 +5,7 @@ require 'ddtrace/metrics'
 require 'benchmark'
 
 RSpec.describe Datadog::Metrics do
-  include_context 'metric counts'
+  include_context 'metrics'
 
   describe 'implementing class' do
     subject(:test_object) { test_class.new }

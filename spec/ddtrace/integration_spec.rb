@@ -5,7 +5,7 @@ require 'ddtrace/tracer'
 require 'thread'
 
 RSpec.describe 'Tracer integration tests' do
-  include_context 'transport metric counts'
+  include_context 'transport metrics'
 
   shared_context 'agent-based test' do
     before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }

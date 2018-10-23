@@ -9,7 +9,7 @@ require 'ddtrace/writer'
 require 'ddtrace/pipeline'
 
 RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
-  include_context 'metric counts'
+  include_context 'metrics'
 
   let(:hostname) { 'http://127.0.0.1' }
   let(:port) { 1234 }
