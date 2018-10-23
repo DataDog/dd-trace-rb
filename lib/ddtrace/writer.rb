@@ -14,7 +14,9 @@ module Datadog
     PORT = '8126'.freeze
 
     METRIC_TRACES_FLUSHED = 'datadog.tracer.traces_flushed'.freeze
+    METRIC_SAMPLING_UPDATE_TIME = 'datadog.tracer.sampling_update_time'.freeze
     METRIC_SERVICES_FLUSHED = 'datadog.tracer.services_flushed'.freeze
+    TAG_PRIORITY_SAMPLING = 'datadog.tracer.priority_sampler'.freeze
 
     def initialize(options = {})
       # writer and transport parameters
@@ -113,14 +115,16 @@ module Datadog
     def sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)
 
-      if api[:version] == HTTPTransport::V4
-        body = JSON.parse(response.body)
-        if body.is_a?(Hash) && body.key?('rate_by_service')
-          @priority_sampler.update(body['rate_by_service'])
+      time(METRIC_SAMPLING_UPDATE_TIME, tags: ["#{TAG_PRIORITY_SAMPLING}:#{!@priority_sampler.nil?}"]) do
+        if api[:version] == HTTPTransport::V4
+          body = JSON.parse(response.body)
+          if body.is_a?(Hash) && body.key?('rate_by_service')
+            @priority_sampler.update(body['rate_by_service'])
+          end
+          true
+        else
+          false
         end
-        true
-      else
-        false
       end
     end
   end

@@ -6,6 +6,8 @@ require 'json'
 RSpec.describe Datadog::Writer do
   include HttpHelpers
 
+  include_context 'metrics'
+
   before(:each) { WebMock.enable! }
   after(:each) do
     WebMock.reset!
@@ -171,20 +173,24 @@ RSpec.describe Datadog::Writer do
                 let(:sampling_response) { { 'rate_by_service' => service_rates } }
                 let(:service_rates) { { 'service:a,env:test' => 0.1, 'service:b,env:test' => 0.5 } }
 
-                it do
-                  expect(sampler).to receive(:update).with(service_rates)
-                  is_expected.to be true
-                end
+                before(:each) { expect(sampler).to receive(:update).with(service_rates) }
+
+                it { is_expected.to be true }
+                it_behaves_like 'an operation that times stat',
+                                Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
+                                tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"]
               end
 
               context 'and is API v3' do
                 let(:api) { { version: Datadog::HTTPTransport::V3 } }
                 let(:body) { 'OK' }
 
-                it do
-                  expect(sampler).to_not receive(:update)
-                  is_expected.to be false
-                end
+                before(:each) { expect(sampler).to_not receive(:update) }
+
+                it { is_expected.to be false }
+                it_behaves_like 'an operation that times stat',
+                                Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
+                                tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"]
               end
             end
           end

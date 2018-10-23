@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ModuleLength
 module MetricHelpers
   # RSpec matcher for generic Statsd metric
   class SendStat < RSpec::Mocks::Matchers::HaveReceived
@@ -36,7 +37,7 @@ module MetricHelpers
 
     def statsd_options(options = nil)
       return Datadog::Metrics::DEFAULT_OPTIONS.dup if options.nil?
-      return options unless options.kind_of?(Hash)
+      return options unless options.is_a?(Hash)
       options.dup.merge(tags: statsd_tags(options[:tags]))
     end
 
@@ -152,6 +153,13 @@ module MetricHelpers
     let(:stats_mutex) { Mutex.new }
 
     before(:each) do
+      allow(statsd).to receive(:distribution) do |name, _value, _options = {}|
+        stats_mutex.synchronize do
+          stats[name] = 0 unless stats.key?(name)
+          stats[name] += 1
+        end
+      end
+
       allow(statsd).to receive(:increment) do |name, options = {}|
         stats_mutex.synchronize do
           stats[name] = 0 unless stats.key?(name)
@@ -168,12 +176,36 @@ module MetricHelpers
       end
     end
 
+    shared_examples_for 'an operation that sends distribution stat' do |stat, options = {}|
+      let(:tracer) { super().tap { |t| t.statsd = statsd } }
+      let(:writer) { super().tap { |t| t.statsd = statsd } }
+      let(:transport) { super().tap { |t| t.statsd = statsd } }
+
+      it do
+        subject
+        expect(statsd).to distribution_stat(stat).with(options)
+      end
+    end
+
     shared_examples_for 'an operation that increments stat' do |stat, options = {}|
+      let(:tracer) { super().tap { |t| t.statsd = statsd } }
+      let(:writer) { super().tap { |t| t.statsd = statsd } }
       let(:transport) { super().tap { |t| t.statsd = statsd } }
 
       it do
         subject
         expect(statsd).to increment_stat(stat).with(options)
+      end
+    end
+
+    shared_examples_for 'an operation that times stat' do |stat, options = {}|
+      let(:tracer) { super().tap { |t| t.statsd = statsd } }
+      let(:writer) { super().tap { |t| t.statsd = statsd } }
+      let(:transport) { super().tap { |t| t.statsd = statsd } }
+
+      it do
+        subject
+        expect(statsd).to time_stat(stat).with(options)
       end
     end
   end

@@ -204,6 +204,9 @@ RSpec.describe 'Tracer integration tests' do
         try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= i + 1 }
 
         expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(i + 1)
+        expect(statsd).to time_stat(Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME)
+          .with(tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"])
+          .exactly(i + 1).times
         expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR).with(any_args)
         expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR).with(any_args)
         expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR).with(any_args)
