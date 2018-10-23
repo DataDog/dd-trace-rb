@@ -30,6 +30,9 @@ RSpec.describe Datadog::HTTPTransport do
     context 'when not given a block' do
       subject(:response_code) { transport.post(url, data) }
 
+      it_behaves_like 'a transport operation that times stat', described_class::METRIC_ROUNDTRIP_TIME
+      it_behaves_like 'a transport operation that times stat', described_class::METRIC_POST_TIME
+
       context 'and the request raises an internal error' do
         before(:each) do
           allow(Net::HTTP::Post).to receive(:new) { raise error }
@@ -45,6 +48,9 @@ RSpec.describe Datadog::HTTPTransport do
     context 'when given a block' do
       subject(:response_code) { transport.post(url, data, &block) }
       let(:block) { proc { |_response| } }
+
+      it_behaves_like 'a transport operation that times stat', described_class::METRIC_ROUNDTRIP_TIME
+      it_behaves_like 'a transport operation that times stat', described_class::METRIC_POST_TIME
 
       context 'and the request raises an internal error' do
         before(:each) do
@@ -116,23 +122,29 @@ RSpec.describe Datadog::HTTPTransport do
   describe '#send' do
     before(:each) { skip 'TEST_DATADOG_INTEGRATION not set.' unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-    shared_examples_for 'an encoded transport' do
+    shared_examples_for 'an encoded transport' do |type = nil|
       context 'for a JSON-encoded transport' do
         let(:options) { { encoder: Datadog::Encoding::JSONEncoder } }
         it { expect(transport.success?(code)).to be true }
-
-        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS do
-          let(:encoder) { Datadog::Encoding::JSONEncoder }
-        end
+        it_behaves_like 'transport metrics with encoding', type, Datadog::Encoding::JSONEncoder
       end
 
       context 'for a Msgpack-encoded transport' do
         let(:options) { { encoder: Datadog::Encoding::MsgpackEncoder } }
         it { expect(transport.success?(code)).to be true }
+        it_behaves_like 'transport metrics with encoding', type, Datadog::Encoding::MsgpackEncoder
+      end
+    end
 
-        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS do
-          let(:encoder) { Datadog::Encoding::MsgpackEncoder }
-        end
+    shared_examples_for 'transport metrics with encoding' do |type, encoder|
+      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS do
+        let(:encoder) { encoder }
+      end
+
+      it_behaves_like 'a transport operation that times stat',
+                      described_class::METRIC_ENCODE_TIME,
+                      tags: ["#{described_class::TAG_DATA_TYPE}:#{type}"] do
+        let(:encoder) { encoder }
       end
     end
 
@@ -140,7 +152,7 @@ RSpec.describe Datadog::HTTPTransport do
       subject(:code) { transport.send(:traces, traces) }
       let(:traces) { get_test_traces(2) }
 
-      it_behaves_like 'an encoded transport'
+      it_behaves_like 'an encoded transport', :traces
 
       context 'given some traces with metrics' do
         before(:each) do
@@ -148,7 +160,7 @@ RSpec.describe Datadog::HTTPTransport do
           traces[0][1].set_metric('b', 1231543543265475686787869123.0)
         end
 
-        it_behaves_like 'an encoded transport'
+        it_behaves_like 'an encoded transport', :traces
       end
 
       context 'and a bad transport' do
@@ -196,7 +208,7 @@ RSpec.describe Datadog::HTTPTransport do
       subject(:code) { transport.send(:services, services) }
       let(:services) { get_test_services }
 
-      it_behaves_like 'an encoded transport'
+      it_behaves_like 'an encoded transport', :services
 
       context 'when the agent returns a 404' do
         before(:each) do

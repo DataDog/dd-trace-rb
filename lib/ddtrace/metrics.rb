@@ -22,6 +22,11 @@ module Datadog
       statsd.increment(stat, merge_with_defaults(options))
     end
 
+    def time(stat, options = nil, &block)
+      return yield if statsd.nil?
+      statsd.time(stat, merge_with_defaults(options), &block)
+    end
+
     private
 
     def merge_with_defaults(options)

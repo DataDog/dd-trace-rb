@@ -33,6 +33,22 @@ module MetricHelpers
         *@args
       ]
     end
+
+    def merge_with_defaults(options)
+      if options.nil?
+        # Set default options
+        Datadog::Metrics::DEFAULT_OPTIONS.dup
+      else
+        # Add tags to options
+        options.dup.tap do |opts|
+          opts[:tags] = if opts.key?(:tags)
+                          opts[:tags].dup.concat(Datadog::Metrics::DEFAULT_TAGS)
+                        else
+                          Datadog::Metrics::DEFAULT_TAGS.dup
+                        end
+        end
+      end
+    end
   end
 
   # RSpec matcher for Statsd#increment
@@ -60,23 +76,32 @@ module MetricHelpers
         Datadog::Metrics::DEFAULT_OPTIONS
       ]
     end
+  end
 
-    private
+  # RSpec matcher for Statsd#time
+  class TimeStat < SendStat
+    def initialize(stat, &block)
+      super(:time, &block)
+      @stat = stat
+    end
 
-    def merge_with_defaults(options)
-      if options.nil?
-        # Set default options
-        Datadog::Metrics::DEFAULT_OPTIONS.dup
-      else
-        # Add tags to options
-        options.dup.tap do |opts|
-          opts[:tags] = if opts.key?(:tags)
-                          opts[:tags].dup.concat(Datadog::Metrics::DEFAULT_TAGS)
-                        else
-                          Datadog::Metrics::DEFAULT_TAGS.dup
-                        end
-        end
-      end
+    def name
+      'time_stat'
+    end
+
+    def with(*args)
+      with_constraint[2] = merge_with_defaults(args.first)
+      self
+    end
+
+    protected
+
+    def with_constraint
+      @with_constraint ||= [
+        'with',
+        @stat,
+        Datadog::Metrics::DEFAULT_OPTIONS
+      ]
     end
   end
 
@@ -86,6 +111,10 @@ module MetricHelpers
 
   def increment_stat(*args)
     IncrementStat.new(*args)
+  end
+
+  def time_stat(*args)
+    TimeStat.new(*args)
   end
 
   shared_context 'metrics' do
@@ -99,6 +128,14 @@ module MetricHelpers
           stats[name] = 0 unless stats.key?(name)
           stats[name] += options.key?(:by) ? options[:by] : 1
         end
+      end
+
+      allow(statsd).to receive(:time) do |name, _options = {}, &block|
+        stats_mutex.synchronize do
+          stats[name] = 0 unless stats.key?(name)
+          stats[name] += 1
+        end
+        block.call
       end
     end
 
@@ -132,6 +169,16 @@ module MetricHelpers
       it do
         subject
         expect(statsd).to increment_stat(stat).with(transport_options(options, encoder))
+      end
+    end
+
+    shared_examples_for 'a transport operation that times stat' do |stat, options = {}|
+      let(:encoder) { Datadog::Encoding::MsgpackEncoder.new }
+      let(:transport) { super().tap { |t| t.statsd = statsd } }
+
+      it do
+        subject
+        expect(statsd).to time_stat(stat).with(transport_options(options, encoder))
       end
     end
   end

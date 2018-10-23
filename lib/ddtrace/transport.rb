@@ -23,12 +23,16 @@ module Datadog
     HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'.freeze
 
     METRIC_CLIENT_ERROR = 'datadog.tracer.transport.http.client_error'.freeze
+    METRIC_ENCODE_TIME = 'datadog.tracer.transport.http.encode_time'.freeze
     METRIC_INCOMPATIBLE_ERROR = 'datadog.tracer.transport.http.incompatible_error'.freeze
     METRIC_INTERNAL_ERROR = 'datadog.tracer.transport.http.internal_error'.freeze
+    METRIC_POST_TIME = 'datadog.tracer.transport.http.post_time'.freeze
+    METRIC_ROUNDTRIP_TIME = 'datadog.tracer.transport.http.roundtrip_time'.freeze
     METRIC_SERVER_ERROR = 'datadog.tracer.transport.http.server_error'.freeze
     METRIC_SUCCESS = 'datadog.tracer.transport.http.success'.freeze
 
-    TAG_ENCODING_TYPE = 'datadog.tracer.transport.encoding_type'.freeze
+    TAG_DATA_TYPE = 'datadog.tracer.transport.http.data_type'.freeze
+    TAG_ENCODING_TYPE = 'datadog.tracer.transport.http.encoding_type'.freeze
 
     API = {
       V4 = 'v0.4'.freeze => {
@@ -81,13 +85,19 @@ module Datadog
     def send(endpoint, data)
       case endpoint
       when :services
-        payload = @encoder.encode_services(data)
+        payload = time(METRIC_ENCODE_TIME, tags: ["#{TAG_DATA_TYPE}:services"]) do
+          @encoder.encode_services(data)
+        end
+
         status_code = post(@api[:services_endpoint], payload) do |response|
           process_callback(:services, response)
         end
       when :traces
         count = data.length
-        payload = @encoder.encode_traces(data)
+        payload = time(METRIC_ENCODE_TIME, tags: ["#{TAG_DATA_TYPE}:traces"]) do
+          @encoder.encode_traces(data)
+        end
+
         status_code = post(@api[:traces_endpoint], payload, count) do |response|
           process_callback(:traces, response)
         end
@@ -113,9 +123,14 @@ module Datadog
         request = Net::HTTP::Post.new(url, headers)
         request.body = data
 
-        response = Net::HTTP.start(@hostname, @port, open_timeout: TIMEOUT, read_timeout: TIMEOUT) do |http|
-          http.request(request)
+        response = time(METRIC_ROUNDTRIP_TIME) do
+          Net::HTTP.start(@hostname, @port, open_timeout: TIMEOUT, read_timeout: TIMEOUT) do |http|
+            time(METRIC_POST_TIME) do
+              http.request(request)
+            end
+          end
         end
+
         handle_response(response)
       rescue StandardError => e
         log_error_once(e.message)
@@ -203,17 +218,24 @@ module Datadog
 
     private
 
-    def increment(stat)
-      # Add default tag to metrics
-      super(stat, default_statsd_options)
+    def increment(stat, options = nil)
+      # Add default options
+      super(stat, statsd_options(options))
     end
 
-    def default_statsd_options
-      { tags: default_statsd_tags }
+    def time(stat, options = nil)
+      # Add default options
+      super(stat, statsd_options(options))
     end
 
-    def default_statsd_tags
-      ["#{TAG_ENCODING_TYPE}:#{@encoder.content_type}"]
+    def statsd_options(options = nil)
+      { tags: statsd_tags(options && options[:tags]) }
+    end
+
+    def statsd_tags(tags = nil)
+      ["#{TAG_ENCODING_TYPE}:#{@encoder.content_type}"].tap do |default_tags|
+        default_tags.concat(tags) unless tags.nil?
+      end
     end
 
     def log_error_once(*args)
