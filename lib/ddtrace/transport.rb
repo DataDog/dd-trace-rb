@@ -216,27 +216,20 @@ module Datadog
       500
     end
 
-    private
-
-    def increment(stat, options = nil)
-      # Add default options
-      super(stat, statsd_options(options))
-    end
-
-    def time(stat, options = nil)
-      # Add default options
-      super(stat, statsd_options(options))
-    end
+    protected
 
     def statsd_options(options = nil)
-      { tags: statsd_tags(options && options[:tags]) }
+      super().merge(tags: statsd_tags(options && options[:tags]))
     end
 
     def statsd_tags(tags = nil)
-      ["#{TAG_ENCODING_TYPE}:#{@encoder.content_type}"].tap do |default_tags|
+      super().tap do |default_tags|
+        default_tags << "#{TAG_ENCODING_TYPE}:#{@encoder.content_type}"
         default_tags.concat(tags) unless tags.nil?
       end
     end
+
+    private
 
     def log_error_once(*args)
       if @count_consecutive_errors > 0

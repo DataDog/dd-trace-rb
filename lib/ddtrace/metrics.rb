@@ -19,30 +19,22 @@ module Datadog
 
     def increment(stat, options = nil)
       return if statsd.nil?
-      statsd.increment(stat, merge_with_defaults(options))
+      statsd.increment(stat, statsd_options(options))
     end
 
     def time(stat, options = nil, &block)
       return yield if statsd.nil?
-      statsd.time(stat, merge_with_defaults(options), &block)
+      statsd.time(stat, statsd_options(options), &block)
     end
 
-    private
+    def statsd_options(options = nil)
+      return DEFAULT_OPTIONS.dup if options.nil?
+      options.dup.merge(tags: statsd_tags(options[:tags]))
+    end
 
-    def merge_with_defaults(options)
-      if options.nil?
-        # Set default options
-        DEFAULT_OPTIONS.dup
-      else
-        # Add tags to options
-        options.dup.tap do |opts|
-          opts[:tags] = if opts.key?(:tags)
-                          opts[:tags].dup.concat(DEFAULT_TAGS)
-                        else
-                          DEFAULT_TAGS.dup
-                        end
-        end
-      end
+    def statsd_tags(tags = nil)
+      return DEFAULT_TAGS.dup if tags.nil?
+      DEFAULT_TAGS.dup.concat(tags)
     end
   end
 end
