@@ -36,6 +36,7 @@ module MetricHelpers
 
     def statsd_options(options = nil)
       return Datadog::Metrics::DEFAULT_OPTIONS.dup if options.nil?
+      return options unless options.kind_of?(Hash)
       options.dup.merge(tags: statsd_tags(options[:tags]))
     end
 
