@@ -146,6 +146,12 @@ RSpec.describe Datadog::HTTPTransport do
                       tags: ["#{described_class::TAG_DATA_TYPE}:#{type}"] do
         let(:encoder) { encoder }
       end
+
+      it_behaves_like 'a transport operation that sends distribution stat',
+                      described_class::METRIC_PAYLOAD_SIZE,
+                      tags: ["#{described_class::TAG_DATA_TYPE}:#{type}"] do
+        let(:encoder) { encoder }
+      end
     end
 
     context 'traces' do

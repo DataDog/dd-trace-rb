@@ -26,6 +26,7 @@ module Datadog
     METRIC_ENCODE_TIME = 'datadog.tracer.transport.http.encode_time'.freeze
     METRIC_INCOMPATIBLE_ERROR = 'datadog.tracer.transport.http.incompatible_error'.freeze
     METRIC_INTERNAL_ERROR = 'datadog.tracer.transport.http.internal_error'.freeze
+    METRIC_PAYLOAD_SIZE = 'datadog.tracer.transport.http.payload_size'.freeze
     METRIC_POST_TIME = 'datadog.tracer.transport.http.post_time'.freeze
     METRIC_ROUNDTRIP_TIME = 'datadog.tracer.transport.http.roundtrip_time'.freeze
     METRIC_SERVER_ERROR = 'datadog.tracer.transport.http.server_error'.freeze
@@ -85,18 +86,26 @@ module Datadog
     def send(endpoint, data)
       case endpoint
       when :services
-        payload = time(METRIC_ENCODE_TIME, tags: ["#{TAG_DATA_TYPE}:services"]) do
+        metric_options = { tags: ["#{TAG_DATA_TYPE}:services"] }
+        payload = time(METRIC_ENCODE_TIME, metric_options) do
           @encoder.encode_services(data)
         end
+
+        # Measure how large the payload is.
+        distribution(METRIC_PAYLOAD_SIZE, payload.bytesize, metric_options)
 
         status_code = post(@api[:services_endpoint], payload) do |response|
           process_callback(:services, response)
         end
       when :traces
+        metric_options = { tags: ["#{TAG_DATA_TYPE}:traces"] }
         count = data.length
-        payload = time(METRIC_ENCODE_TIME, tags: ["#{TAG_DATA_TYPE}:traces"]) do
+        payload = time(METRIC_ENCODE_TIME, metric_options) do
           @encoder.encode_traces(data)
         end
+
+        # Measure how large the payload is.
+        distribution(METRIC_PAYLOAD_SIZE, payload.bytesize, metric_options)
 
         status_code = post(@api[:traces_endpoint], payload, count) do |response|
           process_callback(:traces, response)

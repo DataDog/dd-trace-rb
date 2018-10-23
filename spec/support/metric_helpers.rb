@@ -45,6 +45,36 @@ module MetricHelpers
     end
   end
 
+  # RSpec matcher for Statsd#distribution
+  class DistributionStat < SendStat
+    include RSpec::Mocks::ArgumentMatchers
+
+    def initialize(stat, &block)
+      super(:distribution, &block)
+      @stat = stat
+    end
+
+    def name
+      'distribution_stat'
+    end
+
+    def with(*args)
+      with_constraint[3] = statsd_options(args.first)
+      self
+    end
+
+    protected
+
+    def with_constraint
+      @with_constraint ||= [
+        'with',
+        @stat,
+        kind_of(Numeric),
+        Datadog::Metrics::DEFAULT_OPTIONS
+      ]
+    end
+  end
+
   # RSpec matcher for Statsd#increment
   class IncrementStat < SendStat
     def initialize(stat, &block)
@@ -103,6 +133,10 @@ module MetricHelpers
     SendStat.new(*args)
   end
 
+  def distribution_stat(*args)
+    DistributionStat.new(*args)
+  end
+
   def increment_stat(*args)
     IncrementStat.new(*args)
   end
@@ -153,6 +187,16 @@ module MetricHelpers
     def transport_tags(tags = [], encoder = Datadog::Encoding::MsgpackEncoder)
       ["#{Datadog::HTTPTransport::TAG_ENCODING_TYPE}:#{encoder.content_type}"].tap do |default_tags|
         default_tags.concat(tags) unless tags.nil?
+      end
+    end
+
+    shared_examples_for 'a transport operation that sends distribution stat' do |stat, options = {}|
+      let(:encoder) { Datadog::Encoding::MsgpackEncoder.new }
+      let(:transport) { super().tap { |t| t.statsd = statsd } }
+
+      it do
+        subject
+        expect(statsd).to distribution_stat(stat).with(transport_options(options, encoder))
       end
     end
 

@@ -17,6 +17,11 @@ module Datadog
 
     protected
 
+    def distribution(stat, value, options = nil)
+      return if statsd.nil?
+      statsd.distribution(stat, value, statsd_options(options))
+    end
+
     def increment(stat, options = nil)
       return if statsd.nil?
       statsd.increment(stat, statsd_options(options))
