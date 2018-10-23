@@ -22,6 +22,23 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  def expect_no_error_metrics
+    expect(statsd).to_not have_received_increment_transport_metric(
+      Datadog::HTTPTransport::METRIC_CLIENT_ERROR,
+      any_args
+    )
+
+    expect(statsd).to_not have_received_increment_transport_metric(
+      Datadog::HTTPTransport::METRIC_SERVER_ERROR,
+      any_args
+    )
+
+    expect(statsd).to_not have_received_increment_transport_metric(
+      Datadog::HTTPTransport::METRIC_INTERNAL_ERROR,
+      any_args
+    )
+  end
+
   describe 'agent receives span' do
     include_context 'agent-based test'
 
@@ -38,10 +55,8 @@ RSpec.describe 'Tracer integration tests' do
 
     def agent_receives_span_step1
       expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(0)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SUCCESS).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR).with(any_args)
+      expect(statsd).to_not have_received_increment_transport_metric(Datadog::HTTPTransport::METRIC_SUCCESS, any_args)
+      expect_no_error_metrics
     end
 
     def agent_receives_span_step2
@@ -56,12 +71,8 @@ RSpec.describe 'Tracer integration tests' do
       expect(stats[Datadog::Writer::METRIC_SERVICES_FLUSHED]).to eq(1)
 
       # Number of successes counts both traces and services
-      expect(statsd).to increment_stat(Datadog::HTTPTransport::METRIC_SUCCESS)
-        .with(transport_options)
-        .exactly(2).times
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR).with(any_args)
+      expect(statsd).to have_received_increment_transport_metric(Datadog::HTTPTransport::METRIC_SUCCESS).exactly(2).times
+      expect_no_error_metrics
     end
 
     def agent_receives_span_step3
@@ -73,12 +84,8 @@ RSpec.describe 'Tracer integration tests' do
       expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(2)
       expect(stats[Datadog::Writer::METRIC_SERVICES_FLUSHED]).to eq(1)
 
-      expect(statsd).to increment_stat(Datadog::HTTPTransport::METRIC_SUCCESS)
-        .with(transport_options)
-        .exactly(3).times
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR).with(any_args)
+      expect(statsd).to have_received_increment_transport_metric(Datadog::HTTPTransport::METRIC_SUCCESS).exactly(3).times
+      expect_no_error_metrics
     end
 
     it do
@@ -105,11 +112,9 @@ RSpec.describe 'Tracer integration tests' do
     it do
       expect(@first_shutdown).to be true
       expect(@span.finished?).to be true
-      expect(statsd).to increment_stat(Datadog::Writer::METRIC_TRACES_FLUSHED).with(by: 1)
-      expect(statsd).to increment_stat(Datadog::Writer::METRIC_SERVICES_FLUSHED)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR).with(any_args)
+      expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_TRACES_FLUSHED, by: 1)
+      expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_SERVICES_FLUSHED)
+      expect_no_error_metrics
     end
   end
 
@@ -135,11 +140,9 @@ RSpec.describe 'Tracer integration tests' do
 
     it do
       expect(@shutdown_results.count(true)).to eq(1)
-      expect(statsd).to increment_stat(Datadog::Writer::METRIC_TRACES_FLUSHED).with(by: 1)
-      expect(statsd).to increment_stat(Datadog::Writer::METRIC_SERVICES_FLUSHED)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR).with(any_args)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR).with(any_args)
+      expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_TRACES_FLUSHED, by: 1)
+      expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_SERVICES_FLUSHED)
+      expect_no_error_metrics
     end
   end
 
@@ -204,12 +207,12 @@ RSpec.describe 'Tracer integration tests' do
         try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= i + 1 }
 
         expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(i + 1)
-        expect(statsd).to time_stat(Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME)
-          .with(tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"])
-          .exactly(i + 1).times
-        expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR).with(any_args)
-        expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR).with(any_args)
-        expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR).with(any_args)
+        expect(statsd).to have_received(:time)
+          .with(
+            Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
+            metric_options(tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"])
+          ).exactly(i + 1).times
+        expect_no_error_metrics
       end
     end
   end

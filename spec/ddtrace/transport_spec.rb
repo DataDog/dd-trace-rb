@@ -10,7 +10,7 @@ RSpec.describe Datadog::HTTPTransport do
       ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
       ENV.fetch('TEST_DDAGENT_TRACE_PORT', 8126),
       options
-    )
+    ).tap { |t| t.statsd = statsd }
   end
   let(:options) { {} }
 
@@ -30,8 +30,8 @@ RSpec.describe Datadog::HTTPTransport do
     context 'when not given a block' do
       subject(:response_code) { transport.post(url, data) }
 
-      it_behaves_like 'a transport operation that times stat', described_class::METRIC_ROUNDTRIP_TIME
-      it_behaves_like 'a transport operation that times stat', described_class::METRIC_POST_TIME
+      it_behaves_like 'a transport operation that sends time metric', described_class::METRIC_ROUNDTRIP_TIME
+      it_behaves_like 'a transport operation that sends time metric', described_class::METRIC_POST_TIME
 
       context 'and the request raises an internal error' do
         before(:each) do
@@ -41,7 +41,7 @@ RSpec.describe Datadog::HTTPTransport do
         let(:error) { Class.new(StandardError) }
 
         it { is_expected.to be 500 }
-        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INTERNAL_ERROR
+        it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_INTERNAL_ERROR
       end
     end
 
@@ -49,8 +49,8 @@ RSpec.describe Datadog::HTTPTransport do
       subject(:response_code) { transport.post(url, data, &block) }
       let(:block) { proc { |_response| } }
 
-      it_behaves_like 'a transport operation that times stat', described_class::METRIC_ROUNDTRIP_TIME
-      it_behaves_like 'a transport operation that times stat', described_class::METRIC_POST_TIME
+      it_behaves_like 'a transport operation that sends time metric', described_class::METRIC_ROUNDTRIP_TIME
+      it_behaves_like 'a transport operation that sends time metric', described_class::METRIC_POST_TIME
 
       context 'and the request raises an internal error' do
         before(:each) do
@@ -61,7 +61,7 @@ RSpec.describe Datadog::HTTPTransport do
 
         it { expect { |b| transport.post(url, data, &b) }.to yield_with_args(nil) }
         it { is_expected.to be 500 }
-        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INTERNAL_ERROR
+        it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_INTERNAL_ERROR
       end
     end
   end
@@ -72,32 +72,31 @@ RSpec.describe Datadog::HTTPTransport do
     context 'given an OK response' do
       let(:response) { Net::HTTPResponse.new(1.0, 200, 'OK') }
       it { is_expected.to be 200 }
-      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS
+      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_SUCCESS
     end
 
     context 'given a not found response' do
-      let(:transport) { super().tap { |t| t.statsd = statsd } }
       let(:response) { Net::HTTPResponse.new(1.0, 404, 'OK') }
       it { is_expected.to be 404 }
-      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INCOMPATIBLE_ERROR
+      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_INCOMPATIBLE_ERROR
 
       # We don't expect a client error stat is sent because this causes a downgrade.
       it 'doesn\'t send a client error stat' do
         response
-        expect(statsd).to_not increment_stat(described_class::METRIC_CLIENT_ERROR)
+        expect(statsd).to_not have_received_increment_transport_metric(described_class::METRIC_CLIENT_ERROR)
       end
     end
 
     context 'given a client error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 400, 'OK') }
       it { is_expected.to be 400 }
-      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_CLIENT_ERROR
+      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_CLIENT_ERROR
     end
 
     context 'given a server error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 500, 'OK') }
       it { is_expected.to be 500 }
-      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SERVER_ERROR
+      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_SERVER_ERROR
     end
 
     context 'given a response that raises an error' do
@@ -110,7 +109,7 @@ RSpec.describe Datadog::HTTPTransport do
       let(:error) { Class.new(StandardError) }
 
       it { is_expected.to be 500 }
-      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INTERNAL_ERROR
+      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_INTERNAL_ERROR
     end
 
     context 'given nil' do
@@ -137,17 +136,17 @@ RSpec.describe Datadog::HTTPTransport do
     end
 
     shared_examples_for 'transport metrics with encoding' do |type, encoder|
-      it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS do
+      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_SUCCESS do
         let(:encoder) { encoder }
       end
 
-      it_behaves_like 'a transport operation that times stat',
+      it_behaves_like 'a transport operation that sends time metric',
                       described_class::METRIC_ENCODE_TIME,
                       tags: ["#{described_class::TAG_DATA_TYPE}:#{type}"] do
         let(:encoder) { encoder }
       end
 
-      it_behaves_like 'a transport operation that sends distribution stat',
+      it_behaves_like 'a transport operation that sends distribution metric',
                       described_class::METRIC_PAYLOAD_SIZE,
                       tags: ["#{described_class::TAG_DATA_TYPE}:#{type}"] do
         let(:encoder) { encoder }
@@ -205,8 +204,8 @@ RSpec.describe Datadog::HTTPTransport do
         it { expect { code }.to_not raise_error }
 
         # Expect a success for sending the traces, and an error from the failed callback.
-        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS
-        it_behaves_like 'a transport operation that increments stat', described_class::METRIC_INTERNAL_ERROR
+        it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_SUCCESS
+        it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_INTERNAL_ERROR
       end
     end
 

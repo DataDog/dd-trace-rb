@@ -6,7 +6,7 @@ require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis integration test' do
-  include_context 'metrics'
+  include_context 'statsd'
 
   # Use real tracer
   let(:tracer) do

@@ -1,211 +1,57 @@
-# rubocop:disable Metrics/ModuleLength
+require 'support/statsd_helpers'
+
 module MetricHelpers
-  # RSpec matcher for generic Statsd metric
-  class SendStat < RSpec::Mocks::Matchers::HaveReceived
-    def initialize(method_name, *args, &block)
-      super(method_name, &block)
-      @args = args
-    end
+  include RSpec::Mocks::ArgumentMatchers
 
-    def name
-      'send_stat'
-    end
+  shared_context 'metrics' do
+    include_context 'statsd'
 
-    def matches?(subject, &block)
-      @constraints << with_constraint
-      super
-    end
-
-    def does_not_match?(subject, &block)
-      @constraints << with_constraint
-      super
-    end
-
-    def with(*args)
-      with_constraint.concat(args)
-      self
-    end
-
-    protected
-
-    def with_constraint
-      @with_constraint ||= [
-        'with',
-        *@args
-      ]
-    end
-
-    def statsd_options(options = nil)
+    # Define default options and tags
+    def metric_options(options = nil)
       return Datadog::Metrics::DEFAULT_OPTIONS.dup if options.nil?
       return options unless options.is_a?(Hash)
-      options.dup.merge(tags: statsd_tags(options[:tags]))
+      options.dup.merge(tags: metric_tags(options[:tags]))
     end
 
-    def statsd_tags(tags = nil)
+    def metric_tags(tags = nil)
       return Datadog::Metrics::DEFAULT_TAGS.dup if tags.nil?
       Datadog::Metrics::DEFAULT_TAGS.dup.concat(tags)
     end
-  end
 
-  # RSpec matcher for Statsd#distribution
-  class DistributionStat < SendStat
-    include RSpec::Mocks::ArgumentMatchers
-
-    def initialize(stat, &block)
-      super(:distribution, &block)
-      @stat = stat
+    # Define matchers for use in examples
+    def have_received_distribution_metric(stat, value = kind_of(Numeric), options = {})
+      have_received(:distribution).with(stat, value, metric_options(options))
     end
 
-    def name
-      'distribution_stat'
+    def have_received_increment_metric(stat, options = {})
+      have_received(:increment).with(stat, metric_options(options))
     end
 
-    def with(*args)
-      with_constraint[3] = statsd_options(args.first)
-      self
+    def have_received_time_metric(stat, options = {})
+      have_received(:time).with(stat, metric_options(options))
     end
 
-    protected
-
-    def with_constraint
-      @with_constraint ||= [
-        'with',
-        @stat,
-        kind_of(Numeric),
-        Datadog::Metrics::DEFAULT_OPTIONS
-      ]
-    end
-  end
-
-  # RSpec matcher for Statsd#increment
-  class IncrementStat < SendStat
-    def initialize(stat, &block)
-      super(:increment, &block)
-      @stat = stat
-    end
-
-    def name
-      'increment_stat'
-    end
-
-    def with(*args)
-      with_constraint[2] = statsd_options(args.first)
-      self
-    end
-
-    protected
-
-    def with_constraint
-      @with_constraint ||= [
-        'with',
-        @stat,
-        Datadog::Metrics::DEFAULT_OPTIONS
-      ]
-    end
-  end
-
-  # RSpec matcher for Statsd#time
-  class TimeStat < SendStat
-    def initialize(stat, &block)
-      super(:time, &block)
-      @stat = stat
-    end
-
-    def name
-      'time_stat'
-    end
-
-    def with(*args)
-      with_constraint[2] = statsd_options(args.first)
-      self
-    end
-
-    protected
-
-    def with_constraint
-      @with_constraint ||= [
-        'with',
-        @stat,
-        Datadog::Metrics::DEFAULT_OPTIONS
-      ]
-    end
-  end
-
-  def send_stat(*args)
-    SendStat.new(*args)
-  end
-
-  def distribution_stat(*args)
-    DistributionStat.new(*args)
-  end
-
-  def increment_stat(*args)
-    IncrementStat.new(*args)
-  end
-
-  def time_stat(*args)
-    TimeStat.new(*args)
-  end
-
-  shared_context 'metrics' do
-    let(:statsd) { spy('statsd') } # TODO: Make this an instance double.
-    let(:stats) { Hash.new(0) }
-    let(:stats_mutex) { Mutex.new }
-
-    before(:each) do
-      allow(statsd).to receive(:distribution) do |name, _value, _options = {}|
-        stats_mutex.synchronize do
-          stats[name] = 0 unless stats.key?(name)
-          stats[name] += 1
-        end
-      end
-
-      allow(statsd).to receive(:increment) do |name, options = {}|
-        stats_mutex.synchronize do
-          stats[name] = 0 unless stats.key?(name)
-          stats[name] += options.key?(:by) ? options[:by] : 1
-        end
-      end
-
-      allow(statsd).to receive(:time) do |name, _options = {}, &block|
-        stats_mutex.synchronize do
-          stats[name] = 0 unless stats.key?(name)
-          stats[name] += 1
-        end
-        block.call
-      end
-    end
-
-    shared_examples_for 'an operation that sends distribution stat' do |stat, options = {}|
-      let(:tracer) { super().tap { |t| t.statsd = statsd } }
-      let(:writer) { super().tap { |t| t.statsd = statsd } }
-      let(:transport) { super().tap { |t| t.statsd = statsd } }
+    # Define shared examples
+    shared_examples_for 'an operation that sends distribution metric' do |stat, options = {}|
+      let(:value) { kind_of(Numeric) }
 
       it do
         subject
-        expect(statsd).to distribution_stat(stat).with(options)
+        expect(statsd).to have_received_distribution_metric(stat, value, options)
       end
     end
 
-    shared_examples_for 'an operation that increments stat' do |stat, options = {}|
-      let(:tracer) { super().tap { |t| t.statsd = statsd } }
-      let(:writer) { super().tap { |t| t.statsd = statsd } }
-      let(:transport) { super().tap { |t| t.statsd = statsd } }
-
+    shared_examples_for 'an operation that sends increment metric' do |stat, options = {}|
       it do
         subject
-        expect(statsd).to increment_stat(stat).with(options)
+        expect(statsd).to have_received_increment_metric(stat, options)
       end
     end
 
-    shared_examples_for 'an operation that times stat' do |stat, options = {}|
-      let(:tracer) { super().tap { |t| t.statsd = statsd } }
-      let(:writer) { super().tap { |t| t.statsd = statsd } }
-      let(:transport) { super().tap { |t| t.statsd = statsd } }
-
+    shared_examples_for 'an operation that sends time metric' do |stat, options = {}|
       it do
         subject
-        expect(statsd).to time_stat(stat).with(options)
+        expect(statsd).to have_received_time_metric(stat, options)
       end
     end
   end
@@ -213,43 +59,68 @@ module MetricHelpers
   shared_context 'transport metrics' do
     include_context 'metrics'
 
+    # Define default options and tags
     def transport_options(options = {}, encoder = Datadog::Encoding::MsgpackEncoder)
-      options.merge(tags: transport_tags(options[:tags], encoder))
+      return options unless options.is_a?(Hash)
+      metric_options.merge(tags: transport_tags_with(options[:tags], encoder))
     end
 
-    def transport_tags(tags = [], encoder = Datadog::Encoding::MsgpackEncoder)
-      ["#{Datadog::HTTPTransport::TAG_ENCODING_TYPE}:#{encoder.content_type}"].tap do |default_tags|
+    def transport_tags_with(tags, encoder = Datadog::Encoding::MsgpackEncoder)
+      transport_tags(encoder).tap do |default_tags|
         default_tags.concat(tags) unless tags.nil?
       end
     end
 
-    shared_examples_for 'a transport operation that sends distribution stat' do |stat, options = {}|
-      let(:encoder) { Datadog::Encoding::MsgpackEncoder.new }
-      let(:transport) { super().tap { |t| t.statsd = statsd } }
-
-      it do
-        subject
-        expect(statsd).to distribution_stat(stat).with(transport_options(options, encoder))
+    def transport_tags(encoder = Datadog::Encoding::MsgpackEncoder)
+      metric_tags.tap do |default_tags|
+        default_tags << "#{Datadog::HTTPTransport::TAG_ENCODING_TYPE}:#{encoder.content_type}"
       end
     end
 
-    shared_examples_for 'a transport operation that increments stat' do |stat, options = {}|
+    # Define matchers for use in examples
+    def have_received_distribution_transport_metric(
+      stat,
+      value = kind_of(Numeric),
+      options = {},
+      encoder = Datadog::Encoding::MsgpackEncoder
+    )
+      have_received(:distribution).with(stat, value, transport_options(options, encoder))
+    end
+
+    def have_received_increment_transport_metric(stat, options = {}, encoder = Datadog::Encoding::MsgpackEncoder)
+      have_received(:increment).with(stat, transport_options(options, encoder))
+    end
+
+    def have_received_time_transport_metric(stat, options = {}, encoder = Datadog::Encoding::MsgpackEncoder)
+      have_received(:time).with(stat, transport_options(options, encoder))
+    end
+
+    # Define shared examples
+    shared_examples_for 'a transport operation that sends distribution metric' do |stat, options = {}|
+      let(:value) { kind_of(Numeric) }
       let(:encoder) { Datadog::Encoding::MsgpackEncoder }
-      let(:transport) { super().tap { |t| t.statsd = statsd } }
 
       it do
         subject
-        expect(statsd).to increment_stat(stat).with(transport_options(options, encoder))
+        expect(statsd).to have_received_distribution_transport_metric(stat, value, options, encoder)
       end
     end
 
-    shared_examples_for 'a transport operation that times stat' do |stat, options = {}|
-      let(:encoder) { Datadog::Encoding::MsgpackEncoder.new }
-      let(:transport) { super().tap { |t| t.statsd = statsd } }
+    shared_examples_for 'a transport operation that sends increment metric' do |stat, options = {}|
+      let(:encoder) { Datadog::Encoding::MsgpackEncoder }
 
       it do
         subject
-        expect(statsd).to time_stat(stat).with(transport_options(options, encoder))
+        expect(statsd).to have_received_increment_transport_metric(stat, options, encoder)
+      end
+    end
+
+    shared_examples_for 'a transport operation that sends time metric' do |stat, options = {}|
+      let(:encoder) { Datadog::Encoding::MsgpackEncoder }
+
+      it do
+        subject
+        expect(statsd).to have_received_time_transport_metric(stat, options, encoder)
       end
     end
   end

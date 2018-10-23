@@ -15,7 +15,7 @@ RSpec.describe Datadog::Writer do
   end
 
   describe 'instance' do
-    subject(:writer) { described_class.new(options) }
+    subject(:writer) { described_class.new(options).tap { |w| w.statsd = statsd } }
     let(:options) { {} }
 
     describe 'behavior' do
@@ -176,7 +176,7 @@ RSpec.describe Datadog::Writer do
                 before(:each) { expect(sampler).to receive(:update).with(service_rates) }
 
                 it { is_expected.to be true }
-                it_behaves_like 'an operation that times stat',
+                it_behaves_like 'an operation that sends time metric',
                                 Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
                                 tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"]
               end
@@ -188,7 +188,7 @@ RSpec.describe Datadog::Writer do
                 before(:each) { expect(sampler).to_not receive(:update) }
 
                 it { is_expected.to be false }
-                it_behaves_like 'an operation that times stat',
+                it_behaves_like 'an operation that sends time metric',
                                 Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
                                 tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"]
               end
