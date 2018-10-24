@@ -21,6 +21,8 @@ module Datadog
     TAG_DATA_TYPE_SERVICES = "#{TAG_DATA_TYPE}:services".freeze
     TAG_DATA_TYPE_TRACES = "#{TAG_DATA_TYPE}:traces".freeze
     TAG_PRIORITY_SAMPLING = 'datadog.tracer.writer.priority_sampling'.freeze
+    TAG_PRIORITY_SAMPLING_DISABLED = 'datadog.tracer.writer.priority_sampling:false'.freeze
+    TAG_PRIORITY_SAMPLING_ENABLED = 'datadog.tracer.writer.priority_sampling:true'.freeze
 
     def initialize(options = {})
       # writer and transport parameters
@@ -123,7 +125,8 @@ module Datadog
     def sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)
 
-      time(METRIC_SAMPLING_UPDATE_TIME, tags: ["#{TAG_PRIORITY_SAMPLING}:#{!@priority_sampler.nil?}"]) do
+      priority_sampling_tag = !@priority_sampler.nil? ? TAG_PRIORITY_SAMPLING_ENABLED : TAG_PRIORITY_SAMPLING_DISABLED
+      time(METRIC_SAMPLING_UPDATE_TIME, tags: [priority_sampling_tag]) do
         if api[:version] == HTTPTransport::V4
           body = JSON.parse(response.body)
           if body.is_a?(Hash) && body.key?('rate_by_service')

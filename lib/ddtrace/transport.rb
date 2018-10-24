@@ -33,6 +33,8 @@ module Datadog
     METRIC_SUCCESS = 'datadog.tracer.transport.http.success'.freeze
 
     TAG_DATA_TYPE = 'datadog.tracer.transport.http.data_type'.freeze
+    TAG_DATA_TYPE_SERVICES = 'datadog.tracer.transport.http.data_type:services'.freeze
+    TAG_DATA_TYPE_TRACES = 'datadog.tracer.transport.http.data_type:traces'.freeze
     TAG_ENCODING_TYPE = 'datadog.tracer.transport.http.encoding_type'.freeze
 
     API = {
@@ -86,7 +88,7 @@ module Datadog
     def send(endpoint, data)
       case endpoint
       when :services
-        metric_options = { tags: ["#{TAG_DATA_TYPE}:services"] }
+        metric_options = { tags: [TAG_DATA_TYPE_SERVICES] }
         payload = time(METRIC_ENCODE_TIME, metric_options) do
           @encoder.encode_services(data)
         end
@@ -98,7 +100,7 @@ module Datadog
           process_callback(:services, response)
         end
       when :traces
-        metric_options = { tags: ["#{TAG_DATA_TYPE}:traces"] }
+        metric_options = { tags: [TAG_DATA_TYPE_TRACES] }
         count = data.length
         payload = time(METRIC_ENCODE_TIME, metric_options) do
           @encoder.encode_traces(data)
@@ -233,7 +235,7 @@ module Datadog
 
     def statsd_tags(tags = nil)
       super().tap do |default_tags|
-        default_tags << "#{TAG_ENCODING_TYPE}:#{@encoder.content_type}"
+        default_tags << "#{TAG_ENCODING_TYPE}:#{@encoder.content_type}".freeze
         default_tags.concat(tags) unless tags.nil?
       end
     end
