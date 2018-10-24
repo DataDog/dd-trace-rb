@@ -10,8 +10,13 @@ require 'ddtrace/tracer'
 RSpec.describe 'Datadog::HTTPTransport payload' do
   include_context 'stat counts'
 
-  before(:each) { WebMock.enable! }
+  before(:each) do
+    WebMock.enable!
+    WebMock.disable_net_connect!
+  end
+
   after(:each) do
+    WebMock.allow_net_connect!
     WebMock.reset!
     WebMock.disable!
   end
@@ -69,36 +74,36 @@ RSpec.describe 'Datadog::HTTPTransport payload' do
     describe 'has a X-Datadog-Trace-Count header' do
       it_behaves_like 'a request with a header' do
         subject { @header_value.to_i }
-        let(:header) { Datadog::HTTPTransport::TRACE_COUNT_HEADER }
+        let(:header) { Datadog::HTTPTransport::HEADER_TRACE_COUNT }
         let(:expected_value) { 1 }
       end
     end
 
     describe 'has a Datadog-Meta-Lang header' do
       it_behaves_like 'a request with a header' do
-        let(:header) { Datadog::HTTPTransport::HEADER_META_LANG }
-        let(:expected_value) { 'ruby' }
-      end
-    end
-
-    describe 'has a Datadog-Meta-Version header' do
-      it_behaves_like 'a request with a header' do
-        let(:header) { Datadog::HTTPTransport::HEADER_META_LANG_VERSION }
-        let(:expected_value) { RUBY_VERSION }
+        let(:header) { Datadog::Ext::HTTP::HEADER_META_LANG }
+        let(:expected_value) { Datadog::Ext::Meta::LANG }
       end
     end
 
     describe 'has a Datadog-Meta-Interpreter header' do
       it_behaves_like 'a request with a header' do
-        let(:header) { Datadog::HTTPTransport::HEADER_META_LANG_INTERPRETER }
-        let(:expected_value) { defined?(RUBY_ENGINE) ? RUBY_ENGINE + '-' + RUBY_PLATFORM : 'ruby-' + RUBY_PLATFORM }
+        let(:header) { Datadog::Ext::HTTP::HEADER_META_LANG_INTERPRETER }
+        let(:expected_value) { Datadog::Ext::Meta::LANG_INTERPRETER }
+      end
+    end
+
+    describe 'has a Datadog-Meta-Version header' do
+      it_behaves_like 'a request with a header' do
+        let(:header) { Datadog::Ext::HTTP::HEADER_META_LANG_VERSION }
+        let(:expected_value) { Datadog::Ext::Meta::LANG_VERSION }
       end
     end
 
     describe 'has a Datadog-Meta-Tracer-Version header' do
       it_behaves_like 'a request with a header' do
-        let(:header) { Datadog::HTTPTransport::HEADER_META_TRACER_VERSION }
-        let(:expected_value) { Datadog::VERSION::STRING }
+        let(:header) { Datadog::Ext::HTTP::HEADER_META_TRACER_VERSION }
+        let(:expected_value) { Datadog::Ext::Meta::TRACER_VERSION }
       end
     end
   end
