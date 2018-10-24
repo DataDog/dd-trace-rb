@@ -40,12 +40,12 @@ RSpec.describe Datadog::HTTPTransport do
 
     shared_examples_for 'an encoded transport' do
       context 'for a JSON-encoded transport' do
-        let(:options) { { encoder: Datadog::Encoding::JSONEncoder.new } }
+        let(:options) { { encoder: Datadog::Encoding::JSONEncoder } }
         it { expect(transport.success?(code)).to be true }
       end
 
       context 'for a Msgpack-encoded transport' do
-        let(:options) { { encoder: Datadog::Encoding::MsgpackEncoder.new } }
+        let(:options) { { encoder: Datadog::Encoding::MsgpackEncoder } }
         it { expect(transport.success?(code)).to be true }
       end
     end

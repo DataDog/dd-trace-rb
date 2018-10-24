@@ -5,14 +5,9 @@ module Datadog
   # Encoding module that encodes data for the AgentTransport
   module Encoding
     # Encoder interface that provides the logic to encode traces and service
-    class Encoder
-      attr_reader :content_type
-
-      # When extending the ``Encoder`` class, ``content_type`` must be set because
-      # they're used by the HTTPTransport so that it should not need to know what is
-      # the right header to suggest the decoding format to the agent
-      def initialize
-        @content_type = ''
+    module Encoder
+      def content_type
+        raise NotImplementedError
       end
 
       # Encodes a list of traces, expecting a list of items where each items
@@ -39,10 +34,15 @@ module Datadog
     end
 
     # Encoder for the JSON format
-    class JSONEncoder < Encoder
-      def initialize
-        Datadog::Tracer.log.debug('using JSON encoder; application performance may be degraded')
-        @content_type = 'application/json'
+    module JSONEncoder
+      extend Encoder
+
+      CONTENT_TYPE = 'application/json'.freeze
+
+      module_function
+
+      def content_type
+        CONTENT_TYPE
       end
 
       def encode(obj)
@@ -51,10 +51,15 @@ module Datadog
     end
 
     # Encoder for the Msgpack format
-    class MsgpackEncoder < Encoder
-      def initialize
-        Datadog::Tracer.log.debug('using Msgpack encoder')
-        @content_type = 'application/msgpack'
+    module MsgpackEncoder
+      extend Encoder
+
+      module_function
+
+      CONTENT_TYPE = 'application/msgpack'.freeze
+
+      def content_type
+        CONTENT_TYPE
       end
 
       def encode(obj)
