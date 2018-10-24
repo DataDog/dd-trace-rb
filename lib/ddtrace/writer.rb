@@ -13,8 +13,8 @@ module Datadog
     HOSTNAME = '127.0.0.1'.freeze
     PORT = '8126'.freeze
 
-    METRIC_TRACES_FLUSHED = 'datadog.tracer.writer.traces_flushed'.freeze
-    METRIC_SERVICES_FLUSHED = 'datadog.tracer.writer.services_flushed'.freeze
+    METRIC_TRACES_FLUSHED = 'datadog.tracer.traces_flushed'.freeze
+    METRIC_SERVICES_FLUSHED = 'datadog.tracer.services_flushed'.freeze
 
     def initialize(options = {})
       # writer and transport parameters
