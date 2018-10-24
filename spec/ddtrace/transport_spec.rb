@@ -122,7 +122,7 @@ RSpec.describe Datadog::HTTPTransport do
         it { expect(transport.success?(code)).to be true }
 
         it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS do
-          let(:encoder) { Datadog::Encoding::JSONEncoder.new }
+          let(:encoder) { Datadog::Encoding::JSONEncoder }
         end
       end
 
@@ -131,7 +131,7 @@ RSpec.describe Datadog::HTTPTransport do
         it { expect(transport.success?(code)).to be true }
 
         it_behaves_like 'a transport operation that increments stat', described_class::METRIC_SUCCESS do
-          let(:encoder) { Datadog::Encoding::MsgpackEncoder.new }
+          let(:encoder) { Datadog::Encoding::MsgpackEncoder }
         end
       end
     end
