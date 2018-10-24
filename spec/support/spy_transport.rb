@@ -10,7 +10,7 @@ class SpyTransport < Datadog::HTTPTransport
     @helper_sent = { 200 => {}, 500 => {} }
     @helper_mutex = Mutex.new
     @helper_error_mode = false
-    @helper_encoder = Datadog::Encoding::JSONEncoder.new() # easiest to inspect
+    @helper_encoder = Datadog::Encoding::JSONEncoder # easiest to inspect
   end
 
   def send(endpoint, data)
