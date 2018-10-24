@@ -63,6 +63,16 @@ RSpec.describe Datadog::Writer do
         subject(:result) { writer.send_spans(traces, writer.transport) }
         let(:traces) { get_test_traces(1) }
 
+        let!(:request) { stub_request(:post, endpoint).to_return(response) }
+        let(:endpoint) { "#{Datadog::Writer::HOSTNAME}:#{Datadog::Writer::PORT}/#{api_version}/traces" }
+        let(:response) { { body: body } }
+        let(:body) { 'body' }
+        let(:api_version) { Datadog::HTTPTransport::V3 }
+
+        it_behaves_like 'an operation that sends time metric',
+                        Datadog::Writer::METRIC_FLUSH_TIME,
+                        tags: [Datadog::Writer::TAG_DATA_TYPE_TRACES]
+
         context 'with priority sampling' do
           let(:options) { { priority_sampler: sampler } }
           let(:sampler) { instance_double(Datadog::Sampler) }
@@ -70,11 +80,6 @@ RSpec.describe Datadog::Writer do
           context 'when the transport uses' do
             let(:options) { super().merge!(transport_options: { api_version: api_version, response_callback: callback }) }
             let(:callback) { double('callback method') }
-
-            let!(:request) { stub_request(:post, endpoint).to_return(response) }
-            let(:endpoint) { "#{Datadog::Writer::HOSTNAME}:#{Datadog::Writer::PORT}/#{api_version}/traces" }
-            let(:response) { { body: body } }
-            let(:body) { 'body' }
 
             shared_examples_for 'a traces API' do
               context 'that succeeds' do
@@ -142,6 +147,21 @@ RSpec.describe Datadog::Writer do
             end
           end
         end
+      end
+
+      describe '#send_services' do
+        subject(:result) { writer.send_services(services, writer.transport) }
+        let(:services) { get_test_services }
+
+        let!(:request) { stub_request(:post, endpoint).to_return(response) }
+        let(:endpoint) { "#{Datadog::Writer::HOSTNAME}:#{Datadog::Writer::PORT}/#{api_version}/services" }
+        let(:response) { { body: body } }
+        let(:body) { 'body' }
+        let(:api_version) { Datadog::HTTPTransport::V3 }
+
+        it_behaves_like 'an operation that sends time metric',
+                        Datadog::Writer::METRIC_FLUSH_TIME,
+                        tags: [Datadog::Writer::TAG_DATA_TYPE_SERVICES]
       end
 
       describe '#sampling_updater' do
