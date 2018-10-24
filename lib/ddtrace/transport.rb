@@ -28,6 +28,8 @@ module Datadog
     METRIC_SERVER_ERROR = 'datadog.tracer.transport.http.server_error'.freeze
     METRIC_SUCCESS = 'datadog.tracer.transport.http.success'.freeze
 
+    TAG_ENCODING_TYPE = 'datadog.tracer.transport.encoding_type'.freeze
+
     API = {
       V4 = 'v0.4'.freeze => {
         version: V4,
@@ -202,7 +204,16 @@ module Datadog
     private
 
     def increment(stat)
-      @mutex.synchronize { statsd.increment(stat) } unless statsd.nil?
+      # Add default tag to metrics
+      super(stat, default_statsd_options)
+    end
+
+    def default_statsd_options
+      { tags: default_statsd_tags }
+    end
+
+    def default_statsd_tags
+      ["#{TAG_ENCODING_TYPE}:#{@encoder.content_type}"]
     end
 
     def log_error_once(*args)

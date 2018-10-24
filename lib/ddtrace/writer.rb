@@ -110,10 +110,6 @@ module Datadog
 
     private
 
-    def increment(stat, options = {})
-      statsd.increment(stat, options) unless statsd.nil?
-    end
-
     def sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)
 
