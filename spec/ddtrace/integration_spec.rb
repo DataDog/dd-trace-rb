@@ -207,11 +207,10 @@ RSpec.describe 'Tracer integration tests' do
         try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= i + 1 }
 
         expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(i + 1)
-        expect(statsd).to have_received(:time)
-          .with(
-            Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
-            metric_options(tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"])
-          ).exactly(i + 1).times
+        expect(statsd).to have_received_time_metric(
+          Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
+          tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"]
+        ).exactly(i + 1).times
         expect_no_error_metrics
       end
     end

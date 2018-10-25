@@ -26,12 +26,32 @@ RSpec.describe Datadog::HTTPTransport do
   describe '#post' do
     let(:url) { 'http://localhost/post/test/traces' }
     let(:data) { '{}' }
+    let(:headers) { {} }
+    let(:tags) { ['test_tag'] }
 
     context 'when not given a block' do
-      subject(:response_code) { transport.post(url, data) }
+      subject(:response_code) { transport.post(url, data, headers, tags) }
 
-      it_behaves_like 'a transport operation that sends time metric', described_class::METRIC_ROUNDTRIP_TIME
-      it_behaves_like 'a transport operation that sends time metric', described_class::METRIC_POST_TIME
+      it 'sends the correct metrics' do
+        subject
+
+        expect(statsd).to have_received_time_transport_metric(
+          described_class::METRIC_ROUNDTRIP_TIME,
+          tags: tags
+        )
+
+        expect(statsd).to have_received_time_transport_metric(
+          described_class::METRIC_POST_TIME,
+          tags: tags
+        )
+      end
+      # it_behaves_like 'a transport operation that sends time metric',described_class::METRIC_ROUNDTRIP_TIME
+      #                 described_class::METRIC_ROUNDTRIP_TIME,
+      #                 tags: ['test_tag']
+
+      # it_behaves_like 'a transport operation that sends time metric',
+      #                 described_class::METRIC_POST_TIME,
+      #                 tags: ['test_tag']
 
       context 'and the request raises an internal error' do
         before(:each) do
@@ -46,11 +66,22 @@ RSpec.describe Datadog::HTTPTransport do
     end
 
     context 'when given a block' do
-      subject(:response_code) { transport.post(url, data, &block) }
+      subject(:response_code) { transport.post(url, data, headers, tags, &block) }
       let(:block) { proc { |_response| } }
 
-      it_behaves_like 'a transport operation that sends time metric', described_class::METRIC_ROUNDTRIP_TIME
-      it_behaves_like 'a transport operation that sends time metric', described_class::METRIC_POST_TIME
+      it 'sends the correct metrics' do
+        subject
+
+        expect(statsd).to have_received_time_transport_metric(
+          described_class::METRIC_ROUNDTRIP_TIME,
+          tags: tags
+        )
+
+        expect(statsd).to have_received_time_transport_metric(
+          described_class::METRIC_POST_TIME,
+          tags: tags
+        )
+      end
 
       context 'and the request raises an internal error' do
         before(:each) do
@@ -136,20 +167,58 @@ RSpec.describe Datadog::HTTPTransport do
     end
 
     shared_examples_for 'transport metrics with encoding' do |type, encoder|
-      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_SUCCESS do
-        let(:encoder) { encoder }
+      before(:each) { subject }
+
+      let(:tags) do
+        case type
+        when :services
+          [described_class::TAG_DATA_TYPE_SERVICES]
+        when :traces
+          [described_class::TAG_DATA_TYPE_TRACES]
+        else
+          []
+        end
       end
 
-      it_behaves_like 'a transport operation that sends time metric',
-                      described_class::METRIC_ENCODE_TIME,
-                      tags: ["#{described_class::TAG_DATA_TYPE}:#{type}"] do
-        let(:encoder) { encoder }
+      it do
+        expect(statsd).to have_received_increment_transport_metric(
+          described_class::METRIC_SUCCESS,
+          {},
+          encoder
+        )
       end
 
-      it_behaves_like 'a transport operation that sends distribution metric',
-                      described_class::METRIC_PAYLOAD_SIZE,
-                      tags: ["#{described_class::TAG_DATA_TYPE}:#{type}"] do
-        let(:encoder) { encoder }
+      it do
+        expect(statsd).to have_received_time_transport_metric(
+          described_class::METRIC_ENCODE_TIME,
+          { tags: tags },
+          encoder
+        )
+      end
+
+      it do
+        expect(statsd).to have_received_distribution_transport_metric(
+          described_class::METRIC_PAYLOAD_SIZE,
+          kind_of(Numeric),
+          { tags: tags },
+          encoder
+        )
+      end
+
+      it do
+        expect(statsd).to have_received_time_transport_metric(
+          described_class::METRIC_ROUNDTRIP_TIME,
+          { tags: tags },
+          encoder
+        )
+      end
+
+      it do
+        expect(statsd).to have_received_time_transport_metric(
+          described_class::METRIC_POST_TIME,
+          { tags: tags },
+          encoder
+        )
       end
     end
 

@@ -10,12 +10,17 @@ module MetricHelpers
     def metric_options(options = nil)
       return Datadog::Metrics::DEFAULT_OPTIONS.dup if options.nil?
       return options unless options.is_a?(Hash)
-      options.dup.merge(tags: metric_tags(options[:tags]))
+      options.merge(tags: metric_tags_with(options[:tags]))
     end
 
-    def metric_tags(tags = nil)
-      return Datadog::Metrics::DEFAULT_TAGS.dup if tags.nil?
-      Datadog::Metrics::DEFAULT_TAGS.dup.concat(tags)
+    def metric_tags_with(tags)
+      metric_tags.tap do |default_tags|
+        default_tags.concat(tags) unless tags.nil?
+      end
+    end
+
+    def metric_tags
+      Datadog::Metrics::DEFAULT_TAGS.dup
     end
 
     # Define matchers for use in examples
@@ -28,7 +33,7 @@ module MetricHelpers
     end
 
     def have_received_time_metric(stat, options = {})
-      have_received(:time).with(stat, metric_options(options))
+      have_received(:distribution).with(stat, kind_of(Numeric), metric_options(options))
     end
 
     # Define shared examples
@@ -62,7 +67,7 @@ module MetricHelpers
     # Define default options and tags
     def transport_options(options = {}, encoder = Datadog::Encoding::MsgpackEncoder)
       return options unless options.is_a?(Hash)
-      metric_options.merge(tags: transport_tags_with(options[:tags], encoder))
+      { tags: transport_tags_with(options[:tags], encoder) }
     end
 
     def transport_tags_with(tags, encoder = Datadog::Encoding::MsgpackEncoder)
@@ -72,9 +77,7 @@ module MetricHelpers
     end
 
     def transport_tags(encoder = Datadog::Encoding::MsgpackEncoder)
-      metric_tags.tap do |default_tags|
-        default_tags << "#{Datadog::HTTPTransport::TAG_ENCODING_TYPE}:#{encoder.content_type}"
-      end
+      ["#{Datadog::HTTPTransport::TAG_ENCODING_TYPE}:#{encoder.content_type}"]
     end
 
     # Define matchers for use in examples
@@ -84,15 +87,15 @@ module MetricHelpers
       options = {},
       encoder = Datadog::Encoding::MsgpackEncoder
     )
-      have_received(:distribution).with(stat, value, transport_options(options, encoder))
+      have_received_distribution_metric(stat, value, transport_options(options, encoder))
     end
 
     def have_received_increment_transport_metric(stat, options = {}, encoder = Datadog::Encoding::MsgpackEncoder)
-      have_received(:increment).with(stat, transport_options(options, encoder))
+      have_received_increment_metric(stat, transport_options(options, encoder))
     end
 
     def have_received_time_transport_metric(stat, options = {}, encoder = Datadog::Encoding::MsgpackEncoder)
-      have_received(:time).with(stat, transport_options(options, encoder))
+      have_received_time_metric(stat, transport_options(options, encoder))
     end
 
     # Define shared examples

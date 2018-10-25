@@ -1667,19 +1667,19 @@ After activation, the tracer will send the following metrics:
 
 | Name                                               | Type           | Description                                                      |
 | -------------------------------------------------- | -------------- | ---------------------------------------------------------------- |
-| `datadog.tracer.sampling_update_time`              | `timer`        | Time to update sampling rates from agent response.               |
+| `datadog.tracer.sampling_update_time`              | `distribution` | Time to update sampling rates from agent response.               |
 | `datadog.tracer.services_flushed`                  | `count`        | Number of services flushed.                                      |
 | `datadog.tracer.traces_flushed`                    | `count`        | Number of traces flushed.                                        |
 | `datadog.tracer.transport.http.client_error`       | `count`        | Number of HTTP requests to agent with a client error.            |
-| `datadog.tracer.transport.http.encode_time`        | `timer`        | Time to serialize HTTP payload prior to POST.                    |
+| `datadog.tracer.transport.http.encode_time`        | `distribution` | Time to serialize HTTP payload prior to POST.                    |
 | `datadog.tracer.transport.http.incompatible_error` | `count`        | Number of HTTP requests to agent with incompatible API.          |
 | `datadog.tracer.transport.http.internal_error`     | `count`        | Number of internal tracer errors produced during HTTP transport. |
 | `datadog.tracer.transport.http.payload_size`       | `distribution` | Size of HTTP payload prior to POST, in bytes.                    |
-| `datadog.tracer.transport.http.post_time`          | `timer`        | Time to POST payload to agent, excluding TCP connect time.       |
-| `datadog.tracer.transport.http.roundtrip_time`     | `timer`        | Time to POST payload to agent, including TCP connect time.       |
+| `datadog.tracer.transport.http.post_time`          | `distribution` | Time to POST payload to agent, excluding TCP connect time.       |
+| `datadog.tracer.transport.http.roundtrip_time`     | `distribution` | Time to POST payload to agent, including TCP connect time.       |
 | `datadog.tracer.transport.http.server_error`       | `count`        | Number of HTTP requests to agent with a server error.            |
 | `datadog.tracer.transport.http.success`            | `count`        | Number of successful HTTP requests to agent.                     |
-| `datadog.tracer.writer.flush_time`                 | `timer`        | Time to flush data including serialization, TCP, and callbacks.  |
+| `datadog.tracer.writer.flush_time`                 | `distribution` | Time to flush data including serialization, TCP, and callbacks.  |
 
 In addition, all metrics will include the following tags:
 
@@ -1694,6 +1694,7 @@ And some metrics may additionally include the following tags, if applicable:
 
 | Name                                          | Description                                                                 |
 | --------------------------------------------- | --------------------------------------------------------------------------- |
-| `datadog.tracer.priority_sampler`             | Is priority sampling enabled? (Either `true` or `false`)                    |
+| `datadog.tracer.priority_sampling`            | Is priority sampling enabled? (Either `true` or `false`)                    |
 | `datadog.tracer.transport.http.data_type`     | Payload data type. (Either `services` or `traces`)                          |
 | `datadog.tracer.transport.http.encoding_type` | Payload encoding type. (Either `application/json` or `application/msgpack`) |
+| `datadog.tracer.writer.data_type`             | Payload data type. (Either `services` or `traces`)                          |

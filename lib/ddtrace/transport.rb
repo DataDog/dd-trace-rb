@@ -86,36 +86,15 @@ module Datadog
 
     # route the send to the right endpoint
     def send(endpoint, data)
-      case endpoint
-      when :services
-        metric_options = { tags: [TAG_DATA_TYPE_SERVICES] }
-        payload = time(METRIC_ENCODE_TIME, metric_options) do
-          @encoder.encode_services(data)
-        end
-
-        # Measure how large the payload is.
-        distribution(METRIC_PAYLOAD_SIZE, payload.bytesize, metric_options)
-
-        status_code = post(@api[:services_endpoint], payload) do |response|
-          process_callback(:services, response)
-        end
-      when :traces
-        metric_options = { tags: [TAG_DATA_TYPE_TRACES] }
-        count = data.length
-        payload = time(METRIC_ENCODE_TIME, metric_options) do
-          @encoder.encode_traces(data)
-        end
-
-        # Measure how large the payload is.
-        distribution(METRIC_PAYLOAD_SIZE, payload.bytesize, metric_options)
-
-        status_code = post(@api[:traces_endpoint], payload, count) do |response|
-          process_callback(:traces, response)
-        end
-      else
-        Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
-        return nil
-      end
+      status_code = case endpoint
+                    when :services
+                      send_services(data)
+                    when :traces
+                      send_traces(data)
+                    else
+                      Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
+                      return nil
+                    end
 
       if downgrade?(status_code)
         downgrade!
@@ -125,18 +104,51 @@ module Datadog
       end
     end
 
+    def send_traces(data)
+      # Encode the payload
+      metric_options = { tags: [TAG_DATA_TYPE_TRACES] }
+      count = data.length
+      payload = time(METRIC_ENCODE_TIME, metric_options) do
+        @encoder.encode_traces(data)
+      end
+      distribution(METRIC_PAYLOAD_SIZE, payload.bytesize, metric_options)
+
+      # Send POST to agent
+      post(
+        @api[:traces_endpoint],
+        payload,
+        { HEADER_TRACE_COUNT => count.to_s },
+        metric_options[:tags]
+      ) do |response|
+        process_callback(:traces, response)
+      end
+    end
+
+    def send_services(data)
+      # Encode the payload
+      metric_options = { tags: [TAG_DATA_TYPE_SERVICES] }
+      payload = time(METRIC_ENCODE_TIME, metric_options) do
+        @encoder.encode_services(data)
+      end
+      distribution(METRIC_PAYLOAD_SIZE, payload.bytesize, metric_options)
+
+      # Send POST to agent
+      post(@api[:services_endpoint], payload, {}, metric_options[:tags]) do |response|
+        process_callback(:services, response)
+      end
+    end
+
     # send data to the trace-agent; the method is thread-safe
-    def post(url, data, count = nil)
+    def post(url, data, headers = {}, tags = [])
       begin
         Datadog::Tracer.log.debug("Sending data from process: #{Process.pid}")
-        headers = count.nil? ? {} : { HEADER_TRACE_COUNT => count.to_s }
-        headers = headers.merge(@headers)
+        headers = @headers.merge(headers)
         request = Net::HTTP::Post.new(url, headers)
         request.body = data
 
-        response = time(METRIC_ROUNDTRIP_TIME) do
+        response = time(METRIC_ROUNDTRIP_TIME, tags: tags) do
           Net::HTTP.start(@hostname, @port, open_timeout: TIMEOUT, read_timeout: TIMEOUT) do |http|
-            time(METRIC_POST_TIME) do
+            time(METRIC_POST_TIME, tags: tags) do
               http.request(request)
             end
           end
@@ -229,14 +241,11 @@ module Datadog
 
     protected
 
-    def statsd_options(options = nil)
-      super().merge(tags: statsd_tags(options && options[:tags]))
-    end
-
-    def statsd_tags(tags = nil)
-      super().tap do |default_tags|
-        default_tags << "#{TAG_ENCODING_TYPE}:#{@encoder.content_type}".freeze
-        default_tags.concat(tags) unless tags.nil?
+    def default_metric_options
+      super.dup.tap do |default_options|
+        default_options[:tags] = default_options[:tags].dup.tap do |default_tags|
+          default_tags << "#{TAG_ENCODING_TYPE}:#{@encoder.content_type}".freeze
+        end
       end
     end
 

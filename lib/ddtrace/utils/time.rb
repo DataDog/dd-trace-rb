@@ -7,7 +7,7 @@ module Datadog
       module_function
 
       def get_time
-        PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : Time.now.to_f
+        PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : ::Time.now.to_f
       end
     end
   end
