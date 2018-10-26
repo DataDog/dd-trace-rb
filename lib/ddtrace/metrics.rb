@@ -1,6 +1,8 @@
 require 'ddtrace/ext/meta'
 require 'ddtrace/ext/statsd'
 
+require 'ddtrace/utils/time'
+
 module Datadog
   # Behavior for sending statistics to Statsd
   module Metrics
@@ -17,27 +19,44 @@ module Datadog
 
     protected
 
-    def increment(stat, options = nil)
+    def distribution(stat, value, options = nil)
       return if statsd.nil?
-      statsd.increment(stat, merge_with_defaults(options))
+      statsd.distribution(stat, value, metric_options(options))
     end
 
-    private
+    def increment(stat, options = nil)
+      return if statsd.nil?
+      statsd.increment(stat, metric_options(options))
+    end
 
-    def merge_with_defaults(options)
-      if options.nil?
-        # Set default options
-        DEFAULT_OPTIONS.dup
-      else
-        # Add tags to options
-        options.dup.tap do |opts|
-          opts[:tags] = if opts.key?(:tags)
-                          opts[:tags].dup.concat(DEFAULT_TAGS)
-                        else
-                          DEFAULT_TAGS.dup
-                        end
+    def time(stat, options = nil, &block)
+      return yield if statsd.nil?
+
+      # Calculate time, send it as a distribution.
+      start = Utils::Time.get_time
+      return yield
+    ensure
+      unless statsd.nil?
+        finished = Utils::Time.get_time
+        statsd.distribution(stat, ((finished - start) * 1000), metric_options(options))
+      end
+    end
+
+    def metric_options(options = nil)
+      return default_metric_options if options.nil?
+
+      default_metric_options.merge(options) do |key, old_value, new_value|
+        case key
+        when :tags
+          old_value.dup.concat(new_value)
+        else
+          new_value
         end
       end
+    end
+
+    def default_metric_options
+      DEFAULT_OPTIONS
     end
   end
 end

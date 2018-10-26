@@ -10,8 +10,16 @@ module Datadog
 
     attr_reader :transport, :worker, :priority_sampler
 
-    METRIC_TRACES_FLUSHED = 'datadog.tracer.traces_flushed'.freeze
+    METRIC_SAMPLING_UPDATE_TIME = 'datadog.tracer.sampling_update_time'.freeze
     METRIC_SERVICES_FLUSHED = 'datadog.tracer.services_flushed'.freeze
+    METRIC_FLUSH_TIME = 'datadog.tracer.writer.flush_time'.freeze
+    METRIC_TRACES_FLUSHED = 'datadog.tracer.traces_flushed'.freeze
+    TAG_DATA_TYPE = 'datadog.tracer.writer.data_type'.freeze
+    TAG_DATA_TYPE_SERVICES = "#{TAG_DATA_TYPE}:services".freeze
+    TAG_DATA_TYPE_TRACES = "#{TAG_DATA_TYPE}:traces".freeze
+    TAG_PRIORITY_SAMPLING = 'datadog.tracer.writer.priority_sampling'.freeze
+    TAG_PRIORITY_SAMPLING_DISABLED = 'datadog.tracer.writer.priority_sampling:false'.freeze
+    TAG_PRIORITY_SAMPLING_ENABLED = 'datadog.tracer.writer.priority_sampling:true'.freeze
 
     def initialize(options = {})
       # writer and transport parameters
@@ -63,24 +71,28 @@ module Datadog
 
     # flush spans to the trace-agent, handles spans only
     def send_spans(traces, transport)
-      return true if traces.empty?
+      time(METRIC_FLUSH_TIME, tags: [TAG_DATA_TYPE_TRACES]) do
+        return true if traces.empty?
 
-      code = transport.send(:traces, traces)
-      status = !transport.server_error?(code)
-      increment(METRIC_TRACES_FLUSHED, by: traces.length) if status
+        code = transport.send(:traces, traces)
+        status = !transport.server_error?(code)
+        increment(METRIC_TRACES_FLUSHED, by: traces.length) if status
 
-      status
+        status
+      end
     end
 
     # flush services to the trace-agent, handles services only
     def send_services(services, transport)
-      return true if services.empty?
+      time(METRIC_FLUSH_TIME, tags: [TAG_DATA_TYPE_SERVICES]) do
+        return true if services.empty?
 
-      code = transport.send(:services, services)
-      status = !transport.server_error?(code)
-      increment(METRIC_SERVICES_FLUSHED) if status
+        code = transport.send(:services, services)
+        status = !transport.server_error?(code)
+        increment(METRIC_SERVICES_FLUSHED) if status
 
-      status
+        status
+      end
     end
 
     # enqueue the trace for submission to the API
@@ -110,14 +122,17 @@ module Datadog
     def sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)
 
-      if api[:version] == HTTPTransport::V4
-        body = JSON.parse(response.body)
-        if body.is_a?(Hash) && body.key?('rate_by_service')
-          @priority_sampler.update(body['rate_by_service'])
+      priority_sampling_tag = !@priority_sampler.nil? ? TAG_PRIORITY_SAMPLING_ENABLED : TAG_PRIORITY_SAMPLING_DISABLED
+      time(METRIC_SAMPLING_UPDATE_TIME, tags: [priority_sampling_tag]) do
+        if api[:version] == HTTPTransport::V4
+          body = JSON.parse(response.body)
+          if body.is_a?(Hash) && body.key?('rate_by_service')
+            @priority_sampler.update(body['rate_by_service'])
+          end
+          true
+        else
+          false
         end
-        true
-      else
-        false
       end
     end
   end
