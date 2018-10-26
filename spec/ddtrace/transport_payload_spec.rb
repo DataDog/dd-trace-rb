@@ -8,7 +8,7 @@ require 'ddtrace'
 require 'ddtrace/tracer'
 
 RSpec.describe 'Datadog::HTTPTransport payload' do
-  include_context 'transport metric counts'
+  include_context 'transport metrics'
 
   before(:each) do
     WebMock.enable!
@@ -47,11 +47,23 @@ RSpec.describe 'Datadog::HTTPTransport payload' do
 
       expect(WebMock).to have_requested(:post, %r{#{hostname}:#{port}/v\d+\.\d+/traces})
 
-      expect(statsd).to increment_stat(Datadog::Writer::METRIC_TRACES_FLUSHED).with(by: 1).once
-      expect(statsd).to increment_stat(Datadog::HTTPTransport::METRIC_SUCCESS).with(transport_options)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_CLIENT_ERROR)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_SERVER_ERROR)
-      expect(statsd).to_not increment_stat(Datadog::HTTPTransport::METRIC_INTERNAL_ERROR)
+      expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_TRACES_FLUSHED, by: 1).once
+      expect(statsd).to have_received_increment_transport_metric(Datadog::HTTPTransport::METRIC_SUCCESS)
+
+      expect(statsd).to_not have_received_increment_transport_metric(
+        Datadog::HTTPTransport::METRIC_CLIENT_ERROR,
+        any_args
+      )
+
+      expect(statsd).to_not have_received_increment_transport_metric(
+        Datadog::HTTPTransport::METRIC_SERVER_ERROR,
+        any_args
+      )
+
+      expect(statsd).to_not have_received_increment_transport_metric(
+        Datadog::HTTPTransport::METRIC_INTERNAL_ERROR,
+        any_args
+      )
     end
 
     let(:transport) { tracer.writer.transport }
