@@ -23,12 +23,19 @@ module Datadog
     HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'.freeze
 
     METRIC_CLIENT_ERROR = 'datadog.tracer.transport.http.client_error'.freeze
+    METRIC_ENCODE_TIME = 'datadog.tracer.transport.http.encode_time'.freeze
     METRIC_INCOMPATIBLE_ERROR = 'datadog.tracer.transport.http.incompatible_error'.freeze
     METRIC_INTERNAL_ERROR = 'datadog.tracer.transport.http.internal_error'.freeze
+    METRIC_PAYLOAD_SIZE = 'datadog.tracer.transport.http.payload_size'.freeze
+    METRIC_POST_TIME = 'datadog.tracer.transport.http.post_time'.freeze
+    METRIC_ROUNDTRIP_TIME = 'datadog.tracer.transport.http.roundtrip_time'.freeze
     METRIC_SERVER_ERROR = 'datadog.tracer.transport.http.server_error'.freeze
     METRIC_SUCCESS = 'datadog.tracer.transport.http.success'.freeze
 
-    TAG_ENCODING_TYPE = 'datadog.tracer.transport.encoding_type'.freeze
+    TAG_DATA_TYPE = 'datadog.tracer.transport.http.data_type'.freeze
+    TAG_DATA_TYPE_SERVICES = 'datadog.tracer.transport.http.data_type:services'.freeze
+    TAG_DATA_TYPE_TRACES = 'datadog.tracer.transport.http.data_type:traces'.freeze
+    TAG_ENCODING_TYPE = 'datadog.tracer.transport.http.encoding_type'.freeze
 
     API = {
       V4 = 'v0.4'.freeze => {
@@ -79,22 +86,15 @@ module Datadog
 
     # route the send to the right endpoint
     def send(endpoint, data)
-      case endpoint
-      when :services
-        payload = @encoder.encode_services(data)
-        status_code = post(@api[:services_endpoint], payload) do |response|
-          process_callback(:services, response)
-        end
-      when :traces
-        count = data.length
-        payload = @encoder.encode_traces(data)
-        status_code = post(@api[:traces_endpoint], payload, count) do |response|
-          process_callback(:traces, response)
-        end
-      else
-        Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
-        return nil
-      end
+      status_code = case endpoint
+                    when :services
+                      send_services(data)
+                    when :traces
+                      send_traces(data)
+                    else
+                      Datadog::Tracer.log.error("Unsupported endpoint: #{endpoint}")
+                      return nil
+                    end
 
       if downgrade?(status_code)
         downgrade!
@@ -104,18 +104,56 @@ module Datadog
       end
     end
 
+    def send_traces(data)
+      # Encode the payload
+      metric_options = { tags: [TAG_DATA_TYPE_TRACES] }
+      count = data.length
+      payload = time(METRIC_ENCODE_TIME, metric_options) do
+        @encoder.encode_traces(data)
+      end
+      distribution(METRIC_PAYLOAD_SIZE, payload.bytesize, metric_options)
+
+      # Send POST to agent
+      post(
+        @api[:traces_endpoint],
+        payload,
+        { HEADER_TRACE_COUNT => count.to_s },
+        metric_options[:tags]
+      ) do |response|
+        process_callback(:traces, response)
+      end
+    end
+
+    def send_services(data)
+      # Encode the payload
+      metric_options = { tags: [TAG_DATA_TYPE_SERVICES] }
+      payload = time(METRIC_ENCODE_TIME, metric_options) do
+        @encoder.encode_services(data)
+      end
+      distribution(METRIC_PAYLOAD_SIZE, payload.bytesize, metric_options)
+
+      # Send POST to agent
+      post(@api[:services_endpoint], payload, {}, metric_options[:tags]) do |response|
+        process_callback(:services, response)
+      end
+    end
+
     # send data to the trace-agent; the method is thread-safe
-    def post(url, data, count = nil)
+    def post(url, data, headers = {}, tags = [])
       begin
         Datadog::Tracer.log.debug("Sending data from process: #{Process.pid}")
-        headers = count.nil? ? {} : { HEADER_TRACE_COUNT => count.to_s }
-        headers = headers.merge(@headers)
+        headers = @headers.merge(headers)
         request = Net::HTTP::Post.new(url, headers)
         request.body = data
 
-        response = Net::HTTP.start(@hostname, @port, open_timeout: TIMEOUT, read_timeout: TIMEOUT) do |http|
-          http.request(request)
+        response = time(METRIC_ROUNDTRIP_TIME, tags: tags) do
+          Net::HTTP.start(@hostname, @port, open_timeout: TIMEOUT, read_timeout: TIMEOUT) do |http|
+            time(METRIC_POST_TIME, tags: tags) do
+              http.request(request)
+            end
+          end
         end
+
         handle_response(response)
       rescue StandardError => e
         log_error_once(e.message)
@@ -201,20 +239,17 @@ module Datadog
       500
     end
 
+    protected
+
+    def default_metric_options
+      super.dup.tap do |default_options|
+        default_options[:tags] = default_options[:tags].dup.tap do |default_tags|
+          default_tags << "#{TAG_ENCODING_TYPE}:#{@encoder.content_type}".freeze
+        end
+      end
+    end
+
     private
-
-    def increment(stat)
-      # Add default tag to metrics
-      super(stat, default_statsd_options)
-    end
-
-    def default_statsd_options
-      { tags: default_statsd_tags }
-    end
-
-    def default_statsd_tags
-      ["#{TAG_ENCODING_TYPE}:#{@encoder.content_type}"]
-    end
 
     def log_error_once(*args)
       if @count_consecutive_errors > 0
