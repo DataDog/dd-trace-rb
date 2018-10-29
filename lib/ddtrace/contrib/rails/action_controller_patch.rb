@@ -34,6 +34,7 @@ module Datadog
             payload = {
               controller: self.class,
               action: action_name,
+              env: request.env,
               headers: {
                 # The exception this controller was given in the request,
                 # which is typical if the controller is configured to handle exceptions.
