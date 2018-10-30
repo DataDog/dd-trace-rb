@@ -1,6 +1,8 @@
+require 'ddtrace/contrib/mongodb/ext'
+require 'ddtrace/contrib/mongodb/parsers'
+
 module Datadog
   module Contrib
-    # MongoDB module includes classes and functions to instrument MongoDB clients
     module MongoDB
       # `MongoCommandSubscriber` listens to all events from the `Monitoring`
       # system available in the Mongo driver.
@@ -14,20 +16,19 @@ module Datadog
           # thread is involved in this execution so thread-local storage should be safe. Reference:
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring/publishable.rb#L38-L56
-          span = pin.tracer.trace('mongo.cmd', service: pin.service, span_type: Datadog::Ext::Mongo::TYPE)
+          span = pin.tracer.trace(Ext::SPAN_COMMAND, service: pin.service, span_type: Ext::SPAN_TYPE_COMMAND)
           Thread.current[:datadog_mongo_span] = span
 
           # build a quantized Query using the Parser module
-          query = Datadog::Contrib::MongoDB
-                  .query_builder(event.command_name, event.database_name, event.command)
+          query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
           serialized_query = query.to_s
 
           # add operation tags; the full query is stored and used as a resource,
           # since it has been quantized and reduced
-          span.set_tag(Datadog::Ext::Mongo::DB, query['database'])
-          span.set_tag(Datadog::Ext::Mongo::COLLECTION, query['collection'])
-          span.set_tag(Datadog::Ext::Mongo::OPERATION, query['operation'])
-          span.set_tag(Datadog::Ext::Mongo::QUERY, serialized_query)
+          span.set_tag(Ext::TAG_DB, query['database'])
+          span.set_tag(Ext::TAG_COLLECTION, query['collection'])
+          span.set_tag(Ext::TAG_OPERATION, query['operation'])
+          span.set_tag(Ext::TAG_QUERY, serialized_query)
           span.set_tag(Datadog::Ext::NET::TARGET_HOST, event.address.host)
           span.set_tag(Datadog::Ext::NET::TARGET_PORT, event.address.port)
 
@@ -47,7 +48,7 @@ module Datadog
         ensure
           # whatever happens, the Span must be removed from the local storage and
           # it must be finished to prevent any leak
-          span.finish() unless span.nil?
+          span.finish unless span.nil?
           Thread.current[:datadog_mongo_span] = nil
         end
 
@@ -57,13 +58,13 @@ module Datadog
 
           # add fields that are available only after executing the query
           rows = event.reply.fetch('n', nil)
-          span.set_tag(Datadog::Ext::Mongo::ROWS, rows) unless rows.nil?
+          span.set_tag(Ext::TAG_ROWS, rows) unless rows.nil?
         rescue StandardError => e
           Datadog::Tracer.log.debug("error when handling MongoDB 'succeeded' event: #{e}")
         ensure
           # whatever happens, the Span must be removed from the local storage and
           # it must be finished to prevent any leak
-          span.finish() unless span.nil?
+          span.finish unless span.nil?
           Thread.current[:datadog_mongo_span] = nil
         end
       end

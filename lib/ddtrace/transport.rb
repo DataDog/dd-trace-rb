@@ -51,7 +51,7 @@ module Datadog
       @hostname = hostname
       @port = port
       @api = API.fetch(api_version)
-      @encoder = options[:encoder] || @api[:encoder].new
+      @encoder = options[:encoder] || @api[:encoder]
       @response_callback = options[:response_callback]
 
       # overwrite the Content-type with the one chosen in the Encoder
@@ -127,7 +127,7 @@ module Datadog
         fallback_version = @api.fetch(:fallback)
 
         @api = API.fetch(fallback_version)
-        @encoder = @api[:encoder].new
+        @encoder = @api[:encoder]
         @headers['Content-Type'] = @encoder.content_type
       end
     end

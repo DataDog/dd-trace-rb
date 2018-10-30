@@ -1,3 +1,6 @@
+require 'ddtrace/ext/http'
+require 'ddtrace/contrib/grpc/ext'
+
 module Datadog
   module Contrib
     module GRPC
@@ -10,7 +13,7 @@ module Datadog
         class Server < Base
           def trace(keywords)
             options = {
-              span_type: Datadog::Ext::GRPC::TYPE,
+              span_type: Datadog::Ext::HTTP::TYPE,
               service: datadog_pin.service_name,
               resource: format_resource(keywords[:method])
             }
@@ -18,7 +21,7 @@ module Datadog
 
             set_distributed_context!(tracer, metadata)
 
-            tracer.trace('grpc.service', options) do |span|
+            tracer.trace(Ext::SPAN_SERVICE, options) do |span|
               annotate!(span, metadata)
 
               yield

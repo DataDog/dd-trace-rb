@@ -10,6 +10,8 @@ module Datadog
   # spent on a distributed call on a separate machine, or the time spent in a small component
   # within a larger operation. Spans can be nested within each other, and in those instances
   # will have a parent-child relationship.
+  #
+  # rubocop:disable Metrics/ClassLength
   class Span
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
@@ -57,6 +59,9 @@ module Datadog
 
       @start_time = nil # set by Tracer.start_span
       @end_time = nil # set by Span.finish
+
+      @allocation_count_start = now_allocations
+      @allocation_count_finish = @allocation_count_start
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -106,6 +111,8 @@ module Datadog
       # several times. Again, one should not do this, so this test is more a
       # fallback to avoid very bad things and protect you in most common cases.
       return if finished?
+
+      @allocation_count_finish = now_allocations
 
       # Provide a default start_time if unset, but this should have been set by start_span.
       # Using now here causes 0-duration spans, still, this is expected, as we never
@@ -162,6 +169,10 @@ module Datadog
       end
     end
 
+    def allocations
+      @allocation_count_finish - @allocation_count_start
+    end
+
     # Return the hash representation of the current span.
     def to_hash
       h = {
@@ -174,6 +185,7 @@ module Datadog
         type: @span_type,
         meta: @meta,
         metrics: @metrics,
+        allocations: allocations,
         error: @status
       }
 
@@ -203,6 +215,7 @@ module Datadog
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
         q.text "Duration: #{duration}\n"
+        q.text "Allocations: #{allocations}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
           q.seplist @meta.each do |key, value|
@@ -215,6 +228,22 @@ module Datadog
             q.text "#{key} => #{value}"
           end
         end
+      end
+    end
+
+    private
+
+    if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+      def now_allocations
+        0
+      end
+    elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+      def now_allocations
+        GC.stat.fetch(:total_allocated_object)
+      end
+    else
+      def now_allocations
+        GC.stat(:total_allocated_objects)
       end
     end
   end

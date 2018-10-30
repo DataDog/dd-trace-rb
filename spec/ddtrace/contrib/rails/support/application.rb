@@ -4,7 +4,6 @@ RSpec.shared_context 'Rails test application' do
   include_context 'Rails base application'
 
   before do
-    Datadog.registry[:rails].instance_variable_set(:@patched, false)
     reset_rails_configuration!
   end
 

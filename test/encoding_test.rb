@@ -5,7 +5,7 @@ require 'ddtrace/encoding'
 class TracerTest < Minitest::Test
   def test_traces_encoding_json
     # test encoding for JSON format
-    encoder = Datadog::Encoding::JSONEncoder.new()
+    encoder = Datadog::Encoding::JSONEncoder
     traces = get_test_traces(2)
     to_send = encoder.encode_traces(traces)
 

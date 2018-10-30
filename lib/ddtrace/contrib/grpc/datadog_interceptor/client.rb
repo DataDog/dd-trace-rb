@@ -1,3 +1,6 @@
+require 'ddtrace/ext/http'
+require 'ddtrace/contrib/grpc/ext'
+
 module Datadog
   module Contrib
     module GRPC
@@ -11,12 +14,12 @@ module Datadog
             keywords[:metadata] ||= {}
 
             options = {
-              span_type: Datadog::Ext::GRPC::TYPE,
+              span_type: Datadog::Ext::HTTP::TYPE,
               service: datadog_pin.service_name,
               resource: format_resource(keywords[:method])
             }
 
-            tracer.trace('grpc.client', options) do |span|
+            tracer.trace(Ext::SPAN_CLIENT, options) do |span|
               annotate!(span, keywords[:metadata])
 
               yield

@@ -2,12 +2,12 @@ require 'spec_helper'
 require 'ddtrace'
 require 'elasticsearch-transport'
 
-ELASTICSEARCH_HOST = ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze
-ELASTICSEARCH_PORT = ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').freeze
-ELASTICSEARCH_SERVER = "http://#{ELASTICSEARCH_HOST}:#{ELASTICSEARCH_PORT}".freeze
-
 RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
-  let(:client) { Elasticsearch::Client.new(url: ELASTICSEARCH_SERVER) }
+  let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
+  let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').to_i }
+  let(:server) { "http://#{host}:#{port}" }
+
+  let(:client) { Elasticsearch::Client.new(url: server) }
   let(:pin) { Datadog::Pin.get_from(client) }
   let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
 
@@ -16,7 +16,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       c.use :elasticsearch
     end
 
-    wait_http_server(ELASTICSEARCH_SERVER, 60)
+    wait_http_server(server, 60)
     pin.tracer = tracer
   end
 

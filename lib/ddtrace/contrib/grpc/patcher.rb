@@ -1,60 +1,50 @@
-# requirements should be kept minimal as Patcher is a shared requirement.
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/contrib/grpc/ext'
 
 module Datadog
   module Contrib
     module GRPC
-      SERVICE = 'grpc'.freeze
-
       # Patcher enables patching of 'grpc' module.
       module Patcher
-        include Base
-        register_as :grpc, auto_patch: true
-        option :tracer, default: Datadog.tracer
-        option :service_name, default: SERVICE
-
-        @patched = false
+        include Contrib::Patcher
 
         module_function
 
-        def patch
-          return false unless compatible?
-          return @patched if @patched
-
-          require 'ddtrace/ext/grpc'
-          require 'ddtrace/propagation/grpc_propagator'
-          require 'ddtrace/contrib/grpc/datadog_interceptor'
-          require 'ddtrace/contrib/grpc/intercept_with_datadog'
-
-          add_pin
-          prepend_interceptor
-
-          @patched = true
-        rescue StandardError => e
-          Datadog::Tracer.log.error("Unable to apply gRPC integration: #{e}")
-        ensure
-          @patched
-        end
-
-        def compatible?
-          defined?(::GRPC::VERSION) && Gem::Version.new(::GRPC::VERSION) >= Gem::Version.new('0.10.0')
-        end
-
         def patched?
-          @patched
+          done?(:grpc)
+        end
+
+        def patch
+          do_once(:grpc) do
+            begin
+              require 'ddtrace/propagation/grpc_propagator'
+              require 'ddtrace/contrib/grpc/datadog_interceptor'
+              require 'ddtrace/contrib/grpc/intercept_with_datadog'
+
+              add_pin
+              prepend_interceptor
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply gRPC integration: #{e}")
+            end
+          end
         end
 
         def add_pin
           Pin.new(
             get_option(:service_name),
-            app: 'grpc',
-            app_type: 'grpc',
+            app: Ext::APP,
+            app_type: Datadog::Ext::AppTypes::WEB,
             tracer: get_option(:tracer)
           ).onto(::GRPC)
         end
 
         def prepend_interceptor
           ::GRPC::InterceptionContext
-            .prepend(Datadog::Contrib::GRPC::InterceptWithDatadog)
+            .send(:prepend, Datadog::Contrib::GRPC::InterceptWithDatadog)
+        end
+
+        def get_option(option)
+          Datadog.configuration[:grpc].get_option(option)
         end
       end
     end

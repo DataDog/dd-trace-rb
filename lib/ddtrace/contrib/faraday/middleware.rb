@@ -2,23 +2,24 @@ require 'faraday'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/faraday/ext'
 
 module Datadog
   module Contrib
     module Faraday
       # Middleware implements a faraday-middleware for ddtrace instrumentation
       class Middleware < ::Faraday::Middleware
-        include Ext::DistributedTracing
+        include Datadog::Ext::DistributedTracing
 
         def initialize(app, options = {})
           super(app)
-          @options = Datadog.configuration[:faraday].merge(options)
+          @options = Datadog.configuration[:faraday].to_h.merge(options)
           @tracer = Pin.get_from(::Faraday).tracer
           setup_service!
         end
 
         def call(env)
-          tracer.trace(NAME) do |span|
+          tracer.trace(Ext::SPAN_REQUEST) do |span|
             annotate!(span, env)
             propagate!(span, env) if options[:distributed_tracing] && tracer.enabled
             app.call(env).on_complete { |resp| handle_response(span, resp) }
@@ -32,11 +33,11 @@ module Datadog
         def annotate!(span, env)
           span.resource = env[:method].to_s.upcase
           span.service = service_name(env)
-          span.span_type = Ext::HTTP::TYPE
-          span.set_tag(Ext::HTTP::URL, env[:url].path)
-          span.set_tag(Ext::HTTP::METHOD, env[:method].to_s.upcase)
-          span.set_tag(Ext::NET::TARGET_HOST, env[:url].host)
-          span.set_tag(Ext::NET::TARGET_PORT, env[:url].port)
+          span.span_type = Datadog::Ext::HTTP::TYPE
+          span.set_tag(Datadog::Ext::HTTP::URL, env[:url].path)
+          span.set_tag(Datadog::Ext::HTTP::METHOD, env[:method].to_s.upcase)
+          span.set_tag(Datadog::Ext::NET::TARGET_HOST, env[:url].host)
+          span.set_tag(Datadog::Ext::NET::TARGET_PORT, env[:url].port)
         end
 
         def handle_response(span, env)
@@ -44,7 +45,7 @@ module Datadog
             span.set_error(["Error #{env[:status]}", env[:body]])
           end
 
-          span.set_tag(Ext::HTTP::STATUS_CODE, env[:status])
+          span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, env[:status])
         end
 
         def propagate!(span, env)

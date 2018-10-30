@@ -1,6 +1,6 @@
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
-require 'ddtrace/contrib/rack/middlewares'
+require 'ddtrace/contrib/rack/ext'
 
 module Datadog
   module Contrib
@@ -13,9 +13,6 @@ module Datadog
         KEY_RENDER = 'datadog_grape_endpoint_render'.freeze
 
         def self.subscribe
-          # Grape is instrumented only if it's available
-          return unless defined?(::Grape) && defined?(::ActiveSupport::Notifications)
-
           # subscribe when a Grape endpoint is hit
           ::ActiveSupport::Notifications.subscribe('endpoint_run.grape.start_process') do |*args|
             endpoint_start_process(*args)
@@ -45,7 +42,7 @@ module Datadog
           tracer = pin.tracer
           service = pin.service
           type = Datadog::Ext::HTTP::TYPE
-          tracer.trace('grape.endpoint_run', service: service, span_type: type)
+          tracer.trace(Ext::SPAN_ENDPOINT_RUN, service: service, span_type: type)
 
           Thread.current[KEY_RUN] = true
         rescue StandardError => e
@@ -61,7 +58,7 @@ module Datadog
           return unless pin && pin.enabled?
 
           tracer = pin.tracer
-          span = tracer.active_span()
+          span = tracer.active_span
           return unless span
 
           begin
@@ -72,8 +69,8 @@ module Datadog
             span.resource = resource
 
             # set the request span resource if it's a `rack.request` span
-            request_span = payload[:env][Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
-            if !request_span.nil? && request_span.name == 'rack.request'
+            request_span = payload[:env][Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+            if !request_span.nil? && request_span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
               request_span.resource = resource
             end
 
@@ -81,8 +78,8 @@ module Datadog
             span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
 
             # override the current span with this notification values
-            span.set_tag('grape.route.endpoint', api_view)
-            span.set_tag('grape.route.path', path)
+            span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view)
+            span.set_tag(Ext::TAG_ROUTE_PATH, path)
           ensure
             span.start_time = start
             span.finish(finish)
@@ -102,7 +99,7 @@ module Datadog
           tracer = pin.tracer
           service = pin.service
           type = Datadog::Ext::HTTP::TYPE
-          tracer.trace('grape.endpoint_render', service: service, span_type: type)
+          tracer.trace(Ext::SPAN_ENDPOINT_RENDER, service: service, span_type: type)
 
           Thread.current[KEY_RENDER] = true
         rescue StandardError => e
@@ -118,7 +115,7 @@ module Datadog
           return unless pin && pin.enabled?
 
           tracer = pin.tracer
-          span = tracer.active_span()
+          span = tracer.active_span
           return unless span
 
           # catch thrown exceptions
@@ -151,7 +148,7 @@ module Datadog
           begin
             # catch thrown exceptions
             span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
-            span.set_tag('grape.filter.type', type.to_s)
+            span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
           ensure
             span.start_time = start
             span.finish(finish)

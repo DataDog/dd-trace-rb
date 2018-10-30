@@ -32,7 +32,7 @@ class EncoderTest < Minitest::Test
   def test_benchmark_json_encoder
     # create and finish a huge number of spans with a single thread
     traces = get_test_traces(50)
-    json_encoder = Datadog::Encoding::JSONEncoder.new()
+    json_encoder = Datadog::Encoding::JSONEncoder
 
     Benchmark.benchmark(CAPTION, 7, FORMAT, '>total:', '>avg:') do |x|
       x.report("Encoding #{traces.length} traces with JSON:") do
@@ -44,7 +44,7 @@ class EncoderTest < Minitest::Test
   def test_benchmark_msgpack_encoder
     # create and finish a huge number of spans with a single thread
     traces = get_test_traces(50)
-    msgpack_encoder = Datadog::Encoding::MsgpackEncoder.new()
+    msgpack_encoder = Datadog::Encoding::MsgpackEncoder
 
     Benchmark.benchmark(CAPTION, 7, FORMAT, '>total:', '>avg:') do |x|
       x.report("Encoding #{traces.length} traces with Msgpack:") do

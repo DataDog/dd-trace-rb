@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/active_record/ext'
 require 'ddtrace/contrib/active_record/event'
 
 module Datadog
@@ -9,8 +10,6 @@ module Datadog
           include ActiveRecord::Event
 
           EVENT_NAME = 'instantiation.active_record'.freeze
-          SPAN_NAME = 'active_record.instantiation'.freeze
-          DEFAULT_SERVICE_NAME = 'active_record'.freeze
 
           module_function
 
@@ -24,7 +23,7 @@ module Datadog
           end
 
           def span_name
-            self::SPAN_NAME
+            Ext::SPAN_INSTANTIATION
           end
 
           def process(span, event, _id, payload)
@@ -34,13 +33,13 @@ module Datadog
                            elsif span.parent
                              span.parent.service
                            else
-                             self::DEFAULT_SERVICE_NAME
+                             Ext::SERVICE_NAME
                            end
 
             span.resource = payload.fetch(:class_name)
-            span.span_type = 'custom'
-            span.set_tag('active_record.instantiation.class_name', payload.fetch(:class_name))
-            span.set_tag('active_record.instantiation.record_count', payload.fetch(:record_count))
+            span.span_type = Ext::SPAN_TYPE_INSTANTIATION
+            span.set_tag(Ext::TAG_INSTANTIATION_CLASS_NAME, payload.fetch(:class_name))
+            span.set_tag(Ext::TAG_INSTANTIATION_RECORD_COUNT, payload.fetch(:record_count))
           rescue StandardError => e
             Datadog::Tracer.log.debug(e.message)
           end

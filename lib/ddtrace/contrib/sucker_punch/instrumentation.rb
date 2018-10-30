@@ -1,4 +1,5 @@
 require 'sucker_punch'
+require 'ddtrace/contrib/sucker_punch/ext'
 
 module Datadog
   module Contrib
@@ -15,7 +16,7 @@ module Datadog
               pin = Datadog::Pin.get_from(::SuckerPunch)
               pin.tracer.provider.context = Datadog::Context.new
 
-              __with_instrumentation('sucker_punch.perform') do |span|
+              __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"
                 __run_perform_without_datadog(*args)
               end
@@ -25,7 +26,7 @@ module Datadog
 
             alias_method :__perform_async, :perform_async
             def perform_async(*args)
-              __with_instrumentation('sucker_punch.perform_async') do |span|
+              __with_instrumentation(Ext::SPAN_PERFORM_ASYNC) do |span|
                 span.resource = "ENQUEUE #{self}"
                 __perform_async(*args)
               end
@@ -33,9 +34,9 @@ module Datadog
 
             alias_method :__perform_in, :perform_in
             def perform_in(interval, *args)
-              __with_instrumentation('sucker_punch.perform_in') do |span|
+              __with_instrumentation(Ext::SPAN_PERFORM_IN) do |span|
                 span.resource = "ENQUEUE #{self}"
-                span.set_tag('sucker_punch.perform_in', interval)
+                span.set_tag(Ext::TAG_PERFORM_IN, interval)
                 __perform_in(interval, *args)
               end
             end
@@ -48,7 +49,7 @@ module Datadog
               pin.tracer.trace(name) do |span|
                 span.service = pin.service
                 span.span_type = pin.app_type
-                span.set_tag('sucker_punch.queue', to_s)
+                span.set_tag(Ext::TAG_QUEUE, to_s)
                 yield span
               end
             end

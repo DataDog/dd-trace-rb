@@ -2,47 +2,47 @@ require 'contrib/sinatra/tracer_test_base'
 
 # rubocop:disable Metrics/ClassLength
 class TracerTest < TracerTestBase
-  class TracerTestApp < Sinatra::Application
-    get '/request' do
-      headers['X-Request-Id'] = request.env['HTTP_X_REQUEST_ID']
-      'hello world'
-    end
-
-    get '/bad-request' do
-      halt 400, 'bad request'
-    end
-
-    get '/error' do
-      halt 500, 'server error'
-    end
-
-    get '/exception' do
-      raise StandardError, 'something bad'
-    end
-
-    get '/wildcard/*' do
-      params['splat'][0]
-    end
-
-    get '/template' do
-      erb :msg, locals: { msg: 'hello' }
-    end
-
-    get '/literal-template' do
-      erb '<%= msg %>', locals: { msg: 'hello' }
-    end
-  end
-
   def app
-    TracerTestApp
+    @app ||= Class.new(Sinatra::Application) do
+      get '/request' do
+        headers['X-Request-Id'] = request.env['HTTP_X_REQUEST_ID']
+        'hello world'
+      end
+
+      get '/bad-request' do
+        halt 400, 'bad request'
+      end
+
+      get '/error' do
+        halt 500, 'server error'
+      end
+
+      get '/exception' do
+        raise StandardError, 'something bad'
+      end
+
+      get '/wildcard/*' do
+        params['splat'][0]
+      end
+
+      get '/template' do
+        erb :msg, locals: { msg: 'hello' }
+      end
+
+      get '/literal-template' do
+        erb '<%= msg %>', locals: { msg: 'hello' }
+      end
+    end
   end
 
   def setup
-    @writer = FauxWriter.new()
-    app().set :datadog_test_writer, @writer
+    @app = nil
+    @writer = FauxWriter.new
 
     tracer = Datadog::Tracer.new(writer: @writer, enabled: true)
     Datadog.configuration.use(:sinatra, tracer: tracer)
+
+    app.set :datadog_test_writer, @writer
 
     super
   end
@@ -54,7 +54,7 @@ class TracerTest < TracerTestBase
     get '/request'
     assert_equal(200, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_equal(1, spans.length)
 
     span = spans[0]
@@ -67,7 +67,7 @@ class TracerTest < TracerTestBase
     get '/request#foo?a=1'
     assert_equal(200, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_equal(1, spans.length)
 
     span = spans[0]
@@ -109,7 +109,7 @@ class TracerTest < TracerTestBase
     get '/bad-request'
     assert_equal(400, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_equal(1, spans.length)
 
     span = spans[0]
@@ -128,7 +128,7 @@ class TracerTest < TracerTestBase
     get '/error'
     assert_equal(500, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_equal(1, spans.length)
 
     span = spans[0]
@@ -147,7 +147,7 @@ class TracerTest < TracerTestBase
     get '/exception'
     assert_equal(500, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_equal(1, spans.length)
 
     span = spans[0]
@@ -166,7 +166,7 @@ class TracerTest < TracerTestBase
     get '/wildcard/1/2/3'
     assert_equal(200, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_equal(1, spans.length)
 
     span = spans[0]
@@ -183,7 +183,7 @@ class TracerTest < TracerTestBase
     get '/template'
     assert_equal(200, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_equal(3, spans.length)
 
     child1, child2, root = spans
@@ -213,7 +213,7 @@ class TracerTest < TracerTestBase
     get '/literal-template'
     assert_equal(200, last_response.status)
 
-    spans = @writer.spans()
+    spans = @writer.spans
     assert_equal(3, spans.length)
 
     child1, child2, root = spans
@@ -293,6 +293,9 @@ class TracerTest < TracerTestBase
     assert_equal(0, span.status)
     assert_nil(span.parent)
   ensure
-    Datadog.configuration.use(:sinatra, headers: Datadog::Contrib::Sinatra::Tracer::DEFAULT_HEADERS)
+    Datadog.configuration.use(
+      :sinatra,
+      headers: Datadog::Contrib::Sinatra::Configuration::Settings::DEFAULT_HEADERS
+    )
   end
 end

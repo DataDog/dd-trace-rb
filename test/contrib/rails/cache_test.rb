@@ -1,7 +1,7 @@
 require 'helper'
 require 'contrib/rails/test_helper'
 require 'securerandom'
-require 'ddtrace/ext/cache'
+require 'ddtrace/contrib/rails/ext'
 
 class CacheTracingTest < ActionController::TestCase
   setup do
@@ -97,7 +97,7 @@ class CacheTracingTest < ActionController::TestCase
   end
 
   def test_cache_key_truncation_regression
-    max_key_size = Datadog::Ext::CACHE::MAX_KEY_SIZE
+    max_key_size = Datadog::Contrib::Rails::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
     large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)
     Rails.cache.write(large_key, 'foobar')
 

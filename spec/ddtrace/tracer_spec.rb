@@ -3,7 +3,8 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::Tracer do
-  subject(:tracer) { described_class.new(writer: FauxWriter.new) }
+  let(:writer) { FauxWriter.new }
+  subject(:tracer) { described_class.new(writer: writer) }
 
   describe '#trace' do
     let(:name) { 'span.name' }
@@ -22,6 +23,19 @@ RSpec.describe Datadog::Tracer do
         end
 
         it { expect(trace).to eq(result) }
+
+        it 'tracks the number of allocations made in the span' do
+          skip 'Not supported for Ruby < 2.0' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+
+          tracer.trace(name) {}
+          tracer.trace(name) { 'hello' }
+
+          first, second = writer.spans
+
+          # Different versions of Ruby will allocate a different number of
+          # objects, so this is what works across the board.
+          expect(second.allocations).to eq(first.allocations + 1)
+        end
       end
 
       context 'when starting a span fails' do

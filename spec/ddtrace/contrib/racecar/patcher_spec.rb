@@ -32,7 +32,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:racecar_span) do
-      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Events::Message::SPAN_NAME }.first
+      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_MESSAGE }.first
     end
 
     context 'that doesn\'t raise an error' do
@@ -100,7 +100,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:racecar_span) do
-      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Events::Batch::SPAN_NAME }.first
+      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_BATCH }.first
     end
 
     context 'that doesn\'t raise an error' do

@@ -13,8 +13,13 @@ class ResourceNameTest < Minitest::Test
       run BottomMiddleware.new
     end.to_app
 
-    remove_patch!(:rack)
-    Datadog.registry[:rack].instance_variable_set('@middleware_patched', false)
+    Datadog.registry[:rack].patcher.tap do |patcher|
+      if patcher.instance_variable_defined?(:@done_once)
+        patcher.instance_variable_get(:@done_once).delete(:rack)
+        patcher.instance_variable_get(:@done_once).delete(:rack_middleware_names)
+      end
+    end
+
     Datadog.configuration.use(
       :rack,
       middleware_names: true,

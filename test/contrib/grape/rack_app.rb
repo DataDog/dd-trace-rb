@@ -50,7 +50,7 @@ class BaseRackAPITest < MiniTest::Test
   def teardown
     super
     # reset the configuration
-    Datadog.registry[:rack].reset_options!
-    Datadog.registry[:grape].reset_options!
+    Datadog.configuration[:rack].reset_options!
+    Datadog.configuration[:grape].reset_options!
   end
 end

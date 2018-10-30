@@ -25,6 +25,7 @@ module Datadog
           end
         end
 
+        # Propagate tracing context in Concurrent::Future
         def patch_future
           ::Concurrent::Future.send(:include, FuturePatch)
         end

@@ -1,39 +1,32 @@
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/ext/app_types'
+
 module Datadog
   module Contrib
     module DelayedJob
-      # DelayedJob integration
+      # Patcher enables patching of 'delayed_job' module.
       module Patcher
-        include Base
-        register_as :delayed_job
+        include Contrib::Patcher
 
-        option :service_name, default: 'delayed_job'.freeze
-        option :tracer, default: Datadog.tracer
+        module_function
 
-        @patched = false
+        def patched?
+          done?(:delayed_job)
+        end
 
-        class << self
-          def patch
-            return @patched if patched? || !defined?(::Delayed)
-
-            require 'ddtrace/ext/app_types'
-            require_relative 'plugin'
-
-            add_instrumentation(::Delayed::Worker)
-            @patched = true
-          rescue => e
-            Tracer.log.error("Unable to apply DelayedJob integration: #{e}")
-            @patched
+        def patch
+          do_once(:delayed_job) do
+            begin
+              require 'ddtrace/contrib/delayed_job/plugin'
+              add_instrumentation(::Delayed::Worker)
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Unable to apply DelayedJob integration: #{e}")
+            end
           end
+        end
 
-          def patched?
-            @patched
-          end
-
-          private
-
-          def add_instrumentation(klass)
-            klass.plugins << Plugin
-          end
+        def add_instrumentation(klass)
+          klass.plugins << Plugin
         end
       end
     end

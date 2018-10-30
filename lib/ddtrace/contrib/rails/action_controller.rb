@@ -1,5 +1,7 @@
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
+require 'ddtrace/contrib/rack/ext'
+require 'ddtrace/contrib/rails/ext'
 
 module Datadog
   module Contrib
@@ -20,7 +22,7 @@ module Datadog
           tracer = Datadog.configuration[:rails][:tracer]
           service = Datadog.configuration[:rails][:controller_service]
           type = Datadog::Ext::HTTP::TYPE
-          span = tracer.trace('rails.action_controller', service: service, span_type: type)
+          span = tracer.trace(Ext::SPAN_ACTION_CONTROLLER, service: service, span_type: type)
 
           # attach the current span to the tracing context
           tracing_context = payload.fetch(:tracing_context)
@@ -32,6 +34,7 @@ module Datadog
         def self.finish_processing(payload)
           # retrieve the tracing context and the latest active span
           tracing_context = payload.fetch(:tracing_context)
+          env = payload.fetch(:env)
           span = tracing_context[:dd_request_span]
           return unless span && !span.finished?
 
@@ -41,14 +44,14 @@ module Datadog
               span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
             end
 
-            # Set the parent resource if it's a `rack.request` span,
-            # but not if its an exception contoller.
-            if !span.parent.nil? && span.parent.name == 'rack.request' && !exception_controller?(payload)
-              span.parent.resource = span.resource
+            # Set the resource name of the Rack request span unless this is an exception controller.
+            unless exception_controller?(payload)
+              rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
+              rack_request_span.resource = span.resource if rack_request_span
             end
 
-            span.set_tag('rails.route.action', payload.fetch(:action))
-            span.set_tag('rails.route.controller', payload.fetch(:controller))
+            span.set_tag(Ext::TAG_ROUTE_ACTION, payload.fetch(:action))
+            span.set_tag(Ext::TAG_ROUTE_CONTROLLER, payload.fetch(:controller))
 
             exception = payload[:exception_object]
             if exception.nil?

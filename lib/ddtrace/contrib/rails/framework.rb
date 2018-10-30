@@ -5,6 +5,7 @@ require 'ddtrace/contrib/active_record/patcher'
 require 'ddtrace/contrib/grape/endpoint'
 require 'ddtrace/contrib/rack/middlewares'
 
+require 'ddtrace/contrib/rails/ext'
 require 'ddtrace/contrib/rails/core_extensions'
 require 'ddtrace/contrib/rails/action_controller'
 require 'ddtrace/contrib/rails/action_view'
@@ -66,8 +67,8 @@ module Datadog
 
         def self.set_service_info!(config)
           tracer = config[:tracer]
-          tracer.set_service_info(config[:controller_service], 'rails', Ext::AppTypes::WEB)
-          tracer.set_service_info(config[:cache_service], 'rails', Ext::AppTypes::CACHE)
+          tracer.set_service_info(config[:controller_service], Ext::APP, Datadog::Ext::AppTypes::WEB)
+          tracer.set_service_info(config[:cache_service], Ext::APP, Datadog::Ext::AppTypes::CACHE)
         end
       end
     end
