@@ -4,6 +4,27 @@
 
 ## [Unreleased (beta)]
 
+## [0.17.0] - 2018-10-30
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.17.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.16.1...v0.17.0
+
+### Added
+
+ - [BETA] Span memory `allocations` attribute (#597) (@dasch)
+
+### Changed
+
+ - Use Rack Env to update resource in Rails (#580) (@dasch)
+ - Expand support for Sidekiq to 3.5.4+ (#593)
+ - Expand support for mysql2 to 0.3.21+ (#578)
+
+### Refactored
+
+ - Upgraded integrations to new API (#544)
+ - Encoding classes into modules (#598)
+
 ## [0.16.1] - 2018-10-17
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.16.1
@@ -522,8 +543,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.1...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.1...0.17-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.0...0.18-dev
+[0.17.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.14.2...v0.15.0
