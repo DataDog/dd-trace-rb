@@ -1,7 +1,6 @@
-
 require 'contrib/sidekiq/tracer_test_base'
 
-class TracerTest < TracerTestBase
+class ServerTracerTest < TracerTestBase
   class TestError < StandardError; end
 
   class EmptyWorker
@@ -32,7 +31,7 @@ class TracerTest < TracerTestBase
     super
 
     Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Contrib::Sidekiq::Tracer,
+      chain.add(Datadog::Contrib::Sidekiq::ServerTracer,
                 tracer: @tracer, enabled: true)
     end
   end

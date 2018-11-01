@@ -16,10 +16,10 @@ module Datadog
         def patch
           do_once(:sidekiq) do
             begin
-              require 'ddtrace/contrib/sidekiq/tracer'
+              require 'ddtrace/contrib/sidekiq/server_tracer'
               ::Sidekiq.configure_server do |config|
                 config.server_middleware do |chain|
-                  chain.add(Sidekiq::Tracer)
+                  chain.add(Sidekiq::ServerTracer)
                 end
               end
             rescue StandardError => e

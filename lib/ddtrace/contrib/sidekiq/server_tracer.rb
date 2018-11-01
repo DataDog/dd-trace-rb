@@ -7,7 +7,7 @@ module Datadog
   module Contrib
     module Sidekiq
       # Tracer is a Sidekiq server-side middleware which traces executed jobs
-      class Tracer
+      class ServerTracer
         def initialize(options = {})
           @tracer = options[:tracer] || Datadog.configuration[:sidekiq][:tracer]
           @sidekiq_service = options[:service_name] || Datadog.configuration[:sidekiq][:service_name]

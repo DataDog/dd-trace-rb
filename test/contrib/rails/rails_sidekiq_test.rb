@@ -4,7 +4,7 @@
 require 'helper'
 require 'sidekiq/testing'
 require 'contrib/rails/test_helper'
-require 'ddtrace/contrib/sidekiq/tracer'
+require 'ddtrace/contrib/sidekiq/server_tracer'
 
 class RailsSidekiqTest < ActionController::TestCase
   setup do
@@ -43,7 +43,7 @@ class RailsSidekiqTest < ActionController::TestCase
 
     # add Sidekiq middleware
     Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Contrib::Sidekiq::Tracer, tracer: @tracer, service_name: 'rails-sidekiq')
+      chain.add(Datadog::Contrib::Sidekiq::ServerTracer, tracer: @tracer, service_name: 'rails-sidekiq')
     end
 
     # do something to force middleware execution
