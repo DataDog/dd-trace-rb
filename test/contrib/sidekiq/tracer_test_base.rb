@@ -1,6 +1,7 @@
 
 require 'sidekiq/testing'
 require 'ddtrace'
+require 'ddtrace/contrib/sidekiq/client_tracer'
 require 'ddtrace/contrib/sidekiq/server_tracer'
 require 'helper'
 

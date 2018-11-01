@@ -6,6 +6,7 @@ module Datadog
         APP = 'sidekiq'.freeze
         SERVICE_NAME = 'sidekiq'.freeze
 
+        SPAN_PUSH = 'sidekiq.push'.freeze
         SPAN_JOB = 'sidekiq.job'.freeze
 
         TAG_JOB_DELAY = 'sidekiq.job.delay'.freeze
