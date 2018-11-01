@@ -16,6 +16,13 @@ module Datadog
         def patch
           do_once(:sidekiq) do
             begin
+              require 'ddtrace/contrib/sidekiq/client_tracer'
+              ::Sidekiq.configure_client do |config|
+                config.client_middleware do |chain|
+                  chain.add(Sidekiq::ClientTracer)
+                end
+              end
+
               require 'ddtrace/contrib/sidekiq/server_tracer'
               ::Sidekiq.configure_server do |config|
                 config.server_middleware do |chain|
