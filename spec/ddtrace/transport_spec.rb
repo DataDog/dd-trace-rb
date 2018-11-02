@@ -105,13 +105,6 @@ RSpec.describe Datadog::HTTPTransport do
           tags: tags
         )
       end
-      # it_behaves_like 'a transport operation that sends time metric',described_class::METRIC_ROUNDTRIP_TIME
-      #                 described_class::METRIC_ROUNDTRIP_TIME,
-      #                 tags: ['test_tag']
-
-      # it_behaves_like 'a transport operation that sends time metric',
-      #                 described_class::METRIC_POST_TIME,
-      #                 tags: ['test_tag']
 
       context 'and the request raises an internal error' do
         before(:each) do
@@ -120,8 +113,14 @@ RSpec.describe Datadog::HTTPTransport do
 
         let(:error) { Class.new(StandardError) }
 
-        it { is_expected.to be 500 }
-        it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_INTERNAL_ERROR
+        it do
+          is_expected.to be 500
+
+          expect(statsd).to have_received_increment_transport_metric(
+            described_class::METRIC_INTERNAL_ERROR,
+            tags: tags
+          )
+        end
       end
     end
 
@@ -151,8 +150,14 @@ RSpec.describe Datadog::HTTPTransport do
         let(:error) { Class.new(StandardError) }
 
         it { expect { |b| transport.post(url, data, &b) }.to yield_with_args(nil) }
-        it { is_expected.to be 500 }
-        it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_INTERNAL_ERROR
+        it do
+          is_expected.to be 500
+
+          expect(statsd).to have_received_increment_transport_metric(
+            described_class::METRIC_INTERNAL_ERROR,
+            tags: tags
+          )
+        end
       end
     end
   end
@@ -162,32 +167,51 @@ RSpec.describe Datadog::HTTPTransport do
 
     context 'given an OK response' do
       let(:response) { Net::HTTPResponse.new(1.0, 200, 'OK') }
-      it { is_expected.to be 200 }
-      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_SUCCESS
+
+      it do
+        is_expected.to be 200
+
+        expect(statsd).to have_received_increment_transport_metric(
+          described_class::METRIC_RESPONSE,
+          tags: ["#{Datadog::Ext::HTTP::STATUS_CODE}:200"]
+        )
+      end
     end
 
     context 'given a not found response' do
       let(:response) { Net::HTTPResponse.new(1.0, 404, 'OK') }
-      it { is_expected.to be 404 }
-      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_INCOMPATIBLE_ERROR
+      it do
+        is_expected.to be 404
 
-      # We don't expect a client error stat is sent because this causes a downgrade.
-      it 'doesn\'t send a client error stat' do
-        response
-        expect(statsd).to_not have_received_increment_transport_metric(described_class::METRIC_CLIENT_ERROR)
+        expect(statsd).to have_received_increment_transport_metric(
+          described_class::METRIC_RESPONSE,
+          tags: ["#{Datadog::Ext::HTTP::STATUS_CODE}:404"]
+        )
       end
     end
 
     context 'given a client error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 400, 'OK') }
-      it { is_expected.to be 400 }
-      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_CLIENT_ERROR
+      it do
+        is_expected.to be 400
+
+        expect(statsd).to have_received_increment_transport_metric(
+          described_class::METRIC_RESPONSE,
+          tags: ["#{Datadog::Ext::HTTP::STATUS_CODE}:400"]
+        )
+      end
     end
 
     context 'given a server error response' do
       let(:response) { Net::HTTPResponse.new(1.0, 500, 'OK') }
-      it { is_expected.to be 500 }
-      it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_SERVER_ERROR
+      it do
+        is_expected.to be 500
+
+        expect(statsd).to have_received_increment_transport_metric(
+          described_class::METRIC_RESPONSE,
+          tags: ["#{Datadog::Ext::HTTP::STATUS_CODE}:500"]
+        )
+      end
     end
 
     context 'given a response that raises an error' do
@@ -232,9 +256,9 @@ RSpec.describe Datadog::HTTPTransport do
       let(:tags) do
         case type
         when :services
-          [described_class::TAG_DATA_TYPE_SERVICES]
+          [Datadog::Ext::Metrics::TAG_DATA_TYPE_SERVICES]
         when :traces
-          [described_class::TAG_DATA_TYPE_TRACES]
+          [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES]
         else
           []
         end
@@ -242,8 +266,8 @@ RSpec.describe Datadog::HTTPTransport do
 
       it do
         expect(statsd).to have_received_increment_transport_metric(
-          described_class::METRIC_SUCCESS,
-          {},
+          described_class::METRIC_RESPONSE,
+          { tags: (tags + ["#{Datadog::Ext::HTTP::STATUS_CODE}:200"]) },
           encoder
         )
       end
@@ -332,9 +356,24 @@ RSpec.describe Datadog::HTTPTransport do
 
         it { expect { code }.to_not raise_error }
 
-        # Expect a success for sending the traces, and an error from the failed callback.
-        it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_SUCCESS
-        it_behaves_like 'a transport operation that sends increment metric', described_class::METRIC_INTERNAL_ERROR
+        # Expect an OK response for sending the traces, and an error from the failed callback.
+        it 'sends an OK response metric' do
+          subject
+
+          expect(statsd).to have_received_increment_transport_metric(
+            described_class::METRIC_RESPONSE,
+            tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES, "#{Datadog::Ext::HTTP::STATUS_CODE}:200"]
+          )
+        end
+
+        it 'sends an internal error metric' do
+          subject
+
+          expect(statsd).to have_received_increment_transport_metric(
+            described_class::METRIC_INTERNAL_ERROR,
+            tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES, "#{Datadog::Ext::HTTP::STATUS_CODE}:200"]
+          )
+        end
       end
     end
 

@@ -1665,36 +1665,33 @@ See the [Dogstatsd documentation](https://www.rubydoc.info/github/DataDog/dogsta
 
 After activation, the tracer will send the following metrics:
 
-| Name                                               | Type           | Description                                                      |
-| -------------------------------------------------- | -------------- | ---------------------------------------------------------------- |
-| `datadog.tracer.sampling_update_time`              | `distribution` | Time to update sampling rates from agent response.               |
-| `datadog.tracer.services_flushed`                  | `count`        | Number of services flushed.                                      |
-| `datadog.tracer.traces_flushed`                    | `count`        | Number of traces flushed.                                        |
-| `datadog.tracer.transport.http.client_error`       | `count`        | Number of HTTP requests to agent with a client error.            |
-| `datadog.tracer.transport.http.encode_time`        | `distribution` | Time to serialize HTTP payload prior to POST.                    |
-| `datadog.tracer.transport.http.incompatible_error` | `count`        | Number of HTTP requests to agent with incompatible API.          |
-| `datadog.tracer.transport.http.internal_error`     | `count`        | Number of internal tracer errors produced during HTTP transport. |
-| `datadog.tracer.transport.http.payload_size`       | `distribution` | Size of HTTP payload prior to POST, in bytes.                    |
-| `datadog.tracer.transport.http.post_time`          | `distribution` | Time to POST payload to agent, excluding TCP connect time.       |
-| `datadog.tracer.transport.http.roundtrip_time`     | `distribution` | Time to POST payload to agent, including TCP connect time.       |
-| `datadog.tracer.transport.http.server_error`       | `count`        | Number of HTTP requests to agent with a server error.            |
-| `datadog.tracer.transport.http.success`            | `count`        | Number of successful HTTP requests to agent.                     |
-| `datadog.tracer.writer.flush_time`                 | `distribution` | Time to flush data including serialization, TCP, and callbacks.  |
+| Name                                                     | Type           | Description                                                      |
+| -------------------------------------------------------- | -------------- | ---------------------------------------------------------------- |
+| `datadog.tracer.sampling_update_time`                    | `distribution` | Time to update sampling rates from agent response.               |
+| `datadog.tracer.flushed_service_count`                   | `count`        | Number of services flushed.                                      |
+| `datadog.tracer.flushed_trace_count`                     | `count`        | Number of traces flushed.                                        |
+| `datadog.tracer.transport.http.encode_time`              | `distribution` | Time to serialize HTTP payload prior to POST.                    |
+| `datadog.tracer.transport.http.internal_error_count`     | `count`        | Number of internal tracer errors produced during HTTP transport. |
+| `datadog.tracer.transport.http.payload_size`             | `distribution` | Size of HTTP payload prior to POST, in bytes.                    |
+| `datadog.tracer.transport.http.post_time`                | `distribution` | Time to POST payload to agent, excluding TCP connect time.       |
+| `datadog.tracer.transport.http.response_count`           | `count`        | Number of HTTP responses from agent for flush requests.          |
+| `datadog.tracer.transport.http.roundtrip_time`           | `distribution` | Time to POST payload to agent, including TCP connect time.       |
+| `datadog.tracer.writer.flush_time`                       | `distribution` | Time to flush data including serialization, TCP, and callbacks.  |
 
 In addition, all metrics will include the following tags:
 
-| Name                                   | Description                                                         |
-| -------------------------------------- | ------------------------------------------------------------------- |
-| `datadog.tracer.meta.lang`             | Programming language traced. (e.g. `ruby`)                          |
-| `datadog.tracer.meta.lang_interpreter` | Language interpreter used, if available. (e.g. `ruby-x86_64-linux`) |
-| `datadog.tracer.meta.lang_version`     | Version of language traced. (e.g. `2.3.7`)                          |
-| `datadog.tracer.meta.tracer_version`   | Version of tracer library/module. (e.g. `0.16.1` )                  |
+| Name                              | Description                                                         |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `datadog.tracer.lang`             | Programming language traced. (e.g. `ruby`)                          |
+| `datadog.tracer.lang_interpreter` | Language interpreter used, if available. (e.g. `ruby-x86_64-linux`) |
+| `datadog.tracer.lang_version`     | Version of language traced. (e.g. `2.3.7`)                          |
+| `datadog.tracer.version`          | Version of tracer library/module. (e.g. `0.16.1` )                  |
 
 And some metrics may additionally include the following tags, if applicable:
 
 | Name                                          | Description                                                                 |
 | --------------------------------------------- | --------------------------------------------------------------------------- |
 | `datadog.tracer.priority_sampling`            | Is priority sampling enabled? (Either `true` or `false`)                    |
-| `datadog.tracer.transport.http.data_type`     | Payload data type. (Either `services` or `traces`)                          |
-| `datadog.tracer.transport.http.encoding_type` | Payload encoding type. (Either `application/json` or `application/msgpack`) |
-| `datadog.tracer.writer.data_type`             | Payload data type. (Either `services` or `traces`)                          |
+| `datadog.tracer.data_type`                    | Payload data type. (Either `services` or `traces`)                          |
+| `datadog.tracer.encoding_type`                | Payload encoding type. (Either `application/json` or `application/msgpack`) |
+| `http.status_code`                            | HTTP status code of response.                                               |

@@ -1,5 +1,5 @@
 require 'ddtrace/ext/meta'
-require 'ddtrace/ext/statsd'
+require 'ddtrace/ext/metrics'
 
 require 'ddtrace/utils/time'
 
@@ -8,10 +8,10 @@ module Datadog
   module Metrics
     DEFAULT_OPTIONS = {
       tags: DEFAULT_TAGS = [
-        "#{Ext::Statsd::TAG_LANG}:#{Ext::Meta::LANG}".freeze,
-        "#{Ext::Statsd::TAG_LANG_INTERPRETER}:#{Ext::Meta::LANG_INTERPRETER}".freeze,
-        "#{Ext::Statsd::TAG_LANG_VERSION}:#{Ext::Meta::LANG_VERSION}".freeze,
-        "#{Ext::Statsd::TAG_TRACER_VERSION}:#{Ext::Meta::TRACER_VERSION}".freeze
+        "#{Ext::Metrics::TAG_LANG}:#{Ext::Meta::LANG}".freeze,
+        "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Ext::Meta::LANG_INTERPRETER}".freeze,
+        "#{Ext::Metrics::TAG_LANG_VERSION}:#{Ext::Meta::LANG_VERSION}".freeze,
+        "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Ext::Meta::TRACER_VERSION}".freeze
       ].freeze
     }.freeze
 
