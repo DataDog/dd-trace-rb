@@ -500,9 +500,15 @@ jobs:
       - store_artifacts:
           path: pkg/
           destination: gem
-
 workflows:
   version: 2
+  "deploy prerelease Gem":
+    jobs:
+      - "build and deploy prerelease Gem":
+          type: approval
+      - "deploy prerelease Gem":
+          <<: *filters_all_branches_and_tags
+          requires: [ "build and deploy prerelease Gem" ]
   build-and-test:
     jobs:
        - checkout-1.9:
@@ -569,15 +575,6 @@ workflows:
            <<: *filters_all_branches_and_tags
            requires:
              - build-2.4
-       - "deploy prerelease Gem":
-           <<: *filters_all_branches_and_tags
-           requires:
-             - test-1.9
-             - test-2.0
-             - test-2.1
-             - test-2.2
-             - test-2.3
-             - test-2.4
        - "deploy release":
            <<: *filters_only_release_tags
            requires:
