@@ -77,7 +77,7 @@ module MetricHelpers
     end
 
     def transport_tags(encoder = Datadog::Encoding::MsgpackEncoder)
-      ["#{Datadog::HTTPTransport::TAG_ENCODING_TYPE}:#{encoder.content_type}"]
+      ["#{Datadog::Ext::Metrics::TAG_ENCODING_TYPE}:#{encoder.content_type}"]
     end
 
     # Define matchers for use in examples

@@ -71,7 +71,7 @@ RSpec.describe Datadog::Writer do
 
         it_behaves_like 'an operation that sends time metric',
                         Datadog::Writer::METRIC_FLUSH_TIME,
-                        tags: [Datadog::Writer::TAG_DATA_TYPE_TRACES]
+                        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES]
 
         context 'with priority sampling' do
           let(:options) { { priority_sampler: sampler } }
@@ -161,7 +161,7 @@ RSpec.describe Datadog::Writer do
 
         it_behaves_like 'an operation that sends time metric',
                         Datadog::Writer::METRIC_FLUSH_TIME,
-                        tags: [Datadog::Writer::TAG_DATA_TYPE_SERVICES]
+                        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_SERVICES]
       end
 
       describe '#sampling_updater' do
@@ -198,7 +198,7 @@ RSpec.describe Datadog::Writer do
                 it { is_expected.to be true }
                 it_behaves_like 'an operation that sends time metric',
                                 Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
-                                tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"]
+                                tags: [Datadog::Ext::Metrics::TAG_PRIORITY_SAMPLING_ENABLED]
               end
 
               context 'and is API v3' do
@@ -210,7 +210,7 @@ RSpec.describe Datadog::Writer do
                 it { is_expected.to be false }
                 it_behaves_like 'an operation that sends time metric',
                                 Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
-                                tags: ["#{Datadog::Writer::TAG_PRIORITY_SAMPLING}:true"]
+                                tags: [Datadog::Ext::Metrics::TAG_PRIORITY_SAMPLING_ENABLED]
               end
             end
           end

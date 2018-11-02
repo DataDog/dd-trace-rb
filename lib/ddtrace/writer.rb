@@ -14,15 +14,9 @@ module Datadog
     PORT = '8126'.freeze
 
     METRIC_SAMPLING_UPDATE_TIME = 'datadog.tracer.sampling_update_time'.freeze
-    METRIC_SERVICES_FLUSHED = 'datadog.tracer.services_flushed'.freeze
+    METRIC_SERVICES_FLUSHED = 'datadog.tracer.flushed_service_count'.freeze
     METRIC_FLUSH_TIME = 'datadog.tracer.writer.flush_time'.freeze
-    METRIC_TRACES_FLUSHED = 'datadog.tracer.traces_flushed'.freeze
-    TAG_DATA_TYPE = 'datadog.tracer.writer.data_type'.freeze
-    TAG_DATA_TYPE_SERVICES = "#{TAG_DATA_TYPE}:services".freeze
-    TAG_DATA_TYPE_TRACES = "#{TAG_DATA_TYPE}:traces".freeze
-    TAG_PRIORITY_SAMPLING = 'datadog.tracer.writer.priority_sampling'.freeze
-    TAG_PRIORITY_SAMPLING_DISABLED = 'datadog.tracer.writer.priority_sampling:false'.freeze
-    TAG_PRIORITY_SAMPLING_ENABLED = 'datadog.tracer.writer.priority_sampling:true'.freeze
+    METRIC_TRACES_FLUSHED = 'datadog.tracer.flushed_trace_count'.freeze
 
     def initialize(options = {})
       # writer and transport parameters
@@ -74,7 +68,7 @@ module Datadog
 
     # flush spans to the trace-agent, handles spans only
     def send_spans(traces, transport)
-      time(METRIC_FLUSH_TIME, tags: [TAG_DATA_TYPE_TRACES]) do
+      time(METRIC_FLUSH_TIME, tags: [Ext::Metrics::TAG_DATA_TYPE_TRACES]) do
         return true if traces.empty?
 
         code = transport.send(:traces, traces)
@@ -87,7 +81,7 @@ module Datadog
 
     # flush services to the trace-agent, handles services only
     def send_services(services, transport)
-      time(METRIC_FLUSH_TIME, tags: [TAG_DATA_TYPE_SERVICES]) do
+      time(METRIC_FLUSH_TIME, tags: [Ext::Metrics::TAG_DATA_TYPE_SERVICES]) do
         return true if services.empty?
 
         code = transport.send(:services, services)
@@ -125,7 +119,6 @@ module Datadog
     def sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)
 
-      priority_sampling_tag = !@priority_sampler.nil? ? TAG_PRIORITY_SAMPLING_ENABLED : TAG_PRIORITY_SAMPLING_DISABLED
       time(METRIC_SAMPLING_UPDATE_TIME, tags: [priority_sampling_tag]) do
         if api[:version] == HTTPTransport::V4
           body = JSON.parse(response.body)
@@ -136,6 +129,14 @@ module Datadog
         else
           false
         end
+      end
+    end
+
+    def priority_sampling_tag
+      if !@priority_sampler.nil?
+        Ext::Metrics::TAG_PRIORITY_SAMPLING_ENABLED
+      else
+        Ext::Metrics::TAG_PRIORITY_SAMPLING_DISABLED
       end
     end
   end

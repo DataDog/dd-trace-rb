@@ -48,16 +48,19 @@ RSpec.describe 'Datadog::HTTPTransport payload' do
       expect(WebMock).to have_requested(:post, %r{#{hostname}:#{port}/v\d+\.\d+/traces})
 
       expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_TRACES_FLUSHED, by: 1).once
-      expect(statsd).to have_received_increment_transport_metric(Datadog::HTTPTransport::METRIC_SUCCESS)
-
-      expect(statsd).to_not have_received_increment_transport_metric(
-        Datadog::HTTPTransport::METRIC_CLIENT_ERROR,
-        any_args
+      expect(statsd).to have_received_increment_transport_metric(
+        Datadog::HTTPTransport::METRIC_RESPONSE,
+        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES, "#{Datadog::Ext::HTTP::STATUS_CODE}:200"]
       )
 
       expect(statsd).to_not have_received_increment_transport_metric(
-        Datadog::HTTPTransport::METRIC_SERVER_ERROR,
-        any_args
+        Datadog::HTTPTransport::METRIC_RESPONSE,
+        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES, "#{Datadog::Ext::HTTP::STATUS_CODE}:400"]
+      )
+
+      expect(statsd).to_not have_received_increment_transport_metric(
+        Datadog::HTTPTransport::METRIC_RESPONSE,
+        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES, "#{Datadog::Ext::HTTP::STATUS_CODE}:500"]
       )
 
       expect(statsd).to_not have_received_increment_transport_metric(

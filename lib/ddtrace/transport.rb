@@ -22,20 +22,12 @@ module Datadog
 
     HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'.freeze
 
-    METRIC_CLIENT_ERROR = 'datadog.tracer.transport.http.client_error'.freeze
     METRIC_ENCODE_TIME = 'datadog.tracer.transport.http.encode_time'.freeze
-    METRIC_INCOMPATIBLE_ERROR = 'datadog.tracer.transport.http.incompatible_error'.freeze
-    METRIC_INTERNAL_ERROR = 'datadog.tracer.transport.http.internal_error'.freeze
+    METRIC_INTERNAL_ERROR = 'datadog.tracer.transport.http.internal_error_count'.freeze
     METRIC_PAYLOAD_SIZE = 'datadog.tracer.transport.http.payload_size'.freeze
     METRIC_POST_TIME = 'datadog.tracer.transport.http.post_time'.freeze
+    METRIC_RESPONSE = 'datadog.tracer.transport.http.response_count'.freeze
     METRIC_ROUNDTRIP_TIME = 'datadog.tracer.transport.http.roundtrip_time'.freeze
-    METRIC_SERVER_ERROR = 'datadog.tracer.transport.http.server_error'.freeze
-    METRIC_SUCCESS = 'datadog.tracer.transport.http.success'.freeze
-
-    TAG_DATA_TYPE = 'datadog.tracer.transport.http.data_type'.freeze
-    TAG_DATA_TYPE_SERVICES = 'datadog.tracer.transport.http.data_type:services'.freeze
-    TAG_DATA_TYPE_TRACES = 'datadog.tracer.transport.http.data_type:traces'.freeze
-    TAG_ENCODING_TYPE = 'datadog.tracer.transport.http.encoding_type'.freeze
 
     API = {
       V4 = 'v0.4'.freeze => {
@@ -106,8 +98,7 @@ module Datadog
 
     def send_traces(data)
       # Encode the payload
-      metric_options = { tags: [TAG_DATA_TYPE_TRACES] }
-      count = data.length
+      metric_options = { tags: [Ext::Metrics::TAG_DATA_TYPE_TRACES] }
       payload = time(METRIC_ENCODE_TIME, metric_options) do
         @encoder.encode_traces(data)
       end
@@ -117,16 +108,16 @@ module Datadog
       post(
         @api[:traces_endpoint],
         payload,
-        { HEADER_TRACE_COUNT => count.to_s },
+        { HEADER_TRACE_COUNT => data.length.to_s },
         metric_options[:tags]
       ) do |response|
-        process_callback(:traces, response)
+        process_callback(:traces, response, metric_options[:tags])
       end
     end
 
     def send_services(data)
       # Encode the payload
-      metric_options = { tags: [TAG_DATA_TYPE_SERVICES] }
+      metric_options = { tags: [Ext::Metrics::TAG_DATA_TYPE_SERVICES] }
       payload = time(METRIC_ENCODE_TIME, metric_options) do
         @encoder.encode_services(data)
       end
@@ -134,7 +125,7 @@ module Datadog
 
       # Send POST to agent
       post(@api[:services_endpoint], payload, {}, metric_options[:tags]) do |response|
-        process_callback(:services, response)
+        process_callback(:services, response, metric_options[:tags])
       end
     end
 
@@ -154,10 +145,10 @@ module Datadog
           end
         end
 
-        handle_response(response)
+        handle_response(response, tags)
       rescue StandardError => e
         log_error_once(e.message)
-        increment(METRIC_INTERNAL_ERROR)
+        increment(METRIC_INTERNAL_ERROR, tags: tags)
         500
       end.tap do
         yield(response) if block_given?
@@ -213,28 +204,26 @@ module Datadog
     # handles the server response; here you can log the trace-agent response
     # or do something more complex to recover from a possible error. This
     # function is handled within the HTTP mutex.synchronize so it's thread-safe.
-    def handle_response(response)
+    def handle_response(response, tags = [])
       status_code = response.code.to_i
+      tags += [tag_for_status_code(status_code)]
+      increment(METRIC_RESPONSE, tags: tags)
 
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
         @mutex.synchronize { @count_consecutive_errors = 0 }
-        increment(METRIC_SUCCESS)
       elsif downgrade?(status_code)
         Datadog::Tracer.log.debug("calling the endpoint but received #{status_code}; downgrading the API")
-        increment(METRIC_INCOMPATIBLE_ERROR)
       elsif client_error?(status_code)
         log_error_once("Client error: #{response.message}")
-        increment(METRIC_CLIENT_ERROR)
       elsif server_error?(status_code)
         log_error_once("Server error: #{response.message}")
-        increment(METRIC_SERVER_ERROR)
       end
 
       status_code
     rescue StandardError => e
       log_error_once(e.message)
-      increment(METRIC_INTERNAL_ERROR)
+      increment(METRIC_INTERNAL_ERROR, tags: tags)
 
       500
     end
@@ -244,7 +233,7 @@ module Datadog
     def default_metric_options
       super.dup.tap do |default_options|
         default_options[:tags] = default_options[:tags].dup.tap do |default_tags|
-          default_tags << "#{TAG_ENCODING_TYPE}:#{@encoder.content_type}".freeze
+          default_tags << "#{Datadog::Ext::Metrics::TAG_ENCODING_TYPE}:#{@encoder.content_type}".freeze
         end
       end
     end
@@ -261,13 +250,18 @@ module Datadog
       @mutex.synchronize { @count_consecutive_errors += 1 }
     end
 
-    def process_callback(action, response)
+    def process_callback(action, response, tags = [])
       return unless @response_callback && @response_callback.respond_to?(:call)
+      tags += [tag_for_status_code(response.code)] unless response.nil?
 
       @response_callback.call(action, response, @api)
     rescue => e
       Tracer.log.debug("Error processing callback: #{e}")
-      increment(METRIC_INTERNAL_ERROR)
+      increment(METRIC_INTERNAL_ERROR, tags: tags)
+    end
+
+    def tag_for_status_code(code)
+      "#{Ext::HTTP::STATUS_CODE}:#{code}"
     end
   end
 end
