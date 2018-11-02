@@ -9,7 +9,15 @@ module Datadog
         def self.instrument(job, &block)
           return block.call(job) unless tracer && tracer.enabled
 
-          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job.name) do |span|
+          # When DelayedJob is used through ActiveJob, we need to parse the payload differentely
+          # to get the actual job name
+          job_name = if job.payload_object.respond_to?(:job_data)
+                       job.payload_object.job_data['job_class']
+                     else
+                       job.name
+                     end
+
+          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name) do |span|
             span.set_tag(Ext::TAG_ID, job.id)
             span.set_tag(Ext::TAG_QUEUE, job.queue) if job.queue
             span.set_tag(Ext::TAG_PRIORITY, job.priority)
