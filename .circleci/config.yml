@@ -502,13 +502,13 @@ jobs:
           destination: gem
 workflows:
   version: 2
-  "deploy prerelease Gem":
+  "prerelease":
     jobs:
-      - "build and deploy prerelease Gem":
+      - "approve":
           type: approval
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
-          requires: [ "build and deploy prerelease Gem" ]
+          requires: [ "approve" ]
   build-and-test:
     jobs:
        - checkout-1.9:
