@@ -117,10 +117,10 @@ module Datadog
     private
 
     def sampling_updater(action, response, api)
-      return unless action == :traces && response.is_a?(Net::HTTPOK)
+      return unless action == :traces && response.code == 200
 
       if api[:version] == HTTPTransport::V4
-        body = JSON.parse(response.body)
+        body = JSON.parse(response.body.readpartial)
         if body.is_a?(Hash) && body.key?('rate_by_service')
           @priority_sampler.update(body['rate_by_service'])
         end

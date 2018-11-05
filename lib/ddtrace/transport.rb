@@ -1,12 +1,13 @@
 require 'thread'
-require 'net/http'
+require 'http'
+require 'addressable'
 
 require 'ddtrace/encoding'
 require 'ddtrace/version'
 
 module Datadog
   # Transport class that handles the spans delivery to the
-  # local trace-agent. The class wraps a Net:HTTP instance
+  # local trace-agent. The class wraps a httprb instance
   # so that the Transport is thread-safe.
   # rubocop:disable Metrics/ClassLength
   class HTTPTransport
@@ -76,13 +77,13 @@ module Datadog
       case endpoint
       when :services
         payload = @encoder.encode_services(data)
-        status_code = post(@api[:services_endpoint], payload) do |response|
+        status = post(@api[:services_endpoint], payload) do |response|
           process_callback(:services, response)
         end
       when :traces
         count = data.length
         payload = @encoder.encode_traces(data)
-        status_code = post(@api[:traces_endpoint], payload, count) do |response|
+        status = post(@api[:traces_endpoint], payload, count) do |response|
           process_callback(:traces, response)
         end
       else
@@ -90,11 +91,11 @@ module Datadog
         return nil
       end
 
-      if downgrade?(status_code)
+      if downgrade?(status.code)
         downgrade!
         send(endpoint, data)
       else
-        status_code
+        status.code
       end
     end
 
@@ -104,15 +105,14 @@ module Datadog
         Datadog::Tracer.log.debug("Sending data from process: #{Process.pid}")
         headers = count.nil? ? {} : { TRACE_COUNT_HEADER => count.to_s }
         headers = headers.merge(@headers)
-        request = Net::HTTP::Post.new(url, headers)
-        request.body = data
 
-        response = Net::HTTP.start(@hostname, @port, open_timeout: TIMEOUT, read_timeout: TIMEOUT) do |http|
-          http.request(request)
+        uri = Addressable::URI.new(host: @hostname, port: @port, path: url)
+        http = HTTP.timeout(connect: TIMEOUT, read: TIMEOUT)
+        http.post(uri.to_s, body: data, headers: headers).tap do |response|
+          handle_response(response)
         end
-        handle_response(response)
-      rescue StandardError => e
-        log_error_once(e.message)
+      rescue HTTP::Error => e
+        log_error_once(e)
         500
       end.tap do
         yield(response) if block_given?
@@ -169,7 +169,7 @@ module Datadog
     # or do something more complex to recover from a possible error. This
     # function is handled within the HTTP mutex.synchronize so it's thread-safe.
     def handle_response(response)
-      status_code = response.code.to_i
+      status_code = response.code
 
       if success?(status_code)
         Datadog::Tracer.log.debug('Payload correctly sent to the trace agent.')
@@ -178,10 +178,10 @@ module Datadog
       elsif downgrade?(status_code)
         Datadog::Tracer.log.debug("calling the endpoint but received #{status_code}; downgrading the API")
       elsif client_error?(status_code)
-        log_error_once("Client error: #{response.message}")
+        log_error_once("Client error: #{response.reason}")
         @mutex.synchronize { @count_client_error += 1 }
       elsif server_error?(status_code)
-        log_error_once("Server error: #{response.message}")
+        log_error_once("Server error: #{response.reason}")
       end
 
       status_code
