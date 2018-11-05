@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace'
+require 'http'
 require 'json'
 
 RSpec.describe Datadog::Writer do
@@ -79,10 +80,11 @@ RSpec.describe Datadog::Writer do
                 before(:each) do
                   expect(callback).to receive(:call).with(
                     :traces,
-                    a_kind_of(Net::HTTPOK),
+                    a_kind_of(HTTP::Response),
                     a_kind_of(Hash)
-                  ) do |_action, _response, api|
+                  ) do |_action, response, api|
                     expect(api[:version]).to eq(api_version)
+                    expect(response.code).to eq(200)
                   end
                 end
 
@@ -104,15 +106,15 @@ RSpec.describe Datadog::Writer do
                   call_count = 0
                   allow(callback).to receive(:call).with(
                     :traces,
-                    a_kind_of(Net::HTTPResponse),
+                    a_kind_of(HTTP::Response),
                     a_kind_of(Hash)
                   ) do |_action, response, api|
                     call_count += 1
                     if call_count == 1
-                      expect(response).to be_a_kind_of(Net::HTTPNotFound)
+                      expect(response.code).to eq(404)
                       expect(api[:version]).to eq(api_version)
                     elsif call_count == 2
-                      expect(response).to be_a_kind_of(Net::HTTPOK)
+                      expect(response.code).to eq(200)
                       expect(api[:version]).to eq(fallback_version)
                     end
                   end

@@ -77,13 +77,13 @@ module Datadog
       case endpoint
       when :services
         payload = @encoder.encode_services(data)
-        status = post(@api[:services_endpoint], payload) do |response|
+        status_code = post(@api[:services_endpoint], payload) do |response|
           process_callback(:services, response)
         end
       when :traces
         count = data.length
         payload = @encoder.encode_traces(data)
-        status = post(@api[:traces_endpoint], payload, count) do |response|
+        status_code = post(@api[:traces_endpoint], payload, count) do |response|
           process_callback(:traces, response)
         end
       else
@@ -91,11 +91,11 @@ module Datadog
         return nil
       end
 
-      if downgrade?(status.code)
+      if downgrade?(status_code)
         downgrade!
         send(endpoint, data)
       else
-        status.code
+        status_code
       end
     end
 
@@ -106,11 +106,10 @@ module Datadog
         headers = count.nil? ? {} : { TRACE_COUNT_HEADER => count.to_s }
         headers = headers.merge(@headers)
 
-        uri = Addressable::URI.new(host: @hostname, port: @port, path: url)
+        uri = Addressable::URI.new(host: @hostname, port: @port, path: url, scheme: 'http')
         http = HTTP.timeout(connect: TIMEOUT, read: TIMEOUT)
-        http.post(uri.to_s, body: data, headers: headers).tap do |response|
-          handle_response(response)
-        end
+        response = http.post(uri.to_s, body: data, headers: headers)
+        handle_response(response)
       rescue HTTP::Error => e
         log_error_once(e)
         500
