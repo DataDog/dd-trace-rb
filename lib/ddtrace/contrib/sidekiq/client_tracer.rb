@@ -21,7 +21,7 @@ module Datadog
                        job['class']
                      end
 
-          @tracer.trace(Ext::SPAN_PUSH, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
+          @tracer.trace(Ext::SPAN_PUSH) do |span|
             span.resource = resource
             span.set_tag(Ext::TAG_JOB_ID, job['jid'])
             span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
