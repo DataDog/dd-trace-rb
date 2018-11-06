@@ -1,27 +1,17 @@
-require 'sidekiq/api'
-
-require 'ddtrace/ext/app_types'
-require 'ddtrace/contrib/sidekiq/ext'
+require 'ddtrace/contrib/sidekiq/base_tracer'
 
 module Datadog
   module Contrib
     module Sidekiq
       # Tracer is a Sidekiq client-side middleware which traces job enqueues/pushes
-      class ClientTracer
-        def initialize(options = {})
-          @tracer = options[:tracer] || Datadog.configuration[:sidekiq][:tracer]
-        end
-
+      class ClientTracer < BaseTracer
         # Client middleware arguments are documented here:
         #   https://github.com/mperham/sidekiq/wiki/Middleware#client-middleware
         def call(worker_class, job, queue, redis_pool)
-          resource = if job['wrapped']
-                       job['wrapped']
-                     else
-                       job['class']
-                     end
+          resource = job_resource(job)
+          service = sidekiq_service(resource)
 
-          @tracer.trace(Ext::SPAN_PUSH) do |span|
+          @tracer.trace(Ext::SPAN_PUSH, service: service) do |span|
             span.resource = resource
             span.set_tag(Ext::TAG_JOB_ID, job['jid'])
             span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
