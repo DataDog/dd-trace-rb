@@ -4,6 +4,8 @@ require 'ddtrace/contrib/sidekiq/ext'
 module Datadog
   module Contrib
     module Sidekiq
+      # Abstract class with common functionality used by both client-side and
+      # server-side tracers.
       class BaseTracer
         def initialize(options = {})
           @tracer = options[:tracer] || Datadog.configuration[:sidekiq][:tracer]
