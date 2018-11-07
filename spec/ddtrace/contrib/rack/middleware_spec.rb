@@ -19,7 +19,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
 
   describe '#call' do
     subject(:middleware_call) { middleware.call(env) }
-    let(:env) { {} }
+    let(:env) { { 'rack.url_scheme' => 'http' } } # Scheme necessary for Rack 1.4.7
     let(:response) { [200, { 'Content-Type' => 'text/plain' }, ['OK']] }
 
     before(:each) do
