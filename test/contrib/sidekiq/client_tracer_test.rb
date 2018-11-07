@@ -42,4 +42,18 @@ class ClientTracerTest < TracerTestBase
     assert_equal(0, child_span.status)
     assert_equal(parent_span, child_span.parent)
   end
+
+  def test_empty_parentless
+    EmptyWorker.perform_async
+
+    spans = @writer.spans
+    assert_equal(1, spans.length)
+
+    span = spans.first
+    assert_equal('sidekiq', span.service)
+    assert_equal('ClientTracerTest::EmptyWorker', span.resource)
+    assert_equal('default', span.get_tag('sidekiq.job.queue'))
+    assert_equal(0, span.status)
+    assert_nil(span.parent)
+  end
 end
