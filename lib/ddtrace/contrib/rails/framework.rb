@@ -50,7 +50,7 @@ module Datadog
             distributed_tracing: config[:distributed_tracing],
             middleware_names: config[:middleware_names],
             service_name: config[:service_name],
-            tracer: config[:tracer],
+            tracer: config[:tracer]
           }
           rack_options = config[:headers] if config[:headers]
           Datadog.configuration.use(:rack, rack_options)
