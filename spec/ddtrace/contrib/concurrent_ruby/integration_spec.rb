@@ -1,4 +1,4 @@
-require 'concurrent/future'
+require 'concurrent'
 
 require 'spec_helper'
 require 'ddtrace'
