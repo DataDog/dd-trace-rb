@@ -131,7 +131,6 @@ namespace :test do
   [
     :aws,
     :grape,
-    :rack,
     :sidekiq,
     :sinatra,
     :sucker_punch
@@ -191,7 +190,6 @@ task :ci do
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:aws'
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
@@ -236,7 +234,6 @@ task :ci do
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:aws'
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
@@ -285,7 +282,6 @@ task :ci do
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:aws'
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
@@ -340,7 +336,6 @@ task :ci do
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:aws'
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
@@ -406,7 +401,6 @@ task :ci do
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:aws'
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
@@ -471,7 +465,6 @@ task :ci do
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:aws'
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
