@@ -16,6 +16,7 @@ module Datadog
           end
           option :distributed_tracing, default: false
           option :exception_controller, default: nil
+          option :headers, default: nil
           option :middleware, default: true
           option :middleware_names, default: false
           option :template_base_path, default: 'views/'
