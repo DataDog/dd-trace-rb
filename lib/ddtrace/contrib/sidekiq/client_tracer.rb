@@ -1,10 +1,12 @@
-require 'ddtrace/contrib/sidekiq/base_tracer'
+require 'ddtrace/contrib/sidekiq/tracing'
 
 module Datadog
   module Contrib
     module Sidekiq
       # Tracer is a Sidekiq client-side middleware which traces job enqueues/pushes
-      class ClientTracer < BaseTracer
+      class ClientTracer
+        include Tracing
+
         # Client middleware arguments are documented here:
         #   https://github.com/mperham/sidekiq/wiki/Middleware#client-middleware
         def call(worker_class, job, queue, redis_pool)

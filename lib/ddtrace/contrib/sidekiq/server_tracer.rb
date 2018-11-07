@@ -1,10 +1,12 @@
-require 'ddtrace/contrib/sidekiq/base_tracer'
+require 'ddtrace/contrib/sidekiq/tracing'
 
 module Datadog
   module Contrib
     module Sidekiq
       # Tracer is a Sidekiq server-side middleware which traces executed jobs
-      class ServerTracer < BaseTracer
+      class ServerTracer
+        include Tracing
+
         def call(worker, job, queue)
           resource = job_resource(job)
           service = sidekiq_service(resource)
