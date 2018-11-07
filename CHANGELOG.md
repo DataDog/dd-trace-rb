@@ -4,6 +4,17 @@
 
 ## [Unreleased (beta)]
 
+## [0.17.1] - 2018-11-07
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.17.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.17.0...v0.17.1
+
+### Fixed
+
+- RestClient incorrect app type (#583) (@gaborszakacs)
+- DelayedJob incorrect job name when used with ActiveJob (#605) (@agirlnamedsophia)
+
 ## [0.17.0] - 2018-10-30
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.17.0
@@ -543,8 +554,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.0...0.18-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.1...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.1...0.18-dev
+[0.17.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.15.0...v0.16.0
