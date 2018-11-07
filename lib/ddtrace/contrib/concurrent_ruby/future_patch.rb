@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/concurrent_ruby/context_composite_executor_service'
+require 'concurrent/executor/cached_thread_pool'
 
 module Datadog
   module Contrib
