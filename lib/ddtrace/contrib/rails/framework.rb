@@ -45,15 +45,15 @@ module Datadog
         end
 
         def self.activate_rack!(config)
-          rack_options = {
+          Datadog.configuration.use(
+            :rack,
             tracer: config[:tracer],
             application: ::Rails.application,
             service_name: config[:service_name],
             middleware_names: config[:middleware_names],
+            headers: config[:headers],
             distributed_tracing: config[:distributed_tracing]
-          }
-          rack_options = config[:headers] if config[:headers]
-          Datadog.configuration.use(:rack, rack_options)
+          )
         end
 
         def self.activate_active_record!(config)
