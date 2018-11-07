@@ -7,13 +7,26 @@ require 'ddtrace/contrib/delayed_job/plugin'
 require_relative 'delayed_job_active_record'
 
 RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record do
-  let(:sample_job_object) { double('sample_job', perform: nil) }
-  let(:sample_job_class) { class_double('SampleJob', new: sample_job_object) }
+  let(:sample_job_object) do
+    stub_const('SampleJob', Class.new do
+      def perform; end
+    end)
+  end
+  let(:active_job_sample_job_object) do
+    stub_const('ActiveJobSampleJob', Class.new do
+      def perform; end
+
+      def job_data
+        {
+          'job_class' => 'UnderlyingJobClass'
+        }
+      end
+    end)
+  end
+
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
 
   before do
-    sample_job_class.as_stubbed_const
-
     Datadog.configure { |c| c.use :delayed_job, tracer: tracer }
 
     Delayed::Worker.delay_jobs = false
@@ -40,10 +53,21 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
   describe 'instrumented job invocation' do
     let(:job_params) { {} }
-    subject(:job_run) { Delayed::Job.enqueue(SampleJob.new, job_params) }
+    subject(:job_run) { Delayed::Job.enqueue(sample_job_object.new, job_params) }
 
     it 'creates a span' do
       expect { job_run }.to change { tracer.writer.spans.first }.to be_instance_of(Datadog::Span)
+    end
+
+    context 'when the job looks like Active Job' do
+      subject(:job_run) { Delayed::Job.enqueue(active_job_sample_job_object.new, job_params) }
+      subject(:span) { tracer.writer.spans.first }
+
+      before { job_run }
+
+      it 'has resource name equal to underlying ActiveJob class name' do
+        expect(span.resource).to eq('UnderlyingJobClass')
+      end
     end
 
     describe 'created span' do
@@ -57,7 +81,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       end
 
       it 'has resource name equal to job name' do
-        expect(span.resource).to eq(RSpec::Mocks::Double.name)
+        expect(span.resource).to eq('SampleJob')
       end
 
       it "span tags doesn't include queue name" do
