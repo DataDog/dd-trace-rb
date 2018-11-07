@@ -30,12 +30,12 @@ class ClientTracerTest < TracerTestBase
     spans = @writer.spans
     assert_equal(2, spans.length)
 
-    parent_span = spans[0]
+    parent_span, child_span = spans
+
     assert_equal('parent.span', parent_span.name)
     assert_equal(0, parent_span.status)
     assert_nil(parent_span.parent)
 
-    child_span = spans[1]
     assert_equal('sidekiq', child_span.service)
     assert_equal('ClientTracerTest::EmptyWorker', child_span.resource)
     assert_equal('default', child_span.get_tag('sidekiq.job.queue'))
