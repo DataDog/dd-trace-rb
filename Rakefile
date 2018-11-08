@@ -3,6 +3,7 @@ require 'ddtrace/version'
 require 'rubocop/rake_task' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
 require 'rspec/core/rake_task'
 require 'rake/testtask'
+require 'rake/extensiontask'
 require 'appraisal'
 require 'yard'
 
@@ -151,6 +152,10 @@ end
 Rake::TestTask.new(:benchmark) do |t|
   t.libs << %w[test lib]
   t.test_files = FileList['test/benchmark_test.rb']
+end
+
+Rake::ExtensionTask.new("ddtrace") do |ext|
+  ext.lib_dir = "lib/ddtrace"
 end
 
 if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
