@@ -6,11 +6,10 @@
 
 static VALUE m_datadog;
 static VALUE m_gc;
+static VALUE sym_start, sym_end;
 
 static ID id_call;
 static ID id_ivHook;
-
-static VALUE sym_start, sym_end;
 
 // Avoid recursion hell: we don't want to report GC traces to Datadog *while*
 // we're recording a GC trace in Datadog.
@@ -109,7 +108,7 @@ gc_report_trace(gc_trace_t *trace)
   VALUE htrace = rb_hash_new();
   rb_hash_aset(htrace, sym_start, start);
   rb_hash_aset(htrace, sym_end, end);
-  rb_funcall(hook, rb_intern("call"), 1, htrace);
+  rb_funcall(hook, id_call, 1, htrace);
 
   datadog_tracing = false;
 }
