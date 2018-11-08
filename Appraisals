@@ -88,6 +88,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sinatra', '1.4.5'
       gem 'sqlite3'
       gem 'sucker_punch'
+      gem 'timers', '< 4.2'
     end
   end
 elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -172,6 +173,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sinatra', '1.4.5'
       gem 'sqlite3'
       gem 'sucker_punch'
+      gem 'timers', '< 4.2'
     end
   end
 elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -276,6 +278,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sinatra', '1.4.5'
       gem 'sqlite3'
       gem 'sucker_punch'
+      gem 'timers', '< 4.2'
     end
   end
 elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
