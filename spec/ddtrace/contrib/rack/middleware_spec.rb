@@ -13,7 +13,6 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
 
   before(:each) do
     Datadog.configure do |c|
-      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :rack, configuration_options
     end
   end

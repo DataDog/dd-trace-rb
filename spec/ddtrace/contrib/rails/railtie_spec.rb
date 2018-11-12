@@ -32,7 +32,6 @@ RSpec.describe 'Rails application' do
 
   before(:each) do
     Datadog.configure do |c|
-      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :rails, rails_options if use_rails
     end
   end

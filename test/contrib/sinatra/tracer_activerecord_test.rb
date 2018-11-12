@@ -47,7 +47,6 @@ class TracerActiveRecordTest < TracerTestBase
     app.set :datadog_test_conn, conn
 
     Datadog.configure do |c|
-      c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
       c.use :active_record
     end
 

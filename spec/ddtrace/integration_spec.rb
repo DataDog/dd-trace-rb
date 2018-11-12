@@ -11,9 +11,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:tracer) do
       Datadog::Tracer.new.tap do |t|
         t.configure(
-          enabled: true,
-          hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
-          port: ENV.fetch('TEST_DDAGENT_PORT', 8126)
+          enabled: true
         )
       end
     end
@@ -189,8 +187,6 @@ RSpec.describe 'Tracer integration tests' do
     before(:each) do
       tracer.configure(
         enabled: true,
-        hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
-        port: ENV.fetch('TEST_DDAGENT_PORT', 8126),
         priority_sampling: true
       )
     end

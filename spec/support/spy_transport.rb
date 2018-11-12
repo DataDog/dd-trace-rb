@@ -5,8 +5,8 @@ require 'ddtrace/transport'
 class SpyTransport < Datadog::HTTPTransport
   attr_reader :helper_sent
 
-  def initialize(hostname, port)
-    super(hostname, port)
+  def initialize(options = {})
+    super
     @helper_sent = { 200 => {}, 500 => {} }
     @helper_mutex = Mutex.new
     @helper_error_mode = false
