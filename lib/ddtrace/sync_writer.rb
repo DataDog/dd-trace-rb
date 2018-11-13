@@ -5,7 +5,8 @@ module Datadog
 
     def initialize(options = {})
       @transport = options.fetch(:transport) do
-        HTTPTransport.new(Writer::HOSTNAME, Writer::PORT)
+        transport_options = options.fetch(:transport_options, {})
+        HTTPTransport.new(transport_options)
       end
     end
 

@@ -16,8 +16,8 @@ services:
     env_file: ./.env
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
-      - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
       - TEST_MEMCACHED_HOST=memcached
       - TEST_MONGODB_HOST=mongodb
@@ -46,8 +46,8 @@ services:
     env_file: ./.env
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
-      - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
       - TEST_MEMCACHED_HOST=memcached
       - TEST_MONGODB_HOST=mongodb
@@ -76,8 +76,8 @@ services:
     env_file: ./.env
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
-      - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
       - TEST_MEMCACHED_HOST=memcached
       - TEST_MONGODB_HOST=mongodb
@@ -106,8 +106,8 @@ services:
     env_file: ./.env
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
-      - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
       - TEST_MEMCACHED_HOST=memcached
       - TEST_MONGODB_HOST=mongodb
@@ -136,8 +136,8 @@ services:
     env_file: ./.env
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
-      - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
       - TEST_MEMCACHED_HOST=memcached
       - TEST_MONGODB_HOST=mongodb
@@ -166,8 +166,8 @@ services:
     env_file: ./.env
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
-      - TEST_DDAGENT_HOST=ddagent
       - TEST_ELASTICSEARCH_HOST=elasticsearch
       - TEST_MEMCACHED_HOST=memcached
       - TEST_MONGODB_HOST=mongodb
@@ -189,7 +189,7 @@ services:
     expose:
       - "8126"
     ports:
-      - "${TEST_DDAGENT_PORT}:8126"
+      - "${DD_TRACE_AGENT_PORT}:8126"
   elasticsearch:
     # Note: ES 5.0 dies with error:
     # max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]

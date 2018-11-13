@@ -25,9 +25,7 @@ RSpec.describe Datadog::Writer do
           context 'and default transport options' do
             it do
               sampling_method = described_class.new.method(:sampling_updater)
-              expect(Datadog::HTTPTransport).to receive(:new) do |hostname, port, options|
-                expect(hostname).to eq(described_class::HOSTNAME)
-                expect(port).to eq(described_class::PORT)
+              expect(Datadog::HTTPTransport).to receive(:new) do |options|
                 expect(options).to be_a_kind_of(Hash)
                 expect(options[:api_version]).to eq(Datadog::HTTPTransport::V4)
                 expect(options[:response_callback].source_location).to eq(sampling_method.source_location)
@@ -43,9 +41,7 @@ RSpec.describe Datadog::Writer do
             let(:response_callback) { double('response callback') }
 
             it do
-              expect(Datadog::HTTPTransport).to receive(:new) do |hostname, port, options|
-                expect(hostname).to eq(described_class::HOSTNAME)
-                expect(port).to eq(described_class::PORT)
+              expect(Datadog::HTTPTransport).to receive(:new) do |options|
                 expect(options).to include(
                   api_version: api_version,
                   response_callback: response_callback
@@ -70,7 +66,9 @@ RSpec.describe Datadog::Writer do
             let(:callback) { double('callback method') }
 
             let!(:request) { stub_request(:post, endpoint).to_return(response) }
-            let(:endpoint) { "#{Datadog::Writer::HOSTNAME}:#{Datadog::Writer::PORT}/#{api_version}/traces" }
+            let(:hostname) { ENV.fetch('DD_AGENT_HOST', Datadog::HTTPTransport::DEFAULT_AGENT_HOST) }
+            let(:port) { ENV.fetch('DD_TRACE_AGENT_PORT', Datadog::HTTPTransport::DEFAULT_TRACE_AGENT_PORT) }
+            let(:endpoint) { "#{hostname}:#{port}/#{api_version}/traces" }
             let(:response) { { body: body } }
             let(:body) { 'body' }
 
@@ -96,7 +94,7 @@ RSpec.describe Datadog::Writer do
                 let(:response) { super().merge!(status: 404) }
                 let!(:fallback_request) { stub_request(:post, fallback_endpoint).to_return(body: body) }
                 let(:fallback_endpoint) do
-                  "#{Datadog::Writer::HOSTNAME}:#{Datadog::Writer::PORT}/#{fallback_version}/traces"
+                  "#{hostname}:#{port}/#{fallback_version}/traces"
                 end
                 let(:body) { 'body' }
 
