@@ -22,22 +22,11 @@ module Datadog
               require 'ddtrace/contrib/aws/instrumentation'
               require 'ddtrace/contrib/aws/services'
 
-              add_pin
               add_plugin(Seahorse::Client::Base, *loaded_constants)
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply AWS integration: #{e}")
             end
           end
-        end
-
-        def add_pin
-          Pin
-            .new(
-              get_option(:service_name),
-              app: Ext::APP,
-              app_type: Datadog::Ext::AppTypes::WEB,
-              tracer: get_option(:tracer)
-            ).onto(::Aws)
         end
 
         def add_plugin(*targets)
