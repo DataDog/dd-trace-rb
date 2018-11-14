@@ -129,7 +129,6 @@ namespace :test do
   end
 
   [
-    :aws,
     :grape,
     :rack,
     :sidekiq,
@@ -189,7 +188,6 @@ task :ci do
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib-old rake test:aws'
       sh 'bundle exec appraisal contrib-old rake test:monkey'
       sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
@@ -234,7 +232,6 @@ task :ci do
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib-old rake test:aws'
       sh 'bundle exec appraisal contrib-old rake test:monkey'
       sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
@@ -283,7 +280,6 @@ task :ci do
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib-old rake test:aws'
       sh 'bundle exec appraisal contrib-old rake test:monkey'
       sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
@@ -338,7 +334,6 @@ task :ci do
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib rake test:aws'
       sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
@@ -404,7 +399,6 @@ task :ci do
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib rake test:aws'
       sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
@@ -469,7 +463,6 @@ task :ci do
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib rake test:aws'
       sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
