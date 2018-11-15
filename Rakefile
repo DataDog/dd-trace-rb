@@ -130,7 +130,6 @@ namespace :test do
 
   [
     :grape,
-    :rack,
     :sidekiq,
     :sinatra,
     :sucker_punch
@@ -189,7 +188,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
@@ -206,6 +204,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:http'
       sh 'bundle exec appraisal contrib-old rake spec:mongodb'
       sh 'bundle exec appraisal contrib-old rake spec:mysql2'
+      sh 'bundle exec appraisal contrib-old rake spec:rack'
       sh 'bundle exec appraisal contrib-old rake spec:rake'
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'
@@ -233,7 +232,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
@@ -250,6 +248,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:http'
       sh 'bundle exec appraisal contrib-old rake spec:mongodb'
       sh 'bundle exec appraisal contrib-old rake spec:mysql2'
+      sh 'bundle exec appraisal contrib-old rake spec:rack'
       sh 'bundle exec appraisal contrib-old rake spec:rake'
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'
@@ -281,7 +280,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:rack'
       sh 'bundle exec appraisal contrib-old rake test:sinatra'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
@@ -298,6 +296,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:http'
       sh 'bundle exec appraisal contrib-old rake spec:mongodb'
       sh 'bundle exec appraisal contrib-old rake spec:mysql2'
+      sh 'bundle exec appraisal contrib-old rake spec:rack'
       sh 'bundle exec appraisal contrib-old rake spec:rake'
       sh 'bundle exec appraisal contrib-old rake spec:redis'
       sh 'bundle exec appraisal contrib-old rake spec:resque'
@@ -335,7 +334,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
@@ -355,6 +353,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:racecar'
+      sh 'bundle exec appraisal contrib rake spec:rack'
       sh 'bundle exec appraisal contrib rake spec:rake'
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
@@ -400,7 +399,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
@@ -420,6 +418,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:racecar'
+      sh 'bundle exec appraisal contrib rake spec:rack'
       sh 'bundle exec appraisal contrib rake spec:rake'
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
@@ -464,7 +463,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:rack'
       sh 'bundle exec appraisal contrib rake test:sinatra'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
@@ -484,6 +482,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:racecar'
+      sh 'bundle exec appraisal contrib rake spec:rack'
       sh 'bundle exec appraisal contrib rake spec:rake'
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
