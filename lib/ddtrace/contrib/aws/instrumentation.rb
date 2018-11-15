@@ -13,22 +13,18 @@ module Datadog
       # Generates Spans for all interactions with AWS
       class Handler < Seahorse::Client::Handler
         def call(context)
-          pin = Datadog::Pin.get_from(::Aws)
-
-          return @handler.call(context) unless pin && pin.enabled?
-
-          pin.tracer.trace(Ext::SPAN_COMMAND) do |span|
-            result = @handler.call(context)
-            annotate!(span, pin, ParsedContext.new(context))
-            result
+          tracer.trace(Ext::SPAN_COMMAND) do |span|
+            @handler.call(context).tap do
+              annotate!(span, ParsedContext.new(context))
+            end
           end
         end
 
         private
 
-        def annotate!(span, pin, context)
-          span.service = pin.service
-          span.span_type = pin.app_type
+        def annotate!(span, context)
+          span.service = configuration[:service_name]
+          span.span_type = Datadog::Ext::AppTypes::WEB
           span.name = Ext::SPAN_COMMAND
           span.resource = context.safely(:resource)
           span.set_tag(Ext::TAG_AGENT, Ext::TAG_DEFAULT_AGENT)
@@ -38,6 +34,14 @@ module Datadog
           span.set_tag(Ext::TAG_HOST, context.safely(:host))
           span.set_tag(Datadog::Ext::HTTP::METHOD, context.safely(:http_method))
           span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, context.safely(:status_code))
+        end
+
+        def tracer
+          configuration[:tracer]
+        end
+
+        def configuration
+          Datadog.configuration[:aws]
         end
       end
     end
