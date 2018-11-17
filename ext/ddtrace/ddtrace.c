@@ -51,6 +51,7 @@ VALUE
 f_gc_set_hook(VALUE self, VALUE hook)
 {
   rb_ivar_set(m_gc, id_ivHook, hook);
+  gc_hook_once();
   return Qnil;
 }
 
@@ -68,7 +69,4 @@ Init_ddtrace(void)
   m_mri = rb_const_get(m_runtime, rb_intern("MRI"));
   m_gc = rb_define_module_under(m_mri, "GC");
   rb_define_singleton_method(m_gc, "hook=", f_gc_set_hook, 1);
-
-  rb_add_event_hook(gc_enter, RUBY_INTERNAL_EVENT_GC_ENTER, Qnil);
-  rb_add_event_hook(gc_exit, RUBY_INTERNAL_EVENT_GC_EXIT, Qnil);
 }

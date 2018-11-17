@@ -8,6 +8,8 @@
 
 #define UNUSED(x) (void)(x)
 
+static int gc_hooked = false;
+
 static struct timespec gc_enter_time;
 // Ensure it's properly zero-initialized because we're going to check if it's
 // non-zero in `datadog_gc_enter`.
@@ -22,6 +24,19 @@ timespec2hrtime(const struct timespec *ts)
   hrtime_t s = (hrtime_t)ts->tv_sec * NSEC_PER_SEC;
   hrtime_t ns = (hrtime_t)ts->tv_nsec;
   return s + ns;
+}
+
+void
+gc_hook_once()
+{
+  // Don't add the GC hooks more than once.
+  if (gc_hooked) {
+    return;
+  }
+
+  rb_add_event_hook(gc_enter, RUBY_INTERNAL_EVENT_GC_ENTER, Qnil);
+  rb_add_event_hook(gc_exit, RUBY_INTERNAL_EVENT_GC_EXIT, Qnil);
+  gc_hooked = true;
 }
 
 void
