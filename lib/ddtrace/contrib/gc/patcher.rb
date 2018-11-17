@@ -32,9 +32,9 @@ module Datadog
         def trace_gc(trace)
           begin
             span = Datadog.tracer.trace(
-              'gc',
+              Ext::SPAN_GC,
               service: Datadog.configuration[:gc][:service_name],
-              span_type: 'gc',
+              span_type: nil,
               start_time: trace[:start],
             )
             span.finish(trace[:end])

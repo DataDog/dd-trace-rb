@@ -15,8 +15,10 @@ void
 ddtrace_postpone_report_gc_trace(const struct timespec *enter, const struct timespec *exit)
 {
   ddtrace_gc_trace_t *trace = malloc(sizeof(ddtrace_gc_trace_t));
-  memcpy(&trace->start, &enter, sizeof(struct timespec));
-  memcpy(&trace->end, &exit, sizeof(struct timespec));
+  trace->start.tv_sec = enter->tv_sec;
+  trace->start.tv_nsec = enter->tv_nsec;
+  trace->end.tv_sec = exit->tv_sec;
+  trace->end.tv_nsec = exit->tv_nsec;
   rb_postponed_job_register_one(0, (void (*)(void *))ddtrace_report_gc_trace, trace);
 }
 

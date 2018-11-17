@@ -69,7 +69,8 @@ gc_enter(rb_event_flag_t flag, VALUE data, VALUE self, ID mid, VALUE klass)
   }
 
   // Reset the entry timer since we're in a new GC.
-  memcpy(&gc_enter_time, &tsnow, sizeof(struct timespec));
+  gc_enter_time.tv_sec = tsnow.tv_sec;
+  gc_enter_time.tv_nsec = tsnow.tv_nsec;
 }
 
 void
