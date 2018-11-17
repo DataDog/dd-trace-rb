@@ -1,5 +1,6 @@
 module Datadog
   module Runtime
+    # Interface to the native extension for the MRI runtime.
     module MRI
       def self.trace_gc(&callback)
         GC.hook = callback

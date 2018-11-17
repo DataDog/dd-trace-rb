@@ -1,5 +1,6 @@
 module Datadog
-  # Ruby runtime-specific functionality.
+  # Contains implementations for and provides a runtime-agnostic abstraction
+  # of Ruby runtime tracing.
   module Runtime
     class << self
       attr_accessor :current
