@@ -9,6 +9,7 @@ require 'ddtrace/quantization/http'
 require 'ddtrace/pipeline'
 require 'ddtrace/configuration'
 require 'ddtrace/patcher'
+require 'ddtrace/runtime'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog

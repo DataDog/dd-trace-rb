@@ -16,8 +16,8 @@ module Datadog
             # to actually record the trace on a separate thread outside of
             # that context.
             queue = Queue.new
-            
-            Datadog::NativeGC.hook = -> (trace) do
+
+            Datadog::Runtime::MRI::GC.hook = -> (trace) do
               queue.push trace
             end
 

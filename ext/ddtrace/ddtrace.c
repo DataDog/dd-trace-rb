@@ -1,8 +1,7 @@
 #include "ddtrace.h"
 #include "gc.h"
 
-static VALUE m_datadog;
-static VALUE m_gc;
+static VALUE m_datadog, m_runtime, m_mri, m_gc;
 static VALUE sym_start, sym_end;
 
 static ID id_call;
@@ -65,7 +64,9 @@ Init_ddtrace(void)
   sym_end = ID2SYM(rb_intern("end"));
 
   m_datadog = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  m_gc = rb_define_module_under(m_datadog, "NativeGC");
+  m_runtime = rb_const_get(m_datadog, rb_intern("Runtime"));
+  m_mri = rb_const_get(m_runtime, rb_intern("MRI"));
+  m_gc = rb_define_module_under(m_mri, "GC");
   rb_define_singleton_method(m_gc, "hook=", f_gc_set_hook, 1);
 
   rb_add_event_hook(gc_enter, RUBY_INTERNAL_EVENT_GC_ENTER, Qnil);
