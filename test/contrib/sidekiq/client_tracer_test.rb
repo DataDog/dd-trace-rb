@@ -36,7 +36,7 @@ class ClientTracerTest < TracerTestBase
     assert_equal(0, parent_span.status)
     assert_nil(parent_span.parent)
 
-    assert_equal('sidekiq', child_span.service)
+    assert_equal('sidekiq-client', child_span.service)
     assert_equal('ClientTracerTest::EmptyWorker', child_span.resource)
     assert_equal('default', child_span.get_tag('sidekiq.job.queue'))
     assert_equal(0, child_span.status)
@@ -50,7 +50,7 @@ class ClientTracerTest < TracerTestBase
     assert_equal(1, spans.length)
 
     span = spans.first
-    assert_equal('sidekiq', span.service)
+    assert_equal('sidekiq-client', span.service)
     assert_equal('ClientTracerTest::EmptyWorker', span.resource)
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
     assert_equal(0, span.status)

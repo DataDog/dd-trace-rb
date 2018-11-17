@@ -7,11 +7,18 @@ module Datadog
       class ClientTracer
         include Tracing
 
+        def initialize(options = {})
+          super
+          @sidekiq_service = options[:client_service_name] || Datadog.configuration[:sidekiq][:client_service_name]
+        end
+
         # Client middleware arguments are documented here:
         #   https://github.com/mperham/sidekiq/wiki/Middleware#client-middleware
         def call(worker_class, job, queue, redis_pool)
+          service = @sidekiq_service
+          set_service_info(service)
+
           resource = job_resource(job)
-          service = sidekiq_service(resource)
 
           @tracer.trace(Ext::SPAN_PUSH, service: service) do |span|
             span.resource = resource
