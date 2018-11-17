@@ -2,9 +2,6 @@ require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/gc/configuration/settings'
 require 'ddtrace/contrib/gc/patcher'
 
-# Try to load the native extension, but it's okay if it fails.
-require 'ddtrace/ddtrace' rescue LoadError
-
 module Datadog
   module Contrib
     module GC
