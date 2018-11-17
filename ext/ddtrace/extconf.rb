@@ -1,3 +1,3 @@
-require "mkmf"
+require 'mkmf'
 
-create_makefile "ddtrace/ddtrace"
+create_makefile 'ddtrace/ddtrace'

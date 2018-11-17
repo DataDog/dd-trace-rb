@@ -5,6 +5,7 @@ require 'ddtrace/contrib/gc/patcher'
 module Datadog
   module Contrib
     module GC
+      # Description of runtime GC integration
       class Integration
         include Contrib::Integration
 
@@ -15,7 +16,7 @@ module Datadog
         end
 
         def self.present?
-          super && !!::Datadog::Runtime.current
+          super && ::Datadog::Runtime.current
         end
 
         def default_configuration

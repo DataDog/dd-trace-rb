@@ -154,8 +154,8 @@ Rake::TestTask.new(:benchmark) do |t|
   t.test_files = FileList['test/benchmark_test.rb']
 end
 
-Rake::ExtensionTask.new("ddtrace") do |ext|
-  ext.lib_dir = "lib/ddtrace"
+Rake::ExtensionTask.new('ddtrace') do |ext|
+  ext.lib_dir = 'lib/ddtrace'
 end
 
 if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
