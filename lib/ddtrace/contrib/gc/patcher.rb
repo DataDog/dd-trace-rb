@@ -17,7 +17,7 @@ module Datadog
             # that context.
             queue = Queue.new
 
-            Datadog::Runtime.current.trace_gc do |trace|
+            Datadog::Runtime.current.report_gc do |trace|
               queue.push trace
             end
 
