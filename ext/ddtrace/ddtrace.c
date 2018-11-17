@@ -1,8 +1,5 @@
-#include <stdbool.h>
-#include <ruby/ruby.h>
-#include <ruby/debug.h>
-
 #include "ddtrace.h"
+#include "gc.h"
 
 static VALUE m_datadog;
 static VALUE m_gc;
@@ -13,81 +10,19 @@ static ID id_ivHook;
 
 // Avoid recursion hell: we don't want to report GC traces to Datadog *while*
 // we're recording a GC trace in Datadog.
-static int datadog_tracing = false;
+static int ddtrace_gc_reporting = false;
 
-static struct timespec gc_enter_time;
-// Ensure it's properly zero-initialized because we're going to check if it's
-// non-zero in `datadog_gc_enter`.
-static struct timespec gc_exit_time = {
-  .tv_sec = 0,
-  .tv_nsec = 0,
-};
-
-#define UNUSED(x) (void)(x)
-
-// Needs to be at least 5ms between GCs for us to treat them as separate events.
-#define GC_NSEC_THRESHOLD (5 * 1000 * 1000)
-
-#define NSEC_PER_SEC (1000 * 1000 * 1000)
-
-hrtime_t
-timespec2hrtime(const struct timespec *ts)
+void
+ddtrace_postpone_report_gc_trace(const struct timespec *enter, const struct timespec *exit)
 {
-  hrtime_t s = (hrtime_t)ts->tv_sec * NSEC_PER_SEC;
-  hrtime_t ns = (hrtime_t)ts->tv_nsec;
-  return s + ns;
+  ddtrace_gc_trace_t *trace = malloc(sizeof(ddtrace_gc_trace_t));
+  memcpy(&trace->start, &enter, sizeof(struct timespec));
+  memcpy(&trace->end, &exit, sizeof(struct timespec));
+  rb_postponed_job_register_one(0, (void (*)(void *))ddtrace_report_gc_trace, trace);
 }
 
-static void
-gc_enter(rb_event_flag_t flag, VALUE data, VALUE self, ID mid, VALUE klass)
-{
-  UNUSED(flag);
-  UNUSED(data);
-  UNUSED(self);
-  UNUSED(mid);
-  UNUSED(klass);
-
-  struct timespec tsnow;
-  rb_timespec_now(&tsnow);
-
-  if ((&gc_exit_time)->tv_sec > 0) {
-    hrtime_t exit = timespec2hrtime(&gc_exit_time);
-    hrtime_t now = timespec2hrtime(&tsnow);
-
-    // Because Ruby calls its GC hooks *a lot* we have to establish a threshold
-    // below which we'll count all individual GCs as one GC. This means that we
-    // actually have to wait until we start the next GC before we can determine
-    // if we've met the threshold for the previous GCs (or else this current GC
-    // should be counted with the previous).
-    if ((now - exit) > GC_NSEC_THRESHOLD) {
-      gc_trace_t *trace = malloc(sizeof(gc_trace_t));
-      memcpy(&trace->start, &gc_enter_time, sizeof(struct timespec));
-      memcpy(&trace->end, &gc_exit_time, sizeof(struct timespec));
-      rb_postponed_job_register_one(0, (void (*)(void *))gc_report_trace, trace);
-    } else {
-      // Threshold not met, keep waiting.
-      return;
-    }
-  }
-
-  // Reset the entry timer since we're in a new GC.
-  memcpy(&gc_enter_time, &tsnow, sizeof(struct timespec));
-}
-
-static void
-gc_exit(rb_event_flag_t flag, VALUE data, VALUE self, ID mid, VALUE klass)
-{
-  UNUSED(flag);
-  UNUSED(data);
-  UNUSED(self);
-  UNUSED(mid);
-  UNUSED(klass);
-
-  rb_timespec_now(&gc_exit_time);
-}
-
-static void
-gc_report_trace(gc_trace_t *trace)
+void
+ddtrace_report_gc_trace(ddtrace_gc_trace_t *trace)
 {
   VALUE start = rb_time_nano_new(trace->start.tv_sec, trace->start.tv_nsec);
   VALUE end = rb_time_nano_new(trace->end.tv_sec, trace->end.tv_nsec);
@@ -99,18 +34,18 @@ gc_report_trace(gc_trace_t *trace)
     return;
   }
   // Check that we're not already calling the hook.
-  if (datadog_tracing) {
+  if (ddtrace_gc_reporting) {
     return;
   }
 
-  datadog_tracing = true;
+  ddtrace_gc_reporting = true;
 
   VALUE htrace = rb_hash_new();
   rb_hash_aset(htrace, sym_start, start);
   rb_hash_aset(htrace, sym_end, end);
   rb_funcall(hook, id_call, 1, htrace);
 
-  datadog_tracing = false;
+  ddtrace_gc_reporting = false;
 }
 
 VALUE
