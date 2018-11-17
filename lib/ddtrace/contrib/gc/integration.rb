@@ -18,7 +18,7 @@ module Datadog
         end
 
         def self.present?
-          super && defined?(::Datadog::Runtime::MRI::GC)
+          super && !!::Datadog::Runtime.current
         end
 
         def default_configuration

@@ -17,7 +17,7 @@ module Datadog
             # that context.
             queue = Queue.new
 
-            Datadog::Runtime::MRI::GC.hook = -> (trace) do
+            Datadog::Runtime.current.trace_gc do |trace|
               queue.push trace
             end
 
