@@ -20,6 +20,8 @@ RSpec.describe 'Tracer integration tests' do
         )
       end
     end
+
+    let(:transport) { tracer.writer.transport }
   end
 
   def expect_no_error_metrics
