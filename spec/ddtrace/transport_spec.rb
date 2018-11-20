@@ -240,17 +240,17 @@ RSpec.describe Datadog::HTTPTransport do
       context 'for a JSON-encoded transport' do
         let(:options) { { encoder: Datadog::Encoding::JSONEncoder } }
         it { expect(transport.success?(code)).to be true }
-        it_behaves_like 'transport metrics with encoding', type, Datadog::Encoding::JSONEncoder
+        it_behaves_like 'transport metrics with encoding', type
       end
 
       context 'for a Msgpack-encoded transport' do
         let(:options) { { encoder: Datadog::Encoding::MsgpackEncoder } }
         it { expect(transport.success?(code)).to be true }
-        it_behaves_like 'transport metrics with encoding', type, Datadog::Encoding::MsgpackEncoder
+        it_behaves_like 'transport metrics with encoding', type
       end
     end
 
-    shared_examples_for 'transport metrics with encoding' do |type, encoder|
+    shared_examples_for 'transport metrics with encoding' do |type|
       before(:each) { subject }
 
       let(:tags) do
@@ -267,16 +267,14 @@ RSpec.describe Datadog::HTTPTransport do
       it do
         expect(statsd).to have_received_increment_transport_metric(
           described_class::METRIC_RESPONSE,
-          { tags: (tags + ["#{Datadog::Ext::HTTP::STATUS_CODE}:200"]) },
-          encoder
+          tags: (tags + ["#{Datadog::Ext::HTTP::STATUS_CODE}:200"])
         )
       end
 
       it do
         expect(statsd).to have_received_time_transport_metric(
           described_class::METRIC_ENCODE_TIME,
-          { tags: tags },
-          encoder
+          tags: tags
         )
       end
 
@@ -284,24 +282,21 @@ RSpec.describe Datadog::HTTPTransport do
         expect(statsd).to have_received_distribution_transport_metric(
           described_class::METRIC_PAYLOAD_SIZE,
           kind_of(Numeric),
-          { tags: tags },
-          encoder
+          tags: tags
         )
       end
 
       it do
         expect(statsd).to have_received_time_transport_metric(
           described_class::METRIC_ROUNDTRIP_TIME,
-          { tags: tags },
-          encoder
+          tags: tags
         )
       end
 
       it do
         expect(statsd).to have_received_time_transport_metric(
           described_class::METRIC_POST_TIME,
-          { tags: tags },
-          encoder
+          tags: tags
         )
       end
     end

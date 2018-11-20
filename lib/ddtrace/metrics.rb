@@ -6,14 +6,9 @@ require 'ddtrace/utils/time'
 module Datadog
   # Behavior for sending statistics to Statsd
   module Metrics
-    DEFAULT_OPTIONS = {
-      tags: DEFAULT_TAGS = [
-        "#{Ext::Metrics::TAG_LANG}:#{Ext::Meta::LANG}".freeze,
-        "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Ext::Meta::LANG_INTERPRETER}".freeze,
-        "#{Ext::Metrics::TAG_LANG_VERSION}:#{Ext::Meta::LANG_VERSION}".freeze,
-        "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Ext::Meta::TRACER_VERSION}".freeze
-      ].freeze
-    }.freeze
+    def self.included(base)
+      base.send(:include, Options)
+    end
 
     attr_accessor :statsd
 
@@ -42,21 +37,39 @@ module Datadog
       end
     end
 
-    def metric_options(options = nil)
-      return default_metric_options if options.nil?
+    # For defining and adding default options to metrics
+    module Options
+      DEFAULT = {
+        tags: DEFAULT_TAGS = [
+          "#{Ext::Metrics::TAG_LANG}:#{Ext::Meta::LANG}".freeze,
+          "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Ext::Meta::LANG_INTERPRETER}".freeze,
+          "#{Ext::Metrics::TAG_LANG_VERSION}:#{Ext::Meta::LANG_VERSION}".freeze,
+          "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Ext::Meta::TRACER_VERSION}".freeze
+        ].freeze
+      }.freeze
 
-      default_metric_options.merge(options) do |key, old_value, new_value|
-        case key
-        when :tags
-          old_value.dup.concat(new_value)
-        else
-          new_value
+      def metric_options(options = nil)
+        return default_metric_options if options.nil?
+
+        default_metric_options.merge(options) do |key, old_value, new_value|
+          case key
+          when :tags
+            old_value.dup.concat(new_value).uniq
+          else
+            new_value
+          end
+        end
+      end
+
+      def default_metric_options
+        # Return dupes, so that the constant isn't modified,
+        # and defaults are unfrozen for mutation in Statsd.
+        DEFAULT.dup.tap do |options|
+          options[:tags] = options[:tags].dup
         end
       end
     end
 
-    def default_metric_options
-      DEFAULT_OPTIONS
-    end
+    extend(Options)
   end
 end
