@@ -14,26 +14,38 @@ module Datadog
 
     protected
 
+    def send_stats?
+      !statsd.nil?
+    end
+
     def distribution(stat, value, options = nil)
-      return if statsd.nil? || !statsd.respond_to?(:distribution)
+      return unless send_stats? && statsd.respond_to?(:distribution)
       statsd.distribution(stat, value, metric_options(options))
+    rescue StandardError => e
+      Datadog::Tracer.log.error("Failed to send distribution stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def increment(stat, options = nil)
-      return if statsd.nil? || !statsd.respond_to?(:increment)
+      return unless send_stats? && statsd.respond_to?(:increment)
       statsd.increment(stat, metric_options(options))
+    rescue StandardError => e
+      Datadog::Tracer.log.error("Failed to send increment stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def time(stat, options = nil)
-      return yield if statsd.nil? || !statsd.respond_to?(:distribution)
+      return yield unless send_stats?
 
       # Calculate time, send it as a distribution.
       start = Utils::Time.get_time
       return yield
     ensure
-      unless statsd.nil? || !statsd.respond_to?(:distribution)
-        finished = Utils::Time.get_time
-        statsd.distribution(stat, ((finished - start) * 1000), metric_options(options))
+      begin
+        if send_stats? && !start.nil?
+          finished = Utils::Time.get_time
+          distribution(stat, ((finished - start) * 1000), options)
+        end
+      rescue StandardError => e
+        Datadog::Tracer.log.error("Failed to send time stat. Cause: #{e.message} Source: #{e.backtrace.first}")
       end
     end
 
