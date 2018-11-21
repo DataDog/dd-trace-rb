@@ -8,9 +8,14 @@ module Datadog
     module Resque
       # Uses Resque job hooks to create traces
       module ResqueJob
+        class << self
+          attr_accessor :sync_writer
+        end
+
         def around_perform(*args)
           pin = Pin.get_from(::Resque)
           return yield unless pin && pin.tracer
+
           pin.tracer.trace(Ext::SPAN_JOB, service: pin.service) do |span|
             span.resource = name
             span.span_type = pin.app_type
@@ -37,13 +42,13 @@ module Datadog
 end
 
 Resque.before_first_fork do
-  Datadog::Contrib::Resque.sync_writer = nil
+  Datadog::Contrib::Resque::ResqueJob.sync_writer = nil
 
   pin = Datadog::Pin.get_from(Resque)
-  next unless pin && pin.tracer && Datadog.configuration[:resque][:use_sync_writer]
+  next unless pin && pin.tracer && Datadog.configuration[:resque].get_option(:use_sync_writer)
 
   # Create SyncWriter instance before forking
-  Datadog::Contrib::Resque.sync_writer = if Datadog.configuration[:resque][:use_sync_writer]
+  Datadog::Contrib::Resque::ResqueJob.sync_writer = if Datadog.configuration[:resque].get_option(:use_sync_writer)
                                            Datadog::SyncWriter.new(transport: pin.tracer.writer.transport)
                                          end
 end
@@ -56,7 +61,7 @@ Resque.after_fork do
   # clean the state so no CoW happens
   pin.tracer.provider.context = nil
 
-  if Datadog::Contrib::Resque.sync_writer
-    pin.tracer.writer = Datadog::Contrib::Resque.sync_writer
+  if Datadog::Contrib::Resque::ResqueJob.sync_writer
+    pin.tracer.writer = Datadog::Contrib::Resque::ResqueJob.sync_writer
   end
 end
