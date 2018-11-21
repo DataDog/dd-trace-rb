@@ -109,6 +109,16 @@ RSpec.describe 'Faraday middleware' do
     end
   end
 
+  context 'when path included in resource' do
+    subject!(:response) { client.get('/success') }
+
+    let(:middleware_options) { { path_in_resource: true } }
+
+    it do
+      expect(request_span.resource).to eq('GET /success')
+    end
+  end
+
   context 'default request headers' do
     subject(:response) { client.get('/success') }
 

@@ -31,13 +31,23 @@ module Datadog
         attr_reader :app, :options, :tracer
 
         def annotate!(span, env)
-          span.resource = env[:method].to_s.upcase
+          span.resource = resource_name(env)
           span.service = service_name(env)
           span.span_type = Datadog::Ext::HTTP::TYPE
           span.set_tag(Datadog::Ext::HTTP::URL, env[:url].path)
           span.set_tag(Datadog::Ext::HTTP::METHOD, env[:method].to_s.upcase)
           span.set_tag(Datadog::Ext::NET::TARGET_HOST, env[:url].host)
           span.set_tag(Datadog::Ext::NET::TARGET_PORT, env[:url].port)
+        end
+
+        def resource_name(env)
+          method = env[:method].to_s.upcase
+          path = env[:url].path
+          if options[:path_in_resource]
+            "#{method} #{path}"
+          else
+            method
+          end
         end
 
         def handle_response(span, env)
