@@ -8,7 +8,7 @@ module Datadog
     module Resque
       # Uses Resque job hooks to create traces
       module ResqueJob
-        def around_perform(*args)
+        def around_perform_trace_execution(*_)
           pin = Pin.get_from(::Resque)
           return yield unless pin && pin.tracer
           pin.tracer.trace(Ext::SPAN_JOB, service: pin.service) do |span|
@@ -17,8 +17,6 @@ module Datadog
             yield
             span.service = pin.service
           end
-        ensure
-          pin.tracer.shutdown! if pin && pin.tracer
         end
       end
     end
