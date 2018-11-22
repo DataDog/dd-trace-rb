@@ -29,7 +29,7 @@ module Datadog
 
         def shutdown_tracer_when_forked!
           pin = Datadog::Pin.get_from(Resque)
-          pin.tracer.shutdown! if pin && pin.tracer && pin.config[:forked]
+          pin.tracer.shutdown! if pin && pin.tracer && pin.config && pin.config[:forked]
         end
       end
     end
