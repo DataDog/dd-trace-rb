@@ -4,6 +4,16 @@
 
 ## [Unreleased (beta)]
 
+## [0.17.2] - 2018-11-23
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.17.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.17.1...v0.17.2
+
+### Fixed
+
+- Resque integration shutting down tracer when forking is disabled (#637)
+
 ## [0.17.1] - 2018-11-07
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.17.1
