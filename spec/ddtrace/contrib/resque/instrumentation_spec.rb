@@ -29,7 +29,7 @@ RSpec.describe 'Resque instrumentation' do
     pin.tracer = tracer
   end
 
-  describe 'for a job' do
+  shared_examples 'job execution tracing' do
     context 'that succeeds' do
       before(:each) { perform_job(job_class) }
 
@@ -72,6 +72,28 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to eq(error_class_name)
       end
     end
+  end
+
+  context 'without forking' do
+    around do |example|
+      orig_fork_per_job = ENV['FORK_PER_JOB']
+      begin
+        ENV['FORK_PER_JOB'] = 'false'
+        example.run
+      ensure
+        ENV['FORK_PER_JOB'] = orig_fork_per_job
+      end
+    end
+
+    it_should_behave_like 'job execution tracing'
+
+    it 'ensures worker is not using forking' do
+      expect(worker.fork_per_job?).to be_falsey
+    end
+  end
+
+  context 'with forking' do
+    it_should_behave_like 'job execution tracing'
 
     context 'trace context' do
       before(:each) do
@@ -95,6 +117,10 @@ RSpec.describe 'Resque instrumentation' do
         expect(job_span.name).to eq('resque.job')
         expect(main_span.trace_id).to_not eq(job_span.trace_id)
       end
+    end
+
+    it 'ensures worker is using forking' do
+      expect(worker.fork_per_job?).to be_truthy
     end
   end
 
