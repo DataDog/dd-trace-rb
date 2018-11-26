@@ -3,7 +3,7 @@ require 'ddtrace'
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
-  require 'ddtrace/contrib/sidekiq/tracer'
+  require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
 require 'ddtrace/contrib/rails/support/controllers'
@@ -41,7 +41,7 @@ RSpec.shared_context 'Rails 5 base application' do
         # add Sidekiq middleware
         Sidekiq::Testing.server_middleware do |chain|
           chain.add(
-            Datadog::Contrib::Sidekiq::Tracer
+            Datadog::Contrib::Sidekiq::ServerTracer
           )
         end
       end

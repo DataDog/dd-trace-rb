@@ -3,7 +3,7 @@ require 'rails/test_help'
 require 'ddtrace'
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
-  require 'ddtrace/contrib/sidekiq/tracer'
+  require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
 module RailsTrace
@@ -25,7 +25,7 @@ module RailsTrace
         # add Sidekiq middleware
         Sidekiq::Testing.server_middleware do |chain|
           chain.add(
-            Datadog::Contrib::Sidekiq::Tracer
+            Datadog::Contrib::Sidekiq::ServerTracer
           )
         end
       end

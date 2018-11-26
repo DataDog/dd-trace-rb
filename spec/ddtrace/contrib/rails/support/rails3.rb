@@ -3,7 +3,7 @@ require 'ddtrace'
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
-  require 'ddtrace/contrib/sidekiq/tracer'
+  require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
 require 'ddtrace/contrib/rails/support/controllers'

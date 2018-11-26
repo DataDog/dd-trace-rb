@@ -3,7 +3,7 @@ require 'ddtrace'
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
-  require 'ddtrace/contrib/sidekiq/tracer'
+  require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
 RSpec.shared_context 'Rails base application' do
