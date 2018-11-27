@@ -60,10 +60,13 @@ module Datadog
 
             datadog_tag_request(uri, span)
 
-            response = yield(span)
-
-            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
-            response
+            yield(span).tap do |response|
+              # Verify return value is a response
+              # If so, add additional tags.
+              if response.is_a?(::RestClient::Response)
+                span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
+              end
+            end
           rescue ::RestClient::ExceptionWithResponse => e
             span.set_error(e) if Datadog::Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, e.http_code)
