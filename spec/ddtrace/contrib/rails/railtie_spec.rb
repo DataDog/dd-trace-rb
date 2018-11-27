@@ -22,12 +22,19 @@ RSpec.describe 'Rails application' do
 
   RSpec::Matchers.define :have_kind_of_middleware do |expected|
     match do |actual|
+      found = 0
       while actual
-        return true if actual.class <= expected
+        found += 1 if actual.class <= expected
         without_warnings { actual = actual.instance_variable_get(:@app) }
       end
-      false
+      found == (count || 1)
     end
+
+    chain :once do
+      @count = 1
+    end
+
+    chain :copies, :count
   end
 
   before(:each) do
@@ -44,8 +51,8 @@ RSpec.describe 'Rails application' do
     context 'set to true' do
       let(:rails_options) { super().merge(middleware: true) }
 
-      it { expect(app).to have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware) }
-      it { expect(app).to have_kind_of_middleware(Datadog::Contrib::Rails::ExceptionMiddleware) }
+      it { expect(app).to have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware).once }
+      it { expect(app).to have_kind_of_middleware(Datadog::Contrib::Rails::ExceptionMiddleware).once }
     end
 
     context 'set to false' do
@@ -54,6 +61,30 @@ RSpec.describe 'Rails application' do
 
       it { expect(app).to_not have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware) }
       it { expect(app).to_not have_kind_of_middleware(Datadog::Contrib::Rails::ExceptionMiddleware) }
+    end
+  end
+
+  describe 'when load hooks run twice' do
+    before(:each) do
+      # Set expectations
+      expect(Datadog::Contrib::Rails::Patcher).to receive(:add_middleware)
+        .with(a_kind_of(Rails::Application))
+        .once
+        .and_call_original
+
+      without_warnings do
+        # Then load the app, which run load hooks
+        app
+
+        # Then manually re-run load hooks
+        ActiveSupport.run_load_hooks(:before_initialize, app)
+        ActiveSupport.run_load_hooks(:after_initialize, app)
+      end
+    end
+
+    it 'only includes the middleware once' do
+      expect(app).to have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware).once
+      expect(app).to have_kind_of_middleware(Datadog::Contrib::Rails::ExceptionMiddleware).once
     end
   end
 end
