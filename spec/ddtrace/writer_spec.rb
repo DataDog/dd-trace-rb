@@ -152,7 +152,9 @@ RSpec.describe Datadog::Writer do
         let(:services) { get_test_services }
 
         let!(:request) { stub_request(:post, endpoint).to_return(response) }
-        let(:endpoint) { "#{Datadog::Writer::HOSTNAME}:#{Datadog::Writer::PORT}/#{api_version}/services" }
+        let(:endpoint) { "#{hostname}:#{port}/#{api_version}/services" }
+        let(:hostname) { ENV.fetch('DD_AGENT_HOST', Datadog::HTTPTransport::DEFAULT_AGENT_HOST) }
+        let(:port) { ENV.fetch('DD_TRACE_AGENT_PORT', Datadog::HTTPTransport::DEFAULT_TRACE_AGENT_PORT) }
         let(:response) { { body: body } }
         let(:body) { 'body' }
         let(:api_version) { Datadog::HTTPTransport::V3 }
