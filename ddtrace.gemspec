@@ -45,8 +45,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'webmock', '~> 2.0'
   spec.add_development_dependency 'builder'
-  spec.add_development_dependency 'ruby-prof'
-  spec.add_development_dependency 'sqlite3'
+  spec.add_development_dependency 'ruby-prof' if RUBY_PLATFORM != 'java'
+  spec.add_development_dependency 'sqlite3' if RUBY_PLATFORM != 'java'
+  spec.add_development_dependency 'jdbc-sqlite3' if RUBY_PLATFORM == 'java'
 
   # locking transitive dependency of webmock
   spec.add_development_dependency 'addressable', '~> 2.4.0'
