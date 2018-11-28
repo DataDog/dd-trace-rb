@@ -57,3 +57,5 @@ gemfiles/*
 
 # bundle config
 gemfiles/.bundle
+
+.idea
