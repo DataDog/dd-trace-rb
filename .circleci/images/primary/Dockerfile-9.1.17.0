@@ -1,4 +1,4 @@
-# Current version: https://github.com/docker-library/ruby/blob/699a04311386ecc98ca242fc9bdee17fb4008863/2.4/stretch/Dockerfile
+# Current version: https://github.com/cpuguy83/docker-jruby/blob/8bc3fe27670a851953345182fe12f14f5e708383/9000/jre/Dockerfile
 FROM jruby:9.1.17.0
 
 # Make apt non-interactive
