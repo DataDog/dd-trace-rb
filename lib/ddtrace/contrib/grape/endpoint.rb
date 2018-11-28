@@ -63,7 +63,16 @@ module Datadog
 
           begin
             # collect endpoint details
-            api_view = payload[:endpoint].options[:for].to_s
+            api = payload[:endpoint].options[:for]
+            # If the API inherits from Grape::API in version >= 1.2.0
+            # then the API will be an instance and the name must be derived from the base.
+            # See https://github.com/ruby-grape/grape/issues/1825
+            api_view = if defined?(::Grape::API::Instance) && api <= ::Grape::API::Instance
+                         api.base.to_s
+                       else
+                         api.to_s
+                       end
+
             path = payload[:endpoint].options[:path].join('/')
             resource = "#{api_view}##{path}"
             span.resource = resource
@@ -78,7 +87,7 @@ module Datadog
             span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
 
             # override the current span with this notification values
-            span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view)
+            span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
             span.set_tag(Ext::TAG_ROUTE_PATH, path)
           ensure
             span.start_time = start
