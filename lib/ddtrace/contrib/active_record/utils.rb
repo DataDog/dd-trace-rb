@@ -20,7 +20,7 @@ module Datadog
         end
 
         def self.connection_config(object_id = nil)
-          object_id.nil? ? default_connection_config : connection_config_by_id(object_id)
+          default_connection_config
         end
 
         # Attempt to retrieve the connection from an object ID.
