@@ -105,20 +105,81 @@ RSpec.describe Datadog::Patcher do
           end
         end
       end
+
+      context 'when called with a key and :for' do
+        subject(:result) { patcher.do_once(key, for: for_key) { integration.patch } }
+
+        let(:key) { double('key') }
+        let(:for_key) { double('for key') }
+
+        it do
+          expect(integration).to receive(:patch).once.and_return(patch_result)
+          expect(result).to be(patch_result)
+        end
+
+        context 'then called a second time' do
+          context 'with a matching key and :for' do
+            context 'that is the same' do
+              subject(:result) do
+                patcher.do_once(key, for: for_key) { integration.patch }
+                patcher.do_once(key, for: for_key) { integration.patch }
+              end
+
+              it do
+                expect(integration).to receive(:patch).once.and_return(patch_result)
+                expect(result).to be true # Because second block doesn't run
+              end
+            end
+
+            context 'that is different' do
+              subject(:result) do
+                patcher.do_once(key, for: for_key) { integration.patch }
+                patcher.do_once(key, for: for_key_two) { integration.patch }
+              end
+
+              let(:for_key_two) { double('for key two') }
+
+              it do
+                expect(integration).to receive(:patch).twice.and_return(patch_result)
+                expect(result).to be(patch_result)
+              end
+            end
+          end
+        end
+      end
     end
 
     describe '#done?' do
       context 'when called before do_once' do
-        subject(:done) { patcher.done?(key) }
         let(:key) { double('key') }
-        it { is_expected.to be false }
+
+        context 'with a key' do
+          subject(:done) { patcher.done?(key) }
+          it { is_expected.to be false }
+        end
+
+        context 'with a key and :for' do
+          subject(:done) { patcher.done?(key, for: for_key) }
+          let(:for_key) { double('for key') }
+          it { is_expected.to be false }
+        end
       end
 
       context 'when called after do_once' do
-        subject(:done) { patcher.done?(key) }
         let(:key) { double('key') }
-        before(:each) { patcher.do_once(key) { 'Perform patch' } }
-        it { is_expected.to be true }
+
+        context 'with a key' do
+          subject(:done) { patcher.done?(key) }
+          before(:each) { patcher.do_once(key) { 'Perform patch' } }
+          it { is_expected.to be true }
+        end
+
+        context 'with a key and :for' do
+          subject(:done) { patcher.done?(key, for: for_key) }
+          let(:for_key) { double('key') }
+          before(:each) { patcher.do_once(key, for: for_key) { 'Perform patch' } }
+          it { is_expected.to be true }
+        end
       end
     end
   end
