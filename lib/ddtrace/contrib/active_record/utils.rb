@@ -3,7 +3,6 @@ module Datadog
     module ActiveRecord
       # Common utilities for Rails
       module Utils
-
         EMPTY_CONFIG = {}.freeze
 
         def self.adapter_name
