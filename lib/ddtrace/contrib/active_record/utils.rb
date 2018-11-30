@@ -23,7 +23,7 @@ module Datadog
         end
 
         def self.connection_config
-          conn = ::ActiveRecord::Base.connection.config
+          conn = ::ActiveRecord::Base.connection
           conn.respond_to?(:config) ? conn.config : EMPTY_CONFIG
         end
       end
