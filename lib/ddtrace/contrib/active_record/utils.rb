@@ -3,6 +3,9 @@ module Datadog
     module ActiveRecord
       # Common utilities for Rails
       module Utils
+
+        EMPTY_CONFIG = {}.freeze
+
         def self.adapter_name
           Datadog::Utils::Database.normalize_vendor(connection_config[:adapter])
         end
@@ -20,7 +23,8 @@ module Datadog
         end
 
         def self.connection_config
-          ::ActiveRecord::Base.connection.config
+          conn = ::ActiveRecord::Base.connection.config
+          conn.respond_to?(:config) ? conn.config : EMPTY_CONFIG
         end
       end
     end
