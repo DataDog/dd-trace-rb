@@ -18,8 +18,8 @@ module Datadog
         def patch
           do_once(:active_record) do
             begin
-              Events.subscribe!
               ::ActiveRecord::ConnectionAdapters::AbstractAdapter.send(:include, Patches::AbstractAdapter)
+              Events.subscribe!
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Active Record integration: #{e}")
             end

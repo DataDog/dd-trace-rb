@@ -32,38 +32,32 @@ module Datadog
 
             EVENT_ACTIVERECORD_SQL = 'sql.active_record'.freeze
 
-            def initialize(*args)
+            def log(*args, &block)
+              insert_shim! unless shim_inserted?
               super
+            end
 
-              @instrumenter = Datadog::Shim::Double.new(@instrumenter) do
-                puts "PATCHING #{shim.object_id}..."
-                wrap_method_once(:instrument) do |original, *args, &block|
-                  # puts "\nIntercepting...\n"
-                  # pp args if args[0] == EVENT_ACTIVERECORD_SQL
-                  # Inject connection config into arguments
+            private
+
+            def shim_inserted?
+              instance_variable_defined?(:@instrumenter) \
+                && Datadog::Shim::Double.is_shim?(@instrumenter)
+            end
+
+            def insert_shim!
+              @instrumenter = Datadog::Shim.double(@instrumenter) do |shim|
+                connection = self
+
+                shim.inject_method!(:instrument) do |*args, &block|
+                  # Inject connection into arguments
                   if args[0] == EVENT_ACTIVERECORD_SQL && args[1].is_a?(Hash)
-                    args[1][:connection_config] ||= @config
-                    puts "MODIFIED!"
-                    # pp caller
+                    args[1][:connection] ||= connection
                   end
 
                   # Call original
-                  original.call(*args, &block)
+                  shim.shim_target.instrument(*args, &block)
                 end
               end
-              # binding.pry
-              # # # Wrap #instrument calls to this object
-              # Datadog::Shim.wrap_method_once(@instrumenter, :instrument) do |original, *args, &block|
-              #   puts "\nIntercepting...\n"
-              #   pp args if args[0] == EVENT_ACTIVERECORD_SQL
-              #   # Inject connection config into arguments
-              #   if args[0] == EVENT_ACTIVERECORD_SQL && args[1].is_a?(Hash)
-              #     args[1][:connection_config] ||= @config
-              #   end
-
-              #   # Call original
-              #   original.call(*args, &block)
-              # end
             end
           end
         end
