@@ -35,7 +35,7 @@ module Datadog
                                    .connection_handler
                                    .connection_pool_list
                                    .flat_map { |p| p.connections }
-                                   .select { |c| c.object_id == connection_id }
+                                   .find { |c| c.object_id == connection_id }
 
             conn.respond_to?(:config) ? conn.config : EMPTY_CONFIG
           end
