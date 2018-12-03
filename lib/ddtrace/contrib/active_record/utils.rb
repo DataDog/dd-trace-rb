@@ -21,9 +21,10 @@ module Datadog
           connection_config[:port]
         end
 
-        # In newer versions of Rails, the `payload` contains both the `connection` and its `object_id` named `connection_id`.
+        # In newer Rails versions, the `payload` contains both the `connection` and its `object_id` named `connection_id`.
         #
-        # So, here, if rails is recent we'll have a direct access to the connection. Else, we'll find it thanks to the passed `connection_id`.
+        # So, if rails is recent we'll have a direct access to the connection.
+        # Else, we'll find it thanks to the passed `connection_id`.
         #
         # See this PR for more details: https://github.com/rails/rails/pull/34602
         #
@@ -31,11 +32,12 @@ module Datadog
           if connection.nil? && connection_id.nil?
             default_connection_config
           else
-            conn = connection || ::ActiveRecord::Base
-                                   .connection_handler
-                                   .connection_pool_list
-                                   .flat_map { |p| p.connections }
-                                   .find { |c| c.object_id == connection_id }
+            conn =
+              connection || ::ActiveRecord::Base
+              .connection_handler
+              .connection_pool_list
+              .flat_map(&:connections)
+              .find { |c| c.object_id == connection_id }
 
             conn.respond_to?(:config) ? conn.config : EMPTY_CONFIG
           end
