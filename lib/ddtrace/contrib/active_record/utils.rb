@@ -3,6 +3,8 @@ module Datadog
     module ActiveRecord
       # Common utilities for Rails
       module Utils
+        EMPTY_CONFIG = {}.freeze
+
         def self.adapter_name
           Datadog::Utils::Database.normalize_vendor(connection_config[:adapter])
         end
@@ -19,28 +21,23 @@ module Datadog
           connection_config[:port]
         end
 
-        def self.connection_config(object_id = nil)
-          object_id.nil? ? default_connection_config : connection_config_by_id(object_id)
-        end
-
-        # Attempt to retrieve the connection from an object ID.
-        def self.connection_by_id(object_id)
-          return nil if object_id.nil?
-          ObjectSpace._id2ref(object_id)
-        rescue StandardError
-          nil
-        end
-
-        # Attempt to retrieve the connection config from an object ID.
-        # Typical of ActiveSupport::Notifications `sql.active_record`
-        def self.connection_config_by_id(object_id)
-          connection = connection_by_id(object_id)
-          return {} if connection.nil?
-
-          if connection.instance_variable_defined?(:@config)
-            connection.instance_variable_get(:@config)
+        # In newer versions of Rails, the `payload` contains both the `connection` and its `object_id` named `connection_id`.
+        #
+        # So, here, if rails is recent we'll have a direct access to the connection. Else, we'll find it thanks to the passed `connection_id`.
+        #
+        # See this PR for more details: https://github.com/rails/rails/pull/34602
+        #
+        def self.connection_config(connection = nil, connection_id = nil)
+          if connection.nil? && connection_id.nil?
+            default_connection_config
           else
-            {}
+            conn = connection || ::ActiveRecord::Base
+                                   .connection_handler
+                                   .connection_pool_list
+                                   .flat_map { |p| p.connections }
+                                   .select { |c| c.object_id == connection_id }
+
+            conn.respond_to?(:config) ? conn.config : EMPTY_CONFIG
           end
         end
 
@@ -53,9 +50,9 @@ module Datadog
                                     end
 
           connection_pool = ::ActiveRecord::Base.connection_handler.retrieve_connection_pool(current_connection_name)
-          connection_pool.nil? ? {} : (@default_connection_config = connection_pool.spec.config)
+          connection_pool.nil? ? EMPTY_CONFIG : (@default_connection_config = connection_pool.spec.config)
         rescue StandardError
-          {}
+          EMPTY_CONFIG
         end
       end
     end
