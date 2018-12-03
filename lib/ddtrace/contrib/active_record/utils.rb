@@ -19,24 +19,13 @@ module Datadog
           connection_config[:port]
         end
 
-        def self.connection_config(object_id = nil)
-          object_id.nil? ? default_connection_config : connection_config_by_id(object_id)
-        end
-
-        # Attempt to retrieve the connection from an object ID.
-        def self.connection_by_id(object_id)
-          return nil if object_id.nil?
-          ObjectSpace._id2ref(object_id)
-        rescue StandardError
-          nil
+        def self.connection_config(connection = nil)
+          connection.nil? ? default_connection_config : connection_config_from_connection(connection)
         end
 
         # Attempt to retrieve the connection config from an object ID.
         # Typical of ActiveSupport::Notifications `sql.active_record`
-        def self.connection_config_by_id(object_id)
-          connection = connection_by_id(object_id)
-          return {} if connection.nil?
-
+        def self.connection_config_from_connection(connection)
           if connection.instance_variable_defined?(:@config)
             connection.instance_variable_get(:@config)
           else

@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/patcher'
+require 'ddtrace/contrib/active_record/patches/abstract_adapter'
 require 'ddtrace/contrib/active_record/events'
 
 module Datadog
@@ -17,6 +18,7 @@ module Datadog
         def patch
           do_once(:active_record) do
             begin
+              ::ActiveRecord::ConnectionAdapters::AbstractAdapter.send(:include, Patches::AbstractAdapter)
               Events.subscribe!
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Active Record integration: #{e}")
