@@ -9,7 +9,7 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
     example.run
     ::Concurrent.send(:remove_const, :Future)
     ::Concurrent.const_set('Future', unmodified_future)
-    Datadog.registry[:concurrent_ruby].patcher.instance_variable_set(:@done_once, {})
+    remove_patch!(:concurrent_ruby)
   end
 
   let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
