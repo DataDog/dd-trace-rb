@@ -1180,7 +1180,7 @@ Datadog.configure(postgres_database, service_name: 'my-postgres-db')
 
 ### Sidekiq
 
-The Sidekiq integration is a server-side middleware which will trace job executions.
+The Sidekiq integration is a client-side & server-side middleware which will trace job queuing and executions respectively.
 
 You can enable it through `Datadog.configure`:
 
@@ -1196,7 +1196,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `sidekiq` instrumentation | `'sidekiq'` |
+| `client_service_name` | Service name used for client-side `sidekiq` instrumentation | `'sidekiq-client'` |
+| `service_name` | Service name used for server-side `sidekiq` instrumentation | `'sidekiq'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### Sinatra
