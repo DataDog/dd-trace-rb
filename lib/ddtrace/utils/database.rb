@@ -2,16 +2,20 @@ module Datadog
   module Utils
     # Common database-related utility functions.
     module Database
+      VENDOR_DEFAULT = 'defaultdb'.freeze
+      VENDOR_POSTGRES = 'postgres'.freeze
+      VENDOR_SQLITE = 'sqlite'.freeze
+
       module_function
 
       def normalize_vendor(vendor)
         case vendor
         when nil
-          'defaultdb'
+          VENDOR_DEFAULT
         when 'postgresql'
-          'postgres'
+          VENDOR_POSTGRES
         when 'sqlite3'
-          'sqlite'
+          VENDOR_SQLITE
         else
           vendor
         end
