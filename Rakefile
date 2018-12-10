@@ -88,7 +88,7 @@ end
 namespace :test do
   task all: [:main,
              :rails, :railsredis, :railssidekiq, :railsactivejob,
-             :sidekiq, :sinatra, :monkey]
+             :sidekiq, :monkey]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w[test lib]
@@ -133,7 +133,6 @@ namespace :test do
   [
     :grape,
     :sidekiq,
-    :sinatra,
     :sucker_punch
   ].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
@@ -190,7 +189,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:sinatra'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
@@ -212,6 +210,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:resque'
       sh 'bundle exec appraisal contrib-old rake spec:rest_client'
       sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      sh 'bundle exec appraisal contrib-old rake spec:sinatra'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
@@ -234,7 +233,7 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:sinatra'
+      sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
@@ -256,8 +255,8 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:resque'
       sh 'bundle exec appraisal contrib-old rake spec:rest_client'
       sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      sh 'bundle exec appraisal contrib-old rake spec:sinatra'
       # Rails minitests
-      sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
       sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
@@ -282,7 +281,7 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:sinatra'
+      sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
@@ -304,8 +303,8 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:resque'
       sh 'bundle exec appraisal contrib-old rake spec:rest_client'
       sh 'bundle exec appraisal contrib-old rake spec:sequel'
+      sh 'bundle exec appraisal contrib-old rake spec:sinatra'
       # Rails minitests
-      sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
       sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
@@ -336,7 +335,7 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sinatra'
+      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
@@ -362,8 +361,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:rest_client'
       sh 'bundle exec appraisal contrib rake spec:sequel'
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
+      sh 'bundle exec appraisal contrib rake spec:sinatra'
       # Rails minitests
-      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
       sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
@@ -402,7 +401,7 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sinatra'
+      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
@@ -428,8 +427,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:rest_client'
       sh 'bundle exec appraisal contrib rake spec:sequel'
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
+      sh 'bundle exec appraisal contrib rake spec:sinatra'
       # Rails minitests
-      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
       sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
@@ -467,7 +466,7 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sinatra'
+      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
@@ -493,8 +492,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:rest_client'
       sh 'bundle exec appraisal contrib rake spec:sequel'
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
+      sh 'bundle exec appraisal contrib rake spec:sinatra'
       # Rails minitests
-      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec rake benchmark'
     end
   end
