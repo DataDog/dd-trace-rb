@@ -9,9 +9,12 @@ require 'ddtrace/quantization/http'
 require 'ddtrace/pipeline'
 require 'ddtrace/configuration'
 require 'ddtrace/patcher'
+require 'ddtrace/augmentation'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
+  extend Augmentation
+
   @tracer = Tracer.new
   @registry = Registry.new
   @configuration = Configuration.new(registry: @registry)
