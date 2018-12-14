@@ -366,6 +366,7 @@ class ContextFlushPartialTest < Minitest::Test
     tracer.configure(min_spans_before_partial_flush: context.max_length,
                      max_spans_before_partial_flush: context.max_length,
                      partial_flush_timeout: 3600)
+    tracer.writer = FauxWriter.new
 
     n = 1_000_000
     assert_operator(n, :>, context.max_length, 'need to send enough spans')

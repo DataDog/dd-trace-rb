@@ -126,7 +126,7 @@ module Datadog
 
       # Those are rare "power-user" options.
       sampler = options.fetch(:sampler, nil)
-      priority_sampling = options[:priority_sampling]
+      priority_sampling = options.fetch(:priority_sampling, nil)
       max_spans_before_partial_flush = options.fetch(:max_spans_before_partial_flush, nil)
       min_spans_before_partial_flush = options.fetch(:min_spans_before_partial_flush, nil)
       partial_flush_timeout = options.fetch(:partial_flush_timeout, nil)
@@ -134,9 +134,15 @@ module Datadog
       @enabled = enabled unless enabled.nil?
       @sampler = sampler unless sampler.nil?
 
-      if priority_sampling
+      # Re-build the sampler and writer if priority sampling is enabled,
+      # but neither are configured. Verify the sampler isn't already a
+      # priority sampler too, so we don't wrap one with another.
+      if priority_sampling != false && !@sampler.is_a?(PrioritySampler)
         @sampler = PrioritySampler.new(base_sampler: @sampler)
         @writer = Writer.new(priority_sampler: @sampler)
+      elsif priority_sampling == false
+        @sampler = sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
+        @writer = Writer.new
       end
 
       @writer.transport.hostname = hostname unless hostname.nil?
