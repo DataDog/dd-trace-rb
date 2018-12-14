@@ -6,6 +6,8 @@ require 'json'
 RSpec.describe Datadog::Writer do
   include HttpHelpers
 
+  include_context 'metrics'
+
   before(:each) { WebMock.enable! }
   after(:each) do
     WebMock.reset!
@@ -13,7 +15,7 @@ RSpec.describe Datadog::Writer do
   end
 
   describe 'instance' do
-    subject(:writer) { described_class.new(options) }
+    subject(:writer) { described_class.new(options).tap { |w| w.statsd = statsd } }
     let(:options) { {} }
 
     describe 'behavior' do
@@ -57,6 +59,18 @@ RSpec.describe Datadog::Writer do
         subject(:result) { writer.send_spans(traces, writer.transport) }
         let(:traces) { get_test_traces(1) }
 
+        let!(:request) { stub_request(:post, endpoint).to_return(response) }
+        let(:hostname) { ENV.fetch('DD_AGENT_HOST', Datadog::HTTPTransport::DEFAULT_AGENT_HOST) }
+        let(:port) { ENV.fetch('DD_TRACE_AGENT_PORT', Datadog::HTTPTransport::DEFAULT_TRACE_AGENT_PORT) }
+        let(:endpoint) { "#{hostname}:#{port}/#{api_version}/traces" }
+        let(:response) { { body: body } }
+        let(:body) { 'body' }
+        let(:api_version) { Datadog::HTTPTransport::V3 }
+
+        it_behaves_like 'an operation that sends time metric',
+                        Datadog::Writer::METRIC_FLUSH_TIME,
+                        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES]
+
         context 'with priority sampling' do
           let(:options) { { priority_sampler: sampler } }
           let(:sampler) { instance_double(Datadog::Sampler) }
@@ -64,13 +78,6 @@ RSpec.describe Datadog::Writer do
           context 'when the transport uses' do
             let(:options) { super().merge!(transport_options: { api_version: api_version, response_callback: callback }) }
             let(:callback) { double('callback method') }
-
-            let!(:request) { stub_request(:post, endpoint).to_return(response) }
-            let(:hostname) { ENV.fetch('DD_AGENT_HOST', Datadog::HTTPTransport::DEFAULT_AGENT_HOST) }
-            let(:port) { ENV.fetch('DD_TRACE_AGENT_PORT', Datadog::HTTPTransport::DEFAULT_TRACE_AGENT_PORT) }
-            let(:endpoint) { "#{hostname}:#{port}/#{api_version}/traces" }
-            let(:response) { { body: body } }
-            let(:body) { 'body' }
 
             shared_examples_for 'a traces API' do
               context 'that succeeds' do
@@ -140,6 +147,23 @@ RSpec.describe Datadog::Writer do
         end
       end
 
+      describe '#send_services' do
+        subject(:result) { writer.send_services(services, writer.transport) }
+        let(:services) { get_test_services }
+
+        let!(:request) { stub_request(:post, endpoint).to_return(response) }
+        let(:endpoint) { "#{hostname}:#{port}/#{api_version}/services" }
+        let(:hostname) { ENV.fetch('DD_AGENT_HOST', Datadog::HTTPTransport::DEFAULT_AGENT_HOST) }
+        let(:port) { ENV.fetch('DD_TRACE_AGENT_PORT', Datadog::HTTPTransport::DEFAULT_TRACE_AGENT_PORT) }
+        let(:response) { { body: body } }
+        let(:body) { 'body' }
+        let(:api_version) { Datadog::HTTPTransport::V3 }
+
+        it_behaves_like 'an operation that sends time metric',
+                        Datadog::Writer::METRIC_FLUSH_TIME,
+                        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_SERVICES]
+      end
+
       describe '#sampling_updater' do
         subject(:result) { writer.send(:sampling_updater, action, response, api) }
         let(:options) { { priority_sampler: sampler } }
@@ -169,20 +193,24 @@ RSpec.describe Datadog::Writer do
                 let(:sampling_response) { { 'rate_by_service' => service_rates } }
                 let(:service_rates) { { 'service:a,env:test' => 0.1, 'service:b,env:test' => 0.5 } }
 
-                it do
-                  expect(sampler).to receive(:update).with(service_rates)
-                  is_expected.to be true
-                end
+                before(:each) { expect(sampler).to receive(:update).with(service_rates) }
+
+                it { is_expected.to be true }
+                it_behaves_like 'an operation that sends time metric',
+                                Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
+                                tags: [Datadog::Ext::Metrics::TAG_PRIORITY_SAMPLING_ENABLED]
               end
 
               context 'and is API v3' do
                 let(:api) { { version: Datadog::HTTPTransport::V3 } }
                 let(:body) { 'OK' }
 
-                it do
-                  expect(sampler).to_not receive(:update)
-                  is_expected.to be false
-                end
+                before(:each) { expect(sampler).to_not receive(:update) }
+
+                it { is_expected.to be false }
+                it_behaves_like 'an operation that sends time metric',
+                                Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
+                                tags: [Datadog::Ext::Metrics::TAG_PRIORITY_SAMPLING_ENABLED]
               end
             end
           end

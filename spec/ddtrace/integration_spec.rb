@@ -5,16 +5,38 @@ require 'ddtrace/tracer'
 require 'thread'
 
 RSpec.describe 'Tracer integration tests' do
+  include_context 'transport metrics'
+
   shared_context 'agent-based test' do
     before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
     let(:tracer) do
       Datadog::Tracer.new.tap do |t|
         t.configure(
-          enabled: true
+          enabled: true,
+          statsd: statsd
         )
       end
     end
+
+    let(:transport) { tracer.writer.transport }
+  end
+
+  def expect_no_error_metrics
+    expect(statsd).to_not have_received_increment_transport_metric(
+      Datadog::HTTPTransport::METRIC_RESPONSE,
+      tags: ["#{Datadog::Ext::HTTP::STATUS_CODE}:400"]
+    )
+
+    expect(statsd).to_not have_received_increment_transport_metric(
+      Datadog::HTTPTransport::METRIC_RESPONSE,
+      tags: ["#{Datadog::Ext::HTTP::STATUS_CODE}:500"]
+    )
+
+    expect(statsd).to_not have_received_increment_transport_metric(
+      Datadog::HTTPTransport::METRIC_INTERNAL_ERROR,
+      any_args
+    )
   end
 
   describe 'agent receives span' do
@@ -28,19 +50,16 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     def wait_for_flush(stat, num = 1)
-      test_repeat.times do
-        break if tracer.writer.stats[stat] >= num
-        sleep(0.1)
-      end
+      try_wait_until(attempts: 30) { stats[stat] >= num }
     end
 
     def agent_receives_span_step1
-      stats = tracer.writer.stats
-      expect(stats[:traces_flushed]).to eq(0)
-      expect(stats[:transport][:success]).to eq(0)
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(0)
+      expect(statsd).to_not have_received_increment_transport_metric(
+        Datadog::HTTPTransport::METRIC_RESPONSE,
+        tags: ["#{Datadog::Ext::HTTP::STATUS_CODE}:200"]
+      )
+      expect_no_error_metrics
     end
 
     def agent_receives_span_step2
@@ -48,43 +67,44 @@ RSpec.describe 'Tracer integration tests' do
 
       create_trace
 
-      # Timeout after 3 seconds, waiting for 1 flush
-      wait_for_flush(:traces_flushed)
+      wait_for_flush(Datadog::Writer::METRIC_TRACES_FLUSHED)
+      wait_for_flush(Datadog::Writer::METRIC_SERVICES_FLUSHED)
 
-      # Timeout after 3 seconds, waiting for 1 flush
-      wait_for_flush(:services_flushed)
+      expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(1)
+      expect(stats[Datadog::Writer::METRIC_SERVICES_FLUSHED]).to eq(1)
 
-      stats = tracer.writer.stats
-      expect(stats[:traces_flushed]).to eq(1)
-      expect(stats[:services_flushed]).to eq(1)
-      # Number of successes can be 1 or 2 because services count as one flush too
-      expect(stats[:transport][:success]).to be >= 1
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
-
-      stats[:transport][:success]
+      # Number of successes counts both traces and services
+      expect(statsd).to have_received_increment_transport_metric(
+        Datadog::HTTPTransport::METRIC_RESPONSE,
+        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES, "#{Datadog::Ext::HTTP::STATUS_CODE}:200"]
+      ).once
+      expect(statsd).to have_received_increment_transport_metric(
+        Datadog::HTTPTransport::METRIC_RESPONSE,
+        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_SERVICES, "#{Datadog::Ext::HTTP::STATUS_CODE}:200"]
+      ).once
+      expect_no_error_metrics
     end
 
-    def agent_receives_span_step3(previous_success)
+    def agent_receives_span_step3
       create_trace
 
-      # Timeout after 3 seconds, waiting for another flush
-      wait_for_flush(:traces_flushed, 2)
+      wait_for_flush(Datadog::Writer::METRIC_TRACES_FLUSHED, 2)
 
-      stats = tracer.writer.stats
-      expect(stats[:traces_flushed]).to eq(2)
-      expect(stats[:services_flushed]).to eq(1)
-      expect(stats[:transport][:success]).to be > previous_success
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      # Trace flushes should increment, services should not.
+      expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(2)
+      expect(stats[Datadog::Writer::METRIC_SERVICES_FLUSHED]).to eq(1)
+
+      expect(statsd).to have_received_increment_transport_metric(
+        Datadog::HTTPTransport::METRIC_RESPONSE,
+        tags: [Datadog::Ext::Metrics::TAG_DATA_TYPE_TRACES, "#{Datadog::Ext::HTTP::STATUS_CODE}:200"]
+      ).exactly(2).times
+      expect_no_error_metrics
     end
 
     it do
       agent_receives_span_step1
-      success = agent_receives_span_step2
-      agent_receives_span_step3(success)
+      agent_receives_span_step2
+      agent_receives_span_step3
     end
   end
 
@@ -102,16 +122,12 @@ RSpec.describe 'Tracer integration tests' do
       @first_shutdown = tracer.shutdown!
     end
 
-    let(:stats) { tracer.writer.stats }
-
     it do
       expect(@first_shutdown).to be true
       expect(@span.finished?).to be true
-      expect(stats[:traces_flushed]).to eq(1)
-      expect(stats[:services_flushed]).to eq(1)
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_TRACES_FLUSHED, by: 1)
+      expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_SERVICES_FLUSHED)
+      expect_no_error_metrics
     end
   end
 
@@ -135,15 +151,11 @@ RSpec.describe 'Tracer integration tests' do
       threads.each(&:join)
     end
 
-    let(:stats) { tracer.writer.stats }
-
     it do
       expect(@shutdown_results.count(true)).to eq(1)
-      expect(stats[:traces_flushed]).to eq(1)
-      expect(stats[:services_flushed]).to eq(1)
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_TRACES_FLUSHED, by: 1)
+      expect(statsd).to have_received_increment_metric(Datadog::Writer::METRIC_SERVICES_FLUSHED)
+      expect_no_error_metrics
     end
   end
 
@@ -168,7 +180,7 @@ RSpec.describe 'Tracer integration tests' do
           end.finish
         end.finish
 
-        try_wait_until { writer.spans(:keep).any? }
+        try_wait_until(attempts: 30) { writer.spans(:keep).any? }
       end
 
       it do
@@ -187,7 +199,8 @@ RSpec.describe 'Tracer integration tests' do
     before(:each) do
       tracer.configure(
         enabled: true,
-        priority_sampling: true
+        priority_sampling: true,
+        statsd: statsd
       )
     end
 
@@ -202,13 +215,14 @@ RSpec.describe 'Tracer integration tests' do
         child_span.finish
         parent_span.finish
 
-        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
-        stats = tracer.writer.stats
+        try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= i + 1 }
 
-        expect(stats[:traces_flushed]).to eq(1)
-        expect(stats[:transport][:client_error]).to eq(0)
-        expect(stats[:transport][:server_error]).to eq(0)
-        expect(stats[:transport][:internal_error]).to eq(0)
+        expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to eq(i + 1)
+        expect(statsd).to have_received_time_metric(
+          Datadog::Writer::METRIC_SAMPLING_UPDATE_TIME,
+          tags: [Datadog::Ext::Metrics::TAG_PRIORITY_SAMPLING_ENABLED]
+        ).exactly(i + 1).times
+        expect_no_error_metrics
       end
     end
   end

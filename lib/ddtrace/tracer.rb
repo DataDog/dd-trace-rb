@@ -10,6 +10,7 @@ require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
+require 'ddtrace/metrics'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -19,6 +20,8 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
+    include Datadog::Metrics
+
     attr_reader :sampler, :services, :tags, :provider
     attr_accessor :enabled, :writer
     attr_writer :default_service
@@ -97,6 +100,7 @@ module Datadog
       @enabled = options.fetch(:enabled, true)
       @writer = options.fetch(:writer, Datadog::Writer.new)
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
+      self.statsd = options[:statsd] if options.key?(:statsd)
 
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
@@ -125,6 +129,7 @@ module Datadog
       port = options.fetch(:port, nil)
 
       # Those are rare "power-user" options.
+      statsd = options.fetch(:statsd, nil)
       sampler = options.fetch(:sampler, nil)
       priority_sampling = options[:priority_sampling]
       max_spans_before_partial_flush = options.fetch(:max_spans_before_partial_flush, nil)
@@ -141,6 +146,12 @@ module Datadog
 
       @writer.transport.hostname = hostname unless hostname.nil?
       @writer.transport.port = port unless port.nil?
+
+      unless statsd.nil?
+        @statsd = statsd
+        @writer.statsd = statsd
+        @writer.transport.statsd = statsd
+      end
 
       @context_flush = Datadog::ContextFlush.new(options) unless min_spans_before_partial_flush.nil? &&
                                                                  max_spans_before_partial_flush.nil? &&

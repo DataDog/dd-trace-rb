@@ -63,6 +63,9 @@ For descriptions of terminology used in APM, take a look at the [official docume
          - [Filtering](#filtering)
          - [Processing](#processing)
      - [OpenTracing](#opentracing)
+     - [Debugging](#debugging)
+         - [Using debug logging](#using-debug-logging)
+         - [Using debug stats](#using-debug-stats)
 
 ## Compatibility
 
@@ -1281,7 +1284,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 To change the default behavior of the Datadog tracer, you can provide custom options inside the `Datadog.configure` block as in:
 
 ```ruby
-# config/initializers/datadog-tracer.rb
+# config/initializers/datadog.rb
 
 Datadog.configure do |c|
   c.tracer option_name: option_value, ...
@@ -1290,17 +1293,17 @@ end
 
 Available options are:
 
- - `enabled`: defines if the `tracer` is enabled or not. If set to `false` the code could be still instrumented
-  because of other settings, but no spans are sent to the local trace agent.
- - `debug`: set to true to enable debug logging.
- - `hostname`: set the hostname of the trace agent.
- - `port`: set the port the trace agent is listening on.
+ - `debug`: set to true to enable debug mode. See [Using debug logging](#using-debug-logging) for more details.
+ - `enabled`: defines if the `tracer` is enabled or not. If set to `false` the code could be still instrumented because of other settings, but no spans are sent to the local trace agent.
  - `env`: set the environment. Rails users may set it to `Rails.env` to use their application settings.
- - `tags`: set global tags that should be applied to all spans. Defaults to an empty hash
+ - `hostname`: set the hostname of the trace agent.
  - `log`: defines a custom logger.
  - `partial_flush`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
+ - `port`: set the port the trace agent is listening on.
+ - `statsd` set and activate Statsd for the tracer. See [Using debug stats](#using-debug-stats) for more details.
+ - `tags`: set global tags that should be applied to all spans. Defaults to an empty hash
 
-#### Custom logging
+### Custom logging
 
 By default, all logs are processed by the default Ruby logger. When using Rails, you should see the messages in your application log file.
 
@@ -1641,3 +1644,78 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 | `OpenTracing::FORMAT_TEXT_MAP` | Yes        |                        |
 | `OpenTracing::FORMAT_RACK`     | Yes        | Because of the loss of resolution in the Rack format, please note that baggage items with names containing either upper case characters or `-` will be converted to lower case and `_` in a round-trip respectively. We recommend avoiding these characters, or accommodating accordingly on the receiving end. |
 | `OpenTracing::FORMAT_BINARY`   | No         |                        |
+
+### Debugging
+
+If you are having difficulty using the tracer, the library offers a few debugging features to give you more insight into the internals of tracing.
+
+#### Using debug logging
+
+Debug logging can be activate to produce verbose logs that detail the operations of the tracer, by enabling it on the tracer settings:
+
+```ruby
+# config/initializers/datadog.rb
+require 'ddtrace'
+
+Datadog.configure do |c|
+  # Activates debug mode for the tracer
+  c.tracer debug: true
+end
+```
+
+Both the tracer and its integrations will produce detailed messages of operations to your configured log file.
+
+Be aware that *debug logging can produce many messages*, especially in applications with higher throughput. We generally recommend that this flag only be used in controlled, fail-safe environments (e.g. staging)
+
+#### Using debug stats
+
+To gather metrics regarding the internals of the trace library (such as number of traces flushed, number of errors, etc), one can enable debug metrics, which are collected using the `dogstatsd-ruby` library.
+
+To activate, first add `gem 'dogstatsd-ruby'` to your Gemfile, then add the following to your configuration file:
+
+```ruby
+# config/initializers/datadog.rb
+require 'datadog/statsd'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  # Activates Statsd metric collection for debugging purposes.
+  # Configure with host and port of Datadog agent; defaults to 'localhost:8125'.
+  c.tracer statsd: Datadog::Statsd.new
+end
+```
+
+See the [Dogstatsd documentation](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/frames) for more details about configuring `Datadog::Statsd`.
+
+After activation, the tracer will send the following metrics:
+
+| Name                                                     | Type           | Description                                                      |
+| -------------------------------------------------------- | -------------- | ---------------------------------------------------------------- |
+| `datadog.tracer.sampling_update_time`                    | `distribution` | Time to update sampling rates from agent response.               |
+| `datadog.tracer.flushed_service_count`                   | `count`        | Number of services flushed.                                      |
+| `datadog.tracer.flushed_trace_count`                     | `count`        | Number of traces flushed.                                        |
+| `datadog.tracer.transport.http.encode_time`              | `distribution` | Time to serialize HTTP payload prior to POST.                    |
+| `datadog.tracer.transport.http.internal_error_count`     | `count`        | Number of internal tracer errors produced during HTTP transport. |
+| `datadog.tracer.transport.http.payload_size`             | `distribution` | Size of HTTP payload prior to POST, in bytes.                    |
+| `datadog.tracer.transport.http.post_time`                | `distribution` | Time to POST payload to agent, excluding TCP connect time.       |
+| `datadog.tracer.transport.http.response_count`           | `count`        | Number of HTTP responses from agent for flush requests.          |
+| `datadog.tracer.transport.http.roundtrip_time`           | `distribution` | Time to POST payload to agent, including TCP connect time.       |
+| `datadog.tracer.writer.flush_time`                       | `distribution` | Time to flush data including serialization, TCP, and callbacks.  |
+
+In addition, all metrics will include the following tags:
+
+| Name                              | Description                                                         |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `datadog.tracer.lang`             | Programming language traced. (e.g. `ruby`)                          |
+| `datadog.tracer.lang_interpreter` | Language interpreter used, if available. (e.g. `ruby-x86_64-linux`) |
+| `datadog.tracer.lang_version`     | Version of language traced. (e.g. `2.3.7`)                          |
+| `datadog.tracer.version`          | Version of tracer library/module. (e.g. `0.16.1` )                  |
+
+And some metrics may additionally include the following tags, if applicable:
+
+| Name                                          | Description                                                                 |
+| --------------------------------------------- | --------------------------------------------------------------------------- |
+| `datadog.tracer.priority_sampling`            | Is priority sampling enabled? (Either `true` or `false`)                    |
+| `datadog.tracer.data_type`                    | Payload data type. (Either `services` or `traces`)                          |
+| `datadog.tracer.encoding_type`                | Payload encoding type. (Either `application/json` or `application/msgpack`) |
+| `http.status_code`                            | HTTP status code of response.                                               |

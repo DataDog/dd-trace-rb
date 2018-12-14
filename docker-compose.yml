@@ -187,8 +187,10 @@ services:
       - DD_BIND_HOST=0.0.0.0
       - DD_API_KEY=invalid_key_but_this_is_fine
     expose:
+      - "8125/udp"
       - "8126"
     ports:
+      - "${DD_METRIC_AGENT_PORT}:8125/udp"
       - "${DD_TRACE_AGENT_PORT}:8126"
   elasticsearch:
     # Note: ES 5.0 dies with error:
