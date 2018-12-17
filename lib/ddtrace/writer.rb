@@ -1,19 +1,11 @@
 require 'ddtrace/transport'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
-require 'ddtrace/metrics'
 
 module Datadog
   # Traces and services writer that periodically sends data to the trace-agent
   class Writer
-    include Datadog::Metrics
-
     attr_reader :transport, :worker, :priority_sampler
-
-    METRIC_SAMPLING_UPDATE_TIME = 'datadog.tracer.sampling_update_time'.freeze
-    METRIC_SERVICES_FLUSHED = 'datadog.tracer.flushed_service_count'.freeze
-    METRIC_FLUSH_TIME = 'datadog.tracer.writer.flush_time'.freeze
-    METRIC_TRACES_FLUSHED = 'datadog.tracer.flushed_trace_count'.freeze
 
     def initialize(options = {})
       # writer and transport parameters
@@ -38,6 +30,9 @@ module Datadog
       @mutex_after_fork = Mutex.new
       @pid = nil
 
+      @traces_flushed = 0
+      @services_flushed = 0
+
       # one worker for both services and traces, each have their own queues
       @worker = nil
     end
@@ -54,39 +49,35 @@ module Datadog
                                                      @service_handler,
                                                      @flush_interval)
 
-      @worker.start
+      @worker.start()
     end
 
     # stops both workers for spans and services.
     def stop
-      @worker.stop
+      @worker.stop()
       @worker = nil
     end
 
     # flush spans to the trace-agent, handles spans only
     def send_spans(traces, transport)
-      time(METRIC_FLUSH_TIME, tags: [Ext::Metrics::TAG_DATA_TYPE_TRACES]) do
-        return true if traces.empty?
+      return true if traces.empty?
 
-        code = transport.send(:traces, traces)
-        status = !transport.server_error?(code)
-        increment(METRIC_TRACES_FLUSHED, by: traces.length) if status
+      code = transport.send(:traces, traces)
+      status = !transport.server_error?(code)
+      @traces_flushed += traces.length if status
 
-        status
-      end
+      status
     end
 
     # flush services to the trace-agent, handles services only
     def send_services(services, transport)
-      time(METRIC_FLUSH_TIME, tags: [Ext::Metrics::TAG_DATA_TYPE_SERVICES]) do
-        return true if services.empty?
+      return true if services.empty?
 
-        code = transport.send(:services, services)
-        status = !transport.server_error?(code)
-        increment(METRIC_SERVICES_FLUSHED) if status
+      code = transport.send(:services, services)
+      status = !transport.server_error?(code)
+      @services_flushed += 1 if status
 
-        status
-      end
+      status
     end
 
     # enqueue the trace for submission to the API
@@ -111,29 +102,28 @@ module Datadog
       @worker.enqueue_service(services)
     end
 
+    # stats returns a dictionary of stats about the writer.
+    def stats
+      {
+        traces_flushed: @traces_flushed,
+        services_flushed: @services_flushed,
+        transport: @transport.stats
+      }
+    end
+
     private
 
     def sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)
 
-      time(METRIC_SAMPLING_UPDATE_TIME, tags: [priority_sampling_tag]) do
-        if api[:version] == HTTPTransport::V4
-          body = JSON.parse(response.body)
-          if body.is_a?(Hash) && body.key?('rate_by_service')
-            @priority_sampler.update(body['rate_by_service'])
-          end
-          true
-        else
-          false
+      if api[:version] == HTTPTransport::V4
+        body = JSON.parse(response.body)
+        if body.is_a?(Hash) && body.key?('rate_by_service')
+          @priority_sampler.update(body['rate_by_service'])
         end
-      end
-    end
-
-    def priority_sampling_tag
-      if !@priority_sampler.nil?
-        Ext::Metrics::TAG_PRIORITY_SAMPLING_ENABLED
+        true
       else
-        Ext::Metrics::TAG_PRIORITY_SAMPLING_DISABLED
+        false
       end
     end
   end

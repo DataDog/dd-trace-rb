@@ -5,6 +5,6 @@ module Datadog
     PATCH = 3
     PRE = nil
 
-    STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.').freeze
+    STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
   end
 end
