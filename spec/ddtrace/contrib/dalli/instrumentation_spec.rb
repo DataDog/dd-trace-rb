@@ -9,7 +9,7 @@ RSpec.describe 'Dalli instrumentation' do
   let(:test_port) { ENV.fetch('TEST_MEMCACHED_PORT', '11211') }
 
   let(:client) { ::Dalli::Client.new("#{test_host}:#{test_port}") }
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:pin) { ::Dalli.datadog_pin }
 
   def all_spans

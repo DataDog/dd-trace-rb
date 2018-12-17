@@ -5,7 +5,7 @@ require 'rest_client'
 require 'restclient/request'
 
 RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:rest_client_options) { {} }
 
   before do

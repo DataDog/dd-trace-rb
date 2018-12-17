@@ -5,7 +5,7 @@ require 'active_record'
 require 'sqlite3'
 
 RSpec.describe 'ActiveRecord tracing performance' do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:options) { { tracer: tracer } }
   let(:spans) { tracer.writer.spans }
 

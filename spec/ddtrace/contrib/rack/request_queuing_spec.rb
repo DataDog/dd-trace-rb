@@ -8,7 +8,7 @@ require 'ddtrace/contrib/rack/middlewares'
 RSpec.describe 'Rack integration request queuing' do
   include Rack::Test::Methods
 
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:rack_options) { { tracer: tracer } }
 
   let(:spans) { tracer.writer.spans }

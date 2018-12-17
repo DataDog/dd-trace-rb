@@ -23,7 +23,7 @@ RSpec.describe Datadog::Pin do
 
     context 'when given sufficient info' do
       let(:options) { { app: 'test-app', app_type: 'test-type', tracer: tracer } }
-      let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+      let(:tracer) { get_test_tracer }
 
       it 'sets the service info' do
         expect(tracer.services.key?(service_name)).to be true
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Pin do
 
     context 'when given insufficient info' do
       let(:options) { { app_type: 'test-type', tracer: tracer } }
-      let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+      let(:tracer) { get_test_tracer }
 
       it 'does not sets the service info' do
         expect(tracer.services).to be_empty

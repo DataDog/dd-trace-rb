@@ -5,7 +5,7 @@ require 'ddtrace'
 RSpec.describe Datadog::Context do
   subject(:context) { described_class.new(options) }
   let(:options) { {} }
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   describe '#current_root_span' do
     subject(:current_root_span) { context.current_root_span }
