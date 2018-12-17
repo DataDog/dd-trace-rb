@@ -4,6 +4,18 @@
 
 ## [Unreleased (beta)]
 
+## [0.17.3] - 2018-11-29
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.17.3
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.17.2...v0.17.3
+
+### Fixed
+
+- Bad resource names for Grape::API objects in Grape 1.2.0 (#639)
+- RestClient raising NoMethodError when response is `nil` (#636, #642) (@frsantos)
+- Rack middleware inserted twice in some Rails applications (#641)
+
 ## [0.17.2] - 2018-11-23
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.17.2
@@ -564,8 +576,10 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.1...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.1...0.18-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.3...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.3...0.18-dev
+[0.17.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.2...v0.17.3
+[0.17.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.16.0...v0.16.1

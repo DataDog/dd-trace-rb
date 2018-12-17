@@ -32,10 +32,12 @@ module Datadog
         end
 
         def before_intialize(app)
-          # Middleware must be added before the application is initialized.
-          # Otherwise the middleware stack will be frozen.
-          # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
-          add_middleware(app) if Datadog.configuration[:rails][:middleware]
+          do_once(:rails_before_initialize, for: app) do
+            # Middleware must be added before the application is initialized.
+            # Otherwise the middleware stack will be frozen.
+            # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
+            add_middleware(app) if Datadog.configuration[:rails][:middleware]
+          end
         end
 
         def add_middleware(app)
@@ -59,10 +61,12 @@ module Datadog
         end
 
         def after_intialize(app)
-          # Finish configuring the tracer after the application is initialized.
-          # We need to wait for some things, like application name, middleware stack, etc.
-          setup_tracer
-          instrument_rails
+          do_once(:rails_after_initialize, for: app) do
+            # Finish configuring the tracer after the application is initialized.
+            # We need to wait for some things, like application name, middleware stack, etc.
+            setup_tracer
+            instrument_rails
+          end
         end
 
         # Configure Rails tracing with settings

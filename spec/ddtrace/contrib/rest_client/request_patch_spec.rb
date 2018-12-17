@@ -120,6 +120,64 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
     it_behaves_like 'instrumented request'
 
+    context 'that returns a custom response object' do
+      subject(:request) do
+        RestClient::Request.execute(method: :get, url: url) { response }
+      end
+
+      context 'that is nil' do
+        let(:response) { nil }
+
+        it 'creates a span' do
+          expect { request }.to change { tracer.writer.spans.first }.to be_instance_of(Datadog::Span)
+        end
+
+        it 'returns response' do
+          expect(request).to be(response)
+        end
+
+        describe 'created span' do
+          subject(:span) { tracer.writer.spans.first }
+
+          context 'response is successfull' do
+            before { request }
+
+            it 'has tag with target host' do
+              expect(span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq(host)
+            end
+
+            it 'has tag with target port' do
+              expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+            end
+
+            it 'has tag with target port' do
+              expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
+            end
+
+            it 'has tag with target port' do
+              expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
+            end
+
+            it 'has tag with status code' do
+              expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to be nil
+            end
+
+            it 'is http type' do
+              expect(span.span_type).to eq('web')
+            end
+
+            it 'is named correctly' do
+              expect(span.name).to eq('rest_client.request')
+            end
+
+            it 'has correct service name' do
+              expect(span.service).to eq('rest_client')
+            end
+          end
+        end
+      end
+    end
+
     context 'distributed tracing enabled' do
       let(:rest_client_options) { { distributed_tracing: true } }
 
