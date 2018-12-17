@@ -3,7 +3,6 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'pry'
 require 'rspec/collection_matchers'
 require 'webmock/rspec'
-require 'datadog/statsd'
 
 require 'ddtrace/encoding'
 require 'ddtrace/transport'
@@ -20,7 +19,6 @@ require 'support/configuration_helpers'
 require 'support/synchronization_helpers'
 require 'support/log_helpers'
 require 'support/http_helpers'
-require 'support/metric_helpers'
 
 WebMock.allow_net_connect!
 WebMock.disable!
@@ -31,7 +29,6 @@ RSpec.configure do |config|
   config.include ConfigurationHelpers
   config.include SynchronizationHelpers
   config.include LogHelpers
-  config.include MetricHelpers
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
@@ -43,6 +40,6 @@ RSpec.configure do |config|
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
   config.disable_monkey_patching!
-  config.warnings = false
+  config.warnings = true
   config.order = :random
 end

@@ -6,15 +6,9 @@ require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis integration test' do
-  include_context 'statsd'
-
   # Use real tracer
   let(:tracer) do
-    Datadog::Tracer.new.tap do |tracer|
-      tracer.configure(
-        statsd: statsd
-      )
-    end
+    Datadog::Tracer.new
   end
 
   before(:each) do
@@ -39,7 +33,7 @@ RSpec.describe 'Redis integration test' do
   it do
     expect(redis.set('FOO', 'bar')).to eq('OK')
     expect(redis.get('FOO')).to eq('bar')
-    try_wait_until(attempts: 30) { stats[Datadog::Writer::METRIC_TRACES_FLUSHED] >= 2 }
-    expect(stats[Datadog::Writer::METRIC_TRACES_FLUSHED]).to be >= 2
+    try_wait_until(attempts: 30) { tracer.writer.stats[:traces_flushed] >= 2 }
+    expect(tracer.writer.stats[:traces_flushed]).to be >= 2
   end
 end
