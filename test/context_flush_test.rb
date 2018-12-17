@@ -346,7 +346,7 @@ class ContextFlushPartialTest < Minitest::Test
     assert_nil(tracer.context_flush)
 
     # If given a partial_flush option, then uses default context flush.
-    flush_tracer = Datadog::Tracer.new(writer: FauxWriter.new, partial_flush: true)
+    flush_tracer = get_test_tracer(partial_flush: true)
     refute_nil(flush_tracer.context_flush)
 
     # If not configured with any flush options, context flush still doesn't exist.
@@ -366,7 +366,6 @@ class ContextFlushPartialTest < Minitest::Test
     tracer.configure(min_spans_before_partial_flush: context.max_length,
                      max_spans_before_partial_flush: context.max_length,
                      partial_flush_timeout: 3600)
-    tracer.writer = FauxWriter.new
 
     n = 1_000_000
     assert_operator(n, :>, context.max_length, 'need to send enough spans')

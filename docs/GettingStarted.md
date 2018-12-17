@@ -1375,14 +1375,6 @@ span.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
 span.context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
 ```
 
-You can disable priority sampling via:
-
-```ruby
-Datadog.configure do |c|
-  c.tracer priority_sampling: false
-end
-```
-
 ### Distributed Tracing
 
 Distributed tracing allows traces to be propagated across multiple instrumented applications, so that a request can be presented as a single trace, rather than a separate trace per service.
