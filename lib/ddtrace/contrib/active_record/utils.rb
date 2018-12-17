@@ -27,7 +27,11 @@ module Datadog
 
         # Typical of ActiveSupport::Notifications `sql.active_record`
         def self.connection_config_from_connection(connection)
-          connection.instance_variable_get(:@config) || EMPTY_CONFIG
+          if connection.instance_variable_defined?(:@config)
+            connection.instance_variable_get(:@config)
+          else
+            EMPTY_CONFIG
+          end
         end
 
         def self.default_connection_config
