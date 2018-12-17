@@ -3,6 +3,8 @@ module Datadog
     module ActiveRecord
       # Common utilities for Rails
       module Utils
+        EMPTY_CONFIG = {}.freeze
+
         def self.adapter_name
           Datadog::Utils::Database.normalize_vendor(connection_config[:adapter])
         end
@@ -23,14 +25,9 @@ module Datadog
           connection.nil? ? default_connection_config : connection_config_from_connection(connection)
         end
 
-        # Attempt to retrieve the connection config from an object ID.
         # Typical of ActiveSupport::Notifications `sql.active_record`
         def self.connection_config_from_connection(connection)
-          if connection.instance_variable_defined?(:@config)
-            connection.instance_variable_get(:@config)
-          else
-            {}
-          end
+          connection.instance_variable_get(:@config) || EMPTY_CONFIG
         end
 
         def self.default_connection_config
@@ -42,9 +39,9 @@ module Datadog
                                     end
 
           connection_pool = ::ActiveRecord::Base.connection_handler.retrieve_connection_pool(current_connection_name)
-          connection_pool.nil? ? {} : (@default_connection_config = connection_pool.spec.config)
+          connection_pool.nil? ? EMPTY_CONFIG : (@default_connection_config = connection_pool.spec.config)
         rescue StandardError
-          {}
+          EMPTY_CONFIG
         end
       end
     end
