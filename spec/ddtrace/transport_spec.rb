@@ -3,13 +3,7 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::HTTPTransport do
-  let(:transport) do
-    described_class.new(
-      ENV.fetch('TEST_DDAGENT_HOST', 'localhost'),
-      ENV.fetch('TEST_DDAGENT_PORT', 8126),
-      options
-    )
-  end
+  subject(:transport) { described_class.new(options) }
   let(:options) { {} }
 
   before(:each) do
@@ -19,6 +13,72 @@ RSpec.describe Datadog::HTTPTransport do
 
   after(:each) do
     Datadog::Tracer.log.level = @original_level
+  end
+
+  describe '#initialize' do
+    context 'given :hostname and :port' do
+      let(:options) { { hostname: hostname, port: port } }
+      let(:hostname) { double('hostname') }
+      let(:port) { double('port') }
+
+      it { is_expected.to have_attributes(hostname: hostname, port: port) }
+    end
+
+    context 'given no options' do
+      before(:each) do
+        # Swap environment variables for test values
+        @original_hostname = ENV['DD_AGENT_HOST']
+        @original_port = ENV['DD_TRACE_AGENT_PORT']
+        ENV['DD_AGENT_HOST'] = hostname
+        ENV['DD_TRACE_AGENT_PORT'] = port
+      end
+
+      after(:each) do
+        # Restore environment variables
+        ENV['DD_AGENT_HOST'] = @original_hostname
+        ENV['DD_TRACE_AGENT_PORT'] = @original_port
+      end
+
+      context 'but environment variables are present' do
+        let(:hostname) { 'transport_test_host' }
+        let(:port) { '1234' }
+
+        it do
+          is_expected.to have_attributes(
+            hostname: hostname,
+            port: port
+          )
+        end
+      end
+
+      context 'or environment variables' do
+        let(:hostname) { nil }
+        let(:port) { nil }
+
+        it do
+          is_expected.to have_attributes(
+            hostname: described_class::DEFAULT_AGENT_HOST,
+            port: described_class::DEFAULT_TRACE_AGENT_PORT
+          )
+        end
+      end
+    end
+
+    context 'given neither options nor environment variables' do
+      before(:each) do
+        # Swap environment variables for test values
+        @original_hostname = ENV['DD_AGENT_HOST']
+        @original_port = ENV['DD_TRACE_AGENT_PORT']
+        ENV['DD_AGENT_HOST'] = hostname
+        ENV['DD_TRACE_AGENT_PORT'] = port
+      end
+
+      after(:each) do
+        # Restore environment variables
+        ENV['DD_AGENT_HOST'] = @original_hostname
+        ENV['DD_TRACE_AGENT_PORT'] = @original_port
+      end
+    end
   end
 
   describe '#handle_response' do
@@ -66,7 +126,7 @@ RSpec.describe Datadog::HTTPTransport do
       end
 
       context 'and a bad transport' do
-        let(:transport) { described_class.new('localhost', '8888') }
+        let(:transport) { described_class.new(hostname: 'localhost', port: '8888') }
         it { expect(transport.server_error?(code)).to be true }
       end
 

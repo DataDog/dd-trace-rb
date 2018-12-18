@@ -42,7 +42,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     end
   end
 
-  let(:transport) { SpyTransport.new(hostname, port) }
+  let(:transport) { SpyTransport.new }
 
   def wait_for_flush(num = 1, period = 0.1)
     (20 * flush_interval).to_i.times do

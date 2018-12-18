@@ -7,9 +7,6 @@ module Datadog
   class Writer
     attr_reader :transport, :worker, :priority_sampler
 
-    HOSTNAME = '127.0.0.1'.freeze
-    PORT = '8126'.freeze
-
     def initialize(options = {})
       # writer and transport parameters
       @buff_size = options.fetch(:buffer_size, 100)
@@ -24,7 +21,7 @@ module Datadog
 
       # transport and buffers
       @transport = options.fetch(:transport) do
-        HTTPTransport.new(HOSTNAME, PORT, transport_options)
+        HTTPTransport.new(transport_options)
       end
 
       @services = {}

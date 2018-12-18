@@ -7,7 +7,7 @@ ENV['USE_SIDEKIQ'] = 'true'
 require 'helper'
 require 'sidekiq/testing'
 require 'contrib/rails/test_helper'
-require 'ddtrace/contrib/sidekiq/tracer'
+require 'ddtrace/contrib/sidekiq/server_tracer'
 require 'active_job'
 
 class RailsActiveJobTest < ActionController::TestCase

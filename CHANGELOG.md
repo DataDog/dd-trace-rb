@@ -4,6 +4,24 @@
 
 ## [Unreleased (beta)]
 
+## [0.18.0] - 2018-12-18
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.18.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.17.3...v0.18.0
+
+### Added
+
+ - Shoryuken integration (#538, #626, #655) (@steveh, @JustSnow)
+ - Sidekiq client integration (#602, #650) (@dirk)
+ - Datadog::Shim for adding instrumentation (#648)
+
+### Changed
+
+ - Use `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT` env vars if available (#631)
+ - Inject `:connection` into `sql.active_record` event (#640, #649, #656) (@guizmaii)
+ - Return default configuration instead of `nil` on miss (#651)
+
 ## [0.17.3] - 2018-11-29
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.17.3
@@ -576,8 +594,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.3...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.3...0.18-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.0...0.19-dev
+[0.18.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.3...v0.18.0
 [0.17.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.2...v0.17.3
 [0.17.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.0...v0.17.1

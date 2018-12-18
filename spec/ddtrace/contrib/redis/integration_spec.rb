@@ -8,9 +8,7 @@ require 'ddtrace'
 RSpec.describe 'Redis integration test' do
   # Use real tracer
   let(:tracer) do
-    Datadog::Tracer.new.tap do |tracer|
-      tracer.configure(hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost'))
-    end
+    Datadog::Tracer.new
   end
 
   before(:each) do

@@ -20,11 +20,8 @@ module Datadog
           @resolver = nil
         end
 
-        def configuration(name = :default)
-          name = :default if name.nil?
-          name = resolver.resolve(name)
-          return nil unless configurations.key?(name)
-          configurations[name]
+        def configuration(key = :default)
+          configurations[resolve_configuration_key(key)]
         end
 
         def configurations
@@ -33,12 +30,12 @@ module Datadog
           end
         end
 
-        def configure(name, options = {}, &block)
-          name = resolver.resolve(name || :default)
+        def configure(key, options = {}, &block)
+          key = resolver.resolve(key || :default)
 
-          configurations[name].tap do |settings|
+          configurations[key].tap do |settings|
             settings.configure(options, &block)
-            configurations[name] = settings
+            configurations[key] = settings
           end
         end
 
@@ -48,6 +45,13 @@ module Datadog
 
         def resolver
           @resolver ||= Configuration::Resolver.new
+        end
+
+        def resolve_configuration_key(key = :default)
+          key = :default if key.nil?
+          key = resolver.resolve(key)
+          key = :default unless configurations.key?(key)
+          key
         end
       end
     end

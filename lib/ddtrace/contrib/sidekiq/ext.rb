@@ -5,7 +5,9 @@ module Datadog
       module Ext
         APP = 'sidekiq'.freeze
         SERVICE_NAME = 'sidekiq'.freeze
+        CLIENT_SERVICE_NAME = 'sidekiq-client'.freeze
 
+        SPAN_PUSH = 'sidekiq.push'.freeze
         SPAN_JOB = 'sidekiq.job'.freeze
 
         TAG_JOB_DELAY = 'sidekiq.job.delay'.freeze

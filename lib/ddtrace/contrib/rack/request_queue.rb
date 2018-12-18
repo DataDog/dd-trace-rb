@@ -18,9 +18,13 @@ module Datadog
           time_string = header.split('t=')[1]
           return if time_string.nil?
 
+          # Return nil if the time is clearly invalid
+          time_value = time_string.to_f
+          return if time_value.zero?
+
           # return the request_start only if it's lesser than
           # current time, to avoid significant clock skew
-          request_start = Time.at(time_string.to_f)
+          request_start = Time.at(time_value)
           request_start.utc > now ? nil : request_start
         rescue StandardError => e
           # in case of an Exception we don't create a

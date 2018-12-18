@@ -17,7 +17,6 @@ end
 
 # Enables the auto-instrumentation for the testing application
 Datadog.configure do |c|
-  c.tracer hostname: ENV.fetch('TEST_DDAGENT_HOST', 'localhost')
   c.use :rails
   c.use :redis
 end

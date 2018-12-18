@@ -13,6 +13,9 @@ module Datadog
     attr_accessor :hostname, :port
     attr_reader :traces_endpoint, :services_endpoint
 
+    DEFAULT_AGENT_HOST = '127.0.0.1'.freeze
+    DEFAULT_TRACE_AGENT_PORT = '8126'.freeze
+
     # seconds before the transport timeout
     TIMEOUT = 1
 
@@ -45,11 +48,11 @@ module Datadog
 
     private_constant :API
 
-    def initialize(hostname, port, options = {})
+    def initialize(options = {})
       api_version = options.fetch(:api_version, V3)
 
-      @hostname = hostname
-      @port = port
+      @hostname = options[:hostname] || ENV['DD_AGENT_HOST'] || DEFAULT_AGENT_HOST
+      @port = options[:port] || ENV['DD_TRACE_AGENT_PORT'] || DEFAULT_TRACE_AGENT_PORT
       @api = API.fetch(api_version)
       @encoder = options[:encoder] || @api[:encoder]
       @response_callback = options[:response_callback]
