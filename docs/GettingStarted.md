@@ -62,6 +62,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Processing pipeline](#processing-pipeline)
          - [Filtering](#filtering)
          - [Processing](#processing)
+     - [Trace correlation](#trace-correlation)
      - [OpenTracing](#opentracing)
 
 ## Compatibility
@@ -1603,6 +1604,41 @@ Datadog::Pipeline.before_flush(
   # Strip matching text from the resource field
   Datadog::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
 )
+```
+
+### Trace correlation
+
+In many cases, such as logging, it may be useful to correlate trace IDs to other events or data streams, for easier cross referencing. The tracer can produce a correlation identifier for the currently active trace via `active_correlation_ids`, which can be used to decorate these other data sources.
+
+An example of this for the purpose of logging:
+
+```ruby
+require 'ddtrace'
+require 'logger'
+
+logger = Logger.new(STDOUT)
+logger.progname = 'my_app'
+logger.formatter  = proc do |severity, datetime, progname, msg|
+  # Returns Datadog::Correlation::Identifier
+  ids = Datadog.tracer.active_correlation_ids
+  "[#{datetime}][#{progname}][#{severity}][dd.trace_id=#{ids.trace_id} dd.span_id=#{ids.span_id}] #{msg}\n"
+end
+
+# When a trace is active...
+Datadog.tracer.trace('logging.example') do
+  # And a warning is produced...
+  logger.warn('This is a warning.')
+
+  # Prints:
+  # [2018-12-18 22:42:25 +0000][my_app][WARN][dd.trace_id=5963550561812073440 dd.span_id=2232727802607726424] This is a warning.
+end
+
+# When no trace is active...
+# And a warning is produced...
+logger.warn('This is a warning.')
+
+# Prints:
+# [2018-12-18 22:44:19 +0000][my_app][WARN][dd.trace_id= dd.span_id=] This is a warning.
 ```
 
 ### OpenTracing
