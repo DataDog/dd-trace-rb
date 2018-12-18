@@ -14,7 +14,7 @@ RSpec.describe 'GraphQL patcher' do
     end
   end
 
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   def pop_spans
     tracer.writer.spans(:keep)

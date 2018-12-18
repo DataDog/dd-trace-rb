@@ -12,7 +12,7 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
     remove_patch!(:concurrent_ruby)
   end
 
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:configuration_options) { { tracer: tracer } }
 
   subject(:deferred_execution) do

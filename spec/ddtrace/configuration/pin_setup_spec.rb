@@ -24,7 +24,7 @@ RSpec.describe Datadog::Configuration::PinSetup do
         }
       end
 
-      let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+      let(:tracer) { get_test_tracer }
 
       it do
         expect(target.datadog_pin.service).to eq('my-service')

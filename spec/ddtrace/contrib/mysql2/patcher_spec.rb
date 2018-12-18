@@ -4,7 +4,7 @@ require 'ddtrace'
 require 'mysql2'
 
 RSpec.describe 'Mysql2::Client patcher' do
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   let(:client) do
     Mysql2::Client.new(

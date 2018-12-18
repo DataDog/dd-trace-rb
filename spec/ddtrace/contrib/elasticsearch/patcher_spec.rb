@@ -9,7 +9,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
 
   let(:client) { Elasticsearch::Client.new(url: server) }
   let(:pin) { Datadog::Pin.get_from(client) }
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   before do
     Datadog.configure do |c|

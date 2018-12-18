@@ -1356,15 +1356,7 @@ The sampler can set the priority to the following values:
  - `Datadog::Ext::Priority::AUTO_REJECT`: the sampler automatically decided to reject the trace.
  - `Datadog::Ext::Priority::AUTO_KEEP`: the sampler automatically decided to keep the trace.
 
-For now, priority sampling is disabled by default. Enabling it ensures that your sampled distributed traces will be complete. To enable the priority sampling:
-
-```ruby
-Datadog.configure do |c|
-  c.tracer priority_sampling: true
-end
-```
-
-Once enabled, the sampler will automatically assign a priority of 0 or 1 to traces, depending on their service and volume.
+Priority sampling is enabled by default. Enabling it ensures that your sampled distributed traces will be complete. Once enabled, the sampler will automatically assign a priority of 0 or 1 to traces, depending on their service and volume.
 
 You can also set this priority manually to either drop a non-interesting trace or to keep an important one. For that, set the `context#sampling_priority` to:
 

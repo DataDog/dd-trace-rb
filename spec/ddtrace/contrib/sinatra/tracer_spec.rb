@@ -9,7 +9,7 @@ require 'ddtrace/contrib/sinatra/tracer'
 RSpec.describe 'Sinatra instrumentation' do
   include Rack::Test::Methods
 
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:options) { { tracer: tracer } }
 
   let(:span) { spans.first }
@@ -386,7 +386,7 @@ RSpec.describe 'Sinatra instrumentation' do
     include_context 'app with simple route'
 
     subject(:response) { get '/' }
-    let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new, enabled: false) }
+    let(:tracer) { get_test_tracer(enabled: false) }
 
     it do
       is_expected.to be_ok

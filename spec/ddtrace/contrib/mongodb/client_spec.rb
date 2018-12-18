@@ -4,7 +4,7 @@ require 'ddtrace'
 require 'mongo'
 
 RSpec.describe 'Mongo::Client instrumentation' do
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   let(:client) { Mongo::Client.new(*client_options) }
   let(:client_options) { [["#{host}:#{port}"], { database: database }] }

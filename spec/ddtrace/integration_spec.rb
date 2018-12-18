@@ -148,14 +148,8 @@ RSpec.describe 'Tracer integration tests' do
   end
 
   describe 'sampling priority metrics' do
-    let(:tracer) do
-      get_test_tracer.tap do |t|
-        t.configure(priority_sampling: true)
-        t.writer = writer
-      end
-    end
-
-    let(:writer) { FauxWriter.new(priority_sampler: Datadog::PrioritySampler.new) }
+    # Sampling priority is enabled by default
+    let(:tracer) { get_test_tracer }
 
     context 'when #sampling_priority is set on a child span' do
       let(:parent_span) { tracer.start_span('parent span') }
@@ -168,7 +162,7 @@ RSpec.describe 'Tracer integration tests' do
           end.finish
         end.finish
 
-        try_wait_until { writer.spans(:keep).any? }
+        try_wait_until { tracer.writer.spans(:keep).any? }
       end
 
       it do

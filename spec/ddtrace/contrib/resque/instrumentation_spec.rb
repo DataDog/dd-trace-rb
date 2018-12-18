@@ -6,7 +6,7 @@ require 'ddtrace'
 RSpec.describe 'Resque instrumentation' do
   include_context 'Resque job'
 
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:pin) { ::Resque.datadog_pin }
   let(:spans) { tracer.writer.spans }
   let(:span) { spans.first }

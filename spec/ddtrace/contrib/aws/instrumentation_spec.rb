@@ -6,7 +6,7 @@ require 'ddtrace/contrib/aws/patcher'
 require 'ddtrace/ext/http'
 
 RSpec.describe 'AWS instrumentation' do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   let(:client) { ::Aws::S3::Client.new(stub_responses: responses) }
   let(:responses) { true }
