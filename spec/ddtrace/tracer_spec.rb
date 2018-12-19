@@ -96,4 +96,33 @@ RSpec.describe Datadog::Tracer do
       is_expected.to be(span)
     end
   end
+
+  describe '#active_correlation_ids' do
+    subject(:active_correlation_ids) { tracer.active_correlation_ids }
+
+    context 'when a trace is active' do
+      let(:span) { @span }
+
+      around(:each) do |example|
+        tracer.trace('test') do |span|
+          @span = span
+          example.run
+        end
+      end
+
+      it 'produces an Datadog::Correlation::Identifier with data' do
+        is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
+        expect(active_correlation_ids.trace_id).to eq(span.trace_id)
+        expect(active_correlation_ids.span_id).to eq(span.span_id)
+      end
+    end
+
+    context 'when no trace is active' do
+      it 'produces an empty Datadog::Correlation::Identifier' do
+        is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
+        expect(active_correlation_ids.trace_id).to be nil
+        expect(active_correlation_ids.span_id).to be nil
+      end
+    end
+  end
 end

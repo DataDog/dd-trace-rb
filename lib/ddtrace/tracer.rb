@@ -10,6 +10,7 @@ require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
+require 'ddtrace/correlation'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -355,6 +356,11 @@ module Datadog
     # Return the current active root span or +nil+.
     def active_root_span
       call_context.current_root_span
+    end
+
+    # Return a CorrelationIdentifier for active span
+    def active_correlation_ids
+      Datadog::Correlation.identifier_from_context(call_context)
     end
 
     # Send the trace to the writer to enqueue the spans list in the agent
