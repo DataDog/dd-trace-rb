@@ -21,14 +21,37 @@ module Datadog
           connection_config[:port]
         end
 
-        def self.connection_config(connection = nil)
-          connection.nil? ? default_connection_config : connection_config_from_connection(connection)
-        end
+        # In newer Rails versions, the `payload` contains both the `connection` and its `object_id` named `connection_id`.
+        #
+        # So, if rails is recent we'll have a direct access to the connection.
+        # Else, we'll find it thanks to the passed `connection_id`.
+        #
+        # See this PR for more details: https://github.com/rails/rails/pull/34602
+        #
+        def self.connection_config(connection = nil, connection_id = nil)
+          return default_connection_config if connection.nil? && connection_id.nil?
 
-        # Typical of ActiveSupport::Notifications `sql.active_record`
-        def self.connection_config_from_connection(connection)
-          if connection.instance_variable_defined?(:@config)
-            connection.instance_variable_get(:@config)
+          conn = if !connection.nil?
+                   connection
+                 # Rails 3.0 - 3.2
+                 elsif Gem.loaded_specs['activerecord'].version < Gem::Version.new('4.0')
+                   ::ActiveRecord::Base
+                     .connection_handler
+                     .connection_pools
+                     .values
+                     .flat_map(&:connections)
+                     .find { |c| c.object_id == connection_id }
+                 # Rails 4.2+
+                 else
+                   ::ActiveRecord::Base
+                     .connection_handler
+                     .connection_pool_list
+                     .flat_map(&:connections)
+                     .find { |c| c.object_id == connection_id }
+                 end
+
+          if conn.instance_variable_defined?(:@config)
+            conn.instance_variable_get(:@config)
           else
             EMPTY_CONFIG
           end
