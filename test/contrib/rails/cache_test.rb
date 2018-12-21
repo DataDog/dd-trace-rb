@@ -124,5 +124,4 @@ class CacheTracingTest < ActionController::TestCase
     span = spans[0]
     assert_equal(span.get_tag('rails.cache.key'), 'custom-key/x/y/User:3')
   end
-
 end
