@@ -154,11 +154,11 @@ class RedisCacheTracingTest < ActionController::TestCase
       end
     end
 
-    Rails.cache.write(['custom-key', 'array', User.new], 50)
+    Rails.cache.write(['custom-key', ['x', 'y'], User.new], 50)
     spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
     cache, redis = spans
-    assert_equal(cache.get_tag('rails.cache.key'), 'custom-key/array/User:3')
+    assert_equal(cache.get_tag('rails.cache.key'), 'custom-key/x/y/User:3')
   end
 
   private
