@@ -147,6 +147,20 @@ class RedisCacheTracingTest < ActionController::TestCase
     assert_equal(cache.span_id, del.parent_id)
   end
 
+  test 'cache key is expanded using ActiveSupport' do
+    class User
+      def cache_key
+        'User:3'
+      end
+    end
+
+    Rails.cache.write(['custom-key', 'array', User.new], 50)
+    spans = @tracer.writer.spans()
+    assert_equal(spans.length, 2)
+    cache, redis = spans
+    assert_equal(cache.get_tag('rails.cache.key'), 'custom-key/array/User:3')
+  end
+
   private
 
   def client_from_driver(driver)
