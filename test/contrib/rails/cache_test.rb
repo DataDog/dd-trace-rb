@@ -118,7 +118,7 @@ class CacheTracingTest < ActionController::TestCase
       end
     end
 
-    Rails.cache.write(['custom-key', ['x', 'y'], User.new], 50)
+    Rails.cache.write(['custom-key', %w[x y], User.new], 50)
     spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
     span = spans[0]
