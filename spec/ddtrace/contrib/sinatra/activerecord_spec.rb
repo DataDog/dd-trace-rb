@@ -70,7 +70,9 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
       ActiveRecord::Base.establish_connection(
         adapter: 'sqlite3',
         database: ':memory:'
-      )
+      ).tap do |conn|
+        conn.connection.execute('SELECT 42')
+      end
     end
 
     let(:sinatra_span) { spans.first }
