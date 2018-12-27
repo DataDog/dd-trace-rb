@@ -12,8 +12,8 @@ RSpec.describe Datadog::Correlation do
 
       it 'returns an empty Correlation::Identifier' do
         is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
-        expect(correlation_ids.trace_id).to be nil
-        expect(correlation_ids.span_id).to be nil
+        expect(correlation_ids.trace_id).to be 0
+        expect(correlation_ids.span_id).to be 0
       end
     end
 

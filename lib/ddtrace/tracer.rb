@@ -359,7 +359,7 @@ module Datadog
     end
 
     # Return a CorrelationIdentifier for active span
-    def active_correlation_ids
+    def active_correlation
       Datadog::Correlation.identifier_from_context(call_context)
     end
 
