@@ -1,6 +1,7 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/sampling'
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
 
@@ -25,7 +26,7 @@ module Datadog
         end
 
         def compute_queue_time(env, tracer)
-          return unless Datadog.configuration[:rack][:request_queuing]
+          return unless configuration[:request_queuing]
 
           # parse the request queue time
           request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
@@ -34,25 +35,25 @@ module Datadog
           tracer.trace(
             Ext::SPAN_HTTP_SERVER_QUEUE,
             start_time: request_start,
-            service: Datadog.configuration[:rack][:web_service_name]
+            service: configuration[:web_service_name]
           )
         end
 
         def call(env)
           # retrieve integration settings
-          tracer = Datadog.configuration[:rack][:tracer]
+          tracer = configuration[:tracer]
 
           # [experimental] create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
           frontend_span = compute_queue_time(env, tracer)
 
           trace_options = {
-            service: Datadog.configuration[:rack][:service_name],
+            service: configuration[:service_name],
             resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE
           }
 
-          if Datadog.configuration[:rack][:distributed_tracing]
+          if configuration[:distributed_tracing]
             context = HTTPPropagator.extract(env)
             tracer.provider.context = context if context.trace_id
           end
@@ -110,7 +111,7 @@ module Datadog
         end
 
         def resource_name_for(env, status)
-          if Datadog.configuration[:rack][:middleware_names] && env['RESPONSE_MIDDLEWARE']
+          if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
             "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
           else
             "#{env['REQUEST_METHOD']} #{status}".strip
@@ -134,13 +135,19 @@ module Datadog
           response_headers = parse_response_headers(headers || {})
 
           request_span.resource ||= resource_name_for(env, status)
+
+          # Set event sample rate, if available.
+          Contrib::Sampling.set_event_sample_rate(request_span, configuration[:event_sample_rate])
+
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
           end
+
           if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
-            options = Datadog.configuration[:rack][:quantize]
+            options = configuration[:quantize]
             request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
           end
+
           if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
             request_obj = ::Rack::Request.new(env)
 
@@ -153,6 +160,7 @@ module Datadog
 
             request_span.set_tag(Datadog::Ext::HTTP::BASE_URL, base_url)
           end
+
           if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
             request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
           end
@@ -181,6 +189,10 @@ module Datadog
           and has been been DEPRECATED. Public support for its usage is discontinued.
           If you need the Rack request span, try using `Datadog.tracer.active_span`.
           This key will be removed in version 1.0).freeze
+
+        def configuration
+          Datadog.configuration[:rack]
+        end
 
         def add_deprecation_warnings(env)
           env.instance_eval do
@@ -221,7 +233,7 @@ module Datadog
 
         def parse_request_headers(env)
           {}.tap do |result|
-            whitelist = Datadog.configuration[:rack][:headers][:request] || []
+            whitelist = configuration[:headers][:request] || []
             whitelist.each do |header|
               rack_header = header_to_rack_header(header)
               if env.key?(rack_header)
@@ -233,7 +245,7 @@ module Datadog
 
         def parse_response_headers(headers)
           {}.tap do |result|
-            whitelist = Datadog.configuration[:rack][:headers][:response] || []
+            whitelist = configuration[:headers][:response] || []
             whitelist.each do |header|
               if headers.key?(header)
                 result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
