@@ -7,13 +7,14 @@ RSpec.describe 'Resque instrumentation' do
   include_context 'Resque job'
 
   let(:tracer) { get_test_tracer }
-  let(:pin) { ::Resque.datadog_pin }
   let(:spans) { tracer.writer.spans }
   let(:span) { spans.first }
 
   let(:url) { "redis://#{host}:#{port}" }
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379) }
+
+  let(:configuration_options) { { tracer: tracer } }
 
   before(:each) do
     # Setup Resque to use Redis
@@ -22,12 +23,11 @@ RSpec.describe 'Resque instrumentation' do
 
     # Patch Resque
     Datadog.configure do |c|
-      c.use :resque
+      c.use :resque, configuration_options
     end
-
-    # Update the Resque pin with the tracer
-    pin.tracer = tracer
   end
+
+  after(:each) { Datadog.registry[:resque].reset_configuration! }
 
   shared_examples 'job execution tracing' do
     context 'that succeeds' do
