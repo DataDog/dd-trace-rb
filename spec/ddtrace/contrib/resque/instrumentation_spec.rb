@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/sampling_examples'
 require_relative 'job'
 
 require 'ddtrace'
@@ -42,6 +43,8 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.service).to eq('resque')
         expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
       end
+
+      it_behaves_like 'event sample rate'
     end
 
     context 'that fails' do
@@ -71,6 +74,8 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
         expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to eq(error_class_name)
       end
+
+      it_behaves_like 'event sample rate'
     end
   end
 
