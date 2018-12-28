@@ -6,8 +6,8 @@ require 'mongo'
 RSpec.describe 'Mongo::Client instrumentation' do
   let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
 
-  let(:client) { Mongo::Client.new(*client_options) }
-  let(:client_options) { [["#{host}:#{port}"], { database: database }] }
+  let(:client) { Mongo::Client.new(["#{host}:#{port}"], client_options) }
+  let(:client_options) { { database: database } }
   let(:host) { ENV.fetch('TEST_MONGODB_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017) }
   let(:database) { 'test' }
@@ -36,12 +36,13 @@ RSpec.describe 'Mongo::Client instrumentation' do
   end
 
   # Clear data between tests
+  let(:drop_database?) { true }
   after(:each) do
-    client.database.drop
+    client.database.drop if drop_database?
   end
 
   it 'evaluates the block given to the constructor' do
-    expect { |b| Mongo::Client.new(*client_options, &b) }.to yield_control
+    expect { |b| Mongo::Client.new(["#{host}:#{port}"], client_options, &b) }.to yield_control
   end
 
   context 'pin' do
@@ -317,6 +318,48 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.get_tag('mongodb.rows')).to be nil
         expect(span.status).to eq(1)
         expect(span.get_tag('error.msg')).to eq('ns not found (26)')
+      end
+    end
+
+    describe 'with LDAP/SASL authentication' do
+      let(:client_options) do
+        super().merge(auth_mech: :plain)
+      end
+
+      context 'which fails' do
+        let(:insert_span) { spans.first }
+        let(:auth_span) { spans.last }
+        let(:drop_database?) { false }
+
+        before(:each) do
+          begin
+            # Insert a document
+            client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
+          rescue Mongo::Auth::Unauthorized
+            # Expect this to create an unauthorized error
+            nil
+          end
+        end
+
+        it 'produces spans for command and authentication' do
+          # With LDAP/SASL, Mongo will run a "saslStart" command
+          # after the original command starts but before it finishes.
+          # Thus we should expect it to create an authentication span
+          # that is a child of the original command span.
+          expect(spans).to have(2).items
+
+          expect(insert_span.name).to eq('mongo.cmd')
+          expect(insert_span.resource).to match(/"operation"\s*=>\s*:insert/)
+          expect(insert_span.status).to eq(1)
+          expect(insert_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
+          expect(insert_span.get_tag('error.msg')).to eq('User  is not authorized to access test.')
+
+          expect(auth_span.name).to eq('mongo.cmd')
+          expect(auth_span.resource).to match(/"operation"\s*=>\s*:saslStart/)
+          expect(auth_span.status).to eq(1)
+          expect(auth_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
+          expect(auth_span.get_tag('error.msg')).to eq('Unsupported mechanism PLAIN (2)')
+        end
       end
     end
   end
