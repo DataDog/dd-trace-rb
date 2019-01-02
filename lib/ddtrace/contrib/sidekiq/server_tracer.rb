@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/sidekiq/tracing'
+require 'ddtrace/contrib/sampling'
 
 module Datadog
   module Contrib
@@ -9,7 +10,7 @@ module Datadog
 
         def initialize(options = {})
           super
-          @sidekiq_service = options[:service_name] || Datadog.configuration[:sidekiq][:service_name]
+          @sidekiq_service = options[:service_name] || configuration[:service_name]
         end
 
         def call(worker, job, queue)
@@ -20,6 +21,7 @@ module Datadog
 
           @tracer.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
             span.resource = resource
+            Contrib::Sampling.set_event_sample_rate(span, configuration[:event_sample_rate])
             span.set_tag(Ext::TAG_JOB_ID, job['jid'])
             span.set_tag(Ext::TAG_JOB_RETRY, job['retry'])
             span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
@@ -31,6 +33,10 @@ module Datadog
         end
 
         private
+
+        def configuration
+          Datadog.configuration[:sidekiq]
+        end
 
         def service_from_worker_config(resource)
           # Try to get the Ruby class from the resource name.
