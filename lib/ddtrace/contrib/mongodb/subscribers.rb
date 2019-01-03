@@ -17,7 +17,8 @@ module Datadog
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring/publishable.rb#L38-L56
           span = pin.tracer.trace(Ext::SPAN_COMMAND, service: pin.service, span_type: Ext::SPAN_TYPE_COMMAND)
-          Thread.current[:datadog_mongo_span] = span
+          Thread.current[:datadog_mongo_span] ||= {}
+          Thread.current[:datadog_mongo_span][event.request_id] = span
 
           # build a quantized Query using the Parser module
           query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
@@ -37,7 +38,7 @@ module Datadog
         end
 
         def failed(event)
-          span = Thread.current[:datadog_mongo_span]
+          span = Thread.current[:datadog_mongo_span][event.request_id]
           return unless span
 
           # the failure is not a real exception because it's handled by
@@ -49,11 +50,11 @@ module Datadog
           # whatever happens, the Span must be removed from the local storage and
           # it must be finished to prevent any leak
           span.finish unless span.nil?
-          Thread.current[:datadog_mongo_span] = nil
+          Thread.current[:datadog_mongo_span].delete(event.request_id)
         end
 
         def succeeded(event)
-          span = Thread.current[:datadog_mongo_span]
+          span = Thread.current[:datadog_mongo_span][event.request_id]
           return unless span
 
           # add fields that are available only after executing the query
@@ -65,7 +66,7 @@ module Datadog
           # whatever happens, the Span must be removed from the local storage and
           # it must be finished to prevent any leak
           span.finish unless span.nil?
-          Thread.current[:datadog_mongo_span] = nil
+          Thread.current[:datadog_mongo_span].delete(event.request_id)
         end
       end
     end

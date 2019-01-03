@@ -4,6 +4,17 @@
 
 ## [Unreleased (beta)]
 
+## [0.18.2] - 2019-01-03
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.18.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.18.1...v0.18.2
+
+### Fixed
+
+- Unfinished Mongo spans when SASL configured (#658) (@zachmccormick)
+- Possible performance issue with unexpanded Rails cache keys (#630, #635) (@gingerlime)
+
 ## [0.18.1] - 2018-12-20
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.18.1
@@ -12,7 +23,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.18.0...v0.18.1
 
 ### Fixed
 
-- ActiveRecord `SystemStackError` with some 3rd party libraries. (@EpiFouloux, @tjgrathwell, @guizmaii)
+- ActiveRecord `SystemStackError` with some 3rd party libraries (#661, #662) (@EpiFouloux, @tjgrathwell, @guizmaii)
 
 ## [0.18.0] - 2018-12-18
 
@@ -604,8 +615,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.1...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.1...0.19-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.2...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.2...0.19-dev
+[0.18.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.3...v0.18.0
 [0.17.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.2...v0.17.3

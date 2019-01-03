@@ -110,4 +110,18 @@ class CacheTracingTest < ActionController::TestCase
     assert_equal(max_key_size, span.get_tag('rails.cache.key').length)
     assert(span.get_tag('rails.cache.key').end_with?('...'))
   end
+
+  test 'cache key is expanded using ActiveSupport' do
+    class User
+      def cache_key
+        'User:3'
+      end
+    end
+
+    Rails.cache.write(['custom-key', %w[x y], User.new], 50)
+    spans = @tracer.writer.spans()
+    assert_equal(1, spans.length)
+    span = spans[0]
+    assert_equal(span.get_tag('rails.cache.key'), 'custom-key/x/y/User:3')
+  end
 end
