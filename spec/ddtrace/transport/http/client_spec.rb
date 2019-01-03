@@ -18,8 +18,12 @@ RSpec.describe Datadog::Transport::HTTP::Client do
 
     context 'given some traces' do
       let(:parcel) { Datadog::Transport::Traces::Parcel.new(get_test_traces(2)) }
-
       it { expect(response.ok?).to be true }
+
+      context 'with test service' do
+        let(:service) { FauxHTTPService.new }
+        it { expect(response.ok?).to be true }
+      end
     end
   end
 end

@@ -6,7 +6,10 @@ require 'faraday'
 require 'ddtrace/ext/distributed'
 
 RSpec.describe 'Faraday middleware' do
-  let(:tracer) { get_test_tracer }
+  # TODO: Update `get_test_tracer` to return this FauxHTTPService and use that instead.
+  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new(transport: transport)) }
+  let(:transport) { Datadog::Transport::HTTP::Client.new(transport_service) }
+  let(:transport_service) { FauxHTTPService.new }
 
   let(:client) do
     ::Faraday.new('http://example.com') do |builder|
