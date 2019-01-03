@@ -1,5 +1,6 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/sync_writer'
+require 'ddtrace/contrib/sampling'
 require 'ddtrace/contrib/sidekiq/ext'
 require 'resque'
 
@@ -9,13 +10,13 @@ module Datadog
       # Uses Resque job hooks to create traces
       module ResqueJob
         def around_perform(*_)
-          pin = Pin.get_from(::Resque)
-          return yield unless pin && pin.tracer
-          pin.tracer.trace(Ext::SPAN_JOB, service: pin.service) do |span|
+          return yield unless datadog_configuration && tracer
+
+          tracer.trace(Ext::SPAN_JOB, span_options) do |span|
             span.resource = name
-            span.span_type = pin.app_type
+            span.span_type = Datadog::Ext::AppTypes::WORKER
+            Contrib::Sampling.set_event_sample_rate(span, datadog_configuration[:event_sample_rate])
             yield
-            span.service = pin.service
           end
         end
 
@@ -28,8 +29,27 @@ module Datadog
         end
 
         def shutdown_tracer_when_forked!
-          pin = Datadog::Pin.get_from(Resque)
-          pin.tracer.shutdown! if pin && pin.tracer && pin.config && pin.config[:forked]
+          tracer.shutdown! if forked?
+        end
+
+        private
+
+        def forked?
+          pin = Datadog::Pin.get_from(::Resque)
+          return false unless pin
+          pin.config[:forked] == true
+        end
+
+        def span_options
+          { service: datadog_configuration[:service_name] }
+        end
+
+        def tracer
+          datadog_configuration.tracer
+        end
+
+        def datadog_configuration
+          Datadog.configuration[:resque]
         end
       end
     end
@@ -37,12 +57,17 @@ module Datadog
 end
 
 Resque.after_fork do
-  # get the current tracer
-  pin = Datadog::Pin.get_from(Resque)
-  next unless pin && pin.tracer
-  pin.config ||= {}
-  pin.config[:forked] = true
+  configuration = Datadog.configuration[:resque]
+  next if configuration.nil?
 
-  # clean the state so no CoW happens
-  pin.tracer.provider.context = nil
+  # Add a pin, marking the job as forked.
+  # Used to trigger shutdown in forks for performance reasons.
+  Datadog::Pin.new(
+    configuration[:service_name],
+    config: { forked: true }
+  ).onto(::Resque)
+
+  # Clean the state so no CoW happens
+  next if configuration[:tracer].nil?
+  configuration[:tracer].provider.context = nil
 end

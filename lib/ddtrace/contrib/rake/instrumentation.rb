@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/sampling'
 require 'ddtrace/contrib/rake/ext'
 
 module Datadog
@@ -41,6 +42,7 @@ module Datadog
 
           def annotate_invoke!(span, args)
             span.resource = name
+            Contrib::Sampling.set_event_sample_rate(span, configuration[:event_sample_rate])
             span.set_tag(Ext::TAG_TASK_ARG_NAMES, arg_names)
             span.set_tag(Ext::TAG_INVOKE_ARGS, quantize_args(args)) unless args.nil?
           rescue StandardError => e

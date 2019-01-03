@@ -1,10 +1,12 @@
 require 'spec_helper'
+require 'ddtrace/contrib/sampling_examples'
+
 require 'ddtrace'
 require 'shoryuken'
 
 RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
   let(:tracer) { get_test_tracer }
-  let(:options) { { tracer: tracer } }
+  let(:configuration_options) { { tracer: tracer } }
   let(:spans) { tracer.writer.spans }
   let(:span) { spans.first }
 
@@ -12,9 +14,11 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
     Shoryuken.worker_executor = Shoryuken::Worker::InlineExecutor
 
     Datadog.configure do |c|
-      c.use :shoryuken, options
+      c.use :shoryuken, configuration_options
     end
   end
+
+  after { Datadog.registry[:shoryuken].reset_configuration! }
 
   context 'when a Shoryuken::Worker class' do
     subject(:worker_class) do
@@ -37,6 +41,12 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
           .with(anything, body)
           .and_call_original
       end
+
+      # TODO: These expectations do not work because Shoryuken doesn't run middleware in tests
+      #       https://github.com/phstc/shoryuken/issues/541
+      # it_behaves_like 'event sample rate' do
+      #   before { perform_async }
+      # end
 
       it do
         expect { perform_async }.to_not raise_error
