@@ -181,7 +181,13 @@ module Datadog
       do_once(:patch_process_action) do
         require 'ddtrace/contrib/rails/action_controller_patch'
 
-        ::ActionController::Metal.send(:include, Datadog::Contrib::Rails::ActionControllerPatch)
+        if defined?(::ActionController::Base)
+          ::ActionController::Base.send(:include, Datadog::Contrib::Rails::ActionControllerPatch)
+        end
+
+        if defined?(::ActionController::API)
+          ::ActionController::API.send(:include, Datadog::Contrib::Rails::ActionControllerPatch)
+        end
       end
     end
   end
