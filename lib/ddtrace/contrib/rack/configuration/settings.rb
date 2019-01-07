@@ -16,6 +16,7 @@ module Datadog
 
           option :application
           option :distributed_tracing, default: false
+          option :event_sample_rate, default: 1.0
           option :headers, default: DEFAULT_HEADERS
           option :middleware_names, default: false
           option :quantize, default: {}

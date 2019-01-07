@@ -1,9 +1,11 @@
 require 'ddtrace/ext/priority'
 
 RSpec.shared_examples_for 'event sample rate' do
+  let(:default_event_sample_rate) { nil }
+
   context 'when not configured' do
     it 'is not included in the tags' do
-      expect(span.get_metric(Datadog::Ext::Priority::TAG_EVENT_SAMPLE_RATE)).to be nil
+      expect(span.get_metric(Datadog::Ext::Priority::TAG_EVENT_SAMPLE_RATE)).to eq(default_event_sample_rate)
     end
   end
 

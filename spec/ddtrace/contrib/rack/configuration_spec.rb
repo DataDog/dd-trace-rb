@@ -39,6 +39,7 @@ RSpec.describe 'Rack integration configuration' do
 
   it_behaves_like 'event sample rate' do
     include_context 'an incoming HTTP request'
+    let(:default_event_sample_rate) { 1.0 }
     before { is_expected.to be_ok }
   end
 
