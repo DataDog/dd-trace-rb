@@ -169,6 +169,22 @@ module Datadog
   module RailsActionPatcher
     include Datadog::Patcher
 
+    # Patch for ActionController::Metal
+    module MetalPatch
+      # For any Controller class that inherits from ActionController::Metal,
+      # make sure to include the tracing patch. We do this instead of Metal.include(Patch)
+      # because Base and API compose modules that would take precedence over the tracing patch.
+      # By adding it onto the inheriting class, we can make sure it has a higher precedence.
+      def inherited(base)
+        super
+
+        # Make sure not to include the patch twice, to avoid double measurements on controllers.
+        unless base.ancestors.include?(Datadog::Contrib::Rails::ActionControllerPatch)
+          base.send(:include, Datadog::Contrib::Rails::ActionControllerPatch)
+        end
+      end
+    end
+
     module_function
 
     def patch_action_controller
@@ -181,13 +197,7 @@ module Datadog
       do_once(:patch_process_action) do
         require 'ddtrace/contrib/rails/action_controller_patch'
 
-        if defined?(::ActionController::Base)
-          ::ActionController::Base.send(:include, Datadog::Contrib::Rails::ActionControllerPatch)
-        end
-
-        if defined?(::ActionController::API)
-          ::ActionController::API.send(:include, Datadog::Contrib::Rails::ActionControllerPatch)
-        end
+        ::ActionController::Metal.extend(MetalPatch)
       end
     end
   end

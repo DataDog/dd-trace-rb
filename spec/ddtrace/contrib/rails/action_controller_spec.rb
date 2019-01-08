@@ -48,7 +48,12 @@ RSpec.describe 'ActionController tracing' do
           let(:controller) do
             super().tap do |controller_class|
               controller_class.class_eval do
-                before_action :short_circuit
+                # Rails 3.x-5.x compatibility
+                if respond_to?(:before_action)
+                  before_action :short_circuit
+                else
+                  before_filter :short_circuit
+                end
 
                 def short_circuit
                   head :no_content
