@@ -32,7 +32,6 @@ RSpec.describe 'Rails request' do
   end
 
   before(:each) do
-    Datadog::RailsActionPatcher.patch_action_controller
     Datadog.configure do |c|
       c.use :rack, rack_options if use_rack
       c.use :rails, rails_options if use_rails

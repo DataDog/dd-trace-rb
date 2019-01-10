@@ -8,15 +8,6 @@ module Datadog
     module Rails
       # Code used to create and handle 'rails.action_controller' spans.
       module ActionController
-        include Datadog::Patcher
-
-        def self.instrument
-          # patch Rails core components
-          do_once(:instrument) do
-            Datadog::RailsActionPatcher.patch_action_controller
-          end
-        end
-
         def self.start_processing(payload)
           # trace the execution
           tracer = Datadog.configuration[:rails][:tracer]

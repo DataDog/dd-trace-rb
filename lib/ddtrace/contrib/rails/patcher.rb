@@ -76,9 +76,9 @@ module Datadog
 
         # Add instrumentation to Rails components
         def instrument_rails
-          Datadog::Contrib::Rails::ActionController.instrument
-          Datadog::Contrib::Rails::ActionView.instrument
-          Datadog::Contrib::Rails::ActiveSupport.instrument
+          Datadog::RailsActionPatcher.patch_action_controller
+          Datadog::RailsRendererPatcher.patch_renderer
+          Datadog::RailsCachePatcher.patch_cache_store
         end
       end
     end

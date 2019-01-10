@@ -4,6 +4,8 @@ module Datadog
       # Instrument ActiveController processing
       module ActionControllerPatch
         def self.included(base)
+          return if base.ancestors.include?(ProcessActionPatch)
+
           if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
             base.send(:prepend, ProcessActionPatch)
           else

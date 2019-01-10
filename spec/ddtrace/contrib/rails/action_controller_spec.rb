@@ -5,7 +5,6 @@ RSpec.describe 'ActionController tracing' do
   let(:rails_options) { { tracer: tracer } }
 
   before(:each) do
-    Datadog::RailsActionPatcher.patch_action_controller
     Datadog.configure do |c|
       c.use :rails, rails_options
     end
