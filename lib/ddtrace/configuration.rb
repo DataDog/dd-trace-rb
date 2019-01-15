@@ -19,6 +19,10 @@ module Datadog
     end
 
     # Helper methods
+    def metrics
+      configuration.metrics
+    end
+
     def tracer
       configuration.tracer
     end

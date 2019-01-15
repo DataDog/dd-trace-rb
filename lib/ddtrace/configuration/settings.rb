@@ -1,6 +1,9 @@
 require 'ddtrace/ext/analytics'
-require 'ddtrace/environment'
 require 'ddtrace/configuration/options'
+
+require 'ddtrace/environment'
+require 'ddtrace/tracer'
+require 'ddtrace/metrics'
 
 module Datadog
   module Configuration
@@ -13,6 +16,7 @@ module Datadog
               default: -> { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) },
               lazy: true
 
+      option :metrics, default: Metrics.new
       option :tracer, default: Tracer.new
 
       def initialize(options = {})
@@ -26,6 +30,13 @@ module Datadog
         end
 
         yield(self) if block_given?
+      end
+
+      def metrics(options = nil)
+        metrics = get_option(:metrics)
+        return metrics if options.nil?
+
+        metrics.configure(options)
       end
 
       # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`

@@ -63,6 +63,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
          - [Filtering](#filtering)
          - [Processing](#processing)
      - [Trace correlation](#trace-correlation)
+     - [Metrics](#metrics)
      - [OpenTracing](#opentracing)
 
 ## Compatibility
@@ -1724,6 +1725,30 @@ logger.warn('This is an untraced operation.')
 Datadog.tracer.trace('my.operation') { logger.warn('This is a traced operation.') }
 # [2019-01-16 18:38:41 +0000][my_app][WARN][dd.trace_id=8545847825299552251 dd.span_id=3711755234730770098] This is a traced operation.
 ```
+
+### Metrics
+
+The tracer and its integrations can produce some additional metrics that can provide useful insight into the performance of your application. These metrics are collected with `dogstatsd-ruby`, and can be sent to the same Datadog agent to which you send your traces.
+
+To configure your application for metrics collection:
+
+1. [Configure your Datadog agent for StatsD](https://docs.datadoghq.com/developers/dogstatsd/#setup)
+2. Add `gem 'dogstatsd-ruby'` to your Gemfile
+3. Add the following to your configuration file:
+
+```ruby
+# config/initializers/datadog.rb
+require 'datadog/statsd'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  # Statsd is automatically configured with default settings if `dogstatsd-ruby` is available.
+  # Otherwise, you can configure with host and port of Datadog agent; defaults to 'localhost:8125'.
+  c.metrics statsd: Datadog::Statsd.new
+end
+```
+
+See the [Dogstatsd documentation](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/frames) for more details about configuring `Datadog::Statsd`.
 
 ### OpenTracing
 
