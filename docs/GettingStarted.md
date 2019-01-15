@@ -64,6 +64,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
          - [Processing](#processing)
      - [Trace correlation](#trace-correlation)
      - [Metrics](#metrics)
+         - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
 
 ## Compatibility
@@ -1749,6 +1750,27 @@ end
 ```
 
 See the [Dogstatsd documentation](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/frames) for more details about configuring `Datadog::Statsd`.
+
+#### For application runtime
+
+If metrics are configured, the trace library will automatically collect and send metrics about the health of your application.
+
+These include:
+
+| Name                                  | Type    | Description                        |
+| ------------------------------------- | ------- | ---------------------------------- |
+| `datadog.tracer.runtime.class_count`  | `gauge` | Number of classes in memory space. |
+| `datadog.tracer.runtime.heap_size`.   | `gauge` | Size of memory heap, in bytes.     |
+| `datadog.tracer.runtime.thread_count` | `gauge` | Number of threads.                 |
+
+In addition, all metrics will include the following tags:
+
+| Name                              | Description                                                         |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `datadog.tracer.lang`             | Programming language traced. (e.g. `ruby`)                          |
+| `datadog.tracer.lang_interpreter` | Language interpreter used, if available. (e.g. `ruby-x86_64-linux`) |
+| `datadog.tracer.lang_version`     | Version of language traced. (e.g. `2.3.7`)                          |
+| `datadog.tracer.version`          | Version of tracer library/module. (e.g. `0.16.1` )                  |
 
 ### OpenTracing
 

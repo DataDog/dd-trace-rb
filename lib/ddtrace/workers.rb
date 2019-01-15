@@ -1,6 +1,7 @@
 require 'time'
 
 require 'ddtrace/buffer'
+require 'ddtrace/runtime/metrics'
 
 module Datadog
   module Workers
@@ -62,6 +63,19 @@ module Datadog
         end
       end
 
+      def callback_runtime_metrics
+        return true unless Datadog.metrics.send_stats?
+
+        begin
+          Datadog::Runtime::Metrics.flush(Datadog.metrics)
+        rescue StandardError => e
+          # ensures that the thread will not die because of an exception.
+          # TODO[manu]: findout the reason and reschedule the send if it's not
+          # a fatal exception
+          Datadog::Tracer.log.error("Error during runtime metrics flush. Cause: #{e}")
+        end
+      end
+
       # Start the timer execution.
       def start
         @mutex.synchronize do
@@ -113,6 +127,7 @@ module Datadog
           @back_off = flush_data ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
 
           callback_services
+          callback_runtime_metrics
 
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty? && @service_buffer.empty?
