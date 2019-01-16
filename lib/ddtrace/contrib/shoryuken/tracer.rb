@@ -11,7 +11,7 @@ module Datadog
 
         def call(worker_instance, queue, sqs_msg, body)
           @tracer.trace(Ext::SPAN_JOB, service: @shoryuken_service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
-            span.resource = worker_instance.class.name
+            span.resource = body['job_class'] || worker_instance.class.name
             span.set_tag(Ext::TAG_JOB_ID, sqs_msg.message_id)
             span.set_tag(Ext::TAG_JOB_QUEUE, queue)
             span.set_tag(Ext::TAG_JOB_ATTRIBUTES, sqs_msg.attributes) if sqs_msg.respond_to?(:attributes)
