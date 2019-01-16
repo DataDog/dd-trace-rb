@@ -65,11 +65,13 @@ module Datadog
           # TODO: Add deprecation warnings back in
           # DEV: Some third party Gems will loop over the rack env causing our deprecation
           #      warnings to be shown even when the user is not accessing them directly
-          # `add_deprecation_warnings(env)`
-          env.without_datadog_warnings do
-            # TODO: For backwards compatibility; this attribute is deprecated.
-            env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
-          end
+          #
+          # add_deprecation_warnings(env)
+          # env.without_datadog_warnings do
+          #   # TODO: For backwards compatibility; this attribute is deprecated.
+          #   env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
+          # end
+          env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
 
           # Copy the original env, before the rest of the stack executes.
           # Values may change; we want values before that happens.
