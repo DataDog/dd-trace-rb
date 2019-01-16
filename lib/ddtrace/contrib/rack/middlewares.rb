@@ -62,8 +62,10 @@ module Datadog
           request_span = tracer.trace(Ext::SPAN_REQUEST, trace_options)
           env[RACK_REQUEST_SPAN] = request_span
 
-          # Add deprecation warnings
-          add_deprecation_warnings(env)
+          # TODO: Add deprecation warnings back in
+          # DEV: Some third party Gems will loop over the rack env causing our deprecation
+          #      warnings to be shown even when the user is not accessing them directly
+          # `add_deprecation_warnings(env)`
           env.without_datadog_warnings do
             # TODO: For backwards compatibility; this attribute is deprecated.
             env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
