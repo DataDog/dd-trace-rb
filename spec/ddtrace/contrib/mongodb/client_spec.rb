@@ -319,6 +319,17 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.status).to eq(1)
         expect(span.get_tag('error.msg')).to eq('ns not found (26)')
       end
+
+      context 'that triggers #failed before #started' do
+        subject(:failed_event) { subscriber.failed(event) }
+        let(:event) { instance_double(Mongo::Monitoring::Event::CommandFailed, request_id: double('request_id')) }
+        let(:subscriber) { Datadog::Contrib::MongoDB::MongoCommandSubscriber.new }
+
+        # Clear the thread variable out, as if #started has never run.
+        before(:each) { Thread.current[:datadog_mongo_span] = nil }
+
+        it { expect { failed_event }.to_not raise_error }
+      end
     end
 
     describe 'with LDAP/SASL authentication' do
