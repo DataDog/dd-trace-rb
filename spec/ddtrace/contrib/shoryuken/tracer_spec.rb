@@ -3,8 +3,10 @@ require 'ddtrace'
 require 'shoryuken'
 
 RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
-  let(:options) { { tracer: tracer } }
+  let(:shoryuken_tracer) { described_class.new }
+
+  let(:tracer) { get_test_tracer }
+  let(:configuration_options) { { tracer: tracer } }
   let(:spans) { tracer.writer.spans }
   let(:span) { spans.first }
 
@@ -12,12 +14,14 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
     Shoryuken.worker_executor = Shoryuken::Worker::InlineExecutor
 
     Datadog.configure do |c|
-      c.use :shoryuken, options
+      c.use :shoryuken, configuration_options
     end
   end
 
-  context 'when a Shoryuken::Worker class' do
-    subject(:worker_class) do
+  after { Datadog.registry[:shoryuken].reset_configuration! }
+
+  shared_context 'Shoryuken::Worker' do
+    let(:worker_class) do
       qn = queue_name
       stub_const('TestWorker', Class.new do
         include Shoryuken::Worker
@@ -25,7 +29,56 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
         def perform(sqs_msg, body); end
       end)
     end
+    let(:worker) { worker_class.new }
     let(:queue_name) { 'default' }
+  end
+
+  describe '#call' do
+    subject(:call) do
+      shoryuken_tracer.call(worker, queue_name, sqs_msg, body) do
+        worker.perform(sqs_msg, body)
+      end
+    end
+
+    # TODO: Convert this to an instance double, to verify stub.
+    let(:sqs_msg) { double('sqs_msg', message_id: message_id, attributes: attributes) }
+    let(:message_id) { SecureRandom.uuid }
+    let(:attributes) { {} }
+
+    include_context 'Shoryuken::Worker'
+
+    before do
+      expect { call }.to_not raise_error
+      expect(spans).to have(1).items
+      expect(span.name).to eq(Datadog::Contrib::Shoryuken::Ext::SPAN_JOB)
+      expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ID)).to eq(message_id)
+      expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
+      expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes.to_s)
+    end
+
+    context 'with a body' do
+      context 'that is a Hash' do
+        context 'that contains \'job_class\'' do
+          let(:body) { { 'job_class' => job_class } }
+          let(:job_class) { 'MyJob' }
+          it { expect(span.resource).to eq(job_class) }
+        end
+
+        context 'that does not contain \'job_class\'' do
+          let(:body) { {} }
+          it { expect(span.resource).to eq('TestWorker') }
+        end
+      end
+
+      context 'that is a String' do
+        let(:body) { 'my body' }
+        it { expect(span.resource).to eq('TestWorker') }
+      end
+    end
+  end
+
+  context 'when a Shoryuken::Worker class' do
+    include_context 'Shoryuken::Worker'
 
     describe '#perform_async' do
       subject(:perform_async) { worker_class.perform_async(body) }
@@ -43,7 +96,7 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
         # TODO: These expectations do not work because Shoryuken doesn't run middleware in tests
         #       https://github.com/phstc/shoryuken/issues/541
         # expect(spans).to have(1).items
-        # expect(span.name).to_not eq(Datadog::Contrib::Shoryuken::Ext::SPAN_JOB)
+        # expect(span.name).to eq(Datadog::Contrib::Shoryuken::Ext::SPAN_JOB)
         # TODO: Stub OpenStruct mock SQS message created by InlineExecutor with data
         #       https://github.com/phstc/shoryuken/blob/master/lib/shoryuken/worker/inline_executor.rb#L9
         # expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ID)).to eq(message_id)
