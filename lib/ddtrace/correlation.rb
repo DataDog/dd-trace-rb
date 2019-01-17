@@ -12,6 +12,10 @@ module Datadog
           self.trace_id = trace_id || 0
           self.span_id = span_id || 0
         end
+
+        def to_s
+          "dd.trace_id=#{trace_id} dd.span_id=#{span_id}"
+        end
       end
     end.freeze
 

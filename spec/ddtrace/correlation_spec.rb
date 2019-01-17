@@ -14,6 +14,7 @@ RSpec.describe Datadog::Correlation do
         is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
         expect(correlation_ids.trace_id).to be 0
         expect(correlation_ids.span_id).to be 0
+        expect(correlation_ids.to_s).to eq('dd.trace_id=0 dd.span_id=0')
       end
     end
 
@@ -33,6 +34,7 @@ RSpec.describe Datadog::Correlation do
         is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
         expect(correlation_ids.trace_id).to eq(trace_id)
         expect(correlation_ids.span_id).to eq(span_id)
+        expect(correlation_ids.to_s).to eq("dd.trace_id=#{trace_id} dd.span_id=#{span_id}")
       end
     end
   end
