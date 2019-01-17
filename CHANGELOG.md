@@ -4,6 +4,18 @@
 
 ## [Unreleased (beta)]
 
+## [0.18.3] - 2019-01-17
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.18.3
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.18.2...v0.18.3
+
+### Fixed
+
+- Mongo `NoMethodError` when no span available during `#failed`. (#674, #675) (@Azure7111)
+- Rack deprecation warnings firing with some 3rd party libraries present. (#672)
+- Shoryuken resource name when used with ActiveJob. (#671) (@aurelian)
+
 ## [0.18.2] - 2019-01-03
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.18.2
@@ -615,9 +627,10 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.2...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.2...0.19-dev
-[0.18.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.1...v0.18.2
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.3...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.3...0.19-dev
+[0.18.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.2...v0.18.3
+[0.18.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.3...v0.18.0
 [0.17.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.17.2...v0.17.3
