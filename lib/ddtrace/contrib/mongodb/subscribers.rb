@@ -17,8 +17,7 @@ module Datadog
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring/publishable.rb#L38-L56
           span = pin.tracer.trace(Ext::SPAN_COMMAND, service: pin.service, span_type: Ext::SPAN_TYPE_COMMAND)
-          Thread.current[:datadog_mongo_span] ||= {}
-          Thread.current[:datadog_mongo_span][event.request_id] = span
+          set_span(event, span)
 
           # build a quantized Query using the Parser module
           query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
@@ -38,7 +37,7 @@ module Datadog
         end
 
         def failed(event)
-          span = Thread.current[:datadog_mongo_span][event.request_id]
+          span = get_span(event)
           return unless span
 
           # the failure is not a real exception because it's handled by
@@ -50,11 +49,11 @@ module Datadog
           # whatever happens, the Span must be removed from the local storage and
           # it must be finished to prevent any leak
           span.finish unless span.nil?
-          Thread.current[:datadog_mongo_span].delete(event.request_id)
+          clear_span(event)
         end
 
         def succeeded(event)
-          span = Thread.current[:datadog_mongo_span][event.request_id]
+          span = get_span(event)
           return unless span
 
           # add fields that are available only after executing the query
@@ -66,6 +65,23 @@ module Datadog
           # whatever happens, the Span must be removed from the local storage and
           # it must be finished to prevent any leak
           span.finish unless span.nil?
+          clear_span(event)
+        end
+
+        private
+
+        def get_span(event)
+          Thread.current[:datadog_mongo_span] \
+            && Thread.current[:datadog_mongo_span][event.request_id]
+        end
+
+        def set_span(event, span)
+          Thread.current[:datadog_mongo_span] ||= {}
+          Thread.current[:datadog_mongo_span][event.request_id] = span
+        end
+
+        def clear_span(event)
+          return if Thread.current[:datadog_mongo_span].nil?
           Thread.current[:datadog_mongo_span].delete(event.request_id)
         end
       end

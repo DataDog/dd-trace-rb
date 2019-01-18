@@ -55,7 +55,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
         end
 
         it do
-          expect(Datadog::Tracer.log).to have_received(:warn)
+          expect(Datadog::Tracer.log).to_not have_received(:warn)
             .with(/:datadog_rack_request_span/)
         end
       end
