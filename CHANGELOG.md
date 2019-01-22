@@ -4,6 +4,21 @@
 
 ## [Unreleased (beta)]
 
+## [0.19.0] - 2019-01-22
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.19.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.18.3...v0.19.0
+
+### Added
+
+ - Tracer#active_correlation for adding correlation IDs to logs. (#660, #664, #673)
+ - Opt-in support for `event_sample_rate` tag for some integrations. (#665, #666)
+
+### Changed
+
+ - Priority sampling enabled by default. (#654)
+
 ## [0.18.3] - 2019-01-17
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.18.3
@@ -627,8 +642,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.3...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.3...0.19-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.0...0.20-dev
+[0.19.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.3...v0.19.0
 [0.18.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.2...v0.18.3
 [0.18.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.0...v0.18.1
