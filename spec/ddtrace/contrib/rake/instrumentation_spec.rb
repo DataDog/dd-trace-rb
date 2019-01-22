@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/sampling_examples'
 
 require 'securerandom'
 require 'rake'
@@ -7,7 +8,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/rake/patcher'
 
 RSpec.describe Datadog::Contrib::Rake::Instrumentation do
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:configuration_options) { { tracer: tracer, enabled: true } }
   let(:spans) { tracer.writer.spans }
   let(:span) { spans.first }
@@ -25,10 +26,11 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
   end
 
   after(:each) do
+    # Reset configuration to defaults
+    Datadog.registry[:rake].reset_configuration!
+
     # We don't want instrumentation enabled during the rest of the test suite...
-    Datadog.configure do |c|
-      c.use :rake, enabled: false
-    end
+    Datadog.configure { |c| c.use :rake, enabled: false }
   end
 
   def reset_task!(task_name)
@@ -87,6 +89,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           expect(invoke_span.resource).to eq(task_name.to_s)
           expect(invoke_span.parent_id).to eq(0)
         end
+
+        it_behaves_like 'event sample rate' do
+          let(:span) { invoke_span }
+        end
       end
 
       describe '\'rake.execute\' span' do
@@ -94,6 +100,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           expect(execute_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_EXECUTE)
           expect(execute_span.resource).to eq(task_name.to_s)
           expect(execute_span.parent_id).to eq(invoke_span.span_id)
+          expect(execute_span.get_tag(Datadog::Ext::Priority::TAG_EVENT_SAMPLE_RATE)).to be nil
         end
       end
     end

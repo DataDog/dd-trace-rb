@@ -62,6 +62,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Processing pipeline](#processing-pipeline)
          - [Filtering](#filtering)
          - [Processing](#processing)
+     - [Trace correlation](#trace-correlation)
      - [OpenTracing](#opentracing)
 
 ## Compatibility
@@ -517,6 +518,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `service_name` | Service name used for `DelayedJob` instrumentation | `'delayed_job'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -865,6 +867,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `service_name` | Service name used for `racecar` instrumentation | `'racecar'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -897,6 +900,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `application` | Your Rack application. Required for `middleware_names`. | `nil` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
+| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `headers` | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `middleware_names` | Enable this if you want to use the middleware classes as the resource names for `rack` spans. Requires `application` option to use. | `false` |
 | `quantize` | Hash containing options for quantization. May include `:query` or `:fragment`. | `{}` |
@@ -1006,6 +1010,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
+| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `quantize` | Hash containing options for quantization of task arguments. See below for more details and examples. | `{}` |
 | `service_name` | Service name used for `rake` instrumentation | `'rake'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
@@ -1107,6 +1112,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `service_name` | Service name used for `resque` instrumentation | `'resque'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 | `workers` | An array including all worker classes you want to trace (eg `[MyJob]`) | `[]` |
@@ -1198,6 +1204,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `service_name` | Service name used for `shoryuken` instrumentation | `'shoryuken'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -1220,6 +1227,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `client_service_name` | Service name used for client-side `sidekiq` instrumentation | `'sidekiq-client'` |
+| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `service_name` | Service name used for server-side `sidekiq` instrumentation | `'sidekiq'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -1271,6 +1279,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `service_name` | Service name used for `sucker_punch` instrumentation | `'sucker_punch'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -1356,15 +1365,7 @@ The sampler can set the priority to the following values:
  - `Datadog::Ext::Priority::AUTO_REJECT`: the sampler automatically decided to reject the trace.
  - `Datadog::Ext::Priority::AUTO_KEEP`: the sampler automatically decided to keep the trace.
 
-For now, priority sampling is disabled by default. Enabling it ensures that your sampled distributed traces will be complete. To enable the priority sampling:
-
-```ruby
-Datadog.configure do |c|
-  c.tracer priority_sampling: true
-end
-```
-
-Once enabled, the sampler will automatically assign a priority of 0 or 1 to traces, depending on their service and volume.
+Priority sampling is enabled by default. Enabling it ensures that your sampled distributed traces will be complete. Once enabled, the sampler will automatically assign a priority of 0 or 1 to traces, depending on their service and volume.
 
 You can also set this priority manually to either drop a non-interesting trace or to keep an important one. For that, set the `context#sampling_priority` to:
 
@@ -1611,6 +1612,77 @@ Datadog::Pipeline.before_flush(
   # Strip matching text from the resource field
   Datadog::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
 )
+```
+
+### Trace correlation
+
+In many cases, such as logging, it may be useful to correlate trace IDs to other events or data streams, for easier cross referencing. The tracer can produce a correlation identifier for the currently active trace via `active_correlation`, which can be used to decorate these other data sources.
+
+```ruby
+# When a trace is active...
+Datadog.tracer.trace('correlation.example') do
+  # Returns #<Datadog::Correlation::Identifier>
+  correlation = Datadog.tracer.active_correlation
+  correlation.trace_id # => 5963550561812073440
+  correlation.span_id # => 2232727802607726424
+end
+
+# When a trace isn't active...
+correlation = Datadog.tracer.active_correlation
+# Returns #<Datadog::Correlation::Identifier>
+correlation = Datadog.tracer.active_correlation
+correlation.trace_id # => 0
+correlation.span_id # => 0
+```
+
+#### For logging in Ruby applications
+
+To add correlation IDs to your logger, add a log formatter which retrieves the correlation IDs with `Datadog.tracer.active_correlation`, then add them to the message.
+
+To properly correlate with Datadog logging, be sure the following is present:
+
+ - `dd.trace_id=<TRACE_ID>`: Where `<TRACE_ID>` is equal to `Datadog.tracer.active_correlation.trace_id` or `0` if no trace is active.
+ - `dd.span_id=<SPAN_ID>`: Where `<SPAN_ID>` is equal to `Datadog.tracer.active_correlation.span_id` or `0` if no trace is active.
+
+By default, `Datadog::Correlation::Identifier#to_s` will return `dd.trace_id=<TRACE_ID> dd.span_id=<SPAN_ID>`.
+
+An example of this in practice:
+
+```ruby
+require 'ddtrace'
+require 'logger'
+
+logger = Logger.new(STDOUT)
+logger.progname = 'my_app'
+logger.formatter  = proc do |severity, datetime, progname, msg|
+  "[#{datetime}][#{progname}][#{severity}][#{Datadog.tracer.active_correlation}] #{msg}\n"
+end
+
+# When no trace is active
+logger.warn('This is an untraced operation.')
+# [2019-01-16 18:38:41 +0000][my_app][WARN][dd.trace_id=0 dd.span_id=0] This is an untraced operation.
+
+# When a trace is active
+Datadog.tracer.trace('my.operation') { logger.warn('This is a traced operation.') }
+# [2019-01-16 18:38:41 +0000][my_app][WARN][dd.trace_id=8545847825299552251 dd.span_id=3711755234730770098] This is a traced operation.
+```
+
+#### For logging in Rails applications
+
+Rails applications which are configured with a `ActiveSupport::TaggedLogging` logger can append correlation IDs as tags to log output. The default Rails logger implements this tagged logging, making it easier to add correlation tags.
+
+In your Rails environment configuration file, add the following:
+
+```ruby
+Rails.application.configure do
+  config.log_tags = [proc { Datadog.tracer.active_correlation.to_s }]
+end
+
+# Web requests will produce:
+# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206] Started GET "/articles" for 172.22.0.1 at 2019-01-16 18:50:57 +0000
+# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206] Processing by ArticlesController#index as */*
+# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206]   Article Load (0.5ms)  SELECT "articles".* FROM "articles"
+# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206] Completed 200 OK in 7ms (Views: 5.5ms | ActiveRecord: 0.5ms)
 ```
 
 ### OpenTracing

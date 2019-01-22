@@ -79,7 +79,7 @@ class SamplerTest < Minitest::Test
     prng = Random.new(123)
 
     tracer = get_test_tracer()
-    tracer.configure(sampler: Datadog::RateSampler.new(0.5))
+    tracer.configure(sampler: Datadog::RateSampler.new(0.5), priority_sampling: false)
 
     nb_spans = 10000
     nb_spans.times do
@@ -87,7 +87,7 @@ class SamplerTest < Minitest::Test
       span.finish()
     end
 
-    spans = tracer.writer.spans()
+    spans = tracer.writer.spans
     expected = nb_spans * 0.5
     assert_in_delta(spans.length, expected, 0.1 * expected)
 

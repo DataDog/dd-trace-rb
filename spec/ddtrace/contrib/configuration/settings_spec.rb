@@ -9,7 +9,23 @@ RSpec.describe Datadog::Contrib::Configuration::Settings do
 
   describe '#options' do
     subject(:options) { settings.options }
-    it { is_expected.to include(:service_name) }
-    it { is_expected.to include(:tracer) }
+
+    describe ':service_name' do
+      subject(:option) { options[:service_name] }
+      it { expect(options).to include(:service_name) }
+      it { expect(option.get).to be nil }
+    end
+
+    describe ':tracer' do
+      subject(:option) { options[:tracer] }
+      it { expect(options).to include(:tracer) }
+      it { expect(option.get).to be Datadog.tracer }
+    end
+
+    describe ':event_sample_rate' do
+      subject(:option) { options[:event_sample_rate] }
+      it { expect(options).to include(:event_sample_rate) }
+      it { expect(option.get).to be nil }
+    end
   end
 end

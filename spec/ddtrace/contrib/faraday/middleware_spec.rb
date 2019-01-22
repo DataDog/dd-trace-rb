@@ -5,7 +5,7 @@ require 'faraday'
 require 'ddtrace/ext/distributed'
 
 RSpec.describe 'Faraday middleware' do
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   let(:client) do
     ::Faraday.new('http://example.com') do |builder|

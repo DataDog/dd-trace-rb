@@ -22,7 +22,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   let(:server) { "http://#{host}:#{port}" }
 
   let(:client) { Elasticsearch::Client.new(url: server) }
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   let(:spans) { tracer.writer.spans }
   let(:span) { spans.first }

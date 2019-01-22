@@ -9,6 +9,7 @@ module Datadog
 
         option :service_name
         option :tracer, default: Datadog.tracer
+        option :event_sample_rate
 
         def initialize(options = {})
           configure(options)

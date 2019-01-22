@@ -6,7 +6,7 @@ require 'mysql2'
 require 'sqlite3'
 
 RSpec.describe 'ActiveRecord multi-database implementation' do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:configuration_options) { { tracer: tracer, service_name: default_db_service_name } }
   let(:default_db_service_name) { 'default-db' }
 

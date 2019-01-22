@@ -1,4 +1,6 @@
 require 'spec_helper'
+require 'ddtrace/contrib/sampling_examples'
+
 require 'active_record'
 require 'delayed_job'
 require 'delayed_job_active_record'
@@ -24,13 +26,15 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
     end)
   end
 
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
+  let(:configuration_options) { { tracer: tracer } }
 
   before do
-    Datadog.configure { |c| c.use :delayed_job, tracer: tracer }
-
+    Datadog.configure { |c| c.use :delayed_job, configuration_options }
     Delayed::Worker.delay_jobs = false
   end
+
+  after(:each) { Datadog.registry[:delayed_job].reset_configuration! }
 
   describe 'instrumenting worker execution' do
     let(:worker) { double(:worker, name: 'worker') }
@@ -99,6 +103,8 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       it 'span tags include number of attempts' do
         expect(span.get_tag('delayed_job.attempts')).to eq('0')
       end
+
+      it_behaves_like 'event sample rate'
 
       context 'when queue name is set' do
         let(:queue_name) { 'queue_name' }

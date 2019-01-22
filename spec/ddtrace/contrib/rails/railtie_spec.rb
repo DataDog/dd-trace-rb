@@ -7,7 +7,7 @@ RSpec.describe 'Rails application' do
   before(:each) { skip 'Test not compatible with Rails < 4.0' if Rails.version < '4.0' }
   include_context 'Rails test application'
 
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   let(:routes) { { '/' => 'test#index' } }
   let(:controllers) { [controller] }

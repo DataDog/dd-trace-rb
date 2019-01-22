@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/sampling_examples'
 require_relative 'job'
 
 require 'ddtrace'
@@ -6,14 +7,15 @@ require 'ddtrace'
 RSpec.describe 'Resque instrumentation' do
   include_context 'Resque job'
 
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
-  let(:pin) { ::Resque.datadog_pin }
+  let(:tracer) { get_test_tracer }
   let(:spans) { tracer.writer.spans }
   let(:span) { spans.first }
 
   let(:url) { "redis://#{host}:#{port}" }
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379) }
+
+  let(:configuration_options) { { tracer: tracer } }
 
   before(:each) do
     # Setup Resque to use Redis
@@ -22,12 +24,11 @@ RSpec.describe 'Resque instrumentation' do
 
     # Patch Resque
     Datadog.configure do |c|
-      c.use :resque
+      c.use :resque, configuration_options
     end
-
-    # Update the Resque pin with the tracer
-    pin.tracer = tracer
   end
+
+  after(:each) { Datadog.registry[:resque].reset_configuration! }
 
   shared_examples 'job execution tracing' do
     context 'that succeeds' do
@@ -42,6 +43,8 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.service).to eq('resque')
         expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
       end
+
+      it_behaves_like 'event sample rate'
     end
 
     context 'that fails' do
@@ -71,6 +74,8 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
         expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to eq(error_class_name)
       end
+
+      it_behaves_like 'event sample rate'
     end
   end
 

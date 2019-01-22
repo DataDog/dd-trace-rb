@@ -1,11 +1,13 @@
 require 'spec_helper'
+require 'ddtrace/contrib/sampling_examples'
 
 require 'racecar'
 require 'racecar/cli'
 require 'active_support'
 require 'ddtrace'
 RSpec.describe 'Racecar patcher' do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
+  let(:configuration_options) { { tracer: tracer } }
 
   def all_spans
     tracer.writer.spans(:keep)
@@ -13,9 +15,11 @@ RSpec.describe 'Racecar patcher' do
 
   before(:each) do
     Datadog.configure do |c|
-      c.use :racecar, tracer: tracer
+      c.use :racecar, configuration_options
     end
   end
+
+  after(:each) { Datadog.registry[:racecar].reset_configuration! }
 
   describe 'for single message processing' do
     let(:topic) { 'dd_trace_test_dummy' }
@@ -31,7 +35,7 @@ RSpec.describe 'Racecar patcher' do
       }
     end
 
-    let(:racecar_span) do
+    let(:span) do
       all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_MESSAGE }.first
     end
 
@@ -39,7 +43,7 @@ RSpec.describe 'Racecar patcher' do
       it 'is expected to send a span' do
         ActiveSupport::Notifications.instrument('process_message.racecar', payload)
 
-        racecar_span.tap do |span|
+        span.tap do |span|
           expect(span).to_not be nil
           expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.message')
@@ -67,7 +71,7 @@ RSpec.describe 'Racecar patcher' do
           nil
         end
 
-        racecar_span.tap do |span|
+        span.tap do |span|
           expect(span).to_not be nil
           expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.message')
@@ -80,6 +84,10 @@ RSpec.describe 'Racecar patcher' do
           expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
         end
       end
+    end
+
+    it_behaves_like 'event sample rate' do
+      before { ActiveSupport::Notifications.instrument('process_message.racecar', payload) }
     end
   end
 
@@ -99,7 +107,7 @@ RSpec.describe 'Racecar patcher' do
       }
     end
 
-    let(:racecar_span) do
+    let(:span) do
       all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_BATCH }.first
     end
 
@@ -107,7 +115,7 @@ RSpec.describe 'Racecar patcher' do
       it 'is expected to send a span' do
         ActiveSupport::Notifications.instrument('process_batch.racecar', payload)
 
-        racecar_span.tap do |span|
+        span.tap do |span|
           expect(span).to_not be nil
           expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.batch')
@@ -135,7 +143,7 @@ RSpec.describe 'Racecar patcher' do
           nil
         end
 
-        racecar_span.tap do |span|
+        span.tap do |span|
           expect(span).to_not be nil
           expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.batch')
@@ -149,6 +157,10 @@ RSpec.describe 'Racecar patcher' do
           expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
         end
       end
+    end
+
+    it_behaves_like 'event sample rate' do
+      before { ActiveSupport::Notifications.instrument('process_batch.racecar', payload) }
     end
   end
 end

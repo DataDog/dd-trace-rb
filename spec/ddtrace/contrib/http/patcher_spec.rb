@@ -3,7 +3,7 @@ require 'ddtrace'
 require 'net/http'
 
 RSpec.describe 'net/http patcher' do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:host) { 'example.com' }
 
   before do

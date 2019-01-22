@@ -19,21 +19,11 @@ module Datadog
           do_once(:resque) do
             begin
               require_relative 'resque_job'
-              add_pin
               get_option(:workers).each { |worker| worker.extend(ResqueJob) }
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Resque integration: #{e}")
             end
           end
-        end
-
-        def add_pin
-          Pin.new(
-            get_option(:service_name),
-            app: Ext::APP,
-            app_type: Datadog::Ext::AppTypes::WORKER,
-            tracer: get_option(:tracer)
-          ).onto(::Resque)
         end
 
         def get_option(option)

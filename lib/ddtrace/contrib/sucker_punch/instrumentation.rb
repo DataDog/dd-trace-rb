@@ -1,4 +1,5 @@
 require 'sucker_punch'
+require 'ddtrace/contrib/sampling'
 require 'ddtrace/contrib/sucker_punch/ext'
 
 module Datadog
@@ -18,6 +19,7 @@ module Datadog
 
               __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"
+                Contrib::Sampling.set_event_sample_rate(span, datadog_configuration[:event_sample_rate])
                 __run_perform_without_datadog(*args)
               end
             rescue => e
@@ -42,6 +44,10 @@ module Datadog
             end
 
             private
+
+            def datadog_configuration
+              Datadog.configuration[:sucker_punch]
+            end
 
             def __with_instrumentation(name)
               pin = Datadog::Pin.get_from(::SuckerPunch)

@@ -5,7 +5,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/excon/middleware'
 
 RSpec.describe Datadog::Contrib::Excon::Middleware do
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   let(:connection_options) { { mock: true } }
   let(:middleware_options) { {} }

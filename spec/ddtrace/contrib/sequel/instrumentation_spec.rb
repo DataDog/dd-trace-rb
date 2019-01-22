@@ -6,7 +6,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/sequel/integration'
 
 RSpec.describe 'Sequel instrumentation' do
-  let(:tracer) { Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:configuration_options) { { tracer: tracer } }
   let(:sequel) do
     Sequel.sqlite(':memory:').tap do |s|

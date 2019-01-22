@@ -4,7 +4,7 @@ require 'ddtrace'
 require 'ddtrace/propagation/http_propagator'
 
 RSpec.describe Datadog::HTTPPropagator do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
 
   describe '#inject!' do
     let(:env) { { 'something' => 'alien' } }

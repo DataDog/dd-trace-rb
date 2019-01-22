@@ -1,4 +1,6 @@
 require 'spec_helper'
+require 'ddtrace/contrib/sampling_examples'
+
 require 'ddtrace'
 require 'shoryuken'
 
@@ -56,6 +58,12 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
       expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes.to_s)
     end
 
+    it_behaves_like 'event sample rate' do
+      include_context 'Shoryuken::Worker'
+      let(:body) { {} }
+      before { call }
+    end
+
     context 'with a body' do
       context 'that is a Hash' do
         context 'that contains \'job_class\'' do
@@ -90,6 +98,12 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
           .with(anything, body)
           .and_call_original
       end
+
+      # TODO: These expectations do not work because Shoryuken doesn't run middleware in tests
+      #       https://github.com/phstc/shoryuken/issues/541
+      # it_behaves_like 'event sample rate' do
+      #   before { perform_async }
+      # end
 
       it do
         expect { perform_async }.to_not raise_error

@@ -4,7 +4,7 @@ require 'ddtrace'
 require_relative 'app'
 
 RSpec.describe 'ActiveRecord instrumentation' do
-  let(:tracer) { ::Datadog::Tracer.new(writer: FauxWriter.new) }
+  let(:tracer) { get_test_tracer }
   let(:configuration_options) { { tracer: tracer } }
 
   before(:each) do
