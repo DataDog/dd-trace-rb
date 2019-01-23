@@ -1,7 +1,7 @@
-require 'ddtrace/ext/meta'
 require 'ddtrace/ext/metrics'
 
 require 'ddtrace/utils/time'
+require 'ddtrace/runtime/identity'
 
 module Datadog
   # Acts as client for sending metrics (via Statsd)
@@ -13,7 +13,7 @@ module Datadog
     attr_reader :statsd
 
     def initialize(statsd = nil)
-      @statsd = default_statsd_client if statsd.nil? && supported?
+      @statsd = statsd || (default_statsd_client if supported?)
     end
 
     def supported?
@@ -81,10 +81,10 @@ module Datadog
     module Options
       DEFAULT = {
         tags: DEFAULT_TAGS = [
-          "#{Ext::Metrics::TAG_LANG}:#{Ext::Meta::LANG}".freeze,
-          "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Ext::Meta::LANG_INTERPRETER}".freeze,
-          "#{Ext::Metrics::TAG_LANG_VERSION}:#{Ext::Meta::LANG_VERSION}".freeze,
-          "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Ext::Meta::TRACER_VERSION}".freeze
+          "#{Ext::Metrics::TAG_LANG}:#{Runtime::Identity.lang}".freeze,
+          "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Runtime::Identity.lang_interpreter}".freeze,
+          "#{Ext::Metrics::TAG_LANG_VERSION}:#{Runtime::Identity.lang_version}".freeze,
+          "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Runtime::Identity.tracer_version}".freeze
         ].freeze
       }.freeze
 
@@ -106,6 +106,9 @@ module Datadog
         # and defaults are unfrozen for mutation in Statsd.
         DEFAULT.dup.tap do |options|
           options[:tags] = options[:tags].dup
+
+          # Add runtime ID dynamically because it might change during fork.
+          options[:tags] << "#{Ext::Metrics::TAG_RUNTIME_ID}:#{Runtime::Identity.id}".freeze
         end
       end
     end
