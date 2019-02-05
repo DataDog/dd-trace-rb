@@ -86,7 +86,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sequel', '~> 4.0', '< 4.37'
       gem 'sidekiq', '~> 3.5.4'
       gem 'sinatra', '1.4.5'
-      gem 'sqlite3'
+      gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'timers', '< 4.2'
     end
@@ -171,7 +171,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sequel', '~> 4.0', '< 4.37'
       gem 'sidekiq', '~> 3.5.4'
       gem 'sinatra', '1.4.5'
-      gem 'sqlite3'
+      gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'timers', '< 4.2'
     end
@@ -277,7 +277,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'shoryuken'
       gem 'sidekiq', '~> 3.5.4'
       gem 'sinatra', '1.4.5'
-      gem 'sqlite3'
+      gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'timers', '< 4.2'
     end
@@ -417,7 +417,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
-      gem 'sqlite3'
+      gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
     end
   end
@@ -556,7 +556,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
-      gem 'sqlite3'
+      gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
     end
   end
@@ -589,7 +589,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
-      gem 'sqlite3'
+      gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
     end
   end
