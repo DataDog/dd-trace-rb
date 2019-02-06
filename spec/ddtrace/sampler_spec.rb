@@ -138,6 +138,7 @@ RSpec.describe Datadog::PrioritySampler do
 
         it do
           expect(sample).to be true
+          expect(context.sampling_priority).to be(Datadog::Ext::Priority::USER_KEEP)
           expect(span.sampled).to be(true)
         end
       end
@@ -147,6 +148,7 @@ RSpec.describe Datadog::PrioritySampler do
 
         it do
           expect(sample).to be true
+          expect(context.sampling_priority).to be(Datadog::Ext::Priority::AUTO_KEEP)
           expect(span.sampled).to be(true)
         end
       end
@@ -155,8 +157,9 @@ RSpec.describe Datadog::PrioritySampler do
         before(:each) { context.sampling_priority = Datadog::Ext::Priority::AUTO_REJECT }
 
         it do
-          expect(sample).to be false
-          expect(span.sampled).to be(false)
+          expect(sample).to be true
+          expect(context.sampling_priority).to be(Datadog::Ext::Priority::AUTO_REJECT)
+          expect(span.sampled).to be(true) # Priority sampling always samples
         end
       end
 
@@ -164,8 +167,9 @@ RSpec.describe Datadog::PrioritySampler do
         before(:each) { context.sampling_priority = Datadog::Ext::Priority::USER_REJECT }
 
         it do
-          expect(sample).to be false
-          expect(span.sampled).to be(false)
+          expect(sample).to be true
+          expect(context.sampling_priority).to be(Datadog::Ext::Priority::USER_REJECT)
+          expect(span.sampled).to be(true) # Priority sampling always samples
         end
       end
     end

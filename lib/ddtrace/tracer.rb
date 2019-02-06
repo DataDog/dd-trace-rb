@@ -139,7 +139,7 @@ module Datadog
       # but neither are configured. Verify the sampler isn't already a
       # priority sampler too, so we don't wrap one with another.
       if priority_sampling != false && !@sampler.is_a?(PrioritySampler)
-        @sampler = PrioritySampler.new(base_sampler: @sampler)
+        @sampler = PrioritySampler.new
         @writer = Writer.new(priority_sampler: @sampler)
       elsif priority_sampling == false
         @sampler = sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)

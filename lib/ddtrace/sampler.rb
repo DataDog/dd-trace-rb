@@ -93,21 +93,37 @@ module Datadog
     extend Forwardable
 
     def initialize(opts = {})
-      @base_sampler = opts[:base_sampler] || RateSampler.new
       @post_sampler = opts[:post_sampler] || RateByServiceSampler.new
     end
 
     def sample(span)
-      return perform_sampling(span) unless span.context
-      return sampled_by_upstream(span) if span.context.sampling_priority
+      # If we haven't sampled this trace yet, do so.
+      # Otherwise we want to keep whatever priority has already been assigned.
+      unless sampled_by_upstream(span)
+        # Use the underlying sampler to "roll the dice" and see how we assign it priority.
+        # This sampler derives rates from the agent, which updates the sampler's rates
+        # whenever traces are submitted to the agent.
+        perform_sampling(span).tap do |sampled|
+          value = sampled ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
 
-      perform_sampling(span).tap do |sampled|
-        span.context.sampling_priority = if sampled
-                                           Datadog::Ext::Priority::AUTO_KEEP
-                                         else
-                                           Datadog::Ext::Priority::AUTO_REJECT
-                                         end
+          if span.context
+            span.context.sampling_priority = value
+          else
+            # Set the priority directly on the span instead, since otherwise
+            # it won't receive the appropriate tag.
+            span.set_metric(
+              Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+              value
+            )
+          end
+        end
       end
+
+      # Priority sampling *always* marks spans as sampled, so we flush them to the agent.
+      # This will happen regardless of whether the trace is kept or ultimately rejected.
+      # Otherwise metrics for traces will not be accurate, since the agent will have an
+      # incomplete dataset.
+      span.sampled = true
     end
 
     def_delegators :@post_sampler, :update
@@ -115,15 +131,11 @@ module Datadog
     private
 
     def sampled_by_upstream(span)
-      span.sampled = priority_keep?(span.context.sampling_priority)
-    end
-
-    def priority_keep?(sampling_priority)
-      sampling_priority == Datadog::Ext::Priority::USER_KEEP || sampling_priority == Datadog::Ext::Priority::AUTO_KEEP
+      span.context && !span.context.sampling_priority.nil?
     end
 
     def perform_sampling(span)
-      @base_sampler.sample(span) && @post_sampler.sample(span)
+      @post_sampler.sample(span)
     end
   end
 end
