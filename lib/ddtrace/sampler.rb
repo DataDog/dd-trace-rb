@@ -124,7 +124,7 @@ module Datadog
     SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
 
     def initialize(opts = {})
-      @pre_sampler = opts[:base_sampler] || RateSampler.new
+      @pre_sampler = opts[:base_sampler] || AllSampler.new
       @priority_sampler = opts[:post_sampler] || RateByServiceSampler.new
     end
 
