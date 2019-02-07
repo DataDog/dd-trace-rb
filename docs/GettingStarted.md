@@ -1637,7 +1637,7 @@ correlation.span_id # => 0
 
 #### For logging in Rails applications using Lograge (recommended)
 
-After [setting up Lograge in a Rails application][https://docs.datadoghq.com/logs/log_collection/ruby/], modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs:
+After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs:
 
 ```ruby
 config.lograge.custom_options = lambda do |event|
