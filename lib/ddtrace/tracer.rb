@@ -139,7 +139,7 @@ module Datadog
       # but neither are configured. Verify the sampler isn't already a
       # priority sampler too, so we don't wrap one with another.
       if priority_sampling != false && !@sampler.is_a?(PrioritySampler)
-        @sampler = PrioritySampler.new
+        @sampler = PrioritySampler.new(base_sampler: @sampler)
         @writer = Writer.new(priority_sampler: @sampler)
       elsif priority_sampling == false
         @sampler = sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
@@ -229,7 +229,7 @@ module Datadog
       span = Span.new(self, name, opts)
       if parent.nil?
         # root span
-        @sampler.sample(span)
+        @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
         if ctx && ctx.trace_id && ctx.span_id
           span.trace_id = ctx.trace_id

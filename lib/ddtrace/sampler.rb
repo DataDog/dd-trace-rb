@@ -5,14 +5,22 @@ require 'ddtrace/ext/priority'
 module Datadog
   # \Sampler performs client-side trace sampling.
   class Sampler
-    def sample(_span)
-      raise NotImplementedError, 'samplers have to implement the sample() method'
+    def sample?(_span)
+      raise NotImplementedError, 'Samplers must implement the #sample? method'
+    end
+
+    def sample!(_span)
+      raise NotImplementedError, 'Samplers must implement the #sample! method'
     end
   end
 
   # \AllSampler samples all the traces.
   class AllSampler < Sampler
-    def sample(span)
+    def sample?(span)
+      true
+    end
+
+    def sample!(span)
       span.sampled = true
     end
   end
@@ -20,7 +28,7 @@ module Datadog
   # \RateSampler is based on a sample rate.
   class RateSampler < Sampler
     KNUTH_FACTOR = 1111111111111111111
-    SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze()
+    SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
 
     attr_reader :sample_rate
 
@@ -45,9 +53,14 @@ module Datadog
       @sampling_id_threshold = sample_rate * Span::MAX_ID
     end
 
-    def sample(span)
-      span.set_metric(SAMPLE_RATE_METRIC_KEY, @sample_rate)
-      span.sampled = ((span.trace_id * KNUTH_FACTOR) % Datadog::Span::MAX_ID) <= @sampling_id_threshold
+    def sample?(span)
+      ((span.trace_id * KNUTH_FACTOR) % Datadog::Span::MAX_ID) <= @sampling_id_threshold
+    end
+
+    def sample!(span)
+      (span.sampled = sample?(span)).tap do |sampled|
+        span.set_metric(SAMPLE_RATE_METRIC_KEY, @sample_rate) if sampled
+      end
     end
   end
 
@@ -62,11 +75,27 @@ module Datadog
       @sampler = { DEFAULT_KEY => @fallback }
     end
 
-    def sample(span)
+    def sample?(span)
       key = key_for(span)
 
       @mutex.synchronize do
-        @sampler.fetch(key, @fallback).sample(span)
+        @sampler.fetch(key, @fallback).sample?(span)
+      end
+    end
+
+    def sample!(span)
+      key = key_for(span)
+
+      @mutex.synchronize do
+        @sampler.fetch(key, @fallback).sample!(span)
+      end
+    end
+
+    def sample_rate(span)
+      key = key_for(span)
+
+      @mutex.synchronize do
+        @sampler.fetch(key, @fallback).sample_rate
       end
     end
 
@@ -92,50 +121,75 @@ module Datadog
   class PrioritySampler
     extend Forwardable
 
+    SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
+
     def initialize(opts = {})
-      @post_sampler = opts[:post_sampler] || RateByServiceSampler.new
+      @pre_sampler = opts[:base_sampler] || RateSampler.new
+      @priority_sampler = opts[:post_sampler] || RateByServiceSampler.new
     end
 
-    def sample(span)
-      # If we haven't sampled this trace yet, do so.
-      # Otherwise we want to keep whatever priority has already been assigned.
-      unless sampled_by_upstream(span)
-        # Use the underlying sampler to "roll the dice" and see how we assign it priority.
-        # This sampler derives rates from the agent, which updates the sampler's rates
-        # whenever traces are submitted to the agent.
-        perform_sampling(span).tap do |sampled|
-          value = sampled ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
+    def sample?(span)
+      @pre_sampler.sample?(span)
+    end
 
-          if span.context
-            span.context.sampling_priority = value
-          else
-            # Set the priority directly on the span instead, since otherwise
-            # it won't receive the appropriate tag.
-            span.set_metric(
-              Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
-              value
-            )
-          end
+    def sample!(span)
+      # If pre-sampling is configured, do it first. (By default, this will sample at 100%.)
+      # NOTE: Pre-sampling at rates < 100% may result in partial traces; not recommended.
+      span.sampled = pre_sample?(span) ? @pre_sampler.sample!(span) : true
+
+      if span.sampled
+        # If priority sampling has already been applied upstream, use that, otherwise...
+        unless sampled_by_upstream(span)
+          # Roll the dice and determine whether how we set the priority.
+          # NOTE: We'll want to leave `span.sampled = true` here; all spans for priority sampling must
+          #       be sent to the agent. Otherwise metrics for traces will not be accurate, since the
+          #       agent will have an incomplete dataset.
+          priority = priority_sample(span) ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
+          set_priority!(span, priority)
         end
+      else
+        # If discarded by pre-sampling, set "reject" priority, so other
+        # services for the same trace don't sample needlessly.
+        set_priority!(span, Datadog::Ext::Priority::AUTO_REJECT)
       end
 
-      # Priority sampling *always* marks spans as sampled, so we flush them to the agent.
-      # This will happen regardless of whether the trace is kept or ultimately rejected.
-      # Otherwise metrics for traces will not be accurate, since the agent will have an
-      # incomplete dataset.
-      span.sampled = true
+      span.sampled
     end
 
-    def_delegators :@post_sampler, :update
+    def_delegators :@priority_sampler, :update
 
     private
+
+    def pre_sample?(span)
+      case @pre_sampler
+      when RateSampler
+        @pre_sampler.sample_rate < 1.0
+      when RateByServiceSampler
+        @pre_sampler.sample_rate(span) < 1.0
+      else
+        true
+      end
+    end
 
     def sampled_by_upstream(span)
       span.context && !span.context.sampling_priority.nil?
     end
 
-    def perform_sampling(span)
-      @post_sampler.sample(span)
+    def priority_sample(span)
+      @priority_sampler.sample?(span)
+    end
+
+    def set_priority!(span, priority)
+      if span.context
+        span.context.sampling_priority = priority
+      else
+        # Set the priority directly on the span instead, since otherwise
+        # it won't receive the appropriate tag.
+        span.set_metric(
+          Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+          priority
+        )
+      end
     end
   end
 end
