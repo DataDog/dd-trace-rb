@@ -139,18 +139,18 @@ module Datadog
 
       if span.sampled
         # If priority sampling has already been applied upstream, use that, otherwise...
-        unless sampled_by_upstream(span)
+        unless priority_assigned_upstream?(span)
           # Roll the dice and determine whether how we set the priority.
           # NOTE: We'll want to leave `span.sampled = true` here; all spans for priority sampling must
           #       be sent to the agent. Otherwise metrics for traces will not be accurate, since the
           #       agent will have an incomplete dataset.
           priority = priority_sample(span) ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
-          set_priority!(span, priority)
+          assign_priority!(span, priority)
         end
       else
         # If discarded by pre-sampling, set "reject" priority, so other
         # services for the same trace don't sample needlessly.
-        set_priority!(span, Datadog::Ext::Priority::AUTO_REJECT)
+        assign_priority!(span, Datadog::Ext::Priority::AUTO_REJECT)
       end
 
       span.sampled
@@ -171,7 +171,7 @@ module Datadog
       end
     end
 
-    def sampled_by_upstream(span)
+    def priority_assigned_upstream?(span)
       span.context && !span.context.sampling_priority.nil?
     end
 
@@ -179,7 +179,7 @@ module Datadog
       @priority_sampler.sample?(span)
     end
 
-    def set_priority!(span, priority)
+    def assign_priority!(span, priority)
       if span.context
         span.context.sampling_priority = priority
       else
