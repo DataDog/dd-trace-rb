@@ -25,7 +25,7 @@ module Datadog
       @rates.each do |service_key, _|
         ITERATIONS_PER_SERVICE.times do
           span = span_for(service_key)
-          @sampler.sample(span)
+          @sampler.sample!(span)
           counter[service_key] += 1 if span.sampled
         end
       end
@@ -41,7 +41,7 @@ module Datadog
 
       ITERATIONS_PER_SERVICE.times do
         span = Span.new(nil, nil, service: 'foo_service')
-        @sampler.sample(span)
+        @sampler.sample!(span)
         counter += 1 if span.sampled
       end
 
@@ -55,7 +55,7 @@ module Datadog
 
       ITERATIONS_PER_SERVICE.times do
         span = Span.new(nil, nil, service: 'foo_service')
-        @sampler.sample(span)
+        @sampler.sample!(span)
         counter += 1 if span.sampled
       end
 

@@ -229,7 +229,7 @@ module Datadog
       span = Span.new(self, name, opts)
       if parent.nil?
         # root span
-        @sampler.sample(span)
+        @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
         if ctx && ctx.trace_id && ctx.span_id
           span.trace_id = ctx.trace_id
