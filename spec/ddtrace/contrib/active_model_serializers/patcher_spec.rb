@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
 require 'spec/ddtrace/contrib/active_model_serializers/helpers'
 
 require 'active_support/all'
@@ -11,6 +12,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
   include_context 'AMS serializer'
 
   let(:tracer) { get_test_tracer }
+  let(:configuration_options) { { tracer: tracer } }
 
   def all_spans
     tracer.writer.spans(:keep)
@@ -21,7 +23,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     ActiveModelSerializersHelpers.disable_logging
 
     Datadog.configure do |c|
-      c.use :active_model_serializers, tracer: tracer
+      c.use :active_model_serializers, configuration_options
     end
 
     # Make sure to update the subscription tracer,
@@ -31,6 +33,13 @@ RSpec.describe 'ActiveModelSerializers patcher' do
         allow(subscription).to receive(:tracer).and_return(tracer)
       end
     end
+  end
+
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:active_model_serializers].reset_configuration!
+    example.run
+    Datadog.registry[:active_model_serializers].reset_configuration!
   end
 
   describe 'on render' do
@@ -52,8 +61,20 @@ RSpec.describe 'ActiveModelSerializers patcher' do
 
     if ActiveModelSerializersHelpers.ams_0_10_or_newer?
       context 'when adapter is set' do
+        subject(:render) { ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash }
+
+        it_behaves_like 'analytics for integration' do
+          let(:analytics_enabled_var) { Datadog::Contrib::ActiveModelSerializers::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::ActiveModelSerializers::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+
+          let(:span) do
+            render
+            active_model_serializers_span
+          end
+        end
+
         it 'is expected to send a span' do
-          ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash
+          render
 
           active_model_serializers_span.tap do |span|
             expect(span).to_not be_nil
@@ -70,8 +91,10 @@ RSpec.describe 'ActiveModelSerializers patcher' do
 
     context 'when adapter is nil' do
       if ActiveModelSerializersHelpers.ams_0_10_or_newer?
+        subject(:render) { ActiveModelSerializers::SerializableResource.new(test_obj, adapter: nil).serializable_hash }
+
         it 'is expected to send a span with adapter tag equal to the model name' do
-          ActiveModelSerializers::SerializableResource.new(test_obj, adapter: nil).serializable_hash
+          render
 
           active_model_serializers_span.tap do |span|
             expect(span).to_not be_nil
@@ -84,8 +107,10 @@ RSpec.describe 'ActiveModelSerializers patcher' do
           end
         end
       else
+        subject(:render) { TestModelSerializer.new(test_obj).as_json }
+
         it 'is expected to send a span with no adapter tag' do
-          TestModelSerializer.new(test_obj).as_json
+          render
 
           active_model_serializers_span.tap do |span|
             expect(span).to_not be_nil
