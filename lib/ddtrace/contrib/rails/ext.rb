@@ -18,6 +18,8 @@ module Datadog
 
         SPAN_TYPE_CACHE = 'cache'.freeze
 
+        TAG_DB_RUNTIME = 'rails.db.runtime'.freeze
+        TAG_VIEW_RUNTIME = 'rails.view.runtime'.freeze
         TAG_CACHE_BACKEND = 'rails.cache.backend'.freeze
         TAG_CACHE_KEY = 'rails.cache.key'.freeze
         TAG_LAYOUT = 'rails.layout'.freeze

@@ -52,6 +52,8 @@ module Datadog
 
             span.set_tag(Ext::TAG_ROUTE_ACTION, payload.fetch(:action))
             span.set_tag(Ext::TAG_ROUTE_CONTROLLER, payload.fetch(:controller))
+            span.set_tag(Ext::TAG_VIEW_RUNTIME, payload.fetch(:view_runtime))
+            span.set_tag(Ext::TAG_DB_RUNTIME, payload.fetch(:db_runtime))
 
             exception = payload[:exception_object]
             if exception.nil?
