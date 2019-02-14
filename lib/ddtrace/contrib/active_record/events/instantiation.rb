@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_record/ext'
 require 'ddtrace/contrib/active_record/event'
 
@@ -38,6 +39,12 @@ module Datadog
 
             span.resource = payload.fetch(:class_name)
             span.span_type = Ext::SPAN_TYPE_INSTANTIATION
+
+            # Set analytics sample rate
+            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            end
+
             span.set_tag(Ext::TAG_INSTANTIATION_CLASS_NAME, payload.fetch(:class_name))
             span.set_tag(Ext::TAG_INSTANTIATION_RECORD_COUNT, payload.fetch(:record_count))
           rescue StandardError => e
