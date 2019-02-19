@@ -20,7 +20,14 @@ module Datadog
           do_once(:dalli) do
             begin
               add_pin!
-              Instrumentation.patch!
+              ::Dalli::Server.send(:include, Instrumentation)
+
+              # TODO: When Dalli pin is removed, set service info.
+              # get_option(:tracer).set_service_info(
+              #   get_option(:service_name),
+              #   Ext::APP,
+              #   Datadog::Ext::AppTypes::CACHE
+              # )
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Dalli integration: #{e}")
             end
