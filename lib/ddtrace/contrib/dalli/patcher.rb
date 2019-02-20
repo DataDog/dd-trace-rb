@@ -20,15 +20,24 @@ module Datadog
           do_once(:dalli) do
             begin
               add_pin!
-              Instrumentation.patch!
+              ::Dalli::Server.send(:include, Instrumentation)
+
+              # TODO: When Dalli pin is removed, set service info.
+              # get_option(:tracer).set_service_info(
+              #   get_option(:service_name),
+              #   Ext::APP,
+              #   Datadog::Ext::AppTypes::CACHE
+              # )
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Dalli integration: #{e}")
             end
           end
         end
 
+        # DEPRECATED: Only kept for users still using `Dalli.datadog_pin` to configure.
+        #             Replaced by configuration API, i.e. `c.use :dalli`.
         def add_pin!
-          Pin
+          DeprecatedPin
             .new(
               get_option(:service_name),
               app: Ext::APP,
@@ -39,6 +48,31 @@ module Datadog
 
         def get_option(option)
           Datadog.configuration[:dalli].get_option(option)
+        end
+
+        # Implementation of deprecated Pin, which raises warnings when accessed.
+        # To be removed when support for Datadog::Pin with Dalli is removed.
+        class DeprecatedPin < Datadog::Pin
+          include Datadog::DeprecatedPin
+
+          DEPRECATION_WARNING = %(
+            Use of Datadog::Pin with Dalli is DEPRECATED.
+            Upgrade to the configuration API using the migration guide here:
+            https://github.com/DataDog/dd-trace-rb/releases/tag/v0.11.0).freeze
+
+          def tracer=(tracer)
+            Datadog.configuration[:dalli][:tracer] = tracer
+          end
+
+          def service_name=(service_name)
+            Datadog.configuration[:dalli][:service_name] = service_name
+          end
+
+          def log_deprecation_warning(method_name)
+            do_once(method_name) do
+              Datadog::Tracer.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
+            end
+          end
         end
       end
     end
