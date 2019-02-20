@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
 
 require 'excon'
 require 'ddtrace'
@@ -25,7 +26,11 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     end
   end
 
-  after(:each) do
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:excon].reset_configuration!
+    example.run
+    Datadog.registry[:excon].reset_configuration!
     Excon.stubs.clear
   end
 
@@ -74,6 +79,12 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
   context 'when there is successful request' do
     subject!(:response) { connection.get(path: '/success') }
 
+    it_behaves_like 'analytics for integration' do
+      let(:analytics_enabled_var) { Datadog::Contrib::Excon::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Contrib::Excon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:span) { request_span }
+    end
+
     it do
       expect(request_span).to_not be nil
       expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::SERVICE_NAME)
@@ -116,7 +127,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
   context 'when the request times out' do
     subject(:response) { connection.get(path: '/timeout') }
     it do
-      expect { subject }.to raise_error
+      expect { subject }.to raise_error(Excon::Error::Timeout)
       expect(request_span.finished?).to eq(true)
       expect(request_span.status).to eq(Datadog::Ext::Errors::STATUS)
       expect(request_span.get_tag('error.type')).to eq('Excon::Error::Timeout')
@@ -125,7 +136,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     context 'when the request is idempotent' do
       subject(:response) { connection.get(path: '/timeout', idempotent: true, retry_limit: 4) }
       it 'records separate spans' do
-        expect { subject }.to raise_error
+        expect { subject }.to raise_error(Excon::Error::Timeout)
         expect(all_request_spans.size).to eq(4)
         expect(all_request_spans.all?(&:finished?)).to eq(true)
       end

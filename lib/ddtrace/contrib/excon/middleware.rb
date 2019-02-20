@@ -3,6 +3,7 @@ require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/excon/ext'
 
 module Datadog
@@ -82,6 +83,14 @@ module Datadog
           @options[:tracer]
         end
 
+        def analytics_enabled?
+          Contrib::Analytics.enabled?(@options[:analytics_enabled])
+        end
+
+        def analytics_sample_rate
+          @options[:analytics_sample_rate]
+        end
+
         def distributed_tracing?
           @options[:distributed_tracing] == true && tracer.enabled
         end
@@ -98,6 +107,12 @@ module Datadog
           span.resource = datum[:method].to_s.upcase
           span.service = service_name(datum)
           span.span_type = Datadog::Ext::HTTP::TYPE
+
+          # Set analytics sample rate
+          if analytics_enabled?
+            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
+          end
+
           span.set_tag(Datadog::Ext::HTTP::URL, datum[:path])
           span.set_tag(Datadog::Ext::HTTP::METHOD, datum[:method].to_s.upcase)
           span.set_tag(Datadog::Ext::NET::TARGET_HOST, datum[:host])
