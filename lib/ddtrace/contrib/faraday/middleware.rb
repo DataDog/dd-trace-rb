@@ -2,6 +2,7 @@ require 'faraday'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/faraday/ext'
 
 module Datadog
@@ -33,6 +34,12 @@ module Datadog
           span.resource = env[:method].to_s.upcase
           span.service = service_name(env)
           span.span_type = Datadog::Ext::HTTP::TYPE
+
+          # Set analytics sample rate
+          if analytics_enabled?
+            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
+          end
+
           span.set_tag(Datadog::Ext::HTTP::URL, env[:url].path)
           span.set_tag(Datadog::Ext::HTTP::METHOD, env[:method].to_s.upcase)
           span.set_tag(Datadog::Ext::NET::TARGET_HOST, env[:url].host)
@@ -63,6 +70,14 @@ module Datadog
           return env[:url].host if options[:split_by_domain]
 
           options[:service_name]
+        end
+
+        def analytics_enabled?
+          Contrib::Analytics.enabled?(options[:analytics_enabled])
+        end
+
+        def analytics_sample_rate
+          options[:analytics_sample_rate]
         end
 
         def setup_service!

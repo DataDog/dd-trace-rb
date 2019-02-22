@@ -12,6 +12,14 @@ module Datadog
             Datadog::Ext::HTTP::ERROR_RANGE.cover?(env[:status])
           end
 
+          option  :analytics_enabled,
+                  default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) },
+                  lazy: true
+
+          option  :analytics_sample_rate,
+                  default: -> { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) },
+                  lazy: true
+
           option :distributed_tracing, default: true
           option :error_handler, default: DEFAULT_ERROR_HANDLER
           option :service_name, default: Ext::SERVICE_NAME
