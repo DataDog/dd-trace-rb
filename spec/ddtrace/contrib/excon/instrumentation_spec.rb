@@ -158,11 +158,11 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
         .and_wrap_original do |m, *args|
           m.call(*args).tap do |datum|
             # Assert request headers
+            span = datum[:datadog_span]
             headers = datum[:headers]
             expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id.to_s)
             expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id.to_s)
-            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_SAMPLING_PRIORITY)
-            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_ORIGIN)
+            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
           end
         end
 
@@ -187,10 +187,9 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
             # Assert request headers
             span = datum[:datadog_span]
             headers = datum[:headers]
-            expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id.to_s)
-            expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id.to_s)
-            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_SAMPLING_PRIORITY)
-            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_ORIGIN)
+            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
+            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
+            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
           end
         end
 
@@ -216,7 +215,6 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
               expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
               expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
               expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
-              expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN)
             end
           end
 
