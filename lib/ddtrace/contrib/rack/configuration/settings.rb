@@ -15,7 +15,7 @@ module Datadog
           }.freeze
 
           option :application
-          option :distributed_tracing, default: false
+          option :distributed_tracing, default: true
           option :headers, default: DEFAULT_HEADERS
           option :middleware_names, default: false
           option :quantize, default: {}

@@ -14,7 +14,7 @@ module Datadog
               Datadog.configuration[:active_record][:service_name] = value
             end
           end
-          option :distributed_tracing, default: false
+          option :distributed_tracing, default: true
           option :exception_controller, default: nil
           option :middleware, default: true
           option :middleware_names, default: false
