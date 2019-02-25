@@ -18,7 +18,7 @@ module Datadog
       env[HTTP_HEADER_TRACE_ID] = context.trace_id.to_s
       env[HTTP_HEADER_PARENT_ID] = context.span_id.to_s
       env[HTTP_HEADER_SAMPLING_PRIORITY] = context.sampling_priority.to_s
-      env[HTTP_HEADER_ORIGIN] = context.origin.to_s
+      env[HTTP_HEADER_ORIGIN] = context.origin.to_s if context.origin
       env.delete(HTTP_HEADER_SAMPLING_PRIORITY) unless context.sampling_priority
     end
 
