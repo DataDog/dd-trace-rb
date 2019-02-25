@@ -309,7 +309,8 @@ RSpec.describe 'Sinatra instrumentation' do
             {
               'HTTP_X_DATADOG_TRACE_ID' => '1',
               'HTTP_X_DATADOG_PARENT_ID' => '2',
-              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s
+              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s,
+              'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
             }
           end
 
@@ -319,6 +320,7 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.trace_id).to eq(1)
             expect(span.parent_id).to eq(2)
             expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(2.0)
+            expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq('synthetics')
           end
         end
       end

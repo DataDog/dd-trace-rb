@@ -11,6 +11,10 @@ RSpec.describe Datadog::Tracer do
     span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)
   end
 
+  def origin_tag(span)
+    span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)
+  end
+
   describe '#active_root_span' do
     subject(:active_root_span) { tracer.active_root_span }
 
@@ -23,6 +27,7 @@ RSpec.describe Datadog::Tracer do
         tracer.trace(parent_span_name) do |parent_span|
           @parent_span = parent_span
           parent_span.context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP
+          parent_span.context.origin = 'synthetics'
 
           # Propagate it via headers
           headers = {}
@@ -50,11 +55,13 @@ RSpec.describe Datadog::Tracer do
       it { expect(parent_span.finished?).to be(true) }
       it { expect(parent_span.parent_id).to eq(0) }
       it { expect(sampling_priority_metric(parent_span)).to eq(1) }
+      it { expect(origin_tag(parent_span)).to eq('synthetics') }
       it { expect(child_span.name).to eq(child_span_name) }
       it { expect(child_span.finished?).to be(true) }
       it { expect(child_span.trace_id).to eq(parent_span.trace_id) }
       it { expect(child_span.parent_id).to eq(parent_span.span_id) }
       it { expect(sampling_priority_metric(child_span)).to eq(1) }
+      it { expect(origin_tag(child_span)).to be_nil }
       # This is expected to be child_span because when propagated, we don't
       # propagate the root span, only its ID. Therefore the span reference
       # should be the first span on the other end of the distributed trace.

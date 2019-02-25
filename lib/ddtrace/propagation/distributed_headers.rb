@@ -11,7 +11,7 @@ module Datadog
     end
 
     def valid?
-      # Sampling priority is optional.
+      # Sampling priority and origin are optional.
       trace_id && parent_id
     end
 
@@ -31,6 +31,12 @@ module Datadog
       value = hdr.to_i
       return if value < 0
       value
+    end
+
+    def origin
+      hdr = header(HTTP_HEADER_ORIGIN)
+      # Only return the value if it is not an empty string
+      return hdr if hdr != ''
     end
 
     private

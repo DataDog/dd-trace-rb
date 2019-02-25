@@ -15,6 +15,10 @@ if Datadog::OpenTracer.supported?
       span.get_metric(Datadog::OpenTracer::TextMapPropagator::SAMPLING_PRIORITY_KEY)
     end
 
+    def origin_tag(span)
+      span.get_tag(Datadog::OpenTracer::TextMapPropagator::ORIGIN_KEY)
+    end
+
     describe 'via OpenTracing::FORMAT_TEXT_MAP' do
       def baggage_to_carrier_format(baggage)
         baggage.map { |k, v| [Datadog::OpenTracer::TextMapPropagator::BAGGAGE_PREFIX + k, v] }.to_h
@@ -87,6 +91,7 @@ if Datadog::OpenTracer.supported?
           it { expect(datadog_span.trace_id).to eq(trace_id) }
           it { expect(datadog_span.parent_id).to eq(parent_id) }
           it { expect(sampling_priority_metric(datadog_span)).to eq(sampling_priority) }
+          it { expect(origin_tag(datadog_span)).to eq(origin) }
           it { expect(@scope.span.context.baggage).to include(baggage) }
         end
 
@@ -134,6 +139,7 @@ if Datadog::OpenTracer.supported?
         it { expect(sender_datadog_span.finished?).to be(true) }
         it { expect(sender_datadog_span.parent_id).to eq(0) }
         it { expect(sampling_priority_metric(sender_datadog_span)).to eq(1) }
+        it { expect(origin_tag(sender_datadog_span)).to eq('synthetics') }
         it { expect(receiver_datadog_span.name).to eq(receiver_span_name) }
         it { expect(receiver_datadog_span.finished?).to be(true) }
         it { expect(receiver_datadog_span.trace_id).to eq(sender_datadog_span.trace_id) }

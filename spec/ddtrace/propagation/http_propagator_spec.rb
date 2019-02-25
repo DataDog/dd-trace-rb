@@ -19,7 +19,7 @@ RSpec.describe Datadog::HTTPPropagator do
     end
 
     context 'given a context and env' do
-      context 'without any explicit sampling priority' do
+      context 'without any explicit sampling priority or origin' do
         it do
           tracer.trace('caller') do |span|
             described_class.inject!(span.context, env)
@@ -65,6 +65,39 @@ RSpec.describe Datadog::HTTPPropagator do
           end
         end
       end
+
+      context 'with an origin' do
+        context 'of "synthetics"' do
+          it do
+            tracer.trace('caller') do |span|
+              span.context.origin = 'synthetics'
+              described_class.inject!(span.context, env)
+
+              expect(env).to eq(
+                'something' => 'alien',
+                'x-datadog-trace-id' => span.trace_id.to_s,
+                'x-datadog-parent-id' => span.span_id.to_s,
+                'x-datadog-origin' => 'synthetics'
+              )
+            end
+          end
+        end
+
+        context 'as nil' do
+          it do
+            tracer.trace('caller') do |span|
+              span.context.origin = nil
+              described_class.inject!(span.context, env)
+
+              expect(env).to eq(
+                'something' => 'alien',
+                'x-datadog-trace-id' => span.trace_id.to_s,
+                'x-datadog-parent-id' => span.span_id.to_s
+              )
+            end
+          end
+        end
+      end
     end
   end
 
@@ -78,6 +111,7 @@ RSpec.describe Datadog::HTTPPropagator do
         expect(context.trace_id).to be nil
         expect(context.span_id).to be nil
         expect(context.sampling_priority).to be nil
+        expect(context.origin).to be nil
       end
     end
 
@@ -110,6 +144,24 @@ RSpec.describe Datadog::HTTPPropagator do
           expect(context.trace_id).to eq(7)
           expect(context.span_id).to eq(8)
           expect(context.sampling_priority).to eq(0)
+        end
+      end
+
+      context 'trace ID, parent, sampling priority, and origin' do
+        let(:env) do
+          {
+            'HTTP_X_DATADOG_TRACE_ID' => '7',
+            'HTTP_X_DATADOG_PARENT_ID' => '8',
+            'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '0',
+            'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
+          }
+        end
+
+        it do
+          expect(context.trace_id).to eq(7)
+          expect(context.span_id).to eq(8)
+          expect(context.sampling_priority).to eq(0)
+          expect(context.origin).to eq('synthetics')
         end
       end
     end

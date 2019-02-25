@@ -175,6 +175,31 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  describe 'origin tag' do
+    # Sampling priority is enabled by default
+    let(:tracer) { get_test_tracer }
+
+    context 'when #sampling_priority is set on a parent span' do
+      let(:parent_span) { tracer.start_span('parent span') }
+
+      before(:each) do
+        parent_span.tap do
+          parent_span.context.origin = 'synthetics'
+        end.finish
+
+        try_wait_until { tracer.writer.spans(:keep).any? }
+      end
+
+      it do
+        tag_value = parent_span.get_tag(
+          Datadog::Ext::DistributedTracing::ORIGIN_KEY
+        )
+
+        expect(tag_value).to eq('synthetics')
+      end
+    end
+  end
+
   describe 'sampling priority integration' do
     include_context 'agent-based test'
 
