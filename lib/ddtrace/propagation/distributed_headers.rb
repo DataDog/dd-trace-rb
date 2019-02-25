@@ -36,7 +36,7 @@ module Datadog
     def origin
       hdr = header(HTTP_HEADER_ORIGIN)
       # Only return the value if it is not an empty string
-      return hdr if hdr != ''
+      hdr if hdr != ''
     end
 
     private

@@ -32,6 +32,7 @@ if Datadog::OpenTracer.supported?
         before(:each) do
           tracer.start_active_span(span_name) do |scope|
             scope.span.context.datadog_context.sampling_priority = 1
+            scope.span.context.datadog_context.origin = 'synthetics'
             baggage.each { |k, v| scope.span.set_baggage_item(k, v) }
             tracer.inject(
               scope.span.context,
@@ -45,7 +46,8 @@ if Datadog::OpenTracer.supported?
           expect(carrier).to include(
             Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(Integer),
             Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(Integer),
-            Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(Integer)
+            Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(Integer),
+            Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String)
           )
 
           expect(carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID]).to be > 0
@@ -75,13 +77,15 @@ if Datadog::OpenTracer.supported?
             super().merge(
               Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => trace_id.to_s,
               Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => parent_id.to_s,
-              Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority.to_s
+              Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority.to_s,
+              Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => origin.to_s
             )
           end
 
           let(:trace_id) { Datadog::Span::MAX_ID - 1 }
           let(:parent_id) { Datadog::Span::MAX_ID - 2 }
           let(:sampling_priority) { 2 }
+          let(:origin) { 'synthetics' }
 
           let(:datadog_span) { datadog_spans.first }
 
@@ -116,6 +120,7 @@ if Datadog::OpenTracer.supported?
         before(:each) do
           tracer.start_active_span(sender_span_name) do |sender_scope|
             sender_scope.span.context.datadog_context.sampling_priority = 1
+            sender_scope.span.context.datadog_context.origin = 'synthetics'
             baggage.each { |k, v| sender_scope.span.set_baggage_item(k, v) }
             tracer.inject(
               sender_scope.span.context,
@@ -145,6 +150,7 @@ if Datadog::OpenTracer.supported?
         it { expect(receiver_datadog_span.trace_id).to eq(sender_datadog_span.trace_id) }
         it { expect(receiver_datadog_span.parent_id).to eq(sender_datadog_span.span_id) }
         it { expect(sampling_priority_metric(receiver_datadog_span)).to eq(1) }
+        it { expect(origin_tag(receiver_datadog_span)).to eq('synthetics') }
         it { expect(@receiver_scope.span.context.baggage).to include(baggage) }
       end
     end
@@ -166,6 +172,7 @@ if Datadog::OpenTracer.supported?
         before(:each) do
           tracer.start_active_span(span_name) do |scope|
             scope.span.context.datadog_context.sampling_priority = 1
+            scope.span.context.datadog_context.origin = 'synthetics'
             baggage.each { |k, v| scope.span.set_baggage_item(k, v) }
             tracer.inject(
               scope.span.context,
@@ -179,7 +186,8 @@ if Datadog::OpenTracer.supported?
           expect(carrier).to include(
             Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(String),
             Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(String),
-            Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(String)
+            Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(String),
+            Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String)
           )
 
           expect(carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID].to_i).to be > 0
@@ -210,7 +218,8 @@ if Datadog::OpenTracer.supported?
               carrier_to_rack_format(
                 Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => trace_id.to_s,
                 Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => parent_id.to_s,
-                Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority.to_s
+                Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority.to_s,
+                Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => origin.to_s
               )
             )
           end
@@ -218,6 +227,7 @@ if Datadog::OpenTracer.supported?
           let(:trace_id) { Datadog::Span::MAX_ID - 1 }
           let(:parent_id) { Datadog::Span::MAX_ID - 2 }
           let(:sampling_priority) { 2 }
+          let(:origin) { 'synthetics' }
 
           let(:datadog_span) { datadog_spans.first }
 
@@ -227,6 +237,7 @@ if Datadog::OpenTracer.supported?
           it { expect(datadog_span.trace_id).to eq(trace_id) }
           it { expect(datadog_span.parent_id).to eq(parent_id) }
           it { expect(sampling_priority_metric(datadog_span)).to eq(sampling_priority) }
+          it { expect(origin_tag(datadog_span)).to eq('synthetics') }
           it { expect(@scope.span.context.baggage).to include(baggage) }
         end
 
@@ -255,6 +266,7 @@ if Datadog::OpenTracer.supported?
         before(:each) do
           tracer.start_active_span(sender_span_name) do |sender_scope|
             sender_scope.span.context.datadog_context.sampling_priority = 1
+            sender_scope.span.context.datadog_context.origin = 'synthetics'
             baggage.each { |k, v| sender_scope.span.set_baggage_item(k, v) }
 
             carrier = {}

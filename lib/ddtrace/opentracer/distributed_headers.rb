@@ -34,6 +34,12 @@ module Datadog
         value
       end
 
+      def origin
+        hdr = @carrier[HTTP_HEADER_ORIGIN]
+        # Only return the value if it is not an empty string
+        hdr if hdr != ''
+      end
+
       private
 
       def id(header)
