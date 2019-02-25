@@ -13,6 +13,7 @@ module Datadog
       metadata[GRPC_METADATA_TRACE_ID] = context.trace_id.to_s
       metadata[GRPC_METADATA_PARENT_ID] = context.span_id.to_s
       metadata[GRPC_METADATA_SAMPLING_PRIORITY] = context.sampling_priority.to_s if context.sampling_priority
+      metadata[GRPC_METADATA_ORIGIN] = context.origin.to_s if context.origin
     end
 
     def self.extract(metadata)
@@ -20,7 +21,8 @@ module Datadog
       return Datadog::Context.new unless metadata.valid?
       Datadog::Context.new(trace_id: metadata.trace_id,
                            span_id: metadata.parent_id,
-                           sampling_priority: metadata.sampling_priority)
+                           sampling_priority: metadata.sampling_priority,
+                           origin: metadata.origin)
     end
 
     # opentracing.io compliant carrier object
@@ -48,6 +50,11 @@ module Datadog
       def sampling_priority
         value = @metadata[GRPC_METADATA_SAMPLING_PRIORITY]
         value && value.to_i
+      end
+
+      def origin
+        value = @metadata[GRPC_METADATA_ORIGIN]
+        value if value != ''
       end
     end
   end

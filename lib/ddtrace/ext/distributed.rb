@@ -14,6 +14,7 @@ module Datadog
       GRPC_METADATA_TRACE_ID = 'x-datadog-trace-id'.freeze
       GRPC_METADATA_PARENT_ID = 'x-datadog-parent-id'.freeze
       GRPC_METADATA_SAMPLING_PRIORITY = 'x-datadog-sampling-priority'.freeze
+      GRPC_METADATA_ORIGIN = 'x-datadog-origin'.freeze
     end
   end
 end
