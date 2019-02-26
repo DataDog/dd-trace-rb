@@ -185,7 +185,6 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
         .and_wrap_original do |m, *args|
           m.call(*args).tap do |datum|
             # Assert request headers
-            span = datum[:datadog_span]
             headers = datum[:headers]
             expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
             expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
