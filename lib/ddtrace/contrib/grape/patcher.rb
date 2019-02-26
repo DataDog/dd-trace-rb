@@ -24,15 +24,14 @@ module Datadog
               # Patch endpoints
               ::Grape::Endpoint.send(:include, Instrumentation)
 
+              add_pin!
 
-              # Attach a Pin object globally and set the service once
-              pin = Datadog::Pin.new(
-                get_option(:service_name),
-                app: Ext::APP,
-                app_type: Datadog::Ext::AppTypes::WEB,
-                tracer: get_option(:tracer)
-              )
-              pin.onto(::Grape)
+              # TODO: When Grape pin is removed, set service info.
+              # get_option(:tracer).set_service_info(
+              #   get_option(:service_name),
+              #   Ext::APP,
+              #   Datadog::Ext::AppTypes::WEB
+              # )
 
               # Subscribe to ActiveSupport events
               Datadog::Contrib::Grape::Endpoint.subscribe
@@ -42,8 +41,44 @@ module Datadog
           end
         end
 
+        def add_pin!
+          # Attach a Pin object globally and set the service once
+          pin = DeprecatedPin.new(
+            get_option(:service_name),
+            app: Ext::APP,
+            app_type: Datadog::Ext::AppTypes::WEB,
+            tracer: get_option(:tracer)
+          )
+          pin.onto(::Grape)
+        end
+
         def get_option(option)
           Datadog.configuration[:grape].get_option(option)
+        end
+
+        # Implementation of deprecated Pin, which raises warnings when accessed.
+        # To be removed when support for Datadog::Pin with Grape is removed.
+        class DeprecatedPin < Datadog::Pin
+          include Datadog::DeprecatedPin
+
+          DEPRECATION_WARNING = %(
+            Use of Datadog::Pin with Grape is DEPRECATED.
+            Upgrade to the configuration API using the migration guide here:
+            https://github.com/DataDog/dd-trace-rb/releases/tag/v0.11.0).freeze
+
+          def tracer=(tracer)
+            Datadog.configuration[:grape][:tracer] = tracer
+          end
+
+          def service_name=(service_name)
+            Datadog.configuration[:grape][:service_name] = service_name
+          end
+
+          def log_deprecation_warning(method_name)
+            do_once(method_name) do
+              Datadog::Tracer.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
+            end
+          end
         end
       end
     end
