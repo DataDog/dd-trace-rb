@@ -42,7 +42,7 @@ class BaseRackAPITest < MiniTest::Test
     @tracer = get_test_tracer
 
     Datadog.configure do |c|
-      c.use :grape
+      c.use :grape, tracer: @tracer
       c.use :rack, tracer: @tracer
     end
   end
