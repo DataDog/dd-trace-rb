@@ -30,19 +30,25 @@ module Datadog
         def patch_schema!(schema)
           tracer = get_option(:tracer)
           service_name = get_option(:service_name)
+          analytics_enabled = Contrib::Analytics.enabled?(get_option(:analytics_enabled))
+          analytics_sample_rate = get_option(:analytics_sample_rate)
 
           if schema.respond_to?(:use)
             schema.use(
               ::GraphQL::Tracing::DataDogTracing,
               tracer: tracer,
-              service: service_name
+              service: service_name,
+              analytics_enabled: analytics_enabled,
+              analytics_sample_rate: analytics_sample_rate
             )
           else
             schema.define do
               use(
                 ::GraphQL::Tracing::DataDogTracing,
                 tracer: tracer,
-                service: service_name
+                service: service_name,
+                analytics_enabled: analytics_enabled,
+                analytics_sample_rate: analytics_sample_rate
               )
             end
           end

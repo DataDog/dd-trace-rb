@@ -64,6 +64,10 @@ RSpec.describe 'GraphQL patcher' do
         expect(root_span.name).to eq('execute.graphql')
         expect(root_span.resource).to eq('execute.graphql')
 
+        # TODO: Assert GraphQL root span sets analytics sample rate.
+        #       Need to wait on pull request to be merged and GraphQL released.
+        #       See https://github.com/rmosolgo/graphql-ruby/pull/2154
+
         # Expect each span to be properly named
         all_spans.each do |span|
           expect(span.service).to eq('graphql-test')
