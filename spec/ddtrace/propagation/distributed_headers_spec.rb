@@ -22,13 +22,13 @@ RSpec.describe Datadog::DistributedHeaders do
 
     context 'incorrect header' do
       [
-        'X-DATADOG-ORIGN',  # Typo
+        'X-DATADOG-ORIGN', # Typo
         'DATADOG-ORIGIN',
         'X-ORIGIN',
         'ORIGIN'
       ].each do |header|
         context header do
-          let(:env) { {env_header(header) => 'synthetics'} }
+          let(:env) { { env_header(header) => 'synthetics' } }
 
           it { expect(headers.origin).to be_nil }
         end
@@ -38,11 +38,11 @@ RSpec.describe Datadog::DistributedHeaders do
     context 'origin in header' do
       [
         ['', nil],
-        ['synthetics', 'synthetics'],
-        ['origin', 'origin']
+        %w[synthetics synthetics],
+        %w[origin origin]
       ].each do |value, expected|
         context "set to #{value}" do
-          let(:env) { {env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN) => value} }
+          let(:env) { { env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN) => value } }
 
           it { expect(headers.origin).to eq(expected) }
         end
