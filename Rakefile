@@ -76,7 +76,6 @@ namespace :spec do
     :sidekiq,
     :sinatra,
     :sucker_punch,
-    :rest_client,
     :shoryuken
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t|

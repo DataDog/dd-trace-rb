@@ -178,8 +178,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
       end
     end
 
-    context 'distributed tracing enabled' do
-      let(:rest_client_options) { { distributed_tracing: true } }
+    context 'distributed tracing default' do
+      # let(:rest_client_options) { { distributed_tracing: true } }
 
       it_behaves_like 'instrumented request'
 
@@ -212,6 +212,44 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
           expect(a_request(:get, url).with(headers: { 'X-Datadog-Sampling-Priority' => sampling_priority.to_s }))
             .to have_been_made
+        end
+      end
+    end
+
+    context 'distributed tracing disabled' do
+      let(:rest_client_options) { { distributed_tracing: false } }
+
+      it_behaves_like 'instrumented request'
+
+      shared_examples_for 'does not propagate distributed headers' do
+        let(:span) { tracer.writer.spans.first }
+
+        it 'does not propagate the headers' do
+          request
+
+          distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.span_id.to_s,
+                                          'X-Datadog-Trace-Id' => span.trace_id.to_s }
+
+          expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to_not have_been_made
+        end
+      end
+
+      it_behaves_like 'does not propagate distributed headers'
+
+      context 'with sampling priority' do
+        let(:sampling_priority) { 0.2 }
+
+        before do
+          tracer.provider.context.sampling_priority = sampling_priority
+        end
+
+        it_behaves_like 'does not propagate distributed headers'
+
+        it 'does not propagate sampling priority headers' do
+          RestClient.get(url)
+
+          expect(a_request(:get, url).with(headers: { 'X-Datadog-Sampling-Priority' => sampling_priority.to_s }))
+            .to_not have_been_made
         end
       end
     end
