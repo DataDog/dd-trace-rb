@@ -76,9 +76,7 @@ RSpec.describe 'Rack integration distributed tracing' do
     end
   end
 
-  context 'when enabled' do
-    let(:rack_options) { super().merge(distributed_tracing: true) }
-
+  context 'by default' do
     context 'and a request is received' do
       include_context 'an incoming HTTP request'
 
