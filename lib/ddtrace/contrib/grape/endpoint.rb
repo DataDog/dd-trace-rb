@@ -1,5 +1,6 @@
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
 
 module Datadog
@@ -79,6 +80,11 @@ module Datadog
                 request_span.resource = resource
               end
 
+              # Set analytics sample rate
+              if analytics_enabled?
+                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
+              end
+
               # catch thrown exceptions
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
 
@@ -145,6 +151,11 @@ module Datadog
             )
 
             begin
+              # Set analytics sample rate
+              if analytics_enabled?
+                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
+              end
+
               # catch thrown exceptions
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
               span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
@@ -164,6 +175,14 @@ module Datadog
 
           def service_name
             datadog_configuration[:service_name]
+          end
+
+          def analytics_enabled?
+            Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+          end
+
+          def analytics_sample_rate
+            datadog_configuration[:analytics_sample_rate]
           end
 
           def enabled?
