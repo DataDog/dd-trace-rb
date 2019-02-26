@@ -110,24 +110,4 @@ class DistributedHeadersTest < Minitest::Test
       end
     end
   end
-
-  def test_origin
-    test_cases = {
-      { 'HTTP_X_DATADOG_ORIGIN' => '' } => nil,
-      { 'HTTP_X_DATADOG_ORIGIN' => 'synthetics' } => 'synthetics',
-      { 'HTTP_X_DATADOG_ORIGIN' => 'origin' } => 'origin',
-      # nil cases below are very important to test, they are valid real-world use cases
-      {} => nil,
-      { 'HTTP_X_DATADOG_ORIGN' => 'synthetics' } => nil
-    }
-
-    test_cases.each do |env, expected|
-      dh = Datadog::DistributedHeaders.new(env)
-      if expected
-        assert_equal(expected, dh.origin, "with #{env} origin should return #{expected}")
-      else
-        assert_nil(dh.origin, "with #{env} origin should return nil")
-      end
-    end
-  end
 end
