@@ -82,21 +82,6 @@ class ContextTest < Minitest::Test
     end
   end
 
-  def test_origin
-    ctx = Datadog::Context.new
-
-    assert_nil(ctx.origin)
-
-    [nil, '', 'synthetics', 'origin'].each do |origin|
-      ctx.origin = origin
-      if origin
-        assert_equal(origin, ctx.origin)
-      else
-        assert_nil(ctx.origin)
-      end
-    end
-  end
-
   def test_add_span
     tracer = get_test_tracer
     ctx = Datadog::Context.new
