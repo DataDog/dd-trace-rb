@@ -1,19 +1,27 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
+
 require 'grpc'
 require 'ddtrace'
 
 RSpec.describe 'tracing on the client connection' do
   subject(:client) { Datadog::Contrib::GRPC::DatadogInterceptor::Client.new }
   let(:tracer) { get_test_tracer }
+  let(:configuration_options) { { tracer: tracer, service_name: 'rspec' } }
 
   let(:span) { tracer.writer.spans.first }
 
   before do
     Datadog.configure do |c|
-      c.use :grpc,
-            tracer: tracer,
-            service_name: 'rspec'
+      c.use :grpc, configuration_options
     end
+  end
+
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:grpc].reset_configuration!
+    example.run
+    Datadog.registry[:grpc].reset_configuration!
   end
 
   context 'using client-specific configurations' do
@@ -52,6 +60,11 @@ RSpec.describe 'tracing on the client connection' do
     specify { expect(span.resource).to eq 'myservice.endpoint' }
     specify { expect(span.get_tag('error.stack')).to be_nil }
     specify { expect(span.get_tag(:some)).to eq 'datum' }
+
+    it_behaves_like 'analytics for integration' do
+      let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+    end
   end
 
   describe '#request_response' do
