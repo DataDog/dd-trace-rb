@@ -4,13 +4,14 @@ require 'ddtrace'
 
 RSpec.describe GRPC::InterceptionContext do
   subject(:interception_context) { described_class.new }
+  let(:tracer) { get_test_tracer }
 
   describe '#intercept!' do
-    let(:span) { Datadog::Pin.get_from(::GRPC).tracer.writer.spans.first }
+    let(:span) { tracer.writer.spans.first }
 
     before do
       Datadog.configure do |c|
-        c.use :grpc, tracer: get_test_tracer, service_name: 'rspec'
+        c.use :grpc, tracer: tracer, service_name: 'rspec'
       end
 
       subject.intercept!(type, keywords) {}

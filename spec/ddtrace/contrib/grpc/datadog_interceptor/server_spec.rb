@@ -4,14 +4,15 @@ require 'ddtrace'
 
 RSpec.describe 'tracing on the server connection' do
   subject(:server) { Datadog::Contrib::GRPC::DatadogInterceptor::Server.new }
+  let(:tracer) { get_test_tracer }
 
   before do
     Datadog.configure do |c|
-      c.use :grpc, tracer: get_test_tracer, service_name: 'rspec'
+      c.use :grpc, tracer: tracer, service_name: 'rspec'
     end
   end
 
-  let(:span) { Datadog::Pin.get_from(::GRPC).tracer.writer.spans.first }
+  let(:span) { tracer.writer.spans.first }
 
   shared_examples 'span data contents' do
     specify { expect(span.name).to eq 'grpc.service' }
