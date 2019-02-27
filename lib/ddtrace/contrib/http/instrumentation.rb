@@ -4,6 +4,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/contrib/analytics'
 
 module Datadog
   module Contrib
@@ -39,6 +40,7 @@ module Datadog
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
           # rubocop:disable Metrics/MethodLength
+          # rubocop:disable Metrics/AbcSize
           def request(req, body = nil, &block) # :yield: +response+
             pin = datadog_pin
             return super(req, body, &block) unless pin && pin.tracer
@@ -57,6 +59,10 @@ module Datadog
                 span.resource = req.method
                 # Using the method as a resource, as URL/path can trigger
                 # a possibly infinite number of resources.
+
+                # Set analytics sample rate
+                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+
                 span.set_tag(Datadog::Ext::HTTP::URL, req.path)
                 span.set_tag(Datadog::Ext::HTTP::METHOD, req.method)
 
@@ -102,6 +108,20 @@ module Datadog
 
               Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
             end
+          end
+
+          private
+
+          def datadog_configuration
+            Datadog.configuration[:http]
+          end
+
+          def analytics_enabled?
+            Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+          end
+
+          def analytics_sample_rate
+            datadog_configuration[:analytics_sample_rate]
           end
         end
       end
