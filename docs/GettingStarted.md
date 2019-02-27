@@ -798,6 +798,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `quantize` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
 | `service_name` | Service name used for `mongo` instrumentation | `'mongodb'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
