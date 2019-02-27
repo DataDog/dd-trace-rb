@@ -21,7 +21,15 @@ module Datadog
               require 'ddtrace/contrib/grpc/datadog_interceptor'
               require 'ddtrace/contrib/grpc/intercept_with_datadog'
 
-              add_pin
+              add_pin!
+
+              # TODO: When GRPC pin is removed, set service info.
+              # get_option(:tracer).set_service_info(
+              #   get_option(:service_name),
+              #   Ext::APP,
+              #   Datadog::Ext::AppTypes::WEB
+              # )
+
               prepend_interceptor
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply gRPC integration: #{e}")
@@ -29,8 +37,8 @@ module Datadog
           end
         end
 
-        def add_pin
-          Pin.new(
+        def add_pin!
+          DeprecatedPin.new(
             get_option(:service_name),
             app: Ext::APP,
             app_type: Datadog::Ext::AppTypes::WEB,
@@ -45,6 +53,31 @@ module Datadog
 
         def get_option(option)
           Datadog.configuration[:grpc].get_option(option)
+        end
+
+        # Implementation of deprecated Pin, which raises warnings when accessed.
+        # To be removed when support for Datadog::Pin with GRPC is removed.
+        class DeprecatedPin < Datadog::Pin
+          include Datadog::DeprecatedPin
+
+          DEPRECATION_WARNING = %(
+            Use of Datadog::Pin with GRPC is DEPRECATED.
+            Upgrade to the configuration API using the migration guide here:
+            https://github.com/DataDog/dd-trace-rb/releases/tag/v0.11.0).freeze
+
+          def tracer=(tracer)
+            Datadog.configuration[:grpc][:tracer] = tracer
+          end
+
+          def service_name=(service_name)
+            Datadog.configuration[:grpc][:service_name] = service_name
+          end
+
+          def log_deprecation_warning(method_name)
+            do_once(method_name) do
+              Datadog::Tracer.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
+            end
+          end
         end
       end
     end
