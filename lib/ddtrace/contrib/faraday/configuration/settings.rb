@@ -12,7 +12,7 @@ module Datadog
             Datadog::Ext::HTTP::ERROR_RANGE.cover?(env[:status])
           end
 
-          option :distributed_tracing, default: false
+          option :distributed_tracing, default: true
           option :error_handler, default: DEFAULT_ERROR_HANDLER
           option :service_name, default: Ext::SERVICE_NAME
           option :split_by_domain, default: false

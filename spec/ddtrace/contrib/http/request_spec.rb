@@ -168,10 +168,7 @@ RSpec.describe 'net/http requests' do
       })
     end
 
-    context 'when enabled' do
-      before(:each) { Datadog.configure { |c| c.use :http, distributed_tracing: true } }
-      after(:each) { Datadog.configure { |c| c.use :http, distributed_tracing: false } }
-
+    context 'by default' do
       context 'and the tracer is enabled' do
         before(:each) do
           tracer.configure(enabled: true)
@@ -224,6 +221,9 @@ RSpec.describe 'net/http requests' do
       before(:each) do
         Datadog.configure { |c| c.use :http, distributed_tracing: false }
         client.get(path)
+      end
+      after(:each) do
+        Datadog.configure { |c| c.use :http, distributed_tracing: true }
       end
 
       let(:span) { spans.last }
