@@ -23,13 +23,15 @@ if Datadog::OpenTracer.supported?
           Datadog::Context,
           trace_id: trace_id,
           span_id: span_id,
-          sampling_priority: sampling_priority
+          sampling_priority: sampling_priority,
+          origin: origin
         )
       end
 
       let(:trace_id) { double('trace ID') }
       let(:span_id) { double('span ID') }
       let(:sampling_priority) { double('sampling priority') }
+      let(:origin) { double('synthetics') }
 
       let(:baggage) { { 'account_name' => 'acme' } }
 
@@ -43,6 +45,8 @@ if Datadog::OpenTracer.supported?
           .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_PARENT_ID, span_id)
         expect(carrier).to receive(:[]=)
           .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority)
+        expect(carrier).to receive(:[]=)
+          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_ORIGIN, origin)
       end
 
       # Expect carrier to be set with OpenTracing baggage
@@ -116,6 +120,7 @@ if Datadog::OpenTracer.supported?
           it { expect(datadog_context.trace_id).to be nil }
           it { expect(datadog_context.span_id).to be nil }
           it { expect(datadog_context.sampling_priority).to be nil }
+          it { expect(datadog_context.origin).to be nil }
 
           it_behaves_like 'baggage'
         end
@@ -127,18 +132,21 @@ if Datadog::OpenTracer.supported?
               valid?: true,
               trace_id: trace_id,
               parent_id: parent_id,
-              sampling_priority: sampling_priority
+              sampling_priority: sampling_priority,
+              origin: origin
             )
           end
 
           let(:trace_id) { double('trace ID') }
           let(:parent_id) { double('parent span ID') }
           let(:sampling_priority) { double('sampling priority') }
+          let(:origin) { double('synthetics') }
 
           it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }
           it { expect(datadog_context.trace_id).to be trace_id }
           it { expect(datadog_context.span_id).to be parent_id }
           it { expect(datadog_context.sampling_priority).to be sampling_priority }
+          it { expect(datadog_context.origin).to be origin }
 
           it_behaves_like 'baggage'
         end

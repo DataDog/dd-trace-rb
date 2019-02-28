@@ -23,13 +23,15 @@ if Datadog::OpenTracer.supported?
           Datadog::Context,
           trace_id: trace_id,
           span_id: span_id,
-          sampling_priority: sampling_priority
+          sampling_priority: sampling_priority,
+          origin: origin
         )
       end
 
       let(:trace_id) { double('trace ID') }
       let(:span_id) { double('span ID') }
       let(:sampling_priority) { double('sampling priority') }
+      let(:origin) { double('synthetics') }
 
       let(:baggage) { { 'account_name' => 'acme' } }
 
@@ -43,6 +45,8 @@ if Datadog::OpenTracer.supported?
           .with(Datadog::HTTPPropagator::HTTP_HEADER_PARENT_ID, span_id.to_s)
         expect(carrier).to receive(:[]=)
           .with(Datadog::HTTPPropagator::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority.to_s)
+        expect(carrier).to receive(:[]=)
+          .with(Datadog::HTTPPropagator::HTTP_HEADER_ORIGIN, origin.to_s)
       end
 
       # Expect carrier to be set with OpenTracing baggage

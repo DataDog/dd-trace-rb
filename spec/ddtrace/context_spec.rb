@@ -43,4 +43,22 @@ RSpec.describe Datadog::Context do
       end
     end
   end
+
+  describe '#origin' do
+    context 'with nil' do
+      before(:each) { context.origin = nil }
+      it { expect(context.origin).to be_nil }
+    end
+
+    context 'with empty string' do
+      # We do not do any filtering based on value
+      before(:each) { context.origin = '' }
+      it { expect(context.origin).to eq('') }
+    end
+
+    context 'with synthetics' do
+      before(:each) { context.origin = 'synthetics' }
+      it { expect(context.origin).to eq('synthetics') }
+    end
+  end
 end
