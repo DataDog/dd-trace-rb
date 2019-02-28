@@ -179,8 +179,6 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
     end
 
     context 'distributed tracing default' do
-      # let(:rest_client_options) { { distributed_tracing: true } }
-
       it_behaves_like 'instrumented request'
 
       shared_examples_for 'propagating distributed headers' do
