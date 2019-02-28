@@ -1,3 +1,6 @@
+require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/grpc/ext'
+
 module Datadog
   module Contrib
     module GRPC
@@ -8,7 +11,7 @@ module Datadog
           attr_accessor :datadog_pin
 
           def initialize(options = {})
-            datadog_pin_configuration { |c| yield(c) if block_given? }
+            add_datadog_pin! { |c| yield(c) if block_given? }
           end
 
           def request_response(**keywords)
@@ -29,31 +32,28 @@ module Datadog
 
           private
 
-          def datadog_pin_configuration
-            pin = default_datadog_pin
-
-            if block_given?
-              pin = Pin.new(
-                pin.service_name,
-                app: pin.app,
-                app_type: pin.app_type,
-                tracer: pin.tracer
-              )
-
-              yield(pin)
+          def add_datadog_pin!
+            Pin.new(
+              service_name,
+              app: Ext::APP,
+              app_type: Datadog::Ext::AppTypes::WEB,
+              tracer: tracer
+            ).tap do |pin|
+              yield(pin) if block_given?
+              pin.onto(self)
             end
-
-            pin.onto(self)
-
-            pin
           end
 
-          def default_datadog_pin
-            Pin.get_from(::GRPC)
+          def datadog_configuration
+            Datadog.configuration[:grpc]
           end
 
           def tracer
-            datadog_pin.tracer
+            (datadog_pin && datadog_pin.tracer) || datadog_configuration[:tracer]
+          end
+
+          def service_name
+            (datadog_pin && datadog_pin.service_name) || datadog_configuration[:service_name]
           end
         end
 
