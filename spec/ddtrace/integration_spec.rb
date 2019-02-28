@@ -180,6 +180,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:tracer) { get_test_tracer }
 
     context 'when #sampling_priority is set on a parent span' do
+      subject(:tag_value) { parent_span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY) }
       let(:parent_span) { tracer.start_span('parent span') }
 
       before(:each) do
@@ -190,13 +191,7 @@ RSpec.describe 'Tracer integration tests' do
         try_wait_until { tracer.writer.spans(:keep).any? }
       end
 
-      it do
-        tag_value = parent_span.get_tag(
-          Datadog::Ext::DistributedTracing::ORIGIN_KEY
-        )
-
-        expect(tag_value).to eq('synthetics')
-      end
+      it { is_expected.to eq('synthetics') }
     end
   end
 
