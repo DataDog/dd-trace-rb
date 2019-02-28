@@ -10,7 +10,7 @@ RSpec.describe 'Dalli instrumentation' do
 
   let(:client) { ::Dalli::Client.new("#{test_host}:#{test_port}") }
   let(:tracer) { get_test_tracer }
-  let(:pin) { ::Dalli.datadog_pin }
+  let(:configuration_options) { { tracer: tracer } }
 
   def all_spans
     tracer.writer.spans(:keep)
@@ -18,9 +18,12 @@ RSpec.describe 'Dalli instrumentation' do
 
   # Enable the test tracer
   before(:each) do
-    Datadog.configure { |c| c.use :dalli }
-    pin.tracer = tracer
+    Datadog.configure do |c|
+      c.use :dalli, configuration_options
+    end
   end
+
+  after(:each) { Datadog.registry[:dalli].reset_configuration! }
 
   it 'calls instrumentation' do
     client.set('abc', 123)

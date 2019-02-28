@@ -13,8 +13,7 @@ module Datadog
 
         def initialize(app, options = {})
           super(app)
-          @options = Datadog.configuration[:faraday].to_h.merge(options)
-          @tracer = Pin.get_from(::Faraday).tracer
+          @options = datadog_configuration.to_h.merge(options)
           setup_service!
         end
 
@@ -28,7 +27,7 @@ module Datadog
 
         private
 
-        attr_reader :app, :options, :tracer
+        attr_reader :app, :options
 
         def annotate!(span, env)
           span.resource = env[:method].to_s.upcase
@@ -52,6 +51,14 @@ module Datadog
           Datadog::HTTPPropagator.inject!(span.context, env[:request_headers])
         end
 
+        def datadog_configuration
+          Datadog.configuration[:faraday]
+        end
+
+        def tracer
+          options[:tracer]
+        end
+
         def service_name(env)
           return env[:url].host if options[:split_by_domain]
 
@@ -59,7 +66,7 @@ module Datadog
         end
 
         def setup_service!
-          return if options[:service_name] == Datadog.configuration[:faraday][:service_name]
+          return if options[:service_name] == datadog_configuration[:service_name]
 
           Patcher.register_service(options[:service_name])
         end

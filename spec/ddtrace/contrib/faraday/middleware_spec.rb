@@ -29,11 +29,6 @@ RSpec.describe 'Faraday middleware' do
     Datadog.configure do |c|
       c.use :faraday, configuration_options
     end
-
-    # Have to manually update this because its still
-    # using global pin instead of configuration.
-    # Remove this when we remove the pin.
-    Datadog::Pin.get_from(::Faraday).tracer = tracer
   end
 
   context 'when there is no interference' do

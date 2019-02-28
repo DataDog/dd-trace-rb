@@ -15,7 +15,7 @@ module Datadog
 
             options = {
               span_type: Datadog::Ext::HTTP::TYPE,
-              service: datadog_pin.service_name,
+              service: service_name,
               resource: format_resource(keywords[:method])
             }
 
