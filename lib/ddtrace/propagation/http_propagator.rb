@@ -18,6 +18,7 @@ module Datadog
       env[HTTP_HEADER_TRACE_ID] = context.trace_id.to_s
       env[HTTP_HEADER_PARENT_ID] = context.span_id.to_s
       env[HTTP_HEADER_SAMPLING_PRIORITY] = context.sampling_priority.to_s
+      env[HTTP_HEADER_ORIGIN] = context.origin.to_s if context.origin
       env.delete(HTTP_HEADER_SAMPLING_PRIORITY) unless context.sampling_priority
     end
 
@@ -28,7 +29,8 @@ module Datadog
       return Datadog::Context.new unless headers.valid?
       Datadog::Context.new(trace_id: headers.trace_id,
                            span_id: headers.parent_id,
-                           sampling_priority: headers.sampling_priority)
+                           sampling_priority: headers.sampling_priority,
+                           origin: headers.origin)
     end
   end
 end

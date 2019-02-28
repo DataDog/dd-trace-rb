@@ -53,6 +53,18 @@ module Datadog
       end
     end
 
+    def origin
+      @mutex.synchronize do
+        @origin
+      end
+    end
+
+    def origin=(origin)
+      @mutex.synchronize do
+        @origin = origin
+      end
+    end
+
     # Return the last active span that corresponds to the last inserted
     # item in the trace list. This cannot be considered as the current active
     # span in asynchronous environments, because some spans can be closed
@@ -138,6 +150,7 @@ module Datadog
         sampled = @sampled
 
         attach_sampling_priority if sampled && @sampling_priority
+        attach_origin if @origin
 
         # still return sampled attribute, even if context is not finished
         return nil, sampled unless check_finished_spans()
@@ -163,6 +176,7 @@ module Datadog
       @parent_span_id = options.fetch(:span_id, nil)
       @sampled = options.fetch(:sampled, false)
       @sampling_priority = options.fetch(:sampling_priority, nil)
+      @origin = options.fetch(:origin, nil)
       @finished_spans = 0
       @current_span = nil
       @current_root_span = nil
@@ -189,6 +203,13 @@ module Datadog
       @trace.first.set_metric(
         Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
         @sampling_priority
+      )
+    end
+
+    def attach_origin
+      @trace.first.set_tag(
+        Ext::DistributedTracing::ORIGIN_KEY,
+        @origin
       )
     end
 

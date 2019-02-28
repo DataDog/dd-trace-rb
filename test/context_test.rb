@@ -19,6 +19,7 @@ class ContextTest < Minitest::Test
     assert_nil(ctx.trace_id)
     assert_nil(ctx.span_id)
     assert_nil(ctx.sampling_priority)
+    assert_nil(ctx.origin)
     assert_equal(false, ctx.sampled)
     assert_equal(false, ctx.finished?)
 
@@ -26,6 +27,14 @@ class ContextTest < Minitest::Test
     assert_equal(123, ctx.trace_id)
     assert_equal(456, ctx.span_id)
     assert_equal(1, ctx.sampling_priority)
+    assert_equal(true, ctx.sampled)
+    assert_equal(false, ctx.finished?)
+
+    ctx = Datadog::Context.new(trace_id: 123, span_id: 456, sampling_priority: 1, origin: 'synthetics', sampled: true)
+    assert_equal(123, ctx.trace_id)
+    assert_equal(456, ctx.span_id)
+    assert_equal(1, ctx.sampling_priority)
+    assert_equal('synthetics', ctx.origin)
     assert_equal(true, ctx.sampled)
     assert_equal(false, ctx.finished?)
   end

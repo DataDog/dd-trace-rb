@@ -40,11 +40,13 @@ RSpec.describe 'Rack integration distributed tracing' do
     let(:trace_id) { 8694058539399423136 }
     let(:parent_id) { 3605612475141592985 }
     let(:sampling_priority) { Datadog::Ext::Priority::AUTO_KEEP }
+    let(:origin) { 'synthetics' }
 
     before(:each) do
       header Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, trace_id
       header Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, parent_id
       header Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority
+      header Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN, origin
     end
   end
 
@@ -52,6 +54,7 @@ RSpec.describe 'Rack integration distributed tracing' do
     let(:trace_id) { nil }
     let(:parent_id) { nil }
     let(:sampling_priority) { nil }
+    let(:origin) { nil }
   end
 
   shared_examples_for 'a Rack request with distributed tracing' do
@@ -62,6 +65,7 @@ RSpec.describe 'Rack integration distributed tracing' do
       expect(span.trace_id).to eq(trace_id)
       expect(span.parent_id).to eq(parent_id)
       expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority)
+      expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq(origin)
     end
   end
 
@@ -73,6 +77,7 @@ RSpec.describe 'Rack integration distributed tracing' do
       expect(span.trace_id).to_not eq(trace_id)
       expect(span.parent_id).to eq(0)
       expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to be nil
+      expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to be nil
     end
   end
 
