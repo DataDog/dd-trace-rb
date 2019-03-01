@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'ddtrace/contrib/sampling_examples'
+require 'ddtrace/contrib/analytics_examples'
 
 require 'active_record'
 require 'delayed_job'
@@ -104,7 +104,10 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
         expect(span.get_tag('delayed_job.attempts')).to eq('0')
       end
 
-      it_behaves_like 'event sample rate'
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_ENALBED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
 
       context 'when queue name is set' do
         let(:queue_name) { 'queue_name' }

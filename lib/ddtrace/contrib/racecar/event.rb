@@ -1,4 +1,4 @@
-require 'ddtrace/contrib/sampling'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_support/notifications/event'
 require 'ddtrace/contrib/racecar/ext'
 
@@ -37,7 +37,10 @@ module Datadog
             span.service = configuration[:service_name]
             span.resource = payload[:consumer_class]
 
-            Contrib::Sampling.set_event_sample_rate(span, configuration[:event_sample_rate])
+            # Set analytics sample rate
+            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            end
             span.set_tag(Ext::TAG_TOPIC, payload[:topic])
             span.set_tag(Ext::TAG_CONSUMER, payload[:consumer_class])
             span.set_tag(Ext::TAG_PARTITION, payload[:partition])

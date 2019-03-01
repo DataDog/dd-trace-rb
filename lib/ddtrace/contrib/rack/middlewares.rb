@@ -1,7 +1,7 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
-require 'ddtrace/contrib/sampling'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
 
@@ -140,8 +140,10 @@ module Datadog
 
           request_span.resource ||= resource_name_for(env, status)
 
-          # Set event sample rate, if available.
-          Contrib::Sampling.set_event_sample_rate(request_span, configuration[:event_sample_rate])
+          # Set analytics sample rate
+          if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+            Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])
+          end
 
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
