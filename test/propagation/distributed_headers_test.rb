@@ -50,6 +50,9 @@ class DistributedHeadersTest < Minitest::Test
       { 'HTTP_X_DATADOG_TRACE_ID' => '0' } => nil,
       { 'HTTP_X_DATADOG_TRACE_ID' => '-1' } => 18446744073709551615,
       { 'HTTP_X_DATADOG_TRACE_ID' => '-8809075535603237910' } => 9637668538106313706,
+      { 'HTTP_X_DATADOG_TRACE_ID' => '9223372036854775807' } => 9223372036854775807, # 2^63 - 1
+      { 'HTTP_X_DATADOG_TRACE_ID' => '9223372036854775809' } => 9223372036854775809, # 2^63 + 1
+      { 'HTTP_X_DATADOG_TRACE_ID' => '9875854025993570635' } => 9875854025993570635, # TraceID from customer
       { 'HTTP_X_DATADOG_TRACE_ID' => 'ooops' } => nil,
       { 'HTTP_X_DATADOG_TRACE_TYPO' => '1' } => nil,
       { 'HTTP_X_DATADOG_TRACE_ID' => Datadog::Span::MAX_ID.to_s } => nil,
