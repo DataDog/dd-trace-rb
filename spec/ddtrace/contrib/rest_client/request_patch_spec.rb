@@ -6,16 +6,18 @@ require 'restclient/request'
 
 RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
   let(:tracer) { get_test_tracer }
-  let(:rest_client_options) { {} }
+  let(:configuration_options) { { tracer: tracer } }
 
   before do
     Datadog.configure do |c|
-      c.use :rest_client, rest_client_options.merge(tracer: tracer)
+      c.use :rest_client, configuration_options
     end
 
     WebMock.disable_net_connect!
     WebMock.enable!
   end
+
+  after(:each) { Datadog.registry[:rest_client].reset_configuration! }
 
   describe 'instrumented request' do
     let(:path) { '/sample/path' }
@@ -215,7 +217,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
     end
 
     context 'distributed tracing disabled' do
-      let(:rest_client_options) { { distributed_tracing: false } }
+      let(:configuration_options) { super().merge(distributed_tracing: false) }
 
       it_behaves_like 'instrumented request'
 
