@@ -22,10 +22,16 @@ RSpec.describe Datadog::Contrib::Configuration::Settings do
       it { expect(option.get).to be Datadog.tracer }
     end
 
-    describe ':event_sample_rate' do
-      subject(:option) { options[:event_sample_rate] }
-      it { expect(options).to include(:event_sample_rate) }
-      it { expect(option.get).to be nil }
+    describe ':analytics_enabled' do
+      subject(:option) { options[:analytics_enabled] }
+      it { expect(options).to include(:analytics_enabled) }
+      it { expect(option.get).to be false }
+    end
+
+    describe ':analytics_sample_rate' do
+      subject(:option) { options[:analytics_sample_rate] }
+      it { expect(options).to include(:analytics_sample_rate) }
+      it { expect(option.get).to eq 1.0 }
     end
   end
 end

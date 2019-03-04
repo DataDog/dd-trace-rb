@@ -27,6 +27,9 @@ Metrics/AbcSize:
 Metrics/MethodLength:
   Max: 36
 
+Performance/Casecmp:
+  Enabled: false
+
 # TODO: this is not compliant with the Ruby community style guide. We
 # should enable again this rule but it will change the public API because
 # we're using set_ methods. We should work on that because also Rails

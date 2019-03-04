@@ -1,5 +1,5 @@
 require 'sucker_punch'
-require 'ddtrace/contrib/sampling'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sucker_punch/ext'
 
 module Datadog
@@ -19,7 +19,10 @@ module Datadog
 
               __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"
-                Contrib::Sampling.set_event_sample_rate(span, datadog_configuration[:event_sample_rate])
+                # Set analytics sample rate
+                if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+                  Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+                end
                 __run_perform_without_datadog(*args)
               end
             rescue => e

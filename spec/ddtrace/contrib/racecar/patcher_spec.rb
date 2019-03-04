@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'ddtrace/contrib/sampling_examples'
+require 'ddtrace/contrib/analytics_examples'
 
 require 'racecar'
 require 'racecar/cli'
@@ -86,8 +86,10 @@ RSpec.describe 'Racecar patcher' do
       end
     end
 
-    it_behaves_like 'event sample rate' do
+    it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_message.racecar', payload) }
+      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENALBED }
+      let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
   end
 
@@ -159,8 +161,10 @@ RSpec.describe 'Racecar patcher' do
       end
     end
 
-    it_behaves_like 'event sample rate' do
+    it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_batch.racecar', payload) }
+      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENALBED }
+      let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
   end
 end

@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'ddtrace/contrib/sampling_examples'
+require 'ddtrace/contrib/analytics_examples'
 require_relative 'job'
 
 require 'ddtrace'
@@ -44,7 +44,10 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
       end
 
-      it_behaves_like 'event sample rate'
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Contrib::Resque::Ext::ENV_ANALYTICS_ENALBED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::Resque::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
     end
 
     context 'that fails' do
@@ -74,8 +77,6 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
         expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to eq(error_class_name)
       end
-
-      it_behaves_like 'event sample rate'
     end
   end
 

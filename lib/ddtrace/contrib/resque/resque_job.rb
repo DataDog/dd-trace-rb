@@ -1,6 +1,6 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/sync_writer'
-require 'ddtrace/contrib/sampling'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sidekiq/ext'
 require 'resque'
 
@@ -15,7 +15,10 @@ module Datadog
           tracer.trace(Ext::SPAN_JOB, span_options) do |span|
             span.resource = name
             span.span_type = Datadog::Ext::AppTypes::WORKER
-            Contrib::Sampling.set_event_sample_rate(span, datadog_configuration[:event_sample_rate])
+            # Set analytics sample rate
+            if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+            end
             yield
           end
         end
