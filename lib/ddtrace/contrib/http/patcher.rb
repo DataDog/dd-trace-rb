@@ -22,6 +22,7 @@ module Datadog
               require 'uri'
               require 'ddtrace/pin'
               require 'ddtrace/ext/app_types'
+              require 'ddtrace/ext/errors'
               require 'ddtrace/ext/http'
               require 'ddtrace/ext/net'
               require 'ddtrace/ext/distributed'
@@ -97,13 +98,20 @@ module Datadog
 
                 case response.code.to_i / 100
                 when 4
-                  span.set_error(response)
+                  set_response_as_span_error(span, response)
                 when 5
-                  span.set_error(response)
+                  set_response_as_span_error(span, response)
                 end
 
                 response
               end
+            end
+
+            def set_response_as_span_error(span, response)
+              return if response.nil?
+              span.status = Datadog::Ext::Errors::STATUS
+              span.set_tag(Datadog::Ext::Errors::TYPE, response.class)
+              span.set_tag(Datadog::Ext::Errors::MSG, response.body) if response.respond_to?(:body)
             end
           end
         end

@@ -51,7 +51,8 @@ RSpec.describe 'net/http requests' do
     end
 
     context 'that returns 404' do
-      before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 404) }
+      before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 404, body: body) }
+      let(:body) { 'Not found!' }
       let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
@@ -67,6 +68,7 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.status).to eq(1)
         expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
+        expect(span.get_tag('error.msg')).to eq(body)
       end
     end
   end
