@@ -11,8 +11,10 @@ module Datadog
     end
 
     def valid?
-      # Sampling priority and origin are optional.
-      trace_id && parent_id
+      # We just need a valid trace id. Parent id, sampling priority, and origin are all optional
+      # DEV: No parent id means that our trace will be the parent, but we use a specific trace id
+      #      this is the case for Synthetics requests, they send `X-Datadog-Parent-Id: 0`
+      trace_id
     end
 
     def trace_id
