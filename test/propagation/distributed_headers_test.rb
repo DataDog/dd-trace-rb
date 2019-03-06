@@ -35,7 +35,7 @@ class DistributedHeadersTest < Minitest::Test
       # Parent id is not required when origin is synthetics
       { 'HTTP_X_DATADOG_TRACE_ID' => '123',
         'HTTP_X_DATADOG_PARENT_ID' => '0',
-        'HTTP_X_DATADOG_ORIGIN' => 'synthetics'}
+        'HTTP_X_DATADOG_ORIGIN' => 'synthetics' } => true
     }
 
     test_cases.each do |env, expected|
