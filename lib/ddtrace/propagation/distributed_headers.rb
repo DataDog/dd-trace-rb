@@ -15,6 +15,7 @@ module Datadog
       # to filter out, but is ok in this context since there is no parent from Synthetics
       return true if origin == 'synthetics' && trace_id
 
+      # Sampling priority and origin are optional.
       trace_id && parent_id
     end
 
