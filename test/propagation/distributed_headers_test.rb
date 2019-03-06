@@ -4,7 +4,7 @@ require 'ddtrace/span'
 require 'ddtrace/propagation/distributed_headers'
 
 class DistributedHeadersTest < Minitest::Test
-  def test_valid_without_sampling_priority
+  def test_valid_without_sampling_priority # rubocop:disable Metrics/MethodLength
     test_cases = {
       { 'HTTP_X_DATADOG_TRACE_ID' => '123',
         'HTTP_X_DATADOG_PARENT_ID' => '456' } => true,
@@ -33,6 +33,9 @@ class DistributedHeadersTest < Minitest::Test
       { 'HTTP_X_DATADOG_TRACE_ID' => '123',
         'HTTP_X_DATADOG_PARENT_TYPO' => '456' } => false,
       # Parent id is not required when origin is synthetics
+      { 'HTTP_X_DATADOG_TRACE_ID' => '123',
+        'HTTP_X_DATADOG_PARENT_ID' => '0',
+        'HTTP_X_DATADOG_ORIGIN' => 'not-synthetics' } => false,
       { 'HTTP_X_DATADOG_TRACE_ID' => '123',
         'HTTP_X_DATADOG_PARENT_ID' => '0',
         'HTTP_X_DATADOG_ORIGIN' => 'synthetics' } => true
