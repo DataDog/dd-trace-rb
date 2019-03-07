@@ -10,6 +10,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.20.0
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.19.1...v0.20.0
 
+This release will log deprecation warnings for any usage of `Datadog::Pin`.
+These changes are backwards compatible, but all integration configuration should be moved away from `Pin` and to the configuration API instead.
+
 ### Added
 
 - Propagate synthetics origin header (#699)
@@ -21,6 +24,16 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.19.1...v0.20.0
 ### Fixes
 
 - Fix Rack http_server.queue spans missing from distributed traces (#709)
+
+### Refactored
+
+- Refactor MongoDB to use instrumentation module (#704)
+- Refactor HTTP to use instrumentation module (#703)
+- Deprecate GRPC global pin in favor of configuration API (#702)
+- Deprecate Grape pin in favor of configuration API (#700)
+- Deprecate Faraday pin in favor of configuration API (#696)
+- Deprecate Dalli pin in favor of configuration API (#693)
+
 
 ## [0.19.1] - 2019-02-07
 
