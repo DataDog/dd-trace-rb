@@ -18,6 +18,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.19.1...v0.20.0
 
 - Enable distributed tracing by default (#701)
 
+### Fixes
+
+- Fix Rack http_server.queue spans missing from distributed traces (#709)
+
 ## [0.19.1] - 2019-02-07
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.19.1
