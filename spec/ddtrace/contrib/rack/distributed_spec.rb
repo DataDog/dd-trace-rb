@@ -88,6 +88,32 @@ RSpec.describe 'Rack integration distributed tracing' do
       context 'with distributed tracing headers' do
         include_context 'distributed tracing headers'
         it_behaves_like 'a Rack request with distributed tracing'
+
+        context 'and request_queuing is enabled' do
+          let(:rack_options) { super().merge(request_queuing: true, web_service_name: web_service_name) }
+          let(:web_service_name) { 'frontend_web_server' }
+
+          let(:server_span) { spans.first }
+          let(:rack_span) { spans.last }
+
+          before(:each) do
+            header 'X-Request-Start', "t=#{Time.now.to_f}"
+          end
+
+          it 'contains a request_queuing span that belongs to the distributed trace' do
+            is_expected.to be_ok
+            expect(spans).to have(2).items
+
+            expect(server_span.name).to eq('http_server.queue')
+            expect(server_span.trace_id).to eq(trace_id)
+            expect(server_span.parent_id).to eq(parent_id)
+            expect(server_span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority)
+
+            expect(rack_span.name).to eq('rack.request')
+            expect(rack_span.trace_id).to eq(trace_id)
+            expect(rack_span.parent_id).to eq(server_span.span_id)
+          end
+        end
       end
 
       context 'without distributed tracing headers' do

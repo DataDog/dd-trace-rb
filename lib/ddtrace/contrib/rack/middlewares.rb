@@ -43,6 +43,13 @@ module Datadog
           # retrieve integration settings
           tracer = configuration[:tracer]
 
+          # Extract distributed tracing context before creating any spans,
+          # so that all spans will be added to the distributed trace.
+          if configuration[:distributed_tracing]
+            context = HTTPPropagator.extract(env)
+            tracer.provider.context = context if context.trace_id
+          end
+
           # [experimental] create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
           frontend_span = compute_queue_time(env, tracer)
@@ -52,11 +59,6 @@ module Datadog
             resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE
           }
-
-          if configuration[:distributed_tracing]
-            context = HTTPPropagator.extract(env)
-            tracer.provider.context = context if context.trace_id
-          end
 
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
