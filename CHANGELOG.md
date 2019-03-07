@@ -34,7 +34,6 @@ These changes are backwards compatible, but all integration configuration should
 - Deprecate Faraday pin in favor of configuration API (#696)
 - Deprecate Dalli pin in favor of configuration API (#693)
 
-
 ## [0.19.1] - 2019-02-07
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.19.1
