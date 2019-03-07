@@ -711,8 +711,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.1...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.1...0.20-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.20.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.20.0...0.21-dev
+[0.20.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.1...v0.20.0
 [0.19.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.3...v0.19.0
 [0.18.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.2...v0.18.3
