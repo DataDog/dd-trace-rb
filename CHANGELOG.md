@@ -4,6 +4,20 @@
 
 ## [Unreleased (beta)]
 
+## [0.20.0] - 2019-03-07
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.20.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.19.1...v0.20.0
+
+### Added
+
+- Propagate synthetics origin header (#699)
+
+### Changed
+
+- Enable distributed tracing by default (#701)
+
 ## [0.19.1] - 2019-02-07
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.19.1
