@@ -15,7 +15,8 @@ module Datadog
       end
 
       def set_sample_rate(span, sample_rate)
-        span.set_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE, sample_rate) unless sample_rate.nil?
+        return if span.nil? || sample_rate.nil?
+        span.set_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE, sample_rate)
       end
     end
   end
