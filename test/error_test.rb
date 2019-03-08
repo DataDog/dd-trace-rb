@@ -1,5 +1,6 @@
 require 'helper'
 require 'ddtrace/error'
+require 'net/http'
 
 module Datadog
   class ErrorTest < Minitest::Test
@@ -63,6 +64,45 @@ module Datadog
 
       assert_equal('Datadog::ErrorTest::CustomMessage', error.type)
       assert_equal('custom-message', error.message)
+      assert_empty(error.backtrace)
+    end
+
+    def test_net_http_response_coercion
+      # https://github.com/ruby/ruby/blob/4444025d16ae1a586eee6a0ac9bdd09e33833f3c/test/net/http/test_httpresponse.rb#L37-L55
+      io = Net::BufferedIO.new(StringIO.new(<<EOS))
+HTTP/1.1 404 Not Found
+Content-Length: 13
+Connection: close
+
+response body
+EOS
+
+      response = Net::HTTPResponse.read_new(io)
+      response.reading_body(io, true) {}
+
+      error = Error.build_from(response)
+
+      assert_equal('Net::HTTPNotFound', error.type)
+      assert_equal('response body', error.message)
+      assert_empty(error.backtrace)
+    end
+
+    def test_net_http_response_no_body_coercion
+      # https://github.com/ruby/ruby/blob/4444025d16ae1a586eee6a0ac9bdd09e33833f3c/test/net/http/test_httpresponse.rb#L37-L55
+      io = Net::BufferedIO.new(StringIO.new(<<EOS))
+HTTP/1.1 204 No Content
+Content-Length: 0
+Connection: close
+
+EOS
+
+      response = Net::HTTPResponse.read_new(io)
+      response.reading_body(io, true) {}
+
+      error = Error.build_from(response)
+
+      assert_equal('Net::HTTPNoContent', error.type)
+      assert_equal('No Content', error.message)
       assert_empty(error.backtrace)
     end
 
