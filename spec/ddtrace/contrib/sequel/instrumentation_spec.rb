@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
 
 require 'time'
 require 'sequel'
@@ -19,13 +20,17 @@ RSpec.describe 'Sequel instrumentation' do
   before(:each) do
     skip('Sequel not compatible.') unless Datadog::Contrib::Sequel::Integration.compatible?
 
-    # Reset options (that might linger from other tests)
-    Datadog.configuration[:sequel].reset_options!
-
     # Patch Sequel
     Datadog.configure do |c|
       c.use :sequel, configuration_options
     end
+  end
+
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:sequel].reset_configuration!
+    example.run
+    Datadog.registry[:sequel].reset_configuration!
   end
 
   describe 'for a SQLite database' do
@@ -50,6 +55,11 @@ RSpec.describe 'Sequel instrumentation' do
         expect(span.resource).to eq(query)
         expect(span.status).to eq(0)
         expect(span.parent_id).to eq(0)
+      end
+
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
     end
 
@@ -114,6 +124,13 @@ RSpec.describe 'Sequel instrumentation' do
           expect(command_span.parent_id).to eq(process_span.span_id)
           expect(command_span.trace_id).to eq(publish_span.trace_id)
         end
+      end
+
+      it_behaves_like 'analytics for integration' do
+        # Check one of the command spans at random
+        let(:span) { spans[2..5].sample }
+        let(:analytics_enabled_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
     end
   end
