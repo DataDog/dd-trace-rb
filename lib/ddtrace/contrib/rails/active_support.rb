@@ -53,6 +53,7 @@ module Datadog
             normalized_key = ::ActiveSupport::Cache.expand_cache_key(payload.fetch(:key))
             cache_key = Datadog::Utils.truncate(normalized_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
             span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
+
             span.set_error(payload[:exception]) if payload[:exception]
           ensure
             span.finish
