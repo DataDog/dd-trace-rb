@@ -7,7 +7,7 @@ module Datadog
       module Configuration
         # Custom settings for the HTTP integration
         class Settings < Contrib::Configuration::Settings
-          option :distributed_tracing, default: false
+          option :distributed_tracing, default: true
           option :service_name, default: Ext::SERVICE_NAME
         end
       end

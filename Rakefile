@@ -46,7 +46,8 @@ namespace :spec do
   end
 
   RSpec::Core::RakeTask.new(:contrib) do |t|
-    t.pattern = 'spec/**/contrib/{configurable,integration,patchable,patcher,registerable,sampling,configuration/*}_spec.rb'
+    # rubocop:disable Metrics/LineLength
+    t.pattern = 'spec/**/contrib/{analytics,configurable,integration,patchable,patcher,registerable,sampling,configuration/*}_spec.rb'
   end
 
   [
@@ -76,7 +77,6 @@ namespace :spec do
     :sidekiq,
     :sinatra,
     :sucker_punch,
-    :rest_client,
     :shoryuken
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t|

@@ -294,9 +294,7 @@ RSpec.describe 'Sinatra instrumentation' do
       end
     end
 
-    context 'with distributed tracing' do
-      let(:options) { super().merge(distributed_tracing: true) }
-
+    context 'with distributed tracing default' do
       context 'and a simple request is made' do
         include_context 'app with simple route'
 
@@ -309,7 +307,8 @@ RSpec.describe 'Sinatra instrumentation' do
             {
               'HTTP_X_DATADOG_TRACE_ID' => '1',
               'HTTP_X_DATADOG_PARENT_ID' => '2',
-              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s
+              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s,
+              'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
             }
           end
 
@@ -319,6 +318,37 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.trace_id).to eq(1)
             expect(span.parent_id).to eq(2)
             expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(2.0)
+            expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq('synthetics')
+          end
+        end
+      end
+    end
+
+    context 'with distributed tracing disabled' do
+      let(:options) { super().merge(distributed_tracing: false) }
+
+      context 'and a simple request is made' do
+        include_context 'app with simple route'
+
+        subject(:response) { get '/', query_string, headers }
+        let(:query_string) { {} }
+        let(:headers) { {} }
+
+        context 'without distributed tracing headers' do
+          let(:headers) do
+            {
+              'HTTP_X_DATADOG_TRACE_ID' => '1',
+              'HTTP_X_DATADOG_PARENT_ID' => '2',
+              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s
+            }
+          end
+
+          it do
+            is_expected.to be_ok
+            expect(spans).to have(1).items
+            expect(span.trace_id).to_not eq(1)
+            expect(span.parent_id).to_not eq(2)
+            expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to_not eq(2.0)
           end
         end
       end

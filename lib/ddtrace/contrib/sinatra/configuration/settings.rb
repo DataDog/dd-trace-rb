@@ -12,7 +12,7 @@ module Datadog
             response: %w[Content-Type X-Request-ID]
           }.freeze
 
-          option :distributed_tracing, default: false
+          option :distributed_tracing, default: true
           option :headers, default: DEFAULT_HEADERS
           option :resource_script_names, default: false
 

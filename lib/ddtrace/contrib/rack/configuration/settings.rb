@@ -14,8 +14,16 @@ module Datadog
             ]
           }.freeze
 
+          option  :analytics_enabled,
+                  default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENALBED, nil) },
+                  lazy: true
+
+          option  :analytics_sample_rate,
+                  default: -> { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) },
+                  lazy: true
+
           option :application
-          option :distributed_tracing, default: false
+          option :distributed_tracing, default: true
           option :headers, default: DEFAULT_HEADERS
           option :middleware_names, default: false
           option :quantize, default: {}

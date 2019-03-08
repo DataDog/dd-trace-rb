@@ -29,11 +29,6 @@ RSpec.describe 'Faraday middleware' do
     Datadog.configure do |c|
       c.use :faraday, configuration_options
     end
-
-    # Have to manually update this because its still
-    # using global pin instead of configuration.
-    # Remove this when we remove the pin.
-    Datadog::Pin.get_from(::Faraday).tracer = tracer
   end
 
   context 'when there is no interference' do
@@ -115,20 +110,8 @@ RSpec.describe 'Faraday middleware' do
     let(:headers) { response.env.request_headers }
 
     it do
-      expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
-      expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
-    end
-  end
-
-  context 'when distributed tracing is enabled' do
-    subject(:response) { client.get('/success') }
-
-    let(:middleware_options) { { distributed_tracing: true } }
-    let(:headers) { response.env.request_headers }
-
-    it do
-      expect(headers[Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID]).to eq(request_span.trace_id.to_s)
-      expect(headers[Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID]).to eq(request_span.span_id.to_s)
+      expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => request_span.trace_id.to_s)
+      expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => request_span.span_id.to_s)
     end
 
     context 'but the tracer is disabled' do
@@ -138,6 +121,18 @@ RSpec.describe 'Faraday middleware' do
         expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
         expect(request_span).to be nil
       end
+    end
+  end
+
+  context 'when distributed tracing is disabled' do
+    subject(:response) { client.get('/success') }
+
+    let(:middleware_options) { { distributed_tracing: false } }
+    let(:headers) { response.env.request_headers }
+
+    it do
+      expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
+      expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
     end
   end
 

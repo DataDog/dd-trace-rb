@@ -158,9 +158,11 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
         .and_wrap_original do |m, *args|
           m.call(*args).tap do |datum|
             # Assert request headers
+            span = datum[:datadog_span]
             headers = datum[:headers]
-            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
-            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
+            expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id.to_s)
+            expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id.to_s)
+            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
           end
         end
 
@@ -174,24 +176,24 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     end
   end
 
-  context 'when distributed tracing is enabled' do
+  context 'when distributed tracing is disabled' do
+    let(:configuration_options) { super().merge(distributed_tracing: false) }
+    after(:each) { Datadog.configuration[:excon][:distributed_tracing] = true }
+
     subject!(:response) do
       expect_any_instance_of(Datadog::Contrib::Excon::Middleware).to receive(:request_call)
         .and_wrap_original do |m, *args|
           m.call(*args).tap do |datum|
             # Assert request headers
-            span = datum[:datadog_span]
             headers = datum[:headers]
-            expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id.to_s)
-            expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id.to_s)
+            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
+            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
+            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
           end
         end
 
       connection.get(path: '/success')
     end
-
-    let(:configuration_options) { super().merge(distributed_tracing: true) }
-    after(:each) { Datadog.configuration[:excon][:distributed_tracing] = false }
 
     it do
       expect(response).to be_a_kind_of(::Excon::Response)
@@ -211,6 +213,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
               headers = datum[:headers]
               expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
               expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
+              expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
             end
           end
 

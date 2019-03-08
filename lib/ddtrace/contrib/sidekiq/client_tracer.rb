@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/sidekiq/tracing'
-require 'ddtrace/contrib/sampling'
+require 'ddtrace/contrib/analytics'
 
 module Datadog
   module Contrib
@@ -21,7 +21,10 @@ module Datadog
 
           @tracer.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span|
             span.resource = resource
-            Contrib::Sampling.set_event_sample_rate(span, configuration[:event_sample_rate])
+            # Set analytics sample rate
+            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            end
             span.set_tag(Ext::TAG_JOB_ID, job['jid'])
             span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
             span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']

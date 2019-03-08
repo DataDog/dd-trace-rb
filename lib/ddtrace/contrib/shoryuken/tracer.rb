@@ -1,4 +1,4 @@
-require 'ddtrace/contrib/sampling'
+require 'ddtrace/contrib/analytics'
 
 module Datadog
   module Contrib
@@ -13,7 +13,10 @@ module Datadog
 
         def call(worker_instance, queue, sqs_msg, body)
           @tracer.trace(Ext::SPAN_JOB, service: @shoryuken_service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
-            Contrib::Sampling.set_event_sample_rate(span, configuration[:event_sample_rate])
+            # Set analytics sample rate
+            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            end
             span.resource = resource(worker_instance, body)
             span.set_tag(Ext::TAG_JOB_ID, sqs_msg.message_id)
             span.set_tag(Ext::TAG_JOB_QUEUE, queue)

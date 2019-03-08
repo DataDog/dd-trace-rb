@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'ddtrace/contrib/sampling_examples'
+require 'ddtrace/contrib/analytics_examples'
 
 require 'securerandom'
 require 'rake'
@@ -90,8 +90,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           expect(invoke_span.parent_id).to eq(0)
         end
 
-        it_behaves_like 'event sample rate' do
+        it_behaves_like 'analytics for integration' do
           let(:span) { invoke_span }
+          let(:analytics_enabled_var) { Datadog::Contrib::Rake::Ext::ENV_ANALYTICS_ENALBED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::Rake::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
       end
 
@@ -100,7 +102,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           expect(execute_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_EXECUTE)
           expect(execute_span.resource).to eq(task_name.to_s)
           expect(execute_span.parent_id).to eq(invoke_span.span_id)
-          expect(execute_span.get_tag(Datadog::Ext::Priority::TAG_EVENT_SAMPLE_RATE)).to be nil
+          expect(execute_span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
         end
       end
     end

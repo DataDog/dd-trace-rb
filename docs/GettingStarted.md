@@ -518,7 +518,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `service_name` | Service name used for `DelayedJob` instrumentation | `'delayed_job'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -568,7 +568,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
 | `service_name` | Service name for Excon instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'excon'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
@@ -625,7 +625,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
 | `service_name` | Service name for Faraday instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'faraday'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
@@ -659,6 +659,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `enabled` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `grape` instrumentation | `'grape'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -838,7 +839,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name used for `http` instrumentation | `'net/http'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -867,7 +868,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `service_name` | Service name used for `racecar` instrumentation | `'racecar'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -898,9 +899,9 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `application` | Your Rack application. Required for `middleware_names`. | `nil` |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
-| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `headers` | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `middleware_names` | Enable this if you want to use the middleware classes as the resource names for `rack` spans. Requires `application` option to use. | `false` |
 | `quantize` | Hash containing options for quantization. May include `:query` or `:fragment`. | `{}` |
@@ -966,7 +967,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `cache_service` | Cache service name used when tracing cache activity | `'<app_name>-cache'` |
 | `controller_service` | Service name used when tracing a Rails action controller | `'<app_name>'` |
 | `database_service` | Database service name used when tracing database activity | `'<app_name>-<adapter_name>'` |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `exception_controller` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | `nil` |
 | `middleware` | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load. | `true` |
 | `middleware_names` | Enables any short-circuited middleware requests to display the middleware name as resource for the trace. | `false` |
@@ -1009,8 +1010,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `enabled` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `quantize` | Hash containing options for quantization of task arguments. See below for more details and examples. | `{}` |
 | `service_name` | Service name used for `rake` instrumentation | `'rake'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
@@ -1112,7 +1113,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `service_name` | Service name used for `resque` instrumentation | `'resque'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 | `workers` | An array including all worker classes you want to trace (eg `[MyJob]`) | `[]` |
@@ -1134,7 +1135,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `rest_client` instrumentation. | `'rest_client'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -1204,7 +1205,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `service_name` | Service name used for `shoryuken` instrumentation | `'shoryuken'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -1226,8 +1227,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `client_service_name` | Service name used for client-side `sidekiq` instrumentation | `'sidekiq-client'` |
-| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
 | `service_name` | Service name used for server-side `sidekiq` instrumentation | `'sidekiq'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -1254,7 +1255,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `headers` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `resource_script_names` | Prepend resource names with script name | `false` |
 | `service_name` | Service name used for `sinatra` instrumentation | `'sinatra'` |
@@ -1279,7 +1280,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `event_sample_rate` | Rate which spans should be sampled for search and analytics. | `nil` |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `service_name` | Service name used for `sucker_punch` instrumentation | `'sucker_punch'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 

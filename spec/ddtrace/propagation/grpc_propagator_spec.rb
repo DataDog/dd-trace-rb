@@ -9,10 +9,12 @@ RSpec.describe Datadog::GRPCPropagator do
     let(:span_context) do
       Datadog::Context.new(trace_id: 1234567890,
                            span_id: 9876543210,
-                           sampling_priority: sampling_priority)
+                           sampling_priority: sampling_priority,
+                           origin: origin)
     end
 
     let(:sampling_priority) { nil }
+    let(:origin) { nil }
 
     let(:metadata) { {} }
 
@@ -39,6 +41,20 @@ RSpec.describe Datadog::GRPCPropagator do
         expect(metadata).not_to include('x-datadog-sampling-priority')
       end
     end
+
+    context 'when origin set on context' do
+      let(:origin) { 'synthetics' }
+
+      it 'injects the origin into the gRPC metadata' do
+        expect(metadata).to include('x-datadog-origin' => 'synthetics')
+      end
+    end
+
+    context 'when origin not set on context' do
+      it 'leaves the origin blank in the gRPC metadata' do
+        expect(metadata).not_to include('x-datadog-origin')
+      end
+    end
   end
 
   describe '.extract' do
@@ -58,13 +74,15 @@ RSpec.describe Datadog::GRPCPropagator do
       let(:metadata) do
         { 'x-datadog-trace-id' => '1234567890',
           'x-datadog-parent-id' => '9876543210',
-          'x-datadog-sampling-priority' => '0' }
+          'x-datadog-sampling-priority' => '0',
+          'x-datadog-origin' => 'synthetics' }
       end
 
       it 'returns a populated context' do
         expect(subject.trace_id).to eq 1234567890
         expect(subject.span_id).to eq 9876543210
         expect(subject.sampling_priority).to be_zero
+        expect(subject.origin).to eq 'synthetics'
       end
     end
   end

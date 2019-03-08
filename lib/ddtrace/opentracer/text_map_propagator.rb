@@ -21,6 +21,7 @@ module Datadog
             carrier[HTTP_HEADER_TRACE_ID] = datadog_context.trace_id
             carrier[HTTP_HEADER_PARENT_ID] = datadog_context.span_id
             carrier[HTTP_HEADER_SAMPLING_PRIORITY] = datadog_context.sampling_priority
+            carrier[HTTP_HEADER_ORIGIN] = datadog_context.origin
           end
 
           # Inject baggage
@@ -43,7 +44,8 @@ module Datadog
                               Datadog::Context.new(
                                 trace_id: headers.trace_id,
                                 span_id: headers.parent_id,
-                                sampling_priority: headers.sampling_priority
+                                sampling_priority: headers.sampling_priority,
+                                origin: headers.origin
                               )
                             else
                               Datadog::Context.new

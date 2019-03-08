@@ -1,5 +1,5 @@
 require 'delayed/plugin'
-require 'ddtrace/contrib/sampling'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/delayed_job/ext'
 
 module Datadog
@@ -19,7 +19,10 @@ module Datadog
                      end
 
           tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name) do |span|
-            Contrib::Sampling.set_event_sample_rate(span, configuration[:event_sample_rate])
+            # Set analytics sample rate
+            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            end
             span.set_tag(Ext::TAG_ID, job.id)
             span.set_tag(Ext::TAG_QUEUE, job.queue) if job.queue
             span.set_tag(Ext::TAG_PRIORITY, job.priority)

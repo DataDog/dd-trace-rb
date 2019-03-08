@@ -5,13 +5,15 @@ require 'ddtrace'
 RSpec.describe 'gRPC integration test' do
   include GRPCHelper
 
+  let(:tracer) { get_test_tracer }
+
   let(:spans) do
-    Datadog::Pin.get_from(::GRPC).tracer.writer.spans
+    tracer.writer.spans
   end
 
   before do
     Datadog.configure do |c|
-      c.use :grpc, tracer: get_test_tracer, service_name: 'rspec'
+      c.use :grpc, tracer: tracer, service_name: 'rspec'
     end
   end
 

@@ -9,7 +9,8 @@ module Datadog
 
         option :service_name
         option :tracer, default: Datadog.tracer
-        option :event_sample_rate
+        option :analytics_enabled, default: false
+        option :analytics_sample_rate, default: 1.0
 
         def initialize(options = {})
           configure(options)
@@ -29,6 +30,18 @@ module Datadog
 
         def []=(name, value)
           respond_to?("#{name}=") ? send("#{name}=", value) : set_option(name, value)
+        end
+
+        class << self
+          private
+
+          def env_to_bool(var, default = nil)
+            ENV.key?(var) ? ENV[var].to_s.downcase == 'true' : default
+          end
+
+          def env_to_float(var, default = nil)
+            ENV.key?(var) ? ENV[var].to_f : default
+          end
         end
       end
     end
