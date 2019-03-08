@@ -25,8 +25,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
     end
   end
 
-  after(:each) do
-    # Reset configuration to defaults
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:rake].reset_configuration!
+    example.run
     Datadog.registry[:rake].reset_configuration!
 
     # We don't want instrumentation enabled during the rest of the test suite...
