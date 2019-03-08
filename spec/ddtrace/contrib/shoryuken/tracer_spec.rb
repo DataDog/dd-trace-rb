@@ -20,7 +20,12 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
     end
   end
 
-  after { Datadog.registry[:shoryuken].reset_configuration! }
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:shoryuken].reset_configuration!
+    example.run
+    Datadog.registry[:shoryuken].reset_configuration!
+  end
 
   shared_context 'Shoryuken::Worker' do
     let(:worker_class) do

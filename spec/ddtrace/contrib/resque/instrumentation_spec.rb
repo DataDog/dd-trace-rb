@@ -28,7 +28,12 @@ RSpec.describe 'Resque instrumentation' do
     end
   end
 
-  after(:each) { Datadog.registry[:resque].reset_configuration! }
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:resque].reset_configuration!
+    example.run
+    Datadog.registry[:resque].reset_configuration!
+  end
 
   shared_examples 'job execution tracing' do
     context 'that succeeds' do

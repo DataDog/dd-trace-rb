@@ -21,7 +21,12 @@ RSpec.describe 'Rack integration configuration' do
     end
   end
 
-  after(:each) { Datadog.registry[:rack].reset_configuration! }
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:rack].reset_configuration!
+    example.run
+    Datadog.registry[:rack].reset_configuration!
+  end
 
   shared_context 'an incoming HTTP request' do
     subject(:response) { get '/' }
