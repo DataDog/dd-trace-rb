@@ -110,7 +110,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       end
 
       it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_ENALBED }
+        let(:analytics_enabled_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
