@@ -5,11 +5,24 @@ require_relative 'configuration/pin_setup'
 module Datadog
   # Configuration provides a unique access point for configurations
   class Configuration
+    ENV_TRACE_ANALYTICS_ENABLED = 'DD_TRACE_ANALYTICS_ENABLED'.freeze
     InvalidIntegrationError = Class.new(StandardError)
+
+    attr_writer :analytics_enabled
 
     def initialize(options = {})
       @registry = options.fetch(:registry) { Datadog.registry }
       @wrapped_registry = {}
+      @analytics_enabled = nil
+    end
+
+    def analytics_enabled
+      @analytics_enabled || begin
+        if ENV.key?(ENV_TRACE_ANALYTICS_ENABLED)
+          value = ENV[ENV_TRACE_ANALYTICS_ENABLED]
+          value.to_s.downcase == 'true'
+        end
+      end
     end
 
     def [](integration_name, configuration_name = :default)
