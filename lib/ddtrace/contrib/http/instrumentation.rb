@@ -23,6 +23,17 @@ module Datadog
           end
         end
 
+        # Span hook invoked after request is completed.
+        def self.after_request(&block)
+          if block_given?
+            # Set hook
+            @after_request = block
+          else
+            # Get hook
+            @after_request ||= nil
+          end
+        end
+
         # Compatibility shim for Rubies not supporting `.prepend`
         module InstanceMethodsCompatibility
           def self.included(base)
@@ -74,6 +85,9 @@ module Datadog
               # Add additional tags to the span.
               annotate_span!(span, req, response)
 
+              # Invoke hook, if set.
+              unless Contrib::HTTP::Instrumentation.after_request.nil?
+                instance_exec(span, req, response, &Contrib::HTTP::Instrumentation.after_request)
               end
 
               response

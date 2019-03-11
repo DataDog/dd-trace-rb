@@ -66,7 +66,8 @@ RSpec.describe 'net/http requests' do
     end
 
     context 'that returns 404' do
-      before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 404) }
+      before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 404, body: body) }
+      let(:body) { '{ "code": 404, message": "Not found!" }' }
       let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
@@ -82,6 +83,29 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.status).to eq(1)
         expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
+        expect(span.get_tag('error.msg')).to be nil
+      end
+
+      context 'when configured with #after_request' do
+        before(:each) do
+          Datadog::Contrib::HTTP::Instrumentation.after_request do |span, _request, response|
+            case response.code.to_i
+            when 400...599
+              if response.class.body_permitted? && !response.body.nil?
+                span.set_error([response.class, response.body[0...4095]])
+              end
+            end
+          end
+        end
+
+        after(:each) { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
+
+        it 'generates a trace modified by the hook' do
+          expect(response.code).to eq('404')
+          expect(span.status).to eq(1)
+          expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
+          expect(span.get_tag('error.msg')).to eq(body)
+        end
       end
     end
   end
