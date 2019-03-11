@@ -1,9 +1,44 @@
 require 'ddtrace/ext/analytics'
 
-RSpec.shared_examples_for 'analytics for integration' do
+RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_global_flag: true }|
   context 'when not configured' do
-    it 'is not included in the tags' do
-      expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
+    context 'and the global flag is not set' do
+      it 'is not included in the tags' do
+        expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
+      end
+    end
+
+    context 'and the global flag is enabled' do
+      around do |example|
+        ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+          example.run
+        end
+      end
+
+      # Most integrations ignore the global flag by default,
+      # because they aren't considered "key" integrations.
+      # These integrations will not expect it to be set, despite the global flag.
+      if options[:ignore_global_flag]
+        it 'is not included in the tags' do
+          expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
+        end
+      else
+        it 'is included in the tags' do
+          expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
+        end
+      end
+    end
+
+    context 'and the global flag is disabled' do
+      around do |example|
+        ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+          example.run
+        end
+      end
+
+      it 'is not included in the tags' do
+        expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
+      end
     end
   end
 
@@ -15,19 +50,47 @@ RSpec.shared_examples_for 'analytics for integration' do
         end
       end
 
-      context 'and sample rate isn\'t set' do
-        it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0) }
-      end
-
-      context 'and sample rate is set' do
-        let(:analytics_sample_rate) { 0.5 }
-        around do |example|
-          ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
-            example.run
-          end
+      shared_examples_for 'sample rate value' do
+        context 'isn\'t set' do
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0) }
         end
 
-        it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(analytics_sample_rate) }
+        context 'is set' do
+          let(:analytics_sample_rate) { 0.5 }
+          around do |example|
+            ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
+              example.run
+            end
+          end
+
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(analytics_sample_rate) }
+        end
+      end
+
+      context 'and global flag' do
+        context 'is not set' do
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly enabled' do
+          around do |example|
+            ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly disabled' do
+          around do |example|
+            ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
       end
     end
 
@@ -38,19 +101,47 @@ RSpec.shared_examples_for 'analytics for integration' do
         end
       end
 
-      context 'and sample rate isn\'t set' do
-        it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
-      end
-
-      context 'and sample rate is set' do
-        let(:analytics_sample_rate) { 0.5 }
-        around do |example|
-          ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
-            example.run
-          end
+      shared_examples_for 'sample rate value' do
+        context 'isn\'t set' do
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
         end
 
-        it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+        context 'is set' do
+          let(:analytics_sample_rate) { 0.5 }
+          around do |example|
+            ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
+              example.run
+            end
+          end
+
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+        end
+      end
+
+      context 'and global flag' do
+        context 'is not set' do
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly enabled' do
+          around do |example|
+            ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly disabled' do
+          around do |example|
+            ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
       end
     end
   end
@@ -59,28 +150,88 @@ RSpec.shared_examples_for 'analytics for integration' do
     context 'and explicitly enabled' do
       let(:configuration_options) { super().merge(analytics_enabled: true) }
 
-      context 'and sample rate isn\'t set' do
-        it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0) }
+      shared_examples_for 'sample rate value' do
+        context 'isn\'t set' do
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0) }
+        end
+
+        context 'is set' do
+          let(:configuration_options) { super().merge(analytics_sample_rate: analytics_sample_rate) }
+          let(:analytics_sample_rate) { 0.5 }
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(analytics_sample_rate) }
+        end
       end
 
-      context 'and sample rate is set' do
-        let(:configuration_options) { super().merge(analytics_sample_rate: analytics_sample_rate) }
-        let(:analytics_sample_rate) { 0.5 }
-        it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(analytics_sample_rate) }
+      context 'and global flag' do
+        context 'is not set' do
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly enabled' do
+          around do |example|
+            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
+              Datadog.configuration.analytics_enabled = true
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly disabled' do
+          around do |example|
+            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
+              Datadog.configuration.analytics_enabled = false
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
       end
     end
 
     context 'and explicitly disabled' do
       let(:configuration_options) { super().merge(analytics_enabled: false) }
 
-      context 'and sample rate isn\'t set' do
-        it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+      shared_examples_for 'sample rate value' do
+        context 'isn\'t set' do
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+        end
+
+        context 'is set' do
+          let(:configuration_options) { super().merge(analytics_sample_rate: analytics_sample_rate) }
+          let(:analytics_sample_rate) { 0.5 }
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+        end
       end
 
-      context 'and sample rate is set' do
-        let(:configuration_options) { super().merge(analytics_sample_rate: analytics_sample_rate) }
-        let(:analytics_sample_rate) { 0.5 }
-        it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+      context 'and global flag' do
+        context 'is not set' do
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly enabled' do
+          around do |example|
+            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
+              Datadog.configuration.analytics_enabled = true
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly disabled' do
+          around do |example|
+            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
+              Datadog.configuration.analytics_enabled = false
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
       end
     end
   end
