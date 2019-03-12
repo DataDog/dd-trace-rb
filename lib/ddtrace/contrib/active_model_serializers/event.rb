@@ -1,4 +1,5 @@
 require 'ddtrace/ext/http'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_support/notifications/event'
 require 'ddtrace/contrib/active_model_serializers/ext'
 
@@ -29,6 +30,11 @@ module Datadog
 
           def process(span, event, _id, payload)
             span.service = configuration[:service_name]
+
+            # Set analytics sample rate
+            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            end
 
             # Set the resource name and serializer name
             res = resource(payload[:serializer])

@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sinatra/ext'
 require 'ddtrace/contrib/sinatra/env'
 require 'ddtrace/contrib/sinatra/headers'
@@ -37,6 +38,9 @@ module Datadog
               span.set_tag(name, value) if span.get_tag(name).nil?
             end
 
+            # Set analytics sample rate
+            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+
             [status, headers, response_body]
           end
         end
@@ -45,6 +49,14 @@ module Datadog
 
         def tracer
           configuration[:tracer]
+        end
+
+        def analytics_enabled?
+          Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+        end
+
+        def analytics_sample_rate
+          configuration[:analytics_sample_rate]
         end
 
         def configuration

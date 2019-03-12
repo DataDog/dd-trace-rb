@@ -15,7 +15,7 @@ module Datadog
           }.freeze
 
           option  :analytics_enabled,
-                  default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENALBED, nil) },
+                  default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) },
                   lazy: true
 
           option  :analytics_sample_rate,

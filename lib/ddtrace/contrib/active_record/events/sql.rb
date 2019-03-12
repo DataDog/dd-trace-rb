@@ -1,4 +1,5 @@
 require 'ddtrace/ext/net'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_record/ext'
 require 'ddtrace/contrib/active_record/event'
 
@@ -37,6 +38,11 @@ module Datadog
             span.service = service_name
             span.resource = payload.fetch(:sql)
             span.span_type = Datadog::Ext::SQL::TYPE
+
+            # Set analytics sample rate
+            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            end
 
             # Find out if the SQL query has been cached in this request. This meta is really
             # helpful to users because some spans may have 0ns of duration because the query

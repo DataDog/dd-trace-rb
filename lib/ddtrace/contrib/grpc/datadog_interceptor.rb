@@ -1,4 +1,5 @@
 require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'
 
 module Datadog
@@ -54,6 +55,14 @@ module Datadog
 
           def service_name
             (datadog_pin && datadog_pin.service_name) || datadog_configuration[:service_name]
+          end
+
+          def analytics_enabled?
+            Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+          end
+
+          def analytics_sample_rate
+            datadog_configuration[:analytics_sample_rate]
           end
         end
 

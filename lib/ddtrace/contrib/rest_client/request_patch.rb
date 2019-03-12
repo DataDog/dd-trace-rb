@@ -47,6 +47,10 @@ module Datadog
 
           def datadog_tag_request(uri, span)
             span.resource = method.to_s.upcase
+
+            # Set analytics sample rate
+            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+
             span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, method.to_s.upcase)
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
@@ -82,8 +86,18 @@ module Datadog
             span.finish
           end
 
+          private
+
           def datadog_configuration
             Datadog.configuration[:rest_client]
+          end
+
+          def analytics_enabled?
+            Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+          end
+
+          def analytics_sample_rate
+            datadog_configuration[:analytics_sample_rate]
           end
         end
       end

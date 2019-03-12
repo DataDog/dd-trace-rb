@@ -93,7 +93,7 @@ RSpec.describe 'Racecar patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_message.racecar', payload) }
-      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENALBED }
+      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
   end
@@ -168,7 +168,7 @@ RSpec.describe 'Racecar patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_batch.racecar', payload) }
-      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENALBED }
+      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
   end

@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/net'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/elasticsearch/ext'
 
 module Datadog
@@ -83,11 +84,16 @@ module Datadog
                   params = JSON.generate(params) if params && !params.is_a?(String)
                   body = JSON.generate(body) if body && !body.is_a?(String)
 
+                  # Set analytics sample rate
+                  if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+                    Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+                  end
+
                   span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_METHOD, method)
                   span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_URL, url)
                   span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_PARAMS, params) if params
                   if body
-                    quantize_options = Datadog.configuration[:elasticsearch][:quantize]
+                    quantize_options = datadog_configuration[:quantize]
                     quantized_body = Datadog::Contrib::Elasticsearch::Quantize.format_body(body, quantize_options)
                     span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_BODY, quantized_body)
                   end
@@ -105,6 +111,10 @@ module Datadog
                 end
               end
               response
+            end
+
+            def datadog_configuration
+              Datadog.configuration[:elasticsearch]
             end
           end
         end

@@ -94,7 +94,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
         it_behaves_like 'analytics for integration' do
           let(:span) { invoke_span }
-          let(:analytics_enabled_var) { Datadog::Contrib::Rake::Ext::ENV_ANALYTICS_ENALBED }
+          let(:analytics_enabled_var) { Datadog::Contrib::Rake::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Contrib::Rake::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
       end

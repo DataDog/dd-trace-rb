@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/mongodb/ext'
 require 'ddtrace/contrib/mongodb/parsers'
 
@@ -22,6 +23,11 @@ module Datadog
           # build a quantized Query using the Parser module
           query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
           serialized_query = query.to_s
+
+          # Set analytics sample rate
+          if analytics_enabled?
+            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
+          end
 
           # add operation tags; the full query is stored and used as a resource,
           # since it has been quantized and reduced
@@ -83,6 +89,18 @@ module Datadog
         def clear_span(event)
           return if Thread.current[:datadog_mongo_span].nil?
           Thread.current[:datadog_mongo_span].delete(event.request_id)
+        end
+
+        def analytics_enabled?
+          Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+        end
+
+        def analytics_sample_rate
+          datadog_configuration[:analytics_sample_rate]
+        end
+
+        def datadog_configuration
+          Datadog.configuration[:mongo]
         end
       end
     end

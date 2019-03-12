@@ -1,5 +1,6 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/net'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/dalli/quantize'
 
 module Datadog
@@ -35,6 +36,12 @@ module Datadog
               span.resource = op.to_s.upcase
               span.service = datadog_configuration[:service_name]
               span.span_type = Datadog::Ext::AppTypes::CACHE
+
+              # Set analytics sample rate
+              if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+                Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+              end
+
               span.set_tag(Datadog::Ext::NET::TARGET_HOST, hostname)
               span.set_tag(Datadog::Ext::NET::TARGET_PORT, port)
               cmd = Datadog::Contrib::Dalli::Quantize.format_command(op, args)

@@ -7,7 +7,7 @@ module Datadog
         # Default settings for the Shoryuken integration
         class Settings < Contrib::Configuration::Settings
           option  :analytics_enabled,
-                  default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENALBED, nil) },
+                  default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) },
                   lazy: true
 
           option  :analytics_sample_rate,

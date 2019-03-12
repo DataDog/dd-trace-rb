@@ -4,7 +4,7 @@ module Datadog
       # SuckerPunch integration constants
       module Ext
         APP = 'sucker_punch'.freeze
-        ENV_ANALYTICS_ENALBED = 'DD_SUCKER_PUNCH_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_SUCKER_PUNCH_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'sucker_punch'.freeze
         SPAN_PERFORM = 'sucker_punch.perform'.freeze
