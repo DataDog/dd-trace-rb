@@ -1,6 +1,13 @@
 require 'ddtrace/ext/analytics'
 
 RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_global_flag: true }|
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.configuration.reset_options!
+    example.run
+    Datadog.configuration.reset_options!
+  end
+
   context 'when not configured' do
     context 'and the global flag is not set' do
       it 'is not included in the tags' do
@@ -10,7 +17,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
     context 'and the global flag is enabled' do
       around do |example|
-        ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+        ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
           example.run
         end
       end
@@ -31,7 +38,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
     context 'and the global flag is disabled' do
       around do |example|
-        ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+        ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
           example.run
         end
       end
@@ -74,7 +81,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly enabled' do
           around do |example|
-            ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
               example.run
             end
           end
@@ -84,7 +91,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly disabled' do
           around do |example|
-            ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
               example.run
             end
           end
@@ -125,7 +132,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly enabled' do
           around do |example|
-            ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
               example.run
             end
           end
@@ -135,7 +142,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly disabled' do
           around do |example|
-            ClimateControl.modify(Datadog::Configuration::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
               example.run
             end
           end

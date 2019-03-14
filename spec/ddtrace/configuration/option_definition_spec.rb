@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Configuration::OptionDefinition do
+RSpec.describe Datadog::Configuration::OptionDefinition do
   subject(:definition) { described_class.new(name, meta, &block) }
 
   let(:name) { :enabled }

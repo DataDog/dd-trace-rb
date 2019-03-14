@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Registry do
+RSpec.describe Datadog::Contrib::Registry do
   describe 'instance' do
     subject(:registry) { described_class.new }
 
@@ -17,7 +17,7 @@ RSpec.describe Datadog::Registry do
         context 'when given an entry to the registry' do
           it do
             entry = registry.add(name, klass, auto_patch)
-            expect(entry).to be_an_instance_of(Datadog::Registry::Entry)
+            expect(entry).to be_an_instance_of(described_class::Entry)
             expect(registry[name]).to eq(klass)
           end
         end
@@ -42,7 +42,7 @@ RSpec.describe Datadog::Registry do
     end
   end
 
-  describe Datadog::Registry::Entry do
+  describe Datadog::Contrib::Registry::Entry do
     describe 'instance' do
       subject(:entry) { described_class.new(name, klass, auto_patch) }
 
