@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Configuration::Options do
+RSpec.describe Datadog::Configuration::Options do
   describe 'implemented' do
     subject(:options_class) do
       Class.new.tap do |klass|
@@ -15,7 +15,7 @@ RSpec.describe Datadog::Contrib::Configuration::Options do
         subject(:options) { options_class.options }
 
         context 'for a class directly implementing Options' do
-          it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::OptionDefinitionSet) }
+          it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinitionSet) }
         end
 
         context 'on class inheriting from a class implementing Options' do
@@ -29,7 +29,7 @@ RSpec.describe Datadog::Contrib::Configuration::Options do
           context 'which defines some options' do
             before(:each) { parent_class.send(:option, :foo) }
 
-            it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::OptionDefinitionSet) }
+            it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinitionSet) }
             it { is_expected.to_not be(parent_class.options) }
             it { is_expected.to include(:foo) }
           end
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Contrib::Configuration::Options do
         let(:block) { proc {} }
 
         it 'creates an option definition' do
-          is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::OptionDefinition)
+          is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition)
           expect(options_class.options).to include(name)
           expect(options_class.new).to respond_to(name)
           expect(options_class.new).to respond_to("#{name}=")
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Contrib::Configuration::Options do
 
       describe '#options' do
         subject(:options) { options_object.options }
-        it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::OptionSet) }
+        it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionSet) }
       end
 
       describe '#set_option' do

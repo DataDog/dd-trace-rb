@@ -1,6 +1,5 @@
 require 'thread'
 
-require 'ddtrace/registry'
 require 'ddtrace/pin'
 require 'ddtrace/tracer'
 require 'ddtrace/error'
@@ -14,39 +13,13 @@ require 'ddtrace/augmentation'
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
   extend Augmentation
+  extend Configuration
 
-  @tracer = Tracer.new
-  @registry = Registry.new
-  @configuration = Configuration.new(registry: @registry)
-
-  # Default tracer that can be used as soon as +ddtrace+ is required:
-  #
-  #   require 'ddtrace'
-  #
-  #   span = Datadog.tracer.trace('web.request')
-  #   span.finish()
-  #
-  # If you want to override the default tracer, the recommended way
-  # is to "pin" your own tracer onto your traced component:
-  #
-  #   tracer = Datadog::Tracer.new
-  #   pin = Datadog::Pin.get_from(mypatchcomponent)
-  #   pin.tracer = tracer
-  class << self
-    attr_reader :tracer, :registry
-    attr_accessor :configuration
-
-    def configure(target = configuration, opts = {})
-      if target.is_a?(Configuration)
-        yield(target)
-      else
-        Configuration::PinSetup.new(target, opts).call
-      end
-    end
-  end
+  # Load and extend Contrib by default
+  require 'ddtrace/contrib/extensions'
+  extend Contrib::Extensions
 end
 
-require 'ddtrace/contrib/base'
 require 'ddtrace/contrib/active_model_serializers/integration'
 require 'ddtrace/contrib/active_record/integration'
 require 'ddtrace/contrib/aws/integration'

@@ -47,7 +47,7 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:contrib) do |t|
     # rubocop:disable Metrics/LineLength
-    t.pattern = 'spec/**/contrib/{analytics,configurable,integration,patchable,patcher,registerable,sampling,configuration/*}_spec.rb'
+    t.pattern = 'spec/**/contrib/{analytics,configurable,integration,patchable,patcher,registerable,registry,configuration/*}_spec.rb'
   end
 
   [

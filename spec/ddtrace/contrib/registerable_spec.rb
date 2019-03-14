@@ -19,7 +19,7 @@ RSpec.describe Datadog::Contrib::Registerable do
         context 'when a registry' do
           context 'is provided' do
             let(:options) { { registry: registry } }
-            let(:registry) { instance_double(Datadog::Registry) }
+            let(:registry) { instance_double(Datadog::Contrib::Registry) }
 
             it do
               expect(registry).to receive(:add)

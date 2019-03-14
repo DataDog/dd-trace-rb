@@ -12,12 +12,12 @@ RSpec.describe Datadog do
 
       describe '#registry' do
         subject { datadog.registry }
-        it { is_expected.to be_an_instance_of(Datadog::Registry) }
+        it { is_expected.to be_an_instance_of(Datadog::Contrib::Registry) }
       end
 
       describe '#configuration' do
         subject { datadog.configuration }
-        it { is_expected.to be_an_instance_of(Datadog::Configuration) }
+        it { is_expected.to be_an_instance_of(Datadog::Configuration::Settings) }
       end
 
       describe '#configure' do

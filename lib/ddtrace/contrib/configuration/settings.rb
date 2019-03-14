@@ -1,11 +1,11 @@
-require 'ddtrace/contrib/configuration/options'
+require 'ddtrace/configuration/options'
 
 module Datadog
   module Contrib
     module Configuration
       # Common settings for all integrations
       class Settings
-        include Options
+        include Datadog::Configuration::Options
 
         option :service_name
         option :tracer, default: Datadog.tracer
@@ -30,18 +30,6 @@ module Datadog
 
         def []=(name, value)
           respond_to?("#{name}=") ? send("#{name}=", value) : set_option(name, value)
-        end
-
-        class << self
-          private
-
-          def env_to_bool(var, default = nil)
-            ENV.key?(var) ? ENV[var].to_s.downcase == 'true' : default
-          end
-
-          def env_to_float(var, default = nil)
-            ENV.key?(var) ? ENV[var].to_f : default
-          end
         end
       end
     end
