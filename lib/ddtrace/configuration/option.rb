@@ -24,7 +24,8 @@ module Datadog
       end
 
       def reset
-        set(definition.default_value)
+        @is_set = false
+        @value = nil
       end
     end
   end

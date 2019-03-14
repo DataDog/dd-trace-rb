@@ -62,7 +62,11 @@ RSpec.describe Datadog::Configuration::Option do
         option.set(value)
       end
 
-      it { is_expected.to be(default_value) }
+      context 'causes #get' do
+        subject(:get) { option.get }
+        before(:each) { reset }
+        it { is_expected.to be(default_value) }
+      end
     end
   end
 end
