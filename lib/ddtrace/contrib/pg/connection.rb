@@ -33,7 +33,10 @@ module Datadog
 
           # sync_exec_params(sql, params[, result_format[, type_map]] ) -> PG::Result
           # sync_exec_params(sql, params[, result_format[, type_map]] ) {|pg_result| block }
-          def sync_exec_params(sql)
+          # exec_params (and async version) is parsed with rb_scan_args like so:
+          # rb_scan_args(argc, argv, "22", &command, &paramsData.params, &in_res_fmt, &paramsData.typemap);
+          # meaning it expects 2 required arguments and 2 explicit optional
+          def sync_exec_params(sql, params, result_format = nil, type_map = nil)
             datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
               span.resource = sql
               span.service = datadog_pin.service
@@ -61,7 +64,7 @@ module Datadog
 
           # async_exec_params(sql, params[, result_format[, type_map]] ) -> PG::Result
           # async_exec_params(sql, params[, result_format[, type_map]] ) {|pg_result| block }
-          def async_exec_params(sql)
+          def async_exec_params(sql, params, result_format = nil, type_map = nil)
             datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
               span.resource = sql
               span.service = datadog_pin.service
