@@ -1,3 +1,4 @@
+require 'ddtrace/ext/analytics'
 require 'ddtrace/environment'
 require 'ddtrace/configuration/options'
 
@@ -7,6 +8,10 @@ module Datadog
     class Settings
       extend Datadog::Environment::Helpers
       include Options
+
+      option  :analytics_enabled,
+              default: -> { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) },
+              lazy: true
 
       option :tracer, default: Tracer.new
 
