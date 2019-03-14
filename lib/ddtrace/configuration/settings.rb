@@ -1,9 +1,11 @@
+require 'ddtrace/environment'
 require 'ddtrace/configuration/options'
 
 module Datadog
   module Configuration
     # Global configuration settings for the trace library.
     class Settings
+      extend Datadog::Environment::Helpers
       include Options
 
       option :tracer, default: Tracer.new
@@ -33,18 +35,6 @@ module Datadog
             t.set_tags(env: options[:env]) if options[:env]
             t.class.debug_logging = options.fetch(:debug, false)
           end
-        end
-      end
-
-      class << self
-        protected
-
-        def env_to_bool(var, default = nil)
-          ENV.key?(var) ? ENV[var].to_s.downcase == 'true' : default
-        end
-
-        def env_to_float(var, default = nil)
-          ENV.key?(var) ? ENV[var].to_f : default
         end
       end
     end

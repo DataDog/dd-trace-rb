@@ -1,3 +1,4 @@
+require 'ddtrace/environment'
 require 'ddtrace/configuration/options'
 
 module Datadog
@@ -5,6 +6,7 @@ module Datadog
     module Configuration
       # Common settings for all integrations
       class Settings
+        extend Datadog::Environment::Helpers
         include Datadog::Configuration::Options
 
         option :service_name
