@@ -60,7 +60,7 @@ RSpec.describe 'Sinatra instrumentation' do
           expect(span.parent).to be nil
         end
 
-        it_behaves_like 'analytics for integration' do
+        it_behaves_like 'analytics for integration', ignore_global_flag: false do
           before { is_expected.to be_ok }
           let(:analytics_enabled_var) { Datadog::Contrib::Sinatra::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Contrib::Sinatra::Ext::ENV_ANALYTICS_SAMPLE_RATE }

@@ -51,7 +51,7 @@ RSpec.describe 'Rails trace analytics' do
       end
     end
 
-    it_behaves_like 'analytics for integration' do
+    it_behaves_like 'analytics for integration', ignore_global_flag: false do
       before { expect { result }.to_not raise_error }
       let(:analytics_enabled_var) { Datadog::Contrib::Rails::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Rails::Ext::ENV_ANALYTICS_SAMPLE_RATE }
