@@ -30,16 +30,18 @@ module Datadog
 
     def sampling_priority
       hdr = header(HTTP_HEADER_SAMPLING_PRIORITY)
+
       # It's important to make a difference between no header,
       # and a header defined to zero.
-      return unless hdr
+      return if hdr.nil?
 
       # Convert header to an integer
       value = hdr.to_i
 
       # Ensure the parsed number is the same as the original string value
       # e.g. We want to make sure to throw away `'nan'.to_i == 0`
-      return unless value.to_s == hdr
+      # DEV: Ruby `.to_i` will return `0` if a number could not be parsed
+      return unless value.to_s == hdr.to_s
 
       value
     end
