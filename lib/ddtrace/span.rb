@@ -3,6 +3,7 @@ require 'thread'
 
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
+require 'ddtrace/ext/priority'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -68,7 +69,15 @@ module Datadog
     # must be strings. A valid example is:
     #
     #   span.set_tag('http.method', request.method)
-    def set_tag(key, value)
+    def set_tag(key, value = nil)
+      # 'force.keep' is an alias for setting the sampling priority to USER_KEEP
+      if key == 'force.keep'
+        return if @context.nil?
+
+        @context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
+        return
+      end
+
       @meta[key] = value.to_s
     rescue StandardError => e
       Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
