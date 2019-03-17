@@ -28,6 +28,21 @@ class LoggerTest < Minitest::Test
     assert_equal(logger.level, Logger::WARN)
   end
 
+  def test_tracer_set_debug_custom_noop
+    default_log = Datadog::Tracer.log
+
+    # custom logger
+    buf = StringIO.new
+    custom_logger = Logger.new(buf)
+    custom_logger.level = ::Logger::INFO
+    Datadog::Tracer.log = custom_logger
+
+    Datadog::Tracer.debug_logging = false
+    assert_equal(custom_logger.level, ::Logger::INFO)
+
+    Datadog::Tracer.log = default_log
+  end  
+
   # rubocop:disable Metrics/MethodLength
   def test_tracer_logger_override
     default_log = Datadog::Tracer.log
