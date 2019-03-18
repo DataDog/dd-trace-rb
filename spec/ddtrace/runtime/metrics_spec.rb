@@ -13,9 +13,9 @@ RSpec.describe Datadog::Runtime::Metrics do
 
       context 'when available' do
         it do
-          expect(metric).to receive(:available?)
+          allow(metric).to receive(:available?)
             .and_return(true)
-          expect(metric).to receive(:value)
+          allow(metric).to receive(:value)
             .and_return(metric_value)
           expect(metrics).to receive(:gauge)
             .with(metric_name, metric_value)
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
       context 'when unavailable' do
         it do
-          expect(metric).to receive(:available?)
+          allow(metric).to receive(:available?)
             .and_return(false)
           expect(metric).to_not receive(:value)
           expect(metrics).to_not receive(:gauge)
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
       context 'when an error is thrown' do
         it do
-          expect(metric).to receive(:available?)
+          allow(metric).to receive(:available?)
             .and_raise(RuntimeError)
           expect(Datadog::Tracer.log).to receive(:error)
             .with(/Error while sending runtime metric./)
