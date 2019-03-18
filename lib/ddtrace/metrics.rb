@@ -81,10 +81,10 @@ module Datadog
     module Options
       DEFAULT = {
         tags: DEFAULT_TAGS = [
-          "#{Ext::Metrics::TAG_LANG}:#{Runtime::Identity.lang}".freeze,
-          "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Runtime::Identity.lang_interpreter}".freeze,
-          "#{Ext::Metrics::TAG_LANG_VERSION}:#{Runtime::Identity.lang_version}".freeze,
-          "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Runtime::Identity.tracer_version}".freeze
+          "#{Ext::Metrics::TAG_LANG}:#{Runtime::Identity.lang}".freeze
+          # "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Runtime::Identity.lang_interpreter}".freeze,
+          # "#{Ext::Metrics::TAG_LANG_VERSION}:#{Runtime::Identity.lang_version}".freeze,
+          # "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Runtime::Identity.tracer_version}".freeze
         ].freeze
       }.freeze
 
