@@ -83,8 +83,8 @@ RSpec.describe Datadog::DistributedHeaders do
         [(Datadog::Span::MAX_ID + 1).to_s, Datadog::Span::MAX_ID + 1],
 
         # Max allowed values
-        [Datadog::Ext::DistributedTracing::MAX_ID.to_s, Datadog::Ext::DistributedTracing::MAX_ID],
-        [(Datadog::Ext::DistributedTracing::MAX_ID + 1).to_s, nil]
+        [Datadog::Span::EXTERNAL_MAX_ID.to_s, Datadog::Span::EXTERNALMAX_ID],
+        [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s, nil]
       ].each do |value, expected|
         context "set to #{value}" do
           let(:env) { { env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID) => value } }
@@ -128,8 +128,8 @@ RSpec.describe Datadog::DistributedHeaders do
         [(Datadog::Span::MAX_ID + 1).to_s, Datadog::Span::MAX_ID + 1],
 
         # Max allowed values
-        [Datadog::Ext::DistributedTracing::MAX_ID.to_s, Datadog::Ext::DistributedTracing::MAX_ID],
-        [(Datadog::Ext::DistributedTracing::MAX_ID + 1).to_s, nil]
+        [Datadog::Span::EXTERNAL_MAX_ID.to_s, Datadog::Span::EXTERNAL_MAX_ID],
+        [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s, nil]
       ].each do |value, expected|
         context "set to #{value}" do
           let(:env) { { env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID) => value } }

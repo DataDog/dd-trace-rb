@@ -10,10 +10,6 @@ module Datadog
       HTTP_HEADER_ORIGIN = 'x-datadog-origin'.freeze
       ORIGIN_KEY = '_dd.origin'.freeze
 
-      # While we only generate 63-bit integers due to limitations in other languages, we support
-      # parsing 64-bit integers for distributed tracing since an upstream system may generate one
-      MAX_ID = 2**64
-
       # gRPC metadata keys for distributed tracing. https://github.com/grpc/grpc-go/blob/v1.10.x/Documentation/grpc-metadata.md
       GRPC_METADATA_TRACE_ID = 'x-datadog-trace-id'.freeze
       GRPC_METADATA_PARENT_ID = 'x-datadog-parent-id'.freeze
