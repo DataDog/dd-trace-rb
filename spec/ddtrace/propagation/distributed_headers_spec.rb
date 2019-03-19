@@ -83,7 +83,7 @@ RSpec.describe Datadog::DistributedHeaders do
         [(Datadog::Span::MAX_ID + 1).to_s, Datadog::Span::MAX_ID + 1],
 
         # Max allowed values
-        [Datadog::Span::EXTERNAL_MAX_ID.to_s, Datadog::Span::EXTERNALMAX_ID],
+        [Datadog::Span::EXTERNAL_MAX_ID.to_s, Datadog::Span::EXTERNAL_MAX_ID],
         [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s, nil]
       ].each do |value, expected|
         context "set to #{value}" do
