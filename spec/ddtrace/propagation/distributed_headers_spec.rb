@@ -281,7 +281,7 @@ RSpec.describe Datadog::DistributedHeaders do
         ]
       ].each do |test_headers, expected|
         context test_headers.to_s do
-          let(:env) { test_headers.map { |k, v| [env_header(k), v] }.to_hash }
+          let(:env) { Hash[test_headers.map { |k, v| [env_header(k), v] }] }
 
           it { expect(headers.valid?).to eq(expected) }
         end
