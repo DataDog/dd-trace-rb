@@ -63,7 +63,7 @@ module Datadog
     def id(header)
       value = header(header).to_i
       # Zero or greater than max allowed value of 2**64
-      return if value.zero? || value > MAX_ID
+      return if value.zero? || value > Span::EXTERNAL_MAX_ID
       value < 0 ? value + 0x1_0000_0000_0000_0000 : value
     end
   end
