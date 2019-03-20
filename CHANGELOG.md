@@ -4,6 +4,26 @@
 
 ## [Unreleased (beta)]
 
+## [0.21.0] - 2019-03-20
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.21.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.20.0...v0.21.0
+
+### Added
+
+- Trace analytics support (#697, #715)
+- HTTP after_request span hook (#716, #724)
+
+### Fixed
+
+- Distributed traces with IDs in 2^64 range being dropped (#719)
+- Custom logger level forced to warning (#681, #721) (@blaines, @ericmustin)
+
+### Refactored
+
+- Global configuration for tracing into configuration API (#714)
+
 ## [0.20.0] - 2019-03-07
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.20.0
@@ -21,7 +41,7 @@ These changes are backwards compatible, but all integration configuration should
 
 - Enable distributed tracing by default (#701)
 
-### Fixes
+### Fixed
 
 - Fix Rack http_server.queue spans missing from distributed traces (#709)
 
@@ -711,8 +731,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.20.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.20.0...0.21-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.0...0.22-dev
+[0.21.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.1...v0.20.0
 [0.19.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.18.3...v0.19.0
