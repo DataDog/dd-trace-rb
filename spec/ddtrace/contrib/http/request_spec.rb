@@ -86,25 +86,41 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('error.msg')).to be nil
       end
 
-      context 'when configured with #after_request' do
-        before(:each) do
-          Datadog::Contrib::HTTP::Instrumentation.after_request do |span, _request, response|
-            case response.code.to_i
-            when 400...599
-              if response.class.body_permitted? && !response.body.nil?
-                span.set_error([response.class, response.body[0...4095]])
+      context 'when configured with #after_request hook' do
+        before(:each) { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
+        after(:each) { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
+
+        context 'which defines each parameter' do
+          let(:callback) do
+            proc do |span, http, request, response|
+              expect(span).to be_a_kind_of(Datadog::Span)
+              expect(http).to be_a_kind_of(Net::HTTP)
+              expect(request).to be_a_kind_of(Net::HTTP::Get)
+              expect(response).to be_a_kind_of(Net::HTTPNotFound)
+            end
+          end
+
+          it { expect(response.code).to eq('404') }
+        end
+
+        context 'which changes the error status' do
+          let(:callback) do
+            proc do |span, _http, _request, response|
+              case response.code.to_i
+              when 400...599
+                if response.class.body_permitted? && !response.body.nil?
+                  span.set_error([response.class, response.body[0...4095]])
+                end
               end
             end
           end
-        end
 
-        after(:each) { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
-
-        it 'generates a trace modified by the hook' do
-          expect(response.code).to eq('404')
-          expect(span.status).to eq(1)
-          expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
-          expect(span.get_tag('error.msg')).to eq(body)
+          it 'generates a trace modified by the hook' do
+            expect(response.code).to eq('404')
+            expect(span.status).to eq(1)
+            expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
+            expect(span.get_tag('error.msg')).to eq(body)
+          end
         end
       end
     end
