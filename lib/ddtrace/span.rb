@@ -20,6 +20,10 @@ module Datadog
     # and IDs need to be easy to port across various languages and platforms.
     MAX_ID = 2**63
 
+    # While we only generate 63-bit integers due to limitations in other languages, we support
+    # parsing 64-bit integers for distributed tracing since an upstream system may generate one
+    EXTERNAL_MAX_ID = 2**64
+
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
