@@ -17,6 +17,7 @@ module Datadog
               lazy: true
 
       option :metrics, default: Metrics.new
+      option :runtime_metrics, default: Runtime::Metrics.new
       option :tracer, default: Tracer.new
 
       def initialize(options = {})
@@ -32,6 +33,7 @@ module Datadog
         yield(self) if block_given?
       end
 
+      remove_method :metrics
       def metrics(options = nil)
         metrics = get_option(:metrics)
         return metrics if options.nil?
@@ -39,7 +41,16 @@ module Datadog
         metrics.configure(options)
       end
 
+      remove_method :runtime_metrics
+      def runtime_metrics(options = nil)
+        runtime_metrics = get_option(:runtime_metrics)
+        return runtime_metrics if options.nil?
+
+        runtime_metrics.configure(options)
+      end
+
       # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
+      remove_method :tracer
       def tracer(options = nil)
         tracer = options && options.key?(:instance) ? set_option(:tracer, options[:instance]) : get_option(:tracer)
 

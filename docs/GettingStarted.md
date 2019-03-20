@@ -1757,20 +1757,17 @@ If metrics are configured, the trace library will automatically collect and send
 
 These include:
 
-| Name                                  | Type    | Description                        |
-| ------------------------------------- | ------- | ---------------------------------- |
-| `datadog.tracer.runtime.class_count`  | `gauge` | Number of classes in memory space. |
-| `datadog.tracer.runtime.heap_size`.   | `gauge` | Size of memory heap, in bytes.     |
-| `datadog.tracer.runtime.thread_count` | `gauge` | Number of threads.                 |
+| Name                        | Type    | Description                                              |
+| --------------------------  | ------- | -------------------------------------------------------- |
+| `runtime.ruby.class_count`  | `gauge` | Number of classes in memory space.                       |
+| `runtime.ruby.thread_count` | `gauge` | Number of threads.                                       |
+| `runtime.ruby.gc.*`.        | `gauge` | Garbage collection statistics (one per value in GC.stat) |
 
 In addition, all metrics will include the following tags:
 
-| Name                              | Description                                                         |
-| --------------------------------- | ------------------------------------------------------------------- |
-| `datadog.tracer.lang`             | Programming language traced. (e.g. `ruby`)                          |
-| `datadog.tracer.lang_interpreter` | Language interpreter used, if available. (e.g. `ruby-x86_64-linux`) |
-| `datadog.tracer.lang_version`     | Version of language traced. (e.g. `2.3.7`)                          |
-| `datadog.tracer.version`          | Version of tracer library/module. (e.g. `0.16.1` )                  |
+| Name       | Description                                |
+| ---------- | ------------------------------------------ |
+| `language` | Programming language traced. (e.g. `ruby`) |
 
 ### OpenTracing
 

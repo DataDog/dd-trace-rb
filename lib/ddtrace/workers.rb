@@ -37,7 +37,7 @@ module Datadog
         return true if @trace_buffer.empty?
 
         begin
-          traces = @trace_buffer.pop()
+          traces = @trace_buffer.pop
           traces = Pipeline.process!(traces)
           @trace_task.call(traces, @transport)
         rescue StandardError => e
@@ -64,14 +64,11 @@ module Datadog
       end
 
       def callback_runtime_metrics
-        return true unless Datadog.metrics.send_stats?
+        return true unless Datadog.runtime_metrics.send_stats?
 
         begin
-          Datadog::Runtime::Metrics.flush(Datadog.metrics)
+          Datadog.runtime_metrics.flush
         rescue StandardError => e
-          # ensures that the thread will not die because of an exception.
-          # TODO[manu]: findout the reason and reschedule the send if it's not
-          # a fatal exception
           Datadog::Tracer.log.error("Error during runtime metrics flush. Cause: #{e}")
         end
       end

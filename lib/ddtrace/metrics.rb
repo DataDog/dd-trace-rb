@@ -1,5 +1,6 @@
 require 'ddtrace/ext/metrics'
 
+require 'set'
 require 'ddtrace/utils/time'
 require 'ddtrace/runtime/identity'
 
