@@ -87,7 +87,7 @@ module Datadog
 
               # Invoke hook, if set.
               unless Contrib::HTTP::Instrumentation.after_request.nil?
-                instance_exec(span, req, response, &Contrib::HTTP::Instrumentation.after_request)
+                Contrib::HTTP::Instrumentation.after_request.call(span, self, req, response)
               end
 
               response
