@@ -53,8 +53,13 @@ module Datadog
     end
 
     # Activate the debug mode providing more information related to tracer usage
+    # Default to Warn level unless using custom logger
     def self.debug_logging=(value)
-      log.level = value ? Logger::DEBUG : Logger::WARN
+      if value
+        log.level = Logger::DEBUG
+      elsif log.is_a?(Datadog::Logger)
+        log.level = Logger::WARN
+      end
     end
 
     # Return if the debug mode is activated or not
