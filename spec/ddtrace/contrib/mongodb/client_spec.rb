@@ -1,10 +1,12 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
 require 'mongo'
 
 RSpec.describe 'Mongo::Client instrumentation' do
   let(:tracer) { get_test_tracer }
+  let(:configuration_options) { { tracer: tracer } }
 
   let(:client) { Mongo::Client.new(["#{host}:#{port}"], client_options) }
   let(:client_options) { { database: database } }
@@ -13,7 +15,6 @@ RSpec.describe 'Mongo::Client instrumentation' do
   let(:database) { 'test' }
   let(:collection) { :artists }
 
-  let(:pin) { Datadog::Pin.get_from(client) }
   let(:spans) { tracer.writer.spans(:keep) }
   let(:span) { spans.first }
 
@@ -26,18 +27,18 @@ RSpec.describe 'Mongo::Client instrumentation' do
     Mongo::Logger.logger.level = ::Logger::WARN
 
     Datadog.configure do |c|
-      c.use :mongo
+      c.use :mongo, configuration_options
     end
-
-    # Have to manually update this because its still
-    # using global pin instead of configuration.
-    # Remove this when we remove the pin.
-    pin.tracer = tracer
   end
 
   # Clear data between tests
   let(:drop_database?) { true }
-  after(:each) do
+
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:mongo].reset_configuration!
+    example.run
+    Datadog.registry[:mongo].reset_configuration!
     client.database.drop if drop_database?
   end
 
@@ -45,16 +46,10 @@ RSpec.describe 'Mongo::Client instrumentation' do
     expect { |b| Mongo::Client.new(["#{host}:#{port}"], client_options, &b) }.to yield_control
   end
 
-  context 'pin' do
-    it 'has the correct attributes' do
-      expect(pin.service).to eq('mongodb')
-      expect(pin.app).to eq('mongodb')
-      expect(pin.app_type).to eq('db')
-    end
-
-    context 'when the service is changed' do
+  context 'when the client is configured' do
+    context 'with a different service name' do
       let(:service) { 'mongodb-primary' }
-      before(:each) { pin.service = service }
+      before(:each) { Datadog.configure(client, service_name: service) }
 
       it 'produces spans with the correct service' do
         client[collection].insert_one(name: 'FKA Twigs')
@@ -63,8 +58,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
     end
 
-    context 'when the tracer is disabled' do
-      before(:each) { pin.tracer.enabled = false }
+    context 'to disable the tracer' do
+      before(:each) { tracer.enabled = false }
 
       it 'produces spans with the correct service' do
         client[collection].insert_one(name: 'FKA Twigs')
@@ -78,12 +73,17 @@ RSpec.describe 'Mongo::Client instrumentation' do
     shared_examples_for 'a MongoDB trace' do
       it 'has basic properties' do
         expect(spans).to have(1).items
-        expect(span.service).to eq(pin.service)
+        expect(span.service).to eq('mongodb')
         expect(span.span_type).to eq('mongodb')
         expect(span.get_tag('mongodb.db')).to eq(database)
         expect(span.get_tag('mongodb.collection')).to eq(collection.to_s)
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
+      end
+
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
     end
 

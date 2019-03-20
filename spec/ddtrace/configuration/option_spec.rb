@@ -2,11 +2,11 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Configuration::Option do
+RSpec.describe Datadog::Configuration::Option do
   subject(:option) { described_class.new(definition, context) }
   let(:definition) do
     instance_double(
-      Datadog::Contrib::Configuration::OptionDefinition,
+      Datadog::Configuration::OptionDefinition,
       default_value: default_value,
       setter: setter
     )
@@ -62,7 +62,11 @@ RSpec.describe Datadog::Contrib::Configuration::Option do
         option.set(value)
       end
 
-      it { is_expected.to be(default_value) }
+      context 'causes #get' do
+        subject(:get) { option.get }
+        before(:each) { reset }
+        it { is_expected.to be(default_value) }
+      end
     end
   end
 end

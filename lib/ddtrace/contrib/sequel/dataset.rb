@@ -1,5 +1,6 @@
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sequel/ext'
 require 'ddtrace/contrib/sequel/utils'
 
@@ -44,6 +45,7 @@ module Datadog
               span.service = datadog_pin.service
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
+              Utils.set_analytics_sample_rate(span)
               span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
               response = super_method.call(sql, options, &block)
             end

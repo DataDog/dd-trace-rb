@@ -41,6 +41,7 @@ module Datadog
                   # If data is a string, it is a literal template and we don't
                   # want to record it.
                   span.set_tag(Ext::TAG_TEMPLATE_NAME, data) if data.is_a? Symbol
+
                   output = super
                 end
               else

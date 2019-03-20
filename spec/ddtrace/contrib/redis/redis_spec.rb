@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
 
 require 'time'
 require 'redis'
@@ -7,6 +8,7 @@ require 'ddtrace'
 
 RSpec.describe 'Redis test' do
   let(:tracer) { get_test_tracer }
+  let(:configuration_options) { { tracer: tracer } }
 
   def all_spans
     tracer.writer.spans(:keep)
@@ -14,8 +16,15 @@ RSpec.describe 'Redis test' do
 
   before(:each) do
     Datadog.configure do |c|
-      c.use :redis, tracer: tracer
+      c.use :redis, configuration_options
     end
+  end
+
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:redis].reset_configuration!
+    example.run
+    Datadog.registry[:redis].reset_configuration!
   end
 
   shared_examples_for 'a Redis driver' do |driver|
@@ -42,6 +51,11 @@ RSpec.describe 'Redis test' do
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.get_tag('out.redis_db')).to eq('0')
+      end
+
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
     end
 

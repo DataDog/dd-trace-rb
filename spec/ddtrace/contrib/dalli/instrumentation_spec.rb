@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
 
 require 'dalli'
 require 'ddtrace'
@@ -16,6 +17,8 @@ RSpec.describe 'Dalli instrumentation' do
     tracer.writer.spans(:keep)
   end
 
+  let(:span) { all_spans.first }
+
   # Enable the test tracer
   before(:each) do
     Datadog.configure do |c|
@@ -23,19 +26,32 @@ RSpec.describe 'Dalli instrumentation' do
     end
   end
 
-  after(:each) { Datadog.registry[:dalli].reset_configuration! }
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:dalli].reset_configuration!
+    example.run
+    Datadog.registry[:dalli].reset_configuration!
+  end
 
-  it 'calls instrumentation' do
-    client.set('abc', 123)
-    try_wait_until { all_spans.any? }
+  describe 'when a client calls #set' do
+    before(:each) do
+      client.set('abc', 123)
+      try_wait_until { all_spans.any? }
+    end
 
-    span = all_spans.first
-    expect(all_spans.size).to eq(1)
-    expect(span.service).to eq('memcached')
-    expect(span.name).to eq('memcached.command')
-    expect(span.resource).to eq('SET')
-    expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
-    expect(span.get_tag('out.host')).to eq(test_host)
-    expect(span.get_tag('out.port')).to eq(test_port)
+    it_behaves_like 'analytics for integration' do
+      let(:analytics_enabled_var) { Datadog::Contrib::Dalli::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Contrib::Dalli::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+    end
+
+    it 'calls instrumentation' do
+      expect(all_spans.size).to eq(1)
+      expect(span.service).to eq('memcached')
+      expect(span.name).to eq('memcached.command')
+      expect(span.resource).to eq('SET')
+      expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
+      expect(span.get_tag('out.host')).to eq(test_host)
+      expect(span.get_tag('out.port')).to eq(test_port)
+    end
   end
 end

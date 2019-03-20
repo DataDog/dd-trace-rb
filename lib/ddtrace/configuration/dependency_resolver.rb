@@ -1,9 +1,9 @@
 require 'tsort'
 
 module Datadog
-  class Configuration
+  module Configuration
     # Resolver performs a topological sort over the dependency graph
-    class Resolver
+    class DependencyResolver
       include TSort
 
       def initialize(dependency_graph = {})

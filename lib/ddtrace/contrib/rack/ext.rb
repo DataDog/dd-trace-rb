@@ -4,7 +4,7 @@ module Datadog
       # Rack integration constants
       module Ext
         APP = 'rack'.freeze
-        ENV_ANALYTICS_ENALBED = 'DD_RACK_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_RACK_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_RACK_ANALYTICS_SAMPLE_RATE'.freeze
         RACK_ENV_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
         SERVICE_NAME = 'rack'.freeze

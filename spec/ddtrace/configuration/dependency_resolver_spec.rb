@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Configuration::Resolver do
+RSpec.describe Datadog::Configuration::DependencyResolver do
   subject(:resolver) { described_class.new(graph) }
 
   describe '#call' do

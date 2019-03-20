@@ -50,6 +50,9 @@ module Datadog
               rack_request_span.resource = span.resource if rack_request_span
             end
 
+            # Set analytics sample rate
+            Utils.set_analytics_sample_rate(span)
+
             span.set_tag(Ext::TAG_ROUTE_ACTION, payload.fetch(:action))
             span.set_tag(Ext::TAG_ROUTE_CONTROLLER, payload.fetch(:controller))
 

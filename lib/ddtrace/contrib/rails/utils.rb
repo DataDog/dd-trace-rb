@@ -1,3 +1,5 @@
+require 'ddtrace/contrib/analytics'
+
 module Datadog
   module Contrib
     module Rails
@@ -11,7 +13,7 @@ module Datadog
         def self.normalize_template_name(name)
           return if name.nil?
 
-          base_path = Datadog.configuration[:rails][:template_base_path]
+          base_path = datadog_configuration[:template_base_path]
           sections_view = name.split(base_path)
 
           if sections_view.length == 1
@@ -40,6 +42,20 @@ module Datadog
             status.to_s.starts_with?('5')
           else
             true
+          end
+        end
+
+        def self.set_analytics_sample_rate(span)
+          if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+            Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+          end
+        end
+
+        class << self
+          private
+
+          def datadog_configuration
+            Datadog.configuration[:rails]
           end
         end
       end

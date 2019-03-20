@@ -1,4 +1,6 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
+
 require 'ddtrace'
 require 'net/http'
 require 'time'
@@ -17,12 +19,19 @@ RSpec.describe 'net/http requests' do
 
   let(:client) { Net::HTTP.new(host, port) }
   let(:tracer) { get_test_tracer }
+  let(:configuration_options) { { tracer: tracer } }
 
   let(:spans) { tracer.writer.spans }
 
   before(:each) do
-    Datadog.configure { |c| c.use :http }
-    Datadog::Pin.get_from(client).tracer = tracer
+    Datadog.configure { |c| c.use :http, configuration_options }
+  end
+
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:http].reset_configuration!
+    example.run
+    Datadog.registry[:http].reset_configuration!
   end
 
   describe '#get' do
@@ -48,10 +57,17 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.status).to eq(0)
       end
+
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Contrib::HTTP::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::HTTP::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        before(:each) { response }
+      end
     end
 
     context 'that returns 404' do
-      before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 404) }
+      before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 404, body: body) }
+      let(:body) { '{ "code": 404, message": "Not found!" }' }
       let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
@@ -67,6 +83,45 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.status).to eq(1)
         expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
+        expect(span.get_tag('error.msg')).to be nil
+      end
+
+      context 'when configured with #after_request hook' do
+        before(:each) { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
+        after(:each) { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
+
+        context 'which defines each parameter' do
+          let(:callback) do
+            proc do |span, http, request, response|
+              expect(span).to be_a_kind_of(Datadog::Span)
+              expect(http).to be_a_kind_of(Net::HTTP)
+              expect(request).to be_a_kind_of(Net::HTTP::Get)
+              expect(response).to be_a_kind_of(Net::HTTPNotFound)
+            end
+          end
+
+          it { expect(response.code).to eq('404') }
+        end
+
+        context 'which changes the error status' do
+          let(:callback) do
+            proc do |span, _http, _request, response|
+              case response.code.to_i
+              when 400...599
+                if response.class.body_permitted? && !response.body.nil?
+                  span.set_error([response.class, response.body[0...4095]])
+                end
+              end
+            end
+          end
+
+          it 'generates a trace modified by the hook' do
+            expect(response.code).to eq('404')
+            expect(span.status).to eq(1)
+            expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
+            expect(span.get_tag('error.msg')).to eq(body)
+          end
+        end
       end
     end
   end

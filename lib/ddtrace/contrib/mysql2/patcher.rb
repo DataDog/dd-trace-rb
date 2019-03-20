@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/contrib/mysql2/client'
+require 'ddtrace/contrib/mysql2/instrumentation'
 
 module Datadog
   module Contrib
@@ -25,7 +25,7 @@ module Datadog
         end
 
         def patch_mysql2_client
-          ::Mysql2::Client.send(:include, Client)
+          ::Mysql2::Client.send(:include, Instrumentation)
         end
       end
     end

@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
 require 'rack/test'
 
 require 'sinatra/base'
@@ -10,18 +11,23 @@ RSpec.describe 'Sinatra instrumentation' do
   include Rack::Test::Methods
 
   let(:tracer) { get_test_tracer }
-  let(:options) { { tracer: tracer } }
+  let(:configuration_options) { { tracer: tracer } }
 
   let(:span) { spans.first }
   let(:spans) { tracer.writer.spans }
 
   before(:each) do
     Datadog.configure do |c|
-      c.use :sinatra, options
+      c.use :sinatra, configuration_options
     end
   end
 
-  after(:each) { Datadog.registry[:sinatra].reset_configuration! }
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:sinatra].reset_configuration!
+    example.run
+    Datadog.registry[:sinatra].reset_configuration!
+  end
 
   shared_context 'app with simple route' do
     let(:app) do
@@ -52,6 +58,12 @@ RSpec.describe 'Sinatra instrumentation' do
           expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE)
           expect(span.status).to eq(0)
           expect(span.parent).to be nil
+        end
+
+        it_behaves_like 'analytics for integration', ignore_global_flag: false do
+          before { is_expected.to be_ok }
+          let(:analytics_enabled_var) { Datadog::Contrib::Sinatra::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::Sinatra::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         context 'which sets X-Request-Id on the response' do
@@ -278,7 +290,7 @@ RSpec.describe 'Sinatra instrumentation' do
     end
 
     context 'with a custom service name' do
-      let(:options) { super().merge(service_name: service_name) }
+      let(:configuration_options) { super().merge(service_name: service_name) }
       let(:service_name) { 'my-sinatra-app' }
 
       context 'and a simple request is made' do
@@ -325,7 +337,7 @@ RSpec.describe 'Sinatra instrumentation' do
     end
 
     context 'with distributed tracing disabled' do
-      let(:options) { super().merge(distributed_tracing: false) }
+      let(:configuration_options) { super().merge(distributed_tracing: false) }
 
       context 'and a simple request is made' do
         include_context 'app with simple route'
@@ -355,7 +367,7 @@ RSpec.describe 'Sinatra instrumentation' do
     end
 
     context 'with header tags' do
-      let(:options) { super().merge(headers: { request: request_headers, response: response_headers }) }
+      let(:configuration_options) { super().merge(headers: { request: request_headers, response: response_headers }) }
       let(:request_headers) { [] }
       let(:response_headers) { [] }
 
@@ -392,7 +404,7 @@ RSpec.describe 'Sinatra instrumentation' do
     end
 
     context 'with script names' do
-      let(:options) { super().merge(resource_script_names: true) }
+      let(:configuration_options) { super().merge(resource_script_names: true) }
 
       let(:app) do
         Class.new(Sinatra::Application) do

@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
 require 'faraday'
@@ -31,6 +32,13 @@ RSpec.describe 'Faraday middleware' do
     end
   end
 
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:faraday].reset_configuration!
+    example.run
+    Datadog.registry[:faraday].reset_configuration!
+  end
+
   context 'when there is no interference' do
     subject!(:response) { client.get('/success') }
 
@@ -43,6 +51,12 @@ RSpec.describe 'Faraday middleware' do
 
   context 'when there is successful request' do
     subject!(:response) { client.get('/success') }
+
+    it_behaves_like 'analytics for integration' do
+      let(:analytics_enabled_var) { Datadog::Contrib::Faraday::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Contrib::Faraday::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:span) { request_span }
+    end
 
     it do
       expect(request_span).to_not be nil

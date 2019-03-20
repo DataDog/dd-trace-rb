@@ -1,4 +1,6 @@
 require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
+
 require 'ddtrace'
 require 'ddtrace/contrib/rest_client/request_patch'
 require 'rest_client'
@@ -17,7 +19,12 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
     WebMock.enable!
   end
 
-  after(:each) { Datadog.registry[:rest_client].reset_configuration! }
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:rest_client].reset_configuration!
+    example.run
+    Datadog.registry[:rest_client].reset_configuration!
+  end
 
   describe 'instrumented request' do
     let(:path) { '/sample/path' }
@@ -77,6 +84,11 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
           it 'has correct service name' do
             expect(span.service).to eq('rest_client')
+          end
+
+          it_behaves_like 'analytics for integration' do
+            let(:analytics_enabled_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_ENABLED }
+            let(:analytics_sample_rate_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
         end
 

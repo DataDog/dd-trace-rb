@@ -1,5 +1,5 @@
 module Datadog
-  class Configuration
+  module Configuration
     # PinSetup translates a flat hash into a Pin configuration
     # This class should be removed if we ever remove/refactor the Pin class
     class PinSetup

@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/aws/ext'
 
 module Datadog
@@ -27,6 +28,12 @@ module Datadog
           span.span_type = Datadog::Ext::AppTypes::WEB
           span.name = Ext::SPAN_COMMAND
           span.resource = context.safely(:resource)
+
+          # Set analytics sample rate
+          if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+            Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+          end
+
           span.set_tag(Ext::TAG_AGENT, Ext::TAG_DEFAULT_AGENT)
           span.set_tag(Ext::TAG_OPERATION, context.safely(:operation))
           span.set_tag(Ext::TAG_REGION, context.safely(:region))
