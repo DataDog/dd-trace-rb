@@ -1,8 +1,8 @@
-require 'ddtrace/ext/analytics'
+require 'ddtrace/analytics'
 
 module Datadog
   module Contrib
-    # Defines sampling behavior for integrations
+    # Defines analytics behavior for integrations
     module Analytics
       module_function
 
@@ -13,8 +13,7 @@ module Datadog
       end
 
       def set_sample_rate(span, sample_rate)
-        return if span.nil? || sample_rate.nil?
-        span.set_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE, sample_rate)
+        Datadog::Analytics.set_sample_rate(span, sample_rate)
       end
     end
   end
