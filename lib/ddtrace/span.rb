@@ -3,6 +3,7 @@ require 'thread'
 
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
+require 'ddtrace/analytics'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -252,3 +253,6 @@ module Datadog
     end
   end
 end
+
+# Include extensions after Span (for Ruby 1.9 compatibility)
+Datadog::Span.send(:include, Datadog::Analytics::Span)
