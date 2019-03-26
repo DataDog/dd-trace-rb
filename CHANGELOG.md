@@ -4,6 +4,16 @@
 
 ## [Unreleased (beta)]
 
+## [0.21.1] - 2019-03-26
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.21.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.21.0...v0.21.1
+
+### Changed
+
+- Support `TAG_ENABLED` for custom instrumentation with analytics. (#728)
+
 ## [0.21.0] - 2019-03-20
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.21.0
@@ -731,8 +741,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.0...0.22-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.1...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.1...0.22-dev
+[0.21.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.0...v0.21.1
 [0.21.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.1...v0.20.0
 [0.19.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.19.0...v0.19.1
