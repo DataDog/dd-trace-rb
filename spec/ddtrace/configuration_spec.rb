@@ -104,7 +104,7 @@ RSpec.describe Datadog::Configuration::Settings do
     context 'when the integration doesn\'t exist' do
       it do
         expect { configuration[:foobar] }.to raise_error(
-          Datadog::Contrib::Extensions::Configuration::InvalidIntegrationError
+          Datadog::Contrib::Extensions::Configuration::Settings::InvalidIntegrationError
         )
       end
     end
