@@ -19,6 +19,7 @@ module Datadog
           do_once(:mongo) do
             begin
               ::Mongo::Client.send(:include, Instrumentation)
+              ::Mongo::Address.send(:include, Instrumentation)
               add_mongo_monitoring
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply MongoDB integration: #{e}")

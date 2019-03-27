@@ -15,10 +15,12 @@ module Datadog
             base.class_eval do
               # Instance methods
               include InstanceMethodsCompatibility
-              include InstanceMethods
+              include CommonInstanceMethods
+              include ClientInstanceMethods if base == Mongo::Client
             end
           else
-            base.send(:prepend, InstanceMethods)
+            base.send(:prepend, CommonInstanceMethods)
+            base.send(:prepend, ClientInstanceMethods) if base == Mongo::Client
           end
         end
 
@@ -36,8 +38,8 @@ module Datadog
           end
         end
 
-        # InstanceMethods - implementing instrumentation
-        module InstanceMethods
+        # CommonInstanceMethods - implementing instrumentation
+        module CommonInstanceMethods
           def initialize(*args, &blk)
             # attach the Pin instance
             super(*args, &blk)
@@ -51,7 +53,10 @@ module Datadog
             )
             pin.onto(self)
           end
+        end
 
+        # ClientInstanceMethods - implementing instrumentation
+        module ClientInstanceMethods
           def datadog_pin
             # safe-navigation to avoid crashes during each query
             return unless respond_to? :cluster
