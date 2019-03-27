@@ -16,8 +16,6 @@ module Datadog
               default: -> { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) },
               lazy: true
 
-      option :metrics, default: Metrics.new
-      option :runtime_metrics, default: Runtime::Metrics.new
       option :tracer, default: Tracer.new
 
       def initialize(options = {})
@@ -33,17 +31,8 @@ module Datadog
         yield(self) if block_given?
       end
 
-      remove_method :metrics
-      def metrics(options = nil)
-        metrics = get_option(:metrics)
-        return metrics if options.nil?
-
-        metrics.configure(options)
-      end
-
-      remove_method :runtime_metrics
       def runtime_metrics(options = nil)
-        runtime_metrics = get_option(:runtime_metrics)
+        runtime_metrics = get_option(:tracer).writer.runtime_metrics
         return runtime_metrics if options.nil?
 
         runtime_metrics.configure(options)

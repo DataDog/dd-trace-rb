@@ -151,7 +151,6 @@ module Datadog
 
         attach_sampling_priority if sampled && @sampling_priority
         attach_origin if @origin
-        associate_runtime_metrics
 
         # still return sampled attribute, even if context is not finished
         return nil, sampled unless check_finished_spans()
@@ -212,10 +211,6 @@ module Datadog
         Ext::DistributedTracing::ORIGIN_KEY,
         @origin
       )
-    end
-
-    def associate_runtime_metrics
-      Datadog.runtime_metrics.associate_with_span(@current_root_span)
     end
 
     # Return the start time of the root span, or nil if there are no spans or this is undefined.

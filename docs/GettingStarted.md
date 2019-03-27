@@ -1735,7 +1735,12 @@ To configure your application for metrics collection:
 
 1. [Configure your Datadog agent for StatsD](https://docs.datadoghq.com/developers/dogstatsd/#setup)
 2. Add `gem 'dogstatsd-ruby'` to your Gemfile
-3. Add the following to your configuration file:
+
+#### For application runtime
+
+If runtime metrics are configured, the trace library will automatically collect and send metrics about the health of your application.
+
+To configure runtime metrics, add the following configuration:
 
 ```ruby
 # config/initializers/datadog.rb
@@ -1745,17 +1750,13 @@ require 'ddtrace'
 Datadog.configure do |c|
   # Statsd is automatically configured with default settings if `dogstatsd-ruby` is available.
   # Otherwise, you can configure with host and port of Datadog agent; defaults to 'localhost:8125'.
-  c.metrics statsd: Datadog::Statsd.new
+  c.runtime_metrics statsd: Datadog::Statsd.new
 end
 ```
 
 See the [Dogstatsd documentation](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/frames) for more details about configuring `Datadog::Statsd`.
 
-#### For application runtime
-
-If metrics are configured, the trace library will automatically collect and send metrics about the health of your application.
-
-These include:
+The stats sent will include:
 
 | Name                        | Type    | Description                                              |
 | --------------------------  | ------- | -------------------------------------------------------- |
@@ -1765,9 +1766,10 @@ These include:
 
 In addition, all metrics will include the following tags:
 
-| Name       | Description                                |
-| ---------- | ------------------------------------------ |
-| `language` | Programming language traced. (e.g. `ruby`) |
+| Name         | Description                                             |
+| ------------ | ------------------------------------------------------- |
+| `language`   | Programming language traced. (e.g. `ruby`)              |
+| `runtime-id` | Unique identifier of runtime environment (i.e. process) |
 
 ### OpenTracing
 

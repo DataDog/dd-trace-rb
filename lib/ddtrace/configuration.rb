@@ -19,16 +19,12 @@ module Datadog
     end
 
     # Helper methods
-    def metrics
-      configuration.metrics
+    def tracer
+      configuration.tracer
     end
 
     def runtime_metrics
-      configuration.runtime_metrics
-    end
-
-    def tracer
-      configuration.tracer
+      tracer.writer.runtime_metrics
     end
   end
 end
