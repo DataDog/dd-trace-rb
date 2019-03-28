@@ -5,7 +5,7 @@ module Datadog
   module Contrib
     module ActionCable
       module Events
-        # Defines instrumentation for process_batch.racecar event
+        # Defines instrumentation for perform_action.action_cable event
         module PerformAction
           include ActionCable::Event
 

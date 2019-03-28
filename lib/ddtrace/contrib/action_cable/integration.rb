@@ -20,8 +20,9 @@ module Datadog
         end
 
         def self.compatible?
-          return false if !ENV['DISABLE_DATADOG_RAILS']
-          super && defined?(::ActiveSupport::Notifications) && defined?(::Rails::VERSION) && ::Rails::VERSION::MAJOR.to_i >= 5
+          return false if ENV['DISABLE_DATADOG_RAILS']
+          super && defined?(::ActiveSupport::Notifications) &&
+            defined?(::Rails::VERSION) && ::Rails::VERSION::MAJOR.to_i >= 5
         end
 
         def default_configuration
