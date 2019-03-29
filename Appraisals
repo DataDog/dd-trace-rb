@@ -74,7 +74,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'excon'
       gem 'hiredis'
-      gem 'mongo', '< 2.5'
+      gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
@@ -159,7 +159,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'excon'
       gem 'hiredis'
-      gem 'mongo', '< 2.5'
+      gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
@@ -264,7 +264,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'excon'
       gem 'hiredis'
-      gem 'mongo', '< 2.5'
+      gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
@@ -404,7 +404,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'graphql', '< 1.9.4'
       gem 'grpc'
       gem 'hiredis'
-      gem 'mongo', '< 2.5'
+      gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -543,7 +543,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'graphql'
       gem 'grpc'
       gem 'hiredis'
-      gem 'mongo', '< 2.5'
+      gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -576,7 +576,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'graphql'
       gem 'grpc'
       gem 'hiredis'
-      gem 'mongo', '< 2.5'
+      gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
