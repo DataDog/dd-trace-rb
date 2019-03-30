@@ -51,7 +51,7 @@ module Datadog
           # Context objects are thread-bound.
           # If ActionCable re-uses threads, context from a previous trace
           # could leak into the new trace. This "cleans" current context,
-          # preventing such a leak. This approach mirrors that found in 
+          # preventing such a leak. This approach mirrors that found in
           # contrib/racecar/event.rb
           def ensure_clean_context!
             return unless configuration[:tracer].call_context.current_span
