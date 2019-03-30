@@ -1,6 +1,6 @@
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
-require 'rails/all'
+require 'rails'
 require 'active_support'
 require 'ddtrace'
 
@@ -51,6 +51,31 @@ RSpec.describe 'ActionCable patcher' do
           expect(span.get_tag('action_cable.perform_action')).to eq(action)
           expect(span.get_tag('action_cable.channel_class')).to eq(channel)
           expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+        end
+      end
+    end
+
+    context 'that raises an error' do
+      let(:error_class) { Class.new(StandardError) }
+
+      it 'is expected to send a span' do
+        # Emulate failure
+        begin
+          ActiveSupport::Notifications.instrument('perform_action.action_cable', payload) do
+            raise error_class
+          end
+        rescue error_class
+          nil
+        end
+
+        span.tap do |span|
+          expect(span).to_not be nil
+          expect(span.service).to eq('action_cable')
+          expect(span.name).to eq('perform_action.action_cable')
+          expect(span.resource).to eq(channel)
+          expect(span.get_tag('action_cable.perform_action')).to eq(action)
+          expect(span.get_tag('action_cable.channel_class')).to eq(channel)
+          expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
         end
       end
     end
