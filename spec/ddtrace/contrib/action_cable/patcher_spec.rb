@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
-require 'rails'
+require 'ddtrace/contrib/action_cable/integration'
+require 'rails/all'
 require 'active_support'
 require 'ddtrace'
 
@@ -13,8 +14,12 @@ RSpec.describe 'ActionCable patcher' do
   end
 
   before(:each) do
-    Datadog.configure do |c|
-      c.use :action_cable, configuration_options
+    if Datadog::Contrib::ActionCable::Integration.compatible?
+      Datadog.configure do |c|
+        c.use :action_cable, configuration_options
+      end
+    else
+      skip
     end
   end
 

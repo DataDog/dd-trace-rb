@@ -20,9 +20,11 @@ module Datadog
         end
 
         def self.compatible?
+          # Rails 5 Requires Ruby 2.2.2 or higher
           return false if ENV['DISABLE_DATADOG_RAILS']
           super && defined?(::ActiveSupport::Notifications) &&
-            defined?(::Rails::VERSION) && ::Rails::VERSION::MAJOR.to_i >= 5
+            defined?(::Rails::VERSION) && ::Rails::VERSION::MAJOR.to_i >= 5 &&
+            RUBY_VERSION >= '2.2.2'
         end
 
         def default_configuration
