@@ -12,7 +12,7 @@ desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
   task all: [:main,
-             :rails, :railsredis, :railssidekiq, :railsactivejob,
+             :rails, :railsredis, :railssidekiq, :railsactivejob, :railsactioncable,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
   RSpec::Core::RakeTask.new(:main) do |t|
@@ -41,6 +41,10 @@ namespace :spec do
     t.pattern = 'spec/ddtrace/contrib/rails/**/*active_job*_spec.rb'
   end
 
+  RSpec::Core::RakeTask.new(:railsactioncable) do |t|
+    t.pattern = 'spec/ddtrace/contrib/action_cable/*_spec.rb'
+  end
+
   RSpec::Core::RakeTask.new(:railsdisableenv) do |t|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'
   end
@@ -51,7 +55,6 @@ namespace :spec do
   end
 
   [
-    :action_cable,
     :active_model_serializers,
     :active_record,
     :active_support,
@@ -405,8 +408,6 @@ task :ci do
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
-      sh 'bundle exec appraisal rails5-postgres rake spec:action_cable'
-      sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
       sh 'bundle exec appraisal contrib rake spec:active_support'
@@ -458,6 +459,7 @@ task :ci do
       sh 'bundle exec appraisal rails4-postgres rake spec:rails'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails5-postgres rake spec:railsactioncable'
     end
   elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
     # Main library
@@ -472,8 +474,6 @@ task :ci do
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
-      sh 'bundle exec appraisal rails5-postgres rake spec:action_cable'
-      sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
       sh 'bundle exec appraisal contrib rake spec:active_support'
