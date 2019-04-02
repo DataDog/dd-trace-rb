@@ -405,7 +405,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
-      sh 'bundle exec appraisal contrib rake spec:action_cable'
+      sh 'bundle exec appraisal rails5-postgres rake spec:action_cable'
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
       sh 'bundle exec appraisal contrib rake spec:active_support'
@@ -471,7 +472,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
-      sh 'bundle exec appraisal contrib rake spec:action_cable'
+      sh 'bundle exec appraisal rails5-postgres rake spec:action_cable'
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
       sh 'bundle exec appraisal contrib rake spec:active_support'
