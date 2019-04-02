@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/action_cable/integration'
-require "action_cable/engine"
+require 'rails'
 require 'active_support'
 require 'ddtrace'
 

@@ -52,6 +52,7 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:contrib) do |t|
     # rubocop:disable Metrics/LineLength
     t.pattern = 'spec/**/contrib/{analytics,configurable,integration,patchable,patcher,registerable,registry,configuration/*}_spec.rb'
+    t.exclude_pattern = 'spec/ddtrace/contrib/action_cable/*_spec.rb'
   end
 
   [
