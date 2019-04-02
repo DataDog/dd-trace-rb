@@ -499,6 +499,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sequel'
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
+      sh 'bundle exec appraisal rails5-postgres rake spec:railsactioncable'
       # Rails minitests
       sh 'bundle exec rake benchmark'
     end

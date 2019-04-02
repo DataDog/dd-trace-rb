@@ -1,10 +1,9 @@
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
-require 'ddtrace/contrib/action_cable/integration'
+
 require 'rails'
 require 'active_support'
 require 'ddtrace'
-
 RSpec.describe 'ActionCable patcher' do
   let(:tracer) { get_test_tracer }
   let(:configuration_options) { { tracer: tracer } }
