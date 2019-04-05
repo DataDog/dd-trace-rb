@@ -95,6 +95,8 @@ module Datadog
     end
 
     def send_runtime_metrics
+      return unless Datadog.configuration.runtime_metrics_enabled
+
       runtime_metrics.flush
     end
 

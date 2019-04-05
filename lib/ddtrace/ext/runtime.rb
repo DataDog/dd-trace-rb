@@ -20,6 +20,8 @@ module Datadog
 
       # Metrics
       module Metrics
+        ENV_ENABLED = 'DD_RUNTIME_METRICS_ENABLED'.freeze
+
         METRIC_CLASS_COUNT = 'runtime.ruby.class_count'.freeze
         METRIC_GC_PREFIX = 'runtime.ruby.gc'.freeze
         METRIC_THREAD_COUNT = 'runtime.ruby.thread_count'.freeze
