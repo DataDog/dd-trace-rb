@@ -10,7 +10,7 @@ module Datadog
   module Runtime
     # For generating runtime metrics
     class Metrics < Datadog::Metrics
-      def initialize(*args)
+      def initialize(options = {})
         super
 
         # Initialize service list
@@ -46,6 +46,8 @@ module Datadog
 
       # Flush all runtime metrics to Statsd client
       def flush
+        return unless enabled?
+
         try_flush { gauge(Ext::Runtime::Metrics::METRIC_CLASS_COUNT, ClassCount.value) if ClassCount.available? }
         try_flush { gauge(Ext::Runtime::Metrics::METRIC_THREAD_COUNT, ThreadCount.value) if ThreadCount.available? }
         try_flush { gc_metrics.each { |metric, value| gauge(metric, value) } if GC.available? }

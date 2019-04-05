@@ -13,13 +13,22 @@ module Datadog
 
     attr_reader :statsd
 
-    def initialize(statsd = nil)
-      @statsd = statsd || (default_statsd_client if supported?)
+    def initialize(options = {})
+      @statsd = options.fetch(:statsd) { default_statsd_client if supported? }
+      @enabled = options.fetch(:enabled, true)
     end
 
     def supported?
       Gem.loaded_specs['dogstatsd-ruby'] \
         && Gem.loaded_specs['dogstatsd-ruby'].version >= Gem::Version.new('3.3.0')
+    end
+
+    def enabled?
+      @enabled
+    end
+
+    def enabled=(enabled)
+      @enabled = (enabled == true)
     end
 
     def default_statsd_client
@@ -34,10 +43,11 @@ module Datadog
 
     def configure(options = {})
       @statsd = options[:statsd] if options.key?(:statsd)
+      @enabled = options[:enabled] if options.key?(:enabled)
     end
 
     def send_stats?
-      !statsd.nil?
+      enabled? && !statsd.nil?
     end
 
     def distribution(stat, value, options = nil)
