@@ -401,7 +401,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'excon'
       gem 'grape'
-      gem 'graphql'
+      gem 'graphql', '< 1.9.4'
       gem 'grpc'
       gem 'hiredis'
       gem 'mongo', '< 2.5'
