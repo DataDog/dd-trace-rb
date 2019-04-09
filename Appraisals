@@ -74,7 +74,7 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'excon'
       gem 'hiredis'
-      gem 'mongo', '>= 2.8.0'
+      gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
@@ -159,7 +159,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'excon'
       gem 'hiredis'
-      gem 'mongo', '>= 2.8.0'
+      gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
@@ -264,7 +264,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'excon'
       gem 'hiredis'
-      gem 'mongo', '>= 2.8.0'
+      gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
