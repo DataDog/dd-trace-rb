@@ -341,6 +341,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         let(:insert_span) { spans.first }
         let(:auth_span) { spans.last }
         let(:drop_database?) { false }
+        let(:mongo_gem_version) { Gem.loaded_specs['mongo'].version }
 
         before(:each) do
           begin
@@ -353,21 +354,27 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
 
         it 'produces spans for command and authentication' do
-          # TODO: fix this spec. Not sure if newer MongoDB ruby client driver behaves as describe below
+          # In versions of Mongo < 2.5...
           # With LDAP/SASL, Mongo will run a "saslStart" command
           # after the original command starts but before it finishes.
           # Thus we should expect it to create an authentication span
           # that is a child of the original command span.
-          expect(spans).to have(2).items
+          if mongo_gem_version < Gem::Version.new('2.5')
+            expect(spans).to have(2).items
+          else
+            expect(spans).to have(1).items
+          end
 
-          expect(insert_span.name).to eq('mongo.cmd')
-          expect(insert_span.resource).to match(/"operation"\s*=>\s*:insert/)
-          expect(insert_span.status).to eq(1)
-          expect(insert_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
-          expect(insert_span.get_tag('error.msg')).to eq('User  is not authorized to access test.')
+          if mongo_gem_version < Gem::Version.new('2.5')
+            expect(insert_span.name).to eq('mongo.cmd')
+            expect(insert_span.resource).to match(/"operation"\s*=>\s*:insert/)
+            expect(insert_span.status).to eq(1)
+            expect(insert_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
+            expect(insert_span.get_tag('error.msg')).to eq('User  is not authorized to access test.')
+          end
 
           expect(auth_span.name).to eq('mongo.cmd')
-          expect(auth_span.resource).to match(/"operation"\s*=>\s*:saslStart/)
+          expect(auth_span.resource).to match(/"operation"\s*=>\s*[:"]saslStart/)
           expect(auth_span.status).to eq(1)
           expect(auth_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
           expect(auth_span.get_tag('error.msg')).to eq('Unsupported mechanism PLAIN (2)')
