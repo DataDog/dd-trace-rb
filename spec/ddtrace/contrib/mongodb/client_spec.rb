@@ -18,6 +18,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
   let(:spans) { tracer.writer.spans(:keep) }
   let(:span) { spans.first }
 
+  let(:mongo_gem_version) { Gem.loaded_specs['mongo'].version }
+
   def discard_spans!
     tracer.writer.spans
   end
@@ -96,7 +98,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
         it_behaves_like 'a MongoDB trace'
 
         it 'has operation-specific properties' do
-          expect(span.resource).to eq("{\"operation\"=>:insert, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"documents\"=>[{:name=>\"?\"}], \"ordered\"=>\"?\"}")
+          if mongo_gem_version < Gem::Version.new('2.5')
+            expect(span.resource).to eq("{\"operation\"=>:insert, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"documents\"=>[{:name=>\"?\"}], \"ordered\"=>\"?\"}")
+          else
+            expect(span.resource).to eq("{\"operation\"=>\"insert\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"documents\"=>[{\"name\"=>\"?\"}]}")
+          end
           expect(span.get_tag('mongodb.rows')).to eq('1')
         end
       end
@@ -108,7 +114,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
         it_behaves_like 'a MongoDB trace'
 
         it 'has operation-specific properties' do
-          expect(span.resource).to eq("{\"operation\"=>:insert, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"documents\"=>[{:name=>\"?\", :hobbies=>[\"?\"]}], \"ordered\"=>\"?\"}")
+          if mongo_gem_version < Gem::Version.new('2.5')
+            expect(span.resource).to eq("{\"operation\"=>:insert, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"documents\"=>[{:name=>\"?\", :hobbies=>[\"?\"]}], \"ordered\"=>\"?\"}")
+          else
+            expect(span.resource).to eq("{\"operation\"=>\"insert\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"documents\"=>[{\"name\"=>\"?\", \"hobbies\"=>[\"?\"]}]}")
+          end
           expect(span.get_tag('mongodb.rows')).to eq('1')
         end
       end
@@ -130,7 +140,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
         it_behaves_like 'a MongoDB trace'
 
         it 'has operation-specific properties' do
-          expect(span.resource).to eq("{\"operation\"=>:insert, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"documents\"=>[{:name=>\"?\", :hobbies=>[\"?\"]}, \"?\"], \"ordered\"=>\"?\"}")
+          if mongo_gem_version < Gem::Version.new('2.5')
+            expect(span.resource).to eq("{\"operation\"=>:insert, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"documents\"=>[{:name=>\"?\", :hobbies=>[\"?\"]}, \"?\"], \"ordered\"=>\"?\"}")
+          else
+            expect(span.resource).to eq("{\"operation\"=>\"insert\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"documents\"=>[{\"name\"=>\"?\", \"hobbies\"=>[\"?\"]}, \"?\"]}")
+          end
           expect(span.get_tag('mongodb.rows')).to eq('2')
         end
       end
@@ -153,7 +167,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{}}")
+        if mongo_gem_version < Gem::Version.new('2.5')
+          expect(span.resource).to eq("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{}}")
+        else
+          expect(span.resource).to eq("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{}, \"lsid\"=>{\"id\"=>\"?\"}}")
+        end
         expect(span.get_tag('mongodb.rows')).to be nil
       end
     end
@@ -174,7 +192,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{\"name\"=>\"?\"}}")
+        if mongo_gem_version < Gem::Version.new('2.5')
+          expect(span.resource).to eq("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{\"name\"=>\"?\"}}")
+        else
+          expect(span.resource).to eq("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{\"name\"=>\"?\"}, \"lsid\"=>{\"id\"=>\"?\"}}")
+        end
         expect(span.get_tag('mongodb.rows')).to be nil
       end
     end
@@ -199,7 +221,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{\"operation\"=>:update, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"updates\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}], \"ordered\"=>\"?\"}")
+        if mongo_gem_version < Gem::Version.new('2.5')
+          expect(span.resource).to eq("{\"operation\"=>:update, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"updates\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}], \"ordered\"=>\"?\"}")
+        else
+          expect(span.resource).to eq("{\"operation\"=>\"update\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"updates\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}]}")
+        end
         expect(span.get_tag('mongodb.rows')).to eq('1')
       end
     end
@@ -232,7 +258,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{\"operation\"=>:update, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"updates\"=>[{\"q\"=>{}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}], \"ordered\"=>\"?\"}")
+        if mongo_gem_version < Gem::Version.new('2.5')
+          expect(span.resource).to eq("{\"operation\"=>:update, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"updates\"=>[{\"q\"=>{}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}], \"ordered\"=>\"?\"}")
+        else
+          expect(span.resource).to eq("{\"operation\"=>\"update\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"updates\"=>[{\"q\"=>{}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}]}")
+        end
         expect(span.get_tag('mongodb.rows')).to eq('2')
       end
     end
@@ -257,7 +287,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{\"operation\"=>:delete, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}], \"ordered\"=>\"?\"}")
+        if mongo_gem_version < Gem::Version.new('2.5')
+          expect(span.resource).to eq("{\"operation\"=>:delete, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}], \"ordered\"=>\"?\"}")
+        else
+          expect(span.resource).to eq("{\"operation\"=>\"delete\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}]}")
+        end
         expect(span.get_tag('mongodb.rows')).to eq('1')
       end
     end
@@ -290,7 +324,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{\"operation\"=>:delete, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}], \"ordered\"=>\"?\"}")
+        if mongo_gem_version < Gem::Version.new('2.5')
+          expect(span.resource).to eq("{\"operation\"=>:delete, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}], \"ordered\"=>\"?\"}")
+        else
+          expect(span.resource).to eq("{\"operation\"=>\"delete\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}]}")
+        end
         expect(span.get_tag('mongodb.rows')).to eq('2')
       end
     end
@@ -303,7 +341,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{\"operation\"=>:dropDatabase, \"database\"=>\"#{database}\", \"collection\"=>1}")
+        if mongo_gem_version < Gem::Version.new('2.5')
+          expect(span.resource).to eq("{\"operation\"=>:dropDatabase, \"database\"=>\"#{database}\", \"collection\"=>1}")
+        else
+          expect(span.resource).to eq("{\"operation\"=>\"dropDatabase\", \"database\"=>\"#{database}\", \"collection\"=>1, \"lsid\"=>{\"id\"=>\"?\"}}")
+        end
         expect(span.get_tag('mongodb.rows')).to be nil
       end
     end
@@ -314,7 +356,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a MongoDB trace'
 
       it 'has operation-specific properties' do
-        expect(span.resource).to eq("{\"operation\"=>:drop, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\"}")
+        if mongo_gem_version < Gem::Version.new('2.5')
+          expect(span.resource).to eq("{\"operation\"=>:drop, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\"}")
+        else
+          expect(span.resource).to eq("{\"operation\"=>\"drop\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"lsid\"=>{\"id\"=>\"?\"}}")
+        end
         expect(span.get_tag('mongodb.rows')).to be nil
         expect(span.status).to eq(1)
         expect(span.get_tag('error.msg')).to eq('ns not found (26)')
@@ -353,20 +399,27 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
 
         it 'produces spans for command and authentication' do
+          # In versions of Mongo < 2.5...
           # With LDAP/SASL, Mongo will run a "saslStart" command
           # after the original command starts but before it finishes.
           # Thus we should expect it to create an authentication span
           # that is a child of the original command span.
-          expect(spans).to have(2).items
+          if mongo_gem_version < Gem::Version.new('2.5')
+            expect(spans).to have(2).items
+          else
+            expect(spans).to have(1).items
+          end
 
-          expect(insert_span.name).to eq('mongo.cmd')
-          expect(insert_span.resource).to match(/"operation"\s*=>\s*:insert/)
-          expect(insert_span.status).to eq(1)
-          expect(insert_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
-          expect(insert_span.get_tag('error.msg')).to eq('User  is not authorized to access test.')
+          if mongo_gem_version < Gem::Version.new('2.5')
+            expect(insert_span.name).to eq('mongo.cmd')
+            expect(insert_span.resource).to match(/"operation"\s*=>\s*:insert/)
+            expect(insert_span.status).to eq(1)
+            expect(insert_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
+            expect(insert_span.get_tag('error.msg')).to eq('User  is not authorized to access test.')
+          end
 
           expect(auth_span.name).to eq('mongo.cmd')
-          expect(auth_span.resource).to match(/"operation"\s*=>\s*:saslStart/)
+          expect(auth_span.resource).to match(/"operation"\s*=>\s*[:"]saslStart/)
           expect(auth_span.status).to eq(1)
           expect(auth_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
           expect(auth_span.get_tag('error.msg')).to eq('Unsupported mechanism PLAIN (2)')
