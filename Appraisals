@@ -404,7 +404,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'graphql', '< 1.9.4'
       gem 'grpc'
       gem 'hiredis'
-      gem 'mongo', '< 2.5'
+      gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -543,7 +543,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'graphql'
       gem 'grpc'
       gem 'hiredis'
-      gem 'mongo', '< 2.5'
+      gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -576,7 +576,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'graphql'
       gem 'grpc'
       gem 'hiredis'
-      gem 'mongo', '< 2.5'
+      gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'

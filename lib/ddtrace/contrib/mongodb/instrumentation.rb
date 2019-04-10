@@ -8,67 +8,58 @@ require 'ddtrace/contrib/mongodb/subscribers'
 module Datadog
   module Contrib
     module MongoDB
-      # Instrumentation for Mongo::Client
+      # Instrumentation for Mongo integration
       module Instrumentation
-        def self.included(base)
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
-            base.class_eval do
-              # Instance methods
-              include InstanceMethodsCompatibility
-              include InstanceMethods
-            end
-          else
-            base.send(:prepend, InstanceMethods)
-          end
-        end
-
-        # Compatibility shim for Rubies not supporting `.prepend`
-        module InstanceMethodsCompatibility
+        # Instrumentation for Mongo::Client
+        module Client
           def self.included(base)
-            base.class_eval do
-              alias_method :initialize_without_datadog, :initialize
-              remove_method :initialize
-            end
+            base.send(:include, InstanceMethods)
           end
 
-          def initialize(*args, &block)
-            initialize_without_datadog(*args, &block)
+          # Instance methods for Mongo::Client
+          module InstanceMethods
+            def datadog_pin
+              # safe-navigation to avoid crashes during each query
+              return unless respond_to? :cluster
+              return unless cluster.respond_to? :addresses
+              return unless cluster.addresses.respond_to? :first
+              Datadog::Pin.get_from(cluster.addresses.first)
+            end
+
+            def datadog_pin=(pin)
+              # safe-navigation to avoid crashes during each query
+              return unless respond_to? :cluster
+              return unless cluster.respond_to? :addresses
+              return unless cluster.addresses.respond_to? :each
+              # attach the PIN to all cluster addresses. One of them is used
+              # when executing a Command and it is attached to the Monitoring
+              # Event instance.
+              cluster.addresses.each { |x| pin.onto(x) }
+            end
           end
         end
 
-        # InstanceMethods - implementing instrumentation
-        module InstanceMethods
-          def initialize(*args, &blk)
-            # attach the Pin instance
-            super(*args, &blk)
-            tracer = Datadog.configuration[:mongo][:tracer]
-            service = Datadog.configuration[:mongo][:service_name]
-            pin = Datadog::Pin.new(
-              service,
-              app: Datadog::Contrib::MongoDB::Ext::APP,
-              app_type: Datadog::Ext::AppTypes::DB,
-              tracer: tracer
-            )
-            pin.onto(self)
+        # Instrumentation for Mongo::Address
+        module Address
+          def self.included(base)
+            base.send(:include, InstanceMethods)
           end
 
-          def datadog_pin
-            # safe-navigation to avoid crashes during each query
-            return unless respond_to? :cluster
-            return unless cluster.respond_to? :addresses
-            return unless cluster.addresses.respond_to? :first
-            Datadog::Pin.get_from(cluster.addresses.first)
-          end
+          # Instance methods for Mongo::Address
+          module InstanceMethods
+            def datadog_pin
+              @datadog_pin ||= begin
+                tracer = Datadog.configuration[:mongo][:tracer]
+                service = Datadog.configuration[:mongo][:service_name]
 
-          def datadog_pin=(pin)
-            # safe-navigation to avoid crashes during each query
-            return unless respond_to? :cluster
-            return unless cluster.respond_to? :addresses
-            return unless cluster.addresses.respond_to? :each
-            # attach the PIN to all cluster addresses. One of them is used
-            # when executing a Command and it is attached to the Monitoring
-            # Event instance.
-            cluster.addresses.each { |x| pin.onto(x) }
+                Datadog::Pin.new(
+                  service,
+                  app: Datadog::Contrib::MongoDB::Ext::APP,
+                  app_type: Datadog::Ext::AppTypes::DB,
+                  tracer: tracer
+                )
+              end
+            end
           end
         end
       end
