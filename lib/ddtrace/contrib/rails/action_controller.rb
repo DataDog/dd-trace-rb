@@ -53,6 +53,9 @@ module Datadog
             # Set analytics sample rate
             Utils.set_analytics_sample_rate(span)
 
+            # Associate with runtime metrics
+            Datadog.runtime_metrics.associate_with_span(span)
+
             span.set_tag(Ext::TAG_ROUTE_ACTION, payload.fetch(:action))
             span.set_tag(Ext::TAG_ROUTE_CONTROLLER, payload.fetch(:controller))
 
