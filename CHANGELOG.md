@@ -2,6 +2,10 @@
 
 ## [Unreleased (stable)]
 
+### Fixed
+
+- Sinatra now also registers automatically for apps inheriting from `Sinatra::Base`
+
 ## [Unreleased (beta)]
 
 ## [0.21.2] - 2019-04-10
@@ -400,9 +404,9 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...v0.13.0
 - Hash quantization into core library (#410)
 - MongoDB integration to use Hash quantization library (#463)
 
-### Changed 
+### Changed
 
-- Hash quantization truncates arrays with nested objects (#463) 
+- Hash quantization truncates arrays with nested objects (#463)
 
 ## [0.13.0.beta1] - 2018-05-09
 
