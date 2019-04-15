@@ -3,15 +3,20 @@ require 'ddtrace/encoding'
 require 'ddtrace/workers'
 
 module Datadog
-  # Traces and services writer that periodically sends data to the trace-agent
+  # Processor that sends traces and metadata to the agent
   class Writer
-    attr_reader :transport, :worker, :priority_sampler
+    attr_reader \
+      :priority_sampler,
+      :runtime_metrics,
+      :transport,
+      :worker
 
     def initialize(options = {})
       # writer and transport parameters
       @buff_size = options.fetch(:buffer_size, 100)
       @flush_interval = options.fetch(:flush_interval, 1)
       transport_options = options.fetch(:transport_options, {})
+
       # priority sampling
       if options[:priority_sampler]
         @priority_sampler = options[:priority_sampler]
@@ -22,6 +27,11 @@ module Datadog
       # transport and buffers
       @transport = options.fetch(:transport) do
         HTTPTransport.new(transport_options)
+      end
+
+      # Runtime metrics
+      @runtime_metrics = options.fetch(:runtime_metrics) do
+        Runtime::Metrics.new
       end
 
       @services = {}
@@ -43,11 +53,15 @@ module Datadog
       @pid = Process.pid
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
       @service_handler = ->(items, transport) { send_services(items, transport) }
-      @worker = Datadog::Workers::AsyncTransport.new(@transport,
-                                                     @buff_size,
-                                                     @trace_handler,
-                                                     @service_handler,
-                                                     @flush_interval)
+      @runtime_metrics_handler = -> { send_runtime_metrics }
+      @worker = Datadog::Workers::AsyncTransport.new(
+        transport: @transport,
+        buffer_size: @buff_size,
+        on_trace: @trace_handler,
+        on_service: @service_handler,
+        on_runtime_metrics: @runtime_metrics_handler,
+        interval: @flush_interval
+      )
 
       @worker.start()
     end
@@ -80,6 +94,12 @@ module Datadog
       status
     end
 
+    def send_runtime_metrics
+      return unless Datadog.configuration.runtime_metrics_enabled
+
+      runtime_metrics.flush
+    end
+
     # enqueue the trace for submission to the API
     def write(trace, services)
       # In multiprocess environments, the main process initializes the +Writer+ instance and if
@@ -97,6 +117,9 @@ module Datadog
           start if pid != @pid
         end
       end
+
+      # Associate root span with runtime metrics
+      runtime_metrics.associate_with_span(trace.first) unless trace.empty?
 
       @worker.enqueue_trace(trace)
       @worker.enqueue_service(services)

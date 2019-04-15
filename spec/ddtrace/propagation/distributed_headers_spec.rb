@@ -56,16 +56,18 @@ RSpec.describe Datadog::DistributedHeaders do
     end
 
     context 'incorrect header' do
+      shared_examples_for 'ignored trace ID header' do |header|
+        let(:env) { { env_header(header) => '100' } }
+        it { expect(headers.trace_id).to be_nil }
+      end
+
       [
         'X-DATADOG-TRACE-ID-TYPO',
         'X-DATDOG-TRACE-ID',
         'X-TRACE-ID',
         'TRACE-ID'
       ].each do |header|
-        # '100' is a valid value
-        let(:env) { { env_header(header) => '100' } }
-
-        it { expect(headers.trace_id).to be_nil }
+        it_behaves_like 'ignored trace ID header', header
       end
     end
 
@@ -101,16 +103,18 @@ RSpec.describe Datadog::DistributedHeaders do
     end
 
     context 'incorrect header' do
+      shared_examples_for 'ignored parent ID header' do |header|
+        let(:env) { { env_header(header) => '100' } }
+        it { expect(headers.parent_id).to be_nil }
+      end
+
       [
         'X-DATADOG-PARENT-ID-TYPO',
         'X-DATDOG-PARENT-ID',
         'X-PARENT-ID',
         'PARENT-ID'
       ].each do |header|
-        # '100' is a valid value
-        let(:env) { { env_header(header) => '100' } }
-
-        it { expect(headers.parent_id).to be_nil }
+        it_behaves_like 'ignored parent ID header', header
       end
     end
 
@@ -146,16 +150,18 @@ RSpec.describe Datadog::DistributedHeaders do
     end
 
     context 'incorrect header' do
+      shared_examples_for 'ignored sampling priority header' do |header|
+        let(:env) { { env_header(header) => '100' } }
+        it { expect(headers.sampling_priority).to be_nil }
+      end
+
       [
         'X-DATADOG-SAMPLING-PRIORITY-TYPO',
         'X-DATDOG-SAMPLING-PRIORITY',
         'X-SAMPLING-PRIORITY',
         'SAMPLING-PRIORITY'
       ].each do |header|
-        # '100' is a valid value
-        let(:env) { { env_header(header) => '100' } }
-
-        it { expect(headers.sampling_priority).to be_nil }
+        it_behaves_like 'ignored sampling priority header', header
       end
     end
 

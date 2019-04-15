@@ -33,10 +33,13 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'msgpack'
-  # TODO: Move this to Appraisals?
-  spec.add_dependency 'opentracing', '>= 0.4.1'
 
-  spec.add_development_dependency 'climate_control', '~> 0.2.0'
+  # Optional extensions
+  # TODO: Move this to Appraisals?
+  spec.add_development_dependency 'dogstatsd-ruby', '>= 3.3.0'
+  spec.add_development_dependency 'opentracing', '>= 0.4.1'
+
+  # Development dependencies
   spec.add_development_dependency 'rake', '>= 10.5'
   spec.add_development_dependency 'rubocop', '= 0.49.1' if RUBY_VERSION >= '2.1.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
@@ -48,6 +51,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'builder'
   spec.add_development_dependency 'ruby-prof'
   spec.add_development_dependency 'sqlite3', '~> 1.3.6'
+  spec.add_development_dependency 'climate_control', '~> 0.2.0'
 
   # locking transitive dependency of webmock
   spec.add_development_dependency 'addressable', '~> 2.4.0'

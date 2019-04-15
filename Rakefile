@@ -15,39 +15,47 @@ namespace :spec do
              :rails, :railsredis, :railssidekiq, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
-  RSpec::Core::RakeTask.new(:main) do |t|
+  RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer}/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:opentracer) do |t|
+  RSpec::Core::RakeTask.new(:opentracer) do |t, args|
     t.pattern = 'spec/ddtrace/opentracer/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:rails) do |t|
+  RSpec::Core::RakeTask.new(:rails) do |t, args|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*_spec.rb'
     t.exclude_pattern = 'spec/ddtrace/contrib/rails/**/*{sidekiq,active_job,disable_env}*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:railsredis) do |t|
+  RSpec::Core::RakeTask.new(:railsredis) do |t, args|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*redis*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:railssidekiq) do |t|
+  RSpec::Core::RakeTask.new(:railssidekiq) do |t, args|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*sidekiq*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:railsactivejob) do |t|
+  RSpec::Core::RakeTask.new(:railsactivejob) do |t, args|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*active_job*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:railsdisableenv) do |t|
+  RSpec::Core::RakeTask.new(:railsdisableenv) do |t, args|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:contrib) do |t|
+  RSpec::Core::RakeTask.new(:contrib) do |t, args|
     # rubocop:disable Metrics/LineLength
     t.pattern = 'spec/**/contrib/{analytics,configurable,integration,patchable,patcher,registerable,registry,configuration/*}_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
   end
 
   [
@@ -79,8 +87,9 @@ namespace :spec do
     :sucker_punch,
     :shoryuken
   ].each do |contrib|
-    RSpec::Core::RakeTask.new(contrib) do |t|
+    RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
+      t.rspec_opts = args.to_a.join(' ')
     end
   end
 end
