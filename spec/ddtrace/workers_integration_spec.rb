@@ -3,6 +3,7 @@ require 'spec_helper'
 require 'time'
 require 'json'
 
+require 'ddtrace'
 require 'ddtrace/tracer'
 require 'ddtrace/workers'
 require 'ddtrace/writer'
@@ -31,11 +32,11 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
       w.instance_variable_set(
         :@worker,
         Datadog::Workers::AsyncTransport.new(
-          transport,
-          buffer_size,
-          w.instance_variable_get(:@trace_handler),
-          w.instance_variable_get(:@service_handler),
-          flush_interval
+          transport: transport,
+          buffer_size: buffer_size,
+          on_trace: w.instance_variable_get(:@trace_handler),
+          on_service: w.instance_variable_get(:@service_handler),
+          interval: flush_interval
         )
       )
       w.worker.start
@@ -217,11 +218,11 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
 
     let(:worker) do
       Datadog::Workers::AsyncTransport.new(
-        nil,
-        100,
-        trace_task,
-        service_task,
-        interval
+        transport: nil,
+        buffer_size: 100,
+        on_trace: trace_task,
+        on_service: service_task,
+        interval: interval
       )
     end
 

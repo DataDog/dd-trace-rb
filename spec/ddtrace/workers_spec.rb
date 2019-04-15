@@ -7,7 +7,13 @@ RSpec.describe Datadog::Workers::AsyncTransport do
         buf = StringIO.new
         Datadog::Tracer.log = Datadog::Logger.new(buf)
         task = proc { raise StandardError }
-        worker = Datadog::Workers::AsyncTransport.new(nil, 100, task, task, 0.5)
+        worker = Datadog::Workers::AsyncTransport.new(
+          transport: nil,
+          buffer_size: 100,
+          on_trace: task,
+          on_service: task,
+          interval: 0.5
+        )
 
         worker.enqueue_trace(get_test_traces(1))
         worker.enqueue_service(get_test_services)

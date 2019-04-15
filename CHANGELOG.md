@@ -4,6 +4,22 @@
 
 ## [Unreleased (beta)]
 
+## [0.22.0] - 2019-04-15
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.22.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.21.2...v0.22.0
+
+In this release we are adding initial support for the **beta** [Runtime metrics collection](https://docs.datadoghq.com/tracing/advanced/runtime_metrics/?tab=ruby) feature.
+
+### Changed
+
+- Add warning log if an integration is incompatible (#722) (@ericmustin)
+
+### Added
+
+- Initial beta support for Runtime metrics collection (#677)
+
 ## [0.21.2] - 2019-04-10
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.21.2
@@ -751,8 +767,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.2...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.2...0.22-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.22.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.22.0...0.23-dev
+[0.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.2...v0.22.0
 [0.21.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.1...v0.21.2
 [0.21.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.0...v0.21.1
 [0.21.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.20.0...v0.21.0

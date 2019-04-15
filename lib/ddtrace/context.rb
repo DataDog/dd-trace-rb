@@ -200,14 +200,14 @@ module Datadog
     end
 
     def attach_sampling_priority
-      @trace.first.set_metric(
+      @current_root_span.set_metric(
         Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
         @sampling_priority
       )
     end
 
     def attach_origin
-      @trace.first.set_tag(
+      @current_root_span.set_tag(
         Ext::DistributedTracing::ORIGIN_KEY,
         @origin
       )

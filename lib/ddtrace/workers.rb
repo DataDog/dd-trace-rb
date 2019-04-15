@@ -1,6 +1,7 @@
 require 'time'
 
 require 'ddtrace/buffer'
+require 'ddtrace/runtime/metrics'
 
 module Datadog
   module Workers
@@ -14,19 +15,31 @@ module Datadog
       BACK_OFF_MAX = 5
       SHUTDOWN_TIMEOUT = 1
 
-      attr_reader :trace_buffer, :service_buffer
+      attr_reader \
+        :service_buffer,
+        :trace_buffer
 
-      def initialize(transport, buff_size, trace_task, service_task, interval)
-        @trace_task = trace_task
-        @service_task = service_task
+      def initialize(options = {})
+        @transport = options[:transport]
+
+        # Callbacks
+        @trace_task = options[:on_trace]
+        @service_task = options[:on_service]
+        @runtime_metrics_task = options[:on_runtime_metrics]
+
+        # Intervals
+        interval = options.fetch(:interval, 1)
         @flush_interval = interval
         @back_off = interval
-        @trace_buffer = TraceBuffer.new(buff_size)
-        @service_buffer = TraceBuffer.new(buff_size)
-        @transport = transport
+
+        # Buffers
+        buffer_size = options.fetch(:buffer_size, 100)
+        @trace_buffer = TraceBuffer.new(buffer_size)
+        @service_buffer = TraceBuffer.new(buffer_size)
+
+        # Threading
         @shutdown = ConditionVariable.new
         @mutex = Mutex.new
-
         @worker = nil
         @run = false
       end
@@ -36,9 +49,9 @@ module Datadog
         return true if @trace_buffer.empty?
 
         begin
-          traces = @trace_buffer.pop()
+          traces = @trace_buffer.pop
           traces = Pipeline.process!(traces)
-          @trace_task.call(traces, @transport)
+          @trace_task.call(traces, @transport) unless @trace_task.nil?
         rescue StandardError => e
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
@@ -53,13 +66,19 @@ module Datadog
 
         begin
           services = @service_buffer.pop()
-          @service_task.call(services[0], @transport)
+          @service_task.call(services[0], @transport) unless @service_task.nil?
         rescue StandardError => e
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
           # a fatal exception
           Datadog::Tracer.log.error("Error during services flush: dropped #{services.length} items. Cause: #{e}")
         end
+      end
+
+      def callback_runtime_metrics
+        @runtime_metrics_task.call unless @runtime_metrics_task.nil?
+      rescue StandardError => e
+        Datadog::Tracer.log.error("Error during runtime metrics flush. Cause: #{e}")
       end
 
       # Start the timer execution.
@@ -113,6 +132,7 @@ module Datadog
           @back_off = flush_data ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
 
           callback_services
+          callback_runtime_metrics
 
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty? && @service_buffer.empty?

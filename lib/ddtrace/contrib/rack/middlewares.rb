@@ -124,6 +124,7 @@ module Datadog
           end
         end
 
+        # rubocop:disable Metrics/AbcSize
         def set_request_tags!(request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
@@ -141,6 +142,9 @@ module Datadog
           response_headers = parse_response_headers(headers || {})
 
           request_span.resource ||= resource_name_for(env, status)
+
+          # Associate with runtime metrics
+          Datadog.runtime_metrics.associate_with_span(request_span)
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

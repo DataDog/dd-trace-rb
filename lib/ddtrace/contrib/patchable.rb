@@ -29,7 +29,11 @@ module Datadog
         end
 
         def patch
-          return if !self.class.compatible? || patcher.nil?
+          if !self.class.compatible? || patcher.nil?
+            Datadog::Tracer.log.warn("Unable to patch #{self.class.name}")
+            return
+          end
+
           patcher.patch
         end
       end
