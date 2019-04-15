@@ -18,7 +18,7 @@ In this release we are adding initial support for the **beta** [Runtime metrics 
 
 ### Added
 
-- Initial beta support for Runtime metrics colletion (#677)
+- Initial beta support for Runtime metrics collection (#677)
 
 ## [0.21.2] - 2019-04-10
 
