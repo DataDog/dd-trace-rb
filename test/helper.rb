@@ -234,8 +234,7 @@ end
 module Datadog
   class HTTPTransport
     remove_method :traces_endpoint
-    remove_method :services_endpoint
-    attr_accessor :traces_endpoint, :services_endpoint, :encoder, :headers
+    attr_accessor :traces_endpoint, :encoder, :headers
   end
 end
 
