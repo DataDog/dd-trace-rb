@@ -10,9 +10,17 @@ module Datadog
       end
     end
 
-    def write(trace, services)
+    def write(trace, services = nil)
+      unless services.nil?
+        Datadog::Patcher.do_once('SyncWriter#write') do
+          Datadog::Tracer.log.warn(%(
+            write: Writing services has been deprecated and no longer need to be provided.
+            write(traces, services) can be updted to write(traces)
+          ))
+        end
+      end
+
       perform_concurrently(
-        proc { flush_services(services) },
         proc { flush_trace(trace) }
       )
     rescue => e
@@ -23,10 +31,6 @@ module Datadog
 
     def perform_concurrently(*tasks)
       tasks.map { |task| Thread.new(&task) }.each(&:join)
-    end
-
-    def flush_services(services)
-      transport.send(:services, services)
     end
 
     def flush_trace(trace)

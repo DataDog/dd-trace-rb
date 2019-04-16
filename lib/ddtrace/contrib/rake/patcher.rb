@@ -21,13 +21,6 @@ module Datadog
             begin
               # Add instrumentation patch to Rake task
               ::Rake::Task.send(:include, Instrumentation)
-
-              # Set service info
-              get_option(:tracer).set_service_info(
-                get_option(:service_name),
-                Ext::APP,
-                Datadog::Ext::AppTypes::WORKER
-              )
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Rake integration: #{e}")
             end

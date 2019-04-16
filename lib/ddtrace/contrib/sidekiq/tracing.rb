@@ -22,16 +22,6 @@ module Datadog
             job['class']
           end
         end
-
-        def set_service_info(service)
-          # Ensure the tracer knows about this service.
-          return if @tracer.services[service]
-          @tracer.set_service_info(
-            service,
-            Ext::APP,
-            Datadog::Ext::AppTypes::WORKER
-          )
-        end
       end
     end
   end

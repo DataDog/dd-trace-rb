@@ -121,14 +121,12 @@ class FauxWriter < Datadog::Writer
 
     # easy access to registered components
     @spans = []
-    @services = {}
   end
 
-  def write(trace, services)
+  def write(trace)
     @mutex.synchronize do
-      super(trace, services)
+      super(trace)
       @spans << trace
-      @services = @services.merge(services) unless services.empty?
     end
   end
 
@@ -165,14 +163,6 @@ class FauxWriter < Datadog::Writer
       spans
     end
   end
-
-  def services
-    @mutex.synchronize do
-      services = @services
-      @services = {}
-      services
-    end
-  end
 end
 
 # FauxTransport is a dummy HTTPTransport that doesn't send data to an agent.
@@ -196,8 +186,6 @@ class SpyTransport < Datadog::HTTPTransport
 
   def send(endpoint, data)
     data = case endpoint
-           when :services
-             @helper_encoder.encode_services(data)
            when :traces
              @helper_encoder.encode_traces(data)
            end

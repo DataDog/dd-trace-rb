@@ -25,7 +25,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:writer) do
     Datadog::Writer.new.tap do |w|
       # write some stuff to trigger a #start
-      w.write([], {})
+      w.write([])
       # now stop the writer and replace worker with ours, if we don't do
       # this the old worker will still be used.
       w.stop
@@ -169,8 +169,6 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     # Test that services are correctly flushed, with two of them
     context 'for two services' do
       before(:each) do
-        tracer.set_service_info('my.service', 'rails', 'web')
-        tracer.set_service_info('my.other.service', 'golang', 'api')
         tracer.start_span('my.op').finish
       end
 

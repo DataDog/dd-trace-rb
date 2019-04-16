@@ -82,8 +82,6 @@ module Datadog
 
         def setup_service!
           return if options[:service_name] == datadog_configuration[:service_name]
-
-          Patcher.register_service(options[:service_name])
         end
       end
     end

@@ -21,11 +21,6 @@ module Datadog
         encode(to_send)
       end
 
-      # Encodes services hash
-      def encode_services(services)
-        encode(services)
-      end
-
       # Defines the underlying format used during traces or services encoding.
       # This method must be implemented and should only be used by the internal functions.
       def encode(_)

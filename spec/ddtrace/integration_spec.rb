@@ -44,9 +44,6 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     def agent_receives_span_step2
-      # Deprecated, does nothing
-      tracer.set_service_info('my.service', 'rails', 'web')
-
       create_trace
 
       # Timeout after 3 seconds, waiting for 1 flush
@@ -90,9 +87,6 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     before(:each) do
-      # Deprecated, does nothing
-      tracer.set_service_info('my.service', 'rails', 'web')
-
       tracer.trace('my.short.op') do |span|
         @span = span
         span.service = 'my.service'
@@ -118,9 +112,6 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     before(:each) do
-      # Deprecated, does nothing
-      tracer.set_service_info('my.service', 'rails', 'web')
-
       tracer.trace('my.short.op') do |span|
         span.service = 'my.service'
       end

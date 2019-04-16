@@ -20,7 +20,7 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
-    attr_reader :sampler, :services, :tags, :provider
+    attr_reader :sampler, :tags, :provider
     attr_accessor :enabled, :writer
     attr_writer :default_service
 
@@ -67,6 +67,15 @@ module Datadog
       log.level == Logger::DEBUG
     end
 
+    def services
+      # Only log each deprecation warning once (safeguard against log spam)
+      Datadog::Patcher.do_once('Tracer#set_service_info') do
+        Datadog::Tracer.log.warn('services: Usage of Tracer.services has been deprecated')
+      end
+
+      {}
+    end
+
     # Shorthand that calls the `shutdown!` method of a registered worker.
     # It's useful to ensure that the Trace Buffer is properly flushed before
     # shutting down the application.
@@ -110,7 +119,6 @@ module Datadog
       @context_flush = options[:partial_flush] ? Datadog::ContextFlush.new(options) : nil
 
       @mutex = Mutex.new
-      @services = {}
       @tags = {}
     end
 
@@ -165,13 +173,13 @@ module Datadog
     #
     # set_service_info is deprecated, no service information needs to be tracked
     def set_service_info(service, app, app_type)
-      @services[service] = {
-        'app' => app,
-        'app_type' => app_type
-      }
-
-      return unless Datadog::Tracer.debug_logging
-      Datadog::Tracer.log.debug("set_service_info: service: #{service} app: #{app} type: #{app_type}")
+      # Only log each deprecation warning once (safeguard against log spam)
+      Datadog::Patcher.do_once('Tracer#set_service_info') do
+        Datadog::Tracer.log.warn(%(
+          set_service_info: Usage of set_service_info has been deprecated,
+          service information no longer needs to be reported to the trace agent.
+        ))
+      end
     end
 
     # A default value for service. One should really override this one
@@ -382,8 +390,7 @@ module Datadog
         Datadog::Tracer.log.debug(str)
       end
 
-      @writer.write(trace, @services)
-      @services = {}
+      @writer.write(trace)
     end
 
     private :write, :guess_context_and_parent

@@ -12,11 +12,9 @@ module Datadog
 
     def test_sync_write
       trace = get_test_traces(1).first
-      services = get_test_services
 
-      @sync_writer.write(trace, services)
+      @sync_writer.write(trace)
       assert_includes(@transport.calls, [:traces, [trace]])
-      assert_includes(@transport.calls, [:services, services])
     end
 
     def test_sync_write_filtering
@@ -27,8 +25,8 @@ module Datadog
         Pipeline::SpanFilter.new { |span| span.name == 'span_1' }
       )
 
-      @sync_writer.write(trace1, {})
-      @sync_writer.write(trace2, {})
+      @sync_writer.write(trace1)
+      @sync_writer.write(trace2)
 
       refute_includes(@transport.calls, [:traces, [trace1]])
       assert_includes(@transport.calls, [:traces, [trace2]])

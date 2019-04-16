@@ -24,13 +24,6 @@ RSpec.describe Datadog::Pin do
     context 'when given sufficient info' do
       let(:options) { { app: 'test-app', app_type: 'test-type', tracer: tracer } }
       let(:tracer) { get_test_tracer }
-
-      it 'sets the service info' do
-        expect(tracer.services.key?(service_name)).to be true
-        expect(tracer.services[service_name]).to eq(
-          'app' => 'test-app', 'app_type' => 'test-type'
-        )
-      end
     end
 
     context 'when given insufficient info' do

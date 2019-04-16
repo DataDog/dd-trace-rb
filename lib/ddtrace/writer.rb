@@ -84,7 +84,16 @@ module Datadog
     end
 
     # enqueue the trace for submission to the API
-    def write(trace, services)
+    def write(trace, services = nil)
+      unless services.nil?
+        Datadog::Patcher.do_once('Writer#write') do
+          Datadog::Tracer.log.warn(%(
+            write: Writing services has been deprecated and no longer need to be provided.
+            write(traces, services) can be updted to write(traces)
+          ))
+        end
+      end
+
       # In multiprocess environments, the main process initializes the +Writer+ instance and if
       # the process forks (i.e. a web server like Unicorn or Puma with multiple workers) the new
       # processes will share the same +Writer+ until the first write (COW). Because of that,
