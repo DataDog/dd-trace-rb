@@ -34,31 +34,25 @@ module Datadog
         Runtime::Metrics.new
       end
 
-      @services = {}
-
       # handles the thread creation after an eventual fork
       @mutex_after_fork = Mutex.new
       @pid = nil
 
       @traces_flushed = 0
-      @services_flushed = 0
 
-      # one worker for both services and traces, each have their own queues
+      # one worker for traces
       @worker = nil
     end
 
-    # spawns two different workers for spans and services;
-    # they share the same transport which is thread-safe
+    # spawns a worker for spans; they share the same transport which is thread-safe
     def start
       @pid = Process.pid
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
-      @service_handler = ->(items, transport) { send_services(items, transport) }
       @runtime_metrics_handler = -> { send_runtime_metrics }
       @worker = Datadog::Workers::AsyncTransport.new(
         transport: @transport,
         buffer_size: @buff_size,
         on_trace: @trace_handler,
-        on_service: @service_handler,
         on_runtime_metrics: @runtime_metrics_handler,
         interval: @flush_interval
       )
@@ -66,7 +60,7 @@ module Datadog
       @worker.start()
     end
 
-    # stops both workers for spans and services.
+    # stops worker for spans.
     def stop
       @worker.stop()
       @worker = nil
@@ -79,17 +73,6 @@ module Datadog
       code = transport.send(:traces, traces)
       status = !transport.server_error?(code)
       @traces_flushed += traces.length if status
-
-      status
-    end
-
-    # flush services to the trace-agent, handles services only
-    def send_services(services, transport)
-      return true if services.empty?
-
-      code = transport.send(:services, services)
-      status = !transport.server_error?(code)
-      @services_flushed += 1 if status
 
       status
     end
@@ -122,14 +105,12 @@ module Datadog
       runtime_metrics.associate_with_span(trace.first) unless trace.empty?
 
       @worker.enqueue_trace(trace)
-      @worker.enqueue_service(services)
     end
 
     # stats returns a dictionary of stats about the writer.
     def stats
       {
         traces_flushed: @traces_flushed,
-        services_flushed: @services_flushed,
         transport: @transport.stats
       }
     end

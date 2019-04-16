@@ -162,6 +162,8 @@ module Datadog
     # Set the information about the given service. A valid example is:
     #
     #   tracer.set_service_info('web-application', 'rails', 'web')
+    #
+    # set_service_info is deprecated, no service information needs to be tracked
     def set_service_info(service, app, app_type)
       @services[service] = {
         'app' => app,
