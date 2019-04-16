@@ -135,6 +135,11 @@ RSpec.describe Datadog::Tracer do
   describe '#set_service_info' do
     include_context 'tracer logging'
 
+    # Ensure we have a clean `@done_once` before and after each test
+    # so we can properly test the behavior here, and we don't pollute other tests
+    before(:each) { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+    after(:each) { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+
     before(:each) do
       # Call multiple times to assert we only log once
       tracer.set_service_info('service-A', 'app-A', 'app_type-A')
