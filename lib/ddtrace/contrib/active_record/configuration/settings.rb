@@ -17,7 +17,9 @@ module Datadog
                   lazy: true
 
           option :orm_service_name
-          option :service_name
+          option :service_name,
+                 default: -> { Utils.adapter_name },
+                 lazy: true
 
           option :tracer, default: Datadog.tracer do |value|
             value.tap do
