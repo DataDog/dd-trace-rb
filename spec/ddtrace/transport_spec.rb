@@ -154,7 +154,6 @@ RSpec.describe Datadog::HTTPTransport do
       end
     end
 
-
     # Sending of services is deprecated and just returns `nil`
     context 'services' do
       subject(:code) { transport.send(:services, services) }
