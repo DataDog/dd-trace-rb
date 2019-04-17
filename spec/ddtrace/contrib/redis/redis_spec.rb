@@ -193,28 +193,6 @@ RSpec.describe 'Redis test' do
         it_behaves_like 'a span with common tags'
       end
     end
-
-    context 'service name' do
-      let(:services) { tracer.writer.services }
-      let(:service_name) { 'redis-test' }
-
-      before(:each) do
-        redis.set 'FOO', 'bar'
-        tracer.writer.services # empty queue
-        Datadog.configure(
-          client,
-          service_name: service_name,
-          tracer: tracer,
-          app_type: Datadog::Ext::AppTypes::CACHE
-        )
-        redis.set 'FOO', 'bar'
-      end
-
-      it do
-        expect(services).to have(1).items
-        expect(services[service_name]).to eq('app' => 'redis', 'app_type' => 'cache')
-      end
-    end
   end
 
   it_behaves_like 'a Redis driver', :ruby

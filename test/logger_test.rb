@@ -4,6 +4,18 @@ require 'helper'
 require 'ddtrace/span'
 
 class LoggerTest < Minitest::Test
+  DEFAULT_LOG = Datadog::Tracer.log
+
+  def setup
+    @buf = StringIO.new
+    Datadog::Tracer.log = Datadog::Logger.new(@buf)
+    Datadog::Tracer.log.level = ::Logger::WARN
+  end
+
+  def teardown
+    Datadog::Tracer.log = DEFAULT_LOG
+  end
+
   def test_tracer_logger
     # a logger must be available by default
     assert Datadog::Tracer.log
@@ -28,15 +40,18 @@ class LoggerTest < Minitest::Test
     assert_equal(logger.level, Logger::WARN)
   end
 
-  # rubocop:disable Metrics/MethodLength
+  def test_tracer_set_debug_custom_noop
+    # custom logger
+    custom_buf = StringIO.new
+    custom_logger = Logger.new(custom_buf)
+    custom_logger.level = ::Logger::INFO
+    Datadog::Tracer.log = custom_logger
+
+    Datadog::Tracer.debug_logging = false
+    assert_equal(custom_logger.level, ::Logger::INFO)
+  end
+
   def test_tracer_logger_override
-    default_log = Datadog::Tracer.log
-
-    buf = StringIO.new
-
-    Datadog::Tracer.log = Datadog::Logger.new(buf)
-    Datadog::Tracer.log.level = ::Logger::WARN
-
     assert_equal(false, Datadog::Tracer.log.debug?)
     assert_equal(false, Datadog::Tracer.log.info?)
     assert_equal(true, Datadog::Tracer.log.warn?)
@@ -50,7 +65,7 @@ class LoggerTest < Minitest::Test
     Datadog::Tracer.log.progname = 'bar'
     Datadog::Tracer.log.add(Logger::WARN, 'add some warning')
 
-    lines = buf.string.lines
+    lines = @buf.string.lines
 
     assert_equal(4, lines.length, 'there should be 4 log messages') if lines.respond_to? :length
     # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
@@ -74,16 +89,9 @@ class LoggerTest < Minitest::Test
       end
       i += 1
     end
-
-    Datadog::Tracer.log = default_log
   end
 
   def test_tracer_logger_override_debug
-    default_log = Datadog::Tracer.log
-
-    buf = StringIO.new
-
-    Datadog::Tracer.log = Datadog::Logger.new(buf)
     Datadog::Tracer.log.level = ::Logger::DEBUG
 
     assert_equal(true, Datadog::Tracer.log.debug?)
@@ -95,7 +103,7 @@ class LoggerTest < Minitest::Test
     Datadog::Tracer.log.debug('detailed things')
     Datadog::Tracer.log.info() { 'more detailed info' }
 
-    lines = buf.string.lines
+    lines = @buf.string.lines
 
     # Test below iterates on lines, this is required for Ruby 1.9 backward compatibility.
     assert_equal(2, lines.length, 'there should be 2 log messages') if lines.respond_to? :length
@@ -115,13 +123,9 @@ class LoggerTest < Minitest::Test
       end
       i += 1
     end
-
-    Datadog::Tracer.log = default_log
   end
 
   def test_tracer_logger_override_refuse
-    default_log = Datadog::Tracer.log
-
     buf = StringIO.new
 
     buf_log = Datadog::Logger.new(buf)
@@ -133,7 +137,5 @@ class LoggerTest < Minitest::Test
     assert_equal(buf_log, Datadog::Tracer.log)
     Datadog::Tracer.log = "this won't work"
     assert_equal(buf_log, Datadog::Tracer.log)
-
-    Datadog::Tracer.log = default_log
   end
 end

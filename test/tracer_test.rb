@@ -120,12 +120,6 @@ class TracerTest < Minitest::Test
     assert_nil(span.end_time)
   end
 
-  def test_set_service_info
-    tracer = get_test_tracer
-    tracer.set_service_info('rest-api', 'rails', 'web')
-    assert_equal(tracer.services['rest-api'], 'app' => 'rails', 'app_type' => 'web')
-  end
-
   def test_set_tags
     tracer = get_test_tracer
     tracer.set_tags('env' => 'test', 'component' => 'core')
@@ -191,7 +185,7 @@ class TracerTest < Minitest::Test
     assert_equal('special-service', span.service)
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
-    assert_equal(5, span.meta.length)
+    assert_equal(7, span.meta.length)
     assert_equal('test', span.get_tag('env'))
     assert_equal('cool', span.get_tag('temp'))
     assert_equal('value1', span.get_tag('tag1'))

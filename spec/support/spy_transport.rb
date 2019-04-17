@@ -15,8 +15,6 @@ class SpyTransport < Datadog::HTTPTransport
 
   def send(endpoint, data)
     data = case endpoint
-           when :services
-             @helper_encoder.encode_services(data)
            when :traces
              @helper_encoder.encode_traces(data)
            end

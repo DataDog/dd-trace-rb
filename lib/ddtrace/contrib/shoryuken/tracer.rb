@@ -8,7 +8,6 @@ module Datadog
         def initialize(options = {})
           @tracer = options[:tracer] || configuration[:tracer]
           @shoryuken_service = options[:service_name] || configuration[:service_name]
-          set_service_info(@shoryuken_service)
         end
 
         def call(worker_instance, queue, sqs_msg, body)
@@ -39,15 +38,6 @@ module Datadog
 
         def configuration
           Datadog.configuration[:shoryuken]
-        end
-
-        def set_service_info(service)
-          return if @tracer.nil? || @tracer.services[service]
-          @tracer.set_service_info(
-            service,
-            Ext::APP,
-            Datadog::Ext::AppTypes::WORKER
-          )
         end
       end
     end

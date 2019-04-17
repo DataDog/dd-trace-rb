@@ -154,34 +154,12 @@ RSpec.describe Datadog::HTTPTransport do
       end
     end
 
+    # Sending of services is deprecated and just returns `nil`
     context 'services' do
       subject(:code) { transport.send(:services, services) }
       let(:services) { get_test_services }
 
-      it_behaves_like 'an encoded transport'
-
-      context 'when the agent returns a 404' do
-        before(:each) do
-          original_post = transport.method(:post)
-          call_count = 0
-          allow(transport).to receive(:post) do |url, *rest|
-            if call_count > 0
-              original_post.call(url, *rest)
-            else
-              call_count += 1
-              404
-            end
-          end
-        end
-
-        it 'appropriately downgrades the API' do
-          expect(transport.instance_variable_get(:@api)[:version]).to eq(described_class::V3)
-          code = transport.send(:services, services)
-          # HTTPTransport should downgrade the encoder and API level
-          expect(transport.instance_variable_get(:@api)[:version]).to eq(described_class::V2)
-          expect(transport.success?(code)).to be true
-        end
-      end
+      it { expect(code).to be_nil }
     end
 
     context 'admin' do

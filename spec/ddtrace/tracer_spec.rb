@@ -27,8 +27,14 @@ RSpec.describe Datadog::Tracer do
         it 'tracks the number of allocations made in the span' do
           skip 'Not supported for Ruby < 2.0' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
 
+          # Create and discard first trace.
+          # When warming up, it might have more allocations than subsequent traces.
           tracer.trace(name) {}
-          tracer.trace(name) { 'hello' }
+          writer.spans
+
+          # Then create traces to compare
+          tracer.trace(name) {}
+          tracer.trace(name) { Object.new }
 
           first, second = writer.spans
 
@@ -123,6 +129,28 @@ RSpec.describe Datadog::Tracer do
         expect(active_correlation.trace_id).to be 0
         expect(active_correlation.span_id).to be 0
       end
+    end
+  end
+
+  describe '#set_service_info' do
+    include_context 'tracer logging'
+
+    # Ensure we have a clean `@done_once` before and after each test
+    # so we can properly test the behavior here, and we don't pollute other tests
+    before(:each) { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+    after(:each) { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+
+    before(:each) do
+      # Call multiple times to assert we only log once
+      tracer.set_service_info('service-A', 'app-A', 'app_type-A')
+      tracer.set_service_info('service-B', 'app-B', 'app_type-B')
+      tracer.set_service_info('service-C', 'app-C', 'app_type-C')
+      tracer.set_service_info('service-D', 'app-D', 'app_type-D')
+    end
+
+    it 'generates a single deprecation warnings' do
+      expect(log_buffer.length).to be > 1
+      expect(log_buffer).to contain_line_with('Usage of set_service_info has been deprecated')
     end
   end
 end

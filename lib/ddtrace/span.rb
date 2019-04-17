@@ -4,6 +4,8 @@ require 'thread'
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/priority'
+require 'ddtrace/analytics'
+require 'ddtrace/forced_tracing'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -20,6 +22,10 @@ module Datadog
     # Limited to 63-bit positive integers, as some other languages might be limited to this,
     # and IDs need to be easy to port across various languages and platforms.
     MAX_ID = 2**63
+
+    # While we only generate 63-bit integers due to limitations in other languages, we support
+    # parsing 64-bit integers for distributed tracing since an upstream system may generate one
+    EXTERNAL_MAX_ID = 2**64
 
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
@@ -70,14 +76,6 @@ module Datadog
     #
     #   span.set_tag('http.method', request.method)
     def set_tag(key, value = nil)
-      # 'force.keep' is an alias for setting the sampling priority to USER_KEEP
-      if key == 'force.keep'
-        return if @context.nil?
-
-        @context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
-        return
-      end
-
       @meta[key] = value.to_s
     rescue StandardError => e
       Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
@@ -257,3 +255,7 @@ module Datadog
     end
   end
 end
+
+# Include extensions after Span (for Ruby 1.9 compatibility)
+Datadog::Span.send(:include, Datadog::Analytics::Span)
+Datadog::Span.send(:include, Datadog::ForcedTracing::Span)

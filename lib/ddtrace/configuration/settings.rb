@@ -1,6 +1,10 @@
 require 'ddtrace/ext/analytics'
-require 'ddtrace/environment'
+require 'ddtrace/ext/runtime'
 require 'ddtrace/configuration/options'
+
+require 'ddtrace/environment'
+require 'ddtrace/tracer'
+require 'ddtrace/metrics'
 
 module Datadog
   module Configuration
@@ -11,6 +15,10 @@ module Datadog
 
       option  :analytics_enabled,
               default: -> { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) },
+              lazy: true
+
+      option  :runtime_metrics_enabled,
+              default: -> { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) },
               lazy: true
 
       option :tracer, default: Tracer.new
@@ -28,7 +36,15 @@ module Datadog
         yield(self) if block_given?
       end
 
+      def runtime_metrics(options = nil)
+        runtime_metrics = get_option(:tracer).writer.runtime_metrics
+        return runtime_metrics if options.nil?
+
+        runtime_metrics.configure(options)
+      end
+
       # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
+      remove_method :tracer
       def tracer(options = nil)
         tracer = options && options.key?(:instance) ? set_option(:tracer, options[:instance]) : get_option(:tracer)
 

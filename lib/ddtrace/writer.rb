@@ -3,15 +3,20 @@ require 'ddtrace/encoding'
 require 'ddtrace/workers'
 
 module Datadog
-  # Traces and services writer that periodically sends data to the trace-agent
+  # Processor that sends traces and metadata to the agent
   class Writer
-    attr_reader :transport, :worker, :priority_sampler
+    attr_reader \
+      :priority_sampler,
+      :runtime_metrics,
+      :transport,
+      :worker
 
     def initialize(options = {})
       # writer and transport parameters
       @buff_size = options.fetch(:buffer_size, 100)
       @flush_interval = options.fetch(:flush_interval, 1)
       transport_options = options.fetch(:transport_options, {})
+
       # priority sampling
       if options[:priority_sampler]
         @priority_sampler = options[:priority_sampler]
@@ -24,35 +29,38 @@ module Datadog
         HTTPTransport.new(transport_options)
       end
 
-      @services = {}
+      # Runtime metrics
+      @runtime_metrics = options.fetch(:runtime_metrics) do
+        Runtime::Metrics.new
+      end
 
       # handles the thread creation after an eventual fork
       @mutex_after_fork = Mutex.new
       @pid = nil
 
       @traces_flushed = 0
-      @services_flushed = 0
 
-      # one worker for both services and traces, each have their own queues
+      # one worker for traces
       @worker = nil
     end
 
-    # spawns two different workers for spans and services;
-    # they share the same transport which is thread-safe
+    # spawns a worker for spans; they share the same transport which is thread-safe
     def start
       @pid = Process.pid
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
-      @service_handler = ->(items, transport) { send_services(items, transport) }
-      @worker = Datadog::Workers::AsyncTransport.new(@transport,
-                                                     @buff_size,
-                                                     @trace_handler,
-                                                     @service_handler,
-                                                     @flush_interval)
+      @runtime_metrics_handler = -> { send_runtime_metrics }
+      @worker = Datadog::Workers::AsyncTransport.new(
+        transport: @transport,
+        buffer_size: @buff_size,
+        on_trace: @trace_handler,
+        on_runtime_metrics: @runtime_metrics_handler,
+        interval: @flush_interval
+      )
 
       @worker.start()
     end
 
-    # stops both workers for spans and services.
+    # stops worker for spans.
     def stop
       @worker.stop()
       @worker = nil
@@ -69,19 +77,23 @@ module Datadog
       status
     end
 
-    # flush services to the trace-agent, handles services only
-    def send_services(services, transport)
-      return true if services.empty?
+    def send_runtime_metrics
+      return unless Datadog.configuration.runtime_metrics_enabled
 
-      code = transport.send(:services, services)
-      status = !transport.server_error?(code)
-      @services_flushed += 1 if status
-
-      status
+      runtime_metrics.flush
     end
 
     # enqueue the trace for submission to the API
-    def write(trace, services)
+    def write(trace, services = nil)
+      unless services.nil?
+        Datadog::Patcher.do_once('Writer#write') do
+          Datadog::Tracer.log.warn(%(
+            write: Writing services has been deprecated and no longer need to be provided.
+            write(traces, services) can be updted to write(traces)
+          ))
+        end
+      end
+
       # In multiprocess environments, the main process initializes the +Writer+ instance and if
       # the process forks (i.e. a web server like Unicorn or Puma with multiple workers) the new
       # processes will share the same +Writer+ until the first write (COW). Because of that,
@@ -98,15 +110,16 @@ module Datadog
         end
       end
 
+      # Associate root span with runtime metrics
+      runtime_metrics.associate_with_span(trace.first) unless trace.empty?
+
       @worker.enqueue_trace(trace)
-      @worker.enqueue_service(services)
     end
 
     # stats returns a dictionary of stats about the writer.
     def stats
       {
         traces_flushed: @traces_flushed,
-        services_flushed: @services_flushed,
         transport: @transport.stats
       }
     end

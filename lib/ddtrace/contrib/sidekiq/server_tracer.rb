@@ -17,7 +17,6 @@ module Datadog
           resource = job_resource(job)
 
           service = service_from_worker_config(resource) || @sidekiq_service
-          set_service_info(service)
 
           @tracer.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
             span.resource = resource

@@ -42,9 +42,6 @@ class ServerTracerTest < TracerTestBase
     spans = @writer.spans()
     assert_equal(1, spans.length)
 
-    services = @writer.services()
-    assert_equal(1, services.length)
-
     span = spans[0]
     assert_equal('sidekiq', span.service)
     assert_equal('ServerTracerTest::EmptyWorker', span.resource)
@@ -64,9 +61,6 @@ class ServerTracerTest < TracerTestBase
     spans = @writer.spans()
     assert_equal(1, spans.length)
 
-    services = @writer.services()
-    assert_equal(1, services.length)
-
     span = spans[0]
     assert_equal('sidekiq', span.service)
     assert_equal('ServerTracerTest::ErrorWorker', span.resource)
@@ -84,9 +78,6 @@ class ServerTracerTest < TracerTestBase
 
     spans = @writer.spans()
     assert_equal(2, spans.length)
-
-    services = @writer.services()
-    assert_equal(2, services.length)
 
     custom, empty = spans
 

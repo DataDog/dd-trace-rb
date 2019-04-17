@@ -22,5 +22,9 @@ module Datadog
     def tracer
       configuration.tracer
     end
+
+    def runtime_metrics
+      tracer.writer.runtime_metrics
+    end
   end
 end

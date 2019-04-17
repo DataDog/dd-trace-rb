@@ -3,6 +3,8 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::Contrib::Patchable do
+  include_context 'tracer logging'
+
   describe 'implemented' do
     subject(:patchable_class) do
       Class.new.tap do |klass|
@@ -62,6 +64,12 @@ RSpec.describe Datadog::Contrib::Patchable do
         subject(:patch) { patchable_object.patch }
 
         context 'when the patchable object' do
+          let(:unpatched_warnings) do
+            [
+              /.*Unable to patch*/
+            ]
+          end
+
           context 'is compatible' do
             before(:each) { allow(patchable_class).to receive(:compatible?).and_return(true) }
 
@@ -78,6 +86,7 @@ RSpec.describe Datadog::Contrib::Patchable do
             context 'and the patcher is nil' do
               it 'does not applies the patch' do
                 is_expected.to be nil
+                expect(log_buffer).to contain_line_with(*unpatched_warnings)
               end
             end
           end
@@ -85,6 +94,7 @@ RSpec.describe Datadog::Contrib::Patchable do
           context 'is not compatible' do
             it 'does not applies the patch' do
               is_expected.to be nil
+              expect(log_buffer).to contain_line_with(*unpatched_warnings)
             end
           end
         end

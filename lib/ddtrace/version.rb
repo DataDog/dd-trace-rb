@@ -1,7 +1,7 @@
 module Datadog
   module VERSION
     MAJOR = 0
-    MINOR = 20
+    MINOR = 22
     PATCH = 0
     PRE = nil
 

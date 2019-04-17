@@ -21,14 +21,6 @@ module Datadog
             begin
               # Subscribe to Racecar events
               Events.subscribe!
-
-              # Set service info
-              configuration = Datadog.configuration[:racecar]
-              configuration[:tracer].set_service_info(
-                configuration[:service_name],
-                Ext::APP,
-                Datadog::Ext::AppTypes::WORKER
-              )
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Racecar integration: #{e}")
             end

@@ -26,13 +26,6 @@ module Datadog
 
               add_pin!
 
-              # TODO: When Grape pin is removed, set service info.
-              # get_option(:tracer).set_service_info(
-              #   get_option(:service_name),
-              #   Ext::APP,
-              #   Datadog::Ext::AppTypes::WEB
-              # )
-
               # Subscribe to ActiveSupport events
               Datadog::Contrib::Grape::Endpoint.subscribe
             rescue StandardError => e
