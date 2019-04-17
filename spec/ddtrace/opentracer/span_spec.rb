@@ -26,10 +26,35 @@ if Datadog::OpenTracer.supported?
 
     describe '#set_tag' do
       subject(:result) { span.set_tag(key, value) }
-      let(:key) { 'account_id' }
-      let(:value) { '1234' }
-      before(:each) { expect(datadog_span).to receive(:set_tag).with(key, value) }
-      it { is_expected.to be(span) }
+
+      context 'when given arbitrary tag key and value' do
+        let(:key) { 'account_id' }
+        let(:value) { '1234' }
+
+        before(:each) { expect(datadog_span).to receive(:set_tag).with(key, value) }
+
+        it { is_expected.to be(span) }
+      end
+
+      context 'when given an error tag of true' do
+        let(:key) { 'error' }
+        let(:value) { true }
+
+        before(:each) { expect(datadog_span).to receive(:set_tag).with(key, value) }
+        before(:each) { expect(datadog_span).to receive(:'status=').with(Datadog::Ext::Errors::STATUS) }
+
+        it { is_expected.to be(span) }
+      end
+
+      context 'when given an error tag of false' do
+        let(:key) { 'error' }
+        let(:value) { false }
+
+        before(:each) { expect(datadog_span).to receive(:set_tag).with(key, value) }
+        before(:each) { expect(datadog_span).to receive(:'status=').with(0) }
+
+        it { is_expected.to be(span) }
+      end
     end
 
     describe '#set_baggage_item' do
