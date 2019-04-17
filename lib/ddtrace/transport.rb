@@ -11,7 +11,7 @@ module Datadog
   # rubocop:disable Metrics/ClassLength
   class HTTPTransport
     attr_accessor :hostname, :port
-    attr_reader :traces_endpoint, :services_endpoint
+    attr_reader :traces_endpoint
 
     DEFAULT_AGENT_HOST = '127.0.0.1'.freeze
     DEFAULT_TRACE_AGENT_PORT = '8126'.freeze
@@ -27,21 +27,18 @@ module Datadog
       V4 = 'v0.4'.freeze => {
         version: V4,
         traces_endpoint: '/v0.4/traces'.freeze,
-        services_endpoint: '/v0.4/services'.freeze,
         encoder: Encoding::MsgpackEncoder,
         fallback: 'v0.3'.freeze
       }.freeze,
       V3 = 'v0.3'.freeze => {
         version: V3,
         traces_endpoint: '/v0.3/traces'.freeze,
-        services_endpoint: '/v0.3/services'.freeze,
         encoder: Encoding::MsgpackEncoder,
         fallback: 'v0.2'.freeze
       }.freeze,
       V2 = 'v0.2'.freeze => {
         version: V2,
         traces_endpoint: '/v0.2/traces'.freeze,
-        services_endpoint: '/v0.2/services'.freeze,
         encoder: Encoding::JSONEncoder
       }.freeze
     }.freeze
@@ -78,10 +75,7 @@ module Datadog
     def send(endpoint, data)
       case endpoint
       when :services
-        payload = @encoder.encode_services(data)
-        status_code = post(@api[:services_endpoint], payload) do |response|
-          process_callback(:services, response)
-        end
+        return nil
       when :traces
         count = data.length
         payload = @encoder.encode_traces(data)

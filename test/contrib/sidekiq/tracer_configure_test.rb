@@ -13,13 +13,6 @@ class TracerTest < TracerTestBase
       chain.add(Datadog::Contrib::Sidekiq::ServerTracer, tracer: @tracer)
     end
     EmptyWorker.perform_async()
-
-    assert_equal(
-      @writer.services,
-      'sidekiq' => {
-        'app' => 'sidekiq', 'app_type' => 'worker'
-      }
-    )
   end
 
   def test_configuration_custom
@@ -33,12 +26,5 @@ class TracerTest < TracerTestBase
       )
     end
     EmptyWorker.perform_async()
-
-    assert_equal(
-      @tracer.services,
-      'my-sidekiq' => {
-        'app' => 'sidekiq', 'app_type' => 'worker'
-      }
-    )
   end
 end

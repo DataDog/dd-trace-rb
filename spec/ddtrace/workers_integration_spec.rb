@@ -25,7 +25,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:writer) do
     Datadog::Writer.new.tap do |w|
       # write some stuff to trigger a #start
-      w.write([], {})
+      w.write([])
       # now stop the writer and replace worker with ours, if we don't do
       # this the old worker will still be used.
       w.stop
@@ -78,7 +78,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
 
       it 'flushes the trace correctly' do
         expect(stats[:traces_flushed]).to be >= 1
-        expect(stats[:services_flushed]).to eq(0)
+        expect(stats[:services_flushed]).to be_nil
 
         # Sanity checks
         expect(dump[200]).to_not be nil
@@ -165,36 +165,23 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
 
   describe 'when setting service info' do
     let(:dumped_services) { dump[200][:services] }
-    let(:service_payload) { JSON.parse(dumped_services[0]) }
 
     # Test that services are correctly flushed, with two of them
     context 'for two services' do
       before(:each) do
-        tracer.set_service_info('my.service', 'rails', 'web')
-        tracer.set_service_info('my.other.service', 'golang', 'api')
         tracer.start_span('my.op').finish
-
-        wait_for_flush { writer.stats[:services_flushed] >= 1 }
       end
 
       it 'flushes the services correctly' do
-        expect(stats[:services_flushed]).to eq(1)
+        expect(stats[:services_flushed]).to be_nil
 
         # Sanity checks
         expect(dump[200]).to_not be nil
         expect(dump[500]).to_not be nil
         expect(dump[500]).to eq({})
-        expect(dumped_services).to_not be nil
 
-        # Unmarshalling data
-        expect(dumped_services).to have(1).items
-        expect(dumped_services[0]).to be_a_kind_of(String)
-        expect(service_payload).to be_a_kind_of(Hash)
-
-        expect(service_payload).to eq(
-          'my.service' => { 'app' => 'rails', 'app_type' => 'web' },
-          'my.other.service' => { 'app' => 'golang', 'app_type' => 'api' }
-        )
+        # No services information was sent
+        expect(dumped_services).to be_nil
       end
     end
   end
@@ -208,7 +195,6 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
 
       # Enqueue some work for a final flush
       worker.enqueue_trace(get_test_traces(1))
-      worker.enqueue_service(get_test_services)
 
       # Interrupt back off and flush everything immediately
       @shutdown_beg = Time.now
@@ -234,7 +220,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
 
       it do
         expect(trace_task).to have_received(:call).once
-        expect(service_task).to have_received(:call).once
+        expect(service_task).to_not have_received(:call)
         expect(@shutdown_end - @shutdown_beg).to be < Datadog::Workers::AsyncTransport::SHUTDOWN_TIMEOUT
       end
     end

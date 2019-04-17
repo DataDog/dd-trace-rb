@@ -21,13 +21,6 @@ module Datadog
             begin
               # Subscribe to ActiveModelSerializers events
               Events.subscribe!
-
-              # Set service info
-              get_option(:tracer).set_service_info(
-                get_option(:service_name),
-                Ext::APP,
-                Datadog::Ext::AppTypes::WEB
-              )
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply ActiveModelSerializers integration: #{e}")
             end

@@ -17,11 +17,9 @@ module Datadog
                   lazy: true
 
           option :orm_service_name
-          option :service_name, depends_on: [:tracer] do |value|
-            (value || Utils.adapter_name).tap do |service_name|
-              tracer.set_service_info(service_name, Ext::APP, Datadog::Ext::AppTypes::DB)
-            end
-          end
+          option :service_name,
+                 default: -> { Utils.adapter_name },
+                 lazy: true
 
           option :tracer, default: Datadog.tracer do |value|
             value.tap do

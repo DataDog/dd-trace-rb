@@ -24,10 +24,7 @@ module Datadog
           option :headers, default: DEFAULT_HEADERS
           option :resource_script_names, default: false
 
-          option :service_name, default: Ext::SERVICE_NAME, depends_on: [:tracer] do |value|
-            get_option(:tracer).set_service_info(value, Ext::APP, Datadog::Ext::AppTypes::WEB)
-            value
-          end
+          option :service_name, default: Ext::SERVICE_NAME
         end
       end
     end

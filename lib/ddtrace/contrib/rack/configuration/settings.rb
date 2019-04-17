@@ -29,17 +29,9 @@ module Datadog
           option :quantize, default: {}
           option :request_queuing, default: false
 
-          option :service_name, default: Ext::SERVICE_NAME, depends_on: [:tracer] do |value|
-            get_option(:tracer).set_service_info(value, Ext::APP, Datadog::Ext::AppTypes::WEB)
-            value
-          end
+          option :service_name, default: Ext::SERVICE_NAME
 
-          option :web_service_name, default: Ext::WEBSERVER_SERVICE_NAME, depends_on: [:tracer, :request_queuing] do |value|
-            if get_option(:request_queuing)
-              get_option(:tracer).set_service_info(value, Ext::WEBSERVER_APP, Datadog::Ext::AppTypes::WEB)
-            end
-            value
-          end
+          option :web_service_name, default: Ext::WEBSERVER_SERVICE_NAME
         end
       end
     end

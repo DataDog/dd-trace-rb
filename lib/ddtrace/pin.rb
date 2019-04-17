@@ -57,8 +57,6 @@ module Datadog
     end
 
     def service_name=(name)
-      tracer.set_service_info(name, app, app_type) if name && app && app_type
-
       @service_name = name
     end
 

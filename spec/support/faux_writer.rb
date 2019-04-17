@@ -11,14 +11,12 @@ class FauxWriter < Datadog::Writer
 
     # easy access to registered components
     @spans = []
-    @services = {}
   end
 
-  def write(trace, services)
+  def write(trace)
     @mutex.synchronize do
-      super(trace, services)
+      super(trace)
       @spans << trace
-      @services = @services.merge(services) unless services.empty?
     end
   end
 
@@ -53,14 +51,6 @@ class FauxWriter < Datadog::Writer
       spans = @spans[0]
       @spans = @spans[1..@spans.size]
       spans
-    end
-  end
-
-  def services
-    @mutex.synchronize do
-      services = @services
-      @services = {}
-      services
     end
   end
 end
