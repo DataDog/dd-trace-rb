@@ -35,7 +35,8 @@ module Datadog
         def self.included(base)
           base.class_eval do
             alias_method :set_tag_without_forced_tracing, :set_tag
-            remove_method :set_tag
+            # DEV: When we stack multiple extensions the method might already be removed
+            remove_method :set_tag if method_defined?(:set_tag)
           end
         end
 
