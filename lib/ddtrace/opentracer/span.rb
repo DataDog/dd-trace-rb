@@ -31,7 +31,7 @@ module Datadog
       def set_tag(key, value)
         # Special cases to convert opentracing tags to datadog tags
         case key
-        when "error"
+        when 'error'
           # Opentracing supports and `error: <bool>` tag, we need to convert to span status
           # DEV: Do not return, we want to still set the `error` tag as they requested
           datadog_span.status = value ? Datadog::Ext::Errors::STATUS : 0
