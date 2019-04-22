@@ -339,6 +339,27 @@ For a list of available integrations, and their configuration options, please re
 | Sinatra                  | `sinatra`                  | `>= 1.4.5`               | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
 | Sucker Punch             | `sucker_punch`             | `>= 2.0`                 | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
 
+### Action Mailer
+
+The Action Mailer integration provides tracing for Rails 5 ActionMailer actions.
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'ddtrace'
+ Datadog.configure do |c|
+  c.use :action_mailer, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `action_mailer` instrumentation | `'action_mailer'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
+
 ### Active Model Serializers
 
 The Active Model Serializers integration traces the `serialize` event for version 0.9+ and the `render` event for version 0.10+.
