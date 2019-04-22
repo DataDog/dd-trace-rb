@@ -1,6 +1,6 @@
 require 'ddtrace/contrib/action_mailer/events/process'
 
- module Datadog
+module Datadog
   module Contrib
     module ActionMailer
       # Defines collection of instrumented ActionMailer events

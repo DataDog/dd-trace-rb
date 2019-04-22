@@ -9,7 +9,7 @@ require 'ddtrace/contrib/action_mailer/event'
         module Process
           include ActionMailer::Event
 
-           EVENT_NAME = 'process.action_cable'.freeze
+           EVENT_NAME = 'process.action_mailer'.freeze
 
            module_function
 
