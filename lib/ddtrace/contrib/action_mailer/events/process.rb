@@ -1,7 +1,7 @@
 require 'ddtrace/contrib/action_mailer/ext'
 require 'ddtrace/contrib/action_mailer/event'
 
- module Datadog
+module Datadog
   module Contrib
     module ActionMailer
       module Events
@@ -9,15 +9,15 @@ require 'ddtrace/contrib/action_mailer/event'
         module Process
           include ActionMailer::Event
 
-           EVENT_NAME = 'process.action_mailer'.freeze
+          EVENT_NAME = 'process.action_mailer'.freeze
 
-           module_function
+          module_function
 
-           def event_name
+          def event_name
             self::EVENT_NAME
           end
 
-           def span_name
+          def span_name
             Ext::SPAN_PROCESS
           end
         end

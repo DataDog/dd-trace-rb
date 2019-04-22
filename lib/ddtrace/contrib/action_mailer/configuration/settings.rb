@@ -1,7 +1,7 @@
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/contrib/action_mailer/ext'
 
- module Datadog
+module Datadog
   module Contrib
     module ActionMailer
       module Configuration
@@ -11,11 +11,11 @@ require 'ddtrace/contrib/action_mailer/ext'
                   default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) },
                   lazy: true
 
-           option  :analytics_sample_rate,
+          option  :analytics_sample_rate,
                   default: -> { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) },
                   lazy: true
 
-           option :service_name, default: Ext::SERVICE_NAME
+          option :service_name, default: Ext::SERVICE_NAME
           option :tracer, default: Datadog.tracer do |value|
             (value || Datadog.tracer).tap do |v|
               # Make sure to update tracers of all subscriptions

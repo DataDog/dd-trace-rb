@@ -9,17 +9,17 @@ module Datadog
           Events::Process
         ].freeze
 
-         module_function
+        module_function
 
-         def all
+        def all
           self::ALL
         end
 
-         def subscriptions
+        def subscriptions
           all.collect(&:subscriptions).collect(&:to_a).flatten
         end
 
-         def subscribe!
+        def subscribe!
           all.each(&:subscribe!)
         end
       end

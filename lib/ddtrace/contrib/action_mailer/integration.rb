@@ -2,24 +2,24 @@ require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/action_mailer/configuration/settings'
 require 'ddtrace/contrib/action_mailer/patcher'
 
- module Datadog
+module Datadog
   module Contrib
     module ActionMailer
       # Description of ActionMailer integration
       class Integration
         include Contrib::Integration
 
-         register_as :action_mailer, auto_patch: false
+        register_as :action_mailer, auto_patch: false
 
-         def self.version
+        def self.version
           Gem.loaded_specs['rails'] && Gem.loaded_specs['rails'].version
         end
 
-         def self.present?
+        def self.present?
           super && defined?(::ActionMailer)
         end
 
-         def self.compatible?
+        def self.compatible?
           # Rails 5 Requires Ruby 2.2.2 or higher
           return false if ENV['DISABLE_DATADOG_RAILS']
           super && defined?(::ActiveSupport::Notifications) &&
@@ -27,11 +27,11 @@ require 'ddtrace/contrib/action_mailer/patcher'
             RUBY_VERSION >= '2.2.2'
         end
 
-         def default_configuration
+        def default_configuration
           Configuration::Settings.new
         end
 
-         def patcher
+        def patcher
           Patcher
         end
       end

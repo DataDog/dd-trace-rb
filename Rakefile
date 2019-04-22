@@ -12,7 +12,7 @@ desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
   task all: [:main,
-             :rails, :railsredis, :railssidekiq, :railsactivejob, :railsactionmailer
+             :rails, :railsredis, :railssidekiq, :railsactivejob, :railsactionmailer,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -49,7 +49,7 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:railsactionmailer) do |t|
     t.pattern = 'spec/ddtrace/contrib/action_mailer/*_spec.rb'
-  end  
+  end
 
   RSpec::Core::RakeTask.new(:railsdisableenv) do |t, args|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'

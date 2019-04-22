@@ -2,7 +2,7 @@ require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_support/notifications/event'
 require 'ddtrace/contrib/action_mailer/ext'
 
- module Datadog
+module Datadog
   module Contrib
     module ActionMailer
       # Defines basic behaviors for an ActionMailer event.
@@ -21,23 +21,23 @@ require 'ddtrace/contrib/action_mailer/ext'
             end
           end
 
-           def span_options
+          def span_options
             { service: configuration[:service_name] }
           end
 
-           def tracer
+          def tracer
             configuration[:tracer]
           end
 
-           def configuration
+          def configuration
             Datadog.configuration[:action_mailer]
           end
 
-           def process(span, event, _id, payload)
+          def process(span, event, _id, payload)
             span.service = configuration[:service_name]
             span.resource = payload[:mailer]
 
-             # Set analytics sample rate
+            # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
             end
@@ -46,7 +46,7 @@ require 'ddtrace/contrib/action_mailer/ext'
             span.set_error(payload[:exception_object]) if payload[:exception_object]
           end
 
-           private
+          private
 
           # Context objects are thread-bound.
           # If ActionMailer re-uses threads, context from a previous trace
