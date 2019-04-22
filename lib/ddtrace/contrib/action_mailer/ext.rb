@@ -1,7 +1,7 @@
 module Datadog
   module Contrib
     module ActionMailer
-      # ActionCable integration constants
+      # ActionMailer integration constants
       module Ext
         APP = 'action_mailer'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_ACTION_MAILER_ANALYTICS_ENABLED'.freeze
