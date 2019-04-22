@@ -24,6 +24,7 @@ For descriptions of terminology used in APM, take a look at the [official docume
      - [Quickstart for OpenTracing](#quickstart-for-opentracing)
  - [Manual instrumentation](#manual-instrumentation)
  - [Integration instrumentation](#integration-instrumentation)
+     - [Action Maile](#action-mailer)
      - [Active Model Serializers](#active-model-serializers)
      - [Active Record](#active-record)
      - [AWS](#aws)
@@ -311,6 +312,7 @@ For a list of available integrations, and their configuration options, please re
 
 | Name                     | Key                        | Versions Supported       | How to configure                    | Gem source                                                                     |
 | ------------------------ | -------------------------- | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------ |
+| Action Mailer            | `action_mailer`            | `>= 5.0, < 6.0`          | *[Link](#action-mailer)*            | *[Link](https://github.com/rails/rails/tree/master/actionmailer)*              |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Active Record            | `active_record`            | `>= 3.2, < 6.0`          | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | AWS                      | `aws`                      | `>= 2.0`                 | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |

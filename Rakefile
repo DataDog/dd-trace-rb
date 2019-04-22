@@ -12,7 +12,7 @@ desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
   task all: [:main,
-             :rails, :railsredis, :railssidekiq, :railsactivejob,
+             :rails, :railsredis, :railssidekiq, :railsactivejob, :railsactionmailer
              :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -47,6 +47,10 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  RSpec::Core::RakeTask.new(:railsactionmailer) do |t|
+    t.pattern = 'spec/ddtrace/contrib/action_mailer/*_spec.rb'
+  end  
+
   RSpec::Core::RakeTask.new(:railsdisableenv) do |t, args|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
@@ -56,6 +60,7 @@ namespace :spec do
     # rubocop:disable Metrics/LineLength
     t.pattern = 'spec/**/contrib/{analytics,configurable,integration,patchable,patcher,registerable,registry,configuration/*}_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
+    t.exclude_pattern = 'spec/ddtrace/contrib/action_{cable,mailer}/*_spec.rb'
   end
 
   [
@@ -463,7 +468,9 @@ task :ci do
       sh 'bundle exec appraisal rails4-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails4-postgres rake spec:rails'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:railsactionmailer'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails5-postgres rake spec:railsactionmailer'
     end
   elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
     # Main library
