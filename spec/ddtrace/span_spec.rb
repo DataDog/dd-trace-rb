@@ -42,8 +42,8 @@ RSpec.describe Datadog::Span do
           expect(context.sampling_priority).to eq(Datadog::Ext::Priority::USER_KEEP)
         end
 
-        it 'sets the correct tag' do
-          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_KEEP)).to eq('')
+        it 'does not set a tag' do
+          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_KEEP)).to be nil
         end
       end
 
@@ -55,8 +55,8 @@ RSpec.describe Datadog::Span do
           expect(context.sampling_priority).to eq(Datadog::Ext::Priority::USER_KEEP)
         end
 
-        it 'sets the correct tag' do
-          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_KEEP)).to eq('true')
+        it 'does not set a tag' do
+          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_KEEP)).to be nil
         end
       end
 
@@ -67,8 +67,8 @@ RSpec.describe Datadog::Span do
           expect(context.sampling_priority).to_not eq(Datadog::Ext::Priority::USER_KEEP)
         end
 
-        it 'sets the correct tag' do
-          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_KEEP)).to eq('false')
+        it 'does not set a tag' do
+          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_KEEP)).to be nil
         end
       end
     end
@@ -84,8 +84,8 @@ RSpec.describe Datadog::Span do
           expect(context.sampling_priority).to eq(Datadog::Ext::Priority::USER_REJECT)
         end
 
-        it 'sets the correct tag' do
-          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_DROP)).to eq('')
+        it 'does not set a tag' do
+          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_DROP)).to be nil
         end
       end
 
@@ -97,8 +97,8 @@ RSpec.describe Datadog::Span do
           expect(context.sampling_priority).to eq(Datadog::Ext::Priority::USER_REJECT)
         end
 
-        it 'sets the correct tag' do
-          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_DROP)).to eq('true')
+        it 'does not set a tag' do
+          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_DROP)).to be nil
         end
       end
 
@@ -109,8 +109,8 @@ RSpec.describe Datadog::Span do
           expect(context.sampling_priority).to_not eq(Datadog::Ext::Priority::USER_REJECT)
         end
 
-        it 'sets the correct tag' do
-          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_DROP)).to eq('false')
+        it 'does not set a tag' do
+          expect(span.get_tag(Datadog::Ext::ForcedTracing::TAG_DROP)).to be nil
         end
       end
     end

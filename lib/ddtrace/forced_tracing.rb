@@ -55,10 +55,10 @@ module Datadog
             ForcedTracing.keep(self) unless value == false
           when Ext::ForcedTracing::TAG_DROP
             ForcedTracing.drop(self) unless value == false
+          else
+            # Otherwise, set the tag normally.
+            super if defined?(super)
           end
-
-          # Always set the tag as they requested
-          super if defined?(super)
         end
       end
     end
