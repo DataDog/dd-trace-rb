@@ -82,7 +82,18 @@ module Datadog
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
-          [status, headers, response]
+
+          wrapped_response = response
+
+          if defined?(::Rack::BodyProxy)
+            wrapped_response = ::Rack::BodyProxy.new(response) do
+              finish(request_span, frontend_span, tracer, env, status, headers, response, original_env)
+            end
+          else
+            finish(request_span, frontend_span, tracer, env, status, headers, response, original_env)
+          end
+
+          [status, headers, wrapped_response]
 
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -95,25 +106,8 @@ module Datadog
           # Note: if a middleware catches an Exception without re raising,
           # the Exception cannot be recorded here.
           request_span.set_error(e) unless request_span.nil?
+          finish(request_span, frontend_span, tracer, env, status, headers, response, original_env)
           raise e
-        ensure
-          # Rack is a really low level interface and it doesn't provide any
-          # advanced functionality like routers. Because of that, we assume that
-          # the underlying framework or application has more knowledge about
-          # the result for this request; `resource` and `tags` are expected to
-          # be set in another level but if they're missing, reasonable defaults
-          # are used.
-          set_request_tags!(request_span, env, status, headers, response, original_env)
-
-          # ensure the request_span is finished and the context reset;
-          # this assumes that the Rack middleware creates a root span
-          request_span.finish
-          frontend_span.finish unless frontend_span.nil?
-
-          # TODO: Remove this once we change how context propagation works. This
-          # ensures we clean thread-local variables on each HTTP request avoiding
-          # memory leaks.
-          tracer.provider.context = Datadog::Context.new
         end
 
         def resource_name_for(env, status)
@@ -195,6 +189,26 @@ module Datadog
         end
 
         private
+
+        def finish(request_span, frontend_span, tracer, env, status, headers, response, original_env)
+          # Rack is a really low level interface and it doesn't provide any
+          # advanced functionality like routers. Because of that, we assume that
+          # the underlying framework or application has more knowledge about
+          # the result for this request; `resource` and `tags` are expected to
+          # be set in another level but if they're missing, reasonable defaults
+          # are used.
+          set_request_tags!(request_span, env, status, headers, response, original_env)
+
+          # ensure the request_span is finished and the context reset;
+          # this assumes that the Rack middleware creates a root span
+          request_span.finish
+          frontend_span.finish unless frontend_span.nil?
+
+          # TODO: Remove this once we change how context propagation works. This
+          # ensures we clean thread-local variables on each HTTP request avoiding
+          # memory leaks.
+          tracer.provider.context = Datadog::Context.new
+        end
 
         REQUEST_SPAN_DEPRECATION_WARNING = %(
           :datadog_rack_request_span is considered an internal symbol in the Rack env,

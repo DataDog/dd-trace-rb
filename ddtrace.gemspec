@@ -40,6 +40,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'opentracing', '>= 0.4.1'
 
   # Development dependencies
+  spec.add_development_dependency 'rack'
   spec.add_development_dependency 'rake', '>= 10.5'
   spec.add_development_dependency 'rubocop', '= 0.49.1' if RUBY_VERSION >= '2.1.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
