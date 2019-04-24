@@ -31,17 +31,15 @@ module Datadog
       end
 
       # Compatibility shim for Rubies not supporting `.prepend`
+      # NOTE: This patching strategy only works because it has been applied after
+      #       Datadog::Analytics::Span. Any changes will likely break this.
       module InstanceMethodsCompatibility
         def self.included(base)
-          base.class_eval do
-            alias_method :set_tag_without_forced_tracing, :set_tag
-            # DEV: When we stack multiple extensions the method might already be removed
-            remove_method :set_tag if method_defined?(:set_tag)
-          end
-        end
+          base.send(:alias_method, :set_tag_without_forced_tracing, :set_tag)
 
-        def set_tag(*args, &block)
-          set_tag_without_forced_tracing(*args, &block)
+          define_method :set_tag do |*args, &block|
+            set_tag_without_forced_tracing(*args, &block)
+          end
         end
       end
 
