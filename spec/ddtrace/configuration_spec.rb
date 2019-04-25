@@ -29,6 +29,22 @@ RSpec.describe Datadog::Configuration::Settings do
       let(:integration_class) do
         Class.new do
           include Datadog::Contrib::Integration
+
+          def self.version
+            Gem::Version.new('0.1')
+          end
+
+          def patcher
+            Patcher
+          end
+
+          Patcher = Module.new do
+            include Datadog::Contrib::Patcher
+
+            def self.patch
+              true
+            end
+          end
         end
       end
 
