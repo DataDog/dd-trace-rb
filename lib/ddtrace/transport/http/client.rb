@@ -2,7 +2,6 @@ require 'ddtrace/encoding'
 require 'ddtrace/version'
 
 require 'ddtrace/transport/traces'
-require 'ddtrace/transport/services'
 require 'ddtrace/transport/http/api'
 require 'ddtrace/transport/http/api_map'
 require 'ddtrace/transport/http/endpoint'
@@ -25,16 +24,13 @@ module Datadog
 
         DEFAULT_APIS = APIMap[
           V4 = 'v0.4'.freeze => API.new(
-            Transport::Traces::Parcel => TracesEndpoint.new('/v0.4/traces'.freeze, Encoding::MsgpackEncoder),
-            Transport::Services::Parcel => ServicesEndpoint.new('/v0.4/services'.freeze, Encoding::MsgpackEncoder)
+            Transport::Traces::Parcel => TracesEndpoint.new('/v0.4/traces'.freeze, Encoding::MsgpackEncoder)
           ),
           V3 = 'v0.3'.freeze => API.new(
-            Transport::Traces::Parcel => TracesEndpoint.new('/v0.3/traces'.freeze, Encoding::MsgpackEncoder),
-            Transport::Services::Parcel => ServicesEndpoint.new('/v0.3/services'.freeze, Encoding::MsgpackEncoder)
+            Transport::Traces::Parcel => TracesEndpoint.new('/v0.3/traces'.freeze, Encoding::MsgpackEncoder)
           ),
           V2 = 'v0.2'.freeze => API.new(
-            Transport::Traces::Parcel => TracesEndpoint.new('/v0.2/traces'.freeze, Encoding::JSONEncoder),
-            Transport::Services::Parcel => ServicesEndpoint.new('/v0.2/services'.freeze, Encoding::JSONEncoder)
+            Transport::Traces::Parcel => TracesEndpoint.new('/v0.2/traces'.freeze, Encoding::JSONEncoder)
           )
         ].with_fallbacks(V4 => V3, V3 => V2).freeze
 

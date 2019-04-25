@@ -1,6 +1,5 @@
 require 'ddtrace/tracer'
 require 'ddtrace/transport'
-require 'ddtrace/transport/services'
 require 'ddtrace/transport/traces'
 require 'ddtrace/transport/http/client'
 
@@ -14,8 +13,6 @@ module Datadog
 
         def send(type, data)
           response = case type
-                     when :services
-                       deliver(Transport::Services::Parcel.new(data))
                      when :traces
                        deliver(Transport::Traces::Parcel.new(data))
                      else

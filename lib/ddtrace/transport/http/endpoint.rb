@@ -61,9 +61,6 @@ module Datadog
           super(service, parcel, options)
         end
       end
-
-      # Endpoint that receives Services::Parcel
-      class ServicesEndpoint < ParcelEndpoint; end
     end
   end
 end
