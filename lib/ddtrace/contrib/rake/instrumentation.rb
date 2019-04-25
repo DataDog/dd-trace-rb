@@ -15,13 +15,9 @@ module Datadog
           def invoke(*args)
             return super unless enabled?
 
-            result = nil
             tracer.trace(Ext::SPAN_INVOKE, span_options) do |span|
-              result = super
-              annotate_invoke!(span, args)
+              super.tap { annotate_invoke!(span, args) }
             end
-
-            result
           ensure
             shutdown_tracer!
           end
@@ -29,13 +25,9 @@ module Datadog
           def execute(args = nil)
             return super unless enabled?
 
-            result = nil
             tracer.trace(Ext::SPAN_EXECUTE, span_options) do |span|
-              result = super
-              annotate_execute!(span, args)
+              super.tap { annotate_execute!(span, args) }
             end
-
-            result
           ensure
             shutdown_tracer!
           end
