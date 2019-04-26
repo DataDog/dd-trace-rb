@@ -1,4 +1,5 @@
 require 'ddtrace/ext/analytics'
+require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/configuration/options'
 
@@ -19,6 +20,24 @@ module Datadog
 
       option  :runtime_metrics_enabled,
               default: -> { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) },
+              lazy: true
+
+      # Look for all headers by default
+      option  :propagation_extract_style,
+              default: lambda {
+                env_to_list(Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV,
+                            [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
+                             Ext::DistributedTracing::PROPAGATION_STYLE_B3,
+                             Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER])
+              },
+              lazy: true
+
+      # Only inject Datadog headers by default
+      option  :propagation_inject_style,
+              default: lambda {
+                env_to_list(Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
+                            [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
+              },
               lazy: true
 
       option :tracer, default: Tracer.new

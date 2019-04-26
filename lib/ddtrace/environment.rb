@@ -10,6 +10,14 @@ module Datadog
       def env_to_float(var, default = nil)
         ENV.key?(var) ? ENV[var].to_f : default
       end
+
+      def env_to_list(var, default = [])
+        if ENV.key?(var)
+          ENV[var].split(',').map(&:strip)
+        else
+          default
+        end
+      end
     end
   end
 end
