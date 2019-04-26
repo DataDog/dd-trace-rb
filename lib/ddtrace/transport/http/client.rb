@@ -39,7 +39,7 @@ module Datadog
           @apis = options[:apis] || DEFAULT_APIS
 
           # Select active API
-          @active_api = apis[options.fetch(:api_version, V3)]
+          @active_api = apis[options.fetch(:api_version, V4)]
           raise UnknownApiVersion if active_api.nil?
 
           # Select encoder
