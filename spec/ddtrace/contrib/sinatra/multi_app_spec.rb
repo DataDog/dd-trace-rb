@@ -44,7 +44,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
     end
 
     let(:app_one) do
-      Class.new(Sinatra::Application) do
+      Class.new(Sinatra::Base) do
         get '/endpoint' do
           '1'
         end
@@ -52,7 +52,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
     end
 
     let(:app_two) do
-      Class.new(Sinatra::Application) do
+      Class.new(Sinatra::Base) do
         get '/endpoint' do
           '2'
         end
