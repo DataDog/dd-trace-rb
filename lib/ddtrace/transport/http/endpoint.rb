@@ -40,12 +40,11 @@ module Datadog
 
         def deliver(service, parcel, options)
           # Encode body
-          options[:encoder] ||= encoder
-          data = parcel.encode_with(options[:encoder])
+          data = parcel.encode_with(encoder)
 
           # Add content type header
           options[:headers] ||= {}
-          options[:headers][HEADER_CONTENT_TYPE] = options[:encoder].content_type
+          options[:headers][HEADER_CONTENT_TYPE] = encoder.content_type
 
           super(service, data, options)
         end

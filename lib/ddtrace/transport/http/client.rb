@@ -19,7 +19,6 @@ module Datadog
           :service,
           :apis,
           :active_api,
-          :encoder,
           :headers
 
         DEFAULT_APIS = APIMap[
@@ -42,9 +41,6 @@ module Datadog
           @active_api = apis[options.fetch(:api_version, V4)]
           raise UnknownApiVersion if active_api.nil?
 
-          # Select encoder
-          @encoder = options[:encoder]
-
           # Set headers
           @headers = {
             'Datadog-Meta-Lang' => 'ruby',
@@ -55,7 +51,7 @@ module Datadog
         end
 
         def deliver(parcel)
-          response = active_api.deliver(service, parcel, encoder: encoder, headers: headers)
+          response = active_api.deliver(service, parcel, headers: headers)
 
           # If API should be downgraded, downgrade and try again.
           if downgrade?(response)
@@ -73,7 +69,6 @@ module Datadog
 
         def downgrade!
           @active_api = apis.fallback_from(active_api)
-          @encoder = active_api.endpoint_for(Transport::Traces::Parcel).encoder
         end
 
         # Raised when configured with an unknown API version
