@@ -16,8 +16,7 @@ module Datadog
             return super unless enabled?
 
             tracer.trace(Ext::SPAN_INVOKE, span_options) do |span|
-              super
-              annotate_invoke!(span, args)
+              super.tap { annotate_invoke!(span, args) }
             end
           ensure
             shutdown_tracer!
@@ -27,8 +26,7 @@ module Datadog
             return super unless enabled?
 
             tracer.trace(Ext::SPAN_EXECUTE, span_options) do |span|
-              super
-              annotate_execute!(span, args)
+              super.tap { annotate_execute!(span, args) }
             end
           ensure
             shutdown_tracer!
