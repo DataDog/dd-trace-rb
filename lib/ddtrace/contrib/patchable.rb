@@ -18,7 +18,7 @@ module Datadog
         end
 
         def compatible?
-          RUBY_VERSION >= '1.9.3' && present?
+          (RUBY_VERSION >= '1.9.3' || (defined?(JRUBY_VERSION) && JRUBY_VERSION >= '9.1.5')) && present?
         end
       end
 
