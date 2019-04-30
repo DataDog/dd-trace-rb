@@ -4,6 +4,25 @@
 
 ## [Unreleased (beta)]
 
+## [0.23.0] - 2019-04-30
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.23.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.22.0...v0.23.0
+
+### Added
+
+- Error status support via tags for OpenTracing (#739)
+- Forced sampling support via tags (#720)
+
+### Fixed
+
+- Wrong return values for Rake integration (#742) (@Redapted)
+
+### Removed
+
+- Obsolete service telemetry (#738)
+
 ## [0.22.0] - 2019-04-15
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.22.0
@@ -767,8 +786,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.22.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.22.0...0.23-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.0...0.24-dev
+[0.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.2...v0.22.0
 [0.21.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.1...v0.21.2
 [0.21.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.0...v0.21.1
