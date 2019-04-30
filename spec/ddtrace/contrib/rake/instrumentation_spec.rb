@@ -131,6 +131,11 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
       before(:each) { define_task! }
 
+      it 'returns task return value' do
+        allow(spy).to receive(:call)
+        expect(task.invoke(*args)).to contain_exactly(task_body)
+      end
+
       context 'without args' do
         it_behaves_like 'a single task execution' do
           describe '\'rake.invoke\' span tags' do

@@ -35,33 +35,4 @@ class RailsSidekiqTest < ActionController::TestCase
 
     def perform; end
   end
-
-  test 'Sidekiq middleware uses Rails configuration if available' do
-    @tracer.configure(enabled: false, debug: true, host: 'tracer.example.com', port: 7777)
-    Datadog::Contrib::Rails::Framework.setup
-    db_adapter = get_adapter_name
-
-    # add Sidekiq middleware
-    Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Contrib::Sidekiq::ServerTracer, tracer: @tracer, service_name: 'rails-sidekiq')
-    end
-
-    # do something to force middleware execution
-    EmptyWorker.perform_async
-    assert_equal(
-      @tracer.services,
-      app_name => {
-        'app' => 'rails', 'app_type' => 'web'
-      },
-      "#{app_name}-#{db_adapter}" => {
-        'app' => 'active_record', 'app_type' => 'db'
-      },
-      "#{app_name}-cache" => {
-        'app' => 'rails', 'app_type' => 'cache'
-      },
-      'rails-sidekiq' => {
-        'app' => 'sidekiq', 'app_type' => 'worker'
-      }
-    )
-  end
 end

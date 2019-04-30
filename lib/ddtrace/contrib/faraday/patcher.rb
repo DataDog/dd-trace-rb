@@ -22,9 +22,6 @@ module Datadog
 
               add_pin!
               add_middleware!
-
-              # TODO: When Faraday pin is removed, set service info.
-              # register_service(get_option(:service_name))
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Faraday integration: #{e}")
             end
@@ -43,14 +40,6 @@ module Datadog
 
         def add_middleware!
           ::Faraday::Middleware.register_middleware(ddtrace: Middleware)
-        end
-
-        def register_service(name)
-          get_option(:tracer).set_service_info(
-            name,
-            Ext::APP,
-            Datadog::Ext::AppTypes::WEB
-          )
         end
 
         def get_option(option)

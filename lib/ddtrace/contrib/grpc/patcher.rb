@@ -23,13 +23,6 @@ module Datadog
 
               add_pin!
 
-              # TODO: When GRPC pin is removed, set service info.
-              # get_option(:tracer).set_service_info(
-              #   get_option(:service_name),
-              #   Ext::APP,
-              #   Datadog::Ext::AppTypes::WEB
-              # )
-
               prepend_interceptor
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply gRPC integration: #{e}")

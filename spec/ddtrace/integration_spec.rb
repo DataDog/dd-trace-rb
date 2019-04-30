@@ -44,21 +44,16 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     def agent_receives_span_step2
-      tracer.set_service_info('my.service', 'rails', 'web')
-
       create_trace
 
       # Timeout after 3 seconds, waiting for 1 flush
       wait_for_flush(:traces_flushed)
 
-      # Timeout after 3 seconds, waiting for 1 flush
-      wait_for_flush(:services_flushed)
-
       stats = tracer.writer.stats
       expect(stats[:traces_flushed]).to eq(1)
-      expect(stats[:services_flushed]).to eq(1)
-      # Number of successes can be 1 or 2 because services count as one flush too
-      expect(stats[:transport][:success]).to be >= 1
+      expect(stats[:services_flushed]).to be_nil
+      # Number of successes will only be 1 since we do not flush services
+      expect(stats[:transport][:success]).to eq(1)
       expect(stats[:transport][:client_error]).to eq(0)
       expect(stats[:transport][:server_error]).to eq(0)
       expect(stats[:transport][:internal_error]).to eq(0)
@@ -74,7 +69,7 @@ RSpec.describe 'Tracer integration tests' do
 
       stats = tracer.writer.stats
       expect(stats[:traces_flushed]).to eq(2)
-      expect(stats[:services_flushed]).to eq(1)
+      expect(stats[:services_flushed]).to be_nil
       expect(stats[:transport][:success]).to be > previous_success
       expect(stats[:transport][:client_error]).to eq(0)
       expect(stats[:transport][:server_error]).to eq(0)
@@ -92,8 +87,6 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     before(:each) do
-      tracer.set_service_info('my.service', 'rails', 'web')
-
       tracer.trace('my.short.op') do |span|
         @span = span
         span.service = 'my.service'
@@ -108,7 +101,7 @@ RSpec.describe 'Tracer integration tests' do
       expect(@first_shutdown).to be true
       expect(@span.finished?).to be true
       expect(stats[:traces_flushed]).to eq(1)
-      expect(stats[:services_flushed]).to eq(1)
+      expect(stats[:services_flushed]).to be_nil
       expect(stats[:transport][:client_error]).to eq(0)
       expect(stats[:transport][:server_error]).to eq(0)
       expect(stats[:transport][:internal_error]).to eq(0)
@@ -119,8 +112,6 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     before(:each) do
-      tracer.set_service_info('my.service', 'rails', 'web')
-
       tracer.trace('my.short.op') do |span|
         span.service = 'my.service'
       end
@@ -140,7 +131,7 @@ RSpec.describe 'Tracer integration tests' do
     it do
       expect(@shutdown_results.count(true)).to eq(1)
       expect(stats[:traces_flushed]).to eq(1)
-      expect(stats[:services_flushed]).to eq(1)
+      expect(stats[:services_flushed]).to be_nil
       expect(stats[:transport][:client_error]).to eq(0)
       expect(stats[:transport][:server_error]).to eq(0)
       expect(stats[:transport][:internal_error]).to eq(0)

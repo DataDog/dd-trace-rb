@@ -26,7 +26,6 @@ module Datadog
 
           activate_rack!(config)
           activate_active_record!(config)
-          set_service_info!(config)
 
           # By default, default service would be guessed from the script
           # being executed, but here we know better, get it from Rails config.
@@ -63,12 +62,6 @@ module Datadog
             service_name: config[:database_service],
             tracer: config[:tracer]
           )
-        end
-
-        def self.set_service_info!(config)
-          tracer = config[:tracer]
-          tracer.set_service_info(config[:controller_service], Ext::APP, Datadog::Ext::AppTypes::WEB)
-          tracer.set_service_info(config[:cache_service], Ext::APP, Datadog::Ext::AppTypes::CACHE)
         end
       end
     end

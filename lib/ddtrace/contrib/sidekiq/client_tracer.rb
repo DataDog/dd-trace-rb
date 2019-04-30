@@ -11,7 +11,6 @@ module Datadog
         def initialize(options = {})
           super
           @sidekiq_service = options[:client_service_name] || configuration[:client_service_name]
-          set_service_info(@sidekiq_service)
         end
 
         # Client middleware arguments are documented here:

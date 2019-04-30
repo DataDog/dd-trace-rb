@@ -120,12 +120,6 @@ class TracerTest < Minitest::Test
     assert_nil(span.end_time)
   end
 
-  def test_set_service_info
-    tracer = get_test_tracer
-    tracer.set_service_info('rest-api', 'rails', 'web')
-    assert_equal(tracer.services['rest-api'], 'app' => 'rails', 'app_type' => 'web')
-  end
-
   def test_set_tags
     tracer = get_test_tracer
     tracer.set_tags('env' => 'test', 'component' => 'core')

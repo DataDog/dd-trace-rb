@@ -25,89 +25,9 @@ class TracerTest < ActionDispatch::IntegrationTest
     assert Datadog.configuration[:rails][:tracer]
   end
 
-  test 'a default service and database should be properly set' do
-    services = Datadog.configuration[:rails][:tracer].services
+  test 'a default database should be properly set' do
     Datadog::Contrib::Rails::Framework.setup
     adapter_name = get_adapter_name
     refute_equal(adapter_name, 'defaultdb')
-    assert_equal(
-      {
-        app_name => {
-          'app' => 'rails', 'app_type' => 'web'
-        },
-        "#{app_name}-#{adapter_name}" => {
-          'app' => 'active_record', 'app_type' => 'db'
-        },
-        "#{app_name}-cache" => {
-          'app' => 'rails', 'app_type' => 'cache'
-        }
-      },
-      services
-    )
-  end
-
-  test 'database service can be changed by user' do
-    update_config(:database_service, 'customer-db')
-    tracer = Datadog.configuration[:rails][:tracer]
-
-    assert_equal(
-      {
-        app_name => {
-          'app' => 'rails', 'app_type' => 'web'
-        },
-        'customer-db' => {
-          'app' => 'active_record', 'app_type' => 'db'
-        },
-        "#{app_name}-cache" => {
-          'app' => 'rails', 'app_type' => 'cache'
-        }
-      },
-      tracer.services
-    )
-  end
-
-  test 'application service can be changed by user' do
-    tracer = Datadog.configuration[:rails][:tracer]
-    update_config(:controller_service, 'my-custom-app')
-    adapter_name = get_adapter_name()
-
-    assert_equal(
-      {
-        app_name => {
-          'app' => 'rack', 'app_type' => 'web'
-        },
-        'my-custom-app' => {
-          'app' => 'rails', 'app_type' => 'web'
-        },
-        "#{app_name}-#{adapter_name}" => {
-          'app' => 'active_record', 'app_type' => 'db'
-        },
-        "#{app_name}-cache" => {
-          'app' => 'rails', 'app_type' => 'cache'
-        }
-      },
-      tracer.services
-    )
-  end
-
-  test 'cache service can be changed by user' do
-    update_config(:cache_service, 'service-cache')
-    tracer = Datadog.configuration[:rails][:tracer]
-    adapter_name = get_adapter_name()
-
-    assert_equal(
-      {
-        app_name => {
-          'app' => 'rails', 'app_type' => 'web'
-        },
-        "#{app_name}-#{adapter_name}" => {
-          'app' => 'active_record', 'app_type' => 'db'
-        },
-        'service-cache' => {
-          'app' => 'rails', 'app_type' => 'cache'
-        }
-      },
-      tracer.services
-    )
   end
 end

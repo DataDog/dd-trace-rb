@@ -32,7 +32,6 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
     let(:spans) { tracer.writer.spans }
     let(:span) { spans.first }
-    let(:services) { tracer.writer.services }
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }
@@ -42,8 +41,6 @@ RSpec.describe 'ActiveRecord instrumentation' do
     it 'calls the instrumentation when is used standalone' do
       # expect service and trace is sent
       expect(spans.size).to eq(1)
-      expect(services).to_not be_empty
-      expect(services['mysql2']).to eq('app' => 'active_record', 'app_type' => 'db')
 
       expect(span.service).to eq('mysql2')
       expect(span.name).to eq('mysql2.query')
