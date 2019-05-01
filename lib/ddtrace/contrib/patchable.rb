@@ -1,3 +1,5 @@
+require 'ddtrace/runtime'
+
 module Datadog
   module Contrib
     # Base provides features that are shared across all integrations
@@ -18,7 +20,7 @@ module Datadog
         end
 
         def compatible?
-          (RUBY_VERSION >= '1.9.3' || (defined?(JRUBY_VERSION) && JRUBY_VERSION >= '9.1.5')) && present?
+          Datadog::Runtime.supported? && present?
         end
       end
 
