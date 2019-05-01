@@ -23,6 +23,7 @@ end
 
 require 'ddtrace/contrib/active_model_serializers/integration'
 require 'ddtrace/contrib/active_record/integration'
+require 'ddtrace/contrib/active_support/integration'
 require 'ddtrace/contrib/aws/integration'
 require 'ddtrace/contrib/concurrent_ruby/integration'
 require 'ddtrace/contrib/dalli/integration'

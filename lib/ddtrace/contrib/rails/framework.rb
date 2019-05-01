@@ -1,7 +1,8 @@
 require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 
-require 'ddtrace/contrib/active_record/patcher'
+require 'ddtrace/contrib/active_record/integration'
+require 'ddtrace/contrib/active_support/integration'
 require 'ddtrace/contrib/grape/endpoint'
 require 'ddtrace/contrib/rack/middlewares'
 
@@ -9,7 +10,6 @@ require 'ddtrace/contrib/rails/ext'
 require 'ddtrace/contrib/rails/core_extensions'
 require 'ddtrace/contrib/rails/action_controller'
 require 'ddtrace/contrib/rails/action_view'
-require 'ddtrace/contrib/rails/active_support'
 require 'ddtrace/contrib/rails/utils'
 
 module Datadog
@@ -25,6 +25,7 @@ module Datadog
           config = config_with_defaults
 
           activate_rack!(config)
+          activate_active_support!(config)
           activate_active_record!(config)
 
           # By default, default service would be guessed from the script
@@ -51,6 +52,16 @@ module Datadog
             service_name: config[:service_name],
             middleware_names: config[:middleware_names],
             distributed_tracing: config[:distributed_tracing]
+          )
+        end
+
+        def self.activate_active_support!(config)
+          return unless defined?(::ActiveSupport)
+
+          Datadog.configuration.use(
+            :active_support,
+            service_name: config[:cache_service],
+            tracer: config[:tracer]
           )
         end
 

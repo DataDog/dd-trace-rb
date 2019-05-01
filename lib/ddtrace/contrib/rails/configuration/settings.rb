@@ -14,7 +14,12 @@ module Datadog
                   default: -> { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) },
                   lazy: true
 
-          option :cache_service
+          option :cache_service do |value|
+            value.tap do
+              # Update ActiveSupport service name too
+              Datadog.configuration[:active_support][:cache_service] = value
+            end
+          end
           option :controller_service
           option :database_service, depends_on: [:service_name] do |value|
             value.tap do

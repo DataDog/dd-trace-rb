@@ -9,10 +9,12 @@ class CacheTracingTest < ActionController::TestCase
     @tracer = get_test_tracer
     Datadog.configuration[:rails][:cache_service] = 'rails-cache'
     Datadog.configuration[:rails][:tracer] = @tracer
+    Datadog.configuration[:active_support][:tracer] = @tracer
   end
 
   teardown do
     Datadog.configuration[:rails][:tracer] = @original_tracer
+    Datadog.configuration[:active_support][:tracer] = @original_tracer
   end
 
   test 'cache.read() is properly traced' do
@@ -97,7 +99,7 @@ class CacheTracingTest < ActionController::TestCase
   end
 
   def test_cache_key_truncation_regression
-    max_key_size = Datadog::Contrib::Rails::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
+    max_key_size = Datadog::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
     large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)
     Rails.cache.write(large_key, 'foobar')
 
