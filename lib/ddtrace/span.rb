@@ -3,7 +3,9 @@ require 'thread'
 
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
+require 'ddtrace/ext/priority'
 require 'ddtrace/analytics'
+require 'ddtrace/forced_tracing'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -73,7 +75,7 @@ module Datadog
     # must be strings. A valid example is:
     #
     #   span.set_tag('http.method', request.method)
-    def set_tag(key, value)
+    def set_tag(key, value = nil)
       @meta[key] = value.to_s
     rescue StandardError => e
       Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
@@ -256,3 +258,4 @@ end
 
 # Include extensions after Span (for Ruby 1.9 compatibility)
 Datadog::Span.send(:include, Datadog::Analytics::Span)
+Datadog::Span.send(:include, Datadog::ForcedTracing::Span)
