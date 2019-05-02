@@ -1,12 +1,21 @@
+require 'ddtrace/runtime/metrics'
+
 module Datadog
   # SyncWriter flushes both services and traces synchronously
   class SyncWriter
-    attr_reader :transport
+    attr_reader \
+      :runtime_metrics,
+      :transport
 
     def initialize(options = {})
       @transport = options.fetch(:transport) do
         transport_options = options.fetch(:transport_options, {})
         HTTPTransport.new(transport_options)
+      end
+
+      # Runtime metrics
+      @runtime_metrics = options.fetch(:runtime_metrics) do
+        Runtime::Metrics.new
       end
     end
 
