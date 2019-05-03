@@ -32,6 +32,13 @@ module Datadog
           option :middleware, default: true
           option :middleware_names, default: false
           option :template_base_path, default: 'views/'
+
+          option :tracer, default: Datadog.tracer do |value|
+            value.tap do
+              Datadog.configuration[:active_record][:tracer] = value
+              Datadog.configuration[:active_support][:tracer] = value
+            end
+          end
         end
       end
     end

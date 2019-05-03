@@ -9,12 +9,10 @@ class CacheTracingTest < ActionController::TestCase
     @tracer = get_test_tracer
     Datadog.configuration[:rails][:cache_service] = 'rails-cache'
     Datadog.configuration[:rails][:tracer] = @tracer
-    Datadog.configuration[:active_support][:tracer] = @tracer
   end
 
   teardown do
     Datadog.configuration[:rails][:tracer] = @original_tracer
-    Datadog.configuration[:active_support][:tracer] = @original_tracer
   end
 
   test 'cache.read() is properly traced' do
