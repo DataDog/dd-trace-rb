@@ -25,11 +25,6 @@ module Datadog
               require 'ddtrace/contrib/redis/quantize'
 
               patch_redis_client
-
-              # Reload the Rails cache, if defined, so instrumentation is available.
-              if Datadog.registry[:rails] && Datadog.registry[:rails].patcher.patched?
-                Contrib::Rails::Framework.reload_cache_store
-              end
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Redis integration: #{e}")
             end
