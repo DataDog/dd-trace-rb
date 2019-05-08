@@ -103,7 +103,7 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
       expect(sinatra_span.resource).to eq('POST /')
       expect(sinatra_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
       expect(sinatra_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-      expect(sinatra_span.span_type).to eq(Datadog::Ext::HTTP::TYPE)
+      expect(sinatra_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
       expect(sinatra_span.status).to eq(0)
       expect(sinatra_span.parent).to be nil
     end

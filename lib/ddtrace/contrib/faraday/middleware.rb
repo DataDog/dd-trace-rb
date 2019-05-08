@@ -33,7 +33,7 @@ module Datadog
         def annotate!(span, env)
           span.resource = env[:method].to_s.upcase
           span.service = service_name(env)
-          span.span_type = Datadog::Ext::HTTP::TYPE
+          span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
           # Set analytics sample rate
           if analytics_enabled?

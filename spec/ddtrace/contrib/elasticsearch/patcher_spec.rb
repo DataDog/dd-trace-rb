@@ -66,6 +66,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
       it { expect(span.resource).to eq('GET _cluster/health') }
+      it { expect(span.span_type).to eq('elasticsearch') }
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
     end
@@ -80,6 +81,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
       it { expect(span.resource).to eq('GET _cluster/health') }
+      it { expect(span.span_type).to eq('elasticsearch') }
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
     end
@@ -120,6 +122,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
 
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
+      it { expect(span.span_type).to eq('elasticsearch') }
       it { expect(span.resource).to eq('PUT some_index/type/?') }
 
       it { expect(span.parent_id).not_to be_nil }

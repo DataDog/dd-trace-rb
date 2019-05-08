@@ -9,6 +9,7 @@ module Datadog
         QUANTIZE_MAX_CMD_LENGTH = 100
         SERVICE_NAME = 'memcached'.freeze
         SPAN_COMMAND = 'memcached.command'.freeze
+        SPAN_TYPE_COMMAND = 'memcached'.freeze
         TAG_COMMAND = 'memcached.command'.freeze
       end
     end

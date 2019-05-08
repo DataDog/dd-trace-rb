@@ -75,7 +75,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'is http type' do
-            expect(span.span_type).to eq('web')
+            expect(span.span_type).to eq('http')
           end
 
           it 'is named correctly' do
@@ -177,7 +177,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             end
 
             it 'is http type' do
-              expect(span.span_type).to eq('web')
+              expect(span.span_type).to eq('http')
             end
 
             it 'is named correctly' do

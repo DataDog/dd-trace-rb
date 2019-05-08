@@ -78,7 +78,7 @@ module Datadog
                   port = connection.host[:port] if connection
 
                   span.service = pin.service
-                  span.span_type = Datadog::Ext::AppTypes::DB
+                  span.span_type = Datadog::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
 
                   # load JSON for the following fields unless they're already strings
                   params = JSON.generate(params) if params && !params.is_a?(String)

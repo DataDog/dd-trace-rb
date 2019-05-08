@@ -41,7 +41,7 @@ module Datadog
             tracer.trace(
               Ext::SPAN_ENDPOINT_RUN,
               service: service_name,
-              span_type: Datadog::Ext::HTTP::TYPE
+              span_type: Datadog::Ext::HTTP::TYPE_INBOUND
             )
 
             Thread.current[KEY_RUN] = true
@@ -107,7 +107,7 @@ module Datadog
             tracer.trace(
               Ext::SPAN_ENDPOINT_RENDER,
               service: service_name,
-              span_type: Datadog::Ext::HTTP::TYPE
+              span_type: Datadog::Ext::HTTP::TEMPLATE
             )
 
             Thread.current[KEY_RENDER] = true
@@ -147,7 +147,7 @@ module Datadog
             span = tracer.trace(
               Ext::SPAN_ENDPOINT_RUN_FILTERS,
               service: service_name,
-              span_type: Datadog::Ext::HTTP::TYPE
+              span_type: Datadog::Ext::HTTP::TYPE_INBOUND
             )
 
             begin

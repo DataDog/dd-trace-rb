@@ -106,7 +106,7 @@ module Datadog
         def annotate!(span, datum)
           span.resource = datum[:method].to_s.upcase
           span.service = service_name(datum)
-          span.span_type = Datadog::Ext::HTTP::TYPE
+          span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
           # Set analytics sample rate
           if analytics_enabled?
