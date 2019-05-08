@@ -26,32 +26,42 @@ module Datadog
       end
 
       def value_to_id(value, base = 10)
-        # DEV: Convert to a string first in case we were given a non-string
-        value = value.to_s.to_i(base)
+        id = value_to_number(value, base)
+
+        # Return early if we could not parse a number
+        return if id.nil?
 
         # Zero or greater than max allowed value of 2**64
-        return if value.zero? || value > Span::EXTERNAL_MAX_ID
-        value < 0 ? value + 0x1_0000_0000_0000_0000 : value
+        return if id.zero? || id > Span::EXTERNAL_MAX_ID
+        id < 0 ? id + (2**64) : id
       end
 
-      def number(hdr)
-        value_to_number(header(hdr))
+      def number(hdr, base = 10)
+        value_to_number(header(hdr), base)
       end
 
-      def value_to_number(hdr)
+      def value_to_number(value, base = 10)
         # It's important to make a difference between no header,
         # and a header defined to zero.
-        return if hdr.nil?
+        return if value.nil?
+
+        # Be sure we have a string
+        value = value.to_s
+
+        # Lowercase if we want to parse base16 e.g. 3E8 => 3e8
+        # DEV: Ruby will parse `3E8` just fine, but to test
+        #      `num.to_s(base) == value` we need to lowercase
+        value = value.downcase if base == 16
 
         # Convert header to an integer
-        value = hdr.to_i
+        # DEV: Ruby `.to_i` will return `0` if a number could not be parsed
+        num = value.to_i(base)
 
         # Ensure the parsed number is the same as the original string value
         # e.g. We want to make sure to throw away `'nan'.to_i == 0`
-        # DEV: Ruby `.to_i` will return `0` if a number could not be parsed
-        return unless value.to_s == hdr.to_s
+        return unless num.to_s(base) == value
 
-        value
+        num
       end
     end
   end
