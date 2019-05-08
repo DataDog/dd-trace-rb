@@ -4,6 +4,16 @@
 
 ## [Unreleased (beta)]
 
+## [0.23.1] - 2019-05-02
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.23.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.23.0...v0.23.1
+
+### Fixed
+
+- NoMethodError runtime_metrics for SyncWriter (#748)
+
 ## [0.23.0] - 2019-04-30
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.23.0
@@ -786,8 +796,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.0...0.24-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.1...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.1...0.24-dev
+[0.23.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.0...v0.23.1
 [0.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.2...v0.22.0
 [0.21.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.1...v0.21.2
