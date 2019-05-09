@@ -5,7 +5,6 @@ require 'ddtrace/context'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/distributed_headers/datadog'
 
-
 RSpec.describe Datadog::DistributedHeaders::Datadog do
   let(:context) { Datadog.Context.new }
 
@@ -26,12 +25,12 @@ RSpec.describe Datadog::DistributedHeaders::Datadog do
     context 'with trace_id and span_id' do
       let(:context) do
         Datadog::Context.new(trace_id: 10000,
-                            span_id: 20000)
+                             span_id: 20000)
       end
 
       it do
-        is_expected.to eq({Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => '10000',
-                           Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => '20000'})
+        is_expected.to eq(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => '10000',
+                          Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => '20000')
       end
 
       context 'with sampling priority' do
@@ -41,11 +40,10 @@ RSpec.describe Datadog::DistributedHeaders::Datadog do
                                sampling_priority: 1)
         end
 
-
         it do
-          is_expected.to eq({Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => '50000',
-                             Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => '60000',
-                             Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY => '1'})
+          is_expected.to eq(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => '50000',
+                            Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => '60000',
+                            Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY => '1')
         end
 
         context 'with origin' do
@@ -56,12 +54,11 @@ RSpec.describe Datadog::DistributedHeaders::Datadog do
                                  origin: 'synthetics')
           end
 
-
           it do
-            is_expected.to eq({Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => '70000',
-                               Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => '80000',
-                               Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY => '1',
-                               Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN => 'synthetics'})
+            is_expected.to eq(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => '70000',
+                              Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => '80000',
+                              Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY => '1',
+                              Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN => 'synthetics')
           end
         end
       end
@@ -73,11 +70,10 @@ RSpec.describe Datadog::DistributedHeaders::Datadog do
                                origin: 'synthetics')
         end
 
-
         it do
-          is_expected.to eq({Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => '90000',
-                             Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => '100000',
-                             Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN => 'synthetics'})
+          is_expected.to eq(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => '90000',
+                            Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => '100000',
+                            Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN => 'synthetics')
         end
       end
     end
@@ -108,7 +104,6 @@ RSpec.describe Datadog::DistributedHeaders::Datadog do
             env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID) => '20000',
             env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY) => '1' }
         end
-
 
         it { expect(context.trace_id).to eq(10000) }
         it { expect(context.span_id).to eq(20000) }

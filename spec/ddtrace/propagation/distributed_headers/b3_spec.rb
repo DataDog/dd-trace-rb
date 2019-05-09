@@ -5,7 +5,6 @@ require 'ddtrace/context'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/distributed_headers/b3'
 
-
 RSpec.describe Datadog::DistributedHeaders::B3 do
   let(:context) { Datadog.Context.new }
 
@@ -26,12 +25,12 @@ RSpec.describe Datadog::DistributedHeaders::B3 do
     context 'with trace_id and span_id' do
       let(:context) do
         Datadog::Context.new(trace_id: 10000,
-                            span_id: 20000)
+                             span_id: 20000)
       end
 
       it do
-        is_expected.to eq({Datadog::Ext::DistributedTracing::B3_HEADER_TRACE_ID => 10000.to_s(16),
-                           Datadog::Ext::DistributedTracing::B3_HEADER_SPAN_ID => 20000.to_s(16)})
+        is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_TRACE_ID => 10000.to_s(16),
+                          Datadog::Ext::DistributedTracing::B3_HEADER_SPAN_ID => 20000.to_s(16))
       end
 
       [
@@ -48,9 +47,9 @@ RSpec.describe Datadog::DistributedHeaders::B3 do
           end
 
           it do
-            is_expected.to eq({Datadog::Ext::DistributedTracing::B3_HEADER_TRACE_ID => 50000.to_s(16),
-                               Datadog::Ext::DistributedTracing::B3_HEADER_SPAN_ID => 60000.to_s(16),
-                               Datadog::Ext::DistributedTracing::B3_HEADER_SAMPLED => expected.to_s})
+            is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_TRACE_ID => 50000.to_s(16),
+                              Datadog::Ext::DistributedTracing::B3_HEADER_SPAN_ID => 60000.to_s(16),
+                              Datadog::Ext::DistributedTracing::B3_HEADER_SAMPLED => expected.to_s)
           end
         end
       end
@@ -62,10 +61,9 @@ RSpec.describe Datadog::DistributedHeaders::B3 do
                                origin: 'synthetics')
         end
 
-
         it do
-          is_expected.to eq({Datadog::Ext::DistributedTracing::B3_HEADER_TRACE_ID => 90000.to_s(16),
-                             Datadog::Ext::DistributedTracing::B3_HEADER_SPAN_ID => 100000.to_s(16)})
+          is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_TRACE_ID => 90000.to_s(16),
+                            Datadog::Ext::DistributedTracing::B3_HEADER_SPAN_ID => 100000.to_s(16))
         end
       end
     end
@@ -101,8 +99,8 @@ RSpec.describe Datadog::DistributedHeaders::B3 do
         it { expect(context.span_id).to eq(20000) }
         it { expect(context.sampling_priority).to eq(1) }
         it { expect(context.origin).to be_nil }
-
       end
+
       context 'with origin' do
         let(:env) do
           { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_TRACE_ID) => 10000.to_s(16),

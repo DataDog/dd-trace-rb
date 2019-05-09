@@ -5,7 +5,6 @@ require 'ddtrace/context'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/distributed_headers/b3_single'
 
-
 RSpec.describe Datadog::DistributedHeaders::B3Single do
   # Header format:
   #   b3: {TraceId}-{SpanId}-{SamplingState}-{ParentSpanId}
@@ -31,10 +30,10 @@ RSpec.describe Datadog::DistributedHeaders::B3Single do
     context 'with trace_id and span_id' do
       let(:context) do
         Datadog::Context.new(trace_id: 10000,
-                            span_id: 20000)
+                             span_id: 20000)
       end
 
-      it { is_expected.to eq({Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => '2710-4e20'}) }
+      it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => '2710-4e20') }
 
       [
         [-1, 0],
@@ -49,7 +48,7 @@ RSpec.describe Datadog::DistributedHeaders::B3Single do
                                  sampling_priority: value)
           end
 
-          it { is_expected.to eq({Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "c350-ea60-#{expected}"})}
+          it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "c350-ea60-#{expected}") }
         end
       end
 
@@ -60,7 +59,7 @@ RSpec.describe Datadog::DistributedHeaders::B3Single do
                                origin: 'synthetics')
         end
 
-        it { is_expected.to eq({Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => '15f90-186a0'}) }
+        it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => '15f90-186a0') }
       end
     end
   end
