@@ -25,8 +25,7 @@ RSpec.describe Datadog::HTTPPropagator do
 
     context 'given a context and env' do
       context 'without any explicit sampling priority or origin' do
-        let(:context) { Datadog::Context.new(trace_id: 1000,
-                                             span_id: 2000) }
+        let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000) }
 
         it do
           expect(env).to eq('something' => 'alien',
@@ -37,9 +36,7 @@ RSpec.describe Datadog::HTTPPropagator do
 
       context 'with a sampling priority' do
         context 'of 0' do
-          let(:context) { Datadog::Context.new(trace_id: 1000,
-                                               span_id: 2000,
-                                               sampling_priority: 0) }
+          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, sampling_priority: 0) }
 
           it do
             expect(env).to eq('something' => 'alien',
@@ -50,9 +47,7 @@ RSpec.describe Datadog::HTTPPropagator do
         end
 
         context 'as nil' do
-          let(:context) { Datadog::Context.new(trace_id: 1000,
-                                               span_id: 2000,
-                                               sampling_priority: nil) }
+          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, sampling_priority: nil) }
 
           it do
             expect(env).to eq('something' => 'alien',
@@ -64,9 +59,7 @@ RSpec.describe Datadog::HTTPPropagator do
 
       context 'with an origin' do
         context 'of "synthetics"' do
-          let(:context) { Datadog::Context.new(trace_id: 1000,
-                                               span_id: 2000,
-                                               origin: 'synthetics') }
+          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, origin: 'synthetics') }
 
           it do
             expect(env).to eq('something' => 'alien',
@@ -77,9 +70,7 @@ RSpec.describe Datadog::HTTPPropagator do
         end
 
         context 'as nil' do
-          let(:context) { Datadog::Context.new(trace_id: 1000,
-                                               span_id: 2000,
-                                               origin: nil) }
+          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, origin: nil) }
 
           it do
             expect(env).to eq('something' => 'alien',
