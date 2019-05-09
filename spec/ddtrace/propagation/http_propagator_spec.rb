@@ -4,97 +4,87 @@ require 'ddtrace'
 require 'ddtrace/propagation/http_propagator'
 
 RSpec.describe Datadog::HTTPPropagator do
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.configuration.reset_options!
+    example.run
+    Datadog.configuration.reset_options!
+  end
+
   let(:tracer) { get_test_tracer }
 
   describe '#inject!' do
+    let(:context) { nil }
     let(:env) { { 'something' => 'alien' } }
 
+    before(:each) { described_class.inject!(context, env) }
+
     context 'given a nil context' do
-      it do
-        tracer.trace('caller') do |_span|
-          Datadog::HTTPPropagator.inject!(nil, env)
-          expect(env).to eq('something' => 'alien')
-        end
-      end
+      it { expect(env).to eq('something' => 'alien') }
     end
 
     context 'given a context and env' do
       context 'without any explicit sampling priority or origin' do
-        it do
-          tracer.trace('caller') do |span|
-            described_class.inject!(span.context, env)
+        let(:context) { Datadog::Context.new(trace_id: 1000,
+                                             span_id: 2000) }
 
-            expect(env).to eq(
-              'something' => 'alien',
-              'x-datadog-trace-id' => span.trace_id.to_s,
-              'x-datadog-parent-id' => span.span_id.to_s
-            )
-          end
+        it do
+          expect(env).to eq('something' => 'alien',
+                            'x-datadog-trace-id' => '1000',
+                            'x-datadog-parent-id' => '2000')
         end
       end
 
       context 'with a sampling priority' do
         context 'of 0' do
-          it do
-            tracer.trace('caller') do |span|
-              span.context.sampling_priority = 0
-              described_class.inject!(span.context, env)
+          let(:context) { Datadog::Context.new(trace_id: 1000,
+                                               span_id: 2000,
+                                               sampling_priority: 0) }
 
-              expect(env).to eq(
-                'something' => 'alien',
-                'x-datadog-trace-id' => span.trace_id.to_s,
-                'x-datadog-parent-id' => span.span_id.to_s,
-                'x-datadog-sampling-priority' => '0'
-              )
-            end
+          it do
+            expect(env).to eq('something' => 'alien',
+                              'x-datadog-sampling-priority' => '0',
+                              'x-datadog-trace-id' => '1000',
+                              'x-datadog-parent-id' => '2000')
           end
         end
 
         context 'as nil' do
-          it do
-            tracer.trace('caller') do |span|
-              span.context.sampling_priority = nil
-              described_class.inject!(span.context, env)
+          let(:context) { Datadog::Context.new(trace_id: 1000,
+                                               span_id: 2000,
+                                               sampling_priority: nil) }
 
-              expect(env).to eq(
-                'something' => 'alien',
-                'x-datadog-trace-id' => span.trace_id.to_s,
-                'x-datadog-parent-id' => span.span_id.to_s
-              )
-            end
+          it do
+            expect(env).to eq('something' => 'alien',
+                              'x-datadog-trace-id' => '1000',
+                              'x-datadog-parent-id' => '2000')
           end
         end
       end
 
       context 'with an origin' do
         context 'of "synthetics"' do
-          it do
-            tracer.trace('caller') do |span|
-              span.context.origin = 'synthetics'
-              described_class.inject!(span.context, env)
+          let(:context) { Datadog::Context.new(trace_id: 1000,
+                                               span_id: 2000,
+                                               origin: 'synthetics') }
 
-              expect(env).to eq(
-                'something' => 'alien',
-                'x-datadog-trace-id' => span.trace_id.to_s,
-                'x-datadog-parent-id' => span.span_id.to_s,
-                'x-datadog-origin' => 'synthetics'
-              )
-            end
+          it do
+            expect(env).to eq('something' => 'alien',
+                              'x-datadog-origin' => 'synthetics',
+                              'x-datadog-trace-id' => '1000',
+                              'x-datadog-parent-id' => '2000')
           end
         end
 
         context 'as nil' do
-          it do
-            tracer.trace('caller') do |span|
-              span.context.origin = nil
-              described_class.inject!(span.context, env)
+          let(:context) { Datadog::Context.new(trace_id: 1000,
+                                               span_id: 2000,
+                                               origin: nil) }
 
-              expect(env).to eq(
-                'something' => 'alien',
-                'x-datadog-trace-id' => span.trace_id.to_s,
-                'x-datadog-parent-id' => span.span_id.to_s
-              )
-            end
+          it do
+            expect(env).to eq('something' => 'alien',
+                              'x-datadog-trace-id' => '1000',
+                              'x-datadog-parent-id' => '2000')
           end
         end
       end
