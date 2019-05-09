@@ -14,10 +14,8 @@ module Datadog
         def self.version
           if Gem.loaded_specs['aws-sdk']
             Gem.loaded_specs['aws-sdk'].version
-          elsif Gem.loaded_specs['aws-sdk-core'] 
+          elsif Gem.loaded_specs['aws-sdk-core']
             Gem.loaded_specs['aws-sdk-core'].version
-          else
-            nil
           end
         end
 
