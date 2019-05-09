@@ -139,7 +139,11 @@ RSpec.describe Datadog::DistributedHeaders::Headers do
         [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s(16), Datadog::Span::EXTERNAL_MAX_ID + 1],
 
         ['3e8', 1000],
-        ['3E8', 1000]
+        ['3E8', 1000],
+        ['deadbeef', 3735928559],
+        ['10000', 65536],
+
+        ['invalid-base16', nil]
       ].each do |value, expected|
         context value.inspect do
           let(:env) { { env_header('trace_id') => value } }
