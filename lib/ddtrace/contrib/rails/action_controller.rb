@@ -21,7 +21,7 @@ module Datadog
           # trace the execution
           tracer = Datadog.configuration[:rails][:tracer]
           service = Datadog.configuration[:rails][:controller_service]
-          type = Datadog::Ext::HTTP::TYPE
+          type = Datadog::Ext::HTTP::TYPE_INBOUND
           span = tracer.trace(Ext::SPAN_ACTION_CONTROLLER, service: service, span_type: type)
 
           # attach the current span to the tracing context

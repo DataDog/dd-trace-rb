@@ -100,7 +100,7 @@ RSpec.describe GRPC::InterceptionContext do
     context 'when intercepting on the server' do
       shared_examples 'span data contents' do
         specify { expect(span.name).to eq 'grpc.service' }
-        specify { expect(span.span_type).to eq 'http' }
+        specify { expect(span.span_type).to eq 'web' }
         specify { expect(span.service).to eq 'rspec' }
         specify { expect(span.resource).to eq 'my.server.endpoint' }
         specify { expect(span.get_tag('error.stack')).to be_nil }

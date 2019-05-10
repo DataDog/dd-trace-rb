@@ -14,7 +14,7 @@ module Datadog
         class Server < Base
           def trace(keywords)
             options = {
-              span_type: Datadog::Ext::HTTP::TYPE,
+              span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               service: service_name,
               resource: format_resource(keywords[:method])
             }

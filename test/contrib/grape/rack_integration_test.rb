@@ -15,21 +15,21 @@ class TracedRackAPITest < BaseRackAPITest
     rack = spans[2]
 
     assert_equal(render.name, 'grape.endpoint_render')
-    assert_equal(render.span_type, 'http')
+    assert_equal(render.span_type, 'template')
     assert_equal(render.service, 'grape')
     assert_equal(render.resource, 'grape.endpoint_render')
     assert_equal(render.status, 0)
     assert_equal(render.parent, run)
 
     assert_equal(run.name, 'grape.endpoint_run')
-    assert_equal(run.span_type, 'http')
+    assert_equal(run.span_type, 'web')
     assert_equal(run.service, 'grape')
     assert_equal(run.resource, 'RackTestingAPI#success')
     assert_equal(run.status, 0)
     assert_equal(run.parent, rack)
 
     assert_equal(rack.name, 'rack.request')
-    assert_equal(rack.span_type, 'http')
+    assert_equal(rack.span_type, 'web')
     assert_equal(rack.service, 'rack')
     assert_equal(rack.resource, 'RackTestingAPI#success')
     assert_equal(rack.status, 0)
@@ -50,7 +50,7 @@ class TracedRackAPITest < BaseRackAPITest
     rack = spans[2]
 
     assert_equal(render.name, 'grape.endpoint_render')
-    assert_equal(render.span_type, 'http')
+    assert_equal(render.span_type, 'template')
     assert_equal(render.service, 'grape')
     assert_equal(render.resource, 'grape.endpoint_render')
     assert_equal(render.status, 1)
@@ -60,14 +60,14 @@ class TracedRackAPITest < BaseRackAPITest
     assert_equal(render.parent, run)
 
     assert_equal(run.name, 'grape.endpoint_run')
-    assert_equal(run.span_type, 'http')
+    assert_equal(run.span_type, 'web')
     assert_equal(run.service, 'grape')
     assert_equal(run.resource, 'RackTestingAPI#hard_failure')
     assert_equal(run.status, 1)
     assert_equal(run.parent, rack)
 
     assert_equal(rack.name, 'rack.request')
-    assert_equal(rack.span_type, 'http')
+    assert_equal(rack.span_type, 'web')
     assert_equal(rack.service, 'rack')
     assert_equal(rack.resource, 'RackTestingAPI#hard_failure')
     assert_equal(rack.status, 1)
@@ -83,7 +83,7 @@ class TracedRackAPITest < BaseRackAPITest
     rack = spans[0]
 
     assert_equal(rack.name, 'rack.request')
-    assert_equal(rack.span_type, 'http')
+    assert_equal(rack.span_type, 'web')
     assert_equal(rack.service, 'rack')
     assert_equal(rack.resource, 'GET 404')
     assert_equal(rack.status, 0)

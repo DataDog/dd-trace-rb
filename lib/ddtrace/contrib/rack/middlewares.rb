@@ -34,6 +34,7 @@ module Datadog
 
           tracer.trace(
             Ext::SPAN_HTTP_SERVER_QUEUE,
+            span_type: Datadog::Ext::HTTP::TYPE_PROXY,
             start_time: request_start,
             service: configuration[:web_service_name]
           )
@@ -57,7 +58,7 @@ module Datadog
           trace_options = {
             service: configuration[:service_name],
             resource: nil,
-            span_type: Datadog::Ext::HTTP::TYPE
+            span_type: Datadog::Ext::HTTP::TYPE_INBOUND
           }
 
           # start a new request span and attach it to the current Rack environment;

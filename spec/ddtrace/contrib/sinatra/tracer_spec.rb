@@ -55,7 +55,7 @@ RSpec.describe 'Sinatra instrumentation' do
           expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
           expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
           expect(span.get_tag('http.response.headers.content_type')).to eq('text/html;charset=utf-8')
-          expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE)
+          expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
           expect(span.status).to eq(0)
           expect(span.parent).to be nil
         end

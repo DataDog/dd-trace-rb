@@ -44,14 +44,14 @@ class FullStackTest < ActionDispatch::IntegrationTest
     end
 
     assert_equal(request_span.name, 'rack.request')
-    assert_equal(request_span.span_type, 'http')
+    assert_equal(request_span.span_type, 'web')
     assert_equal(request_span.resource, 'TracingController#full')
     assert_equal(request_span.get_tag('http.url'), '/full')
     assert_equal(request_span.get_tag('http.method'), 'GET')
     assert_equal(request_span.get_tag('http.status_code'), '200')
 
     assert_equal(controller_span.name, 'rails.action_controller')
-    assert_equal(controller_span.span_type, 'http')
+    assert_equal(controller_span.span_type, 'web')
     assert_equal(controller_span.resource, 'TracingController#full')
     assert_equal(controller_span.get_tag('rails.route.action'), 'full')
     assert_equal(controller_span.get_tag('rails.route.controller'), 'TracingController')
@@ -105,7 +105,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     refute_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
 
     assert_equal('rack.request', request_span.name)
-    assert_equal(request_span.span_type, 'http')
+    assert_equal(request_span.span_type, 'web')
     assert_equal(request_span.resource, 'TracingController#error')
     assert_equal(request_span.get_tag('http.url'), '/error')
     assert_equal(request_span.get_tag('http.method'), 'GET')
@@ -133,7 +133,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_nil(controller_span.get_tag('error.stack'))
 
     assert_equal('rack.request', request_span.name)
-    assert_equal(request_span.span_type, 'http')
+    assert_equal(request_span.span_type, 'web')
     assert_equal(request_span.resource, 'TracingController#soft_error')
     assert_equal(request_span.get_tag('http.url'), '/soft_error')
     assert_equal(request_span.get_tag('http.method'), 'GET')
@@ -159,7 +159,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     refute_nil(controller_span.get_tag('error.stack')) # error stack is in rack span
 
     assert_equal('rack.request', request_span.name)
-    assert_equal(request_span.span_type, 'http')
+    assert_equal(request_span.span_type, 'web')
     assert_equal(request_span.resource, 'TracingController#sub_error')
     assert_equal(request_span.get_tag('http.url'), '/sub_error')
     assert_equal(request_span.get_tag('http.method'), 'GET')
@@ -213,7 +213,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     request_span = spans[0]
 
     assert_equal('rack.request', request_span.name)
-    assert_equal(request_span.span_type, 'http')
+    assert_equal(request_span.span_type, 'web')
     assert_equal(request_span.resource, 'GET 404')
     assert_equal(request_span.get_tag('http.url'), '/not_existing')
     assert_equal(request_span.get_tag('http.method'), 'GET')

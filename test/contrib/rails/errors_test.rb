@@ -24,7 +24,7 @@ class TracingControllerTest < ActionController::TestCase
     span = spans[0]
     assert_equal(span.name, 'rails.action_controller')
     assert_equal(span.status, 1)
-    assert_equal(span.span_type, 'http')
+    assert_equal(span.span_type, 'web')
     assert_equal(span.resource, 'TracingController#error')
     assert_equal(span.get_tag('rails.route.action'), 'error')
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
@@ -42,7 +42,7 @@ class TracingControllerTest < ActionController::TestCase
 
     span = spans[0]
     assert_equal(span.name, 'rails.action_controller')
-    assert_equal(span.span_type, 'http')
+    assert_equal(span.span_type, 'web')
     assert_equal(span.resource, 'TracingController#not_found')
     assert_equal(span.get_tag('rails.route.action'), 'not_found')
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
@@ -66,7 +66,7 @@ class TracingControllerTest < ActionController::TestCase
 
     assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
-    assert_equal(span_request.span_type, 'http')
+    assert_equal(span_request.span_type, 'web')
     assert_equal(span_request.resource, 'TracingController#missing_template')
     assert_equal(span_request.get_tag('rails.route.action'), 'missing_template')
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
@@ -102,7 +102,7 @@ class TracingControllerTest < ActionController::TestCase
 
     assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
-    assert_equal(span_request.span_type, 'http')
+    assert_equal(span_request.span_type, 'web')
     assert_equal(span_request.resource, 'TracingController#missing_partial')
     assert_equal(span_request.get_tag('rails.route.action'), 'missing_partial')
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
@@ -139,7 +139,7 @@ class TracingControllerTest < ActionController::TestCase
 
     assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
-    assert_equal(span_request.span_type, 'http')
+    assert_equal(span_request.span_type, 'web')
     assert_equal(span_request.resource, 'TracingController#error_template')
     assert_equal(span_request.get_tag('rails.route.action'), 'error_template')
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
@@ -175,7 +175,7 @@ class TracingControllerTest < ActionController::TestCase
 
     assert_equal(span_request.name, 'rails.action_controller')
     assert_equal(span_request.status, 1)
-    assert_equal(span_request.span_type, 'http')
+    assert_equal(span_request.span_type, 'web')
     assert_equal(span_request.resource, 'TracingController#error_partial')
     assert_equal(span_request.get_tag('rails.route.action'), 'error_partial')
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')

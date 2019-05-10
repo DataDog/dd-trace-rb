@@ -138,7 +138,7 @@ RSpec.describe 'Rails request' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('http')
+          expect(span.span_type).to eq('web')
           expect(span.resource).to eq('TestController#index')
           expect(span.get_tag('http.url')).to eq('/')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -179,7 +179,7 @@ RSpec.describe 'Rails request' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('http')
+          expect(span.span_type).to eq('web')
           expect(span.resource).to eq('TestController#index')
           expect(span.get_tag('http.url')).to eq('/')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -240,7 +240,7 @@ RSpec.describe 'Rails request' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('http')
+          expect(span.span_type).to eq('web')
           expect(span.resource).to eq('TestController#index')
 
           expect(span.get_tag('http.url')).to eq('/') if Rails.version >= '3.2'
@@ -287,7 +287,7 @@ RSpec.describe 'Rails request' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('http')
+              expect(span.span_type).to eq('web')
               expect(span.resource).to eq('TestController#index')
               expect(span.get_tag('http.url')).to eq('/')
               expect(span.get_tag('http.method')).to eq('GET')
