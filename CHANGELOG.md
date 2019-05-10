@@ -4,6 +4,18 @@
 
 ## [Unreleased (beta)]
 
+## [0.23.2] - 2019-05-10
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.23.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.23.1...v0.23.2
+
+### Fixed
+
+- Span types for HTTP, web, and some datastore integrations (#751)
+- AWS integration not patching service-level gems (#707, #752) (@alksl, @tonypinder)
+- Rails 6 warning for `parent_name` (#750) (@sinsoku)
+
 ## [0.23.1] - 2019-05-02
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.23.1
@@ -796,8 +808,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.1...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.1...0.24-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.2...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.2...0.24-dev
+[0.23.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.1...v0.23.2
 [0.23.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.0...v0.23.1
 [0.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.21.2...v0.22.0
