@@ -19,7 +19,7 @@ module Datadog
           sampling_priority
         end
 
-        def self.truncate_base16_id(id)
+        def self.truncate_base16_number(value)
           # Lowercase if we want to parse base16 e.g. 3E8 => 3e8
           # DEV: Ruby will parse `3E8` just fine, but to test
           #      `num.to_s(base) == value` we need to lowercase

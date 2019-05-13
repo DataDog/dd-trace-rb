@@ -50,7 +50,7 @@ module Datadog
           value = value.to_s
 
           # If we are parsing base16 number then truncate to 64-bit
-          value = DistributedTracing::Headers::Helpers.truncate_base16_id(value) if base == 16
+          value = DistributedTracing::Headers::Helpers.truncate_base16_number(value) if base == 16
 
           # Convert header to an integer
           # DEV: Ruby `.to_i` will return `0` if a number could not be parsed
