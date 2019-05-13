@@ -84,10 +84,12 @@ RSpec.describe Datadog::DistributedHeaders::Headers do
       # Base 16
       [
         # Larger than we allow
-        [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s(16), nil],
+        # DEV: We truncate to 64-bit for base16
+        [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s(16), 1],
+        [Datadog::Span::EXTERNAL_MAX_ID.to_s(16), nil],
 
         [Datadog::Span::MAX_ID.to_s(16), Datadog::Span::MAX_ID],
-        [Datadog::Span::EXTERNAL_MAX_ID.to_s(16), Datadog::Span::EXTERNAL_MAX_ID],
+        [(Datadog::Span::EXTERNAL_MAX_ID - 1).to_s(16), Datadog::Span::EXTERNAL_MAX_ID - 1],
 
         ['3e8', 1000],
         ['3E8', 1000]
@@ -108,12 +110,17 @@ RSpec.describe Datadog::DistributedHeaders::Headers do
     context 'header value is' do
       [
         [nil, nil],
-        ['0', 0],
         ['value', nil],
         ['867-5309', nil],
         ['ten', nil],
         ['', nil],
         [' ', nil],
+
+        # Sampling priorities
+        ['-1', -1],
+        ['0', 0],
+        ['1', 1],
+        ['2', 2],
 
         # Allowed values
         [Datadog::Span::MAX_ID.to_s, Datadog::Span::MAX_ID],
@@ -121,7 +128,6 @@ RSpec.describe Datadog::DistributedHeaders::Headers do
         [Datadog::Span::EXTERNAL_MAX_ID.to_s, Datadog::Span::EXTERNAL_MAX_ID],
         [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s, Datadog::Span::EXTERNAL_MAX_ID + 1],
         ['-100', -100],
-        ['1', 1],
         ['100', 100],
         ['1000', 1000]
       ].each do |value, expected|
@@ -133,10 +139,13 @@ RSpec.describe Datadog::DistributedHeaders::Headers do
 
       # Base 16
       [
+        # Larger than we allow
+        # DEV: We truncate to 64-bit for base16, so the
+        [Datadog::Span::EXTERNAL_MAX_ID.to_s(16), 0],
+        [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s(16), 1],
+
         [Datadog::Span::MAX_ID.to_s(16), Datadog::Span::MAX_ID],
         [(Datadog::Span::MAX_ID + 1).to_s(16), Datadog::Span::MAX_ID + 1],
-        [Datadog::Span::EXTERNAL_MAX_ID.to_s(16), Datadog::Span::EXTERNAL_MAX_ID],
-        [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s(16), Datadog::Span::EXTERNAL_MAX_ID + 1],
 
         ['3e8', 1000],
         ['3E8', 1000],
