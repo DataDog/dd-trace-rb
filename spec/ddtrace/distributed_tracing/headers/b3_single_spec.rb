@@ -3,9 +3,9 @@ require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/context'
 require 'ddtrace/ext/distributed'
-require 'ddtrace/propagation/distributed_headers/b3_single'
+require 'ddtrace/distributed_tracing/headers/b3_single'
 
-RSpec.describe Datadog::DistributedHeaders::B3Single do
+RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
   # Header format:
   #   b3: {TraceId}-{SpanId}-{SamplingState}-{ParentSpanId}
   # https://github.com/apache/incubator-zipkin-b3-propagation/tree/7c6e9f14d6627832bd80baa87ac7dabee7be23cf#single-header

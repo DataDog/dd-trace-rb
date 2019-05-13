@@ -2,10 +2,10 @@ require 'spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/ext/distributed'
-require 'ddtrace/propagation/distributed_headers/headers'
+require 'ddtrace/distributed_tracing/headers/headers'
 require 'ddtrace/span'
 
-RSpec.describe Datadog::DistributedHeaders::Headers do
+RSpec.describe Datadog::DistributedTracing::Headers::Headers do
   subject(:headers) do
     described_class.new(env)
   end

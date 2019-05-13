@@ -2,18 +2,18 @@ require 'ddtrace/configuration'
 require 'ddtrace/context'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/priority'
-require 'ddtrace/propagation/distributed_headers/b3'
-require 'ddtrace/propagation/distributed_headers/b3_single'
-require 'ddtrace/propagation/distributed_headers/datadog'
+require 'ddtrace/distributed_tracing/headers/b3'
+require 'ddtrace/distributed_tracing/headers/b3_single'
+require 'ddtrace/distributed_tracing/headers/datadog'
 
 module Datadog
   # HTTPPropagator helps extracting and injecting HTTP headers.
   module HTTPPropagator
     include Ext::DistributedTracing
 
-    PROPAGATION_STYLES = { PROPAGATION_STYLE_B3 => DistributedHeaders::B3,
-                           PROPAGATION_STYLE_B3_SINGLE_HEADER => DistributedHeaders::B3Single,
-                           PROPAGATION_STYLE_DATADOG => DistributedHeaders::Datadog }
+    PROPAGATION_STYLES = { PROPAGATION_STYLE_B3 => DistributedTracing::Headers::B3,
+                           PROPAGATION_STYLE_B3_SINGLE_HEADER => DistributedTracing::Headers::B3Single,
+                           PROPAGATION_STYLE_DATADOG => DistributedTracing::Headers::Datadog }
 
     # inject! popolates the env with span ID, trace ID and sampling priority
     def self.inject!(context, env)

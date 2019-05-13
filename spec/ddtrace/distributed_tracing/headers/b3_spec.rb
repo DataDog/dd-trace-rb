@@ -3,9 +3,9 @@ require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/context'
 require 'ddtrace/ext/distributed'
-require 'ddtrace/propagation/distributed_headers/b3'
+require 'ddtrace/distributed_tracing/headers/b3'
 
-RSpec.describe Datadog::DistributedHeaders::B3 do
+RSpec.describe Datadog::DistributedTracing::Headers::B3 do
   let(:context) { Datadog.Context.new }
 
   # Helper to format env header keys
