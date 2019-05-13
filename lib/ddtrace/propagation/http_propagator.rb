@@ -11,6 +11,10 @@ module Datadog
   module HTTPPropagator
     include Ext::DistributedTracing
 
+    PROPAGATION_STYLES = { PROPAGATION_STYLE_B3 => DistributedHeaders::B3,
+                           PROPAGATION_STYLE_B3_SINGLE_HEADER => DistributedHeaders::B3Single,
+                           PROPAGATION_STYLE_DATADOG => DistributedHeaders::Datadog }
+
     # inject! popolates the env with span ID, trace ID and sampling priority
     def self.inject!(context, env)
       # Prevent propagation from being attempted if context provided is nil.
@@ -19,19 +23,10 @@ module Datadog
         return
       end
 
-      # Check if they want to propagate with B3 headers
-      if ::Datadog.configuration.propagation_inject_style.include?(PROPAGATION_STYLE_B3)
-        DistributedHeaders::B3.inject!(context, env)
-      end
-
-      # Check if they want to propagate with B3 single header
-      if ::Datadog.configuration.propagation_inject_style.include?(PROPAGATION_STYLE_B3_SINGLE_HEADER)
-        DistributedHeaders::B3Single.inject!(context, env)
-      end
-
-      # Check if they want to propagate with Datadog headers
-      if ::Datadog.configuration.propagation_inject_style.include?(PROPAGATION_STYLE_DATADOG)
-        DistributedHeaders::Datadog.inject!(context, env)
+      # Inject all configured propagation styles
+      ::Datadog.configuration.propagation_inject_style.each do |style|
+        propagator = PROPAGATION_STYLES[style]
+        propagator.inject!(context, env) unless propagator.nil?
       end
     end
 
@@ -40,22 +35,20 @@ module Datadog
     def self.extract(env)
       context = nil
       dd_context = nil
-      ::Datadog.configuration.propagation_extract_style.each do |style|
-        extracted_context = nil
-        case style
-        when PROPAGATION_STYLE_DATADOG
-          extracted_context = DistributedHeaders::Datadog.extract(env)
-          # Keep track of the Datadog extract context, we want to return
-          #   this one if we have one
-          dd_context = extracted_context
-        when PROPAGATION_STYLE_B3
-          extracted_context = DistributedHeaders::B3.extract(env)
-        when PROPAGATION_STYLE_B3_SINGLE_HEADER
-          extracted_context = DistributedHeaders::B3Single.extract(env)
-        end
 
+      ::Datadog.configuration.propagation_extract_style.each do |style|
+        propagator = PROPAGATION_STYLES[style]
+        next if propagator.nil?
+
+        # Extract context
+        # DEV: `propagator.extract` will return `nil`, where `HTTPPropagator#extract` will not
+        extracted_context = propagator.extract(env)
         # Skip this style if no valid headers were found
         next if extracted_context.nil?
+
+        # Keep track of the Datadog extract context, we want to return
+        #   this one if we have one
+        dd_context = extracted_context if extracted_context and style == PROPAGATION_STYLE_DATADOG
 
         # No previously extracted context, use the one we just extracted
         if context.nil?
