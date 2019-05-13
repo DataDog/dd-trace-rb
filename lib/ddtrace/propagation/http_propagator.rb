@@ -13,7 +13,7 @@ module Datadog
 
     PROPAGATION_STYLES = { PROPAGATION_STYLE_B3 => DistributedTracing::Headers::B3,
                            PROPAGATION_STYLE_B3_SINGLE_HEADER => DistributedTracing::Headers::B3Single,
-                           PROPAGATION_STYLE_DATADOG => DistributedTracing::Headers::Datadog }
+                           PROPAGATION_STYLE_DATADOG => DistributedTracing::Headers::Datadog }.freeze
 
     # inject! popolates the env with span ID, trace ID and sampling priority
     def self.inject!(context, env)
@@ -48,7 +48,7 @@ module Datadog
 
         # Keep track of the Datadog extract context, we want to return
         #   this one if we have one
-        dd_context = extracted_context if extracted_context and style == PROPAGATION_STYLE_DATADOG
+        dd_context = extracted_context if extracted_context && style == PROPAGATION_STYLE_DATADOG
 
         # No previously extracted context, use the one we just extracted
         if context.nil?
@@ -58,7 +58,9 @@ module Datadog
           # DEV: This will return from `self.extract` not this `each` block
           msg = "#{context.trace_id} != #{extracted_context.trace_id} && #{context.span_id} != #{extracted_context.span_id}"
           ::Datadog::Tracer.log.debug("Cannot extract context from HTTP: extracted contexts differ, #{msg}".freeze)
-          return ::Datadog::Context.new unless context.trace_id == extracted_context.trace_id && context.span_id == extracted_context.span_id
+          unless context.trace_id == extracted_context.trace_id && context.span_id == extracted_context.span_id
+            return ::Datadog::Context.new
+          end
         end
       end
 

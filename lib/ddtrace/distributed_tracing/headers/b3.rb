@@ -17,7 +17,7 @@ module Datadog
           env[B3_HEADER_SPAN_ID] = context.span_id.to_s(16)
 
           unless context.sampling_priority.nil?
-            sampling_priority = DistributedTracing::Headers::Helpers::clamp_sampling_priority(context.sampling_priority)
+            sampling_priority = DistributedTracing::Headers::Helpers.clamp_sampling_priority(context.sampling_priority)
             env[B3_HEADER_SAMPLED] = sampling_priority.to_s
           end
         end

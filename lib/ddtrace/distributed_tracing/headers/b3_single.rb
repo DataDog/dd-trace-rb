@@ -21,7 +21,7 @@ module Datadog
           header = "#{context.trace_id.to_s(16)}-#{context.span_id.to_s(16)}"
 
           unless context.sampling_priority.nil?
-            sampling_priority = DistributedTracing::Headers::Helpers::clamp_sampling_priority(context.sampling_priority)
+            sampling_priority = DistributedTracing::Headers::Helpers.clamp_sampling_priority(context.sampling_priority)
             header += "-#{sampling_priority}"
           end
 
