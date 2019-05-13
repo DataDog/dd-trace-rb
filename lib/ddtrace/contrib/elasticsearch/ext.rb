@@ -8,6 +8,7 @@ module Datadog
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_ELASTICSEARCH_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'elasticsearch'.freeze
         SPAN_QUERY = 'elasticsearch.query'.freeze
+        SPAN_TYPE_QUERY = 'elasticsearch'.freeze
         TAG_BODY = 'elasticsearch.body'.freeze
         TAG_METHOD = 'elasticsearch.method'.freeze
         TAG_PARAMS = 'elasticsearch.params'.freeze

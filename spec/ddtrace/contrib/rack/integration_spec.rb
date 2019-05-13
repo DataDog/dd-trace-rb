@@ -51,7 +51,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('http')
+          expect(span.span_type).to eq('web')
           expect(span.service).to eq('rack')
           expect(span.resource).to eq('GET 404')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -86,7 +86,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('http')
+            expect(span.span_type).to eq('web')
             expect(span.service).to eq('rack')
             expect(span.resource).to eq('GET 200')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -103,7 +103,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('http')
+            expect(span.span_type).to eq('web')
             expect(span.service).to eq('rack')
             expect(span.resource).to eq('GET 200')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -125,7 +125,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('http')
+              expect(span.span_type).to eq('web')
               expect(span.service).to eq('rack')
               expect(span.resource).to eq('GET 200')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -145,7 +145,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('http')
+              expect(span.span_type).to eq('web')
               expect(span.service).to eq('rack')
               expect(span.resource).to eq('GET 200')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -166,7 +166,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('http')
+            expect(span.span_type).to eq('web')
             expect(span.service).to eq('rack')
             expect(span.resource).to eq('GET 200')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -191,7 +191,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('http')
+            expect(span.span_type).to eq('web')
             expect(span.service).to eq('custom-rack')
             expect(span.resource).to eq('GET 200')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -212,7 +212,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('http')
+            expect(span.span_type).to eq('web')
             expect(span.service).to eq('rack')
             expect(span.resource).to eq('POST 200')
             expect(span.get_tag('http.method')).to eq('POST')
@@ -245,7 +245,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('http')
+          expect(span.span_type).to eq('web')
           expect(span.service).to eq('rack')
           expect(span.resource).to eq('GET 400')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -277,7 +277,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('http')
+          expect(span.span_type).to eq('web')
           expect(span.service).to eq('rack')
           expect(span.resource).to eq('GET 500')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -311,7 +311,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('http')
+            expect(span.span_type).to eq('web')
             expect(span.service).to eq('rack')
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -346,7 +346,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('http')
+            expect(span.span_type).to eq('web')
             expect(span.service).to eq('rack')
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -396,7 +396,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('http')
+              expect(span.span_type).to eq('web')
               expect(span.service).to eq('rack')
               expect(span.resource).to eq('GET /app/')
               expect(span.get_tag('http.method')).to eq('GET_V2')
@@ -438,7 +438,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('http')
+              expect(span.span_type).to eq('web')
               expect(span.service).to eq('rack')
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -473,7 +473,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('http')
+              expect(span.span_type).to eq('web')
               expect(span.service).to eq('rack')
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -596,7 +596,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('http')
+              expect(span.span_type).to eq('web')
               expect(span.service).to eq('rack')
               expect(span.resource).to eq('GET 200')
               expect(span.get_tag('http.method')).to eq('GET')

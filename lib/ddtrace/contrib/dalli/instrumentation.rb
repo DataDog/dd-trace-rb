@@ -1,6 +1,6 @@
-require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
+require 'ddtrace/contrib/dalli/ext'
 require 'ddtrace/contrib/dalli/quantize'
 
 module Datadog
@@ -35,7 +35,7 @@ module Datadog
             tracer.trace(Datadog::Contrib::Dalli::Ext::SPAN_COMMAND) do |span|
               span.resource = op.to_s.upcase
               span.service = datadog_configuration[:service_name]
-              span.span_type = Datadog::Ext::AppTypes::CACHE
+              span.span_type = Datadog::Contrib::Dalli::Ext::SPAN_TYPE_COMMAND
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])

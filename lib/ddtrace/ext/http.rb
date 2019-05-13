@@ -6,7 +6,9 @@ module Datadog
       METHOD = 'http.method'.freeze
       STATUS_CODE = 'http.status_code'.freeze
       TEMPLATE = 'template'.freeze
-      TYPE = 'http'.freeze
+      TYPE_INBOUND = 'web'.freeze
+      TYPE_OUTBOUND = 'http'.freeze
+      TYPE_PROXY = 'proxy'.freeze
       URL = 'http.url'.freeze
 
       # General header functionality

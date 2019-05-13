@@ -12,7 +12,11 @@ module Datadog
         register_as :aws, auto_patch: true
 
         def self.version
-          Gem.loaded_specs['aws-sdk'] && Gem.loaded_specs['aws-sdk'].version
+          if Gem.loaded_specs['aws-sdk']
+            Gem.loaded_specs['aws-sdk'].version
+          elsif Gem.loaded_specs['aws-sdk-core']
+            Gem.loaded_specs['aws-sdk-core'].version
+          end
         end
 
         def self.present?

@@ -23,7 +23,7 @@ class TracingControllerTest < ActionController::TestCase
 
     span = spans[0]
     assert_equal(span.name, 'rails.action_controller')
-    assert_equal(span.span_type, 'http')
+    assert_equal(span.span_type, 'web')
     assert_equal(span.resource, 'TracingController#index')
     assert_equal(span.get_tag('rails.route.action'), 'index')
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
@@ -258,7 +258,7 @@ class TracingControllerTest < ActionController::TestCase
 
     brother_span, parent_span, controller_span, = spans
     assert_equal('rails.action_controller', controller_span.name)
-    assert_equal('http', controller_span.span_type)
+    assert_equal('web', controller_span.span_type)
     assert_equal('TracingController#index', controller_span.resource)
     assert_equal('index', controller_span.get_tag('rails.route.action'))
     assert_equal('TracingController', controller_span.get_tag('rails.route.controller'))

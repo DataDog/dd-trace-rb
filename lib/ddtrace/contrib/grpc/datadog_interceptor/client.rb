@@ -15,7 +15,7 @@ module Datadog
             keywords[:metadata] ||= {}
 
             options = {
-              span_type: Datadog::Ext::HTTP::TYPE,
+              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
               service: service_name,
               resource: format_resource(keywords[:method])
             }

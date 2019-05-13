@@ -63,7 +63,7 @@ module Datadog
             pin.tracer.trace(Ext::SPAN_REQUEST) do |span|
               begin
                 span.service = pin.service
-                span.span_type = Datadog::Ext::HTTP::TYPE
+                span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
                 if pin.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)

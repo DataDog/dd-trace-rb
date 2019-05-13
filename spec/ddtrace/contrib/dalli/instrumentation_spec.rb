@@ -48,6 +48,7 @@ RSpec.describe 'Dalli instrumentation' do
       expect(all_spans.size).to eq(1)
       expect(span.service).to eq('memcached')
       expect(span.name).to eq('memcached.command')
+      expect(span.span_type).to eq('memcached')
       expect(span.resource).to eq('SET')
       expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
       expect(span.get_tag('out.host')).to eq(test_host)
