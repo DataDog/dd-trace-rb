@@ -19,35 +19,14 @@ RSpec.describe Datadog::HTTPPropagator do
 
     before(:each) { described_class.inject!(context, env) }
 
-    context 'given a nil context' do
-      it { expect(env).to eq('something' => 'alien') }
-    end
-
-    context 'given a context and env' do
-      context 'without any explicit sampling priority or origin' do
-        let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000) }
-
-        it do
-          expect(env).to eq('something' => 'alien',
-                            'x-datadog-trace-id' => '1000',
-                            'x-datadog-parent-id' => '2000')
-        end
+    context 'with default settings' do
+      context 'given a nil context' do
+        it { expect(env).to eq('something' => 'alien') }
       end
 
-      context 'with a sampling priority' do
-        context 'of 0' do
-          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, sampling_priority: 0) }
-
-          it do
-            expect(env).to eq('something' => 'alien',
-                              'x-datadog-sampling-priority' => '0',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
-          end
-        end
-
-        context 'as nil' do
-          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, sampling_priority: nil) }
+      context 'given a context and env' do
+        context 'without any explicit sampling priority or origin' do
+          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000) }
 
           it do
             expect(env).to eq('something' => 'alien',
@@ -55,27 +34,50 @@ RSpec.describe Datadog::HTTPPropagator do
                               'x-datadog-parent-id' => '2000')
           end
         end
-      end
 
-      context 'with an origin' do
-        context 'of "synthetics"' do
-          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, origin: 'synthetics') }
+        context 'with a sampling priority' do
+          context 'of 0' do
+            let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, sampling_priority: 0) }
 
-          it do
-            expect(env).to eq('something' => 'alien',
-                              'x-datadog-origin' => 'synthetics',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+            it do
+              expect(env).to eq('something' => 'alien',
+                                'x-datadog-sampling-priority' => '0',
+                                'x-datadog-trace-id' => '1000',
+                                'x-datadog-parent-id' => '2000')
+            end
+          end
+
+          context 'as nil' do
+            let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, sampling_priority: nil) }
+
+            it do
+              expect(env).to eq('something' => 'alien',
+                                'x-datadog-trace-id' => '1000',
+                                'x-datadog-parent-id' => '2000')
+            end
           end
         end
 
-        context 'as nil' do
-          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, origin: nil) }
+        context 'with an origin' do
+          context 'of "synthetics"' do
+            let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, origin: 'synthetics') }
 
-          it do
-            expect(env).to eq('something' => 'alien',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+            it do
+              expect(env).to eq('something' => 'alien',
+                                'x-datadog-origin' => 'synthetics',
+                                'x-datadog-trace-id' => '1000',
+                                'x-datadog-parent-id' => '2000')
+            end
+          end
+
+          context 'as nil' do
+            let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, origin: nil) }
+
+            it do
+              expect(env).to eq('something' => 'alien',
+                                'x-datadog-trace-id' => '1000',
+                                'x-datadog-parent-id' => '2000')
+            end
           end
         end
       end
@@ -97,7 +99,7 @@ RSpec.describe Datadog::HTTPPropagator do
     end
 
     context 'given an env containing' do
-      context 'only trace ID and parent' do
+      context 'datadog trace id and parent id' do
         let(:env) do
           {
             'HTTP_X_DATADOG_TRACE_ID' => '123',
@@ -108,41 +110,278 @@ RSpec.describe Datadog::HTTPPropagator do
         it do
           expect(context.trace_id).to eq(123)
           expect(context.span_id).to eq(456)
-          expect(context.sampling_priority).to be nil
+          expect(context.sampling_priority).to be_nil
+          expect(context.origin).to be_nil
+        end
+
+        context 'and sampling priority' do
+          let(:env) do
+            {
+              'HTTP_X_DATADOG_TRACE_ID' => '7',
+              'HTTP_X_DATADOG_PARENT_ID' => '8',
+              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '0'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to eq(7)
+            expect(context.span_id).to eq(8)
+            expect(context.sampling_priority).to eq(0)
+            expect(context.origin).to be_nil
+          end
+
+          context 'and origin' do
+            let(:env) do
+              {
+                'HTTP_X_DATADOG_TRACE_ID' => '7',
+                'HTTP_X_DATADOG_PARENT_ID' => '8',
+                'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '0',
+                'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
+              }
+            end
+
+            it do
+              expect(context.trace_id).to eq(7)
+              expect(context.span_id).to eq(8)
+              expect(context.sampling_priority).to be(0)
+              expect(context.origin).to eq('synthetics')
+            end
+          end
+        end
+
+        context 'and origin' do
+          let(:env) do
+            {
+              'HTTP_X_DATADOG_TRACE_ID' => '7',
+              'HTTP_X_DATADOG_PARENT_ID' => '8',
+              'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to eq(7)
+            expect(context.span_id).to eq(8)
+            expect(context.sampling_priority).to be_nil
+            expect(context.origin).to eq('synthetics')
+          end
         end
       end
 
-      context 'trace ID, parent, and sampling priority' do
+      context 'B3 trace id and parent id' do
         let(:env) do
           {
-            'HTTP_X_DATADOG_TRACE_ID' => '7',
-            'HTTP_X_DATADOG_PARENT_ID' => '8',
-            'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '0'
+            'HTTP_X_B3_TRACEID' => '00ef01',
+            'HTTP_X_B3_SPANID' => '011ef0'
           }
         end
 
         it do
-          expect(context.trace_id).to eq(7)
-          expect(context.span_id).to eq(8)
-          expect(context.sampling_priority).to eq(0)
+          expect(context.trace_id).to eq(61185)
+          expect(context.span_id).to eq(73456)
+          expect(context.sampling_priority).to be_nil
+        end
+
+        context 'and sampling priority' do
+          let(:env) do
+            {
+              'HTTP_X_B3_TRACEID' => '00ef01',
+              'HTTP_X_B3_SPANID' => '011ef0',
+              'HTTP_X_B3_SAMPLED' => '0'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to eq(61185)
+            expect(context.span_id).to eq(73456)
+            expect(context.sampling_priority).to eq(0)
+          end
         end
       end
 
-      context 'trace ID, parent, sampling priority, and origin' do
+      context 'B3 single trace id and parent id' do
         let(:env) do
           {
-            'HTTP_X_DATADOG_TRACE_ID' => '7',
-            'HTTP_X_DATADOG_PARENT_ID' => '8',
-            'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '0',
-            'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
+            'HTTP_B3' => '00ef01-011ef0'
           }
         end
 
         it do
-          expect(context.trace_id).to eq(7)
-          expect(context.span_id).to eq(8)
-          expect(context.sampling_priority).to eq(0)
-          expect(context.origin).to eq('synthetics')
+          expect(context.trace_id).to eq(61185)
+          expect(context.span_id).to eq(73456)
+          expect(context.sampling_priority).to be_nil
+        end
+
+        context 'and sampling priority' do
+          let(:env) do
+            {
+              'HTTP_B3' => '00ef01-011ef0-0'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to eq(61185)
+            expect(context.span_id).to eq(73456)
+            expect(context.sampling_priority).to eq(0)
+          end
+        end
+      end
+
+      context 'datadog, and b3 header' do
+        let(:env) do
+          {
+            'HTTP_X_DATADOG_TRACE_ID' => '61185',
+            'HTTP_X_DATADOG_PARENT_ID' => '73456',
+            'HTTP_X_B3_TRACEID' => '00ef01',
+            'HTTP_X_B3_SPANID' => '011ef0'
+          }
+        end
+
+        it do
+          expect(context.trace_id).to eq(61185)
+          expect(context.span_id).to eq(73456)
+          expect(context.sampling_priority).to be_nil
+        end
+
+        context 'and sampling priority' do
+          let(:env) do
+            {
+              'HTTP_X_DATADOG_TRACE_ID' => '61185',
+              'HTTP_X_DATADOG_PARENT_ID' => '73456',
+              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '1',
+              'HTTP_X_B3_TRACEID' => '00ef01',
+              'HTTP_X_B3_SPANID' => '011ef0',
+              'HTTP_X_B3_SAMPLED' => '1'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to eq(61185)
+            expect(context.span_id).to eq(73456)
+            expect(context.sampling_priority).to be(1)
+          end
+        end
+
+        context 'with mismatched values' do
+          let(:env) do
+            {
+              'HTTP_X_DATADOG_TRACE_ID' => '7',
+              'HTTP_X_DATADOG_PARENT_ID' => '8',
+              'HTTP_X_B3_TRACEID' => '00ef01',
+              'HTTP_X_B3_SPANID' => '011ef0'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to be_nil
+            expect(context.span_id).to be_nil
+            expect(context.sampling_priority).to be_nil
+          end
+        end
+      end
+
+      context 'datadog, b3, and b3 single header' do
+        let(:env) do
+          {
+            'HTTP_X_DATADOG_TRACE_ID' => '61185',
+            'HTTP_X_DATADOG_PARENT_ID' => '73456',
+            'HTTP_X_B3_TRACEID' => '00ef01',
+            'HTTP_X_B3_SPANID' => '011ef0',
+            'HTTP_B3' => '00ef01-011ef0'
+          }
+        end
+
+        it do
+          expect(context.trace_id).to eq(61185)
+          expect(context.span_id).to eq(73456)
+          expect(context.sampling_priority).to be_nil
+        end
+
+        context 'and sampling priority' do
+          let(:env) do
+            {
+              'HTTP_X_DATADOG_TRACE_ID' => '61185',
+              'HTTP_X_DATADOG_PARENT_ID' => '73456',
+              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '1',
+              'HTTP_X_B3_TRACEID' => '00ef01',
+              'HTTP_X_B3_SPANID' => '011ef0',
+              'HTTP_X_B3_SAMPLED' => '1',
+              'HTTP_B3' => '00ef01-011ef0-1'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to eq(61185)
+            expect(context.span_id).to eq(73456)
+            expect(context.sampling_priority).to be(1)
+          end
+        end
+
+        context 'with mismatched values' do
+          let(:env) do
+            # DEV: We only need 1 to be mismatched
+            {
+              'HTTP_X_DATADOG_TRACE_ID' => '7',
+              'HTTP_X_DATADOG_PARENT_ID' => '8',
+              'HTTP_X_B3_TRACEID' => '00ef01',
+              'HTTP_X_B3_SPANID' => '011ef0',
+              'HTTP_B3' => '00ef01-011ef0'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to be_nil
+            expect(context.span_id).to be_nil
+            expect(context.sampling_priority).to be_nil
+          end
+        end
+      end
+
+      context 'datadog, and b3 single header' do
+        let(:env) do
+          {
+            'HTTP_X_DATADOG_TRACE_ID' => '61185',
+            'HTTP_X_DATADOG_PARENT_ID' => '73456',
+            'HTTP_B3' => '00ef01-011ef0'
+          }
+        end
+
+        it do
+          expect(context.trace_id).to eq(61185)
+          expect(context.span_id).to eq(73456)
+          expect(context.sampling_priority).to be_nil
+        end
+
+        context 'and sampling priority' do
+          let(:env) do
+            {
+              'HTTP_X_DATADOG_TRACE_ID' => '61185',
+              'HTTP_X_DATADOG_PARENT_ID' => '73456',
+              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '1',
+              'HTTP_B3' => '00ef01-011ef0-1'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to eq(61185)
+            expect(context.span_id).to eq(73456)
+            expect(context.sampling_priority).to be(1)
+          end
+        end
+
+        context 'with mismatched values' do
+          let(:env) do
+            {
+              'HTTP_X_DATADOG_TRACE_ID' => '7',
+              'HTTP_X_DATADOG_PARENT_ID' => '8',
+              'HTTP_B3' => '00ef01-011ef0'
+            }
+          end
+
+          it do
+            expect(context.trace_id).to be_nil
+            expect(context.span_id).to be_nil
+            expect(context.sampling_priority).to be_nil
+          end
         end
       end
     end
