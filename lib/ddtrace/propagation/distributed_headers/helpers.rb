@@ -4,9 +4,9 @@ require 'ddtrace/ext/priority'
 
 module Datadog
   module DistributedHeaders
-    # Base provides common methods for distributed header helper classes
-    module Base
-      def clamp_sampling_priority(sampling_priority)
+    module Helpers
+      # Base provides common methods for distributed header helper classes
+      def self.clamp_sampling_priority(sampling_priority)
         # B3 doesn't have our -1 (USER_REJECT) and 2 (USER_KEEP) priorities so convert to acceptable 0/1
         if sampling_priority < 0
           sampling_priority = Ext::Priority::AUTO_REJECT

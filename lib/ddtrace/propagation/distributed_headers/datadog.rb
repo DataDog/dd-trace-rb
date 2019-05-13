@@ -1,15 +1,11 @@
 require 'ddtrace/ext/distributed'
-require 'ddtrace/propagation/distributed_headers/base'
 require 'ddtrace/propagation/distributed_headers/headers'
 
 module Datadog
   module DistributedHeaders
     # Datadog provides helpers to inject or extract headers for Datadog style headers
-    class Datadog
+    module Datadog
       include Ext::DistributedTracing
-      class << self
-        include Base
-      end
 
       def self.inject!(context, env)
         return if context.nil?

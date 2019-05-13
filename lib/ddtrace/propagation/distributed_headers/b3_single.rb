@@ -1,15 +1,12 @@
 require 'ddtrace/ext/distributed'
-require 'ddtrace/propagation/distributed_headers/base'
 require 'ddtrace/propagation/distributed_headers/headers'
+require 'ddtrace/propagation/distributed_headers/helpers'
 
 module Datadog
   module DistributedHeaders
     # B3Single provides helpers to inject or extract headers for B3 single header style headers
     module B3Single
       include Ext::DistributedTracing
-      class << self
-        include Base
-      end
 
       def self.inject!(context, env)
         return if context.nil?
@@ -23,7 +20,7 @@ module Datadog
         header = "#{context.trace_id.to_s(16)}-#{context.span_id.to_s(16)}"
 
         unless context.sampling_priority.nil?
-          sampling_priority = clamp_sampling_priority(context.sampling_priority)
+          sampling_priority = DistributedHeaders::Helpers::clamp_sampling_priority(context.sampling_priority)
           header += "-#{sampling_priority}"
         end
 
