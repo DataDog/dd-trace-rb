@@ -55,6 +55,12 @@ module Datadog
         yield(self) if block_given?
       end
 
+      def distributed_tracing
+        # TODO: Move distributed tracing configuration to it's own Settings sub-class
+        # DEV: We do this to fake `Datadog.configuration.distributed_tracing.propagation_inject_style`
+        self
+      end
+
       def runtime_metrics(options = nil)
         runtime_metrics = get_option(:tracer).writer.runtime_metrics
         return runtime_metrics if options.nil?
