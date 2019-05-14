@@ -10,7 +10,9 @@ module Datadog
         include Datadog::Configuration::Options
 
         option :service_name
-        option :tracer, default: Datadog.tracer
+        option :tracer,
+               default: -> { Datadog.tracer },
+               lazy: true
         option :analytics_enabled, default: false
         option :analytics_sample_rate, default: 1.0
 
