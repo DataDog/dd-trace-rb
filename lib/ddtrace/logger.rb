@@ -44,7 +44,6 @@ module Datadog
         end
       end
 
-
       # We are in debug mode, or this is an error, add stack trace to help debugging
       if debug? || severity >= ::Logger::ERROR
         c = caller if c.nil?
