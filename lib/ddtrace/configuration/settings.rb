@@ -1,4 +1,5 @@
 require 'ddtrace/ext/analytics'
+require 'ddtrace/ext/logging'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/configuration/options'
 
@@ -19,6 +20,10 @@ module Datadog
 
       option  :runtime_metrics_enabled,
               default: -> { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) },
+              lazy: true
+
+      option  :logging_rate,
+              default: -> { env_to_int(Ext::Logging::RATE_ENV, 60) },
               lazy: true
 
       option :tracer, default: Tracer.new
@@ -61,3 +66,4 @@ module Datadog
     end
   end
 end
+\

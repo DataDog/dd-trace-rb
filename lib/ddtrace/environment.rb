@@ -10,6 +10,10 @@ module Datadog
       def env_to_float(var, default = nil)
         ENV.key?(var) ? ENV[var].to_f : default
       end
+
+      def env_to_int(var, default = nil)
+        ENV.key?(var) ? ENV[var].to_i : default
+      end
     end
   end
 end
