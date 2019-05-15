@@ -11,9 +11,13 @@ For details about contributing, check out the [development guide][development do
 
 For descriptions of terminology used in APM, take a look at the [official documentation][visualization docs].
 
+For contributing, checkout the [contribution guidelines][contribution docs] and [development guide][development docs].
+
 [setup docs]: https://docs.datadoghq.com/tracing/setup/ruby/
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/README.md#development
 [visualization docs]: https://docs.datadoghq.com/tracing/visualization/
+[contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
+[development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
 
 ## Table of Contents
 
