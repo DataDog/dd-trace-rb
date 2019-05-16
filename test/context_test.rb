@@ -222,17 +222,17 @@ class ContextTest < Minitest::Test
       case i
       when 0
         assert_match(
-          /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) root span parent closed but has 2 unfinished spans:/,
+          /D,.*DEBUG -- \[ddtrace\].*\) root span parent closed but has 2 unfinished spans:/,
           l
         )
       when 1
         assert_match(
-          /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) unfinished span: Span\(name:child_1/,
+          /D,.*DEBUG -- \[ddtrace\].*\) unfinished span: Span\(name:child_1/,
           l
         )
       when 2
         assert_match(
-          /D,.*DEBUG -- ddtrace: \[ddtrace\].*\) unfinished span: Span\(name:child_2/,
+          /D,.*DEBUG -- \[ddtrace\].*\) unfinished span: Span\(name:child_2/,
           l
         )
       end
