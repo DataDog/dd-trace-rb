@@ -4,6 +4,16 @@
 
 ## [Unreleased (beta)]
 
+## [0.23.3] - 2019-05-16
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.23.3
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.23.2...v0.23.3
+
+### Fixed
+
+- Integrations initializing tracer at load time (#756)
+
 ## [0.23.2] - 2019-05-10
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.23.2
@@ -808,8 +818,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.2...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.2...0.24-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.3...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.3...0.24-dev
+[0.23.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.2...v0.23.3
 [0.23.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.1...v0.23.2
 [0.23.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.0...v0.23.1
 [0.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.22.0...v0.23.0
