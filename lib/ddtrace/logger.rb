@@ -17,6 +17,7 @@ module Datadog
     end
 
     def add(severity, message = nil, progname = nil, &block)
+      where = ''
       c = nil
       skipped_messages = ''
 
