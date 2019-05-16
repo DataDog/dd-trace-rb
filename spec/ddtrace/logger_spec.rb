@@ -22,7 +22,8 @@ RSpec.describe Datadog::Logger do
   default_logger = Datadog::Tracer.log
   default_logging_rate = Datadog.configuration.logging_rate
 
-  subject(:lines) { buf.string.lines }
+  # DEV: In older versions of Ruby `buf.string.lines` is an Enumerator and not an array
+  let(:lines) { buf.string.lines.to_a }
   let(:logger) do
     logger = described_class.new(buf)
     logger.level = log_level
