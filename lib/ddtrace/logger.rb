@@ -65,11 +65,11 @@ module Datadog
 
       if message.nil?
         if block_given?
-          super(severity, "#{message}#{skipped_messages}", progname) do
-            "[#{self.progname}] #{where}#{yield}"
+          super(severity, message, progname) do
+            "[#{self.progname}] #{where}#{yield}#{skipped_messages}"
           end
         else
-          super(severity, "#{message}#{skipped_messages}", "[#{self.progname}] #{where}#{progname}")
+          super(severity, message, "[#{self.progname}] #{where}#{progname}#{skipped_messages}")
         end
       else
         super(severity, "[#{self.progname}] #{where}#{message}#{skipped_messages}")

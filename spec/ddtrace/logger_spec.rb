@@ -81,7 +81,7 @@ RSpec.describe Datadog::Logger do
         it do
           expect(lines[0]).to(
             match(
-              %r{D, \[[0-9:T.-]+ #[0-9]+\] DEBUG -- \[ddtrace\] \([\/a-z_]+\.rb:[0-9]+:in `log_debug'\) debug message: \n}
+              %r{D, \[[0-9:T.-]+ #[0-9]+\] DEBUG -- ddtrace: \[ddtrace\] \([\/a-z_]+\.rb:[0-9]+:in `log_debug'\) debug message\n}
             )
           )
         end
@@ -96,7 +96,7 @@ RSpec.describe Datadog::Logger do
         it do
           expect(lines[0]).to(
             match(
-              %r{E, \[[0-9:T.-]+ #[0-9]+\] ERROR -- \[ddtrace\] \([\/a-z_]+\.rb:[0-9]+:in `log_error'\) error message: \n}
+              %r{E, \[[0-9:T.-]+ #[0-9]+\] ERROR -- ddtrace: \[ddtrace\] \([\/a-z_]+\.rb:[0-9]+:in `log_error'\) error message\n}
             )
           )
         end
@@ -119,7 +119,7 @@ RSpec.describe Datadog::Logger do
       context 'default log level' do
         before(:each) { log_warn() }
         it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
-        it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- \[ddtrace\] warn message: \n/) }
+        it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] warn message\n/) }
       end
 
       context 'debug log level' do
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Logger do
         it do
           expect(lines[0]).to(
             match(
-              %r{W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- \[ddtrace\] \([\/a-z_]+\.rb:[0-9]+:in `log_warn'\) warn message: \n}
+              %r{W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] \([\/a-z_]+\.rb:[0-9]+:in `log_warn'\) warn message\n}
             )
           )
         end
@@ -217,7 +217,7 @@ RSpec.describe Datadog::Logger do
       end
 
       it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
-      it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- \[ddtrace\] warn message: \n/) }
+      it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] warn message\n/) }
     end
 
     context 'after rate limit elapses' do
@@ -240,10 +240,10 @@ RSpec.describe Datadog::Logger do
       end
 
       it { expect(lines.length).to eq(2) if lines.respond_to?(:length) }
-      it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- \[ddtrace\] warn message: \n/) }
+      it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] warn message\n/) }
       it do
         expect(lines[1]).to(
-          match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- \[ddtrace\] warn message: , 4 additional messages skipped\n/)
+          match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] warn message, 4 additional messages skipped\n/)
         )
       end
     end
@@ -263,11 +263,11 @@ RSpec.describe Datadog::Logger do
       end
 
       it { expect(lines.length).to eq(2) if lines.respond_to?(:length) }
-      it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- \[ddtrace\] warn message: \n/) }
+      it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] warn message\n/) }
       it do
         expect(lines[1]).to(
           match(
-            %r{E, \[[0-9:T.-]+ #[0-9]+\] ERROR -- \[ddtrace\] \([\/a-z_]+\.rb:[0-9]+:in `log_error'\) error message: \n}
+            %r{E, \[[0-9:T.-]+ #[0-9]+\] ERROR -- ddtrace: \[ddtrace\] \([\/a-z_]+\.rb:[0-9]+:in `log_error'\) error message\n}
           )
         )
       end
