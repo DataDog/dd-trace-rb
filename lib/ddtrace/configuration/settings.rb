@@ -18,6 +18,10 @@ module Datadog
               default: -> { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) },
               lazy: true
 
+      option  :report_hostname,
+              default: -> { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) },
+              lazy: true
+
       option  :runtime_metrics_enabled,
               default: -> { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) },
               lazy: true

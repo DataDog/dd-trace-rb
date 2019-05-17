@@ -1,3 +1,6 @@
+require 'ddtrace/ext/net'
+require 'ddtrace/runtime/socket'
+
 require 'ddtrace/transport'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
@@ -70,6 +73,9 @@ module Datadog
     def send_spans(traces, transport)
       return true if traces.empty?
 
+      # Inject hostname if configured to do so
+      inject_hostname!(traces) if Datadog.configuration.report_hostname
+
       code = transport.send(:traces, traces)
       status = !transport.server_error?(code)
       @traces_flushed += traces.length if status
@@ -125,6 +131,17 @@ module Datadog
     end
 
     private
+
+    def inject_hostname!(traces)
+      traces.each do |trace|
+        next if trace.first.nil?
+
+        hostname = Datadog::Runtime::Socket.hostname
+        unless hostname.nil? || hostname.empty?
+          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
+        end
+      end
+    end
 
     def sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)

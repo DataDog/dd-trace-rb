@@ -1,3 +1,5 @@
+require 'ddtrace/ext/net'
+require 'ddtrace/runtime/socket'
 require 'ddtrace/runtime/metrics'
 
 module Datadog
@@ -44,7 +46,17 @@ module Datadog
 
     def flush_trace(trace)
       processed_traces = Pipeline.process!([trace])
+      inject_hostname!(processed_traces.first) if Datadog.configuration.report_hostname
       transport.send(:traces, processed_traces)
+    end
+
+    def inject_hostname!(trace)
+      unless trace.first.nil?
+        hostname = Datadog::Runtime::Socket.hostname
+        unless hostname.nil? || hostname.empty?
+          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
+        end
+      end
     end
   end
 end
