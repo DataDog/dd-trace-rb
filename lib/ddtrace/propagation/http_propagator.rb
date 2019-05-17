@@ -54,11 +54,11 @@ module Datadog
         if context.nil?
           context = extracted_context
         else
-          # Return an empty/new context if we have a mismatch in values extracted
-          # DEV: This will return from `self.extract` not this `each` block
-          msg = "#{context.trace_id} != #{extracted_context.trace_id} && #{context.span_id} != #{extracted_context.span_id}"
-          ::Datadog::Tracer.log.debug("Cannot extract context from HTTP: extracted contexts differ, #{msg}".freeze)
           unless context.trace_id == extracted_context.trace_id && context.span_id == extracted_context.span_id
+            # Return an empty/new context if we have a mismatch in values extracted
+            msg = "#{context.trace_id} != #{extracted_context.trace_id} && #{context.span_id} != #{extracted_context.span_id}"
+            ::Datadog::Tracer.log.debug("Cannot extract context from HTTP: extracted contexts differ, #{msg}".freeze)
+            # DEV: This will return from `self.extract` not this `each` block
             return ::Datadog::Context.new
           end
         end
