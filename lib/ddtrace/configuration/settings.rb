@@ -1,4 +1,5 @@
 require 'ddtrace/ext/analytics'
+require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/logging'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/configuration/options'
@@ -26,6 +27,24 @@ module Datadog
               default: -> { env_to_int(Ext::Logging::RATE_ENV, 60) },
               lazy: true
 
+      # Look for all headers by default
+      option  :propagation_extract_style,
+              default: lambda {
+                env_to_list(Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV,
+                            [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
+                             Ext::DistributedTracing::PROPAGATION_STYLE_B3,
+                             Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER])
+              },
+              lazy: true
+
+      # Only inject Datadog headers by default
+      option  :propagation_inject_style,
+              default: lambda {
+                env_to_list(Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
+                            [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
+              },
+              lazy: true
+
       option :tracer, default: Tracer.new
 
       def initialize(options = {})
@@ -39,6 +58,12 @@ module Datadog
         end
 
         yield(self) if block_given?
+      end
+
+      def distributed_tracing
+        # TODO: Move distributed tracing configuration to it's own Settings sub-class
+        # DEV: We do this to fake `Datadog.configuration.distributed_tracing.propagation_inject_style`
+        self
       end
 
       def runtime_metrics(options = nil)
