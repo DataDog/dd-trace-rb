@@ -2,7 +2,9 @@ require 'logger'
 require 'ddtrace/logger'
 
 module Datadog
+  # Logger rate limiter used to limit the number of log messages emitted in a given period
   module RateLimitedLogger
+    # Custom formatter used to rate limit log messages
     module Formatter
       def call(severity, timestamp, progname, msg)
         # Do not apply any rate limiting if no rate is configured
@@ -30,9 +32,8 @@ module Datadog
         end
 
         # Get the previous number of skipped messages to append to message
-        skipped_messages = ''
         unless last_bucket.nil? || last_bucket[:skipped].zero?
-          skipped_messages = ", #{last_bucket[:skipped]} additional messages skipped"
+          msg = "#{msg}, #{last_bucket[:skipped]} additional messages skipped"
         end
 
         # We are in a new time bucket, and are not rate limited
@@ -41,7 +42,7 @@ module Datadog
                          skipped: 0 }
 
         # Log the message
-        super(severity, timestamp, progname, "#{msg}#{skipped_messages}")
+        super(severity, timestamp, progname, msg)
       end
 
       def rate_limit_key(severity, progname)
@@ -77,7 +78,7 @@ module Datadog
     end
 
     def self.new(logger = nil)
-      logger = logger || Logger.new(STDOUT)
+      logger ||= Logger.new(STDOUT)
       logger.formatter ||= ::Logger::Formatter.new
       logger.formatter.extend(Formatter)
       logger.extend(self)
