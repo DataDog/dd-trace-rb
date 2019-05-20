@@ -5,22 +5,30 @@ require 'stringio'
 require 'time'
 require 'ddtrace'
 
-# Define functions to log to ensure the caller stack is consistent between tests
-def log_warn
-  Datadog::Tracer.log.warn('warn message')
-end
-
-def log_error
-  Datadog::Tracer.log.error('error message')
-end
-
-def log_debug
-  Datadog::Tracer.log.debug('debug message')
-end
-
 RSpec.describe Datadog::Logger do
-  default_logger = Datadog::Tracer.log
-  default_logging_rate = Datadog.configuration.logging_rate
+  # Define functions to log to ensure the caller stack is consistent between tests
+  def log_warn
+    Datadog::Tracer.log.warn('warn message')
+  end
+
+  def log_error
+    Datadog::Tracer.log.error('error message')
+  end
+
+  def log_debug
+    Datadog::Tracer.log.debug('debug message')
+  end
+
+  # Ensure we restore original values after every test
+  around do |example|
+    Datadog::Tracer.log = Datadog::Tracer.log.tap do
+      Datadog::Tracer.log = logger
+
+      Datadog.configuration.logging_rate = Datadog.configuration.logging_rate.tap do
+        example.run
+      end
+    end
+  end
 
   # DEV: In older versions of Ruby `buf.string.lines` is an Enumerator and not an array
   let(:lines) { buf.string.lines.to_a }
@@ -33,16 +41,9 @@ RSpec.describe Datadog::Logger do
   let(:buf) { StringIO.new }
   let(:log_level) { Logger::WARN }
 
-  before(:each) { Datadog::Tracer.log = logger }
-  after(:each) do
-    Datadog::Tracer.log = default_logger
-    Datadog.configuration.logging_rate = default_logging_rate
-  end
-
   describe 'default logger' do
     it { expect(Datadog::Tracer.log).to_not be_nil }
     it { expect(Datadog::Tracer.log).to be(logger) }
-    it { expect(Datadog::Tracer.log).to_not be(default_logger) }
 
     context '#level' do
       context 'default level' do
@@ -156,9 +157,8 @@ RSpec.describe Datadog::Logger do
       'this is a message'
     ].each do |value|
       context 'when it is #{value.inspect}' do
-        let(:logger) { value }
-
-        it { expect(Datadog::Tracer.log).to be(default_logger) }
+        before(:each) { Datadog::Tracer.log = value }
+        it { expect(Datadog::Tracer.log).to be(logger) }
       end
     end
 
