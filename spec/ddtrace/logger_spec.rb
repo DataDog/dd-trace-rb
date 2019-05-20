@@ -5,7 +5,7 @@ require 'stringio'
 require 'time'
 require 'ddtrace'
 
-RSpec.describe Datadog::Logger do
+RSpec.describe Datadog::RateLimitedLogger do
   # Define functions to log to ensure the caller stack is consistent between tests
   def log_warn
     Datadog::Tracer.log.warn('warn message')
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Logger do
   # DEV: In older versions of Ruby `buf.string.lines` is an Enumerator and not an array
   let(:lines) { buf.string.lines.to_a }
   let(:logger) do
-    described_class.new(buf).tap do |logger|
+    described_class.new(Datadog::Logger.new(buf)).tap do |logger|
       logger.level = log_level
     end
   end

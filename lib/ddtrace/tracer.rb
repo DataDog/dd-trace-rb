@@ -7,7 +7,7 @@ require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/context_flush'
 require 'ddtrace/provider'
-require 'ddtrace/logger'
+require 'ddtrace/rate_limited_logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
 require 'ddtrace/correlation'
@@ -31,7 +31,8 @@ module Datadog
     # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
     def self.log
       unless defined? @logger
-        @logger = Datadog::Logger.new(STDOUT)
+        # DEV: By default `RateLimitedLogger` will initialize with `Datadog::Logger.new(STDOUT)`
+        @logger = Datadog::RateLimitedLogger.new
         @logger.level = Logger::WARN
       end
       @logger
