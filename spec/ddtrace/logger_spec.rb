@@ -24,8 +24,10 @@ RSpec.describe Datadog::Logger do
     Datadog::Tracer.log = Datadog::Tracer.log.tap do
       Datadog::Tracer.log = logger
 
-      Datadog.configuration.logging_rate = Datadog.configuration.logging_rate.tap do
-        example.run
+      Datadog::Tracer.debug_logging = Datadog::Tracer.debug_logging.tap do
+        Datadog.configuration.logging_rate = Datadog.configuration.logging_rate.tap do
+          example.run
+        end
       end
     end
   end
@@ -33,10 +35,9 @@ RSpec.describe Datadog::Logger do
   # DEV: In older versions of Ruby `buf.string.lines` is an Enumerator and not an array
   let(:lines) { buf.string.lines.to_a }
   let(:logger) do
-    logger = described_class.new(buf)
-    logger.level = log_level
-
-    logger
+    described_class.new(buf).tap do |logger|
+      logger.level = log_level
+    end
   end
   let(:buf) { StringIO.new }
   let(:log_level) { Logger::WARN }
@@ -145,10 +146,10 @@ RSpec.describe Datadog::Logger do
 
   describe 'custom logger' do
     let(:logger) do
-      logger = Logger.new(buf)
-      logger.level = Logger::INFO
-
-      logger
+      # We need `Logger.new` instead of `described_class.new`
+      Logger.new(buf).tap do |logger|
+        logger.level = Logger::INFO
+      end
     end
 
     # Invalid values to set
@@ -167,8 +168,6 @@ RSpec.describe Datadog::Logger do
     end
 
     context 'debug_logging enabled' do
-      after(:each) { Datadog::Tracer.debug_logging = false }
-
       context 'when enabling' do
         it do
           Datadog::Tracer.debug_logging = true
