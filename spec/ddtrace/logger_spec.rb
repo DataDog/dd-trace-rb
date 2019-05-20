@@ -195,13 +195,8 @@ RSpec.describe Datadog::Logger do
 
   describe 'rate limiting' do
     context 'when hitting rate limit' do
-      before(:each) do
-        # Stub Time.now to ensure it always returns the same value
-        #   so we stay in the same time bucket and everything gets grouped
-        allow(Time).to receive(:now).and_return Time.at(1550000000)
-
-        10.times { log_warn }
-      end
+      # DEV: Freeze time to ensure these all get logged into the same bucket
+      before(:each) { Timecop.freeze { 10.times { log_warn } } }
 
       it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
       it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] warn message\n/) }
@@ -210,12 +205,14 @@ RSpec.describe Datadog::Logger do
     context 'after rate limit elapses' do
       before(:each) do
         # Log 5 messages in one bucket
-        allow(Time).to receive(:now).and_return Time.at(1660000000)
-        5.times { log_warn }
+        # DEV: Freeze time to ensure these all get logged into the same bucket
+        Timecop.freeze do
+          # Log 5 messages in one bucket
+          5.times { log_warn }
 
-        # Log 5 more messages in another bucket
-        allow(Time).to receive(:now).and_return Time.at(1670000000)
-        5.times { log_warn }
+          # Travel 5 minutes into the future, and log 5 more messages
+          Timecop.travel(Time.now + 300) { 5.times { log_warn } }
+        end
       end
 
       it { expect(lines.length).to eq(2) if lines.respond_to?(:length) }
@@ -228,13 +225,12 @@ RSpec.describe Datadog::Logger do
 
     context 'when logging from multiple places' do
       before(:each) do
-        # Stub Time.now to ensure it always returns the same value
-        #   so we stay in the same time bucket and everything gets grouped
-        allow(Time).to receive(:now).and_return Time.at(1580000000)
-
-        10.times do
-          log_warn
-          log_error
+        # DEV: Freeze time to ensure these all get logged into the same bucket
+        Timecop.freeze do
+          10.times do
+            log_warn
+            log_error
+          end
         end
       end
 

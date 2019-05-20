@@ -4,6 +4,7 @@ require 'pry'
 require 'rspec/collection_matchers'
 require 'webmock/rspec'
 require 'climate_control'
+require 'timecop'
 
 require 'ddtrace/encoding'
 require 'ddtrace/transport'
@@ -24,6 +25,11 @@ require 'support/metric_helpers'
 
 WebMock.allow_net_connect!
 WebMock.disable!
+
+# Timecop safe mode forces us to use the block syntax,
+#   this ensures the time always gets reset
+# https://github.com/travisjeffery/timecop/tree/71cbbd36ab28d95662ab980643bdeac96039b8b6#timecopsafe_mode
+Timecop.safe_mode = true
 
 RSpec.configure do |config|
   config.include TracerHelpers
