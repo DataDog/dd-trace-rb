@@ -67,14 +67,14 @@ RSpec.describe Datadog::Logger do
 
     context '#debug()' do
       context 'default log level' do
-        before(:each) { log_debug() }
+        before(:each) { log_debug }
         it { expect(lines.length).to eq(0) if lines.respond_to?(:length) }
       end
 
       context 'debug log level' do
         let(:log_level) { Logger::DEBUG }
 
-        before(:each) { log_debug() }
+        before(:each) { log_debug }
 
         it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
         # We add traceback information to the log line for debug
@@ -87,7 +87,7 @@ RSpec.describe Datadog::Logger do
 
     context '#error()' do
       context 'default log level' do
-        before(:each) { log_error() }
+        before(:each) { log_error }
         it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
         # We add traceback information to the log line for errors
         it do
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Logger do
       end
 
       context '() { message }' do
-        it { expect { Datadog::Tracer.log.warn() { 'warn message' } }.to_not raise_error }
+        it { expect { Datadog::Tracer.log.warn { 'warn message' } }.to_not raise_error }
       end
 
       context '(progname) { message }' do
@@ -111,14 +111,14 @@ RSpec.describe Datadog::Logger do
       end
 
       context 'default log level' do
-        before(:each) { log_warn() }
+        before(:each) { log_warn }
         it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
         it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] warn message\n/) }
       end
 
       context 'debug log level' do
         let(:log_level) { Logger::DEBUG }
-        before(:each) { log_warn() }
+        before(:each) { log_warn }
 
         it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
         # We add traceback information to the log line for errors
@@ -200,11 +200,7 @@ RSpec.describe Datadog::Logger do
         #   so we stay in the same time bucket and everything gets grouped
         allow(Time).to receive(:now).and_return Time.at(1550000000)
 
-        i = 0
-        while i < 10
-          log_warn()
-          i += 1
-        end
+        10.times { log_warn }
       end
 
       it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
@@ -215,19 +211,11 @@ RSpec.describe Datadog::Logger do
       before(:each) do
         # Log 5 messages in one bucket
         allow(Time).to receive(:now).and_return Time.at(1660000000)
-        i = 0
-        while i < 5
-          log_warn()
-          i += 1
-        end
+        5.times { log_warn }
 
         # Log 5 more messages in another bucket
         allow(Time).to receive(:now).and_return Time.at(1670000000)
-        i = 0
-        while i < 5
-          log_warn()
-          i += 1
-        end
+        5.times { log_warn }
       end
 
       it { expect(lines.length).to eq(2) if lines.respond_to?(:length) }
@@ -244,11 +232,9 @@ RSpec.describe Datadog::Logger do
         #   so we stay in the same time bucket and everything gets grouped
         allow(Time).to receive(:now).and_return Time.at(1580000000)
 
-        i = 0
-        while i < 10
-          log_warn()
-          log_error()
-          i += 1
+        10.times do
+          log_warn
+          log_error
         end
       end
 
