@@ -24,7 +24,7 @@ module Datadog
               lazy: true
 
       option  :rate,
-              default: -> { env_to_int(Ext::Logging::RATE_ENV, 60) },
+              default: -> { env_to_int(Ext::Logging::ENV_RATE, 60) },
               lazy: true
 
       # Look for all headers by default
