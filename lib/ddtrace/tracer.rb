@@ -7,7 +7,8 @@ require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/context_flush'
 require 'ddtrace/provider'
-require 'ddtrace/rate_limited_logger'
+require 'ddtrace/logging/limiter'
+require 'ddtrace/logging/rate_limited_logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
 require 'ddtrace/correlation'
@@ -31,9 +32,9 @@ module Datadog
     # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
     def self.log
       unless defined? @logger
-        # DEV: By default `RateLimitedLogger` will initialize with `Datadog::Logger.new(STDOUT)`
-        @logger = Datadog::RateLimitedLogger.new
-        @logger.level = Logger::WARN
+        # DEV: By default `RateLimitedLogger` will initialize with `Datadog::Logging::Logger.new(STDOUT)`
+        @logger = Datadog::Logging::RateLimitedLogger.new
+        @logger.level = ::Logger::WARN
       end
       @logger
     end
@@ -44,7 +45,7 @@ module Datadog
       return unless logger.respond_to? :methods
       return unless logger.respond_to? :error
       if logger.respond_to? :methods
-        unimplemented = Logger.new(STDOUT).methods - logger.methods
+        unimplemented = ::Logger.new(STDOUT).methods - logger.methods
         unless unimplemented.empty?
           logger.error("logger #{logger} does not implement #{unimplemented}")
           return
@@ -53,19 +54,31 @@ module Datadog
       @logger = logger
     end
 
+    def self.log_limiter
+      unless defined? @log_limiter
+        @log_limiter = Datadog::Logging::Limiter.new
+      end
+
+      @log_limiter
+    end
+
+    def self.log_limiter=(limiter)
+      @log_limiter = limiter if limiter.is_a?(Datadog::Logging::Limiter)
+    end
+
     # Activate the debug mode providing more information related to tracer usage
     # Default to Warn level unless using custom logger
     def self.debug_logging=(value)
       if value
-        log.level = Logger::DEBUG
-      elsif log.is_a?(Datadog::Logger)
-        log.level = Logger::WARN
+        log.level = ::Logger::DEBUG
+      elsif log.is_a?(Datadog::Logging::Logger)
+        log.level = ::Logger::WARN
       end
     end
 
     # Return if the debug mode is activated or not
     def self.debug_logging
-      log.level == Logger::DEBUG
+      log.level == ::Logger::DEBUG
     end
 
     def services

@@ -23,7 +23,7 @@ module Datadog
               default: -> { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) },
               lazy: true
 
-      option  :logging_rate,
+      option  :rate,
               default: -> { env_to_int(Ext::Logging::RATE_ENV, 60) },
               lazy: true
 
@@ -63,6 +63,12 @@ module Datadog
       def distributed_tracing
         # TODO: Move distributed tracing configuration to it's own Settings sub-class
         # DEV: We do this to fake `Datadog.configuration.distributed_tracing.propagation_inject_style`
+        self
+      end
+
+      def logging
+        # TODO: Move logging configuration to it's own Settings sub-class
+        # DEV: We do this to fake `Datadog.configuration.logging.rate`
         self
       end
 

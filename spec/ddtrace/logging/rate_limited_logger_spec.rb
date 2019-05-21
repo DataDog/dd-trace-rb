@@ -5,7 +5,7 @@ require 'stringio'
 require 'time'
 require 'ddtrace'
 
-RSpec.describe Datadog::RateLimitedLogger do
+RSpec.describe Datadog::Logging::RateLimitedLogger do
   # Define functions to log to ensure the caller stack is consistent between tests
   def log_warn
     Datadog::Tracer.log.warn('warn message')
@@ -21,12 +21,16 @@ RSpec.describe Datadog::RateLimitedLogger do
 
   # Ensure we restore original values after every test
   around do |example|
-    Datadog::Tracer.log = Datadog::Tracer.log.tap do
-      Datadog::Tracer.log = logger
+    Datadog::Tracer.log_limiter = Datadog::Tracer.log_limiter.tap do
+      Datadog::Tracer.log_limiter = limiter
 
-      Datadog::Tracer.debug_logging = Datadog::Tracer.debug_logging.tap do
-        Datadog.configuration.logging_rate = Datadog.configuration.logging_rate.tap do
-          example.run
+      Datadog::Tracer.log = Datadog::Tracer.log.tap do
+        Datadog::Tracer.log = logger
+
+        Datadog::Tracer.debug_logging = Datadog::Tracer.debug_logging.tap do
+          Datadog.configuration.logging.rate = Datadog.configuration.logging.rate.tap do
+            example.run
+          end
         end
       end
     end
@@ -35,12 +39,13 @@ RSpec.describe Datadog::RateLimitedLogger do
   # DEV: In older versions of Ruby `buf.string.lines` is an Enumerator and not an array
   let(:lines) { buf.string.lines.to_a }
   let(:logger) do
-    described_class.new(Datadog::Logger.new(buf)).tap do |logger|
+    described_class.new(Datadog::Logging::Logger.new(buf)).tap do |logger|
       logger.level = log_level
     end
   end
   let(:buf) { StringIO.new }
   let(:log_level) { Logger::WARN }
+  let(:limiter) { Datadog::Logging::Limiter.new }
 
   describe 'default logger' do
     it { expect(Datadog::Tracer.log).to_not be_nil }

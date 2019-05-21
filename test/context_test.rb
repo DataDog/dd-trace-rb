@@ -192,7 +192,7 @@ class ContextTest < Minitest::Test
 
     buf = StringIO.new
 
-    Datadog::Tracer.log = Datadog::Logger.new(buf)
+    Datadog::Tracer.log = Datadog::Logging::Logger.new(buf)
     Datadog::Tracer.log.level = ::Logger::DEBUG
 
     assert_equal(true, Datadog::Tracer.log.debug?)

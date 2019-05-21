@@ -28,7 +28,7 @@ module LogHelpers
 
     before(:each) do
       @default_logger = Datadog::Tracer.log
-      Datadog::Tracer.log = Datadog::Logger.new(log_buffer)
+      Datadog::Tracer.log = Datadog::Logging::Logger.new(log_buffer)
       Datadog::Tracer.log.level = ::Logger::WARN
     end
 

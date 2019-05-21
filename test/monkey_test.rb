@@ -7,7 +7,7 @@ class MonkeyTest < Minitest::Test
 
   def setup
     @buf = StringIO.new
-    Datadog::Tracer.log = Datadog::Logger.new(@buf)
+    Datadog::Tracer.log = Datadog::Logging::Logger.new(@buf)
     Datadog::Tracer.log.level = ::Logger::WARN
   end
 
