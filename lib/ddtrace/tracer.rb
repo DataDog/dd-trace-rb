@@ -55,9 +55,7 @@ module Datadog
     end
 
     def self.log_limiter
-      unless defined? @log_limiter
-        @log_limiter = Datadog::Logging::Limiter.new
-      end
+      @log_limiter = Datadog::Logging::Limiter.new unless defined? @log_limiter
 
       @log_limiter
     end

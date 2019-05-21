@@ -16,7 +16,7 @@ module Datadog
           key = rate_limit_key(severity, progname)
 
           # Return early if we were rate limited
-          return if Datadog::Tracer.log_limiter.rate_limited?(key, timestamp=timestamp)
+          return if Datadog::Tracer.log_limiter.rate_limited?(key, timestamp = timestamp)
 
           # Append skipped count if we have one
           # DEV: `skipped_msgs` will be > 0 or nil (never 0)
@@ -50,7 +50,7 @@ module Datadog
             #   - `::Logger#add`
             #   - `::Logger#log` (debug, warn, info, error, etc)
             c = caller_locations(6)
-            where = "#{c.first.path}-#{c.first.lineno}-#{c.first.label}-" if c.length > 0
+            where = "#{c.first.path}-#{c.first.lineno}-#{c.first.label}-" if c.!empty?
           end
 
           "#{where}#{progname}-#{severity}"
