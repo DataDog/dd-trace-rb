@@ -65,63 +65,99 @@ RSpec.describe Datadog::Logging::Limiter do
         end
       end
 
-      context 'boundaries' do
-        let(:start) do
-          # Get current time bucket
-          bucket = Time.now.to_i / Datadog.configuration.logging.rate
+      context 'logging rate of 0' do
+          let(:rate) { 0 }
+          before(:each) { allow(Datadog.configuration.logging).to receive(:rate).and_return(rate) }
 
-          # Convert back to time
-          Time.at(bucket * Datadog.configuration.logging.rate)
-        end
+          context 'we never rate limit' do
+            let(:start) { Time.now }
 
-        context 'one second before start' do
-          it do
-            # Freeze time one second before bucket start
-            Timecop.freeze(start - 1) do
-              # Not rate limited
-              is_not_rate_limited
+            it do
+              Timecop.freeze(start) do
+                300.times do |i|
+                  # We are never rate limited
+                  is_not_rate_limited
 
-              # Advance time to start
-              Timecop.travel(start)
-
-              # Not rate limited
-              is_not_rate_limited
-            end
-          end
-        end
-
-        context 'duration of period' do
-          it do
-            # Freeze time at beginning of period
-            Timecop.freeze(start) do
-              # Not rate limited
-              is_not_rate_limited
-
-              # For every second contained in this period (rate-1 to get us up until the next period)
-              (Datadog.configuration.logging.rate - 1).times do |i|
-                Timecop.travel(start + i)
-
-                # Rate limited
-                is_rate_limited
+                  Timecop.travel(start + i)
+                end
               end
             end
           end
-        end
+      end
 
-        context 'next period' do
-          it do
-            # Freeze time at beginning of period
-            Timecop.freeze(start) do
-              # Not rate limited
-              is_not_rate_limited
+      [
+        # The default
+        Datadog.configuration.logging.rate,
 
-              # Increment to one second before the next period, rate limited
-              Timecop.travel(start + Datadog.configuration.logging.rate - 1)
-              is_rate_limited
+        1,
+        5,
+        10,
+        20,
+        30,
+        60,
+        120,
+      ].each do |value|
+        context "logging rate of #{value}" do
+          let(:rate) { value }
+          before(:each) { allow(Datadog.configuration.logging).to receive(:rate).and_return(rate) }
 
-              # Increment to the start of the next period, not rate limited
-              Timecop.travel(start + Datadog.configuration.logging.rate)
-              is_not_rate_limited
+          let(:start) do
+            # Get current time bucket
+            bucket = Time.now.to_i / Datadog.configuration.logging.rate
+
+            # Convert back to time
+            Time.at(bucket * Datadog.configuration.logging.rate)
+          end
+
+          context 'one second before start' do
+            it do
+              # Freeze time one second before bucket start
+              Timecop.freeze(start - 1) do
+                # Not rate limited
+                is_not_rate_limited
+
+                # Advance time to start
+                Timecop.travel(start)
+
+                # Not rate limited
+                is_not_rate_limited
+              end
+            end
+          end
+
+          context 'duration of period' do
+            it do
+              # Freeze time at beginning of period
+              Timecop.freeze(start) do
+                # Not rate limited
+                is_not_rate_limited
+
+                # For every second contained in this period (rate-1 to get us up until the next period)
+                (Datadog.configuration.logging.rate - 1).times do |i|
+                  Timecop.travel(start + i)
+
+                  # Rate limited
+                  is_rate_limited
+                end
+              end
+            end
+          end
+
+          context 'next period' do
+            it do
+              # Freeze time at beginning of period
+              Timecop.freeze(start) do
+                # Not rate limited
+                is_not_rate_limited
+
+                # Increment to one second before the next period, rate limited
+                Timecop.travel(start + Datadog.configuration.logging.rate - 1)
+                is_rate_limited
+
+                # Increment to the start of the next period, not rate limited
+                Timecop.travel(start + Datadog.configuration.logging.rate)
+                is_not_rate_limited
+              end
             end
           end
         end
