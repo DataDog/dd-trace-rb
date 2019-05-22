@@ -4,6 +4,18 @@
 
 ## [Unreleased (beta)]
 
+## [0.24.0] - 2019-05-21
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.24.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.23.3...v0.24.0
+
+### Added
+
+- B3 header support (#753)
+- Hostname tagging option (#760)
+- Contribution and development guides (#754)
+
 ## [0.23.3] - 2019-05-16
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.23.3

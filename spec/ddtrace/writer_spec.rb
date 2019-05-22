@@ -54,7 +54,7 @@ RSpec.describe Datadog::Writer do
       end
 
       describe '#send_spans' do
-        subject(:result) { writer.send_spans(traces, writer.transport) }
+        subject(:send_spans) { writer.send_spans(traces, writer.transport) }
         let(:traces) { get_test_traces(1) }
 
         context 'with priority sampling' do
@@ -135,6 +135,56 @@ RSpec.describe Datadog::Writer do
                 let(:api_version) { Datadog::HTTPTransport::V3 }
                 let(:fallback_version) { Datadog::HTTPTransport::V2 }
               end
+            end
+          end
+        end
+
+        context 'with report hostname' do
+          let(:hostname) { 'my-host' }
+
+          before(:each) do
+            allow(Datadog::Runtime::Socket).to receive(:hostname).and_return(hostname)
+          end
+
+          context 'enabled' do
+            around do |example|
+              Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
+                Datadog.configuration.report_hostname = true
+                example.run
+              end
+            end
+
+            it do
+              expect(writer.transport).to receive(:send) do |_type, traces|
+                root_span = traces.first.first
+                expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to eq(hostname)
+
+                # Stub successful request
+                200
+              end
+
+              send_spans
+            end
+          end
+
+          context 'disabled' do
+            around do |example|
+              Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
+                Datadog.configuration.report_hostname = false
+                example.run
+              end
+            end
+
+            it do
+              expect(writer.transport).to receive(:send) do |_type, traces|
+                root_span = traces.first.first
+                expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to be nil
+
+                # Stub successful request
+                200
+              end
+
+              send_spans
             end
           end
         end
