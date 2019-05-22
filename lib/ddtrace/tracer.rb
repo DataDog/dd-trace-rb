@@ -32,8 +32,7 @@ module Datadog
     # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
     def self.log
       unless defined? @logger
-        # DEV: By default `RateLimitedLogger` will initialize with `Datadog::Logging::Logger.new(STDOUT)`
-        @logger = Datadog::Logging::RateLimitedLogger.new
+        @logger = Datadog::Logging::RateLimitedLogger.new(STDOUT)
         @logger.level = ::Logger::WARN
       end
       @logger

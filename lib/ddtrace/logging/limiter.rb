@@ -5,7 +5,7 @@ module Datadog
     # Limiter is a helper class for managing log message rate limits
     class Limiter
       def initialize
-        reset
+        reset!
       end
 
       def rate_limited?(key, timestamp = nil)
@@ -51,7 +51,7 @@ module Datadog
         end
       end
 
-      def reset
+      def reset!
         @buckets = {}
       end
     end

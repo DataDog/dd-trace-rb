@@ -4,7 +4,7 @@ require 'ddtrace'
 
 RSpec.describe Datadog::Logging::Limiter do
   subject(:limiter) { described_class.new }
-  after(:each) { limiter.reset }
+  after(:each) { limiter.reset! }
   let(:key) { 'unique-key' }
 
   context '#rate_limited?' do
@@ -178,7 +178,7 @@ RSpec.describe Datadog::Logging::Limiter do
           expect(limiter.rate_limited?(key)).to be(true)
 
           # Reset the buckets
-          limiter.reset
+          limiter.reset!
 
           # No longer rate limited
           expect(limiter.rate_limited?(key)).to be(false)

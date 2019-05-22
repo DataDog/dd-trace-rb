@@ -5,7 +5,7 @@ require 'ddtrace/logging/limiter'
 module Datadog
   module Logging
     # Logger rate limiter used to limit the number of log messages emitted in a given period
-    module RateLimitedLogger
+    class RateLimitedLogger < Logger
       # Custom formatter used to rate limit log messages
       module Formatter
         def call(severity, timestamp, progname, msg)
@@ -42,26 +42,25 @@ module Datadog
 
           where = ''
           if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
-            # Skip the first 6
-            #   - `Datadop::Logging::RateLimitedLogger#rate_limit_key`
+            # Skip the first 5, and only select the next location
             #   - `Datadog::Logging::RateLimitedLogger::Formatter#call`
             #   - `::Logger#format_message`
-            #   - `Datadog::Logging::Logger#add`
             #   - `::Logger#add`
+            #   - `Datadog::Logging::Logger#add`
             #   - `::Logger#log` (debug, warn, info, error, etc)
-            c = caller_locations(6)
-            where = "#{c.first.path}-#{c.first.lineno}-#{c.first.label}-" if c.!empty?
+            c = caller_locations(5, 1)
+            where = "#{c.first.path}-#{c.first.lineno}-#{c.first.label}-" unless c.empty?
           end
 
           "#{where}#{progname}-#{severity}"
         end
       end
 
-      def self.new(logger = nil)
-        logger ||= Logger.new(STDOUT)
-        logger.formatter ||= ::Logger::Formatter.new
-        logger.formatter.extend(Formatter)
-        logger.extend(self)
+      def initialize(*args, &block)
+        super
+
+        self.formatter ||= ::Logger::Formatter.new
+        self.formatter.extend(Formatter)
       end
 
       def formatter=(formatter)
