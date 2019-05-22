@@ -8,9 +8,9 @@ module Datadog
         reset!
       end
 
-      def rate_limited?(key, timestamp = nil)
-        # If no logging rate is enabled, then return false, not rate limited
-        return false unless Datadog.configuration.logging.rate > 0
+      def rate_limit!(key, timestamp = nil, &block)
+        # If no logging rate is enabled, then immediately call the provided block, they not rate limited
+        return block.call(nil) unless Datadog.configuration.logging.rate > 0
 
         timestamp ||= Time.now
 
@@ -27,27 +27,16 @@ module Datadog
           # Increment the skipped count
           @buckets[key][:skipped] += 1
 
-          # Return true, we are rate limited
-          return true
-        end
+        else
+          # Collec the previous skip count
+          skipped = nil
+          skipped = @buckets[key][:skipped] if @buckets[key][:skipped] > 0
 
-        # We are in a new time bucket, update the latest time bucket
-        # DEV: Do not reset `:skipped`, we reset that once we fetch it
-        @buckets[key][:time_bucket] = current_time_bucket
-
-        # Return false, not rate limited
-        false
-      end
-
-      def skipped_count(key)
-        bucket = @buckets[key]
-        unless bucket.nil? || bucket[:skipped].zero?
-          skipped = @buckets[key][:skipped]
-
-          # Reset the skipped count
+          # We are in a new time bucket, reset the bucket
+          @buckets[key][:time_bucket] = current_time_bucket
           @buckets[key][:skipped] = 0
 
-          skipped
+          block.call(skipped)
         end
       end
 

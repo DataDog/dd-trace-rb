@@ -7,11 +7,29 @@ RSpec.describe Datadog::Logging::Limiter do
   after(:each) { limiter.reset! }
   let(:key) { 'unique-key' }
 
-  context '#rate_limited?' do
+  def rate_limit_expected
+    expect { |b| limiter.rate_limit!(key, &b) }
+  end
+
+  def is_not_rate_limited
+    rate_limit_expected.to yield_control.once
+  end
+
+  def is_rate_limited
+    rate_limit_expected.to_not yield_control
+  end
+
+  def receives_skipped_count(count)
+    rate_limit_expected.to yield_with_args(count)
+  end
+
+  describe '#rate_limit!' do
     context 'calling once' do
       context 'is not rate limited' do
         # Does not get rate limited
-        it { expect(limiter.rate_limited?(key)).to be(false) }
+        it { is_not_rate_limited }
+        # Does not have a skipped count
+        it { receives_skipped_count(nil) }
       end
     end
 
@@ -21,11 +39,11 @@ RSpec.describe Datadog::Logging::Limiter do
           # Freeze time to stay in the same bucket
           Timecop.freeze do
             # First time is not rate limited
-            expect(limiter.rate_limited?(key)).to be(false)
+            is_not_rate_limited
 
-            # All future calls is rate limited
+            # All future calls are rate limited
             5.times do
-              expect(limiter.rate_limited?(key)).to be(true)
+              is_rate_limited
             end
           end
         end
@@ -36,13 +54,13 @@ RSpec.describe Datadog::Logging::Limiter do
           # Freeze time
           Timecop.freeze do
             # First time is not rate limited
-            expect(limiter.rate_limited?(key)).to be(false)
+            is_not_rate_limited
 
             # Travel 5 minutes into the future
             Timecop.travel(Time.now + 300)
 
             # Second time is not rate limited
-            expect(limiter.rate_limited?(key)).to be(false)
+            is_not_rate_limited
           end
         end
       end
@@ -61,13 +79,13 @@ RSpec.describe Datadog::Logging::Limiter do
             # Freeze time one second before bucket start
             Timecop.freeze(start - 1) do
               # Not rate limited
-              expect(limiter.rate_limited?(key)).to be(false)
+              is_not_rate_limited
 
               # Advance time to start
               Timecop.travel(start)
 
               # Not rate limited
-              expect(limiter.rate_limited?(key)).to be(false)
+              is_not_rate_limited
             end
           end
         end
@@ -77,14 +95,14 @@ RSpec.describe Datadog::Logging::Limiter do
             # Freeze time at beginning of period
             Timecop.freeze(start) do
               # Not rate limited
-              expect(limiter.rate_limited?(key)).to be(false)
+              is_not_rate_limited
 
               # For every second contained in this period (rate-1 to get us up until the next period)
               (Datadog.configuration.logging.rate - 1).times do |i|
                 Timecop.travel(start + i)
 
                 # Rate limited
-                expect(limiter.rate_limited?(key)).to be(true)
+                is_rate_limited
               end
             end
           end
@@ -95,72 +113,43 @@ RSpec.describe Datadog::Logging::Limiter do
             # Freeze time at beginning of period
             Timecop.freeze(start) do
               # Not rate limited
-              expect(limiter.rate_limited?(key)).to be(false)
+              is_not_rate_limited
 
               # Increment to one second before the next period, rate limited
               Timecop.travel(start + Datadog.configuration.logging.rate - 1)
-              expect(limiter.rate_limited?(key)).to be(true)
+              is_rate_limited
 
               # Increment to the start of the next period, not rate limited
               Timecop.travel(start + Datadog.configuration.logging.rate)
-              expect(limiter.rate_limited?(key)).to be(false)
+              is_not_rate_limited
             end
           end
         end
       end
     end
-  end
 
-  context '#skipped_count' do
-    subject(:skipped_count) { limiter.skipped_count(key) }
-
-    context 'with unknown key' do
-      it { is_expected.to be_nil }
-    end
-
-    context 'after first call' do
-      # DEV: No reason to freeze time, only calling this once
-      before(:each) { limiter.rate_limited?(key) }
-
-      it { is_expected.to be_nil }
-    end
-
-    context 'after multiple calls' do
-      before(:each) do
-        # Freeze time to ensure we are in the same time bucket
-        Timecop.freeze do
-          5.times { limiter.rate_limited?(key) }
-        end
+    context 'skipped count' do
+      context 'first call' do
+        it { receives_skipped_count(nil) }
       end
 
-      it do
-        # Contains the count of items rate limited
-        is_expected.to eq(4)
+      # This is the typical workflow
+      context 'after being reset' do
+        it do
+          # Freeze time to ensure we are in the same time bucket
+          Timecop.freeze do
+            # First call is not rate limited and receives no skipped count
+            receives_skipped_count(nil)
 
-        # After a successful call to `#skipped_count` we reset the count
+            # Call 5 more times when rate limited
+            5.times { is_rate_limited }
 
-        expect(limiter.skipped_count(key)).to be_nil
-      end
-    end
+            # Skip ahead by 5 minutes so we are in a new time bucket
+            Timecop.travel(Time.now + 300)
 
-    context 'after being reset' do
-      it do
-        # Freeze time to ensure we stay in the same time bucket
-        Timecop.freeze do
-          # Check rate limit 5 times
-          5.times { limiter.rate_limited?(key) }
-
-          # Skip time ahead 5 minutes (new time bucket)
-          Timecop.travel(Time.now + 300)
-
-          # DEV: This is the typical workflow, check if you are rate limited,
-          #   if not, immediately fetch (and reset) the skipped count
-
-          # Check rate limit again
-          expect(limiter.rate_limited?(key)).to be(false)
-
-          # Check the skipped count, should be the count from the previous bucket
-          expect(limiter.skipped_count(key)).to eq(4)
+            # We are not rate limited and receive a skipped count of 5
+            receives_skipped_count(5)
+          end
         end
       end
     end
@@ -172,19 +161,19 @@ RSpec.describe Datadog::Logging::Limiter do
         # Freeze time to ensure we stay in the same time bucket
         Timecop.freeze do
           # First is not rate limited
-          expect(limiter.rate_limited?(key)).to be(false)
+          is_not_rate_limited
 
           # Second is rate limited
-          expect(limiter.rate_limited?(key)).to be(true)
+          is_rate_limited
 
           # Reset the buckets
           limiter.reset!
 
           # No longer rate limited
-          expect(limiter.rate_limited?(key)).to be(false)
+          is_not_rate_limited
 
           # Second is rate limited
-          expect(limiter.rate_limited?(key)).to be(true)
+          is_rate_limited
         end
       end
     end

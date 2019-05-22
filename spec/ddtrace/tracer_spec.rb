@@ -6,6 +6,14 @@ RSpec.describe Datadog::Tracer do
   let(:writer) { FauxWriter.new }
   subject(:tracer) { described_class.new(writer: writer) }
 
+  describe '#log' do
+    it { expect(Datadog::Tracer.log).to be_instance_of(Datadog::Logging::RateLimitedLogger) }
+  end
+
+  describe '#log_limiter' do
+    it { expect(Datadog::Tracer.log_limiter).to be_instance_of(Datadog::Logging::Limiter) }
+  end
+
   describe '#trace' do
     let(:name) { 'span.name' }
     let(:options) { {} }

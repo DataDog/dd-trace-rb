@@ -33,90 +33,99 @@ RSpec.describe Datadog::Logging::RateLimitedLogger do
     Datadog::Tracer.log_limiter.reset!
   end
 
-  describe 'defaults' do
-    context '#level' do
-      context 'default level' do
-        it { expect(logger.level).to eq(Logger::WARN) }
-        it { expect(logger.debug?).to be(false) }
-        it { expect(logger.info?).to be(false) }
-        it { expect(logger.warn?).to be(true) }
-        it { expect(logger.error?).to be(true) }
-        it { expect(logger.fatal?).to be(true) }
-      end
-
-      context 'debug level' do
-        let(:log_level) { Logger::DEBUG }
-        it { expect(logger.level).to eq(Logger::DEBUG) }
-        it { expect(logger.debug?).to be(true) }
-        it { expect(logger.info?).to be(true) }
-        it { expect(logger.warn?).to be(true) }
-        it { expect(logger.error?).to be(true) }
-        it { expect(logger.fatal?).to be(true) }
-      end
+  describe '#level' do
+    context 'default level' do
+      it { expect(logger.level).to eq(Logger::WARN) }
+      it { expect(logger.debug?).to be(false) }
+      it { expect(logger.info?).to be(false) }
+      it { expect(logger.warn?).to be(true) }
+      it { expect(logger.error?).to be(true) }
+      it { expect(logger.fatal?).to be(true) }
     end
 
-    context '#debug()' do
-      context 'default log level' do
-        before(:each) { log_debug(logger) }
-        it { expect(lines.length).to eq(0) if lines.respond_to?(:length) }
-      end
+    context 'debug level' do
+      let(:log_level) { Logger::DEBUG }
+      it { expect(logger.level).to eq(Logger::DEBUG) }
+      it { expect(logger.debug?).to be(true) }
+      it { expect(logger.info?).to be(true) }
+      it { expect(logger.warn?).to be(true) }
+      it { expect(logger.error?).to be(true) }
+      it { expect(logger.fatal?).to be(true) }
+    end
+  end
 
-      context 'debug log level' do
-        let(:log_level) { Logger::DEBUG }
-
-        before(:each) { log_debug(logger) }
-
-        it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
-        # We add traceback information to the log line for debug
-        it do
-          expect(lines[0]).to match(Regexp.new('D, \[[0-9:T.-]+ #[0-9]+\] DEBUG -- ddtrace: \[ddtrace\] ' \
-                                               '\([\/a-z_]+\.rb:[0-9]+:in `log_debug\'\) debug message\n'))
-        end
-      end
+  describe '#debug()' do
+    context 'default log level' do
+      before(:each) { log_debug(logger) }
+      it { expect(lines.length).to eq(0) if lines.respond_to?(:length) }
     end
 
-    context '#error()' do
-      context 'default log level' do
-        before(:each) { log_error(logger) }
-        it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
-        # We add traceback information to the log line for errors
-        it do
-          expect(lines[0]).to match(Regexp.new('E, \[[0-9:T.-]+ #[0-9]+\] ERROR -- ddtrace: \[ddtrace\] '\
-                                               '\([\/a-z_]+\.rb:[0-9]+:in `log_error\'\) error message\n'))
-        end
+    context 'debug log level' do
+      let(:log_level) { Logger::DEBUG }
+
+      before(:each) { log_debug(logger) }
+
+      it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
+      # We add traceback information to the log line for debug
+      it do
+        expect(lines[0]).to match(Regexp.new('D, \[[0-9:T.-]+ #[0-9]+\] DEBUG -- ddtrace: \[ddtrace\] ' \
+                                             '\([\/a-z_]+\.rb:[0-9]+:in `log_debug\'\) debug message\n'))
       end
     end
+  end
+
+  describe '#error()' do
+    context 'default log level' do
+      before(:each) { log_error(logger) }
+      it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
+      # We add traceback information to the log line for errors
+      it do
+        expect(lines[0]).to match(Regexp.new('E, \[[0-9:T.-]+ #[0-9]+\] ERROR -- ddtrace: \[ddtrace\] '\
+                                             '\([\/a-z_]+\.rb:[0-9]+:in `log_error\'\) error message\n'))
+      end
+    end
+  end
+
+  describe '#warn' do
+    context '()' do
+      it { expect { logger.warn('warn message') }.to_not raise_error }
+    end
+
+    context '() { message }' do
+      it { expect { logger.warn { 'warn message' } }.to_not raise_error }
+    end
+
+    context '(progname) { message }' do
+      it { expect { logger.warn('bar') { 'warn message' } }.to_not raise_error }
+    end
+
+    context 'default log level' do
+      before(:each) { log_warn(logger) }
+      it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
+      it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] warn message\n/) }
+    end
+
+    context 'debug log level' do
+      let(:log_level) { Logger::DEBUG }
+      before(:each) { log_warn(logger) }
+
+      it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
+      # We add traceback information to the log line for errors
+      it do
+        expect(lines[0]).to match(Regexp.new('W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] '\
+                                             '\([\/a-z_]+\.rb:[0-9]+:in `log_warn\'\) warn message\n'))
+      end
+    end
+  end
+
+  describe 'with custom formatter' do
+    before(:each) { logger.formatter = proc { |severity, timestamp, progname, msg| "CUSTOM: #{msg}" } }
 
     context '#warn' do
-      context '()' do
-        it { expect { logger.warn('warn message') }.to_not raise_error }
-      end
+      before(:each) { log_warn(logger) }
 
-      context '() { message }' do
-        it { expect { logger.warn { 'warn message' } }.to_not raise_error }
-      end
-
-      context '(progname) { message }' do
-        it { expect { logger.warn('bar') { 'warn message' } }.to_not raise_error }
-      end
-
-      context 'default log level' do
-        before(:each) { log_warn(logger) }
-        it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
-        it { expect(lines[0]).to match(/W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] warn message\n/) }
-      end
-
-      context 'debug log level' do
-        let(:log_level) { Logger::DEBUG }
-        before(:each) { log_warn(logger) }
-
-        it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
-        # We add traceback information to the log line for errors
-        it do
-          expect(lines[0]).to match(Regexp.new('W, \[[0-9:T.-]+ #[0-9]+\]  WARN -- ddtrace: \[ddtrace\] '\
-                                               '\([\/a-z_]+\.rb:[0-9]+:in `log_warn\'\) warn message\n'))
-        end
-      end
+      it { expect(lines.length).to eq(1) if lines.respond_to?(:length) }
+      it { expect(lines[0]).to eq('CUSTOM: [ddtrace] warn message') }
     end
   end
 
