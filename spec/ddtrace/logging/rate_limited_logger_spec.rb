@@ -119,7 +119,7 @@ RSpec.describe Datadog::Logging::RateLimitedLogger do
   end
 
   describe 'with custom formatter' do
-    before(:each) { logger.formatter = proc { |severity, timestamp, progname, msg| "CUSTOM: #{msg}" } }
+    before(:each) { logger.formatter = proc { |_severity, _timestamp, _progname, msg| "CUSTOM: #{msg}" } }
 
     context '#warn' do
       before(:each) { log_warn(logger) }

@@ -66,23 +66,23 @@ RSpec.describe Datadog::Logging::Limiter do
       end
 
       context 'logging rate of 0' do
-          let(:rate) { 0 }
-          before(:each) { allow(Datadog.configuration.logging).to receive(:rate).and_return(rate) }
+        let(:rate) { 0 }
+        before(:each) { allow(Datadog.configuration.logging).to receive(:rate).and_return(rate) }
 
-          context 'we never rate limit' do
-            let(:start) { Time.now }
+        context 'we never rate limit' do
+          let(:start) { Time.now }
 
-            it do
-              Timecop.freeze(start) do
-                300.times do |i|
-                  # We are never rate limited
-                  is_not_rate_limited
+          it do
+            Timecop.freeze(start) do
+              300.times do |i|
+                # We are never rate limited
+                is_not_rate_limited
 
-                  Timecop.travel(start + i)
-                end
+                Timecop.travel(start + i)
               end
             end
           end
+        end
       end
 
       [
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Logging::Limiter do
         20,
         30,
         60,
-        120,
+        120
       ].each do |value|
         context "logging rate of #{value}" do
           let(:rate) { value }

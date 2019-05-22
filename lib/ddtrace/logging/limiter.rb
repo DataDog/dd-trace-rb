@@ -9,8 +9,11 @@ module Datadog
       end
 
       def rate_limit!(key, timestamp = nil, &block)
-        # If no logging rate is enabled, then immediately call the provided block, they not rate limited
-        return block.call(nil) unless Datadog.configuration.logging.rate > 0
+        # If no logging rate is enabled, then immediately call the provided block, they are not rate limited
+        unless Datadog.configuration.logging.rate > 0
+          yield nil
+          return
+        end
 
         timestamp ||= Time.now
 
@@ -36,8 +39,11 @@ module Datadog
           @buckets[key][:time_bucket] = current_time_bucket
           @buckets[key][:skipped] = 0
 
-          block.call(skipped)
+          yield skipped
         end
+
+        # Always return nil
+        nil
       end
 
       def reset!
