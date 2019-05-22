@@ -12,7 +12,14 @@ module Datadog
         register_as :action_view, auto_patch: false
 
         def self.version
-          Gem.loaded_specs['actionview'] && Gem.loaded_specs['actionview'].version
+          # ActionView is its own gem in Rails 4.1+
+          if Gem.loaded_specs['actionview']
+            Gem.loaded_specs['actionview'].version
+          # ActionView is embedded in ActionPack in versions < 4.1
+          elsif Gem.loaded_specs['actionpack']
+            action_pack_version = Gem.loaded_specs['actionpack'].version
+            action_pack_version unless action_pack_version >= Gem::Version.new('4.1')
+          end
         end
 
         def self.present?

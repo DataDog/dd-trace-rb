@@ -77,7 +77,6 @@ module Datadog
         # Add instrumentation to Rails components
         def instrument_rails
           Datadog::Contrib::Rails::ActionController.instrument
-          Datadog::Contrib::Rails::ActionView.instrument
         end
       end
     end

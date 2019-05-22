@@ -5,8 +5,6 @@ module Datadog
     module ActionView
       # Defines instrumentation for ActionView
       module Instrumentation
-        module_function
-
         # TODO: Add instrumentation here.
       end
     end

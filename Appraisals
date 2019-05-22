@@ -57,7 +57,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'contrib-old' do
-      gem 'actionview'
+      gem 'actionview', '< 5.0'
       gem 'active_model_serializers', '~> 0.9.0'
       gem 'activerecord', '3.2.22.5'
       gem 'activerecord-mysql-adapter', platform: :ruby
@@ -163,7 +163,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'contrib-old' do
-      gem 'actionview'
+      gem 'actionview', '< 5.0'
       gem 'active_model_serializers', '~> 0.9.0'
       gem 'activerecord', '3.2.22.5'
       gem 'activerecord-mysql-adapter', platform: :ruby

@@ -16,6 +16,7 @@ module Datadog
                   lazy: true
 
           option :service_name, default: Ext::SERVICE_NAME
+          option :template_base_path, default: 'views/'
         end
       end
     end
