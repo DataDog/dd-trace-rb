@@ -26,6 +26,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Quickstart for OpenTracing](#quickstart-for-opentracing)
  - [Manual instrumentation](#manual-instrumentation)
  - [Integration instrumentation](#integration-instrumentation)
+     - [Action View](#action-view)
      - [Active Model Serializers](#active-model-serializers)
      - [Active Record](#active-record)
      - [Active Support](#active-support)
@@ -321,6 +322,7 @@ For a list of available integrations, and their configuration options, please re
 
 | Name                     | Key                        | Versions Supported       | How to configure                    | Gem source                                                                     |
 | ------------------------ | -------------------------- | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------ |
+| Action View              | `action_view`              | `>= 3.2, < 6.0`          | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Active Record            | `active_record`            | `>= 3.2, < 6.0`          | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | Active Support           | `active_support`           | `>= 3.2, < 6.0`          | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
@@ -345,10 +347,31 @@ For a list of available integrations, and their configuration options, please re
 | Resque                   | `resque`                   | `>= 1.0, < 2.0`          | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
 | Rest Client              | `rest-client`              | `>= 1.8`                 | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
 | Sequel                   | `sequel`                   | `>= 3.41`                | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
-| Shoryuken                | `shoryuken`                | `>= 4.0.2`               | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*
+| Shoryuken                | `shoryuken`                | `>= 4.0.2`               | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
 | Sidekiq                  | `sidekiq`                  | `>= 3.5.4`               | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
 | Sinatra                  | `sinatra`                  | `>= 1.4.5`               | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
 | Sucker Punch             | `sucker_punch`             | `>= 2.0`                 | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
+
+### Action View
+
+Most of the time, Active Support is set up as part of Rails, but it can be activated separately:
+
+```ruby
+require 'actionview'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :action_view, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| ---| --- | --- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for rendering instrumentation. | `action_view` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### Active Model Serializers
 
@@ -461,7 +484,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | ---| --- | --- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
-| `cache_service` | Service name used for caching with `active_support` instrumentation. | `'active_support-cache'` |
+| `cache_service` | Service name used for caching with `active_support` instrumentation. | `active_support-cache` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### AWS
