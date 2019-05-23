@@ -21,11 +21,11 @@ ruby_containers: &ruby_containers
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
   - &container-2_3
-    image: datadog/docker-library:ddtrace_rb_2_3_7
+    image: datadog/docker-library:ddtrace_rb_2_3_8
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
   - &container-2_4
-    image: datadog/docker-library:ddtrace_rb_2_4_4
+    image: datadog/docker-library:ddtrace_rb_2_4_6
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
 

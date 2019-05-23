@@ -113,7 +113,7 @@ services:
       - bundle-2.2:/usr/local/bundle
       - gemfiles-2.2:/app/gemfiles
   tracer-2.3:
-    image: datadog/docker-library:ddtrace_rb_2_3_7
+    image: datadog/docker-library:ddtrace_rb_2_3_8
     command: /bin/bash
     depends_on:
       - ddagent
@@ -141,7 +141,7 @@ services:
       - bundle-2.3:/usr/local/bundle
       - gemfiles-2.3:/app/gemfiles
   tracer-2.4:
-    image: datadog/docker-library:ddtrace_rb_2_4_4
+    image: datadog/docker-library:ddtrace_rb_2_4_6
     command: /bin/bash
     depends_on:
       - ddagent
