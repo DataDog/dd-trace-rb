@@ -64,7 +64,9 @@ RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
 # Install RubyGems
 RUN gem update --system
-RUN gem install bundler
+# Ruby 2.3 can support Bundler 2+
+# But hold back to < 2 for now, because some dependencies require it.
+RUN gem install bundler -v '1.17.3'
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 RUN mkdir /app
