@@ -1,7 +1,7 @@
 version: '3.2'
 services:
   tracer-1.9:
-    image: datadog/docker-library:ddtrace_rb_1_9_3
+    image: palazzem/docker-library:ddtrace_rb_1_9_3
     command: /bin/bash
     depends_on:
       - ddagent
@@ -29,7 +29,7 @@ services:
       - bundle-1.9:/usr/local/bundle
       - gemfiles-1.9:/app/gemfiles
   tracer-2.0:
-    image: datadog/docker-library:ddtrace_rb_2_0_0
+    image: palazzem/docker-library:ddtrace_rb_2_0_0
     command: /bin/bash
     depends_on:
       - ddagent
@@ -57,7 +57,7 @@ services:
       - bundle-2.0:/usr/local/bundle
       - gemfiles-2.0:/app/gemfiles
   tracer-2.1:
-    image: datadog/docker-library:ddtrace_rb_2_1_10
+    image: palazzem/docker-library:ddtrace_rb_2_1_10
     command: /bin/bash
     depends_on:
       - ddagent
@@ -85,7 +85,7 @@ services:
       - bundle-2.1:/usr/local/bundle
       - gemfiles-2.1:/app/gemfiles
   tracer-2.2:
-    image: datadog/docker-library:ddtrace_rb_2_2_10
+    image: palazzem/docker-library:ddtrace_rb_2_2_10
     command: /bin/bash
     depends_on:
       - ddagent
@@ -113,7 +113,7 @@ services:
       - bundle-2.2:/usr/local/bundle
       - gemfiles-2.2:/app/gemfiles
   tracer-2.3:
-    image: datadog/docker-library:ddtrace_rb_2_3_8
+    image: palazzem/docker-library:ddtrace_rb_2_3_8
     command: /bin/bash
     depends_on:
       - ddagent
@@ -141,7 +141,7 @@ services:
       - bundle-2.3:/usr/local/bundle
       - gemfiles-2.3:/app/gemfiles
   tracer-2.4:
-    image: datadog/docker-library:ddtrace_rb_2_4_6
+    image: palazzem/docker-library:ddtrace_rb_2_4_6
     command: /bin/bash
     depends_on:
       - ddagent
