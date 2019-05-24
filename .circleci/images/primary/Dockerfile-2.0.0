@@ -1,6 +1,10 @@
 # Last version: https://github.com/docker-library/ruby/blob/c387c6c3a2505060514e31c247cb37d22c944e55/2.0/Dockerfile
 FROM ruby:2.0.0
 
+# Add Jessie repos
+# Fixes https://superuser.com/questions/1423486/issue-with-fetching-http-deb-debian-org-debian-dists-jessie-updates-inrelease
+RUN printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main\ndeb http://security.debian.org jessie/updates main\ndeb-src http://security.debian.org jessie/updates main" > /etc/apt/sources.list
+
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
   && echo 'DPkg::Options "--force-confnew";' >> /etc/apt/apt.conf.d/90circleci
@@ -59,8 +63,8 @@ RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cac
   && dockerize --version
 
 # Install RubyGems
-RUN gem update --system
-RUN gem install bundler
+RUN gem update --system 2.7.9
+RUN gem install bundler -v '1.17.3'
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 RUN mkdir /app
