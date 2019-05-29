@@ -31,7 +31,7 @@ module Datadog
             super(severity, message, "[#{self.progname}] #{where}#{progname}")
           end
         else
-          super(severity, "[#{self.progname}] #{where}#{message}")
+          super(severity, "[#{self.progname}] #{where}#{message}", progname)
         end
       end
 
