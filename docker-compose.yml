@@ -28,6 +28,7 @@ services:
       - .:/app
       - bundle-1.9:/usr/local/bundle
       - gemfiles-1.9:/app/gemfiles
+      - ddagent:/tmp/ddagent
   tracer-2.0:
     image: palazzem/docker-library:ddtrace_rb_2_0_0
     command: /bin/bash
@@ -56,6 +57,7 @@ services:
       - .:/app
       - bundle-2.0:/usr/local/bundle
       - gemfiles-2.0:/app/gemfiles
+      - ddagent:/tmp/ddagent
   tracer-2.1:
     image: palazzem/docker-library:ddtrace_rb_2_1_10
     command: /bin/bash
@@ -84,6 +86,7 @@ services:
       - .:/app
       - bundle-2.1:/usr/local/bundle
       - gemfiles-2.1:/app/gemfiles
+      - ddagent:/tmp/ddagent
   tracer-2.2:
     image: palazzem/docker-library:ddtrace_rb_2_2_10
     command: /bin/bash
@@ -112,6 +115,7 @@ services:
       - .:/app
       - bundle-2.2:/usr/local/bundle
       - gemfiles-2.2:/app/gemfiles
+      - ddagent:/tmp/ddagent
   tracer-2.3:
     image: palazzem/docker-library:ddtrace_rb_2_3_8
     command: /bin/bash
@@ -140,6 +144,7 @@ services:
       - .:/app
       - bundle-2.3:/usr/local/bundle
       - gemfiles-2.3:/app/gemfiles
+      - ddagent:/tmp/ddagent
   tracer-2.4:
     image: palazzem/docker-library:ddtrace_rb_2_4_6
     command: /bin/bash
@@ -168,18 +173,22 @@ services:
       - .:/app
       - bundle-2.4:/usr/local/bundle
       - gemfiles-2.4:/app/gemfiles
+      - ddagent:/tmp/ddagent
   ddagent:
-    image: datadog/docker-dd-agent
+    image: datadog/agent-dev:gbbr-apm-build
     environment:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
       - DD_API_KEY=invalid_key_but_this_is_fine
+      - DD_APM_RECEIVER_SOCKET=/tmp/ddagent/trace.sock
     expose:
       - "8125/udp"
       - "8126"
     ports:
       - "${DD_METRIC_AGENT_PORT}:8125/udp"
       - "${DD_TRACE_AGENT_PORT}:8126"
+    volumes:
+      - ddagent:/tmp/ddagent
   elasticsearch:
     # Note: ES 5.0 dies with error:
     # max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
@@ -238,6 +247,7 @@ volumes:
   bundle-2.2:
   bundle-2.3:
   bundle-2.4:
+  ddagent:
   gemfiles-1.9:
   gemfiles-2.0:
   gemfiles-2.1:
