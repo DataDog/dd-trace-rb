@@ -1,3 +1,5 @@
+require 'json'
+
 require 'ddtrace/ext/net'
 require 'ddtrace/runtime/socket'
 
@@ -24,7 +26,7 @@ module Datadog
       if options[:priority_sampler]
         @priority_sampler = options[:priority_sampler]
         transport_options[:api_version] ||= HTTPTransport::V4
-        transport_options[:response_callback] ||= method(:sampling_updater)
+        transport_options[:response_callback] ||= method(:old_sampling_updater)
       end
 
       # transport and buffers
@@ -76,11 +78,21 @@ module Datadog
       # Inject hostname if configured to do so
       inject_hostname!(traces) if Datadog.configuration.report_hostname
 
-      code = transport.send(:traces, traces)
-      status = !transport.server_error?(code)
-      @traces_flushed += traces.length if status
-
-      status
+      if transport.is_a?(Datadog::HTTPTransport)
+        # For older Datadog::HTTPTransport...
+        code = transport.send(:traces, traces)
+        !transport.server_error?(code).tap do |status|
+          @traces_flushed += traces.length if status
+        end
+      else
+        # For newer Datadog::Transports...
+        request = Transport::Request.new(:traces, Transport::Traces::Parcel.new(traces))
+        response = transport.deliver(request)
+        !response.server_error? do |status|
+          @traces_flushed += traces.length if status
+          update_priority_sampler!(response)
+        end
+      end
     end
 
     def send_runtime_metrics
@@ -143,7 +155,25 @@ module Datadog
       end
     end
 
-    def sampling_updater(action, response, api)
+    # Updates the priority sampler with rates from transport response.
+    # response: A Datadog::Transport::Response object.
+    def update_priority_sampler!(response)
+      return if priority_sampler.nil? || response.payload.nil?
+      # TODO: Check if response is priority sampling compatible
+
+      body = JSON.parse(response.payload)
+      if body.is_a?(Hash) && body.key?('rate_by_service')
+        priority_sampler.update(body['rate_by_service'])
+      end
+    end
+
+    # Updates the priority sampler with rates from transport response.
+    # action (Symbol): Symbol representing data submitted.
+    # response: A Datadog::Transport::Response object.
+    # api: API version used to process this request.
+    #
+    # NOTE: Used only by old Datadog::HTTPTransport; will be removed.
+    def old_sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)
 
       if api[:version] == HTTPTransport::V4

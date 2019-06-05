@@ -1,38 +1,42 @@
+require 'ddtrace/encoding'
+
+require 'ddtrace/transport/http/api/map'
+require 'ddtrace/transport/http/api/routes'
+require 'ddtrace/transport/http/api/endpoints'
+
 module Datadog
   module Transport
     module HTTP
-      # Represents a grouping of routes a part of the same API version.
-      # Does some very basic routing based off of parcel type.
-      class API
-        attr_reader \
-          :routes
+      # Namespace for API components
+      module API
+        # Default API versions
+        V4 = 'v0.4'.freeze
+        V3 = 'v0.3'.freeze
+        V2 = 'v0.2'.freeze
 
-        def initialize(routes = {})
-          @routes = routes
-        end
+        module_function
 
-        def deliver(service, parcel, options = {})
-          # Send parcel through to the endpoint
-          endpoint_for(parcel.class).deliver(service, parcel, options)
-        end
-
-        def endpoint_for(key)
-          routes[key].tap do |endpoint|
-            raise NoEndpointError, key if endpoint.nil?
-          end
-        end
-
-        # Raised when the API cannot map the request to an endpoint.
-        class NoEndpointError < StandardError
-          attr_reader :key
-
-          def initialize(key)
-            @key = key
-          end
-
-          def message
-            "No matching transport API endpoint for #{key}!"
-          end
+        def defaults
+          Map[
+            V4 => Routes[
+              traces: [
+                '/v0.4/traces',
+                TraceEndpoint.new(Encoding::MsgpackEncoder)
+              ]
+            ],
+            V3 => Routes[
+              traces: [
+                '/v0.3/traces',
+                TraceEndpoint.new(Encoding::MsgpackEncoder)
+              ]
+            ],
+            V2 => Routes[
+              traces: [
+                '/v0.2/traces',
+                TraceEndpoint.new(Encoding::JSONEncoder)
+              ]
+            ]
+          ].with_fallbacks(V4 => V3, V3 => V2)
         end
       end
     end

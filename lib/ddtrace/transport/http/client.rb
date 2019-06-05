@@ -1,11 +1,4 @@
-require 'ddtrace/encoding'
-require 'ddtrace/version'
-
-require 'ddtrace/transport/traces'
-require 'ddtrace/transport/http/api'
-require 'ddtrace/transport/http/api_map'
-require 'ddtrace/transport/http/endpoint'
-
+require 'ddtrace/transport/http/env'
 require 'ddtrace/transport/http/compatibility'
 
 module Datadog
@@ -16,42 +9,19 @@ module Datadog
         include Compatibility
 
         attr_reader \
-          :service,
           :apis,
-          :active_api,
-          :headers
+          :api_id
 
-        DEFAULT_APIS = APIMap[
-          V4 = 'v0.4'.freeze => API.new(
-            Transport::Traces::Parcel => TracesEndpoint.new('/v0.4/traces'.freeze, Encoding::MsgpackEncoder)
-          ),
-          V3 = 'v0.3'.freeze => API.new(
-            Transport::Traces::Parcel => TracesEndpoint.new('/v0.3/traces'.freeze, Encoding::MsgpackEncoder)
-          ),
-          V2 = 'v0.2'.freeze => API.new(
-            Transport::Traces::Parcel => TracesEndpoint.new('/v0.2/traces'.freeze, Encoding::JSONEncoder)
-          )
-        ].with_fallbacks(V4 => V3, V3 => V2).freeze
+        def initialize(apis, api_id)
+          @apis = apis
 
-        def initialize(service, options = {})
-          @service = service
-          @apis = options[:apis] || DEFAULT_APIS
-
-          # Select active API
-          @active_api = apis[options.fetch(:api_version, V4)]
-          raise UnknownApiVersion if active_api.nil?
-
-          # Set headers
-          @headers = {
-            'Datadog-Meta-Lang' => 'ruby',
-            'Datadog-Meta-Lang-Version' => RUBY_VERSION,
-            'Datadog-Meta-Lang-Interpreter' => RUBY_ENGINE,
-            'Datadog-Meta-Tracer-Version' => Datadog::VERSION::STRING
-          }.merge(options.fetch(:headers, {}))
+          # Activate initial API
+          change_api(api_id)
         end
 
-        def deliver(parcel)
-          response = active_api.deliver(service, parcel, headers: headers)
+        def deliver(request)
+          env = build_env(request)
+          response = current_api.call(env)
 
           # If API should be downgraded, downgrade and try again.
           if downgrade?(response)
@@ -62,13 +32,26 @@ module Datadog
           response
         end
 
+        def build_env(request)
+          Env.new(request)
+        end
+
         def downgrade?(response)
-          return false if apis.fallback_from(active_api).nil?
+          return false unless apis.fallbacks.key?(api_id)
           response.not_found? || response.unsupported?
         end
 
+        def current_api
+          apis[api_id]
+        end
+
+        def change_api!(api_id)
+          raise UnknownApiVersion, api_id unless apis.key?(api_id)
+          @api_id = api_id
+        end
+
         def downgrade!
-          @active_api = apis.fallback_from(active_api)
+          change_api(apis.fallbacks[api_id])
         end
 
         # Raised when configured with an unknown API version
