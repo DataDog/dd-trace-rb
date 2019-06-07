@@ -30,5 +30,20 @@ module Datadog
         false
       end
     end
+
+    # A generic error response for internal errors
+    class InternalErrorResponse
+      include Response
+
+      attr_reader :error
+
+      def initialize(error)
+        @error = error
+      end
+
+      def internal_error?
+        true
+      end
+    end
   end
 end

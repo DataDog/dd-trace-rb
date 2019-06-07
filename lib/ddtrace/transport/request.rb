@@ -3,11 +3,9 @@ module Datadog
     # Defines request for transport operations
     class Request
       attr_reader \
-        :parcel,
-        :route
+        :parcel
 
-      def initialize(route, parcel)
-        @route = route
+      def initialize(parcel)
         @parcel = parcel
       end
     end

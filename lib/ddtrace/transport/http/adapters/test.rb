@@ -10,9 +10,8 @@ module Datadog
             :buffer,
             :status
 
-          def initialize(use_buffer = false)
-            @use_buffer = buffer
-            @buffer = []
+          def initialize(buffer = nil)
+            @buffer = buffer
             @mutex = Mutex.new
             @status = 200
           end
@@ -22,7 +21,7 @@ module Datadog
           end
 
           def buffer?
-            @use_buffer == true
+            !@buffer.nil?
           end
 
           def add_request(env)
@@ -39,6 +38,7 @@ module Datadog
             include Datadog::Transport::Response
 
             attr_reader \
+              :body,
               :code
 
             def initialize(code, body = nil)

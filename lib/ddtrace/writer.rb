@@ -4,6 +4,7 @@ require 'ddtrace/ext/net'
 require 'ddtrace/runtime/socket'
 
 require 'ddtrace/transport'
+require 'ddtrace/transport/http'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
 
@@ -67,7 +68,8 @@ module Datadog
 
     # stops worker for spans.
     def stop
-      @worker.stop()
+      return if worker.nil?
+      @worker.stop
       @worker = nil
     end
 
@@ -81,16 +83,19 @@ module Datadog
       if transport.is_a?(Datadog::HTTPTransport)
         # For older Datadog::HTTPTransport...
         code = transport.send(:traces, traces)
-        !transport.server_error?(code).tap do |status|
+        (!transport.server_error?(code)).tap do |status|
           @traces_flushed += traces.length if status
         end
       else
         # For newer Datadog::Transports...
-        request = Transport::Request.new(:traces, Transport::Traces::Parcel.new(traces))
-        response = transport.deliver(request)
-        !response.server_error? do |status|
-          @traces_flushed += traces.length if status
-          update_priority_sampler!(response)
+        response = transport.send_traces(traces)
+        (!response.server_error?).tap do
+          @traces_flushed += traces.length unless response.server_error? || response.internal_error?
+
+          # Update priority sampler
+          unless priority_sampler.nil? || response.service_rates.nil?
+            priority_sampler.update(response.service_rates)
+          end
         end
       end
     end
@@ -152,18 +157,6 @@ module Datadog
         unless hostname.nil? || hostname.empty?
           trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
         end
-      end
-    end
-
-    # Updates the priority sampler with rates from transport response.
-    # response: A Datadog::Transport::Response object.
-    def update_priority_sampler!(response)
-      return if priority_sampler.nil? || response.payload.nil?
-      # TODO: Check if response is priority sampling compatible
-
-      body = JSON.parse(response.payload)
-      if body.is_a?(Hash) && body.key?('rate_by_service')
-        priority_sampler.update(body['rate_by_service'])
       end
     end
 

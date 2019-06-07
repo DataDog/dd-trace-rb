@@ -11,10 +11,9 @@ RSpec.describe 'Datadog::Transport::HTTP integration tests' do
     let(:client_options) { proc { |_client| } }
     it { is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Client) }
 
-    describe '#deliver' do
-      subject(:response) { client.deliver(request) }
-      let(:request) { Datadog::Transport::Request.new(:traces, parcel) }
-      let(:parcel) { Datadog::Transport::Traces::Parcel.new(get_test_traces(2)) }
+    describe '#send_traces' do
+      subject(:response) { client.send_traces(traces) }
+      let(:traces) { get_test_traces(2) }
       it { expect(response.ok?).to be true }
     end
   end

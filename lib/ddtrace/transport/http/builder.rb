@@ -45,11 +45,11 @@ module Datadog
         #  - :default
         #  - :fallback
         #  - :headers
-        def api(key, routes, options = {})
+        def api(key, spec, options = {})
           options = options.dup
 
-          # Copy routes into API map
-          @apis[key] = routes
+          # Copy spec into API map
+          @apis[key] = spec
 
           # Apply as default API, if specified to do so.
           @default_api = key if options.delete(:default) || @default_api.nil?
@@ -94,7 +94,7 @@ module Datadog
         private
 
         def build_api_instances
-          @apis.inject(API::Map.new) do |instances, (key, routes)|
+          @apis.inject(API::Map.new) do |instances, (key, spec)|
             instances.tap do
               api_options = @api_options[key].dup
 
@@ -108,8 +108,8 @@ module Datadog
 
               # Add API::Instance with all settings
               instances[key] = API::Instance.new(
+                spec,
                 adapter,
-                routes,
                 api_options
               )
 

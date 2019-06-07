@@ -24,7 +24,7 @@ RSpec.describe Datadog::Writer do
 
           context 'and default transport options' do
             it do
-              sampling_method = described_class.new.method(:sampling_updater)
+              sampling_method = described_class.instance_method(:old_sampling_updater)
               expect(Datadog::HTTPTransport).to receive(:new) do |options|
                 expect(options).to be_a_kind_of(Hash)
                 expect(options[:api_version]).to eq(Datadog::HTTPTransport::V4)
@@ -224,8 +224,8 @@ RSpec.describe Datadog::Writer do
         end
       end
 
-      describe '#sampling_updater' do
-        subject(:result) { writer.send(:sampling_updater, action, response, api) }
+      describe '#old_sampling_updater' do
+        subject(:result) { writer.send(:old_sampling_updater, action, response, api) }
         let(:options) { { priority_sampler: sampler } }
         let(:sampler) { instance_double(Datadog::PrioritySampler) }
         let(:action) { :traces }

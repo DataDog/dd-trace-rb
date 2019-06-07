@@ -135,12 +135,9 @@ module Datadog
     #
     def configure(options = {})
       enabled = options.fetch(:enabled, nil)
-      hostname = options.fetch(:hostname, nil)
-      port = options.fetch(:port, nil)
 
       # Those are rare "power-user" options.
       sampler = options.fetch(:sampler, nil)
-      priority_sampling = options.fetch(:priority_sampling, nil)
       max_spans_before_partial_flush = options.fetch(:max_spans_before_partial_flush, nil)
       min_spans_before_partial_flush = options.fetch(:min_spans_before_partial_flush, nil)
       partial_flush_timeout = options.fetch(:partial_flush_timeout, nil)
@@ -148,19 +145,7 @@ module Datadog
       @enabled = enabled unless enabled.nil?
       @sampler = sampler unless sampler.nil?
 
-      # Re-build the sampler and writer if priority sampling is enabled,
-      # but neither are configured. Verify the sampler isn't already a
-      # priority sampler too, so we don't wrap one with another.
-      if priority_sampling != false && !@sampler.is_a?(PrioritySampler)
-        @sampler = PrioritySampler.new(base_sampler: @sampler)
-        @writer = Writer.new(priority_sampler: @sampler)
-      elsif priority_sampling == false
-        @sampler = sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
-        @writer = Writer.new
-      end
-
-      @writer.transport.hostname = hostname unless hostname.nil?
-      @writer.transport.port = port unless port.nil?
+      configure_writer(options)
 
       @context_flush = Datadog::ContextFlush.new(options) unless min_spans_before_partial_flush.nil? &&
                                                                  max_spans_before_partial_flush.nil? &&
@@ -393,6 +378,67 @@ module Datadog
       @writer.write(trace)
     end
 
-    private :write, :guess_context_and_parent
+    # TODO: Move this kind of configuration building out of the tracer.
+    #       Tracer should not have this kind of knowledge of writer.
+    # rubocop:disable Metrics/PerceivedComplexity
+    def configure_writer(options = {})
+      hostname = options.fetch(:hostname, nil)
+      port = options.fetch(:port, nil)
+      sampler = options.fetch(:sampler, nil)
+      priority_sampling = options.fetch(:priority_sampling, nil)
+      writer = options.fetch(:writer, nil)
+
+      # Compile writer options
+      rebuild_writer = false
+      writer_options = {}
+
+      # Re-build the sampler and writer if priority sampling is enabled,
+      # but neither are configured. Verify the sampler isn't already a
+      # priority sampler too, so we don't wrap one with another.
+      if options.key?(:writer)
+        if writer.priority_sampler.nil?
+          deactivate_priority_sampling!(sampler)
+        else
+          activate_priority_sampling!(writer.priority_sampler)
+        end
+      elsif priority_sampling != false && !@sampler.is_a?(PrioritySampler)
+        writer_options[:priority_sampler] = activate_priority_sampling!(@sampler)
+        rebuild_writer = true
+      elsif priority_sampling == false
+        deactivate_priority_sampling!(sampler)
+        rebuild_writer = true
+      end
+
+      if rebuild_writer || writer
+        # Make sure old writer is shut down before throwing away.
+        # Don't want additional threads running...
+        @writer.stop unless writer.nil?
+        @writer = writer || Writer.new(writer_options)
+      end
+
+      # Change transport hostname/port if possible and necessary.
+      # Newer version of transport doesn't always respond to this.
+      @writer.transport.hostname = hostname if !hostname.nil? && @writer.transport.respond_to?(:hostname=)
+      @writer.transport.port = port if !port.nil? && @writer.transport.respond_to?(:port=)
+    end
+
+    def activate_priority_sampling!(base_sampler = nil)
+      @sampler = if base_sampler.is_a?(PrioritySampler)
+                   base_sampler
+                 else
+                   PrioritySampler.new(base_sampler: base_sampler)
+                 end
+    end
+
+    def deactivate_priority_sampling!(base_sampler = nil)
+      @sampler = base_sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
+    end
+
+    private \
+      :activate_priority_sampling!,
+      :configure_writer,
+      :deactivate_priority_sampling!,
+      :guess_context_and_parent,
+      :write
   end
 end

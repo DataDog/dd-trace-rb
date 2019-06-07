@@ -9,12 +9,13 @@ RSpec.describe 'Tracer integration tests' do
     before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
     let(:tracer) do
-      Datadog::Tracer.new.tap do |t|
-        t.configure(
-          enabled: true
-        )
+      Datadog::Tracer.new(initialize_options).tap do |t|
+        t.configure(configure_options)
       end
     end
+
+    let(:initialize_options) { {} }
+    let(:configure_options) { { enabled: true } }
   end
 
   describe 'agent receives span' do
@@ -214,6 +215,61 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport][:client_error]).to eq(0)
         expect(stats[:transport][:server_error]).to eq(0)
         expect(stats[:transport][:internal_error]).to eq(0)
+      end
+    end
+  end
+
+  describe 'Transport::HTTP' do
+    include_context 'agent-based test'
+
+    let(:writer) { Datadog::Writer.new(transport: transport, priority_sampler: Datadog::PrioritySampler.new) }
+    let(:transport) { Datadog::Transport::HTTP.default }
+
+    before(:each) do
+      # TODO: We can't activate priority sampling and pass in our own writer in the same call.
+      #       Tracer creates and sets its own priority sampler. Writer needs this same sampler.
+      #       Writer doesn't get the sampler, so it doesn't update rates.
+      #       Work around is to configure the writer after priority sampling is enabled....
+      #       Or you can build your own priority sampler, pass that into both the writer and tracer...
+      #       Make this better!!
+      tracer.configure(
+        enabled: true,
+        priority_sampling: true,
+        writer: writer
+      )
+
+      # Verify Transport::HTTP is configured
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+
+      # Verify sampling is configured properly
+      expect(tracer.writer.priority_sampler).to_not be nil
+      expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler)
+      expect(tracer.sampler).to be(tracer.writer.priority_sampler)
+
+      # Verify priority sampler is configured and rates are updated
+      expect(tracer.sampler).to receive(:update)
+        .with(kind_of(Hash))
+        .and_call_original
+    end
+
+    it do
+      3.times do |i|
+        parent_span = tracer.start_span('parent_span')
+        child_span = tracer.start_span('child_span', child_of: parent_span.context)
+
+        # I want to keep the trace to which `child_span` belongs
+        child_span.context.sampling_priority = i
+
+        child_span.finish
+        parent_span.finish
+
+        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+        stats = tracer.writer.stats
+
+        expect(stats[:traces_flushed]).to eq(1)
+        expect(stats[:transport].client_error).to eq(0)
+        expect(stats[:transport].server_error).to eq(0)
+        expect(stats[:transport].internal_error).to eq(0)
       end
     end
   end

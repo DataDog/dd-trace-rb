@@ -9,8 +9,8 @@ RSpec.describe Datadog::Transport::HTTP::Client do
   let(:active_api) { :V2 }
   let(:apis) do
     Datadog::Transport::HTTP::API::Map[
-      :V2 => api_v2,
-      :V1 => api_v1
+      V2: api_v2,
+      V1: api_v1
     ]
   end
   let(:api_v2) { instance_double(Datadog::Transport::HTTP::API::Instance) }
@@ -28,7 +28,6 @@ RSpec.describe Datadog::Transport::HTTP::Client do
     end
 
     context 'which returns an OK response' do
-      let(:response) {  }
     end
 
     context 'which returns a not found response' do

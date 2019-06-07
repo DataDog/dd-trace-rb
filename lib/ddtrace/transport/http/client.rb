@@ -1,12 +1,12 @@
+require 'ddtrace/transport/stats'
 require 'ddtrace/transport/http/env'
-require 'ddtrace/transport/http/compatibility'
 
 module Datadog
   module Transport
     module HTTP
       # Routes, encodes, and sends tracer data to the trace agent via HTTP.
       class Client
-        include Compatibility
+        include Transport::Statistics
 
         attr_reader \
           :apis,
@@ -16,20 +16,41 @@ module Datadog
           @apis = apis
 
           # Activate initial API
-          change_api(api_id)
+          change_api!(api_id)
         end
 
-        def deliver(request)
+        def send_request(request, &block)
+          # Build request into env
           env = build_env(request)
-          response = current_api.call(env)
+
+          # Get response from API
+          response = yield(current_api, env)
+
+          # Update statistics
+          update_stats_from_response!(response)
 
           # If API should be downgraded, downgrade and try again.
           if downgrade?(response)
             downgrade!
-            response = deliver(parcel)
+            response = send_request(request, &block)
           end
 
           response
+        rescue StandardError => e
+          message = "Internal error during HTTP transport request. Cause: #{e.message} Location: #{e.backtrace.first}"
+
+          # Log error
+          if stats.consecutive_errors > 0
+            Datadog::Tracer.log.debug(message)
+          else
+            Datadog::Tracer.log.error(message)
+          end
+
+          # Update statistics
+          stats.internal_error += 1
+          stats.consecutive_errors += 1
+
+          InternalErrorResponse.new(e)
         end
 
         def build_env(request)
@@ -51,7 +72,7 @@ module Datadog
         end
 
         def downgrade!
-          change_api(apis.fallbacks[api_id])
+          change_api!(apis.fallbacks[api_id])
         end
 
         # Raised when configured with an unknown API version
