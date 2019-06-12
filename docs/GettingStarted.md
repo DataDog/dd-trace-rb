@@ -1402,6 +1402,9 @@ When not using [distributed tracing](#distributed-tracing), you may change the p
 If you change the priority, we recommend you do it as soon as possible, when the root span has just been created.
 
 ```ruby
+# First, grab the active span
+span = Datadog.tracer.active_span
+
 # Indicate to reject the trace
 span.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
 
