@@ -54,9 +54,7 @@ module Datadog
             pin = datadog_pin
             return super(req, body, &block) unless pin && pin.tracer
 
-            transport = pin.tracer.writer.transport
-
-            if Datadog::Contrib::HTTP.should_skip_tracing?(req, @address, @port, transport, pin)
+            if Datadog::Contrib::HTTP.should_skip_tracing?(req, @address, @port, pin.tracer)
               return super(req, body, &block)
             end
 
