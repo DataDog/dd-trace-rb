@@ -36,7 +36,13 @@ end
 
 # Return a test tracer instance with a faux writer.
 def get_test_tracer(options = {})
-  options = { writer: FauxWriter.new }.merge(options)
+  writer = FauxWriter.new(
+    transport: Datadog::Transport::HTTP.default do |t|
+      t.adapter :test
+    end
+  )
+
+  options = { writer: writer }.merge(options)
   Datadog::Tracer.new(options).tap do |tracer|
     # TODO: Let's try to get rid of this override, which has too much
     #       knowledge about the internal workings of the tracer.
@@ -49,22 +55,22 @@ def get_test_tracer(options = {})
       # since priority sampling will wipe out the old test writer.
       unless @writer.is_a?(FauxWriter)
         @writer = if @sampler.is_a?(Datadog::PrioritySampler)
-                    FauxWriter.new(priority_sampler: @sampler)
+                    FauxWriter.new(
+                      priority_sampler: @sampler,
+                      transport: Datadog::Transport::HTTP.default do |t|
+                        t.adapter :test
+                      end
+                    )
                   else
-                    FauxWriter.new
+                    FauxWriter.new(
+                      transport: Datadog::Transport::HTTP.default do |t|
+                        t.adapter :test
+                      end
+                    )
                   end
 
-        hostname = opts.fetch(:hostname, nil)
-        port = opts.fetch(:port, nil)
-
-        @writer.transport.hostname = hostname unless hostname.nil?
-        @writer.transport.port = port unless port.nil?
-
         statsd = opts.fetch(:statsd, nil)
-        unless statsd.nil?
-          @writer.statsd = statsd
-          @writer.transport.statsd = statsd
-        end
+        @writer.runtime_metrics.statsd = statsd unless statsd.nil?
       end
     end
   end
@@ -166,9 +172,16 @@ class FauxWriter < Datadog::Writer
 end
 
 # FauxTransport is a dummy HTTPTransport that doesn't send data to an agent.
-class FauxTransport < Datadog::HTTPTransport
-  def send(*)
-    200 # do nothing, consider it done
+class FauxTransport < Datadog::Transport::HTTP::Client
+  def initialize(*); end
+
+  def send_traces(*)
+    # Emulate an OK response
+    Datadog::Transport::HTTP::Traces::Response.new(
+      Datadog::Transport::HTTP::Adapters::Net::Response.new(
+        Net::HTTPResponse.new(1.0, 200, 'OK')
+      )
+    )
   end
 end
 

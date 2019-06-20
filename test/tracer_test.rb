@@ -144,14 +144,6 @@ class TracerTest < Minitest::Test
     assert_equal(0, spans.length)
   end
 
-  def test_configure_tracer
-    tracer = get_test_tracer
-    tracer.configure(enabled: false, hostname: 'agent.datadoghq.com', port: '8888')
-    assert_equal(tracer.enabled, false)
-    assert_equal(tracer.writer.transport.hostname, 'agent.datadoghq.com')
-    assert_equal(tracer.writer.transport.port, '8888')
-  end
-
   def test_default_service
     tracer = get_test_tracer
     assert_equal('rake_test_loader', tracer.default_service)
