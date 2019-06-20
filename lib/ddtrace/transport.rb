@@ -16,6 +16,12 @@ module Datadog
     DEFAULT_AGENT_HOST = '127.0.0.1'.freeze
     DEFAULT_TRACE_AGENT_PORT = '8126'.freeze
 
+    DEPRECATION_WARNING = %(
+      Datadog::HTTPTransport is deprecated as of version 0.24.0.
+      It has been replaced by Datadog::Transport:HTTP, which is the new default.
+      You can create one with `Datadog::Transport::HTTP.default`
+      Datadog::HTTPTransport will be REMOVED in version 0.25.0).freeze
+
     # seconds before the transport timeout
     TIMEOUT = 1
 
@@ -46,6 +52,9 @@ module Datadog
     private_constant :API
 
     def initialize(options = {})
+      # Log deprecation warning
+      Datadog::Tracer.log.warn(DEPRECATION_WARNING)
+
       api_version = options.fetch(:api_version, V3)
 
       @hostname = options[:hostname] || ENV['DD_AGENT_HOST'] || DEFAULT_AGENT_HOST

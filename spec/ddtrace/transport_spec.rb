@@ -6,16 +6,17 @@ RSpec.describe Datadog::HTTPTransport do
   subject(:transport) { described_class.new(options) }
   let(:options) { {} }
 
-  before(:each) do
-    @original_level = Datadog::Tracer.log.level
-    Datadog::Tracer.log.level = Logger::FATAL
-  end
-
-  after(:each) do
-    Datadog::Tracer.log.level = @original_level
-  end
+  before { allow(Datadog::Tracer.log).to receive(:warn) }
 
   describe '#initialize' do
+    it 'raises a deprecation warning' do
+      transport
+
+      expect(Datadog::Tracer.log).to have_received(:warn) do |message|
+        expect(message).to eq(described_class::DEPRECATION_WARNING)
+      end
+    end
+
     context 'given :hostname and :port' do
       let(:options) { { hostname: hostname, port: port } }
       let(:hostname) { double('hostname') }
@@ -91,7 +92,16 @@ RSpec.describe Datadog::HTTPTransport do
 
     context 'given nil' do
       let(:response) { nil }
-      it { is_expected.to be 500 }
+
+      before { allow(Datadog::Tracer.log).to receive(:error) }
+
+      it do
+        is_expected.to be 500
+
+        expect(Datadog::Tracer.log).to have_received(:error) do |message|
+          expect(message).to match(/undefined method `code' for nil:NilClass/)
+        end
+      end
     end
   end
 
@@ -127,7 +137,16 @@ RSpec.describe Datadog::HTTPTransport do
 
       context 'and a bad transport' do
         let(:transport) { described_class.new(hostname: 'localhost', port: '8888') }
-        it { expect(transport.server_error?(code)).to be true }
+
+        before { allow(Datadog::Tracer.log).to receive(:error) }
+
+        it do
+          expect(transport.server_error?(code)).to be true
+
+          expect(Datadog::Tracer.log).to have_received(:error) do |message|
+            expect(message).to match(/(Failed to open TCP connection|Cannot assign requested address)/)
+          end
+        end
       end
 
       context 'when the agent returns a 404' do
@@ -159,13 +178,22 @@ RSpec.describe Datadog::HTTPTransport do
       subject(:code) { transport.send(:services, services) }
       let(:services) { get_test_services }
 
-      it { expect(code).to be_nil }
+      it { expect(code).to be nil }
     end
 
     context 'admin' do
       subject(:code) { transport.send(:admin, traces) }
       let(:traces) { get_test_traces(2) }
-      it { is_expected.to be nil }
+
+      before { allow(Datadog::Tracer.log).to receive(:error) }
+
+      it do
+        is_expected.to be nil
+
+        expect(Datadog::Tracer.log).to have_received(:error) do |message|
+          expect(message).to match(/Unsupported endpoint: admin/)
+        end
+      end
     end
   end
 end
