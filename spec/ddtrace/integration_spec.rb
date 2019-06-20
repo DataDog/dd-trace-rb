@@ -38,10 +38,10 @@ RSpec.describe 'Tracer integration tests' do
     def agent_receives_span_step1
       stats = tracer.writer.stats
       expect(stats[:traces_flushed]).to eq(0)
-      expect(stats[:transport][:success]).to eq(0)
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].success).to eq(0)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
 
     def agent_receives_span_step2
@@ -54,12 +54,12 @@ RSpec.describe 'Tracer integration tests' do
       expect(stats[:traces_flushed]).to eq(1)
       expect(stats[:services_flushed]).to be_nil
       # Number of successes will only be 1 since we do not flush services
-      expect(stats[:transport][:success]).to eq(1)
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].success).to eq(1)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
 
-      stats[:transport][:success]
+      stats[:transport].success
     end
 
     def agent_receives_span_step3(previous_success)
@@ -71,10 +71,10 @@ RSpec.describe 'Tracer integration tests' do
       stats = tracer.writer.stats
       expect(stats[:traces_flushed]).to eq(2)
       expect(stats[:services_flushed]).to be_nil
-      expect(stats[:transport][:success]).to be > previous_success
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].success).to be > previous_success
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
 
     it do
@@ -103,9 +103,9 @@ RSpec.describe 'Tracer integration tests' do
       expect(@span.finished?).to be true
       expect(stats[:traces_flushed]).to eq(1)
       expect(stats[:services_flushed]).to be_nil
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
   end
 
@@ -133,9 +133,9 @@ RSpec.describe 'Tracer integration tests' do
       expect(@shutdown_results.count(true)).to eq(1)
       expect(stats[:traces_flushed]).to eq(1)
       expect(stats[:services_flushed]).to be_nil
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
   end
 
@@ -212,9 +212,9 @@ RSpec.describe 'Tracer integration tests' do
         stats = tracer.writer.stats
 
         expect(stats[:traces_flushed]).to eq(1)
-        expect(stats[:transport][:client_error]).to eq(0)
-        expect(stats[:transport][:server_error]).to eq(0)
-        expect(stats[:transport][:internal_error]).to eq(0)
+        expect(stats[:transport].client_error).to eq(0)
+        expect(stats[:transport].server_error).to eq(0)
+        expect(stats[:transport].internal_error).to eq(0)
       end
     end
   end
