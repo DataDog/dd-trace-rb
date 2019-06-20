@@ -7,27 +7,27 @@ module Datadog
       end
 
       def ok?
-        false
+        nil
       end
 
       def unsupported?
-        false
+        nil
       end
 
       def not_found?
-        false
+        nil
       end
 
       def client_error?
-        false
+        nil
       end
 
       def server_error?
-        false
+        nil
       end
 
       def internal_error?
-        false
+        nil
       end
     end
 

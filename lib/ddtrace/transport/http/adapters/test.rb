@@ -18,6 +18,7 @@ module Datadog
 
           def call(env)
             add_request(env)
+            Response.new(status)
           end
 
           def buffer?
@@ -26,7 +27,6 @@ module Datadog
 
           def add_request(env)
             @mutex.synchronize { buffer << env } if buffer?
-            Response.new(status)
           end
 
           def set_status!(status)

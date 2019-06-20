@@ -35,7 +35,7 @@ module Datadog
           end
 
           def post(env)
-            post = ::Net::HTTP::Post.new(env.path, env[:headers])
+            post = ::Net::HTTP::Post.new(env.path, env.headers)
             post.body = env.body
 
             # Connect and send the request
@@ -45,6 +45,19 @@ module Datadog
 
             # Build and return response
             Response.new(http_response)
+          end
+
+          # Raised when called with an unknown HTTP method
+          class UnknownHTTPMethod < StandardError
+            attr_reader :verb
+
+            def initialize(verb)
+              @verb = verb
+            end
+
+            def message
+              "No matching Net::HTTP function for '#{verb}'!"
+            end
           end
 
           # A wrapped Net::HTTP response that implements the Transport::Response interface
@@ -58,36 +71,37 @@ module Datadog
             end
 
             def payload
+              return super if http_response.nil?
               http_response.body
             end
 
             def code
-              return nil if http_response.nil?
+              return super if http_response.nil?
               http_response.code.to_i
             end
 
             def ok?
-              return false if http_response.nil?
+              return super if http_response.nil?
               code.between?(200, 299)
             end
 
             def unsupported?
-              return false if http_response.nil?
+              return super if http_response.nil?
               code == 415
             end
 
             def not_found?
-              return false if http_response.nil?
+              return super if http_response.nil?
               code == 404
             end
 
             def client_error?
-              return false if http_response.nil?
+              return super if http_response.nil?
               code.between?(400, 499)
             end
 
             def server_error?
-              return false if http_response.nil?
+              return super if http_response.nil?
               code.between?(500, 599)
             end
           end

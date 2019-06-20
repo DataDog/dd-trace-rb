@@ -1,4 +1,4 @@
-require 'ddtrace/transport/stats'
+require 'ddtrace/transport/statistics'
 require 'ddtrace/transport/http/env'
 
 module Datadog
@@ -10,13 +10,13 @@ module Datadog
 
         attr_reader \
           :apis,
-          :api_id
+          :current_api_id
 
-        def initialize(apis, api_id)
+        def initialize(apis, current_api_id)
           @apis = apis
 
           # Activate initial API
-          change_api!(api_id)
+          change_api!(current_api_id)
         end
 
         def send_request(request, &block)
@@ -58,25 +58,27 @@ module Datadog
         end
 
         def downgrade?(response)
-          return false unless apis.fallbacks.key?(api_id)
+          return false unless apis.fallbacks.key?(current_api_id)
           response.not_found? || response.unsupported?
         end
 
         def current_api
-          apis[api_id]
+          apis[current_api_id]
         end
 
         def change_api!(api_id)
-          raise UnknownApiVersion, api_id unless apis.key?(api_id)
-          @api_id = api_id
+          raise UnknownApiVersionError, api_id unless apis.key?(api_id)
+          @current_api_id = api_id
         end
 
         def downgrade!
-          change_api!(apis.fallbacks[api_id])
+          downgrade_api_id = apis.fallbacks[current_api_id]
+          raise NoDowngradeAvailableError, current_api_id if downgrade_api_id.nil?
+          change_api!(downgrade_api_id)
         end
 
         # Raised when configured with an unknown API version
-        class UnknownApiVersion < StandardError
+        class UnknownApiVersionError < StandardError
           attr_reader :version
 
           def initialize(version)
@@ -85,6 +87,19 @@ module Datadog
 
           def message
             "No matching transport API for version #{version}!"
+          end
+        end
+
+        # Raised when configured with an unknown API version
+        class NoDowngradeAvailableError < StandardError
+          attr_reader :version
+
+          def initialize(version)
+            @version = version
+          end
+
+          def message
+            "No downgrade from transport API version #{version} is available!"
           end
         end
       end

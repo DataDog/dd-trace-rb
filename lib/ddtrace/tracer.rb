@@ -407,6 +407,18 @@ module Datadog
       elsif priority_sampling == false
         deactivate_priority_sampling!(sampler)
         rebuild_writer = true
+      elsif @sampler.is_a?(PrioritySampler)
+        # Make sure to add sampler to options if transport is rebuilt.
+        writer_options[:priority_sampler] = @sampler
+      end
+
+      # Change transport hostname/port if possible and necessary.
+      if hostname || port
+        (writer_options[:transport_options] ||= {}).tap do |transport_options|
+          transport_options[:hostname] = hostname unless hostname.nil?
+          transport_options[:port] = port unless port.nil?
+        end
+        rebuild_writer = true
       end
 
       if rebuild_writer || writer
@@ -415,11 +427,6 @@ module Datadog
         @writer.stop unless writer.nil?
         @writer = writer || Writer.new(writer_options)
       end
-
-      # Change transport hostname/port if possible and necessary.
-      # Newer version of transport doesn't always respond to this.
-      @writer.transport.hostname = hostname if !hostname.nil? && @writer.transport.respond_to?(:hostname=)
-      @writer.transport.port = port if !port.nil? && @writer.transport.respond_to?(:port=)
     end
 
     def activate_priority_sampling!(base_sampler = nil)

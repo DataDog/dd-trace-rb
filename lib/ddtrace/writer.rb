@@ -26,13 +26,12 @@ module Datadog
       # priority sampling
       if options[:priority_sampler]
         @priority_sampler = options[:priority_sampler]
-        transport_options[:api_version] ||= HTTPTransport::V4
-        transport_options[:response_callback] ||= method(:old_sampling_updater)
+        transport_options[:api_version] ||= Transport::HTTP::API::V4
       end
 
       # transport and buffers
       @transport = options.fetch(:transport) do
-        HTTPTransport.new(transport_options)
+        Transport::HTTP.default(transport_options)
       end
 
       # Runtime metrics
@@ -88,15 +87,20 @@ module Datadog
         end
       else
         # For newer Datadog::Transports...
+        # Send traces an get a response.
         response = transport.send_traces(traces)
-        (!response.server_error?).tap do
-          @traces_flushed += traces.length unless response.server_error? || response.internal_error?
+
+        unless response.internal_error?
+          @traces_flushed += traces.length unless response.server_error?
 
           # Update priority sampler
           unless priority_sampler.nil? || response.service_rates.nil?
             priority_sampler.update(response.service_rates)
           end
         end
+
+        # Return if server error occurred.
+        !response.server_error?
       end
     end
 
@@ -147,26 +151,13 @@ module Datadog
       }
     end
 
-    private
-
-    def inject_hostname!(traces)
-      traces.each do |trace|
-        next if trace.first.nil?
-
-        hostname = Datadog::Runtime::Socket.hostname
-        unless hostname.nil? || hostname.empty?
-          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
-        end
-      end
-    end
-
     # Updates the priority sampler with rates from transport response.
     # action (Symbol): Symbol representing data submitted.
     # response: A Datadog::Transport::Response object.
     # api: API version used to process this request.
     #
     # NOTE: Used only by old Datadog::HTTPTransport; will be removed.
-    def old_sampling_updater(action, response, api)
+    def sampling_updater(action, response, api)
       return unless action == :traces && response.is_a?(Net::HTTPOK)
 
       if api[:version] == HTTPTransport::V4
@@ -177,6 +168,19 @@ module Datadog
         true
       else
         false
+      end
+    end
+
+    private
+
+    def inject_hostname!(traces)
+      traces.each do |trace|
+        next if trace.first.nil?
+
+        hostname = Datadog::Runtime::Socket.hostname
+        unless hostname.nil? || hostname.empty?
+          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
+        end
       end
     end
   end

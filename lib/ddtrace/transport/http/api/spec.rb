@@ -6,7 +6,7 @@ module Datadog
         # Defines behaviors without specific configuration details.
         class Spec
           def initialize
-            yield(self)
+            yield(self) if block_given?
           end
         end
       end

@@ -8,12 +8,7 @@ module Datadog
 
         def initialize(request, options = nil)
           @request = request
-
-          unless options.nil?
-            options.each do |name, value|
-              self[name] = value
-            end
-          end
+          merge!(options) unless options.nil?
         end
 
         def verb
@@ -42,6 +37,10 @@ module Datadog
 
         def headers
           self[:headers] ||= {}
+        end
+
+        def headers=(value)
+          self[:headers] = value
         end
       end
     end
