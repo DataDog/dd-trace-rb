@@ -250,7 +250,7 @@ RSpec.describe 'net/http requests' do
           if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
             expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
               distributed_tracing_headers.all? do |(header, value)|
-                req.headers[header.split('-').map(&:capitalize).join('-')] == value
+                req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
               end
             })
           else
@@ -295,7 +295,7 @@ RSpec.describe 'net/http requests' do
           if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
             expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
               distributed_tracing_headers.all? do |(header, value)|
-                req.headers[header.split('-').map(&:capitalize).join('-')] == value
+                req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
               end
             })
           else
