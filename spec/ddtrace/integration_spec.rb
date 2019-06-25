@@ -226,12 +226,6 @@ RSpec.describe 'Tracer integration tests' do
     let(:transport) { Datadog::Transport::HTTP.default }
 
     before(:each) do
-      # TODO: We can't activate priority sampling and pass in our own writer in the same call.
-      #       Tracer creates and sets its own priority sampler. Writer needs this same sampler.
-      #       Writer doesn't get the sampler, so it doesn't update rates.
-      #       Work around is to configure the writer after priority sampling is enabled....
-      #       Or you can build your own priority sampler, pass that into both the writer and tracer...
-      #       Make this better!!
       tracer.configure(
         enabled: true,
         priority_sampling: true,
@@ -270,6 +264,75 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport].client_error).to eq(0)
         expect(stats[:transport].server_error).to eq(0)
         expect(stats[:transport].internal_error).to eq(0)
+      end
+    end
+  end
+
+  describe 'tracer transport' do
+    subject(:configure) do
+      tracer.configure(
+        priority_sampling: true,
+        hostname: hostname,
+        port: port,
+        transport_options: transport_options
+      )
+    end
+
+    let(:tracer) { Datadog::Tracer.new }
+    let(:hostname) { double('hostname') }
+    let(:port) { double('port') }
+
+    context 'when :transport_options' do
+      context 'is a Proc' do
+        let(:transport_options) { proc { |t| on_build.call(t) } }
+        let(:on_build) { double('on_build') }
+
+        before do
+          expect(on_build).to receive(:call)
+            .with(kind_of(Datadog::Transport::HTTP::Builder))
+        end
+
+        it do
+          configure
+
+          tracer.writer.tap do |writer|
+            expect(writer.priority_sampler).to be_a_kind_of(Datadog::PrioritySampler)
+          end
+
+          tracer.writer.transport.tap do |transport|
+            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport.current_api.adapter.hostname).to be hostname
+            expect(transport.current_api.adapter.port).to be port
+          end
+        end
+      end
+
+      context 'is a Hash' do
+        let(:transport_options) do
+          {
+            api_version: api_version,
+            headers: headers
+          }
+        end
+
+        let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+        let(:headers) { { 'Test-Header' => 'test' } }
+
+        it do
+          configure
+
+          tracer.writer.tap do |writer|
+            expect(writer.priority_sampler).to be_a_kind_of(Datadog::PrioritySampler)
+          end
+
+          tracer.writer.transport.tap do |transport|
+            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport.current_api_id).to be api_version
+            expect(transport.current_api.adapter.hostname).to be hostname
+            expect(transport.current_api.adapter.port).to be port
+            expect(transport.current_api.headers).to include(headers)
+          end
+        end
       end
     end
   end

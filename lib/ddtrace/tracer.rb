@@ -381,12 +381,15 @@ module Datadog
     # TODO: Move this kind of configuration building out of the tracer.
     #       Tracer should not have this kind of knowledge of writer.
     # rubocop:disable Metrics/PerceivedComplexity
+    # rubocop:disable Metrics/CyclomaticComplexity
+    # rubocop:disable Metrics/MethodLength
     def configure_writer(options = {})
       hostname = options.fetch(:hostname, nil)
       port = options.fetch(:port, nil)
       sampler = options.fetch(:sampler, nil)
       priority_sampling = options.fetch(:priority_sampling, nil)
       writer = options.fetch(:writer, nil)
+      transport_options = options.fetch(:transport_options, {})
 
       # Compile writer options
       rebuild_writer = false
@@ -412,14 +415,19 @@ module Datadog
         writer_options[:priority_sampler] = @sampler
       end
 
-      # Change transport hostname/port if possible and necessary.
-      if hostname || port
-        (writer_options[:transport_options] ||= {}).tap do |transport_options|
-          transport_options[:hostname] = hostname unless hostname.nil?
-          transport_options[:port] = port unless port.nil?
-        end
+      # Apply options to transport
+      if transport_options.is_a?(Proc)
+        transport_options = { on_build: transport_options }
         rebuild_writer = true
       end
+
+      if hostname || port
+        transport_options[:hostname] = hostname unless hostname.nil?
+        transport_options[:port] = port unless port.nil?
+        rebuild_writer = true
+      end
+
+      writer_options[:transport_options] = transport_options
 
       if rebuild_writer || writer
         # Make sure old writer is shut down before throwing away.

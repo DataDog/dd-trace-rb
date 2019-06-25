@@ -57,6 +57,9 @@ module Datadog
 
             # Add headers
             transport.headers options[:headers] if options.key?(:headers)
+
+            # Execute on_build callback
+            options[:on_build].call(transport) if options[:on_build].is_a?(Proc)
           end
 
           # Call block to apply any customization, if provided.
