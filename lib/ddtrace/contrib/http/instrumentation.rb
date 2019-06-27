@@ -67,14 +67,7 @@ module Datadog
                 span.resource = req.method
 
                 if pin.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
-                  req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, span.trace_id)
-                  req.add_field(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, span.span_id)
-                  if span.context.sampling_priority
-                    req.add_field(
-                      Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY,
-                      span.context.sampling_priority
-                    )
-                  end
+                  Datadog::HTTPPropagator.inject!(span.context, req)
                 end
               rescue StandardError => e
                 Datadog::Tracer.log.error("error preparing span for http request: #{e}")
