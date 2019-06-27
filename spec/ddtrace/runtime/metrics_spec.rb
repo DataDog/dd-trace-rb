@@ -16,9 +16,6 @@ RSpec.describe Datadog::Runtime::Metrics do
       expect(span).to receive(:set_tag)
         .with(Datadog::Ext::Runtime::TAG_LANG, Datadog::Runtime::Identity.lang)
 
-      expect(span).to receive(:set_tag)
-        .with(Datadog::Ext::Runtime::TAG_RUNTIME_ID, Datadog::Runtime::Identity.id)
-
       associate_with_span
     end
 
@@ -133,7 +130,6 @@ RSpec.describe Datadog::Runtime::Metrics do
           is_expected.to have(2).items
 
           is_expected.to include('language:ruby')
-          is_expected.to include("runtime-id:#{Datadog::Runtime::Identity.id}")
         end
       end
 
@@ -145,7 +141,6 @@ RSpec.describe Datadog::Runtime::Metrics do
           is_expected.to have(4).items
 
           is_expected.to include('language:ruby')
-          is_expected.to include("runtime-id:#{Datadog::Runtime::Identity.id}")
           is_expected.to include(*services.collect { |service| "service:#{service}" })
         end
       end

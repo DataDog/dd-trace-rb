@@ -117,9 +117,6 @@ module Datadog
         # and defaults are unfrozen for mutation in Statsd.
         DEFAULT.dup.tap do |options|
           options[:tags] = options[:tags].dup
-
-          # Add runtime ID dynamically because it might change during fork.
-          options[:tags] << "#{Ext::Metrics::TAG_RUNTIME_ID}:#{Runtime::Identity.id}".freeze
         end
       end
     end

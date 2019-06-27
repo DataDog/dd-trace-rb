@@ -16,7 +16,6 @@ module Datadog
       TRACER_VERSION = Datadog::VERSION::STRING
 
       TAG_LANG = 'language'.freeze
-      TAG_RUNTIME_ID = 'runtime-id'.freeze
 
       # Metrics
       module Metrics
