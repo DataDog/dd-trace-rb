@@ -26,7 +26,19 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     context 'for an integration that includes Datadog::Contrib::Integration' do
+      let(:patcher_module) do
+        stub_const('Patcher', Module.new do
+          include Datadog::Contrib::Patcher
+
+          def self.patch
+            true
+          end
+        end)
+      end
+
       let(:integration_class) do
+        patcher_module
+
         Class.new do
           include Datadog::Contrib::Integration
 
@@ -36,14 +48,6 @@ RSpec.describe Datadog::Configuration::Settings do
 
           def patcher
             Patcher
-          end
-
-          Patcher = Module.new do
-            include Datadog::Contrib::Patcher
-
-            def self.patch
-              true
-            end
           end
         end
       end
@@ -100,8 +104,8 @@ RSpec.describe Datadog::Configuration::Settings do
         expect(tracer.enabled).to be false
         expect(debug_state).to be false
         expect(Datadog::Tracer.log).to eq(custom_log)
-        expect(tracer.writer.transport.hostname).to eq('tracer.host.com')
-        expect(tracer.writer.transport.port).to eq(1234)
+        expect(tracer.writer.transport.current_api.adapter.hostname).to eq('tracer.host.com')
+        expect(tracer.writer.transport.current_api.adapter.port).to eq(1234)
         expect(tracer.tags[:env]).to eq(:config_test)
         expect(tracer.tags[:foo]).to eq(:bar)
       end

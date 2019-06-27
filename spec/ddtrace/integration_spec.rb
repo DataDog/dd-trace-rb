@@ -9,12 +9,13 @@ RSpec.describe 'Tracer integration tests' do
     before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
     let(:tracer) do
-      Datadog::Tracer.new.tap do |t|
-        t.configure(
-          enabled: true
-        )
+      Datadog::Tracer.new(initialize_options).tap do |t|
+        t.configure(configure_options)
       end
     end
+
+    let(:initialize_options) { {} }
+    let(:configure_options) { { enabled: true } }
   end
 
   describe 'agent receives span' do
@@ -37,10 +38,10 @@ RSpec.describe 'Tracer integration tests' do
     def agent_receives_span_step1
       stats = tracer.writer.stats
       expect(stats[:traces_flushed]).to eq(0)
-      expect(stats[:transport][:success]).to eq(0)
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].success).to eq(0)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
 
     def agent_receives_span_step2
@@ -53,12 +54,12 @@ RSpec.describe 'Tracer integration tests' do
       expect(stats[:traces_flushed]).to eq(1)
       expect(stats[:services_flushed]).to be_nil
       # Number of successes will only be 1 since we do not flush services
-      expect(stats[:transport][:success]).to eq(1)
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].success).to eq(1)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
 
-      stats[:transport][:success]
+      stats[:transport].success
     end
 
     def agent_receives_span_step3(previous_success)
@@ -70,10 +71,10 @@ RSpec.describe 'Tracer integration tests' do
       stats = tracer.writer.stats
       expect(stats[:traces_flushed]).to eq(2)
       expect(stats[:services_flushed]).to be_nil
-      expect(stats[:transport][:success]).to be > previous_success
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].success).to be > previous_success
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
 
     it do
@@ -102,9 +103,9 @@ RSpec.describe 'Tracer integration tests' do
       expect(@span.finished?).to be true
       expect(stats[:traces_flushed]).to eq(1)
       expect(stats[:services_flushed]).to be_nil
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
   end
 
@@ -132,9 +133,9 @@ RSpec.describe 'Tracer integration tests' do
       expect(@shutdown_results.count(true)).to eq(1)
       expect(stats[:traces_flushed]).to eq(1)
       expect(stats[:services_flushed]).to be_nil
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
   end
 
@@ -211,9 +212,127 @@ RSpec.describe 'Tracer integration tests' do
         stats = tracer.writer.stats
 
         expect(stats[:traces_flushed]).to eq(1)
-        expect(stats[:transport][:client_error]).to eq(0)
-        expect(stats[:transport][:server_error]).to eq(0)
-        expect(stats[:transport][:internal_error]).to eq(0)
+        expect(stats[:transport].client_error).to eq(0)
+        expect(stats[:transport].server_error).to eq(0)
+        expect(stats[:transport].internal_error).to eq(0)
+      end
+    end
+  end
+
+  describe 'Transport::HTTP' do
+    include_context 'agent-based test'
+
+    let(:writer) { Datadog::Writer.new(transport: transport, priority_sampler: Datadog::PrioritySampler.new) }
+    let(:transport) { Datadog::Transport::HTTP.default }
+
+    before(:each) do
+      tracer.configure(
+        enabled: true,
+        priority_sampling: true,
+        writer: writer
+      )
+
+      # Verify Transport::HTTP is configured
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+
+      # Verify sampling is configured properly
+      expect(tracer.writer.priority_sampler).to_not be nil
+      expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler)
+      expect(tracer.sampler).to be(tracer.writer.priority_sampler)
+
+      # Verify priority sampler is configured and rates are updated
+      expect(tracer.sampler).to receive(:update)
+        .with(kind_of(Hash))
+        .and_call_original
+    end
+
+    it do
+      3.times do |i|
+        parent_span = tracer.start_span('parent_span')
+        child_span = tracer.start_span('child_span', child_of: parent_span.context)
+
+        # I want to keep the trace to which `child_span` belongs
+        child_span.context.sampling_priority = i
+
+        child_span.finish
+        parent_span.finish
+
+        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+        stats = tracer.writer.stats
+
+        expect(stats[:traces_flushed]).to eq(1)
+        expect(stats[:transport].client_error).to eq(0)
+        expect(stats[:transport].server_error).to eq(0)
+        expect(stats[:transport].internal_error).to eq(0)
+      end
+    end
+  end
+
+  describe 'tracer transport' do
+    subject(:configure) do
+      tracer.configure(
+        priority_sampling: true,
+        hostname: hostname,
+        port: port,
+        transport_options: transport_options
+      )
+    end
+
+    let(:tracer) { Datadog::Tracer.new }
+    let(:hostname) { double('hostname') }
+    let(:port) { double('port') }
+
+    context 'when :transport_options' do
+      context 'is a Proc' do
+        let(:transport_options) { proc { |t| on_build.call(t) } }
+        let(:on_build) { double('on_build') }
+
+        before do
+          expect(on_build).to receive(:call)
+            .with(kind_of(Datadog::Transport::HTTP::Builder))
+        end
+
+        it do
+          configure
+
+          tracer.writer.tap do |writer|
+            expect(writer.priority_sampler).to be_a_kind_of(Datadog::PrioritySampler)
+          end
+
+          tracer.writer.transport.tap do |transport|
+            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport.current_api.adapter.hostname).to be hostname
+            expect(transport.current_api.adapter.port).to be port
+          end
+        end
+      end
+
+      context 'is a Hash' do
+        let(:transport_options) do
+          {
+            api_version: api_version,
+            headers: headers
+          }
+        end
+
+        let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+        let(:headers) { { 'Test-Header' => 'test' } }
+
+        it do
+          configure
+
+          tracer.writer.tap do |writer|
+            expect(writer.priority_sampler).to be_a_kind_of(Datadog::PrioritySampler)
+          end
+
+          tracer.writer.transport.tap do |transport|
+            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport.current_api_id).to be api_version
+            expect(transport.current_api.adapter.hostname).to be hostname
+            expect(transport.current_api.adapter.port).to be port
+            expect(transport.current_api.headers).to include(headers)
+          end
+        end
       end
     end
   end

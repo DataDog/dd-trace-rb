@@ -35,7 +35,6 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
           transport: transport,
           buffer_size: buffer_size,
           on_trace: w.instance_variable_get(:@trace_handler),
-          on_service: w.instance_variable_get(:@service_handler),
           interval: flush_interval
         )
       )
@@ -43,6 +42,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     end
   end
 
+  # Use SpyTransport instead of shared context because
+  # worker threads sometimes call test objects after test finishes.
   let(:transport) { SpyTransport.new }
 
   def wait_for_flush(num = 1, period = 0.1)
@@ -53,7 +54,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   end
 
   let(:stats) { writer.stats }
-  let(:dump) { transport.helper_dump }
+  let(:dump) { transport.dump }
 
   describe 'when sending spans' do
     let(:dumped_traces) { dump[200][:traces] }

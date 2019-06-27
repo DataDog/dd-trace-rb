@@ -6,15 +6,10 @@ require 'json'
 RSpec.describe Datadog::Writer do
   include HttpHelpers
 
-  before(:each) { WebMock.enable! }
-  after(:each) do
-    WebMock.reset!
-    WebMock.disable!
-  end
-
   describe 'instance' do
     subject(:writer) { described_class.new(options) }
-    let(:options) { {} }
+    let(:options) { { transport: transport } }
+    let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
 
     describe 'behavior' do
       describe '#initialize' do
@@ -24,27 +19,23 @@ RSpec.describe Datadog::Writer do
 
           context 'and default transport options' do
             it do
-              sampling_method = described_class.new.method(:sampling_updater)
-              expect(Datadog::HTTPTransport).to receive(:new) do |options|
+              expect(Datadog::Transport::HTTP).to receive(:default) do |options|
                 expect(options).to be_a_kind_of(Hash)
-                expect(options[:api_version]).to eq(Datadog::HTTPTransport::V4)
-                expect(options[:response_callback].source_location).to eq(sampling_method.source_location)
+                expect(options[:api_version]).to eq(Datadog::Transport::HTTP::API::V4)
               end
-              expect(writer.instance_variable_get(:@priority_sampler)).to be(sampler)
+
+              expect(writer.priority_sampler).to be(sampler)
             end
           end
 
           context 'and custom transport options' do
-            let(:options) { super().merge!(transport_options: transport_options) }
-            let(:transport_options) { { api_version: api_version, response_callback: response_callback } }
+            let(:options) { super().merge(transport_options: { api_version: api_version }) }
             let(:api_version) { double('API version') }
-            let(:response_callback) { double('response callback') }
 
             it do
-              expect(Datadog::HTTPTransport).to receive(:new) do |options|
+              expect(Datadog::Transport::HTTP).to receive(:default) do |options|
                 expect(options).to include(
-                  api_version: api_version,
-                  response_callback: response_callback
+                  api_version: api_version
                 )
               end
               expect(writer.priority_sampler).to be(sampler)
@@ -56,84 +47,112 @@ RSpec.describe Datadog::Writer do
       describe '#send_spans' do
         subject(:send_spans) { writer.send_spans(traces, writer.transport) }
         let(:traces) { get_test_traces(1) }
+        let(:transport_stats) { instance_double(Datadog::Transport::Statistics) }
 
-        context 'with priority sampling' do
-          let(:options) { { priority_sampler: sampler } }
-          let(:sampler) { instance_double(Datadog::Sampler) }
+        before do
+          allow(transport).to receive(:send_traces)
+            .with(traces)
+            .and_return(response)
 
-          context 'when the transport uses' do
-            let(:options) { super().merge!(transport_options: { api_version: api_version, response_callback: callback }) }
-            let(:callback) { double('callback method') }
+          allow(transport).to receive(:stats).and_return(transport_stats)
+        end
 
-            let!(:request) { stub_request(:post, endpoint).to_return(response) }
-            let(:hostname) { ENV.fetch('DD_AGENT_HOST', Datadog::HTTPTransport::DEFAULT_AGENT_HOST) }
-            let(:port) { ENV.fetch('DD_TRACE_AGENT_PORT', Datadog::HTTPTransport::DEFAULT_TRACE_AGENT_PORT) }
-            let(:endpoint) { "#{hostname}:#{port}/#{api_version}/traces" }
-            let(:response) { { body: body } }
-            let(:body) { 'body' }
+        shared_examples_for 'priority sampling update' do
+          context 'when a priority sampler' do
+            let(:priority_sampler) { instance_double(Datadog::PrioritySampler) }
 
-            shared_examples_for 'a traces API' do
-              context 'that succeeds' do
-                before(:each) do
-                  expect(callback).to receive(:call).with(
-                    :traces,
-                    a_kind_of(Net::HTTPOK),
-                    a_kind_of(Hash)
-                  ) do |_action, _response, api|
-                    expect(api[:version]).to eq(api_version)
-                  end
+            context 'is configured' do
+              let(:options) { super().merge(priority_sampler: priority_sampler) }
+
+              context 'but service rates are not available' do
+                before do
+                  allow(response).to receive(:service_rates).and_return(nil)
+                  expect(priority_sampler).to_not receive(:update)
                 end
 
-                it do
-                  is_expected.to be true
-                  assert_requested(request)
-                end
+                it { expectations.call }
               end
 
-              context 'but falls back to v3' do
-                let(:response) { super().merge!(status: 404) }
-                let!(:fallback_request) { stub_request(:post, fallback_endpoint).to_return(body: body) }
-                let(:fallback_endpoint) do
-                  "#{hostname}:#{port}/#{fallback_version}/traces"
-                end
-                let(:body) { 'body' }
+              context 'and service rates are available' do
+                let(:service_rates) { instance_double(Hash) }
 
-                before(:each) do
-                  call_count = 0
-                  allow(callback).to receive(:call).with(
-                    :traces,
-                    a_kind_of(Net::HTTPResponse),
-                    a_kind_of(Hash)
-                  ) do |_action, response, api|
-                    call_count += 1
-                    if call_count == 1
-                      expect(response).to be_a_kind_of(Net::HTTPNotFound)
-                      expect(api[:version]).to eq(api_version)
-                    elsif call_count == 2
-                      expect(response).to be_a_kind_of(Net::HTTPOK)
-                      expect(api[:version]).to eq(fallback_version)
-                    end
-                  end
+                before do
+                  allow(response).to receive(:service_rates).and_return(service_rates)
+                  expect(priority_sampler).to receive(:update)
+                    .with(service_rates)
                 end
 
-                it do
-                  is_expected.to be true
-                  assert_requested(request)
-                end
+                it { expectations.call }
               end
             end
 
-            context 'API v4' do
-              it_behaves_like 'a traces API' do
-                let(:api_version) { Datadog::HTTPTransport::V4 }
-                let(:fallback_version) { Datadog::HTTPTransport::V3 }
-              end
+            context 'is not configured' do
+              let(:options) { super().merge(priority_sampler: nil) }
+              it { expectations.call }
+            end
+          end
+        end
+
+        context 'which returns a response that is' do
+          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
+
+          context 'successful' do
+            before do
+              allow(response).to receive(:ok?).and_return(true)
+              allow(response).to receive(:server_error?).and_return(false)
+              allow(response).to receive(:internal_error?).and_return(false)
             end
 
-            context 'API v3' do
-              it_behaves_like 'a traces API' do
-                let(:api_version) { Datadog::HTTPTransport::V3 }
-                let(:fallback_version) { Datadog::HTTPTransport::V2 }
+            it_behaves_like 'priority sampling update' do
+              let(:expectations) do
+                proc do
+                  is_expected.to be true
+                  expect(writer.stats[:traces_flushed]).to eq(1)
+                end
+              end
+            end
+          end
+
+          context 'a server error' do
+            before do
+              allow(response).to receive(:ok?).and_return(false)
+              allow(response).to receive(:server_error?).and_return(true)
+              allow(response).to receive(:internal_error?).and_return(false)
+            end
+
+            it_behaves_like 'priority sampling update' do
+              let(:expectations) do
+                proc do
+                  is_expected.to be false
+                  expect(writer.stats[:traces_flushed]).to eq(0)
+                end
+              end
+            end
+          end
+
+          context 'an internal error' do
+            let(:response) { Datadog::Transport::InternalErrorResponse.new(double('error')) }
+            let(:error) { double('error') }
+
+            context 'when a priority sampler' do
+              context 'is configured' do
+                let(:options) { super().merge(priority_sampler: priority_sampler) }
+                let(:priority_sampler) { instance_double(Datadog::PrioritySampler) }
+                before { expect(priority_sampler).to_not receive(:update) }
+
+                it do
+                  is_expected.to be true
+                  expect(writer.stats[:traces_flushed]).to eq(0)
+                end
+              end
+
+              context 'is not configured' do
+                let(:options) { super().merge(priority_sampler: nil) }
+
+                it do
+                  is_expected.to be true
+                  expect(writer.stats[:traces_flushed]).to eq(0)
+                end
               end
             end
           end
@@ -141,9 +160,13 @@ RSpec.describe Datadog::Writer do
 
         context 'with report hostname' do
           let(:hostname) { 'my-host' }
+          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
 
-          before(:each) do
+          before do
             allow(Datadog::Runtime::Socket).to receive(:hostname).and_return(hostname)
+            allow(response).to receive(:ok?).and_return(true)
+            allow(response).to receive(:server_error?).and_return(false)
+            allow(response).to receive(:internal_error?).and_return(false)
           end
 
           context 'enabled' do
@@ -155,12 +178,10 @@ RSpec.describe Datadog::Writer do
             end
 
             it do
-              expect(writer.transport).to receive(:send) do |_type, traces|
+              expect(transport).to receive(:send_traces) do |traces|
                 root_span = traces.first.first
                 expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to eq(hostname)
-
-                # Stub successful request
-                200
+                response
               end
 
               send_spans
@@ -176,12 +197,10 @@ RSpec.describe Datadog::Writer do
             end
 
             it do
-              expect(writer.transport).to receive(:send) do |_type, traces|
+              expect(writer.transport).to receive(:send_traces) do |traces|
                 root_span = traces.first.first
                 expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to be nil
-
-                # Stub successful request
-                200
+                response
               end
 
               send_spans
@@ -219,55 +238,6 @@ RSpec.describe Datadog::Writer do
             it do
               expect(writer.runtime_metrics).to_not receive(:flush)
               send_runtime_metrics
-            end
-          end
-        end
-      end
-
-      describe '#sampling_updater' do
-        subject(:result) { writer.send(:sampling_updater, action, response, api) }
-        let(:options) { { priority_sampler: sampler } }
-        let(:sampler) { instance_double(Datadog::PrioritySampler) }
-        let(:action) { :traces }
-        let(:response) { double('response') }
-        let(:api) { double('api') }
-
-        context 'given a response that' do
-          context 'isn\'t OK' do
-            let(:response) { mock_http_request(method: :post, status: 404)[:response] }
-            it { is_expected.to be nil }
-          end
-
-          context 'isn\'t a :traces action' do
-            let(:action) { :services }
-            it { is_expected.to be nil }
-          end
-
-          context 'is OK' do
-            let(:response) { mock_http_request(method: :post, body: body)[:response] }
-
-            context 'and is a :traces action' do
-              context 'and is API v4' do
-                let(:api) { { version: Datadog::HTTPTransport::V4 } }
-                let(:body) { sampling_response.to_json }
-                let(:sampling_response) { { 'rate_by_service' => service_rates } }
-                let(:service_rates) { { 'service:a,env:test' => 0.1, 'service:b,env:test' => 0.5 } }
-
-                it do
-                  expect(sampler).to receive(:update).with(service_rates)
-                  is_expected.to be true
-                end
-              end
-
-              context 'and is API v3' do
-                let(:api) { { version: Datadog::HTTPTransport::V3 } }
-                let(:body) { 'OK' }
-
-                it do
-                  expect(sampler).to_not receive(:update)
-                  is_expected.to be false
-                end
-              end
             end
           end
         end
