@@ -250,7 +250,52 @@ RSpec.describe 'net/http requests' do
           if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
             expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
               distributed_tracing_headers.all? do |(header, value)|
-                req.headers[header.split('-').map(&:capitalize).join('-')] == value
+                req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
+              end
+            })
+          else
+            expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
+          end
+        end
+      end
+
+      # This can happen if another http client uses net/http (e.g. restclient)
+      # The goal here is to ensure we do not add multiple values for a given header
+      context 'with existing distributed tracing headers' do
+        before(:each) do
+          tracer.configure(enabled: true)
+          tracer.trace('foo.bar') do |span|
+            span.context.sampling_priority = sampling_priority
+
+            req = Net::HTTP::Get.new(path)
+            req[Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID] = 100
+            req[Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID] = 100
+            req[Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY] = 0
+
+            Net::HTTP.start(host, port) do |http|
+              http.request(req)
+            end
+          end
+        end
+
+        let(:sampling_priority) { 10 }
+        let(:distributed_tracing_headers) do
+          {
+            Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id,
+            Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id,
+            Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority
+          }
+        end
+
+        let(:span) { spans.last }
+
+        it 'adds distributed tracing headers' do
+          # The block syntax only works with Ruby < 2.3 and the hash syntax
+          # only works with Ruby >= 2.3, so we need to support both.
+          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+            expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
+              distributed_tracing_headers.all? do |(header, value)|
+                req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
               end
             })
           else

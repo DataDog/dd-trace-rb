@@ -60,10 +60,10 @@ RSpec.describe 'Meta headers' do
     end
   end
 
-  let(:meta_lang) { 'ruby' }
-  let(:meta_lang_version) { RUBY_VERSION }
-  let(:meta_lang_interpreter) { defined?(RUBY_ENGINE) ? RUBY_ENGINE + '-' + RUBY_PLATFORM : 'ruby-' + RUBY_PLATFORM }
-  let(:meta_lang_tracer_version) { Datadog::VERSION::STRING }
+  let(:meta_lang) { Datadog::Ext::Runtime::LANG }
+  let(:meta_lang_version) { Datadog::Ext::Runtime::LANG_VERSION }
+  let(:meta_lang_interpreter) { Datadog::Ext::Runtime::LANG_INTERPRETER }
+  let(:meta_lang_tracer_version) { Datadog::Ext::Runtime::TRACER_VERSION }
 
   before(:each) { tracer.configure(enabled: true, hostname: '127.0.0.1', port: port) }
   let(:tracer) { Datadog::Tracer.new }
@@ -93,9 +93,9 @@ RSpec.describe 'Meta headers' do
 
     it 'flushes the correct number of traces' do
       expect(stats[:traces_flushed]).to eq(2)
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
   end
 end

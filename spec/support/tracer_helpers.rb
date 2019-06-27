@@ -5,6 +5,48 @@ require 'support/faux_writer'
 module TracerHelpers
   # Return a test tracer instance with a faux writer.
   def get_test_tracer(options = {})
+    writer = FauxWriter.new(
+      transport: Datadog::Transport::HTTP.default do |t|
+        t.adapter :test
+      end
+    )
+
+    options = { writer: writer }.merge(options)
+    Datadog::Tracer.new(options).tap do |tracer|
+      # TODO: Let's try to get rid of this override, which has too much
+      #       knowledge about the internal workings of the tracer.
+      #       It is done to prevent the activation of priority sampling
+      #       from wiping out the configured test writer, by replacing it.
+      tracer.define_singleton_method(:configure) do |opts = {}|
+        super(opts)
+
+        # Re-configure the tracer with a new test writer
+        # since priority sampling will wipe out the old test writer.
+        unless @writer.is_a?(FauxWriter)
+          @writer = if @sampler.is_a?(Datadog::PrioritySampler)
+                      FauxWriter.new(
+                        priority_sampler: @sampler,
+                        transport: Datadog::Transport::HTTP.default do |t|
+                          t.adapter :test
+                        end
+                      )
+                    else
+                      FauxWriter.new(
+                        transport: Datadog::Transport::HTTP.default do |t|
+                          t.adapter :test
+                        end
+                      )
+                    end
+
+          statsd = opts.fetch(:statsd, nil)
+          @writer.runtime_metrics.statsd = statsd unless statsd.nil?
+        end
+      end
+    end
+  end
+
+  # Return a test tracer instance with a faux writer.
+  def get_test_tracer_with_old_transport(options = {})
     options = { writer: FauxWriter.new }.merge(options)
     Datadog::Tracer.new(options).tap do |tracer|
       # TODO: Let's try to get rid of this override, which has too much
@@ -37,6 +79,16 @@ module TracerHelpers
         end
       end
     end
+  end
+
+  def get_test_writer(options = {})
+    options = {
+      transport: Datadog::Transport::HTTP.default do |t|
+        t.adapter :test
+      end
+    }.merge(options)
+
+    FauxWriter.new(options)
   end
 
   # Return some test traces

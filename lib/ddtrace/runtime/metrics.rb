@@ -26,7 +26,6 @@ module Datadog
 
         # Tag span with language and runtime ID for association with metrics
         span.set_tag(Ext::Runtime::TAG_LANG, Runtime::Identity.lang)
-        span.set_tag(Ext::Runtime::TAG_RUNTIME_ID, Runtime::Identity.id)
       end
 
       # Associate service with runtime metrics

@@ -56,9 +56,9 @@ RSpec.describe 'Trace count header' do
 
     it 'flushes the correct number of traces' do
       expect(stats[:traces_flushed]).to eq(2)
-      expect(stats[:transport][:client_error]).to eq(0)
-      expect(stats[:transport][:server_error]).to eq(0)
-      expect(stats[:transport][:internal_error]).to eq(0)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
     end
   end
 end
