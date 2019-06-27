@@ -32,8 +32,6 @@ RSpec.describe 'Dalli instrumentation' do
   end
 
   it 'does not generate deprecation warnings' do
-    expect(log_buffer.length).to eq(0)
-    expect(log_buffer).to_not contain_line_with(*deprecation_warnings)
     expect(log_buffer).to_not contain_line_with(*deprecation_warnings)
   end
 

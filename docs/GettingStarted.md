@@ -78,8 +78,8 @@ For contributing, checkout the [contribution guidelines][contribution docs] and 
 
 | Type  | Documentation              | Version | Support type |
 | ----- | -------------------------- | -----   | ------------ |
-| MRI   | https://www.ruby-lang.org/ | 1.9.1   | Experimental |
-|       |                            | 1.9.3   | Full         |
+| MRI   | https://www.ruby-lang.org/ | 1.9.1   | Deprecated   |
+|       |                            | 1.9.3   | Deprecated   |
 |       |                            | 2.0     | Full         |
 |       |                            | 2.1     | Full         |
 |       |                            | 2.2     | Full         |
@@ -104,6 +104,8 @@ For contributing, checkout the [contribution guidelines][contribution docs] and 
 *Full* support indicates all tracer features are available.
 
 *Experimental* indicates most features should be available, but unverified.
+
+*Deprecated* indicates support will be removed in a future release.
 
 ## Installation
 
