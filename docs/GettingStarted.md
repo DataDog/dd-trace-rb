@@ -1781,7 +1781,6 @@ In addition, all metrics will include the following tags:
 | Name         | Description                                             |
 | ------------ | ------------------------------------------------------- |
 | `language`   | Programming language traced. (e.g. `ruby`)              |
-| `runtime-id` | Unique identifier of runtime environment (i.e. process) |
 | `service`    | List of services this metric is associated with.        |
 
 ### OpenTracing

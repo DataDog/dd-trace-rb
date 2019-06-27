@@ -79,7 +79,6 @@ RSpec.describe 'Rack integration configuration' do
         # Queue span gets tagged for runtime metrics because its a local root span.
         # TODO: It probably shouldn't get tagged like this in the future; it's not part of the runtime.
         expect(queue_span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq('ruby')
-        expect(queue_span.get_tag(Datadog::Ext::Runtime::TAG_RUNTIME_ID)).to eq(Datadog::Runtime::Identity.id)
 
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
@@ -89,7 +88,6 @@ RSpec.describe 'Rack integration configuration' do
         expect(rack_span.get_tag('http.status_code')).to eq('200')
         expect(rack_span.get_tag('http.url')).to eq('/')
         expect(rack_span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq('ruby')
-        expect(rack_span.get_tag(Datadog::Ext::Runtime::TAG_RUNTIME_ID)).to eq(Datadog::Runtime::Identity.id)
         expect(rack_span.status).to eq(0)
 
         expect(queue_span.span_id).to eq(rack_span.parent_id)
@@ -110,7 +108,6 @@ RSpec.describe 'Rack integration configuration' do
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('http.url')).to eq('/')
         expect(span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq('ruby')
-        expect(span.get_tag(Datadog::Ext::Runtime::TAG_RUNTIME_ID)).to eq(Datadog::Runtime::Identity.id)
         expect(span.status).to eq(0)
 
         expect(span.parent_id).to eq(0)

@@ -21,10 +21,6 @@ RSpec.describe Datadog::Tracer do
     span.get_tag(Datadog::Ext::Runtime::TAG_LANG)
   end
 
-  def runtime_id_tag(span)
-    span.get_tag(Datadog::Ext::Runtime::TAG_RUNTIME_ID)
-  end
-
   describe '#active_root_span' do
     subject(:active_root_span) { tracer.active_root_span }
 
@@ -67,7 +63,6 @@ RSpec.describe Datadog::Tracer do
       it { expect(sampling_priority_metric(parent_span)).to eq(1) }
       it { expect(origin_tag(parent_span)).to eq('synthetics') }
       it { expect(lang_tag(parent_span)).to eq('ruby') }
-      it { expect(runtime_id_tag(parent_span)).to eq(Datadog::Runtime::Identity.id) }
       it { expect(child_span.name).to eq(child_span_name) }
       it { expect(child_span.finished?).to be(true) }
       it { expect(child_span.trace_id).to eq(parent_span.trace_id) }
@@ -75,7 +70,6 @@ RSpec.describe Datadog::Tracer do
       it { expect(sampling_priority_metric(child_span)).to eq(1) }
       it { expect(origin_tag(child_span)).to eq('synthetics') }
       it { expect(lang_tag(child_span)).to eq('ruby') }
-      it { expect(runtime_id_tag(child_span)).to eq(Datadog::Runtime::Identity.id) }
       # This is expected to be child_span because when propagated, we don't
       # propagate the root span, only its ID. Therefore the span reference
       # should be the first span on the other end of the distributed trace.
