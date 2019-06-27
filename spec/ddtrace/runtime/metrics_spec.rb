@@ -127,7 +127,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
       context 'when no services have been registered' do
         it do
-          is_expected.to have(2).items
+          is_expected.to have(1).items
 
           is_expected.to include('language:ruby')
         end
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Runtime::Metrics do
         before(:each) { services.each { |service| runtime_metrics.register_service(service) } }
 
         it do
-          is_expected.to have(4).items
+          is_expected.to have(3).items
 
           is_expected.to include('language:ruby')
           is_expected.to include(*services.collect { |service| "service:#{service}" })
