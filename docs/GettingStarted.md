@@ -1754,6 +1754,21 @@ Datadog.configure do |c|
 end
 ```
 
+#### Using the Unix socket adapter
+
+The `UnixSocket` adapter submits traces using `Net::HTTP` over Unix socket.
+
+To use, first configure your trace agent to listen by Unix socket, then configure the tracer with:
+
+```ruby
+Datadog.configure do |c|
+  c.tracer transport_options: proc { |t|
+    # Provide filepath to trace agent Unix socket
+    t.adapter :unix, '/tmp/ddagent/trace.sock'
+  }
+end
+```
+
 #### Using the transport test adapter
 
 The `Test` adapter is a no-op transport that can optionally buffer requests. For use in test suites or other non-production environments.
