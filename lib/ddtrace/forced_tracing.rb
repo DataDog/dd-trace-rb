@@ -1,4 +1,4 @@
-require 'ddtrace/ext/forced_tracing'
+require 'ddtrace/ext/manual_tracing'
 require 'ddtrace/ext/priority'
 
 module Datadog
@@ -49,9 +49,9 @@ module Datadog
           # Configure sampling priority if they give us a forced tracing tag
           # DEV: Do not set if the value they give us is explicitly "false"
           case key
-          when Ext::ForcedTracing::TAG_KEEP
+          when Ext::ManualTracing::TAG_KEEP
             ForcedTracing.keep(self) unless value == false
-          when Ext::ForcedTracing::TAG_DROP
+          when Ext::ManualTracing::TAG_DROP
             ForcedTracing.drop(self) unless value == false
           else
             # Otherwise, set the tag normally.

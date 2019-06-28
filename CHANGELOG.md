@@ -4,6 +4,42 @@
 
 ## [Unreleased (beta)]
 
+## [0.25.0] - 2019-06-27
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.25.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.24.0...v0.25.0
+
+Support for Ruby < 2.0 is *deprecated*. Plan for timeline is as follows:
+
+ - 0.25.0: Support for Ruby < 2.0 is deprecated; retains full feature support.
+ - 0.26.0: Last version to support Ruby < 2.0; any new features will not support 1.9.
+ - 0.27.0: Support for Ruby < 2.0 is removed.
+
+Version 0.26.x will receive only critical bugfixes for 1 year following the release of 0.26.0.
+
+### Added
+
+ - Unix socket support for transport layer (#770)
+
+### Changed
+
+ - Renamed 'ForcedTracing' to 'ManualTracing' (#765)
+
+### Fixed
+
+ - HTTP headers for distributed tracing sometimes appearing in duplicate (#768)
+
+### Refactored
+
+ - Transport layer (#628)
+
+### Deprecated
+
+ - Ruby < 2.0 support (#771)
+ - Use of `Datadog::HTTPTransport` (#628)
+ - Use of `Datadog::Ext::ForcedTracing` (#765)
+
 ## [0.24.0] - 2019-05-21
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.24.0

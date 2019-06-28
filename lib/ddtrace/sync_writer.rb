@@ -12,7 +12,7 @@ module Datadog
     def initialize(options = {})
       @transport = options.fetch(:transport) do
         transport_options = options.fetch(:transport_options, {})
-        HTTPTransport.new(transport_options)
+        Transport::HTTP.default(transport_options)
       end
 
       # Runtime metrics

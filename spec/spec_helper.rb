@@ -12,7 +12,7 @@ require 'ddtrace/span'
 
 # require 'support/test_access_patch'
 require 'support/faux_writer'
-# require 'support/faux_transport'
+require 'support/faux_transport'
 require 'support/spy_transport'
 require 'support/tracer_helpers'
 # require 'support/rails_active_record_helpers'

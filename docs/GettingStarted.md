@@ -65,6 +65,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
          - [Filtering](#filtering)
          - [Processing](#processing)
      - [Trace correlation](#trace-correlation)
+     - [Configuring the transport layer](#configuring-the-transport-layer)
      - [Metrics](#metrics)
          - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
@@ -75,8 +76,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 | Type  | Documentation              | Version | Support type |
 | ----- | -------------------------- | -----   | ------------ |
-| MRI   | https://www.ruby-lang.org/ | 1.9.1   | Experimental |
-|       |                            | 1.9.3   | Full         |
+| MRI   | https://www.ruby-lang.org/ | 1.9.1   | Deprecated   |
+|       |                            | 1.9.3   | Deprecated   |
 |       |                            | 2.0     | Full         |
 |       |                            | 2.1     | Full         |
 |       |                            | 2.2     | Full         |
@@ -101,6 +102,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 *Full* support indicates all tracer features are available.
 
 *Experimental* indicates most features should be available, but unverified.
+
+*Deprecated* indicates support will be removed in a future release.
 
 ## Installation
 
@@ -1427,6 +1430,9 @@ When not using [distributed tracing](#distributed-tracing), you may change the p
 If you change the priority, we recommend you do it as soon as possible - when the root span has just been created.
 
 ```ruby
+# First, grab the active span
+span = Datadog.tracer.active_span
+
 # Indicate to reject the trace
 span.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
 
@@ -1754,6 +1760,71 @@ logger.warn('This is an untraced operation.')
 # When a trace is active
 Datadog.tracer.trace('my.operation') { logger.warn('This is a traced operation.') }
 # [2019-01-16 18:38:41 +0000][my_app][WARN][dd.trace_id=8545847825299552251 dd.span_id=3711755234730770098] This is a traced operation.
+```
+
+### Configuring the transport layer
+
+By default, the tracer submits trace data using `Net::HTTP` to `127.0.0.1:8126`, the default location for the Datadog trace agent process. However, the tracer can be configured to send its trace data to alternative destinations, or by alternative protocols.
+
+Some basic settings, such as hostname and port, can be configured using [tracer settings](#tracer-settings).
+
+#### Using the Net::HTTP adapter
+
+The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default transport adapter.
+
+```ruby
+Datadog.configure do |c|
+  c.tracer transport_options: proc do |t|
+    # Hostname, port, and additional options. :timeout is in seconds.
+    t.adapter :net_http, '127.0.0.1', 8126, { timeout: 1 }
+  }
+end
+```
+
+#### Using the Unix socket adapter
+
+The `UnixSocket` adapter submits traces using `Net::HTTP` over Unix socket.
+
+To use, first configure your trace agent to listen by Unix socket, then configure the tracer with:
+
+```ruby
+Datadog.configure do |c|
+  c.tracer transport_options: proc { |t|
+    # Provide filepath to trace agent Unix socket
+    t.adapter :unix, '/tmp/ddagent/trace.sock'
+  }
+end
+```
+
+#### Using the transport test adapter
+
+The `Test` adapter is a no-op transport that can optionally buffer requests. For use in test suites or other non-production environments.
+
+```ruby
+Datadog.configure do |c|
+  c.tracer transport_options: proc { |t|
+    # Set transport to no-op mode. Does not retain traces.
+    t.adapter :test
+
+    # Alternatively, you can provide a buffer to examine trace output.
+    # The buffer must respond to '<<'.
+    t.adapter :test, []
+  }
+end
+```
+
+#### Using a custom transport adapter
+
+Custom adapters can be configured with:
+
+```ruby
+Datadog.configure do |c|
+  c.tracer transport_options: proc { |t|
+    # Initialize and pass an instance of the adapter
+    custom_adapter = CustomAdapter.new
+    t.adapter custom_adapter
+  }
+end
 ```
 
 ### Metrics
