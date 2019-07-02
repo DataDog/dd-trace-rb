@@ -7,7 +7,7 @@ RSpec.describe 'Presto::Client instrumentation' do
   let(:tracer) { get_test_tracer }
   let(:configuration_options) { { tracer: tracer } }
 
-  let(:client) {
+  let(:client) do
     Presto::Client.new(
       server: "#{host}:#{port}",
       user: user,
@@ -16,9 +16,9 @@ RSpec.describe 'Presto::Client instrumentation' do
       time_zone: time_zone,
       language: language,
       http_proxy: http_proxy,
-      model_version: model_version,
+      model_version: model_version
     )
-  }
+  end
   let(:host) { ENV.fetch('TEST_PRESTO_HOST', 'localhost') }
   let(:port) { ENV.fetch('TEST_PRESTO_PORT', 8080) }
   let(:user) { 'test_user' }
@@ -66,7 +66,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       let(:configuration_options) { { tracer: tracer, service_name: service } }
 
       it 'produces spans with the correct service' do
-        client.run("SELECT 1")
+        client.run('SELECT 1')
         expect(span.service).to eq(service)
       end
     end
@@ -75,7 +75,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       before(:each) { tracer.enabled = false }
 
       it 'does not produce spans' do
-        client.run("SELECT 1")
+        client.run('SELECT 1')
         expect(spans).to be_empty
       end
     end
@@ -99,7 +99,7 @@ RSpec.describe 'Presto::Client instrumentation' do
     end
 
     describe '#run operation' do
-      before(:each) { client.run("SELECT 1") }
+      before(:each) { client.run('SELECT 1') }
 
       it_behaves_like 'a Presto trace'
 
@@ -109,7 +109,7 @@ RSpec.describe 'Presto::Client instrumentation' do
     end
 
     describe '#query opertaion' do
-      before(:each) { client.query("SELECT 1") { nil } }
+      before(:each) { client.query('SELECT 1') { nil } }
 
       it_behaves_like 'a Presto trace'
 
@@ -120,7 +120,7 @@ RSpec.describe 'Presto::Client instrumentation' do
 
     describe '#kill operation' do
       before(:each) do
-        q = client.query("SELECT 1")
+        q = client.query('SELECT 1')
         discard_spans!
         client.kill(q)
       end
@@ -132,8 +132,8 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
     end
 
-    describe "#run_with_names operation" do
-      before(:each) { client.run_with_names("SELECT 1") }
+    describe '#run_with_names operation' do
+      before(:each) { client.run_with_names('SELECT 1') }
 
       it_behaves_like 'a Presto trace'
 
