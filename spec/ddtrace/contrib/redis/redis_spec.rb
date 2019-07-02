@@ -45,6 +45,19 @@ RSpec.describe 'Redis test' do
     it { expect(pin).to_not be nil }
     it { expect(pin.app_type).to eq('db') }
 
+    shared_context 'password-protected Redis server' do
+      let(:redis) { Redis.new(host: host, port: port, driver: driver, password: password) }
+      let(:password) { 'foobar' }
+
+      before do
+        allow(client).to receive(:process).and_call_original
+
+        expect(client).to receive(:process)
+          .with([[:auth, password]])
+          .and_return("+OK\r\n")
+      end
+    end
+
     shared_examples_for 'a span with common tags' do
       it do
         expect(span).to_not be nil
@@ -160,17 +173,13 @@ RSpec.describe 'Redis test' do
     end
 
     context 'quantize' do
-      before(:each) do
-        expect(redis.set('K', 'x' * 500)).to eq('OK')
-        expect(redis.get('K')).to eq('x' * 500)
-      end
-
-      it { expect(all_spans).to have(2).items }
-
       describe 'set span' do
-        subject(:span) { all_spans[-1] }
+        subject(:span) { all_spans.first }
+
+        before { expect(redis.set('K', 'x' * 500)).to eq('OK') }
 
         it do
+          expect(all_spans).to have(1).items
           expect(span.name).to eq('redis.command')
           expect(span.service).to eq('redis')
           expect(span.resource).to eq('SET K ' + 'x' * 47 + '...')
@@ -181,9 +190,15 @@ RSpec.describe 'Redis test' do
       end
 
       describe 'get span' do
-        subject(:span) { all_spans[-2] }
+        subject(:span) { all_spans.first }
+
+        before do
+          expect(redis.set('K', 'x' * 500)).to eq('OK')
+          expect(redis.get('K')).to eq('x' * 500)
+        end
 
         it do
+          expect(all_spans).to have(2).items
           expect(span.name).to eq('redis.command')
           expect(span.service).to eq('redis')
           expect(span.resource).to eq('GET K')
@@ -191,6 +206,22 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
+      end
+
+      describe 'auth span' do
+        include_context 'password-protected Redis server'
+
+        subject(:span) { all_spans.first }
+
+        before { redis.auth(password) }
+
+        it do
+          expect(all_spans).to have(1).items
+          expect(span.name).to eq('redis.command')
+          expect(span.service).to eq('redis')
+          expect(span.resource).to eq('AUTH ?')
+          expect(span.get_tag('redis.raw_command')).to eq('AUTH ?')
+        end
       end
     end
   end
