@@ -75,6 +75,7 @@ namespace :spec do
     :http,
     :mongodb,
     :mysql2,
+    :presto,
     :racecar,
     :rack,
     :rake,
