@@ -60,6 +60,29 @@ class TracedAPITest < BaseAPITest
     assert_nil(run.parent)
   end
 
+  def test_traced_api_4xx_exception_report_no_error
+    Datadog.configure do |c|
+      c.use :grape, error_for_4xx: false
+    end
+    post '/base/hard_failure'
+
+    spans = @tracer.writer.spans()
+    render = spans[0]
+    assert_equal(render.status, 0)
+
+    Datadog.configure do |c|
+      c.use :grape, error_for_4xx: true
+    end
+  end
+
+  def test_mine_4xx_exception_report_error
+    post '/base/hard_failure'
+
+    spans = @tracer.writer.spans()
+    render = spans[0]
+    assert_equal(render.status, 1)
+  end
+
   def test_traced_api_before_after_filters
     # it should trace the endpoint body and all before/after filters
     get '/filtered/before_after'
