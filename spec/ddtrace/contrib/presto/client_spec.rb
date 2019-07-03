@@ -193,6 +193,31 @@ RSpec.describe 'Presto::Client instrumentation' do
         expect(span.resource).to eq('SELECT 1')
       end
 
+      context 'a failed query' do
+        before(:each) do
+          discard_spans!
+          begin
+            client.run('SELECT * FROM a_table_that_isnt_there')
+          rescue
+            # do nothing
+          end
+        end
+
+        it_behaves_like 'a Presto trace'
+        it_behaves_like 'a configurable Presto trace'
+
+        it 'has a query resource'  do
+          expect(span.resource).to eq('SELECT * FROM a_table_that_isnt_there')
+        end
+
+        it 'is an error' do
+          expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
+          expect(span.get_tag(Datadog::Ext::Errors::TYPE))
+            .to eq('Presto::Client::PrestoQueryError')
+          expect(span.get_tag(Datadog::Ext::Errors::MSG))
+            .to include('a_table_that_isnt_there does not exist')
+        end
+      end
     end
 
     describe '#query opertaion' do
