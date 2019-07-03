@@ -19,6 +19,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       model_version: model_version
     )
   end
+  let(:service) { 'presto' }
   let(:host) { ENV.fetch('TEST_PRESTO_HOST', 'localhost') }
   let(:port) { ENV.fetch('TEST_PRESTO_PORT', 8080) }
   let(:user) { 'test_user' }
@@ -60,24 +61,12 @@ RSpec.describe 'Presto::Client instrumentation' do
     end
   end
 
-  context 'when the client is configured' do
-    context 'with a different service name' do
-      let(:service) { 'presto-primary' }
-      let(:configuration_options) { { tracer: tracer, service_name: service } }
+  context 'when the tracer is disabled' do
+    before(:each) { tracer.enabled = false }
 
-      it 'produces spans with the correct service' do
-        client.run('SELECT 1')
-        expect(span.service).to eq(service)
-      end
-    end
-
-    context 'when the tracer is disabled' do
-      before(:each) { tracer.enabled = false }
-
-      it 'does not produce spans' do
-        client.run('SELECT 1')
-        expect(spans).to be_empty
-      end
+    it 'does not produce spans' do
+      client.run('SELECT 1')
+      expect(spans).to be_empty
     end
   end
 
@@ -85,7 +74,7 @@ RSpec.describe 'Presto::Client instrumentation' do
     shared_examples_for 'a Presto trace' do
       it 'has basic properties' do
         expect(spans).to have(1).items
-        expect(span.service).to eq('presto')
+        expect(span.service).to eq(service)
         expect(span.span_type).to eq('sql')
         expect(span.get_tag('presto.schema')).to eq(schema)
         expect(span.get_tag('presto.catalog')).to eq(catalog)
@@ -98,20 +87,119 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
     end
 
+    shared_examples_for 'a configurable Presto trace' do
+      context 'when the client is configured' do
+        context 'with a different service name' do
+          let(:service) { 'presto-primary' }
+          let(:configuration_options) { { tracer: tracer, service_name: service } }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a different schema' do
+          let(:schema) { 'banana-schema' }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with nil schema' do
+          let(:schema) { nil }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with an empty schema' do
+          let(:schema) { '' }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a different catalog' do
+          let(:catalog) { 'eatons' }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a nil catalog' do
+          let(:schema) { nil }
+          let(:catalog) { nil }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a different user' do
+          let(:user) { 'banana' }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a different time zone' do
+          let (:time_zone) { 'Antarctica/Troll' }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a nil time zone' do
+          let (:time_zone) { nil }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a diferent language' do
+          let (:language) { 'Français' }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a nil language' do
+          let (:language) { nil }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a different http proxy' do
+          let(:http_proxy) { 'proxy.bar.foo:8080' }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a nil http proxy' do
+          let(:http_proxy) { nil }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a different model version' do
+          let(:model_version) { '0.173' }
+
+          it_behaves_like 'a Presto trace'
+        end
+
+        context 'with a nil model version' do
+          let(:model_version) { nil }
+
+          it_behaves_like 'a Presto trace'
+        end
+      end
+    end
+
     describe '#run operation' do
       before(:each) { client.run('SELECT 1') }
 
       it_behaves_like 'a Presto trace'
+      it_behaves_like 'a configurable Presto trace'
 
       it 'has a query resource'  do
         expect(span.resource).to eq('SELECT 1')
       end
+
     end
 
     describe '#query opertaion' do
       before(:each) { client.query('SELECT 1') { nil } }
 
       it_behaves_like 'a Presto trace'
+      it_behaves_like 'a configurable Presto trace'
 
       it 'has a query resource' do
         expect(span.resource).to eq('SELECT 1')
@@ -124,9 +212,13 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
 
       it_behaves_like 'a Presto trace'
+      it_behaves_like 'a configurable Presto trace'
 
       it 'has a kill resource' do
         expect(span.resource).to eq(Datadog::Contrib::Presto::Ext::SPAN_KILL)
+      end
+
+      it 'has a query_id tag' do
         expect(span.get_tag('presto.query_id')).to eq('a_query_id')
       end
     end
@@ -135,6 +227,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       before(:each) { client.run_with_names('SELECT 1') }
 
       it_behaves_like 'a Presto trace'
+      it_behaves_like 'a configurable Presto trace'
 
       it 'has a query resource' do
         expect(span.resource).to eq('SELECT 1')

@@ -44,20 +44,6 @@ module Datadog
 
             private
 
-            def decorate!(span)
-              span.service = datadog_pin.service
-              span.span_type = Datadog::Ext::SQL::TYPE
-
-              span.set_tag(Ext::TAG_SCHEMA_NAME, @options[:schema])
-              span.set_tag(Ext::TAG_CATALOG_NAME, @options[:catalog])
-              span.set_tag(Ext::TAG_USER_NAME, @options[:user])
-              span.set_tag(Ext::TAG_TIME_ZONE, @options[:time_zone])
-              span.set_tag(Ext::TAG_LANGUAGE, @options[:language])
-              span.set_tag(Ext::TAG_PROXY, @options[:http_proxy])
-              span.set_tag(Ext::TAG_MODEL_VERSION, @options[:model_version])
-              span.set_tag(Datadog::Ext::NET::TARGET_HOST, @options[:server])
-            end
-
             def datadog_pin
               @datadog_pin ||= Datadog::Pin.new(
                 Datadog.configuration[:presto][:service_name],
@@ -65,6 +51,24 @@ module Datadog
                 app_type: Datadog::Ext::AppTypes::DB,
                 tracer: Datadog.configuration[:presto][:tracer]
               )
+            end
+
+            def decorate!(span)
+              span.service = datadog_pin.service
+              span.span_type = Datadog::Ext::SQL::TYPE
+
+              set_nilable_tag!(span, :server, Datadog::Ext::NET::TARGET_HOST)
+              set_nilable_tag!(span, :user, Ext::TAG_USER_NAME)
+              set_nilable_tag!(span, :schema, Ext::TAG_SCHEMA_NAME)
+              set_nilable_tag!(span, :catalog, Ext::TAG_CATALOG_NAME)
+              set_nilable_tag!(span, :time_zone, Ext::TAG_TIME_ZONE)
+              set_nilable_tag!(span, :language, Ext::TAG_LANGUAGE)
+              set_nilable_tag!(span, :http_proxy, Ext::TAG_PROXY)
+              set_nilable_tag!(span, :model_version, Ext::TAG_MODEL_VERSION)
+            end
+
+            def set_nilable_tag!(span, key, tag_name)
+              @options[key].tap { |val| span.set_tag(tag_name, val) if val }
             end
           end
         end
