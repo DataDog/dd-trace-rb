@@ -20,6 +20,7 @@ module Datadog
             def run(query)
               datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
                 decorate!(span)
+                span.resource = query
                 super(query)
               end
             end
@@ -27,6 +28,7 @@ module Datadog
             def query(query, &blk)
               datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
                 decorate!(span)
+                span.resource = query
                 super(query, &blk)
               end
             end
@@ -34,6 +36,8 @@ module Datadog
             def kill(query_id)
               datadog_pin.tracer.trace(Ext::SPAN_KILL) do |span|
                 decorate!(span)
+                span.resource = Ext::SPAN_KILL
+                span.set_tag(Ext::TAG_QUERY_ID, query_id)
                 super(query_id)
               end
             end

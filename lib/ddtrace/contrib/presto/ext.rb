@@ -17,6 +17,7 @@ module Datadog
         TAG_LANGUAGE = 'presto.language'.freeze
         TAG_PROXY = 'presto.http_proxy'.freeze
         TAG_MODEL_VERSION = 'presto.model_version'.freeze
+        TAG_QUERY_ID = 'presto.query_id'.freeze
       end
     end
   end

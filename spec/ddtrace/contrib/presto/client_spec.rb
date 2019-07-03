@@ -104,7 +104,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       it_behaves_like 'a Presto trace'
 
       it 'has a query resource'  do
-        expect(span.resource).to eq(Datadog::Contrib::Presto::Ext::SPAN_QUERY)
+        expect(span.resource).to eq('SELECT 1')
       end
     end
 
@@ -114,21 +114,20 @@ RSpec.describe 'Presto::Client instrumentation' do
       it_behaves_like 'a Presto trace'
 
       it 'has a query resource' do
-        expect(span.resource).to eq(Datadog::Contrib::Presto::Ext::SPAN_QUERY)
+        expect(span.resource).to eq('SELECT 1')
       end
     end
 
     describe '#kill operation' do
       before(:each) do
-        q = client.query('SELECT 1')
-        discard_spans!
-        client.kill(q)
+        client.kill('a_query_id')
       end
 
       it_behaves_like 'a Presto trace'
 
       it 'has a kill resource' do
         expect(span.resource).to eq(Datadog::Contrib::Presto::Ext::SPAN_KILL)
+        expect(span.get_tag('presto.query_id')).to eq('a_query_id')
       end
     end
 
@@ -138,7 +137,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       it_behaves_like 'a Presto trace'
 
       it 'has a query resource' do
-        expect(span.resource).to eq(Datadog::Contrib::Presto::Ext::SPAN_QUERY)
+        expect(span.resource).to eq('SELECT 1')
       end
     end
   end
