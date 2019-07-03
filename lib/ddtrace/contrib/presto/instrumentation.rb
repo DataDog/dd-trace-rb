@@ -21,6 +21,7 @@ module Datadog
               datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
                 decorate!(span)
                 span.resource = query
+                span.span_type = Datadog::Ext::SQL::TYPE
                 super(query)
               end
             end
@@ -29,6 +30,7 @@ module Datadog
               datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
                 decorate!(span)
                 span.resource = query
+                span.span_type = Datadog::Ext::SQL::TYPE
                 super(query, &blk)
               end
             end
@@ -37,6 +39,8 @@ module Datadog
               datadog_pin.tracer.trace(Ext::SPAN_KILL) do |span|
                 decorate!(span)
                 span.resource = Ext::SPAN_KILL
+                span.span_type = datadog_pin.app_type
+                # ^ not an SQL type span, since there's no SQL query
                 span.set_tag(Ext::TAG_QUERY_ID, query_id)
                 super(query_id)
               end
@@ -55,7 +59,6 @@ module Datadog
 
             def decorate!(span)
               span.service = datadog_pin.service
-              span.span_type = Datadog::Ext::SQL::TYPE
 
               set_nilable_tag!(span, :server, Datadog::Ext::NET::TARGET_HOST)
               set_nilable_tag!(span, :user, Ext::TAG_USER_NAME)

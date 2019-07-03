@@ -75,7 +75,6 @@ RSpec.describe 'Presto::Client instrumentation' do
       it 'has basic properties' do
         expect(spans).to have(1).items
         expect(span.service).to eq(service)
-        expect(span.span_type).to eq('sql')
         expect(span.get_tag('presto.schema')).to eq(schema)
         expect(span.get_tag('presto.catalog')).to eq(catalog)
         expect(span.get_tag('presto.user')).to eq(user)
@@ -193,6 +192,10 @@ RSpec.describe 'Presto::Client instrumentation' do
         expect(span.resource).to eq('SELECT 1')
       end
 
+      it 'is SQL type' do
+        expect(span.span_type).to eq('sql')
+      end
+
       context 'a failed query' do
         before(:each) do
           discard_spans!
@@ -229,6 +232,10 @@ RSpec.describe 'Presto::Client instrumentation' do
       it 'has a query resource' do
         expect(span.resource).to eq('SELECT 1')
       end
+
+      it 'is SQL type' do
+        expect(span.span_type).to eq('sql')
+      end
     end
 
     describe '#kill operation' do
@@ -246,6 +253,10 @@ RSpec.describe 'Presto::Client instrumentation' do
       it 'has a query_id tag' do
         expect(span.get_tag('presto.query_id')).to eq('a_query_id')
       end
+
+      it 'is DB type' do
+        expect(span.span_type).to eq('db')
+      end
     end
 
     describe '#run_with_names operation' do
@@ -256,6 +267,10 @@ RSpec.describe 'Presto::Client instrumentation' do
 
       it 'has a query resource' do
         expect(span.resource).to eq('SELECT 1')
+      end
+
+      it 'is SQL type' do
+        expect(span.span_type).to eq('sql')
       end
     end
   end
