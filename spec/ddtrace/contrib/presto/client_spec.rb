@@ -133,25 +133,25 @@ RSpec.describe 'Presto::Client instrumentation' do
         end
 
         context 'with a different time zone' do
-          let (:time_zone) { 'Antarctica/Troll' }
+          let(:time_zone) { 'Antarctica/Troll' }
 
           it_behaves_like 'a Presto trace'
         end
 
         context 'with a nil time zone' do
-          let (:time_zone) { nil }
+          let(:time_zone) { nil }
 
           it_behaves_like 'a Presto trace'
         end
 
         context 'with a diferent language' do
-          let (:language) { 'Français' }
+          let(:language) { 'Français' }
 
           it_behaves_like 'a Presto trace'
         end
 
         context 'with a nil language' do
-          let (:language) { nil }
+          let(:language) { nil }
 
           it_behaves_like 'a Presto trace'
         end
@@ -201,9 +201,11 @@ RSpec.describe 'Presto::Client instrumentation' do
           discard_spans!
           begin
             client.run('SELECT * FROM a_table_that_isnt_there')
+          # rubocop:disable Lint/HandleExceptions
           rescue
             # do nothing
           end
+          # rubocop:enable Lint/HandleExceptions
         end
 
         it_behaves_like 'a Presto trace'
