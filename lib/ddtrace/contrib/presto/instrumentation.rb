@@ -22,6 +22,7 @@ module Datadog
                 decorate!(span)
                 span.resource = query
                 span.span_type = Datadog::Ext::SQL::TYPE
+                span.set_tag(Ext::TAG_QUERY_ASYNC, false)
                 super(query)
               end
             end
@@ -31,6 +32,7 @@ module Datadog
                 decorate!(span)
                 span.resource = query
                 span.span_type = Datadog::Ext::SQL::TYPE
+                span.set_tag(Ext::TAG_QUERY_ASYNC, !blk.nil?)
                 super(query, &blk)
               end
             end

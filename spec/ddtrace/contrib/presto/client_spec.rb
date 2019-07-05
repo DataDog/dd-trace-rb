@@ -182,11 +182,24 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
     end
 
+    shared_examples_for 'a synchronous query trace' do
+      it 'is a synchronous query trace' do
+        expect(span.get_tag('presto.query.async')).to eq('false')
+      end
+    end
+
+    shared_examples_for 'an asynchronous query trace' do
+      it 'is an asynchronous query trace' do
+        expect(span.get_tag('presto.query.async')).to eq('true')
+      end
+    end
+
     describe '#run operation' do
       before(:each) { client.run('SELECT 1') }
 
       it_behaves_like 'a Presto trace'
       it_behaves_like 'a configurable Presto trace'
+      it_behaves_like 'a synchronous query trace'
 
       it 'has a query resource'  do
         expect(span.resource).to eq('SELECT 1')
@@ -200,7 +213,7 @@ RSpec.describe 'Presto::Client instrumentation' do
         before(:each) do
           discard_spans!
           begin
-            client.run('SELECT * FROM a_table_that_isnt_there')
+            client.run('SELECT banana')
           # rubocop:disable Lint/HandleExceptions
           rescue
             # do nothing
@@ -212,7 +225,7 @@ RSpec.describe 'Presto::Client instrumentation' do
         it_behaves_like 'a configurable Presto trace'
 
         it 'has a query resource'  do
-          expect(span.resource).to eq('SELECT * FROM a_table_that_isnt_there')
+          expect(span.resource).to eq('SELECT banana')
         end
 
         it 'is an error' do
@@ -220,23 +233,38 @@ RSpec.describe 'Presto::Client instrumentation' do
           expect(span.get_tag(Datadog::Ext::Errors::TYPE))
             .to eq('Presto::Client::PrestoQueryError')
           expect(span.get_tag(Datadog::Ext::Errors::MSG))
-            .to include('a_table_that_isnt_there does not exist')
+            .to include("Column 'banana' cannot be resolved")
         end
       end
     end
 
     describe '#query opertaion' do
-      before(:each) { client.query('SELECT 1') { nil } }
+      shared_examples_for 'a query trace' do
+        it 'has a query resource' do
+          expect(span.resource).to eq('SELECT 1')
+        end
 
-      it_behaves_like 'a Presto trace'
-      it_behaves_like 'a configurable Presto trace'
-
-      it 'has a query resource' do
-        expect(span.resource).to eq('SELECT 1')
+        it 'is SQL type' do
+          expect(span.span_type).to eq('sql')
+        end
       end
 
-      it 'is SQL type' do
-        expect(span.span_type).to eq('sql')
+      context 'with no block paramter' do
+        before(:each) { client.query('SELECT 1') }
+
+        it_behaves_like 'a Presto trace'
+        it_behaves_like 'a configurable Presto trace'
+        it_behaves_like 'a query trace'
+        it_behaves_like 'a synchronous query trace'
+      end
+
+      context 'given a block parameter' do
+        before(:each) { client.query('SELECT 1') { nil } }
+
+        it_behaves_like 'a Presto trace'
+        it_behaves_like 'a configurable Presto trace'
+        it_behaves_like 'a query trace'
+        it_behaves_like 'an asynchronous query trace'
       end
     end
 
@@ -253,7 +281,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
 
       it 'has a query_id tag' do
-        expect(span.get_tag('presto.query_id')).to eq('a_query_id')
+        expect(span.get_tag('presto.query.id')).to eq('a_query_id')
       end
 
       it 'is DB type' do
