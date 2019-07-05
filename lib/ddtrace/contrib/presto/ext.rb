@@ -1,7 +1,7 @@
 module Datadog
   module Contrib
     module Presto
-      # MongoDB integration constants
+      # Presto integration constants
       module Ext
         APP = 'presto'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_PRESTO_ANALYTICS_ENABLED'.freeze
