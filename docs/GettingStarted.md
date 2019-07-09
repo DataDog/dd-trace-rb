@@ -111,7 +111,7 @@ The following steps will help you quickly start tracing your Ruby application.
 
 ### Setup the Datadog Agent
 
-Before downloading tracing on your application, instally the Datadog Agent. The Ruby APM tracer sends trace data through the Datadog Agent.
+Before downloading tracing on your application, install the Datadog Agent. The Ruby APM tracer sends trace data through the Datadog Agent.
 
 [Install and configure the Datadog Agent](https://docs.datadoghq.com/tracing/setup), see additional documentation for [tracing Docker applications](https://docs.datadoghq.com/tracing/setup/docker/).
 
@@ -247,7 +247,7 @@ It might not always be possible to wrap `Datadog.tracer.trace` around a block of
 To trace these operations, you can trace code asynchronously by calling `Datadog.tracer.trace` without a block:
 
 ```ruby
-# Some instrumentation framework calls this after an event begins and finishes...
+# Some instrumentation framework calls this after an event finishes...
 def db_query(start, finish, query)
   span = Datadog.tracer.trace('database.query')
   span.resource = query
@@ -327,7 +327,7 @@ Ruby APM includes support for the following web servers:
 | [Unicorn][13]       | 4.8+ / 5.1+  | Fully Supported |
 | [Passenger][14] | 5.0+         | Fully Supported |
 
-### Library and Framework Compatibility
+### Integration instrumentation
 
 Many popular libraries and frameworks are supported out-of-the-box, which can be auto-instrumented. Although they are not activated automatically, they can be easily activated and configured by using the `Datadog.configure` API:
 
@@ -1869,13 +1869,12 @@ The stats sent will include:
 | `runtime.ruby.thread_count` | `gauge` | Number of threads.                                       |
 | `runtime.ruby.gc.*`.        | `gauge` | Garbage collection statistics (one per value in GC.stat) |
 
-Also, all metrics include the following tags:
+In addition, all metrics include the following tags:
 
 | Name         | Description                                             |
 | ------------ | ------------------------------------------------------- |
 | `language`   | Programming language traced. (e.g. `ruby`)              |
-| `runtime-id` | Unique identifier of runtime environment (i.e. process) |
-| `service`    | List of services this associated with this metric.        |
+| `service`    | List of services this associated with this metric.      |
 
 ### OpenTracing
 
