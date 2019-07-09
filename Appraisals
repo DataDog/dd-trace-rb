@@ -585,6 +585,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'redis', '< 4.0'
       gem 'rest-client'
       gem 'resque', '< 2.0'
+      gem 'roda'
       gem 'sequel'
       gem 'shoryuken'
       gem 'sidekiq'

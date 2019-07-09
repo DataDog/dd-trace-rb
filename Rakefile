@@ -81,6 +81,7 @@ namespace :spec do
     :redis,
     :resque,
     :rest_client,
+    :roda,
     :sequel,
     :sidekiq,
     :sinatra,
@@ -499,6 +500,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:redis'
       sh 'bundle exec appraisal contrib rake spec:resque'
       sh 'bundle exec appraisal contrib rake spec:rest_client'
+      sh 'bundle exec appraisal contrib rake spec:roda'
       sh 'bundle exec appraisal contrib rake spec:sequel'
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
