@@ -1,3 +1,5 @@
+require 'ddtrace/contrib/roda/ext'
+
 module Datadog
 	module Contrib
 		module Roda
@@ -33,15 +35,18 @@ module Datadog
               span.resource = request_method
               # Using the method as a resource, as URL/path can trigger
               # a possibly infinite number of resources.
-              span.set_tag(Ext::URL, path)
-              span.set_tag(Ext::METHOD, request_method)
+              span.set_tag(Datadog::Ext::HTTP::URL, path)
+              span.set_tag(Datadog::Ext::HTTP::METHOD, request_method)
+            
             rescue StandardError => e
               Datadog::Tracer.log.error("error preparing span for roda request: #{e}")
             ensure
               response = super
             end
 
-            response
+            # response comes back as [404, {"Content-Type"=>"text/html", "Content-Length"=>"0"}, []]
+            span.set_error(1) if response[0].to_s.start_with?("5")
+            response	
           end
         end
 			end
