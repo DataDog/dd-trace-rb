@@ -2,7 +2,6 @@ require 'spec_helper'
 require 'ddtrace'
 require 'rack/test'
 require 'roda'
-require 'pry'
 
 RSpec.describe 'Roda instrumentation' do
 	include Rack::Test::Methods
@@ -52,8 +51,4 @@ RSpec.describe 'Roda instrumentation' do
 		end
 
 	end
-
-
-
-
 end
