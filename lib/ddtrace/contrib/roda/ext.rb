@@ -4,10 +4,10 @@ module Datadog
       # Roda integration constants
       module Ext
         APP = 'roda'.freeze
-        SERVICE_NAME = 'roda'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_RODA_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_SAMPLED_RATE = 'DD_RODA_ANALYTICS_SAMPLED_RATE'.freeze
 
-        URL = 'url'.freeze
-        METHOD = 'method'.freeze
+        SERVICE_NAME = 'roda'.freeze
 
         SPAN_REQUEST = 'roda.request'.freeze
 

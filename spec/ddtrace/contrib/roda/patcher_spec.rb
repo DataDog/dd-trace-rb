@@ -95,7 +95,7 @@ RSpec.describe 'Roda instrumentation' do
 		it do
 			expect(response.status).to eq(500)
 			expect(response.header).to eq({"Content-Type"=>"text/html", "Content-Length"=>"4"})
-	
+		 
 			expect(spans).to have(1).items
 			expect(span.parent).to be nil
 			expect(span.span_type).to eq("http")

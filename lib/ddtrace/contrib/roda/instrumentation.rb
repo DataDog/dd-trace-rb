@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/roda/ext'
+require 'ddtrace/contrib/analytics'
 
 module Datadog
 	module Contrib
@@ -38,6 +39,9 @@ module Datadog
               span.set_tag(Datadog::Ext::HTTP::URL, path)
               span.set_tag(Datadog::Ext::HTTP::METHOD, request_method)
             
+            	# Add analytics tag to the span
+           		Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate]) if Contrib::Analytics.enabled?(Datadog.configuration[:roda][:analytics_enabled])
+
             rescue StandardError => e
               Datadog::Tracer.log.error("error preparing span for roda request: #{e}")
             ensure
