@@ -298,36 +298,8 @@ You can also get the root span of the current active trace using the `active_roo
 current_root_span = Datadog.tracer.active_root_span
 current_root_span.set_tag('my_tag', 'my_value') unless current_root_span.nil?
 ```
-## Compatibility
 
-### Interpreter Compatibility
-
-Ruby APM includes support for the following Ruby interpreters:
-
-
-| Type                               | Version | Support type    |
-| ---------------------------------- | -----   | --------------- |
-| [MRI][10]  | 1.9.1   | Experimental    |
-|                                    | 1.9.3   | Fully Supported |
-|                                    | 2.0     | Fully Supported |
-|                                    | 2.1     | Fully Supported |
-|                                    | 2.2     | Fully Supported |
-|                                    | 2.3     | Fully Supported |
-|                                    | 2.4     | Fully Supported |
-|                                    | 2.5     | Fully Supported |
-| [JRuby][11]         | 9.1.5   | Experimental    |
-
-### Web Server Compatibility
-
-Ruby APM includes support for the following web servers:
-
-| Type                                           | Version      | Support type    |
-| ---------------------------------------------- | ------------ | --------------- |
-| [Puma][12]                        | 2.16+ / 3.6+ | Fully Supported |
-| [Unicorn][13]       | 4.8+ / 5.1+  | Fully Supported |
-| [Passenger][14] | 5.0+         | Fully Supported |
-
-### Integration instrumentation
+## Integration instrumentation
 
 Many popular libraries and frameworks are supported out-of-the-box, which can be auto-instrumented. Although they are not activated automatically, they can be easily activated and configured by using the `Datadog.configure` API:
 
