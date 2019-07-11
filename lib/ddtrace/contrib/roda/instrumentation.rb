@@ -31,7 +31,7 @@ module Datadog
               operation = "#{controller}##{action}"
 
               span.service = pin.service
-              span.span_type = Datadog::Ext::HTTP::TYPE
+              span.span_type = Datadog::Ext::HTTP::TYPE_INBOUND
 
               span.resource = request_method
               # Using the method as a resource, as URL/path can trigger

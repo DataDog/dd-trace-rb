@@ -28,9 +28,14 @@ RSpec.describe 'Roda instrumentation' do
 			Class.new(Roda) do
 				route do |r|
 					r.root do
+						# GET /
 						r.get do
 							"Hello World!"
 						end
+					end
+					# GET /worlds/1
+					r.get "worlds", Integer do |world|
+						"Hello, world #{world}"
 					end
 				end
 			end
@@ -56,15 +61,31 @@ RSpec.describe 'Roda instrumentation' do
 		include_context 'Roda app with 1 successful endpoint'
 		subject(:response) {get '/'}
 		it do
-			is_expected.to be_ok
+			expect(response.status).to eq(200)
 			expect(response.header).to eq({"Content-Type"=>"text/html", "Content-Length"=>"12"})
 			
 			expect(spans).to have(1).items
-			expect(span.span_type).to eq("http")
+			expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
 			expect(span.status).to eq(0)
+			expect(span.resource).to eq("GET")
 			expect(span.name).to eq("roda.request")
 			expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
 			expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
+			expect(span.parent).to be nil
+		end
+
+		subject(:params_response) {get 'worlds/1'}
+		it do
+			expect(params_response.status).to eq(200)
+			expect(params_response.header).to eq({"Content-Type"=>"text/html", "Content-Length"=>"14"})
+			
+			expect(spans).to have(1).items
+			expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+			expect(span.status).to eq(0)
+			expect(span.name).to eq("roda.request")
+			expect(span.resource).to eq("GET")
+			expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
+			expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/worlds/1')
 			expect(span.parent).to be nil
 		end
 	end
@@ -80,7 +101,8 @@ RSpec.describe 'Roda instrumentation' do
 			
 			expect(spans).to have(1).items
 			expect(span.parent).to be nil
-			expect(span.span_type).to eq("http")
+			expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+			expect(span.resource).to eq("GET")
 			expect(span.name).to eq("roda.request")
 			expect(span.status).to eq(0)
 			expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -98,7 +120,8 @@ RSpec.describe 'Roda instrumentation' do
 		 
 			expect(spans).to have(1).items
 			expect(span.parent).to be nil
-			expect(span.span_type).to eq("http")
+			expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+			expect(span.resource).to eq("GET")
 			expect(span.name).to eq("roda.request")
 			expect(span.status).to eq(1)
 			expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
