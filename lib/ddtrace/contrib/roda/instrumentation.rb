@@ -18,7 +18,6 @@ module Datadog
         def call(*args)
           pin = datadog_pin
           return super unless pin && pin.tracer
-
           pin.tracer.trace(Ext::SPAN_REQUEST) do |span|
             begin
               req = ::Rack::Request.new(env)
@@ -40,7 +39,7 @@ module Datadog
               span.set_tag(Datadog::Ext::HTTP::METHOD, request_method)
             
             	# Add analytics tag to the span
-           		Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate]) if Contrib::Analytics.enabled?(Datadog.configuration[:roda][:analytics_enabled])
+           		Contrib::Analytics.set_sample_rate(span, Datadog.configuration[:roda][:analytics_sample_rate]) if Contrib::Analytics.enabled?(Datadog.configuration[:roda][:analytics_enabled])
 
             rescue StandardError => e
               Datadog::Tracer.log.error("error preparing span for roda request: #{e}")

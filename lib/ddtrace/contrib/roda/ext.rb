@@ -5,10 +5,9 @@ module Datadog
       module Ext
         APP = 'roda'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_RODA_ANALYTICS_ENABLED'.freeze
-        ENV_ANALYTICS_SAMPLED_RATE = 'DD_RODA_ANALYTICS_SAMPLED_RATE'.freeze
+        ENV_ANALYTICS_SAMPLE_RATE = 'DD_RODA_ANALYTICS_SAMPLE_RATE'.freeze
 
         SERVICE_NAME = 'roda'.freeze
-
         SPAN_REQUEST = 'roda.request'.freeze
 
         SPAN_ENDPOINT_RENDER = 'roda.endpoint_render'.freeze

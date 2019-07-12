@@ -23,7 +23,7 @@ RSpec.describe 'Roda instrumentation' do
 		Datadog.registry[:roda].reset_configuration!
 	end
 
-	shared_context 'Roda app with 1 successful endpoint' do
+	shared_context 'Roda app with two endpoints' do
 		let(:app) do
 			Class.new(Roda) do
 				route do |r|
@@ -58,13 +58,14 @@ RSpec.describe 'Roda instrumentation' do
 
 	context 'when a 200 status code request is made' do
 
-		include_context 'Roda app with 1 successful endpoint'
+		include_context 'Roda app with two endpoints'
 		subject(:response) {get '/'}
+
 		it do
 			expect(response.status).to eq(200)
 			expect(response.header).to eq({"Content-Type"=>"text/html", "Content-Length"=>"12"})
-			
 			expect(spans).to have(1).items
+			expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
 			expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
 			expect(span.status).to eq(0)
 			expect(span.resource).to eq("GET")
@@ -81,6 +82,7 @@ RSpec.describe 'Roda instrumentation' do
 			
 			expect(spans).to have(1).items
 			expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+			expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
 			expect(span.status).to eq(0)
 			expect(span.name).to eq("roda.request")
 			expect(span.resource).to eq("GET")
@@ -93,7 +95,7 @@ RSpec.describe 'Roda instrumentation' do
 
 	context 'when a 404 status code request is made' do
 
-		include_context 'Roda app with 1 successful endpoint'
+		include_context 'Roda app with two endpoints'
 		subject(:response) {get '/unsuccessful_endpoint'}
 		it do
 			expect(response.status).to eq(404)
@@ -101,6 +103,7 @@ RSpec.describe 'Roda instrumentation' do
 			
 			expect(spans).to have(1).items
 			expect(span.parent).to be nil
+			expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
 			expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
 			expect(span.resource).to eq("GET")
 			expect(span.name).to eq("roda.request")
@@ -120,6 +123,7 @@ RSpec.describe 'Roda instrumentation' do
 		 
 			expect(spans).to have(1).items
 			expect(span.parent).to be nil
+			expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
 			expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
 			expect(span.resource).to eq("GET")
 			expect(span.name).to eq("roda.request")
@@ -129,9 +133,8 @@ RSpec.describe 'Roda instrumentation' do
 		end
 	end
 
-
 	context 'when the tracer is disabled' do  
-		include_context 'Roda app with 1 successful endpoint'
+		include_context 'Roda app with two endpoints'
 		subject(:response) {get '/'}
 
 		let(:tracer) { get_test_tracer(enabled: false) }
