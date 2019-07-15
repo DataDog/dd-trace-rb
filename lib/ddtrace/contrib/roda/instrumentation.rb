@@ -18,6 +18,13 @@ module Datadog
         def call(*args)
           pin = datadog_pin
           return super unless pin && pin.tracer
+        
+          # Distributed tracing - extract before starting the span
+          if Datadog.configuration[:roda][:distributed_tracing] && Datadog.configuration[:roda][:tracer].provider.context.trace_id.nil?
+            context =  HTTPPropagator.extract(env)
+            Datadog.configuration[:roda][:tracer].provider.context = context if context && context.trace_id
+          end
+
           pin.tracer.trace(Ext::SPAN_REQUEST) do |span|
             begin
               req = ::Rack::Request.new(env)
