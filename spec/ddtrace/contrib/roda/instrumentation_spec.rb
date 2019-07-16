@@ -124,14 +124,13 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
           it do
             call
             expect(spans).to have(1).items
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
+            expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
             expect(span.name).to eq("roda.request")
             expect(span.resource).to eq("GET")
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-            expect(span.parent).to be nil
           end
         end
 
@@ -143,7 +142,6 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
             call
             expect(spans).to have(1).items
             expect(span.parent).to be nil
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.resource).to eq("GET")
             expect(span.name).to eq("roda.request")
@@ -160,7 +158,6 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
             call
             expect(spans).to have(1).items
             expect(span.parent).to be nil
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.resource).to eq("GET")
             expect(span.name).to eq("roda.request")
@@ -178,19 +175,16 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
         end
 
         context 'GET' do
-          let(:response_code) { 200 }
-        
           it do
             call
             expect(spans).to have(1).items
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
+            expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
             expect(span.name).to eq("roda.request")
             expect(span.resource).to eq("GET")
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-            expect(span.parent).to be nil
           end          
         end
 
@@ -200,14 +194,13 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
           it do
             call
             expect(spans).to have(1).items
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
+            expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
             expect(span.name).to eq("roda.request")
             expect(span.resource).to eq("PUT")
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('PUT')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-            expect(span.parent).to be nil
           end
         end
 
@@ -225,14 +218,13 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
           it do
             call
             expect(spans).to have(1).items
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
+            expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
             expect(span.name).to eq("roda.request")
             expect(span.resource).to eq("GET")
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
-            expect(span.parent).to be nil
           end  
         end
         
@@ -241,14 +233,13 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
           it do
             call
             expect(spans).to have(1).items
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
+            expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
             expect(span.name).to eq("roda.request")
             expect(span.resource).to eq("GET")
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
-            expect(span.parent).to be nil
           end           
         end
 
@@ -257,14 +248,13 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
           it do
             call
             expect(spans).to have(1).items
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
+            expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
             expect(span.name).to eq("roda.request")
             expect(span.resource).to eq("GET")
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
-            expect(span.parent).to be nil
           end  
         end
       end
@@ -341,7 +331,37 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
             expect(span.parent_id).to_not eq(50000)
           end
         end
-      end            
+      end
+
+
+      context 'when analytics' do
+        include_context 'stubbed request'
+        include_context 'stubbed response' do
+            let(:env) do
+              {
+                'HTTP_X_DATADOG_TRACE_ID' => '0'
+              }
+            end
+          end        
+        context 'is not enabled' do
+          
+          it do
+            call
+            expect(span.name).to eq("roda.request")
+            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
+          end  
+        end
+        
+        context 'is enabled' do
+          let(:configuration_options) { { tracer: tracer, analytics_enabled: true } }
+          it do
+            call
+            expect(span.name).to eq("roda.request")
+            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
+          end  
+        end
+      end
+
     end
   end
 end

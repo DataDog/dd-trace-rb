@@ -101,7 +101,7 @@ RSpec.describe 'Roda instrumentation' do
 				end	
 
 
-				context 'for a GET endpoint with an id' do 
+				context 'for a GET endpoint with params' do 
 
 					let(:response) { get 'articles?id=1' }
 
