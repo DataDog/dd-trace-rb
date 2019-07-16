@@ -19,7 +19,7 @@ module Datadog
           pin = datadog_pin
           return super unless pin && pin.tracer
         
-          # Distributed tracing - extract before starting the span
+          # Distributed tracing - extract before starting the span - extract distributed tracing
           if Datadog.configuration[:roda][:distributed_tracing] && Datadog.configuration[:roda][:tracer].provider.context.trace_id.nil?
             context =  HTTPPropagator.extract(env)
             Datadog.configuration[:roda][:tracer].provider.context = context if context && context.trace_id
@@ -27,14 +27,9 @@ module Datadog
 
           pin.tracer.trace(Ext::SPAN_REQUEST) do |span|
             begin
-              req = ::Rack::Request.new(env)
-              request_method = req.request_method.to_s.upcase
+              req = ::Rack::Request.new(env) 
+              request_method = req.request_method.to_s.upcase #
               path = req.path
-
-              parts = path.to_s.rpartition("/")
-              action = parts.last
-              controller = parts.first.sub(/\A\//, '').split("/").collect {|w| w.capitalize }.join("::")
-              operation = "#{controller}##{action}"
 
               span.service = pin.service
               span.span_type = Datadog::Ext::HTTP::TYPE_INBOUND
