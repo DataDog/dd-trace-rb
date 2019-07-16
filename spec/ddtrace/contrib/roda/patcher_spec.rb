@@ -30,16 +30,19 @@ RSpec.describe 'Roda instrumentation' do
 				plugin :all_verbs
 				route do |r|
 					r.root do
-						# GET /
 						r.get do
-							"Hello World!"
+							'Hello World!'
+						end
+					end
+					r.is 'articles' do
+						r.get do
+							'Articles'
 						end
 					end
 					r.is 'worlds', Integer do |world|
 						r.put do
-							"UPDATE"
+							'UPDATE'
 						end
-						# GET /worlds/1
 						r.get do
 							"Hello, world #{r.params['world']}"
 						end
@@ -75,14 +78,7 @@ RSpec.describe 'Roda instrumentation' do
 						expect(response.status).to eq(200)
 						expect(response.header).to eq({"Content-Type"=>"text/html", "Content-Length"=>"12"})
 						expect(spans).to have(1).items
-						# expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
-						# expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
-						# expect(span.status).to eq(0)
-						# expect(span.resource).to eq("GET")
 						expect(span.name).to eq("roda.request")
-						# expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-						# expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-						# expect(span.parent).to be nil
 					end
 
 					it_behaves_like 'analytics for integration', ignore_global_flag: false do
@@ -97,23 +93,29 @@ RSpec.describe 'Roda instrumentation' do
 					subject(:params_response) { get 'worlds/1' }
 
 					it do
-						expect(params_response.status).to eq(200)
-						expect(params_response.header).to eq({"Content-Type"=>"text/html", "Content-Length"=>"13"})
-						
+						expect(response.status).to eq(200)
+						expect(response.header).to eq({"Content-Type"=>"text/html", "Content-Length"=>"12"})
 						expect(spans).to have(1).items
-						expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
-						expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
-						expect(span.status).to eq(0)
 						expect(span.name).to eq("roda.request")
-						expect(span.resource).to eq("GET")
-						expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-						expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/worlds/1')
-						expect(span.parent).to be nil
 					end
-				end					
+				end	
+
+
+				context 'for a GET endpoint with an id' do 
+
+					let(:response) { get 'articles?id=1' }
+
+					it do
+						expect(response.status).to eq(200)
+						expect(response.header).to eq({"Content-Type"=>"text/html", "Content-Length"=>"8"})
+						expect(spans).to have(1).items
+						expect(span.name).to eq("roda.request")
+					end
+				end	
+
 			end
 
-			context 'and an error occurs' do
+			context 'and an unsuccessful response occurs' do
 				context 'with a 404' do
 					include_context 'basic roda app'
 					subject(:response) { get '/unsuccessful_endpoint' }
@@ -131,16 +133,8 @@ RSpec.describe 'Roda instrumentation' do
 					it do
 						expect(response.status).to eq(500)
 						expect(response.header).to eq({"Content-Type"=>"text/html", "Content-Length"=>"4"})
-					 
 						expect(spans).to have(1).items
-						# expect(span.parent).to be nil
-						# expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
-						# expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
-						# expect(span.resource).to eq("GET")
 						expect(span.name).to eq("roda.request")
-						# expect(span.status).to eq(1)
-						# expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-						# expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
 					end
 				end	
 			end

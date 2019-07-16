@@ -19,11 +19,7 @@ module Datadog
           pin = datadog_pin
           return super unless pin && pin.tracer
         
-          # Distributed tracing - extract before starting the span - extract distributed tracing
-          if Datadog.configuration[:roda][:distributed_tracing] && Datadog.configuration[:roda][:tracer].provider.context.trace_id.nil?
-            context =  HTTPPropagator.extract(env)
-            Datadog.configuration[:roda][:tracer].provider.context = context if context && context.trace_id
-          end
+          set_distributed_tracing_context(env)
 
           pin.tracer.trace(Ext::SPAN_REQUEST) do |span|
             begin
@@ -52,6 +48,15 @@ module Datadog
             # response comes back as [404, {"Content-Type"=>"text/html", "Content-Length"=>"0"}, []]
             span.set_error(1) if response[0].to_s.start_with?("5")
             response	
+          end
+        end
+
+        private
+
+        def set_distributed_tracing_context(env)
+          if Datadog.configuration[:roda][:distributed_tracing] && Datadog.configuration[:roda][:tracer].provider.context.trace_id.nil?
+            context =  HTTPPropagator.extract(env)
+            Datadog.configuration[:roda][:tracer].provider.context = context if context && context.trace_id
           end
         end
 			end
