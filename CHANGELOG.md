@@ -4,6 +4,16 @@
 
 ## [Unreleased (beta)]
 
+## [0.25.1] - 2019-07-16
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.25.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.25.0...v0.25.1
+
+### Fixed
+
+- Redis integration not quantizing AUTH command (#776)
+
 ## [0.25.0] - 2019-06-27
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.25.0
@@ -866,8 +876,11 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.3...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.3...0.24-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...0.26-dev
+[0.25.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.0...v0.25.1
+[0.25.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.24.0...v0.25.0
+[0.24.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.3...v0.24.0
 [0.23.3]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.2...v0.23.3
 [0.23.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.1...v0.23.2
 [0.23.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.0...v0.23.1
