@@ -3,7 +3,6 @@ require 'json'
 require 'ddtrace/ext/net'
 require 'ddtrace/runtime/socket'
 
-require 'ddtrace/transport'
 require 'ddtrace/transport/http'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
@@ -79,29 +78,20 @@ module Datadog
       # Inject hostname if configured to do so
       inject_hostname!(traces) if Datadog.configuration.report_hostname
 
-      if transport.is_a?(Datadog::HTTPTransport)
-        # For older Datadog::HTTPTransport...
-        code = transport.send(:traces, traces)
-        (!transport.server_error?(code)).tap do |status|
-          @traces_flushed += traces.length if status
+      # Send traces an get a response.
+      response = transport.send_traces(traces)
+
+      unless response.internal_error?
+        @traces_flushed += traces.length unless response.server_error?
+
+        # Update priority sampler
+        unless priority_sampler.nil? || response.service_rates.nil?
+          priority_sampler.update(response.service_rates)
         end
-      else
-        # For newer Datadog::Transports...
-        # Send traces an get a response.
-        response = transport.send_traces(traces)
-
-        unless response.internal_error?
-          @traces_flushed += traces.length unless response.server_error?
-
-          # Update priority sampler
-          unless priority_sampler.nil? || response.service_rates.nil?
-            priority_sampler.update(response.service_rates)
-          end
-        end
-
-        # Return if server error occurred.
-        !response.server_error?
       end
+
+      # Return if server error occurred.
+      !response.server_error?
     end
 
     def send_runtime_metrics
@@ -149,26 +139,6 @@ module Datadog
         traces_flushed: @traces_flushed,
         transport: @transport.stats
       }
-    end
-
-    # Updates the priority sampler with rates from transport response.
-    # action (Symbol): Symbol representing data submitted.
-    # response: A Datadog::Transport::Response object.
-    # api: API version used to process this request.
-    #
-    # NOTE: Used only by old Datadog::HTTPTransport; will be removed.
-    def sampling_updater(action, response, api)
-      return unless action == :traces && response.is_a?(Net::HTTPOK)
-
-      if api[:version] == HTTPTransport::V4
-        body = JSON.parse(response.body)
-        if body.is_a?(Hash) && body.key?('rate_by_service')
-          @priority_sampler.update(body['rate_by_service'])
-        end
-        true
-      else
-        false
-      end
     end
 
     private

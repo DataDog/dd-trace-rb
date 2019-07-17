@@ -19,8 +19,4 @@ module Datadog
   class Span
     attr_accessor :meta
   end
-  class HTTPTransport
-    remove_method :traces_endpoint
-    attr_accessor :traces_endpoint, :encoder, :headers
-  end
 end
