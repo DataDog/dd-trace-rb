@@ -7,35 +7,32 @@ require 'ddtrace/contrib/analytics_examples'
 
 RSpec.describe Datadog::Contrib::Roda::Instrumentation do
   describe 'when implemented in Roda' do
-    
     let(:configuration_options) { { tracer: tracer } }
     let(:tracer) { get_test_tracer }
     let(:spans) { tracer.writer.spans }
     let(:span) { spans.first }
     let(:roda) { test_class.new }
     let(:test_class) do
-        Class.new do
-          prepend Datadog::Contrib::Roda::Instrumentation
-        end
+      Class.new do
+        prepend Datadog::Contrib::Roda::Instrumentation
       end
+    end
     before(:each) do
       Datadog.configure do |c|
         c.use :roda, configuration_options
       end
     end
-  
+
     after(:each) do
       Datadog.registry[:roda].reset_configuration!
     end
 
     describe '#datadog_pin' do
-      let(:env) { {:REQUEST_METHOD =>'GET'} }
+      let(:env) { { REQUEST_METHOD: 'GET' } }
       subject(:datadog_pin) { roda.datadog_pin }
 
       context 'when roda is configured' do
-
         context 'with default settings' do
-          
           it 'enables the tracer' do
             expect(datadog_pin.tracer).to be(Datadog.configuration[:roda][:tracer])
             expect(datadog_pin.tracer.enabled).to eq(true)
@@ -52,7 +49,7 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
           end
 
           context 'with a custom service name' do
-            let(:custom_service_name) {"custom service name"}
+            let(:custom_service_name) { 'custom service name' }
             let(:configuration_options) { { tracer: tracer, service_name: custom_service_name } }
 
             it 'sets a custom service name' do
@@ -78,18 +75,18 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
             ::Rack::Request,
             request_method: response_method,
             path: path
-           )
+          )
         end
 
         before do
           e = env
-          test_class.send(:define_method, :env) do |*args|
-              e
+          test_class.send(:define_method, :env) do
+            e
           end
 
           expect(::Rack::Request).to receive(:new)
-           .with(env)
-           .and_return(request)
+            .with(env)
+            .and_return(request)
         end
       end
 
@@ -101,14 +98,13 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
 
         before do
           s = spy
-          test_class.send(:define_method, :call) do |*args|
-              s.call
+          test_class.send(:define_method, :call) do
+            s.call
           end
           expect(spy).to receive(:call)
-           .and_return(response)
+            .and_return(response)
         end
       end
-      
 
       context 'when the response code is' do
         include_context 'stubbed request'
@@ -116,15 +112,15 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
 
         context '200' do
           let(:response_code) { 200 }
-        
+
           it do
             call
             expect(spans).to have(1).items
             expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
-            expect(span.name).to eq("roda.request")
-            expect(span.resource).to eq("GET")
+            expect(span.name).to eq('roda.request')
+            expect(span.resource).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
           end
@@ -133,20 +129,20 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
         context '404' do
           let(:response_code) { 404 }
           let(:path) { '/unsuccessful_endpoint' }
-          
+
           it do
             call
             expect(spans).to have(1).items
             expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
-            expect(span.resource).to eq("GET")
-            expect(span.name).to eq("roda.request")
+            expect(span.resource).to eq('GET')
+            expect(span.name).to eq('roda.request')
             expect(span.status).to eq(0)
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/unsuccessful_endpoint')
           end
         end
-        
+
         context '500' do
           let(:response_code) { 500 }
 
@@ -155,8 +151,8 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
             expect(spans).to have(1).items
             expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
-            expect(span.resource).to eq("GET")
-            expect(span.name).to eq("roda.request")
+            expect(span.resource).to eq('GET')
+            expect(span.name).to eq('roda.request')
             expect(span.status).to eq(1)
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
@@ -175,11 +171,11 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
             expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
-            expect(span.name).to eq("roda.request")
-            expect(span.resource).to eq("GET")
+            expect(span.name).to eq('roda.request')
+            expect(span.resource).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-          end          
+          end
         end
 
         context 'PUT' do
@@ -191,13 +187,12 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
             expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
-            expect(span.name).to eq("roda.request")
-            expect(span.resource).to eq("PUT")
+            expect(span.name).to eq('roda.request')
+            expect(span.resource).to eq('PUT')
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('PUT')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
           end
         end
-
       end
 
       context 'when the path is' do
@@ -206,20 +201,20 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
 
         context '/worlds' do
           let(:path) { 'worlds' }
-          
+
           it do
             call
             expect(spans).to have(1).items
             expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
-            expect(span.name).to eq("roda.request")
-            expect(span.resource).to eq("GET")
+            expect(span.name).to eq('roda.request')
+            expect(span.resource).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
-          end  
+          end
         end
-        
+
         context '/worlds/:id' do
           let(:path) { 'worlds/1' }
           it do
@@ -228,11 +223,11 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
             expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
-            expect(span.name).to eq("roda.request")
-            expect(span.resource).to eq("GET")
+            expect(span.name).to eq('roda.request')
+            expect(span.resource).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
-          end           
+          end
         end
 
         context 'articles?id=1' do
@@ -243,19 +238,19 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
             expect(span.parent).to be nil
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span.status).to eq(0)
-            expect(span.name).to eq("roda.request")
-            expect(span.resource).to eq("GET")
+            expect(span.name).to eq('roda.request')
+            expect(span.resource).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
-          end  
+          end
         end
       end
 
       context 'when distributed tracing' do
         include_context 'stubbed request'
-        
-        let(:sampling_priority) {Datadog::Ext::Priority::USER_KEEP.to_s}
-        
+
+        let(:sampling_priority) { Datadog::Ext::Priority::USER_KEEP.to_s }
+
         context 'is enabled' do
           context 'without origin' do
             include_context 'stubbed response' do
@@ -263,7 +258,7 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
                 {
                   'HTTP_X_DATADOG_TRACE_ID' => '40000',
                   'HTTP_X_DATADOG_PARENT_ID' => '50000',
-                  'HTTP_X_DATADOG_SAMPLING_PRIORITY' => sampling_priority,
+                  'HTTP_X_DATADOG_SAMPLING_PRIORITY' => sampling_priority
                 }
               end
             end
@@ -282,12 +277,12 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
           context 'with origin' do
             include_context 'stubbed response' do
               let(:env) do
-              {
-                'HTTP_X_DATADOG_TRACE_ID' => '10000',
-                'HTTP_X_DATADOG_PARENT_ID' => '20000',
-                'HTTP_X_DATADOG_SAMPLING_PRIORITY' => sampling_priority,
-                'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
-              }
+                {
+                  'HTTP_X_DATADOG_TRACE_ID' => '10000',
+                  'HTTP_X_DATADOG_PARENT_ID' => '20000',
+                  'HTTP_X_DATADOG_SAMPLING_PRIORITY' => sampling_priority,
+                  'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
+                }
               end
             end
 
@@ -307,14 +302,14 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
           let(:configuration_options) { { tracer: tracer, distributed_tracing: false } }
           include_context 'stubbed response' do
             let(:env) do
-                  {
-                    'HTTP_X_DATADOG_TRACE_ID' => '40000',
-                    'HTTP_X_DATADOG_PARENT_ID' => '50000',
-                    'HTTP_X_DATADOG_SAMPLING_PRIORITY' => sampling_priority,
-                  }
+              {
+                'HTTP_X_DATADOG_TRACE_ID' => '40000',
+                'HTTP_X_DATADOG_PARENT_ID' => '50000',
+                'HTTP_X_DATADOG_SAMPLING_PRIORITY' => sampling_priority
+              }
             end
           end
-          
+
           it 'does not take on the passed in trace context' do
             call
             expect(Datadog.configuration[:roda][:distributed_tracing]).to be(false)
@@ -325,17 +320,15 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
         end
       end
 
-
       context 'when analytics' do
         include_context 'stubbed request'
         include_context 'stubbed response'
         it_behaves_like 'analytics for integration', ignore_global_flag: false do
-            before { call }
-            let(:analytics_enabled_var) { Datadog::Contrib::Roda::Ext::ENV_ANALYTICS_ENABLED }
-            let(:analytics_sample_rate_var) { Datadog::Contrib::Roda::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          before { call }
+          let(:analytics_enabled_var) { Datadog::Contrib::Roda::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::Roda::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
       end
-
     end
   end
 end
