@@ -3,6 +3,7 @@ require 'roda'
 require 'ddtrace'
 require 'ddtrace/contrib/roda/instrumentation'
 require 'ddtrace/contrib/roda/ext'
+require 'ddtrace/contrib/analytics_examples'
 
 RSpec.describe Datadog::Contrib::Roda::Instrumentation do
   describe 'when implemented in Roda' do
@@ -11,7 +12,12 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
     let(:tracer) { get_test_tracer }
     let(:spans) { tracer.writer.spans }
     let(:span) { spans.first }
-
+    let(:roda) { test_class.new }
+    let(:test_class) do
+        Class.new do
+          prepend Datadog::Contrib::Roda::Instrumentation
+        end
+      end
     before(:each) do
       Datadog.configure do |c|
         c.use :roda, configuration_options
@@ -23,8 +29,6 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
     end
 
     describe '#datadog_pin' do
-      let(:test_class) { Class.new(Roda) }
-      let(:roda) { test_class.new(env) }
       let(:env) { {:REQUEST_METHOD =>'GET'} }
       subject(:datadog_pin) { roda.datadog_pin }
 
@@ -63,15 +67,9 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
 
     describe '#call' do
       subject(:call) { roda.call }
-      let(:roda) { test_class.new }
-      let(:test_class) do
-        Class.new do
-          prepend Datadog::Contrib::Roda::Instrumentation
-        end
-      end
 
       shared_context 'stubbed request' do
-        let(:env) { instance_double(Hash) }
+        let(:env) { {} }
         let(:response_method) { :get }
         let(:path) { '/' }
 
@@ -114,9 +112,7 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
 
       context 'when the response code is' do
         include_context 'stubbed request'
-        include_context 'stubbed response' do
-          let(:env) { {'HTTP_X_DATADOG_TRACE_ID' => '0'} }
-        end
+        include_context 'stubbed response'
 
         context '200' do
           let(:response_code) { 200 }
@@ -170,9 +166,7 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
 
       context 'when the verb is' do
         include_context 'stubbed request'
-        include_context 'stubbed response' do
-          let(:env) { {'HTTP_X_DATADOG_TRACE_ID' => '0'} }
-        end
+        include_context 'stubbed response'
 
         context 'GET' do
           it do
@@ -208,9 +202,7 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
 
       context 'when the path is' do
         include_context 'stubbed request'
-        include_context 'stubbed response' do
-          let(:env) { {'HTTP_X_DATADOG_TRACE_ID' => '0'} }
-        end
+        include_context 'stubbed response'
 
         context '/worlds' do
           let(:path) { 'worlds' }
@@ -336,29 +328,11 @@ RSpec.describe Datadog::Contrib::Roda::Instrumentation do
 
       context 'when analytics' do
         include_context 'stubbed request'
-        include_context 'stubbed response' do
-            let(:env) do
-              {
-                'HTTP_X_DATADOG_TRACE_ID' => '0'
-              }
-            end
-          end        
-        context 'is not enabled' do
-          
-          it do
-            call
-            expect(span.name).to eq("roda.request")
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(nil)
-          end  
-        end
-        
-        context 'is enabled' do
-          let(:configuration_options) { { tracer: tracer, analytics_enabled: true } }
-          it do
-            call
-            expect(span.name).to eq("roda.request")
-            expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
-          end  
+        include_context 'stubbed response'
+        it_behaves_like 'analytics for integration', ignore_global_flag: false do
+            before { call }
+            let(:analytics_enabled_var) { Datadog::Contrib::Roda::Ext::ENV_ANALYTICS_ENABLED }
+            let(:analytics_sample_rate_var) { Datadog::Contrib::Roda::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
       end
 

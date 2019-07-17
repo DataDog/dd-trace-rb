@@ -80,12 +80,6 @@ RSpec.describe 'Roda instrumentation' do
 						expect(spans).to have(1).items
 						expect(span.name).to eq("roda.request")
 					end
-
-					it_behaves_like 'analytics for integration', ignore_global_flag: false do
-						before { is_expected.to be_ok }
-						let(:analytics_enabled_var) { Datadog::Contrib::Roda::Ext::ENV_ANALYTICS_ENABLED }
-	          let(:analytics_sample_rate_var) { Datadog::Contrib::Roda::Ext::ENV_ANALYTICS_SAMPLE_RATE }
-					end
 				end
 
 				context 'for a GET endpoint with an id' do 
@@ -139,7 +133,7 @@ RSpec.describe 'Roda instrumentation' do
 				end	
 			end
 
-			context 'when the tracer is disabled' do  
+			context 'and the tracer is disabled' do  
 				include_context 'basic roda app'
 				subject(:response) {get '/'}
 
