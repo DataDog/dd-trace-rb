@@ -5,66 +5,66 @@ require 'ddtrace/contrib/roda/instrumentation'
 require 'ddtrace/contrib/roda/ext'
 require 'ddtrace/contrib/analytics_examples'
 
-RSpec.shared_examples_for 'shared examples for roda' do | test_method |
-    let(:configuration_options) { { tracer: tracer } }
-    let(:tracer) { get_test_tracer }
-    let(:spans) { tracer.writer.spans }
-    let(:span) { spans.first }
-    let(:roda) { test_class.new }
-    let(:test_class) do
-      Class.new do
-        prepend Datadog::Contrib::Roda::Instrumentation
-      end
+RSpec.shared_examples_for 'shared examples for roda' do |test_method|
+  let(:configuration_options) { { tracer: tracer } }
+  let(:tracer) { get_test_tracer }
+  let(:spans) { tracer.writer.spans }
+  let(:span) { spans.first }
+  let(:roda) { test_class.new }
+  let(:test_class) do
+    Class.new do
+      prepend Datadog::Contrib::Roda::Instrumentation
     end
-    let(:instrumented_method) { roda.send(test_method) }
+  end
+  let(:instrumented_method) { roda.send(test_method) }
 
-    before(:each) do
-      Datadog.configure do |c|
-        c.use :roda, configuration_options
-      end
+  before(:each) do
+    Datadog.configure do |c|
+      c.use :roda, configuration_options
     end
+  end
 
-    after(:each) do
-      Datadog.registry[:roda].reset_configuration!
-    end
+  after(:each) do
+    Datadog.registry[:roda].reset_configuration!
+  end
 
-    shared_context 'stubbed request' do
-      let(:env) { {} }
-      let(:response_method) { :get }
-      let(:path) { '/' }
+  shared_context 'stubbed request' do
+    let(:env) { {} }
+    let(:response_method) { :get }
+    let(:path) { '/' }
 
-      let(:request) do
-        instance_double(
-          ::Rack::Request,
-          env: env,
-          request_method: response_method,
-          path: path
-        )
-      end
-
-      before do
-        r = request
-        test_class.send(:define_method, :request) do
-          r
-        end
-      end
+    let(:request) do
+      instance_double(
+        ::Rack::Request,
+        env: env,
+        request_method: response_method,
+        path: path
+      )
     end
 
-    shared_context 'stubbed response' do
-      let(:spy) { instance_double(Roda) }
-      let(:response) { [response_code, instance_double(Hash), double('body')] }
-      let(:response_code) { 200 }
-      let(:response_headers) { double('body') }
-
-      before do
-        s = spy
-        test_class.send(:define_method, test_method) do
-          s.send(test_method)
-        end
-        expect(spy).to receive(test_method)
-          .and_return(response)
+    before do
+      r = request
+      test_class.send(:define_method, :request) do
+        r
       end
     end
+  end
+
+  shared_context 'stubbed response' do
+    let(:spy) { instance_double(Roda) }
+    let(:response) { [response_code, instance_double(Hash), double('body')] }
+    let(:response_code) { 200 }
+    let(:response_headers) { double('body') }
+
+    before do
+      s = spy
+      test_class.send(:define_method, test_method) do
+        s.send(test_method)
+      end
+      expect(spy).to receive(test_method)
+        .and_return(response)
+    end
+  end
 
   context 'when the response code is' do
     include_context 'stubbed request'

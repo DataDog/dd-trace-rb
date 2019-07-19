@@ -4,11 +4,12 @@ require 'ddtrace/contrib/analytics'
 module Datadog
   module Contrib
     module Roda
+      # Instrumentation for Roda
       module Instrumentation
         def datadog_pin
           @datadog_pin ||= begin
-            service = Datadog.configuration[:roda][:service_name]
-            tracer = Datadog.configuration[:roda][:tracer]
+            service = roda_configuration[:service_name]
+            tracer = roda_configuration[:tracer]
 
             Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
           end
@@ -44,7 +45,9 @@ module Datadog
               span.set_tag(Datadog::Ext::HTTP::METHOD, request_method)
 
               # Add analytics tag to the span
-              Contrib::Analytics.set_sample_rate(span, Datadog.configuration[:roda][:analytics_sample_rate]) if Contrib::Analytics.enabled?(Datadog.configuration[:roda][:analytics_enabled])
+              if Contrib::Analytics.enabled?(roda_configuration[:analytics_enabled])
+                Contrib::Analytics.set_sample_rate(span, roda_configuration[:analytics_sample_rate])
+              end
             rescue StandardError => e
               Datadog::Tracer.log.error("error preparing span for roda request: #{e}")
             ensure
@@ -56,10 +59,14 @@ module Datadog
           end
         end
 
+        def roda_configuration
+          Datadog.configuration[:roda]
+        end
+
         def set_distributed_tracing_context!(env)
-          if Datadog.configuration[:roda][:distributed_tracing] && Datadog.configuration[:roda][:tracer].provider.context.trace_id.nil?
+          if roda_configuration[:distributed_tracing] && roda_configuration[:tracer].provider.context.trace_id.nil?
             context = HTTPPropagator.extract(env)
-            Datadog.configuration[:roda][:tracer].provider.context = context if context && context.trace_id
+            roda_configuration[:tracer].provider.context = context if context && context.trace_id
           end
         end
       end
