@@ -14,17 +14,25 @@ module Datadog
           end
         end
 
-        def call(*args)
+        def _roda_handle_main_route
+          instrument(Ext::SPAN_REQUEST) { super }
+        end
+
+        def call
+          instrument(Ext::SPAN_REQUEST) { super }
+        end
+
+        private
+
+        def instrument(span_name, &block)
           pin = datadog_pin
-          return super unless pin && pin.tracer
+          return yield unless pin && pin.tracer
 
-          set_distributed_tracing_context(env)
+          set_distributed_tracing_context!(request.env)
 
-          pin.tracer.trace(Ext::SPAN_REQUEST) do |span|
+          pin.tracer.trace(span_name) do |span|
             begin
-              req = ::Rack::Request.new(env)
-              request_method = req.request_method.to_s.upcase
-              path = req.path
+              request_method = request.request_method.to_s.upcase
 
               span.service = pin.service
               span.span_type = Datadog::Ext::HTTP::TYPE_INBOUND
@@ -32,7 +40,7 @@ module Datadog
               span.resource = request_method
               # Using the method as a resource, as URL/path can trigger
               # a possibly infinite number of resources.
-              span.set_tag(Datadog::Ext::HTTP::URL, path)
+              span.set_tag(Datadog::Ext::HTTP::URL, request.path)
               span.set_tag(Datadog::Ext::HTTP::METHOD, request_method)
 
               # Add analytics tag to the span
@@ -40,18 +48,15 @@ module Datadog
             rescue StandardError => e
               Datadog::Tracer.log.error("error preparing span for roda request: #{e}")
             ensure
-              response = super
+              response = yield
             end
 
-            # response comes back as [404, {"Content-Type"=>"text/html", "Content-Length"=>"0"}, []]
             span.set_error(1) if response[0].to_s.start_with?('5')
             response
           end
         end
 
-        private
-
-        def set_distributed_tracing_context(env)
+        def set_distributed_tracing_context!(env)
           if Datadog.configuration[:roda][:distributed_tracing] && Datadog.configuration[:roda][:tracer].provider.context.trace_id.nil?
             context = HTTPPropagator.extract(env)
             Datadog.configuration[:roda][:tracer].provider.context = context if context && context.trace_id
