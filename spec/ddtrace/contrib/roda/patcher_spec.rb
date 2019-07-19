@@ -126,17 +126,6 @@ RSpec.describe 'Roda instrumentation' do
             expect(span.name).to eq('roda.request')
           end
         end
-
-        context 'with a 500' do
-          include_context 'Roda app with server error'
-          subject(:response) { get '/' }
-          it do
-            expect(response.status).to eq(500)
-            expect(response.header).to eq('Content-Type' => 'text/html', 'Content-Length' => '4')
-            expect(spans).to have(1).items
-            expect(span.name).to eq('roda.request')
-          end
-        end
       end
 
       context 'and the tracer is disabled' do

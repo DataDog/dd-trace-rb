@@ -53,7 +53,7 @@ module Datadog
             ensure
               response = yield
             end
-
+            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response[0])
             span.set_error(1) if response[0].to_s.start_with?('5')
             response
           end

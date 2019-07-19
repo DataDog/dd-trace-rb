@@ -83,6 +83,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.resource).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
       end
     end
 
@@ -100,7 +101,8 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.status).to eq(0)
         expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/unsuccessful_endpoint')
-      end
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
+     end
     end
 
     context '500' do
@@ -116,6 +118,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.status).to eq(1)
         expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
       end
     end
   end
@@ -135,6 +138,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.resource).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
       end
     end
 
@@ -151,6 +155,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.resource).to eq('PUT')
         expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('PUT')
         expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
       end
     end
   end
@@ -172,6 +177,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.resource).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
       end
     end
 
@@ -187,6 +193,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.resource).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
       end
     end
 
@@ -202,6 +209,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.resource).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
       end
     end
   end
