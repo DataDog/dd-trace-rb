@@ -1,4 +1,3 @@
-
 module Datadog
   module Contrib
     module HTTP
@@ -27,9 +26,6 @@ module Datadog
 
           # Get settings from transport, if available.
           case transport
-          when Datadog::HTTPTransport
-            transport_hostname = transport.hostname.to_s
-            transport_port = transport.port.to_i
           when Datadog::Transport::HTTP::Client
             adapter = transport.current_api.adapter
             if adapter.is_a?(Datadog::Transport::HTTP::Adapters::Net)

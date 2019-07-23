@@ -1,8 +1,7 @@
 require 'thread'
-require 'ddtrace/transport'
 require 'ddtrace/transport/http'
 
-# FauxTransport is a dummy HTTPTransport that doesn't send data to an agent.
+# FauxTransport is a dummy Datadog::Transport that doesn't send data to an agent.
 class FauxTransport < Datadog::Transport::HTTP::Client
   def initialize(*); end
 

@@ -6,7 +6,6 @@ require 'webmock/rspec'
 require 'climate_control'
 
 require 'ddtrace/encoding'
-require 'ddtrace/transport'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
 

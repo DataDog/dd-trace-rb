@@ -30,7 +30,7 @@ shared_context 'Datadog::Transport::HTTP::Client spy' do
   end
 end
 
-# SpyTransport is a dummy HTTPTransport that tracks what would be sent.
+# SpyTransport is a dummy Datadog::Transport that tracks what would be sent.
 class SpyTransport < Datadog::Transport::HTTP::Client
   attr_reader :helper_sent
 
