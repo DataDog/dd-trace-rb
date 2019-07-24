@@ -42,8 +42,8 @@ module Datadog
             begin
               response_options = mirror.options
               response_code = (response_options[:response_code] || response_options[:code]).to_i
-              return_code = response_options[:return_code]
               if response_code.zero?
+                return_code = response_options[:return_code]
                 message = return_code ? ::Ethon::Curl.easy_strerror(return_code) : 'unknown reason'
                 set_span_error_message("Request has failed: #{message}")
               else
@@ -79,6 +79,7 @@ module Datadog
 
           def datadog_tag_request
             span = @datadog_span
+            return if url.nil?
             uri = URI.parse(url)
             method = defined?(@datadog_method) ? @datadog_method.to_s : ''
             span.resource = "#{method} #{uri.path}".lstrip
