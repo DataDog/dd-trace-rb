@@ -36,7 +36,7 @@ end
 
 RSpec.shared_examples_for 'instrumented request' do
   include_context 'integration context'
-  
+
   describe 'instrumented request' do
     it 'creates a span' do
       expect { request }.to change { tracer.writer.spans.first }.to be_instance_of(Datadog::Span)

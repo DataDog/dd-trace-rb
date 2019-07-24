@@ -8,6 +8,8 @@ require 'webrick'
 require 'ddtrace/contrib/ethon/shared_examples'
 
 RSpec.describe Datadog::Contrib::Ethon do
+  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+
   context 'with Easy HTTP request' do
     subject(:request) do
       easy = Ethon::Easy.new

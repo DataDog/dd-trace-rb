@@ -2,6 +2,8 @@ require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/ethon/integration_context'
 
 RSpec.describe Datadog::Contrib::Ethon do
+  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+
   context 'with Typhoeus request' do
     subject(:request) { Typhoeus::Request.new(url, timeout: timeout).run }
 
