@@ -62,7 +62,7 @@ RSpec.describe Datadog::Contrib::Ethon do
       easy = Ethon::Easy.new(url: url)
       easy.customrequest = 'GET'
       easy.set_attributes(timeout_ms: timeout * 1000)
-      easy.headers = {key: 'value'}
+      easy.headers = { key: 'value' }
       easy.perform
       # Use Typhoeus response wrapper to simplify tests
       Typhoeus::Response.new(easy.mirror.options)
@@ -85,5 +85,4 @@ RSpec.describe Datadog::Contrib::Ethon do
 
     it_behaves_like 'instrumented request'
   end
-
 end

@@ -14,7 +14,6 @@ module Datadog
 
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
-
           def http_request(url, action_name, options = {})
             return super unless tracer_enabled?
 
