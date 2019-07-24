@@ -23,19 +23,10 @@ module Datadog
             super
           end
 
-          def set_attributes(options)
-            return super unless tracer_enabled?
-
-            # Make sure headers= will get called
-            options[:headers] ||= {}
-            super options
-          end
-
           def headers=(headers)
             return super unless tracer_enabled?
 
             # Store headers to call this method again when span is ready
-            headers ||= {}
             @datadog_original_headers = headers
             super headers
           end
@@ -78,6 +69,7 @@ module Datadog
             datadog_tag_request
 
             if datadog_configuration[:distributed_tracing]
+              @datadog_original_headers ||= {}
               Datadog::HTTPPropagator.inject!(@datadog_span.context, @datadog_original_headers)
               self.headers = @datadog_original_headers
             end

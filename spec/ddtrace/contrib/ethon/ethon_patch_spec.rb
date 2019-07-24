@@ -271,7 +271,7 @@ RSpec.describe Datadog::Contrib::Ethon do
         easy = Ethon::Easy.new(url: url)
         easy.customrequest = 'GET'
         easy.set_attributes(timeout_ms: timeout * 1000)
-        easy.headers = {}
+        easy.headers = {key: 'value'}
         easy.perform
         # Use Typhoeus response to make life easier
         Typhoeus::Response.new(easy.mirror.options)
