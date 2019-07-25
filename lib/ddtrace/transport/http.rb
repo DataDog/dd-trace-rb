@@ -1,5 +1,6 @@
 require 'ddtrace/version'
 require 'ddtrace/ext/runtime'
+require 'ddtrace/ext/transport'
 
 require 'ddtrace/transport/http/builder'
 require 'ddtrace/transport/http/api'
@@ -12,13 +13,11 @@ module Datadog
   module Transport
     # Namespace for HTTP transport components
     module HTTP
-      DEFAULT_AGENT_HOST = '127.0.0.1'.freeze
-      DEFAULT_TRACE_AGENT_PORT = 8126
       DEFAULT_HEADERS = {
-        'Datadog-Meta-Lang'.freeze => Datadog::Ext::Runtime::LANG,
-        'Datadog-Meta-Lang-Version'.freeze => Datadog::Ext::Runtime::LANG_VERSION,
-        'Datadog-Meta-Lang-Interpreter'.freeze => Datadog::Ext::Runtime::LANG_INTERPRETER,
-        'Datadog-Meta-Tracer-Version'.freeze => Datadog::Ext::Runtime::TRACER_VERSION
+        Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Ext::Runtime::LANG,
+        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Ext::Runtime::LANG_VERSION,
+        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Ext::Runtime::LANG_INTERPRETER,
+        Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Ext::Runtime::TRACER_VERSION
       }.freeze
 
       module_function
@@ -32,9 +31,7 @@ module Datadog
       # Pass a block to override any settings.
       def default(options = {})
         new do |transport|
-          transport.adapter :net_http,
-                            ENV.fetch('DD_AGENT_HOST', DEFAULT_AGENT_HOST),
-                            ENV.fetch('DD_TRACE_AGENT_PORT', DEFAULT_TRACE_AGENT_PORT)
+          transport.adapter :net_http, default_hostname, default_port
 
           transport.headers DEFAULT_HEADERS
 
@@ -69,11 +66,11 @@ module Datadog
       end
 
       def default_hostname
-        ENV.fetch('DD_AGENT_HOST', DEFAULT_AGENT_HOST)
+        ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST, Datadog::Ext::Transport::HTTP::DEFAULT_HOST)
       end
 
       def default_port
-        ENV.fetch('DD_TRACE_AGENT_PORT', DEFAULT_TRACE_AGENT_PORT)
+        ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT, Datadog::Ext::Transport::HTTP::DEFAULT_PORT).to_i
       end
 
       # Add adapters to registry

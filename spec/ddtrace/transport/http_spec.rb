@@ -43,8 +43,8 @@ RSpec.describe Datadog::Transport::HTTP do
       default.apis.each do |_key, api|
         expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
         expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-        expect(api.adapter.hostname).to eq(ENV.fetch('DD_AGENT_HOST', described_class::DEFAULT_AGENT_HOST))
-        expect(api.adapter.port).to eq(ENV.fetch('DD_TRACE_AGENT_PORT', described_class::DEFAULT_TRACE_AGENT_PORT))
+        expect(api.adapter.hostname).to eq(described_class.default_hostname)
+        expect(api.adapter.port).to eq(described_class.default_port)
         expect(api.headers).to eq(described_class::DEFAULT_HEADERS)
       end
     end
@@ -70,8 +70,8 @@ RSpec.describe Datadog::Transport::HTTP do
           default.apis.each do |_key, api|
             expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
             expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-            expect(api.adapter.hostname).to eq(ENV.fetch('DD_AGENT_HOST', described_class::DEFAULT_AGENT_HOST))
-            expect(api.adapter.port).to eq(ENV.fetch('DD_TRACE_AGENT_PORT', described_class::DEFAULT_TRACE_AGENT_PORT))
+            expect(api.adapter.hostname).to eq(described_class.default_hostname)
+            expect(api.adapter.port).to eq(described_class.default_port)
             expect(api.headers).to eq(described_class::DEFAULT_HEADERS)
           end
         end
@@ -123,6 +123,62 @@ RSpec.describe Datadog::Transport::HTTP do
         expect { |b| described_class.default(&b) }.to yield_with_args(
           kind_of(Datadog::Transport::HTTP::Builder)
         )
+      end
+    end
+  end
+
+  describe '.default_hostname' do
+    subject(:default_hostname) { described_class.default_hostname }
+
+    context 'when environment variable is' do
+      context 'set' do
+        let(:value) { 'my-hostname' }
+
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST => value) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(value) }
+      end
+
+      context 'not set' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST => nil) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_HOST) }
+      end
+    end
+  end
+
+  describe '.default_port' do
+    subject(:default_port) { described_class.default_port }
+
+    context 'when environment variable is' do
+      context 'set' do
+        let(:value) { '1234' }
+
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => value) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(value.to_i) }
+      end
+
+      context 'not set' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => nil) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_PORT) }
       end
     end
   end
