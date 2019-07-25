@@ -2,6 +2,8 @@ require 'ddtrace/version'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/ext/transport'
 
+require 'ddtrace/runtime/container'
+
 require 'ddtrace/transport/http/builder'
 require 'ddtrace/transport/http/api'
 
@@ -14,6 +16,7 @@ module Datadog
     # Namespace for HTTP transport components
     module HTTP
       DEFAULT_HEADERS = {
+        Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID => Datadog::Runtime::Container.container_id,
         Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Ext::Runtime::LANG,
         Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Ext::Runtime::LANG_VERSION,
         Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Ext::Runtime::LANG_INTERPRETER,

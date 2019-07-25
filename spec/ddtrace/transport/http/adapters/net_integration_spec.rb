@@ -54,6 +54,7 @@ RSpec.describe 'Adapters::Net integration tests' do
       expect(messages).to have(1).items
       messages.first.tap do |http_request|
         expect(http_request.header).to include(
+          'datadog-container-id' => [Datadog::Runtime::Container.container_id],
           'datadog-meta-lang' => [Datadog::Ext::Runtime::LANG],
           'datadog-meta-lang-version' => [Datadog::Ext::Runtime::LANG_VERSION],
           'datadog-meta-lang-interpreter' => [Datadog::Ext::Runtime::LANG_INTERPRETER],
