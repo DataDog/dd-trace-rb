@@ -49,6 +49,7 @@ module Datadog
                 platform = parts[0]
                 container_id = parts[-1][CONTAINER_REGEX]
                 task_uid = parts[-2][POD_REGEX]
+
                 # If container ID wasn't found, ignore.
                 # Path might describe a non-container environment.
                 next if container_id.nil?
@@ -56,6 +57,8 @@ module Datadog
                 descriptor.platform = platform
                 descriptor.container_id = container_id
                 descriptor.task_uid = task_uid
+
+                break
               end
             rescue StandardError => e
               Datadog::Tracer.log.error(

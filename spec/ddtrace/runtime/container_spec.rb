@@ -4,15 +4,15 @@ require 'spec_helper'
 require 'ddtrace/runtime/container'
 
 RSpec.describe Datadog::Runtime::Container do
-  around do |example|
-    # Reset descriptor since it's cached.
-    Datadog::Runtime::Container.instance_variable_set(:@descriptor, nil)
-    example.run
-    Datadog::Runtime::Container.instance_variable_set(:@descriptor, nil)
-  end
-
   describe '::descriptor' do
     subject(:descriptor) { described_class.descriptor }
+
+    around do |example|
+      # Reset descriptor since it's cached.
+      Datadog::Runtime::Container.instance_variable_set(:@descriptor, nil)
+      example.run
+      Datadog::Runtime::Container.instance_variable_set(:@descriptor, nil)
+    end
 
     context 'when not in a containerized environment' do
       include_context 'non-containerized environment'
