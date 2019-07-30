@@ -79,7 +79,6 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
       expect(messages).to have(1).items
       messages.first.tap do |http_request|
         expect(http_request.header).to include(
-          'datadog-container-id' => [Datadog::Runtime::Container.container_id],
           'datadog-meta-lang' => [Datadog::Ext::Runtime::LANG],
           'datadog-meta-lang-version' => [Datadog::Ext::Runtime::LANG_VERSION],
           'datadog-meta-lang-interpreter' => [Datadog::Ext::Runtime::LANG_INTERPRETER],
@@ -87,6 +86,12 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
           'content-type' => ['application/msgpack'],
           'x-datadog-trace-count' => [traces.length.to_s]
         )
+
+        unless Datadog::Runtime::Container.container_id.nil?
+          expect(http_request.header).to include(
+            'datadog-container-id' => [Datadog::Runtime::Container.container_id]
+          )
+        end
 
         expect(http_request.header['content-length'].first.to_i).to be > 0
       end

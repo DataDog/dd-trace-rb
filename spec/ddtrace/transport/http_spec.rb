@@ -28,6 +28,30 @@ RSpec.describe Datadog::Transport::HTTP do
   describe '.default' do
     subject(:default) { described_class.default }
 
+    shared_examples_for 'container ID header' do
+      before { expect(Datadog::Runtime::Container).to receive(:container_id).and_return(container_id) }
+
+      context 'when container ID is present' do
+        let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
+
+        it 'sets a container ID default header' do
+          default.apis.each do |_key, api|
+            expect(api.headers).to include(Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID => container_id)
+          end
+        end
+      end
+
+      context 'when nil' do
+        let(:container_id) { nil }
+
+        it 'does not set a container ID default header' do
+          default.apis.each do |_key, api|
+            expect(api.headers).to_not include(Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID)
+          end
+        end
+      end
+    end
+
     it 'returns an HTTP client with default configuration' do
       is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Client)
       expect(default.current_api_id).to eq(Datadog::Transport::HTTP::API::V4)
@@ -45,9 +69,11 @@ RSpec.describe Datadog::Transport::HTTP do
         expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
         expect(api.adapter.hostname).to eq(described_class.default_hostname)
         expect(api.adapter.port).to eq(described_class.default_port)
-        expect(api.headers).to eq(described_class::DEFAULT_HEADERS)
+        expect(api.headers).to include(described_class::DEFAULT_HEADERS)
       end
     end
+
+    it_behaves_like 'container ID header'
 
     context 'when given options' do
       subject(:default) { described_class.default(options) }
@@ -72,9 +98,11 @@ RSpec.describe Datadog::Transport::HTTP do
             expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(described_class.default_hostname)
             expect(api.adapter.port).to eq(described_class.default_port)
-            expect(api.headers).to eq(described_class::DEFAULT_HEADERS)
+            expect(api.headers).to include(described_class::DEFAULT_HEADERS)
           end
         end
+
+        it_behaves_like 'container ID header'
       end
 
       context 'that specify hostname and port' do
@@ -89,6 +117,8 @@ RSpec.describe Datadog::Transport::HTTP do
             expect(api.adapter.port).to eq(port)
           end
         end
+
+        it_behaves_like 'container ID header'
       end
 
       context 'that specify an API version' do
@@ -115,6 +145,8 @@ RSpec.describe Datadog::Transport::HTTP do
             expect(api.headers).to include(headers)
           end
         end
+
+        it_behaves_like 'container ID header'
       end
     end
 

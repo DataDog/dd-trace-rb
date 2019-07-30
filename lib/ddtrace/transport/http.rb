@@ -16,7 +16,6 @@ module Datadog
     # Namespace for HTTP transport components
     module HTTP
       DEFAULT_HEADERS = {
-        Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID => Datadog::Runtime::Container.container_id,
         Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Ext::Runtime::LANG,
         Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Ext::Runtime::LANG_VERSION,
         Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Ext::Runtime::LANG_INTERPRETER,
@@ -37,6 +36,12 @@ module Datadog
           transport.adapter :net_http, default_hostname, default_port
 
           transport.headers DEFAULT_HEADERS
+
+          # Add container ID to default headers, if present.
+          container_id = Datadog::Runtime::Container.container_id
+          unless container_id.nil?
+            transport.headers Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID => container_id
+          end
 
           apis = API.defaults
 
