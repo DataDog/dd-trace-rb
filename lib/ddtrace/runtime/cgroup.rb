@@ -18,9 +18,13 @@ module Datadog
       def descriptors(process = 'self')
         [].tap do |descriptors|
           begin
-            File.open("/proc/#{process}/cgroup").each do |line|
-              line = line.strip
-              descriptors << parse(line) unless line.empty?
+            filepath = "/proc/#{process}/cgroup"
+
+            if File.exist?(filepath)
+              File.open("/proc/#{process}/cgroup").each do |line|
+                line = line.strip
+                descriptors << parse(line) unless line.empty?
+              end
             end
           rescue StandardError => e
             Datadog::Tracer.log.error("Error while parsing cgroup. Cause: #{e.message} Location: #{e.backtrace.first}")

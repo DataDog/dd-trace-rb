@@ -8,7 +8,43 @@ RSpec.describe Datadog::Runtime::Cgroup do
   describe '::descriptors' do
     subject(:descriptors) { described_class.descriptors }
 
+    context 'when the \'/proc/self/cgroup\' file is not present' do
+      before do
+        expect(File).to receive(:exist?)
+          .with('/proc/self/cgroup')
+          .and_return(false)
+
+        expect(Datadog::Tracer.log).to_not receive(:error)
+      end
+
+      it do
+        is_expected.to be_a_kind_of(Array)
+        is_expected.to be_empty
+      end
+    end
+
     context 'given a \'/proc/self/cgroup\' file' do
+      context 'which raises an error when opened' do
+        include_context 'non-containerized environment'
+
+        let(:error) { stub_const('TestError', Class.new(StandardError)) }
+
+        before do
+          expect(File).to receive(:open)
+            .with('/proc/self/cgroup')
+            .and_raise(error)
+
+          expect(Datadog::Tracer.log).to receive(:error) do |msg|
+            expect(msg).to match(/Error while parsing cgroup./)
+          end
+        end
+
+        it do
+          is_expected.to be_a_kind_of(Array)
+          is_expected.to be_empty
+        end
+      end
+
       context 'in a non-containerized environment' do
         include_context 'non-containerized environment'
 
