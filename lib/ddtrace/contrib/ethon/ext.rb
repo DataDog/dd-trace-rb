@@ -8,6 +8,7 @@ module Datadog
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_ETHON_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'ethon'.freeze
         SPAN_REQUEST = 'ethon.request'.freeze
+        SPAN_MULTI_REQUEST = 'ethon.multi.request'.freeze
       end
     end
   end

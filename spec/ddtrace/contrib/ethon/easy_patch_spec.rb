@@ -44,7 +44,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
     before do
       expect(::Ethon::Curl).to receive(:easy_perform).and_return(0)
-      expect(easy).to receive(:url).and_return('http://example.com/test').twice
+      expect(easy).to receive(:url).and_return('http://example.com/test').once
       # Note: suppress call to #complete to isolate #perform functionality
       expect(easy).to receive(:complete)
     end
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     let(:span) { tracer.writer.spans.first }
 
     before do
-      expect(easy).to receive(:url).and_return('http://example.com/test').twice
+      expect(easy).to receive(:url).and_return('http://example.com/test').once
       allow(easy).to receive(:mirror).and_return(double('Fake mirror', options: { response_code: 200 }))
       easy.datadog_before_request
     end

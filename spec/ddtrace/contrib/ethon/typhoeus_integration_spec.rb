@@ -36,14 +36,15 @@ RSpec.describe Datadog::Contrib::Ethon do
       hydra.run
     end
 
-    it 'creates 2 spans' do
-      expect { request }.to change { tracer.writer.spans.count }.to 2
+    it 'creates 3 spans' do
+      expect { request }.to change { tracer.writer.spans.count }.to 3
     end
 
     describe 'created spans' do
       subject(:spans) { tracer.writer.spans }
       let(:span_get) { spans.select { |span| span.get_tag(Datadog::Ext::HTTP::METHOD) == 'GET' }.first }
       let(:span_post) { spans.select { |span| span.get_tag(Datadog::Ext::HTTP::METHOD) == 'POST' }.first }
+      let(:span_parent) { spans.select { |span| span.name == 'ethon.multi.request' }.first }
 
       before { request }
 
@@ -60,6 +61,11 @@ RSpec.describe Datadog::Contrib::Ethon do
 
       it 'has timeout set on GET request span' do
         expect(span_get.get_tag(Datadog::Ext::Errors::MSG)).to eq('Request has failed: Timeout was reached')
+      end
+
+      it 'has span hierarchy properly set up' do
+        expect(span_get.parent).to eq(span_parent)
+        expect(span_post.parent).to eq(span_parent)
       end
     end
   end

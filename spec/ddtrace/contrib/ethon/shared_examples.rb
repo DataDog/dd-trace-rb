@@ -47,7 +47,9 @@ RSpec.shared_examples_for 'instrumented request' do
     end
 
     describe 'created span' do
-      subject(:span) { tracer.writer.spans.first }
+      subject(:span) do
+        tracer.writer.spans.select { |span| span.name == 'ethon.request' }.first
+      end
 
       context 'response is successfull' do
         before { request }
@@ -106,11 +108,10 @@ RSpec.shared_examples_for 'instrumented request' do
 
     context 'distributed tracing default' do
       let(:return_headers) { true }
-      let(:span) { tracer.writer.spans.first }
+      let(:span) { tracer.writer.spans.select { |span| span.name == 'ethon.request' }.first }
 
       shared_examples_for 'propagating distributed headers' do
         let(:return_headers) { true }
-        let(:span) { tracer.writer.spans.first }
 
         it 'propagates the headers' do
           response = request
