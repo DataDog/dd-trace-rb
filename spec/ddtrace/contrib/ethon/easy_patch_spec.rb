@@ -163,8 +163,8 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'cleans up @datadog_original_headers variable' do
-        expect { subject }.to change { easy.instance_eval { @datadog_original_headers } }.
-          from({ key: 'value' }).to(nil)
+        expect { subject }.to change { easy.instance_eval { @datadog_original_headers } }
+          .from(key: 'value').to(nil)
       end
     end
 
@@ -174,8 +174,8 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'cleans up @datadog_method variable' do
-        expect { subject }.to change { easy.instance_eval { @datadog_method } }.
-          from('PUT').to(nil)
+        expect { subject }.to change { easy.instance_eval { @datadog_method } }
+          .from('PUT').to(nil)
       end
     end
 
@@ -186,8 +186,8 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'cleans up @datadog_span' do
-        expect { subject }.to change { easy.instance_eval { @datadog_span } }.
-          from(an_instance_of(Datadog::Span)).to(nil)
+        expect { subject }.to change { easy.instance_eval { @datadog_span } }
+          .from(an_instance_of(Datadog::Span)).to(nil)
       end
     end
   end

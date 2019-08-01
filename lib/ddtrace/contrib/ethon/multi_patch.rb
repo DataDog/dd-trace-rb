@@ -37,7 +37,7 @@ module Datadog
           def datadog_multi_span
             @datadog_multi_span ||= datadog_configuration[:tracer].trace(
               Ext::SPAN_MULTI_REQUEST,
-              service: datadog_configuration[:service_name],
+              service: datadog_configuration[:service_name]
             )
 
             # Set analytics sample rate

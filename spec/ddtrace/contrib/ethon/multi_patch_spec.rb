@@ -95,8 +95,8 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'cleans up multi span variable' do
-        expect { subject }.to change { multi.instance_eval { @datadog_multi_span } }.
-          from(an_instance_of(Datadog::Span)).to(nil)
+        expect { subject }.to change { multi.instance_eval { @datadog_multi_span } }
+          .from(an_instance_of(Datadog::Span)).to(nil)
       end
     end
 
