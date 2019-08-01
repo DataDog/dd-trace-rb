@@ -58,6 +58,16 @@ module Datadog
             super
           end
 
+          def reset
+            super
+          ensure
+            if tracer_enabled?
+              @datadog_span = nil
+              @datadog_method = nil
+              @datadog_original_headers = nil
+            end
+          end
+
           def datadog_before_request
             @datadog_span = datadog_configuration[:tracer].trace(
               Ext::SPAN_REQUEST,
@@ -78,7 +88,6 @@ module Datadog
 
           def datadog_tag_request
             span = @datadog_span
-            return if url.nil?
             uri = URI.parse(url)
             method = defined?(@datadog_method) ? @datadog_method.to_s : ''
             span.resource = "#{method} #{uri.path}".lstrip
@@ -90,6 +99,8 @@ module Datadog
             span.set_tag(Datadog::Ext::HTTP::METHOD, method)
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
             span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
+          rescue URI::InvalidURIError
+            return
           end
 
           def set_span_error_message(message)

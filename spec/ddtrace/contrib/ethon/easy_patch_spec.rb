@@ -153,4 +153,42 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
     end
   end
+
+  describe '#reset' do
+    subject { easy.reset }
+
+    context 'with headers set up' do
+      before do
+        easy.headers = { key: 'value' }
+      end
+
+      it 'cleans up @datadog_original_headers variable' do
+        expect { subject }.to change { easy.instance_eval { @datadog_original_headers } }.
+          from({ key: 'value' }).to(nil)
+      end
+    end
+
+    context 'with HTTP method set up' do
+      before do
+        easy.http_request('example.com', :put)
+      end
+
+      it 'cleans up @datadog_method variable' do
+        expect { subject }.to change { easy.instance_eval { @datadog_method } }.
+          from('PUT').to(nil)
+      end
+    end
+
+    context 'with span initialized' do
+      before do
+        expect(easy).to receive(:url).and_return('http://example.com/test').once
+        easy.datadog_before_request
+      end
+
+      it 'cleans up @datadog_span' do
+        expect { subject }.to change { easy.instance_eval { @datadog_span } }.
+          from(an_instance_of(Datadog::Span)).to(nil)
+      end
+    end
+  end
 end
