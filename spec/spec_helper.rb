@@ -20,6 +20,7 @@ require 'support/synchronization_helpers'
 require 'support/log_helpers'
 require 'support/http_helpers'
 require 'support/metric_helpers'
+require 'support/container_helpers'
 
 WebMock.allow_net_connect!
 WebMock.disable!
@@ -31,6 +32,7 @@ RSpec.configure do |config|
   config.include SynchronizationHelpers
   config.include LogHelpers
   config.include MetricHelpers
+  config.include ContainerHelpers
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true

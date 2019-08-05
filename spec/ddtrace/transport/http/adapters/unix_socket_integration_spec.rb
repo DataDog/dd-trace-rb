@@ -87,6 +87,12 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
           'x-datadog-trace-count' => [traces.length.to_s]
         )
 
+        unless Datadog::Runtime::Container.container_id.nil?
+          expect(http_request.header).to include(
+            'datadog-container-id' => [Datadog::Runtime::Container.container_id]
+          )
+        end
+
         expect(http_request.header['content-length'].first.to_i).to be > 0
       end
     end
