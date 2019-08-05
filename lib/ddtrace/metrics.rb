@@ -8,9 +8,6 @@ module Datadog
   # Acts as client for sending metrics (via Statsd)
   # Wraps a Statsd client with default tags and additional configuration.
   class Metrics
-    DEFAULT_AGENT_HOST = '127.0.0.1'.freeze
-    DEFAULT_METRIC_AGENT_PORT = '8125'.freeze
-
     attr_reader :statsd
 
     def initialize(options = {})
@@ -19,8 +16,10 @@ module Datadog
     end
 
     def supported?
-      Gem.loaded_specs['dogstatsd-ruby'] \
-        && Gem.loaded_specs['dogstatsd-ruby'].version >= Gem::Version.new('3.3.0')
+      version = Gem.loaded_specs['dogstatsd-ruby'] \
+                  && Gem.loaded_specs['dogstatsd-ruby'].version
+
+      !version.nil? && (version >= Gem::Version.new('3.3.0'))
     end
 
     def enabled?
@@ -31,19 +30,24 @@ module Datadog
       @enabled = (enabled == true)
     end
 
+    def default_hostname
+      ENV.fetch(Datadog::Ext::Metrics::ENV_DEFAULT_HOST, Datadog::Ext::Metrics::DEFAULT_HOST)
+    end
+
+    def default_port
+      ENV.fetch(Datadog::Ext::Metrics::ENV_DEFAULT_PORT, Datadog::Ext::Metrics::DEFAULT_PORT).to_i
+    end
+
     def default_statsd_client
       require 'datadog/statsd' unless defined?(::Datadog::Statsd)
 
       # Create a StatsD client that points to the agent.
-      Datadog::Statsd.new(
-        ENV.fetch('DD_AGENT_HOST', DEFAULT_AGENT_HOST),
-        ENV.fetch('DD_METRIC_AGENT_PORT', DEFAULT_METRIC_AGENT_PORT)
-      )
+      Datadog::Statsd.new(default_hostname, default_port)
     end
 
     def configure(options = {})
       @statsd = options[:statsd] if options.key?(:statsd)
-      @enabled = options[:enabled] if options.key?(:enabled)
+      self.enabled = options[:enabled] if options.key?(:enabled)
     end
 
     def send_stats?

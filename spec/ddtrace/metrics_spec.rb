@@ -13,7 +13,34 @@ RSpec.describe Datadog::Metrics do
   it { is_expected.to have_attributes(statsd: statsd) }
 
   describe '#supported?' do
-    # WIP
+    subject(:supported?) { metrics.supported? }
+
+    context 'when the dogstatsd gem' do
+      before do
+        allow(Gem.loaded_specs).to receive(:[])
+          .with('dogstatsd-ruby')
+          .and_return(spec)
+      end
+
+      context 'is not loaded' do
+        let(:spec) { nil }
+        it { is_expected.to be false }
+      end
+
+      context 'is loaded' do
+        let(:spec) { instance_double(Gem::Specification, version: version) }
+
+        context 'with version < 3.3.0' do
+          let(:version) { Gem::Version.new('3.2.9') }
+          it { is_expected.to be false }
+        end
+
+        context 'with version 3.3.0' do
+          let(:version) { Gem::Version.new('3.3.0') }
+          it { is_expected.to be true }
+        end
+      end
+    end
   end
 
   describe '#enabled?' do
@@ -54,16 +81,125 @@ RSpec.describe Datadog::Metrics do
     end
   end
 
+  describe '#default_hostname' do
+    subject(:default_hostname) { metrics.default_hostname }
+
+    context 'when environment variable is' do
+      context 'set' do
+        let(:value) { 'my-hostname' }
+
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Metrics::ENV_DEFAULT_HOST => value) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(value) }
+      end
+
+      context 'not set' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Metrics::ENV_DEFAULT_HOST => nil) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(Datadog::Ext::Metrics::DEFAULT_HOST) }
+      end
+    end
+  end
+
+  describe '#default_port' do
+    subject(:default_port) { metrics.default_port }
+
+    context 'when environment variable is' do
+      context 'set' do
+        let(:value) { '1234' }
+
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Metrics::ENV_DEFAULT_PORT => value) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(value.to_i) }
+      end
+
+      context 'not set' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Metrics::ENV_DEFAULT_PORT => nil) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(Datadog::Ext::Metrics::DEFAULT_PORT) }
+      end
+    end
+  end
+
   describe '#default_statsd_client' do
-    # WIP
+    subject(:default_statsd_client) { metrics.default_statsd_client }
+    let(:statsd_client) { instance_double(Datadog::Statsd) }
+
+    before do
+      expect(Datadog::Statsd).to receive(:new)
+        .with(metrics.default_hostname, metrics.default_port)
+        .and_return(statsd_client)
+    end
+
+    it { is_expected.to be(statsd_client) }
   end
 
   describe '#configure' do
-    # WIP
+    subject(:configure) { metrics.configure(configure_options) }
+
+    context 'given options including' do
+      context ':statsd' do
+        let(:configure_options) { { statsd: custom_statsd } }
+        let(:custom_statsd) { instance_double(Datadog::Statsd) }
+        it { expect { configure }.to change { metrics.statsd }.from(statsd).to(custom_statsd) }
+      end
+
+      context ':enabled' do
+        let(:configure_options) { { enabled: enabled } }
+
+        context 'as true' do
+          let(:enabled) { true }
+          before { configure }
+          it { expect(metrics.enabled?).to be(true) }
+        end
+
+        context 'as false' do
+          let(:enabled) { false }
+          before { configure }
+          it { expect(metrics.enabled?).to be(false) }
+        end
+      end
+    end
   end
 
   describe '#send_stats?' do
-    # WIP
+    subject(:send_stats?) { metrics.send_stats? }
+
+    context 'when disabled' do
+      before { metrics.enabled = false }
+      it { is_expected.to be(false) }
+    end
+
+    context 'when enabled' do
+      context 'and Statsd' do
+        context 'is initialized' do
+          let(:custom_statsd) { instance_double(Datadog::Statsd) }
+          before { metrics.configure(statsd: custom_statsd) }
+          it { is_expected.to be(true) }
+        end
+
+        context 'is nil' do
+          before { metrics.configure(statsd: nil) }
+          it { is_expected.to be(false) }
+        end
+      end
+    end
   end
 
   describe '#distribution' do
