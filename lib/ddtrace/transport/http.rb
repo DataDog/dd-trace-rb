@@ -15,13 +15,6 @@ module Datadog
   module Transport
     # Namespace for HTTP transport components
     module HTTP
-      DEFAULT_HEADERS = {
-        Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Ext::Runtime::LANG,
-        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Ext::Runtime::LANG_VERSION,
-        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Ext::Runtime::LANG_INTERPRETER,
-        Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Ext::Runtime::TRACER_VERSION
-      }.freeze
-
       module_function
 
       # Builds a new Transport::HTTP::Client
@@ -34,14 +27,7 @@ module Datadog
       def default(options = {})
         new do |transport|
           transport.adapter :net_http, default_hostname, default_port
-
-          transport.headers DEFAULT_HEADERS
-
-          # Add container ID to default headers, if present.
-          container_id = Datadog::Runtime::Container.container_id
-          unless container_id.nil?
-            transport.headers Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID => container_id
-          end
+          transport.headers default_headers
 
           apis = API.defaults
 
@@ -70,6 +56,21 @@ module Datadog
 
           # Call block to apply any customization, if provided.
           yield(transport) if block_given?
+        end
+      end
+
+      def default_headers
+        {
+          Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Ext::Runtime::LANG,
+          Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Ext::Runtime::LANG_VERSION,
+          Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Ext::Runtime::LANG_INTERPRETER,
+          Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Ext::Runtime::TRACER_VERSION
+        }.tap do |headers|
+          # Add container ID, if present.
+          container_id = Datadog::Runtime::Container.container_id
+          unless container_id.nil?
+            headers[Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID] = container_id
+          end
         end
       end
 
