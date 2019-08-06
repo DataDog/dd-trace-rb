@@ -5,24 +5,18 @@ require 'thread'
 require 'webrick'
 
 require 'ddtrace/transport/http'
-require 'ddtrace/transport/http/adapters/unix_socket'
+require 'ddtrace/transport/http/adapters/net'
 
-RSpec.describe 'Adapters::UnixSocket integration tests' do
+RSpec.describe 'Adapters::Net integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  subject(:adapter) { Datadog::Transport::HTTP::Adapters::UnixSocket.new(filepath, options) }
+  subject(:adapter) { Datadog::Transport::HTTP::Adapters::Net.new(hostname, port) }
 
-  let(:filepath) { '/tmp/ddtrace_unix_test.sock' }
-  let(:options) { { timeout: timeout } }
-  let(:timeout) { 2 }
-
-  shared_context 'Unix socket server' do
-    # Server
-    let(:server) { UNIXServer.new(filepath) }
-    let(:messages) { [] }
-
+  shared_context 'HTTP server' do
     # HTTP
-    let(:http) { WEBrick::HTTPServer.new(Logger: log, AccessLog: access_log) }
+    let(:server) { WEBrick::HTTPServer.new(Port: port, Logger: log, AccessLog: access_log) }
+    let(:hostname) { '127.0.0.1' }
+    let(:port) { 6218 }
     let(:log) { WEBrick::Log.new(log_buffer) }
     let(:log_buffer) { StringIO.new }
     let(:access_log) { [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
@@ -33,37 +27,18 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
       end
     end
 
-    def cleanup_socket
-      File.delete(filepath) if File.exist?(filepath)
-    end
+    let(:messages) { [] }
 
     before do
-      cleanup_socket
-      server
-      http.mount_proc('/', &server_proc)
-
-      @http_server_thread = Thread.start do
-        http.start
-      end
-
-      @unix_server_thread = Thread.start do
-        begin
-          sock = server.accept
-          http.run(sock)
-        rescue => e
-          puts "UNIX server error!: #{e}"
-        end
-      end
+      server.mount_proc('/', &server_proc)
+      Thread.new { server.start }
     end
 
-    after do
-      http.shutdown
-      cleanup_socket
-    end
+    after { server.shutdown }
   end
 
-  describe 'when sending traces through Unix socket client' do
-    include_context 'Unix socket server'
+  describe 'when sending traces through Net::HTTP adapter' do
+    include_context 'HTTP server'
 
     let(:client) do
       Datadog::Transport::HTTP.default do |t|
