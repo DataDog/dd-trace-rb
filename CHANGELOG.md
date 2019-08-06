@@ -4,6 +4,32 @@
 
 ## [Unreleased (beta)]
 
+## [0.26.0] - 2019-08-06
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.26.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...v0.26.0
+
+Support for Ruby < 2.0 is *deprecated*. Plan for timeline is as follows:
+
+ - 0.25.0: Support for Ruby < 2.0 is deprecated; retains full feature support.
+ - 0.26.0: Last version to support Ruby < 2.0; any new features will not support 1.9.
+ - 0.27.0: Support for Ruby < 2.0 is removed.
+
+Version 0.26.x will receive only critical bugfixes for 1 year following the release of 0.26.0 (August 6th, 2020.)
+
+### Added
+
+- Container ID tagging for containerized environments (#784)
+
+### Refactored
+
+- Datadog::Metrics constants (#789)
+
+### Removed
+
+- Datadog::HTTPTransport and related components (#782)
+
 ## [0.25.1] - 2019-07-16
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.25.1
@@ -876,8 +902,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...0.26-dev
+[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.26.0...master
+[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.26.0...0.27-dev
+[0.26.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...v0.26.0
 [0.25.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.0...v0.25.1
 [0.25.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.23.3...v0.24.0
