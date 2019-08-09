@@ -74,16 +74,16 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 **Supported Ruby interpreters**:
 
-| Type  | Documentation              | Version | Support type |
-| ----- | -------------------------- | -----   | ------------ |
-| MRI   | https://www.ruby-lang.org/ | 1.9.1   | Deprecated   |
-|       |                            | 1.9.3   | Deprecated   |
-|       |                            | 2.0     | Full         |
-|       |                            | 2.1     | Full         |
-|       |                            | 2.2     | Full         |
-|       |                            | 2.3     | Full         |
-|       |                            | 2.4     | Full         |
-| JRuby | http://jruby.org/          | 9.1.5   | Experimental |
+| Type  | Documentation              | Version | Support type | Gem version support       | EOL Date         |
+| ----- | -------------------------- | -----   | ------------ | ------------------------- | ---------------- |
+| MRI   | https://www.ruby-lang.org/ | 1.9.1   | Maintenance  | < 0.27.0                  | August 6th, 2020 |
+|       |                            | 1.9.3   | Maintenance  | < 0.27.0                  | August 6th, 2020 |
+|       |                            | 2.0     | Full         | Latest                    | TBD              |
+|       |                            | 2.1     | Full         | Latest                    | TBD              |
+|       |                            | 2.2     | Full         | Latest                    | TBD              |
+|       |                            | 2.3     | Full         | Latest                    | TBD              |
+|       |                            | 2.4     | Full         | Latest                    | TBD              |
+| JRuby | http://jruby.org/          | 9.1.5   | Experimental | Latest                    | TBD              |
 
 **Supported web servers**:
 
@@ -104,6 +104,10 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 *Experimental* indicates most features should be available, but unverified.
 
 *Deprecated* indicates support will be removed in a future release.
+
+*Maintenance* indicates only critical bugfixes are backported until EOL.
+
+*EOL* indicates support is no longer provided.
 
 ## Installation
 
@@ -1000,7 +1004,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Ruby Versions | Supported Rails Versions |
 | ------------- | ------------------------ |
-|  1.9.3 - 2.0  |  3.0 - 3.2               |
+|  2.0          |  3.0 - 3.2               |
 |  2.1          |  3.0 - 4.2               |
 |  2.2 - 2.3    |  3.0 - 5.2               |
 |  2.4 - 2.5    |  4.2.8 - 5.2             |
