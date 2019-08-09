@@ -36,7 +36,7 @@ RSpec.describe Datadog::Contrib::Patchable do
 
       describe '#compatible?' do
         subject(:compatible) { patchable_class.compatible? }
-        let(:expected_compatibility) { RUBY_VERSION >= '1.9.3' ? true : false }
+        let(:expected_compatibility) { Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0') ? true : false }
 
         context 'when version' do
           context 'is defined' do
