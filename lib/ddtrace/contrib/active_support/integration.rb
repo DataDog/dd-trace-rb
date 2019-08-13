@@ -2,6 +2,8 @@ require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/active_support/configuration/settings'
 require 'ddtrace/contrib/active_support/patcher'
 
+require 'ddtrace/contrib/active_support/cache/redis'
+
 module Datadog
   module Contrib
     module ActiveSupport
