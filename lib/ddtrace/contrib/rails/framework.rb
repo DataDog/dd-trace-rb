@@ -60,7 +60,7 @@ module Datadog
 
           Datadog.configuration.use(
             :active_support,
-            service_name: config[:cache_service],
+            cache_service: config[:cache_service],
             tracer: config[:tracer]
           )
         end

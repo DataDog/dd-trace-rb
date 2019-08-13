@@ -1,6 +1,5 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/active_support/cache/instrumentation'
-# require 'ddtrace/contrib/active_support/cache/redis'
 
 module Datadog
   module Contrib
