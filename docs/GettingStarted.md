@@ -1499,7 +1499,7 @@ Service B:
   Priority:  1
 
   |
-  | Service B HTTP Request:
+  | Service C HTTP Request:
   |   Headers:
   |     x-datadog-trace-id:          100000000000000001
   |     x-datadog-parent-id:         100000000000000456
