@@ -99,12 +99,44 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
     end
 
-    RSpec::Matchers.define :eq_serialized_operation do |expected|
+    # Expects every value (except for keys) to be quantized.
+    # - with: Defines expected placeholder value.
+    # - except: Defines exceptions to quantization.
+    #           Any Hash that intersects with this set
+    #           will be expected to eq the intersection.
+    #           e.g. except: { 'a' => 1 } will match { 'a' => 1, 'b' => '?' }
+    RSpec::Matchers.define :be_quantized do
       match do |actual|
         actual_obj = actual.is_a?(String) ? JSON.parse(actual.gsub(/=>/, ':')) : actual
-        expected_obj = expected.is_a?(String) ? JSON.parse(expected.gsub(/=>/, ':')) : expected
-        expect(expected_obj).to eq(actual_obj)
+
+        options = {}.tap do |o|
+          o[:with] = symbol unless symbol.nil?
+          o[:except] = exceptions unless exceptions.nil?
+        end
+
+        quantized?(actual_obj, options)
       end
+
+      def quantized?(object, options = {})
+        with = options[:with] || '?'
+        except = options[:except] || {}
+
+        case object
+        when String
+          object == with.to_s
+        when Array
+          object.all? { |i| quantized?(i, options) }
+        when Hash
+          object.all? do |k, v|
+            except.key?(k) ? v == except[k] : quantized?(v, options)
+          end
+        else
+          true
+        end
+      end
+
+      chain :with, :symbol
+      chain :except, :exceptions
     end
 
     describe '#insert_one operation' do
@@ -119,7 +151,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           if mongo_gem_version < Gem::Version.new('2.5')
             expect(span.resource).to eq("{\"operation\"=>:insert, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"documents\"=>[{:name=>\"?\"}], \"ordered\"=>\"?\"}")
           else
-            expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"insert\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"documents\"=>[{\"name\"=>\"?\"}]}")
+            expect(span.resource).to be_quantized.except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
           end
           expect(span.get_tag('mongodb.rows')).to eq('1')
         end
@@ -135,7 +167,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           if mongo_gem_version < Gem::Version.new('2.5')
             expect(span.resource).to eq("{\"operation\"=>:insert, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"documents\"=>[{:name=>\"?\", :hobbies=>[\"?\"]}], \"ordered\"=>\"?\"}")
           else
-            expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"insert\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"documents\"=>[{\"name\"=>\"?\", \"hobbies\"=>[\"?\"]}]}")
+            expect(span.resource).to be_quantized.except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
           end
           expect(span.get_tag('mongodb.rows')).to eq('1')
         end
@@ -161,7 +193,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           if mongo_gem_version < Gem::Version.new('2.5')
             expect(span.resource).to eq("{\"operation\"=>:insert, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"documents\"=>[{:name=>\"?\", :hobbies=>[\"?\"]}, \"?\"], \"ordered\"=>\"?\"}")
           else
-            expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"insert\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"documents\"=>[{\"name\"=>\"?\", \"hobbies\"=>[\"?\"]}, \"?\"]}")
+            expect(span.resource).to be_quantized.except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
           end
           expect(span.get_tag('mongodb.rows')).to eq('2')
         end
@@ -188,7 +220,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         if mongo_gem_version < Gem::Version.new('2.5')
           expect(span.resource).to eq("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{}}")
         else
-          expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{}, \"lsid\"=>{\"id\"=>\"?\"}}")
+          expect(span.resource).to be_quantized.except('operation' => 'find', 'database' => database, 'collection' => collection.to_s)
         end
         expect(span.get_tag('mongodb.rows')).to be nil
       end
@@ -213,7 +245,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         if mongo_gem_version < Gem::Version.new('2.5')
           expect(span.resource).to eq("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{\"name\"=>\"?\"}}")
         else
-          expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"find\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"filter\"=>{\"name\"=>\"?\"}, \"lsid\"=>{\"id\"=>\"?\"}}")
+          expect(span.resource).to be_quantized.except('operation' => 'find', 'database' => database, 'collection' => collection.to_s)
         end
         expect(span.get_tag('mongodb.rows')).to be nil
       end
@@ -242,7 +274,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         if mongo_gem_version < Gem::Version.new('2.5')
           expect(span.resource).to eq("{\"operation\"=>:update, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"updates\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}], \"ordered\"=>\"?\"}")
         else
-          expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"update\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"updates\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}]}")
+          expect(span.resource).to be_quantized.except('operation' => 'update', 'database' => database, 'collection' => collection.to_s)
         end
         expect(span.get_tag('mongodb.rows')).to eq('1')
       end
@@ -279,7 +311,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         if mongo_gem_version < Gem::Version.new('2.5')
           expect(span.resource).to eq("{\"operation\"=>:update, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"updates\"=>[{\"q\"=>{}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}], \"ordered\"=>\"?\"}")
         else
-          expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"update\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"updates\"=>[{\"q\"=>{}, \"u\"=>{\"$set\"=>{\"phone_number\"=>\"?\"}}, \"multi\"=>\"?\", \"upsert\"=>\"?\"}]}")
+          expect(span.resource).to be_quantized.except('operation' => 'update', 'database' => database, 'collection' => collection.to_s)
         end
         expect(span.get_tag('mongodb.rows')).to eq('2')
       end
@@ -308,7 +340,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         if mongo_gem_version < Gem::Version.new('2.5')
           expect(span.resource).to eq("{\"operation\"=>:delete, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}], \"ordered\"=>\"?\"}")
         else
-          expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"delete\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}]}")
+          expect(span.resource).to be_quantized.except('operation' => 'delete', 'database' => database, 'collection' => collection.to_s)
         end
         expect(span.get_tag('mongodb.rows')).to eq('1')
       end
@@ -345,7 +377,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         if mongo_gem_version < Gem::Version.new('2.5')
           expect(span.resource).to eq("{\"operation\"=>:delete, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}], \"ordered\"=>\"?\"}")
         else
-          expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"delete\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"ordered\"=>\"?\", \"lsid\"=>{\"id\"=>\"?\"}, \"deletes\"=>[{\"q\"=>{\"name\"=>\"?\"}, \"limit\"=>\"?\"}]}")
+          expect(span.resource).to be_quantized.except('operation' => 'delete', 'database' => database, 'collection' => collection.to_s)
         end
         expect(span.get_tag('mongodb.rows')).to eq('2')
       end
@@ -362,7 +394,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         if mongo_gem_version < Gem::Version.new('2.5')
           expect(span.resource).to eq("{\"operation\"=>:dropDatabase, \"database\"=>\"#{database}\", \"collection\"=>1}")
         else
-          expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"dropDatabase\", \"database\"=>\"#{database}\", \"collection\"=>1, \"lsid\"=>{\"id\"=>\"?\"}}")
+          expect(span.resource).to be_quantized.except('operation' => 'dropDatabase', 'database' => database, 'collection' => 1)
         end
         expect(span.get_tag('mongodb.rows')).to be nil
       end
@@ -377,7 +409,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         if mongo_gem_version < Gem::Version.new('2.5')
           expect(span.resource).to eq("{\"operation\"=>:drop, \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\"}")
         else
-          expect(span.resource).to eq_serialized_operation("{\"operation\"=>\"drop\", \"database\"=>\"#{database}\", \"collection\"=>\"#{collection}\", \"lsid\"=>{\"id\"=>\"?\"}}")
+          expect(span.resource).to be_quantized.except('operation' => 'drop', 'database' => database, 'collection' => collection.to_s)
         end
         expect(span.get_tag('mongodb.rows')).to be nil
         expect(span.status).to eq(1)
