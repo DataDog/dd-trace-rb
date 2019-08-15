@@ -67,7 +67,7 @@ module Datadog
         end
 
         def self.activate_action_view!(config)
-          return unless defined?(::ActiveSupport)
+          return unless defined?(::ActionView)
 
           Datadog.configuration.use(
             :action_view,
