@@ -61,9 +61,9 @@ class UtilsTest < Minitest::Test
 
   def test_utf8_encoding_happy_path
     # we can't use utf-8 literals because our tests run against ruby 1.9.3
-    str = "pristine \U+FFE2".encode(Encoding::UTF_8)
+    str = 'pristine ￢'.encode(Encoding::UTF_8)
 
-    assert_equal("pristine \U+FFE2", Datadog::Utils.utf8_encode(str))
+    assert_equal('pristine ￢', Datadog::Utils.utf8_encode(str))
 
     assert_equal(::Encoding::UTF_8, Datadog::Utils.utf8_encode(str).encoding)
 

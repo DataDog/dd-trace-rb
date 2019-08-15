@@ -186,52 +186,8 @@ end
 
 desc 'CI task; it runs all tests for current version of Ruby'
 task :ci do
-  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('1.9.3')
-    raise NotImplementedError, 'Ruby versions < 1.9.3 are not supported!'
-  elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
-    # Main library
-    sh 'bundle exec rake test:main'
-    sh 'bundle exec rake spec:main'
-    sh 'bundle exec rake spec:contrib'
-
-    if RUBY_PLATFORM != 'java'
-      # Contrib minitests
-      sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
-      # Contrib specs
-      sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
-      sh 'bundle exec appraisal contrib-old rake spec:active_record'
-      sh 'bundle exec appraisal contrib-old rake spec:active_support'
-      sh 'bundle exec appraisal contrib-old rake spec:aws'
-      sh 'bundle exec appraisal contrib-old rake spec:concurrent_ruby'
-      sh 'bundle exec appraisal contrib-old rake spec:dalli'
-      sh 'bundle exec appraisal contrib-old rake spec:delayed_job'
-      sh 'bundle exec appraisal contrib-old rake spec:elasticsearch'
-      sh 'bundle exec appraisal contrib-old rake spec:excon'
-      sh 'bundle exec appraisal contrib-old rake spec:faraday'
-      sh 'bundle exec appraisal contrib-old rake spec:http'
-      sh 'bundle exec appraisal contrib-old rake spec:mongodb'
-      sh 'bundle exec appraisal contrib-old rake spec:mysql2'
-      sh 'bundle exec appraisal contrib-old rake spec:rack'
-      sh 'bundle exec appraisal contrib-old rake spec:rake'
-      sh 'bundle exec appraisal contrib-old rake spec:redis'
-      sh 'bundle exec appraisal contrib-old rake spec:resque'
-      sh 'bundle exec appraisal contrib-old rake spec:rest_client'
-      sh 'bundle exec appraisal contrib-old rake spec:sequel'
-      sh 'bundle exec appraisal contrib-old rake spec:sinatra'
-      # Rails minitests
-      sh 'bundle exec appraisal rails30-postgres rake test:rails'
-      sh 'bundle exec appraisal rails30-postgres rake test:railsdisableenv'
-      sh 'bundle exec appraisal rails32-mysql2 rake test:rails'
-      sh 'bundle exec appraisal rails32-postgres rake test:rails'
-      sh 'bundle exec appraisal rails32-postgres-redis rake test:railsredis'
-      sh 'bundle exec appraisal rails32-postgres rake test:railsdisableenv'
-      # Rails specs
-      sh 'bundle exec appraisal rails30-postgres rake spec:rails'
-      sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
-      sh 'bundle exec appraisal rails32-postgres rake spec:rails'
-    end
+  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+    raise NotImplementedError, 'Ruby versions < 2.0.0 are not supported!'
   elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
     # Main library

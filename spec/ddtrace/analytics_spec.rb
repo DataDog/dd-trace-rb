@@ -58,14 +58,13 @@ RSpec.describe Datadog::Analytics::Span do
     context 'when #set_tag is defined on the class' do
       let(:test_class) do
         Class.new do
+          prepend Datadog::Analytics::Span
+
           # Define this method here to prove it doesn't
           # override behavior in Datadog::Analytics::Span.
           def set_tag(key, value)
             [key, value]
           end
-
-          # Include extensions at bottom (for Ruby 1.9 compatibility)
-          include Datadog::Analytics::Span
         end
       end
 
