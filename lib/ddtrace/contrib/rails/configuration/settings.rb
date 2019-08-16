@@ -8,11 +8,21 @@ module Datadog
         class Settings < Contrib::Configuration::Settings
           option  :analytics_enabled,
                   default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) },
-                  lazy: true
+                  lazy: true do |value|
+            value.tap do
+              # Update ActionPack analytics too
+              Datadog.configuration[:action_pack][:analytics_enabled] = value
+            end
+          end
 
           option  :analytics_sample_rate,
                   default: -> { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) },
-                  lazy: true
+                  lazy: true do |value|
+            value.tap do
+              # Update ActionPack analytics too
+              Datadog.configuration[:action_pack][:analytics_sample_rate] = value
+            end
+          end
 
           option :cache_service do |value|
             value.tap do
