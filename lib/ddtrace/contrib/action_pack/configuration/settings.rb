@@ -15,6 +15,8 @@ module Datadog
                   default: -> { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) },
                   lazy: true
 
+          option :controller_service
+          option :exception_controller, default: nil
           option :service_name, default: Ext::SERVICE_NAME
         end
       end

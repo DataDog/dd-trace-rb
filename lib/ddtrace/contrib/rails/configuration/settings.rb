@@ -20,7 +20,12 @@ module Datadog
               Datadog.configuration[:active_support][:cache_service] = value
             end
           end
-          option :controller_service
+          option :controller_service do |value|
+            value.tap do
+              # Update ActionPack service name too
+              Datadog.configuration[:action_pack][:controller_service] = value
+            end
+          end
           option :database_service, depends_on: [:service_name] do |value|
             value.tap do
               # Update ActiveRecord service name too
@@ -28,7 +33,12 @@ module Datadog
             end
           end
           option :distributed_tracing, default: true
-          option :exception_controller, default: nil
+          option :exception_controller, default: nil do |value|
+            value.tap do
+              # Update ActionPack exception controller too
+              Datadog.configuration[:action_pack][:exception_controller] = value
+            end
+          end
           option :middleware, default: true
           option :middleware_names, default: false
           option :template_base_path, default: 'views/' do |value|
@@ -40,6 +50,7 @@ module Datadog
             value.tap do
               Datadog.configuration[:active_record][:tracer] = value
               Datadog.configuration[:active_support][:tracer] = value
+              Datadog.configuration[:action_pack][:tracer] = value
               Datadog.configuration[:action_view][:tracer] = value
             end
           end

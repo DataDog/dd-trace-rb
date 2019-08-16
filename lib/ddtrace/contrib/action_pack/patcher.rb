@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/patcher'
+require 'ddtrace/contrib/action_pack/action_controller/patcher'
 
 module Datadog
   module Contrib
@@ -16,7 +17,7 @@ module Datadog
         def patch
           do_once(:action_pack) do
             begin
-              # TODO
+              ActionController::Patcher.patch
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply ActionPack integration: #{e}")
             end
