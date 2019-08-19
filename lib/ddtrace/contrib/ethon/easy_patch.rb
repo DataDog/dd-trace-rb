@@ -85,6 +85,10 @@ module Datadog
             end
           end
 
+          def datadog_span_started?
+            instance_variable_defined?(:@datadog_span) && !@datadog_span.nil?
+          end
+
           private
 
           def datadog_tag_request

@@ -19,20 +19,32 @@ module Datadog
             handles = super(easy)
             return handles if handles.nil? || !tracer_enabled?
 
-            easy.datadog_before_request(parent_span: datadog_multi_span)
+            if datadog_multi_performing?
+              # Start Easy span in case Multi is already performing
+              easy.datadog_before_request(parent_span: datadog_multi_span)
+            end
             handles
           end
 
           def perform
+            if tracer_enabled?
+              easy_handles.each do |easy|
+                easy.datadog_before_request(parent_span: datadog_multi_span) unless easy.datadog_span_started?
+              end
+            end
             super
           ensure
-            if tracer_enabled? && instance_variable_defined?(:@datadog_multi_span) && !@datadog_multi_span.nil?
+            if tracer_enabled? && datadog_multi_performing?
               @datadog_multi_span.finish
               @datadog_multi_span = nil
             end
           end
 
           private
+
+          def datadog_multi_performing?
+            instance_variable_defined?(:@datadog_multi_span) && !@datadog_multi_span.nil?
+          end
 
           def datadog_multi_span
             @datadog_multi_span ||= datadog_configuration[:tracer].trace(
