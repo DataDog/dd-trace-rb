@@ -492,6 +492,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
+      gem 'ruby-prof', '< 1.0'
       gem 'elasticsearch-transport'
       gem 'ethon'
       gem 'excon'
