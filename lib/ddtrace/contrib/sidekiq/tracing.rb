@@ -18,6 +18,8 @@ module Datadog
         def job_resource(job)
           if job['wrapped']
             job['wrapped']
+          elsif job['class'] == 'Sidekiq::Extensions::DelayedClass'
+            YAML.load(job['args'].first)[0..1].join('.') rescue job['class'] # rubocop:disable Security/YAMLLoad
           else
             job['class']
           end
