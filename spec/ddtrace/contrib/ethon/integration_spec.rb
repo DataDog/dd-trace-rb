@@ -69,7 +69,7 @@ RSpec.describe Datadog::Contrib::Ethon do
     end
 
     it_behaves_like 'instrumented request' do
-      let(:method) { 'UNKNOWN' }
+      let(:method) { 'N/A' }
     end
   end
 

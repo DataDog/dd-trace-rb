@@ -94,7 +94,10 @@ module Datadog
           def datadog_tag_request
             span = @datadog_span
             uri = URI.parse(url)
-            method = instance_variable_defined?(:@datadog_method) ? @datadog_method.to_s : 'UNKNOWN'
+            method = 'N/A'
+            if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
+              method = @datadog_method.to_s
+            end
             span.resource = method
 
             # Set analytics sample rate

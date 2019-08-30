@@ -55,7 +55,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
     it_behaves_like 'span' do
       before { subject }
-      let(:method) { 'UNKNOWN' }
+      let(:method) { 'N/A' }
       let(:path) { '/test' }
       let(:host) { 'example.com' }
       let(:port) { '80' }
@@ -97,7 +97,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
       it_behaves_like 'span' do
         before { subject }
-        let(:method) { 'UNKNOWN' }
+        let(:method) { 'N/A' }
         let(:path) { '/test' }
         let(:host) { 'example.com' }
         let(:port) { '80' }
