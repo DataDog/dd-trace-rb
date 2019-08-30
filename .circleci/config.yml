@@ -24,6 +24,10 @@ ruby_containers: &ruby_containers
     image: palazzem/docker-library:ddtrace_rb_2_4_6
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
+  - &container-2_5
+    image: marcotc/docker-library:ddtrace_rb_2_5_6 # TODO replace with published image
+      environment:
+        - BUNDLE_GEMFILE=/app/Gemfile
 
 test_containers: &test_containers
   - &container_postgres
@@ -442,6 +446,105 @@ jobs:
           path: pkg/
           destination: gem
 
+  checkout-2.5:
+    <<: *job_defaults
+    docker:
+      - *container-2_5
+    steps:
+      - checkout
+      - save_cache:
+          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.5-{{ .Environment.CIRCLE_SHA1 }}'
+          paths:
+            - /app
+  build-2.5:
+    <<: *job_defaults
+    docker:
+      - *container-2_5
+    steps:
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.5-{{ .Environment.CIRCLE_SHA1 }}'
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.5-{{ .Environment.CIRCLE_SHA1 }}'
+      - *step_init_bundle_checksum
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.5-{{ checksum ".circleci/bundle_checksum" }}'
+      - *step_bundle_install
+      - *step_rubocop
+      - *step_appraisal_install
+      - *step_compute_bundle_checksum
+      - save_cache:
+          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.5-{{ .Environment.CIRCLE_SHA1 }}'
+          paths:
+            - /app
+      - save_cache:
+          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.5-{{ checksum ".circleci/bundle_checksum" }}'
+          paths:
+            - /usr/local/bundle
+  test-2.5:
+    <<: *job_defaults
+    docker:
+      - <<: *container-2_5
+        environment:
+          - TEST_DATADOG_INTEGRATION: 1
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
+    steps:
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.5-{{ .Environment.CIRCLE_SHA1 }}'
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.5-{{ checksum ".circleci/bundle_checksum" }}'
+      - *step_run_all_tests
+  "deploy release":
+    <<: *job_defaults
+    docker:
+      - *container-2_5
+    steps:
+      - checkout
+      - run:
+          command: |
+            apt-get -y -qq update
+            apt-get -y -qq install awscli
+      - *step_bundle_install
+      - *step_release_docs
+      - run:
+          name: Upload release Gem and rebuild index
+          command: S3_DIR=release bundle exec rake release:gem
+      - store_artifacts:
+          path: pkg/
+          destination: gem
+  "deploy prerelease Gem":
+    <<: *job_defaults
+    docker:
+      - *container-2_5
+    steps:
+      - checkout
+      - run:
+          command: |
+            apt-get -y -qq update
+            apt-get -y -qq install awscli
+      - *step_bundle_install
+      - run:
+          name: Rename to pre-release version based on branch name and build number
+          command: |
+            # create safe version string
+            PRE=$(echo "${CIRCLE_BRANCH:-unknown}.${CIRCLE_BUILD_NUM:-R$RANDOM}" | sed -e 's/[^a-zA-Z0-9+]\{1,\}/./g')
+            echo PRE=$PRE
+            sed lib/ddtrace/version.rb -i -e "s/^\([\t ]*PRE\) *=*/\1 = \'${PRE}\' #/g"
+      - run:
+          name: Upload prereleas Gem and rebuild index
+          command: S3_DIR=prerelease bundle exec rake release:gem
+      - store_artifacts:
+          path: pkg/
+          destination: gem
+
 workflows:
   version: 2
   build-and-test:
@@ -500,6 +603,16 @@ workflows:
            <<: *filters_all_branches_and_tags
            requires:
              - build-2.4
+       - checkout-2.5:
+           <<: *filters_all_branches_and_tags
+       - build-2.5:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - checkout-2.5
+       - test-2.5:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-2.5
        - "deploy prerelease Gem":
            <<: *filters_all_branches_and_tags
            requires:
@@ -508,6 +621,7 @@ workflows:
              - test-2.2
              - test-2.3
              - test-2.4
+             - test-2.5
        - "deploy release":
            <<: *filters_only_release_tags
            requires:
@@ -516,3 +630,4 @@ workflows:
              - test-2.2
              - test-2.3
              - test-2.4
+             - test-2.5

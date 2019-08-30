@@ -429,6 +429,8 @@ task :ci do
     sh 'bundle exec rake spec:opentracer'
 
     if RUBY_PLATFORM != 'java'
+      # Benchmarks
+      sh 'bundle exec rake benchmark'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:sidekiq'
@@ -459,7 +461,15 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       # Rails minitests
-      sh 'bundle exec rake benchmark'
+      sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      # Rails specs
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails5-postgres rake spec:rails'
     end
   end
 end
