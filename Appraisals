@@ -495,6 +495,30 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
   end
 elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
   if RUBY_PLATFORM != 'java'
+    appraise 'rails5-mysql2' do
+      gem 'rails', '~> 5.2.1'
+      gem 'mysql2', '< 0.5', platform: :ruby
+    end
+
+    appraise 'rails5-postgres' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+    end
+
+    appraise 'rails5-postgres-redis' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'redis-rails'
+      gem 'redis'
+    end
+
+    appraise 'rails5-postgres-sidekiq' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sidekiq'
+      gem 'activejob'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
