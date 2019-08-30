@@ -27,7 +27,7 @@ module Datadog
 
             # Store headers to call this method again when span is ready
             @datadog_original_headers = headers
-            super headers
+            super
           end
 
           def perform
@@ -94,8 +94,8 @@ module Datadog
           def datadog_tag_request
             span = @datadog_span
             uri = URI.parse(url)
-            method = defined?(@datadog_method) ? @datadog_method.to_s : ''
-            span.resource = "#{method} #{uri.path}".lstrip
+            method = instance_variable_defined?(:@datadog_method) ? @datadog_method.to_s : 'UNKNOWN'
+            span.resource = method
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?

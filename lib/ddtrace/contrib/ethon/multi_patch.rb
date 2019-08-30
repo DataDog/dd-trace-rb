@@ -16,7 +16,7 @@ module Datadog
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
           def add(easy)
-            handles = super(easy)
+            handles = super
             return handles if handles.nil? || !tracer_enabled?
 
             if datadog_multi_performing?

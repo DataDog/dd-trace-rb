@@ -21,6 +21,10 @@ RSpec.shared_examples_for 'span' do
     expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
   end
 
+  it 'has resource set up properly' do
+    expect(span.resource).to eq(method)
+  end
+
   it 'is http type' do
     expect(span.span_type).to eq('http')
   end

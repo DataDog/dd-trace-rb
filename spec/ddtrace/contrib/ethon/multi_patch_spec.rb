@@ -8,7 +8,6 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   let(:configuration_options) { { tracer: tracer } }
 
   before do
-    Datadog::Contrib::Ethon::Patcher.patch
     Datadog.configure do |c|
       c.use :ethon, configuration_options
     end

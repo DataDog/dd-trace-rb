@@ -8,7 +8,6 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
   let(:configuration_options) { { tracer: tracer } }
 
   before do
-    Datadog::Contrib::Ethon::Patcher.patch
     Datadog.configure do |c|
       c.use :ethon, configuration_options
     end
@@ -56,7 +55,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
     it_behaves_like 'span' do
       before { subject }
-      let(:method) { '' }
+      let(:method) { 'UNKNOWN' }
       let(:path) { '/test' }
       let(:host) { 'example.com' }
       let(:port) { '80' }
@@ -98,7 +97,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
       it_behaves_like 'span' do
         before { subject }
-        let(:method) { '' }
+        let(:method) { 'UNKNOWN' }
         let(:path) { '/test' }
         let(:host) { 'example.com' }
         let(:port) { '80' }
