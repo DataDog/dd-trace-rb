@@ -199,35 +199,6 @@ services:
       - .:/app
       - bundle-2.6:/usr/local/bundle
       - gemfiles-2.6:/app/gemfiles
-  tracer-2.7:
-    #    image: palazzem/docker-library:ddtrace_rb_2_7_rc  TODO publish this image
-    image: marcotc/docker-library:ddtrace_rb_2_7_rc
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - redis
-    env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - bundle-2.6:/usr/local/bundle
-      - gemfiles-2.6:/app/gemfiles
   ddagent:
     image: datadog/docker-dd-agent
     environment:
@@ -299,7 +270,6 @@ volumes:
   bundle-2.4:
   bundle-2.5:
   bundle-2.6:
-  bundle-2.7:
   gemfiles-2.0:
   gemfiles-2.1:
   gemfiles-2.2:
@@ -307,4 +277,3 @@ volumes:
   gemfiles-2.4:
   gemfiles-2.5:
   gemfiles-2.6:
-  gemfiles-2.7:
