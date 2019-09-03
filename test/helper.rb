@@ -233,7 +233,7 @@ end
 def reset_config
   Datadog.configure do |c|
     c.use :rails
-    c.use :redis
+    c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
   end
 
   Datadog::Contrib::Rails::Framework.setup

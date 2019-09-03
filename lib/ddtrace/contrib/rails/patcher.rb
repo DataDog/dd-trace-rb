@@ -78,7 +78,6 @@ module Datadog
         def instrument_rails
           Datadog::Contrib::Rails::ActionController.instrument
           Datadog::Contrib::Rails::ActionView.instrument
-          Datadog::Contrib::Rails::ActiveSupport.instrument
         end
       end
     end

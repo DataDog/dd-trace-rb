@@ -288,6 +288,12 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'redis'
+    end
+
+    appraise 'rails5-postgres-redis-activesupport' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
       gem 'redis-rails'
       gem 'redis'
     end
@@ -425,6 +431,12 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'rails5-postgres-redis' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'redis'
+    end
+
+    appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis-rails'

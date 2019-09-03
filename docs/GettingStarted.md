@@ -28,6 +28,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
  - [Integration instrumentation](#integration-instrumentation)
      - [Active Model Serializers](#active-model-serializers)
      - [Active Record](#active-record)
+     - [Active Support](#active-support)
      - [AWS](#aws)
      - [Concurrent Ruby](#concurrent-ruby)
      - [Dalli](#dalli)
@@ -322,6 +323,7 @@ For a list of available integrations, and their configuration options, please re
 | ------------------------ | -------------------------- | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------ |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Active Record            | `active_record`            | `>= 3.2, < 6.0`          | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
+| Active Support           | `active_support`           | `>= 3.2, < 6.0`          | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
 | Dalli                    | `dalli`                    | `>= 2.7`                 | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
@@ -437,6 +439,30 @@ end
 ```
 
 If ActiveRecord traces an event that uses a connection that matches a key defined by `describes`, it will use the trace settings assigned to that connection. If the connection does not match any of the described connections, it will use default settings defined by `c.use :active_record` instead.
+
+### Active Support
+
+Most of the time, Active Support is set up as part of Rails, but it can be activated separately:
+
+```ruby
+require 'activesupport'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :active_support, options
+end
+
+cache = ActiveSupport::Cache::MemoryStore.new
+cache.read('city')
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| ---| --- | --- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `cache_service` | Service name used for caching with `active_support` instrumentation. | `'active_support-cache'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### AWS
 
