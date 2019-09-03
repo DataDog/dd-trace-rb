@@ -534,7 +534,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'excon'
       gem 'grape'
       gem 'graphql'
-      gem 'grpc'
+      gem 'grpc' unless Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
