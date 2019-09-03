@@ -1,5 +1,6 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/sync_writer'
+require 'ddtrace/writer'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sidekiq/ext'
 require 'resque'
@@ -32,7 +33,11 @@ module Datadog
         end
 
         def shutdown_tracer_when_forked!
-          tracer.shutdown! if forked?
+          return unless forked?
+
+          # Shutdown the tracer and then wait for the writer to flush
+          tracer.shutdown!
+          tracer.writer.worker.join if tracer.writer.is_a?(Datadog::Writer)
         end
 
         private
