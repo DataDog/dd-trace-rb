@@ -113,8 +113,7 @@ services:
       - bundle-2.3:/usr/local/bundle
       - gemfiles-2.3:/app/gemfiles
   tracer-2.4:
-#    image: palazzem/docker-library:ddtrace_rb_2_4_6 TODO republish this image for bundler ~> 1
-    image: ddtrace_rb_2_4:latest
+    image: palazzem/docker-library:ddtrace_rb_2_4_6
     command: /bin/bash
     depends_on:
       - ddagent
