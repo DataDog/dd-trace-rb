@@ -143,7 +143,7 @@ services:
       - gemfiles-2.4:/app/gemfiles
   tracer-2.5:
 #    image: palazzem/docker-library:ddtrace_rb_2_5_6  TODO publish this image
-    image: ddtrace_rb_2_5:latest
+    image: marcotc/docker-library:ddtrace_rb_2_5_6
     command: /bin/bash
     depends_on:
       - ddagent
@@ -171,8 +171,8 @@ services:
       - bundle-2.5:/usr/local/bundle
       - gemfiles-2.5:/app/gemfiles
   tracer-2.6:
-    #    image: palazzem/docker-library:ddtrace_rb_2_5_6  TODO publish this image
-    image: ddtrace_rb_2_6:latest
+    #    image: palazzem/docker-library:ddtrace_rb_2_6_4  TODO publish this image
+    image: marcotc/docker-library:ddtrace_rb_2_6_4
     command: /bin/bash
     depends_on:
       - ddagent
@@ -200,8 +200,8 @@ services:
       - bundle-2.6:/usr/local/bundle
       - gemfiles-2.6:/app/gemfiles
   tracer-2.7:
-    #    image: palazzem/docker-library:ddtrace_rb_2_5_6  TODO publish this image
-    image: ddtrace_rb_2_7:latest
+    #    image: palazzem/docker-library:ddtrace_rb_2_7_rc  TODO publish this image
+    image: marcotc/docker-library:ddtrace_rb_2_7_rc
     command: /bin/bash
     depends_on:
       - ddagent

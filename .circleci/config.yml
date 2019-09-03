@@ -704,16 +704,16 @@ workflows:
            <<: *filters_all_branches_and_tags
            requires:
              - build-2.6
-       - checkout-2.7:
-           <<: *filters_all_branches_and_tags
-       - build-2.7:
-           <<: *filters_all_branches_and_tags
-           requires:
-             - checkout-2.7
-       - test-2.7:
-           <<: *filters_all_branches_and_tags
-           requires:
-             - build-2.7
+#       - checkout-2.7:
+#           <<: *filters_all_branches_and_tags
+#       - build-2.7:
+#           <<: *filters_all_branches_and_tags
+#           requires:
+#             - checkout-2.7
+#       - test-2.7:
+#           <<: *filters_all_branches_and_tags
+#           requires:
+#             - build-2.7
        - "deploy prerelease Gem":
            <<: *filters_all_branches_and_tags
            requires:
@@ -724,7 +724,7 @@ workflows:
              - test-2.4
              - test-2.5
              - test-2.6
-             - test-2.7
+#             - test-2.7
        - "deploy release":
            <<: *filters_only_release_tags
            requires:
@@ -735,4 +735,4 @@ workflows:
              - test-2.4
              - test-2.5
              - test-2.6
-             - test-2.7
+#             - test-2.7
