@@ -306,6 +306,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'contrib' do
+      gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
@@ -451,6 +452,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'contrib' do
+      gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
@@ -484,6 +486,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
 elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
   if RUBY_PLATFORM != 'java'
     appraise 'contrib' do
+      gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'

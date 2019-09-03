@@ -31,12 +31,16 @@ module Datadog
           option :exception_controller, default: nil
           option :middleware, default: true
           option :middleware_names, default: false
-          option :template_base_path, default: 'views/'
+          option :template_base_path, default: 'views/' do |value|
+            # Update ActionView template base path too
+            value.tap { Datadog.configuration[:action_view][:template_base_path] = value }
+          end
 
           option :tracer, default: Datadog.tracer do |value|
             value.tap do
               Datadog.configuration[:active_record][:tracer] = value
               Datadog.configuration[:active_support][:tracer] = value
+              Datadog.configuration[:action_view][:tracer] = value
             end
           end
         end

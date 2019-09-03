@@ -59,6 +59,7 @@ namespace :spec do
   end
 
   [
+    :action_view,
     :active_model_serializers,
     :active_record,
     :active_support,
@@ -234,6 +235,10 @@ task :ci do
       sh 'bundle exec appraisal rails30-postgres rake spec:rails'
       sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails32-postgres rake spec:rails'
+      # Rails suite specs
+      sh 'bundle exec appraisal rails32-postgres rake spec:action_view'
+      sh 'bundle exec appraisal rails32-mysql2 rake spec:active_record'
+      sh 'bundle exec appraisal rails32-postgres rake spec:active_support'
     end
   elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
@@ -288,6 +293,10 @@ task :ci do
       sh 'bundle exec appraisal rails32-postgres rake spec:rails'
       sh 'bundle exec appraisal rails4-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails4-postgres rake spec:rails'
+      # Rails suite specs
+      sh 'bundle exec appraisal rails32-postgres rake spec:action_view'
+      sh 'bundle exec appraisal rails32-mysql2 rake spec:active_record'
+      sh 'bundle exec appraisal rails32-postgres rake spec:active_support'
     end
   elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION)\
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
@@ -303,6 +312,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
+      sh 'bundle exec appraisal contrib rake spec:action_view'
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
       sh 'bundle exec appraisal contrib rake spec:active_support'
@@ -370,6 +380,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
+      sh 'bundle exec appraisal contrib rake spec:action_view'
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
       sh 'bundle exec appraisal contrib rake spec:active_support'
@@ -436,6 +447,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
+      sh 'bundle exec appraisal contrib rake spec:action_view'
       sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib rake spec:active_record'
       sh 'bundle exec appraisal contrib rake spec:active_support'
