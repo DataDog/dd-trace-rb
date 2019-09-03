@@ -3,13 +3,11 @@ require 'ddtrace/ext/app_types'
 
 require 'ddtrace/contrib/active_record/integration'
 require 'ddtrace/contrib/active_support/integration'
+require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/grape/endpoint'
-require 'ddtrace/contrib/rack/middlewares'
 
 require 'ddtrace/contrib/rails/ext'
-require 'ddtrace/contrib/rails/core_extensions'
-require 'ddtrace/contrib/rails/action_controller'
 require 'ddtrace/contrib/rails/utils'
 
 module Datadog
@@ -26,6 +24,7 @@ module Datadog
 
           activate_rack!(config)
           activate_active_support!(config)
+          activate_action_pack!(config)
           activate_action_view!(config)
           activate_active_record!(config)
 
@@ -62,6 +61,16 @@ module Datadog
           Datadog.configuration.use(
             :active_support,
             cache_service: config[:cache_service],
+            tracer: config[:tracer]
+          )
+        end
+
+        def self.activate_action_pack!(config)
+          return unless defined?(::ActionPack)
+
+          Datadog.configuration.use(
+            :action_pack,
+            service_name: config[:service_name],
             tracer: config[:tracer]
           )
         end

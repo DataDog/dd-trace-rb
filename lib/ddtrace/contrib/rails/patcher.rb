@@ -65,18 +65,12 @@ module Datadog
             # Finish configuring the tracer after the application is initialized.
             # We need to wait for some things, like application name, middleware stack, etc.
             setup_tracer
-            instrument_rails
           end
         end
 
         # Configure Rails tracing with settings
         def setup_tracer
           Datadog::Contrib::Rails::Framework.setup
-        end
-
-        # Add instrumentation to Rails components
-        def instrument_rails
-          Datadog::Contrib::Rails::ActionController.instrument
         end
       end
     end

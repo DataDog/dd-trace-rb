@@ -28,6 +28,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
  - [Integration instrumentation](#integration-instrumentation)
      - [Action View](#action-view)
      - [Active Model Serializers](#active-model-serializers)
+     - [Action Pack](#action-pack)
      - [Active Record](#active-record)
      - [Active Support](#active-support)
      - [AWS](#aws)
@@ -324,6 +325,7 @@ For a list of available integrations, and their configuration options, please re
 | ------------------------ | -------------------------- | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------ |
 | Action View              | `action_view`              | `>= 3.2, < 6.0`          | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
+| Action Pack              | `action_pack`              | `>= 3.2, < 6.0`          | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
 | Active Record            | `active_record`            | `>= 3.2, < 6.0`          | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | Active Support           | `active_support`           | `>= 3.2, < 6.0`          | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
@@ -394,6 +396,27 @@ ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash
 | --- | ----------- | ------- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `active_model_serializers` instrumentation. | `'active_model_serializers'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
+
+### Action Pack
+
+Most of the time, Action Pack is set up as part of Rails, but it can be activated separately:
+
+```ruby
+require 'actionpack'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :action_pack, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| ---| --- | --- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for rendering instrumentation. | `action_pack` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### Active Record

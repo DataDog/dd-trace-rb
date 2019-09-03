@@ -21,6 +21,7 @@ module Datadog
   extend Contrib::Extensions
 end
 
+require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/active_model_serializers/integration'
 require 'ddtrace/contrib/active_record/integration'
