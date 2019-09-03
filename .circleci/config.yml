@@ -28,6 +28,14 @@ ruby_containers: &ruby_containers
     image: marcotc/docker-library:ddtrace_rb_2_5_6 # TODO replace with published image
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
+  - &container-2_6
+    image: marcotc/docker-library:ddtrace_rb_2_6_4 # TODO replace with published image
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+  - &container-2_7
+    image: marcotc/docker-library:ddtrace_rb_2_7_rc # TODO replace with published image
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
 
 test_containers: &test_containers
   - &container_postgres
@@ -460,6 +468,121 @@ jobs:
           keys:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.5-{{ checksum ".circleci/bundle_checksum" }}'
       - *step_run_all_tests
+
+  checkout-2.6:
+    <<: *job_defaults
+    docker:
+      - *container-2_6
+    steps:
+      - checkout
+      - save_cache:
+          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.6-{{ .Environment.CIRCLE_SHA1 }}'
+          paths:
+            - /app
+  build-2.6:
+    <<: *job_defaults
+    docker:
+      - *container-2_6
+    steps:
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.6-{{ .Environment.CIRCLE_SHA1 }}'
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.6-{{ .Environment.CIRCLE_SHA1 }}'
+      - *step_init_bundle_checksum
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.6-{{ checksum ".circleci/bundle_checksum" }}'
+      - *step_bundle_install
+      - *step_rubocop
+      - *step_appraisal_install
+      - *step_compute_bundle_checksum
+      - save_cache:
+          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.6-{{ .Environment.CIRCLE_SHA1 }}'
+          paths:
+            - /app
+      - save_cache:
+          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.6-{{ checksum ".circleci/bundle_checksum" }}'
+          paths:
+            - /usr/local/bundle
+  test-2.6:
+    <<: *job_defaults
+    docker:
+      - <<: *container-2_6
+        environment:
+          - TEST_DATADOG_INTEGRATION: 1
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
+    steps:
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.6-{{ .Environment.CIRCLE_SHA1 }}'
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.6-{{ checksum ".circleci/bundle_checksum" }}'
+      - *step_run_all_tests
+
+  checkout-2.7:
+    <<: *job_defaults
+    docker:
+      - *container-2_7
+    steps:
+      - checkout
+      - save_cache:
+          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.7-{{ .Environment.CIRCLE_SHA1 }}'
+          paths:
+            - /app
+  build-2.7:
+    <<: *job_defaults
+    docker:
+      - *container-2_7
+    steps:
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.7-{{ .Environment.CIRCLE_SHA1 }}'
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.7-{{ .Environment.CIRCLE_SHA1 }}'
+      - *step_init_bundle_checksum
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.7-{{ checksum ".circleci/bundle_checksum" }}'
+      - *step_bundle_install
+      - *step_rubocop
+      - *step_appraisal_install
+      - *step_compute_bundle_checksum
+      - save_cache:
+          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.7-{{ .Environment.CIRCLE_SHA1 }}'
+          paths:
+            - /app
+      - save_cache:
+          key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.7-{{ checksum ".circleci/bundle_checksum" }}'
+          paths:
+            - /usr/local/bundle
+  test-2.7:
+    <<: *job_defaults
+    docker:
+      - <<: *container-2_7
+        environment:
+          - TEST_DATADOG_INTEGRATION: 1
+      - *container_postgres
+      - *container_mysql
+      - *container_elasticsearch
+      - *container_redis
+      - *container_mongo
+      - *container_memcached
+      - *container_agent
+    steps:
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-2.7-{{ .Environment.CIRCLE_SHA1 }}'
+      - restore_cache:
+          keys:
+            - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-2.7-{{ checksum ".circleci/bundle_checksum" }}'
+      - *step_run_all_tests
+
   "deploy release":
     <<: *job_defaults
     docker:
@@ -571,6 +694,26 @@ workflows:
            <<: *filters_all_branches_and_tags
            requires:
              - build-2.5
+       - checkout-2.6:
+           <<: *filters_all_branches_and_tags
+       - build-2.6:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - checkout-2.6
+       - test-2.6:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-2.6
+       - checkout-2.7:
+           <<: *filters_all_branches_and_tags
+       - build-2.7:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - checkout-2.7
+       - test-2.7:
+           <<: *filters_all_branches_and_tags
+           requires:
+             - build-2.7
        - "deploy prerelease Gem":
            <<: *filters_all_branches_and_tags
            requires:
@@ -580,6 +723,8 @@ workflows:
              - test-2.3
              - test-2.4
              - test-2.5
+             - test-2.6
+             - test-2.7
        - "deploy release":
            <<: *filters_only_release_tags
            requires:
@@ -589,3 +734,5 @@ workflows:
              - test-2.3
              - test-2.4
              - test-2.5
+             - test-2.6
+             - test-2.7
