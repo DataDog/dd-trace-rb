@@ -485,6 +485,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       # Rails minitests
+      # We only test Rails 5+ because older versions require Bundler < 2.0
       sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
       sh 'bundle exec appraisal rails5-postgres rake test:rails'
       sh 'bundle exec appraisal rails5-postgres-redis rake test:railsredis'
@@ -536,6 +537,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       # Rails minitests
+      # We only test Rails 5+ because older versions require Bundler < 2.0
       sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
       sh 'bundle exec appraisal rails5-postgres rake test:rails'
       sh 'bundle exec appraisal rails5-postgres-redis rake test:railsredis'
@@ -589,6 +591,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:ethon'
       # Rails minitests
+      # We only test Rails 5+ because older versions require Bundler < 2.0
       sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
       sh 'bundle exec appraisal rails5-postgres rake test:rails'
       sh 'bundle exec appraisal rails5-postgres-redis rake test:railsredis'
