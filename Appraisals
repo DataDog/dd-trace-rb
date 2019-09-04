@@ -521,6 +521,8 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'contrib' do
+      gem 'actionpack'
+      gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
@@ -579,6 +581,8 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'contrib' do
+      gem 'actionpack'
+      gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
