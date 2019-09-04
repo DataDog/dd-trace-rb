@@ -141,7 +141,6 @@ services:
       - bundle-2.4:/usr/local/bundle
       - gemfiles-2.4:/app/gemfiles
   tracer-2.5:
-#    image: palazzem/docker-library:ddtrace_rb_2_5_6  TODO publish this image
     image: marcotc/docker-library:ddtrace_rb_2_5_6
     command: /bin/bash
     depends_on:
@@ -170,7 +169,6 @@ services:
       - bundle-2.5:/usr/local/bundle
       - gemfiles-2.5:/app/gemfiles
   tracer-2.6:
-    #    image: palazzem/docker-library:ddtrace_rb_2_6_4  TODO publish this image
     image: marcotc/docker-library:ddtrace_rb_2_6_4
     command: /bin/bash
     depends_on:
