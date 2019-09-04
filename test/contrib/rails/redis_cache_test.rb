@@ -18,14 +18,21 @@ class RedisCacheTracingTest < ActionController::TestCase
     @tracer = get_test_tracer
     Datadog.configuration[:rails][:tracer] = @tracer
     Datadog.configuration.use(:redis)
-
-    # get the Redis pin accessing private methods (only Rails 3.x)
-    driver = Rails.cache.instance_variable_get(:@data)
     Datadog.configure(client_from_driver(driver), tracer: @tracer)
   end
 
   teardown do
     Datadog.configuration[:rails][:tracer] = @original_tracer
+  end
+
+  def driver
+    # For internal Redis store (Rails 5.2+), use the #redis method.
+    # For redis-activesupport, get the Redis pin accessing private methods (only Rails 3.x)
+    Rails.cache.respond_to?(:redis) ? Rails.cache.redis : Rails.cache.instance_variable_get(:@data)
+  end
+
+  def cache_store_name
+    Gem.loaded_specs['redis-activesupport'] ? 'redis_store' : 'redis_cache_store'
   end
 
   test 'cache.read() and cache.fetch() are properly traced' do
@@ -44,7 +51,7 @@ class RedisCacheTracingTest < ActionController::TestCase
       assert_equal(cache.span_type, 'cache')
       assert_equal(cache.resource, 'GET')
       assert_equal(cache.service, "#{app_name}-cache")
-      assert_equal(cache.get_tag('rails.cache.backend').to_s, 'redis_store')
+      assert_equal(cache.get_tag('rails.cache.backend').to_s, cache_store_name)
       assert_equal(cache.get_tag('rails.cache.key'), 'custom-key')
 
       assert_equal(redis.name, 'redis.command')
@@ -110,7 +117,7 @@ class RedisCacheTracingTest < ActionController::TestCase
     assert_equal(cache.span_type, 'cache')
     assert_equal(cache.resource, 'SET')
     assert_equal(cache.service, "#{app_name}-cache")
-    assert_equal(cache.get_tag('rails.cache.backend').to_s, 'redis_store')
+    assert_equal(cache.get_tag('rails.cache.backend').to_s, cache_store_name)
     assert_equal(cache.get_tag('rails.cache.key'), 'custom-key')
 
     assert_equal(redis.name, 'redis.command')
@@ -134,7 +141,7 @@ class RedisCacheTracingTest < ActionController::TestCase
     assert_equal(cache.span_type, 'cache')
     assert_equal(cache.resource, 'DELETE')
     assert_equal(cache.service, "#{app_name}-cache")
-    assert_equal(cache.get_tag('rails.cache.backend').to_s, 'redis_store')
+    assert_equal(cache.get_tag('rails.cache.backend').to_s, cache_store_name)
     assert_equal(cache.get_tag('rails.cache.key'), 'custom-key')
 
     assert_equal(del.name, 'redis.command')

@@ -6,9 +6,13 @@ RSpec.describe 'Rails trace analytics' do
   let(:configuration_options) { { tracer: tracer } }
 
   before(:each) do
-    Datadog::RailsActionPatcher.patch_action_controller
     Datadog.configure do |c|
       c.use :rails, configuration_options
+      # Manually activate ActionPack to trigger patching.
+      # This is because Rails instrumentation normally defers patching until #after_initialize
+      # when it activates and configures each of the Rails components with application details.
+      # We aren't initializing a full Rails application here, so the patch doesn't auto-apply.
+      c.use :action_pack
     end
   end
 
@@ -35,11 +39,6 @@ RSpec.describe 'Rails trace analytics' do
     let(:base_class) { ActionController::Metal }
     let(:action) { controller.action(name) }
     let(:env) { {} }
-
-    before(:each) do
-      # ActionController::Metal is only patched in 2.0+
-      skip 'Not supported for Ruby < 2.0' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
-    end
 
     shared_examples_for 'a successful dispatch' do
       it do

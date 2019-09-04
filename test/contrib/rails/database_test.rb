@@ -9,14 +9,10 @@ class DatabaseTracingTest < ActiveSupport::TestCase
     Datadog.configure do |c|
       c.use :rails, database_service: get_adapter_name, tracer: @tracer
     end
-
-    Datadog.configuration[:active_record][:service_name] = get_adapter_name
-    Datadog.configuration[:active_record][:tracer] = @tracer
   end
 
   teardown do
     Datadog.configuration[:rails][:tracer] = @original_tracer
-    Datadog.configuration[:active_record][:tracer] = @original_tracer
   end
 
   test 'active record is properly traced' do

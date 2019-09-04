@@ -66,6 +66,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'ethon'
       gem 'excon'
       gem 'hiredis'
       gem 'mongo', '< 2.5'
@@ -83,6 +84,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'timers', '< 4.2'
+      gem 'typhoeus'
     end
   end
 elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -171,6 +173,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'ethon'
       gem 'excon'
       gem 'hiredis'
       gem 'mongo', '< 2.5'
@@ -189,6 +192,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'timers', '< 4.2'
+      gem 'typhoeus'
     end
   end
 elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -288,6 +292,12 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'redis'
+    end
+
+    appraise 'rails5-postgres-redis-activesupport' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
       gem 'redis-rails'
       gem 'redis'
     end
@@ -300,6 +310,8 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'contrib' do
+      gem 'actionpack'
+      gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
@@ -308,6 +320,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'ethon'
       gem 'excon'
       gem 'grape'
       gem 'graphql', '< 1.9.4'
@@ -328,6 +341,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sinatra'
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
+      gem 'typhoeus'
     end
   end
 elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -427,6 +441,12 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'redis'
+    end
+
+    appraise 'rails5-postgres-redis-activesupport' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
       gem 'redis-rails'
       gem 'redis'
     end
@@ -439,6 +459,8 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'contrib' do
+      gem 'actionpack'
+      gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
@@ -447,6 +469,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'ethon'
       gem 'excon'
       gem 'grape'
       gem 'graphql'
@@ -467,6 +490,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sinatra'
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
+      gem 'typhoeus'
     end
   end
 elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -612,6 +636,8 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
     end
 
     appraise 'contrib' do
+      gem 'actionpack'
+      gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
@@ -620,6 +646,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'ethon'
       gem 'excon'
       gem 'grape'
       gem 'graphql'
@@ -640,6 +667,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'sinatra'
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
+      gem 'typhoeus'
     end
   end
 end
