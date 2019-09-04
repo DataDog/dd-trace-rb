@@ -421,7 +421,109 @@ task :ci do
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
+  elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
+        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
+    # Main library
+    sh 'bundle exec rake test:main'
+    sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
+    sh 'bundle exec rake spec:opentracer'
+
+    if RUBY_PLATFORM != 'java'
+      # Benchmarks
+      sh 'bundle exec rake benchmark'
+      # Contrib minitests
+      sh 'bundle exec appraisal contrib rake test:grape'
+      sh 'bundle exec appraisal contrib rake test:sidekiq'
+      sh 'bundle exec appraisal contrib rake test:sucker_punch'
+      # Contrib specs
+      sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
+      sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:active_support'
+      sh 'bundle exec appraisal contrib rake spec:aws'
+      sh 'bundle exec appraisal contrib rake spec:concurrent_ruby'
+      sh 'bundle exec appraisal contrib rake spec:dalli'
+      sh 'bundle exec appraisal contrib rake spec:delayed_job'
+      sh 'bundle exec appraisal contrib rake spec:elasticsearch'
+      sh 'bundle exec appraisal contrib rake spec:excon'
+      sh 'bundle exec appraisal contrib rake spec:faraday'
+      sh 'bundle exec appraisal contrib rake spec:graphql'
+      sh 'bundle exec appraisal contrib rake spec:grpc'
+      sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:mongodb'
+      sh 'bundle exec appraisal contrib rake spec:mysql2'
+      sh 'bundle exec appraisal contrib rake spec:racecar'
+      sh 'bundle exec appraisal contrib rake spec:rack'
+      sh 'bundle exec appraisal contrib rake spec:rake'
+      sh 'bundle exec appraisal contrib rake spec:redis'
+      sh 'bundle exec appraisal contrib rake spec:resque'
+      sh 'bundle exec appraisal contrib rake spec:rest_client'
+      sh 'bundle exec appraisal contrib rake spec:sequel'
+      sh 'bundle exec appraisal contrib rake spec:shoryuken'
+      sh 'bundle exec appraisal contrib rake spec:sinatra'
+      # Rails minitests
+      sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      # Rails specs
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+    end
+  elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
+        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
+    # Main library
+    sh 'bundle exec rake test:main'
+    sh 'bundle exec rake spec:main'
+    sh 'bundle exec rake spec:contrib'
+    sh 'bundle exec rake spec:opentracer'
+
+    if RUBY_PLATFORM != 'java'
+      # Benchmarks
+      sh 'bundle exec rake benchmark'
+      # Contrib minitests
+      sh 'bundle exec appraisal contrib rake test:grape'
+      sh 'bundle exec appraisal contrib rake test:sidekiq'
+      sh 'bundle exec appraisal contrib rake test:sucker_punch'
+      # Contrib specs
+      sh 'bundle exec appraisal contrib rake spec:active_model_serializers'
+      sh 'bundle exec appraisal contrib rake spec:active_record'
+      sh 'bundle exec appraisal contrib rake spec:active_support'
+      sh 'bundle exec appraisal contrib rake spec:aws'
+      sh 'bundle exec appraisal contrib rake spec:concurrent_ruby'
+      sh 'bundle exec appraisal contrib rake spec:dalli'
+      sh 'bundle exec appraisal contrib rake spec:delayed_job'
+      sh 'bundle exec appraisal contrib rake spec:elasticsearch'
+      sh 'bundle exec appraisal contrib rake spec:excon'
+      sh 'bundle exec appraisal contrib rake spec:faraday'
+      sh 'bundle exec appraisal contrib rake spec:graphql'
+      sh 'bundle exec appraisal contrib rake spec:grpc'
+      sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:mongodb'
+      sh 'bundle exec appraisal contrib rake spec:mysql2'
+      sh 'bundle exec appraisal contrib rake spec:racecar'
+      sh 'bundle exec appraisal contrib rake spec:rack'
+      sh 'bundle exec appraisal contrib rake spec:rake'
+      sh 'bundle exec appraisal contrib rake spec:redis'
+      sh 'bundle exec appraisal contrib rake spec:resque'
+      sh 'bundle exec appraisal contrib rake spec:rest_client'
+      sh 'bundle exec appraisal contrib rake spec:sequel'
+      sh 'bundle exec appraisal contrib rake spec:shoryuken'
+      sh 'bundle exec appraisal contrib rake spec:sinatra'
+      # Rails minitests
+      sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres rake test:rails'
+      sh 'bundle exec appraisal rails5-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      # Rails specs
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+    end
+  elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
