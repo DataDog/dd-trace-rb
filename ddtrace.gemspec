@@ -7,7 +7,7 @@ require 'ddtrace/version'
 Gem::Specification.new do |spec|
   spec.name                  = 'ddtrace'
   spec.version               = Datadog::VERSION::STRING
-  spec.required_ruby_version = '>= 1.9.1'
+  spec.required_ruby_version = '>= 2.0.0'
   spec.authors               = ['Datadog, Inc.']
   spec.email                 = ['dev@datadoghq.com']
 

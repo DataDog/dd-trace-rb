@@ -18,7 +18,7 @@ end
 # Enables the auto-instrumentation for the testing application
 Datadog.configure do |c|
   c.use :rails
-  c.use :redis
+  c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
 end
 
 # Initialize the Rails application

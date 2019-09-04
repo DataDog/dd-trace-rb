@@ -1,15 +1,13 @@
 require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 
-require 'ddtrace/contrib/active_record/patcher'
+require 'ddtrace/contrib/active_record/integration'
+require 'ddtrace/contrib/active_support/integration'
+require 'ddtrace/contrib/action_pack/integration'
+require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/grape/endpoint'
-require 'ddtrace/contrib/rack/middlewares'
 
 require 'ddtrace/contrib/rails/ext'
-require 'ddtrace/contrib/rails/core_extensions'
-require 'ddtrace/contrib/rails/action_controller'
-require 'ddtrace/contrib/rails/action_view'
-require 'ddtrace/contrib/rails/active_support'
 require 'ddtrace/contrib/rails/utils'
 
 module Datadog
@@ -25,6 +23,9 @@ module Datadog
           config = config_with_defaults
 
           activate_rack!(config)
+          activate_active_support!(config)
+          activate_action_pack!(config)
+          activate_action_view!(config)
           activate_active_record!(config)
 
           # By default, default service would be guessed from the script
@@ -51,6 +52,36 @@ module Datadog
             service_name: config[:service_name],
             middleware_names: config[:middleware_names],
             distributed_tracing: config[:distributed_tracing]
+          )
+        end
+
+        def self.activate_active_support!(config)
+          return unless defined?(::ActiveSupport)
+
+          Datadog.configuration.use(
+            :active_support,
+            cache_service: config[:cache_service],
+            tracer: config[:tracer]
+          )
+        end
+
+        def self.activate_action_pack!(config)
+          return unless defined?(::ActionPack)
+
+          Datadog.configuration.use(
+            :action_pack,
+            service_name: config[:service_name],
+            tracer: config[:tracer]
+          )
+        end
+
+        def self.activate_action_view!(config)
+          return unless defined?(::ActionView)
+
+          Datadog.configuration.use(
+            :action_view,
+            service_name: config[:service_name],
+            tracer: config[:tracer]
           )
         end
 

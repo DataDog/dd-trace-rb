@@ -1,4 +1,5 @@
 require 'ddtrace/ext/http'
+require 'ddtrace/contrib/action_pack/utils'
 
 module Datadog
   module Contrib
@@ -27,7 +28,7 @@ module Datadog
             # Only set error if it's supposed to be flagged as such
             # e.g. we don't want to flag 404s.
             # You can add custom errors via `config.action_dispatch.rescue_responses`
-            span.set_error(e) if Utils.exception_is_error?(e)
+            span.set_error(e) if ActionPack::Utils.exception_is_error?(e)
           end
           raise e
         end

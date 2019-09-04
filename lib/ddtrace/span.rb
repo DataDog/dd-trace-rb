@@ -16,6 +16,9 @@ module Datadog
   #
   # rubocop:disable Metrics/ClassLength
   class Span
+    prepend Analytics::Span
+    prepend ForcedTracing::Span
+
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
     #
@@ -255,7 +258,3 @@ module Datadog
     end
   end
 end
-
-# Include extensions after Span (for Ruby 1.9 compatibility)
-Datadog::Span.send(:include, Datadog::Analytics::Span)
-Datadog::Span.send(:include, Datadog::ForcedTracing::Span)
