@@ -87,6 +87,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.2     | Full         | Latest                    | TBD              |
 |       |                            | 2.3     | Full         | Latest                    | TBD              |
 |       |                            | 2.4     | Full         | Latest                    | TBD              |
+|       |                            | 2.5     | Full         | Latest                    | TBD              |
+|       |                            | 2.6     | Full         | Latest                    | TBD              |
 | JRuby | http://jruby.org/          | 9.1.5   | Experimental | Latest                    | TBD              |
 
 **Supported web servers**:
@@ -1104,6 +1106,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 |  2.1          |  3.0 - 4.2               |
 |  2.2 - 2.3    |  3.0 - 5.2               |
 |  2.4 - 2.5    |  4.2.8 - 5.2             |
+|  2.6          |  5.0 - 5.2               |
 
 ### Rake
 
