@@ -51,8 +51,9 @@ module RailsTrace
       end
 
       # Initialize the Rails application
-      require 'contrib/rails/apps/controllers'
+      require 'contrib/rails/apps/routes'
       initialize!
+      require 'contrib/rails/apps/controllers'
       require 'contrib/rails/apps/models'
     end
   end

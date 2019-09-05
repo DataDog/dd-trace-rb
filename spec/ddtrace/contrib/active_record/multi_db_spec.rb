@@ -98,9 +98,8 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
 
     context 'a Symbol that matches a configuration' do
       context 'when ActiveRecord has configurations' do
-        before(:each) do
-          # Stub ActiveRecord::Base, to pretend its been configured
-          allow(ActiveRecord::Base).to receive(:configurations).and_return(
+        let(:configurations) do
+          {
             'gadget' => {
               'encoding' => 'utf8',
               'adapter' => 'mysql2',
@@ -116,7 +115,19 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
               'timeout' => 5000,
               'database' => ':memory:'
             }
-          )
+          }
+        end
+
+        before(:each) do
+          # Stub ActiveRecord::Base, to pretend its been configured
+          if defined?(ActiveRecord::DatabaseConfigurations)
+            allow(ActiveRecord::Base).to receive(:configurations).and_return(
+              ActiveRecord::DatabaseConfigurations.new(configurations)
+            )
+          else
+            # Before Rails 6, database configuration was a plain Hash
+            allow(ActiveRecord::Base).to receive(:configurations).and_return(configurations)
+          end
 
           Datadog.configure do |c|
             c.use :active_record, describes: :gadget do |gadget_db|

@@ -7,7 +7,10 @@ if ENV['USE_SIDEKIQ']
 end
 
 RSpec.shared_context 'Rails base application' do
-  if Rails.version >= '5.0'
+  if Rails.version >= '6.0'
+    require 'ddtrace/contrib/rails/support/rails6'
+    include_context 'Rails 6 base application'
+  elsif Rails.version >= '5.0'
     require 'ddtrace/contrib/rails/support/rails5'
     include_context 'Rails 5 base application'
   elsif Rails.version >= '4.0'
@@ -38,6 +41,11 @@ RSpec.shared_context 'Rails base application' do
 
   let(:after_test_initialize_block) do
     proc do
+      # Rails autoloader recommends controllers to be loaded
+      # after initialization. This will be enforced when `zeitwerk`
+      # becomes the only supported autoloader.
+      append_controllers!
+
       # Force connection to initialize, and dump some spans
       application_record.connection
     end
