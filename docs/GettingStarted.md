@@ -78,18 +78,18 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 **Supported Ruby interpreters**:
 
-| Type  | Documentation              | Version | Support type | Gem version support       | EOL Date         |
-| ----- | -------------------------- | -----   | ------------ | ------------------------- | ---------------- |
-| MRI   | https://www.ruby-lang.org/ | 1.9.1   | Maintenance  | < 0.27.0                  | August 6th, 2020 |
-|       |                            | 1.9.3   | Maintenance  | < 0.27.0                  | August 6th, 2020 |
-|       |                            | 2.0     | Full         | Latest                    | TBD              |
-|       |                            | 2.1     | Full         | Latest                    | TBD              |
-|       |                            | 2.2     | Full         | Latest                    | TBD              |
-|       |                            | 2.3     | Full         | Latest                    | TBD              |
-|       |                            | 2.4     | Full         | Latest                    | TBD              |
-|       |                            | 2.5     | Full         | Latest                    | TBD              |
-|       |                            | 2.6     | Full         | Latest                    | TBD              |
-| JRuby | http://jruby.org/          | 9.1.5   | Experimental | Latest                    | TBD              |
+| Type  | Documentation              | Version | Support type                         | Gem version support |
+| ----- | -------------------------- | -----   | ------------------------------------ | ------------------- |
+| MRI   | https://www.ruby-lang.org/ | 2.6     | Full                                 | Latest              |
+|       |                            | 2.5     | Full                                 | Latest              |
+|       |                            | 2.4     | Full                                 | Latest              |
+|       |                            | 2.3     | Full                                 | Latest              |
+|       |                            | 2.2     | Full                                 | Latest              |
+|       |                            | 2.1     | Full                                 | Latest              |
+|       |                            | 2.0     | Full                                 | Latest              |
+|       |                            | 1.9.3   | Maintenance (until August 6th, 2020) | < 0.27.0            |
+|       |                            | 1.9.1   | Maintenance (until August 6th, 2020) | < 0.27.0            |
+| JRuby | http://jruby.org/          | 9.1.5   | Alpha                                | Latest              |
 
 **Supported web servers**:
 
@@ -101,15 +101,13 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 **Supported tracing frameworks**:
 
-| Type        | Documentation                                   | Version               | Support type |
-| ----------- | ----------------------------------------------- | --------------------- | ------------ |
-| OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+ (w/ Ruby 2.1+) | Experimental |
+| Type        | Documentation                                   | Version               | Gem version support |
+| ----------- | ----------------------------------------------- | --------------------- | ------------------- |
+| OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+ (w/ Ruby 2.1+) | >= 0.16.0           |
 
 *Full* support indicates all tracer features are available.
 
-*Experimental* indicates most features should be available, but unverified.
-
-*Deprecated* indicates support will be removed in a future release.
+*Deprecated* indicates support will transition to *Maintenance* in a future release.
 
 *Maintenance* indicates only critical bugfixes are backported until EOL.
 
