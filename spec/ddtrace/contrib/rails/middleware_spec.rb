@@ -34,7 +34,7 @@ RSpec.describe 'Rails request' do
   before(:each) do
     Datadog.configure do |c|
       c.use :rack, rack_options if use_rack
-      c.use :rails, rails_options if use_rails
+      (c.use :rails, rails_options, &rails_block_options) if use_rails
     end
   end
 
@@ -42,6 +42,7 @@ RSpec.describe 'Rails request' do
   let(:rack_options) { { tracer: tracer } }
   let(:use_rails) { true }
   let(:rails_options) { { tracer: tracer } }
+  let(:rails_block_options) { proc { |_rails| } }
 
   context 'with middleware' do
     context 'that does nothing' do
@@ -66,6 +67,23 @@ RSpec.describe 'Rails request' do
         context 'with #middleware_names' do
           let(:use_rack) { false }
           let(:rails_options) { super().merge!(middleware_names: true) }
+
+          it do
+            get '/'
+            expect(app).to have_kind_of_middleware(middleware)
+            expect(last_response).to be_ok
+          end
+        end
+
+        context 'with .rack.middleware_names' do
+          let(:use_rack) { false }
+          let(:rails_block_options) do
+            proc do |rails|
+              rails.rack do |rack|
+                rack.middleware_names = true
+              end
+            end
+          end
 
           it do
             get '/'

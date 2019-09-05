@@ -6,6 +6,17 @@ module Datadog
       module Configuration
         # Custom settings for the Rails integration
         class Settings < Contrib::Configuration::Settings
+          COMPONENTS = [
+            :active_record,
+            :action_view,
+            :action_pack,
+            :active_support,
+            :rack
+          ].freeze
+
+          # Define each component as an integration
+          COMPONENTS.each { |name| integration(name) }
+
           option  :analytics_enabled,
                   default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) },
                   lazy: true do |value|
@@ -58,10 +69,7 @@ module Datadog
 
           option :tracer, default: Datadog.tracer do |value|
             value.tap do
-              Datadog.configuration[:active_record][:tracer] = value
-              Datadog.configuration[:active_support][:tracer] = value
-              Datadog.configuration[:action_pack][:tracer] = value
-              Datadog.configuration[:action_view][:tracer] = value
+              COMPONENTS.each { |name| Datadog.configuration[name][:tracer] = value }
             end
           end
         end

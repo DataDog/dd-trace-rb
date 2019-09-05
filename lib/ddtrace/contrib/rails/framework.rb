@@ -37,62 +37,57 @@ module Datadog
           # We set defaults here instead of in the patcher because we need to wait
           # for the Rails application to be fully initialized.
           Datadog.configuration[:rails].tap do |config|
-            config[:service_name] ||= Utils.app_name
-            config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
-            config[:controller_service] ||= config[:service_name]
-            config[:cache_service] ||= "#{config[:service_name]}-cache"
+            config.service_name ||= Utils.app_name
+            config.database_service ||= "#{config.service_name}-#{Contrib::ActiveRecord::Utils.adapter_name}"
+            config.controller_service ||= config.service_name
+            config.cache_service ||= "#{config.service_name}-cache"
           end
         end
 
         def self.activate_rack!(config)
-          Datadog.configuration.use(
-            :rack,
-            tracer: config[:tracer],
-            application: ::Rails.application,
-            service_name: config[:service_name],
-            middleware_names: config[:middleware_names],
-            distributed_tracing: config[:distributed_tracing]
-          )
+          config.activate!(:rack) do |rack|
+            rack.tracer = config.tracer
+            rack.application = ::Rails.application
+            rack.service_name = config.service_name
+            rack.middleware_names = config.middleware_names
+            rack.distributed_tracing = config.distributed_tracing
+          end
         end
 
         def self.activate_active_support!(config)
           return unless defined?(::ActiveSupport)
 
-          Datadog.configuration.use(
-            :active_support,
-            cache_service: config[:cache_service],
-            tracer: config[:tracer]
-          )
+          config.activate!(:active_support) do |active_support|
+            active_support.cache_service = config.cache_service
+            active_support.tracer = config.tracer
+          end
         end
 
         def self.activate_action_pack!(config)
           return unless defined?(::ActionPack)
 
-          Datadog.configuration.use(
-            :action_pack,
-            service_name: config[:service_name],
-            tracer: config[:tracer]
-          )
+          config.activate!(:action_pack) do |action_pack|
+            action_pack.service_name = config.service_name
+            action_pack.tracer = config.tracer
+          end
         end
 
         def self.activate_action_view!(config)
           return unless defined?(::ActionView)
 
-          Datadog.configuration.use(
-            :action_view,
-            service_name: config[:service_name],
-            tracer: config[:tracer]
-          )
+          config.activate!(:action_view) do |action_view|
+            action_view.service_name = config.service_name
+            action_view.tracer = config.tracer
+          end
         end
 
         def self.activate_active_record!(config)
           return unless defined?(::ActiveRecord)
 
-          Datadog.configuration.use(
-            :active_record,
-            service_name: config[:database_service],
-            tracer: config[:tracer]
-          )
+          config.activate!(:active_record) do |active_record|
+            active_record.service_name = config.database_service
+            active_record.tracer = config.tracer
+          end
         end
       end
     end
