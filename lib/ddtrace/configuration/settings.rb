@@ -59,6 +59,10 @@ module Datadog
         yield(self) if block_given?
       end
 
+      def reset!
+        reset_options!
+      end
+
       def distributed_tracing
         # TODO: Move distributed tracing configuration to it's own Settings sub-class
         # DEV: We do this to fake `Datadog.configuration.distributed_tracing.propagation_inject_style`
