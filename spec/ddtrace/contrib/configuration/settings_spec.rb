@@ -9,16 +9,21 @@ RSpec.describe Datadog::Contrib::Configuration::Settings do
 
   describe '#to_h' do
     subject(:hash) { settings.to_h }
-    let(:options_hash) { double('options hash') }
+    let(:options_hash) { { option: true } }
+    let(:integrations_hash) { { integration: true } }
 
     before do
       allow(settings).to receive(:options_hash)
         .and_return(options_hash)
+
+      allow(settings).to receive(:integrations_hash)
+        .and_return(integrations_hash)
     end
 
     it do
-      is_expected.to be(options_hash)
+      is_expected.to eq(integrations_hash.merge(options_hash))
       expect(settings).to have_received(:options_hash)
+      expect(settings).to have_received(:integrations_hash)
     end
   end
 
@@ -27,11 +32,13 @@ RSpec.describe Datadog::Contrib::Configuration::Settings do
 
     before do
       allow(settings).to receive(:reset_options!)
+      allow(settings).to receive(:reset_integrations!)
       reset!
     end
 
     it 'resets the options' do
       expect(settings).to have_received(:reset_options!)
+      expect(settings).to have_received(:reset_integrations!)
     end
   end
 

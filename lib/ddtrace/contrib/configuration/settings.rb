@@ -1,5 +1,6 @@
 require 'ddtrace/environment'
 require 'ddtrace/configuration/options'
+require 'ddtrace/contrib/configuration/integrations'
 
 module Datadog
   module Contrib
@@ -8,6 +9,7 @@ module Datadog
       class Settings
         extend Datadog::Environment::Helpers
         include Datadog::Configuration::Options
+        include Integrations
 
         option :service_name
         option :tracer,
@@ -37,11 +39,12 @@ module Datadog
         end
 
         def to_h
-          options_hash
+          integrations_hash.merge(options_hash)
         end
 
         def reset!
           reset_options!
+          reset_integrations!
         end
       end
     end
