@@ -101,8 +101,8 @@ RSpec.describe Datadog::Configuration::Options do
         end
       end
 
-      describe '#to_h' do
-        subject(:hash) { options_object.to_h }
+      describe '#options_hash' do
+        subject(:hash) { options_object.options_hash }
 
         context 'when no options are defined' do
           it { is_expected.to eq({}) }

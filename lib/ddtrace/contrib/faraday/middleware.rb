@@ -14,7 +14,7 @@ module Datadog
 
         def initialize(app, options = {})
           super(app)
-          @options = datadog_configuration.to_h.merge(options)
+          @options = datadog_configuration.options_hash.merge(options)
           setup_service!
         end
 

@@ -13,7 +13,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # this prevents the overhead to reinitialize the Rails application
     # and the Rack stack
     @tracer = get_test_tracer
-    Datadog.configuration[:rails].reset_options!
+    Datadog.configuration[:rails].reset!
     Datadog.configuration[:rails][:tracer] = @tracer
     Datadog.configuration[:rails][:database_service] = get_adapter_name
     Datadog::Contrib::Rails::Framework.setup

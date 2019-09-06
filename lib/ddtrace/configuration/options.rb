@@ -60,7 +60,7 @@ module Datadog
           options[name].get
         end
 
-        def to_h
+        def options_hash
           options.each_with_object({}) do |(key, _), hash|
             hash[key] = get_option(key)
           end
