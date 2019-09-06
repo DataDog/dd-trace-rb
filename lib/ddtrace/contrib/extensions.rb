@@ -34,7 +34,7 @@ module Datadog
             integration.configuration(configuration_name) unless integration.nil?
           end
 
-          def use(integration_name, options = {}, &block)
+          def set(integration_name, options = {}, &block)
             integration = fetch_integration(integration_name)
 
             unless integration.nil?
@@ -42,7 +42,12 @@ module Datadog
               filtered_options = options.reject { |k, _v| k == :describes }
               integration.configure(configuration_name, filtered_options, &block)
             end
+          end
 
+          def use(integration_name, options = {}, &block)
+            set(integration_name, options, &block)
+
+            integration = fetch_integration(integration_name)
             integration.patch if integration.respond_to?(:patch)
           end
 
