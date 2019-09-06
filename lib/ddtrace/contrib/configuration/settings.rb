@@ -35,6 +35,14 @@ module Datadog
         def []=(name, value)
           respond_to?("#{name}=") ? send("#{name}=", value) : set_option(name, value)
         end
+
+        def to_h
+          options_hash
+        end
+
+        def reset!
+          reset_options!
+        end
       end
     end
   end

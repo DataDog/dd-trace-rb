@@ -28,7 +28,7 @@ RSpec.describe 'Sequel configuration' do
     end
 
     describe 'when configured' do
-      after(:each) { Datadog.configuration[:sequel].reset_options! }
+      after(:each) { Datadog.configuration[:sequel].reset! }
 
       context 'only with defaults' do
         # Expect it to be the normalized adapter name.

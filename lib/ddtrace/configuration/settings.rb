@@ -59,6 +59,10 @@ module Datadog
         yield(self) if block_given?
       end
 
+      def to_h
+        options_hash
+      end
+
       def reset!
         reset_options!
       end
