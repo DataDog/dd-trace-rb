@@ -71,7 +71,7 @@ module Datadog
 
           options[:service_name]
         end
-        
+
         def resource_name(env)
           env[:method].to_s.upcase
         end
