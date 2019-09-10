@@ -9,6 +9,7 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Writing tests](#writing-tests)
      - [Running tests](#running-tests)
      - [Checking code quality](#checking-code-quality)
+ - [Git workflow](#git-workflow)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
      - [Custom transport adapters](#custom-transport-adapters)
@@ -107,6 +108,12 @@ The trace library uses Rubocop to enforce [code style](https://github.com/bbatso
 ```
 $ bundle exec rake rubocop
 ```
+
+## Git workflow
+
+The tracer library development takes place in the latest unreleased version branch, not `master`.
+In other words, you should base your pull requests on highest `X.Y-dev` branch.
+After each release, changes from the latest `X.Y-dev` branch are merged into master and a new development branch is created.
 
 ## Appendix
 
