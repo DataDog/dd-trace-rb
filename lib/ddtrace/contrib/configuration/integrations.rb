@@ -24,9 +24,9 @@ module Datadog
 
           protected
 
-          def integration(name)
+          def integration(name, meta = {})
             assert_valid_integration!(name)
-            integrations[name] = IntegrationDefinition.new(name).tap do
+            integrations[name] = IntegrationDefinition.new(name, meta).tap do
               define_integration_accessors(name)
             end
           end
@@ -52,9 +52,9 @@ module Datadog
         module InstanceMethods
           # Applies configuration and activates an integration
           # TODO: Implement #use/#set/#[] from Extensions instead
-          def activate!(name, *args, &block)
+          def apply_and_activate!(name, *args, &block)
             integration = get_integration(name)
-            integration.activate!(*args, &block)
+            integration.apply_and_activate!(*args, &block)
           end
 
           def integrations

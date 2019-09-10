@@ -7,10 +7,15 @@ module Datadog
           :default_configuration_name,
           :name
 
-        def initialize(name, meta = {}, &block)
+        def initialize(name, meta = {})
           @name = name.to_sym
           @enabled = meta.fetch(:enabled, true)
+          @defer = meta.fetch(:defer, false)
           @default_configuration_name = meta.fetch(:default_configuration_name, :default)
+        end
+
+        def defer?
+          @defer == true
         end
 
         def enabled?
