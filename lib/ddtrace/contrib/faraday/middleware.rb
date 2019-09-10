@@ -31,7 +31,7 @@ module Datadog
         attr_reader :app, :options
 
         def annotate!(span, env)
-          span.resource = env[:method].to_s.upcase
+          span.resource = resource_name(env)
           span.service = service_name(env)
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
@@ -70,6 +70,10 @@ module Datadog
           return env[:url].host if options[:split_by_domain]
 
           options[:service_name]
+        end
+        
+        def resource_name(env)
+          env[:method].to_s.upcase
         end
 
         def analytics_enabled?
