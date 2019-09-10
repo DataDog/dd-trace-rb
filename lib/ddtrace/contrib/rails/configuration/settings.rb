@@ -14,8 +14,33 @@ module Datadog
             :rack
           ].freeze
 
-          # Define each component as an integration
-          COMPONENTS.each { |name| integration name, defer: true }
+          integration :rack, defer: true do |rack|
+            rack.tracer = tracer
+            rack.application = ::Rails.application
+            rack.service_name = service_name
+            rack.middleware_names = middleware_names
+            rack.distributed_tracing = distributed_tracing
+          end
+
+          integration :active_support, defer: true do |active_support|
+            active_support.cache_service = cache_service
+            active_support.tracer = tracer
+          end
+
+          integration :action_pack, defer: true do |action_pack|
+            action_pack.service_name = service_name
+            action_pack.tracer = tracer
+          end
+
+          integration :action_view, defer: true do |action_view|
+            action_view.service_name = service_name
+            action_view.tracer = tracer
+          end
+
+          integration :active_record, defer: true do |active_record|
+            active_record.service_name = database_service
+            active_record.tracer = tracer
+          end
 
           option  :analytics_enabled,
                   default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) },
@@ -69,6 +94,7 @@ module Datadog
 
           option :tracer, default: Datadog.tracer do |value|
             value.tap do
+              Datadog.configuration[:rack][:tracer] = value
               COMPONENTS.each { |name| Datadog.configuration[name][:tracer] = value }
             end
           end
