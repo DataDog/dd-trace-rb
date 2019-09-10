@@ -24,9 +24,9 @@ module Datadog
 
           protected
 
-          def integration(name, meta = {})
+          def integration(name, meta = {}, &block)
             assert_valid_integration!(name)
-            integrations[name] = IntegrationDefinition.new(name, meta).tap do
+            integrations[name] = IntegrationDefinition.new(name, meta, &block).tap do
               define_integration_accessors(name)
             end
           end
@@ -86,7 +86,7 @@ module Datadog
           def add_integration(name)
             assert_valid_integration!(name)
             definition = self.class.integrations[name]
-            Integration.new(definition).tap do |integration|
+            Integration.new(definition, self).tap do |integration|
               integrations[name] = integration
             end
           end
