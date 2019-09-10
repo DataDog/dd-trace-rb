@@ -15,7 +15,7 @@ module Datadog
           ].freeze
 
           # Define each component as an integration
-          COMPONENTS.each { |name| integration(name) }
+          COMPONENTS.each { |name| integration name, defer: true }
 
           option  :analytics_enabled,
                   default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) },

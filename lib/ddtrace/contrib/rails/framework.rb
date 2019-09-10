@@ -45,7 +45,7 @@ module Datadog
         end
 
         def self.activate_rack!(config)
-          config.activate!(:rack) do |rack|
+          config.apply_and_activate!(:rack) do |rack|
             rack.tracer = config.tracer
             rack.application = ::Rails.application
             rack.service_name = config.service_name
@@ -57,7 +57,7 @@ module Datadog
         def self.activate_active_support!(config)
           return unless defined?(::ActiveSupport)
 
-          config.activate!(:active_support) do |active_support|
+          config.apply_and_activate!(:active_support) do |active_support|
             active_support.cache_service = config.cache_service
             active_support.tracer = config.tracer
           end
@@ -66,7 +66,7 @@ module Datadog
         def self.activate_action_pack!(config)
           return unless defined?(::ActionPack)
 
-          config.activate!(:action_pack) do |action_pack|
+          config.apply_and_activate!(:action_pack) do |action_pack|
             action_pack.service_name = config.service_name
             action_pack.tracer = config.tracer
           end
@@ -75,7 +75,7 @@ module Datadog
         def self.activate_action_view!(config)
           return unless defined?(::ActionView)
 
-          config.activate!(:action_view) do |action_view|
+          config.apply_and_activate!(:action_view) do |action_view|
             action_view.service_name = config.service_name
             action_view.tracer = config.tracer
           end
@@ -84,7 +84,7 @@ module Datadog
         def self.activate_active_record!(config)
           return unless defined?(::ActiveRecord)
 
-          config.activate!(:active_record) do |active_record|
+          config.apply_and_activate!(:active_record) do |active_record|
             active_record.service_name = config.database_service
             active_record.tracer = config.tracer
           end
