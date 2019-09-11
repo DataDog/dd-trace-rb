@@ -3,125 +3,41 @@
 `ddtrace` is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have high visibility into bottlenecks and troublesome requests.
 
-## Getting started
-
-For the general APM documentation, see our [setup documentation][setup docs].
 
 For more information about what APM looks like once your application is sending information to Datadog, take a look at [Visualizing your APM data][visualization docs].
 
 To contribute, check out the [contribution guidelines][contribution docs] and [development guide][development docs].
 
-[setup docs]: https://docs.datadoghq.com/tracing/
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/README.md#development
 [visualization docs]: https://docs.datadoghq.com/tracing/visualization/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
 
-## Table of Contents
+## Quick Start
 
- - [Compatibility](#compatibility)
- - [Installation](#installation)
-     - [Quickstart for Rails applications](#quickstart-for-rails-applications)
-     - [Quickstart for Ruby applications](#quickstart-for-ruby-applications)
-     - [Quickstart for OpenTracing](#quickstart-for-opentracing)
- - [Manual instrumentation](#manual-instrumentation)
- - [Integration instrumentation](#integration-instrumentation)
-     - [Action View](#action-view)
-     - [Active Model Serializers](#active-model-serializers)
-     - [Action Pack](#action-pack)
-     - [Active Record](#active-record)
-     - [Active Support](#active-support)
-     - [AWS](#aws)
-     - [Concurrent Ruby](#concurrent-ruby)
-     - [Dalli](#dalli)
-     - [DelayedJob](#delayedjob)
-     - [Elastic Search](#elastic-search)
-     - [Ethon & Typhoeus](#ethon)
-     - [Excon](#excon)
-     - [Faraday](#faraday)
-     - [Grape](#grape)
-     - [GraphQL](#graphql)
-     - [gRPC](#grpc)
-     - [MongoDB](#mongodb)
-     - [MySQL2](#mysql2)
-     - [Net/HTTP](#nethttp)
-     - [Racecar](#racecar)
-     - [Rack](#rack)
-     - [Rails](#rails)
-     - [Rake](#rake)
-     - [Redis](#redis)
-     - [Rest Client](#rest-client)
-     - [Resque](#resque)
-     - [Shoryuken](#shoryuken)
-     - [Sequel](#sequel)
-     - [Sidekiq](#sidekiq)
-     - [Sinatra](#sinatra)
-     - [Sucker Punch](#sucker-punch)
- - [Advanced configuration](#advanced-configuration)
-     - [Tracer settings](#tracer-settings)
-     - [Custom logging](#custom-logging)
-     - [Environment and tags](#environment-and-tags)
-     - [Sampling](#sampling)
-         - [Priority sampling](#priority-sampling)
-     - [Distributed tracing](#distributed-tracing)
-     - [HTTP request queuing](#http-request-queuing)
-     - [Processing pipeline](#processing-pipeline)
-         - [Filtering](#filtering)
-         - [Processing](#processing)
-     - [Trace correlation](#trace-correlation)
-     - [Configuring the transport layer](#configuring-the-transport-layer)
-     - [Metrics](#metrics)
-         - [For application runtime](#for-application-runtime)
-     - [OpenTracing](#opentracing)
+- [Install Agent][1] 
+- [Install Client][2]  
+- [Compatibility][3] 
+- [Manual Instrumentation][5]  
+- [Advanced Configuration][6]
 
-## Compatibility
+[1]: #setup-the-datadog-agent
+[2]: #installation
+[3]: #compatibility
+[4]: #integration-instrumentation
+[5]: #manual-instrumentation
+[6]: #advanced-configuration
 
-**Supported Ruby interpreters**:
-
-| Type  | Documentation              | Version | Support type                         | Gem version support |
-| ----- | -------------------------- | -----   | ------------------------------------ | ------------------- |
-| MRI   | https://www.ruby-lang.org/ | 2.6     | Full                                 | Latest              |
-|       |                            | 2.5     | Full                                 | Latest              |
-|       |                            | 2.4     | Full                                 | Latest              |
-|       |                            | 2.3     | Full                                 | Latest              |
-|       |                            | 2.2     | Full                                 | Latest              |
-|       |                            | 2.1     | Full                                 | Latest              |
-|       |                            | 2.0     | Full                                 | Latest              |
-|       |                            | 1.9.3   | Maintenance (until August 6th, 2020) | < 0.27.0            |
-|       |                            | 1.9.1   | Maintenance (until August 6th, 2020) | < 0.27.0            |
-| JRuby | http://jruby.org/          | 9.1.5   | Alpha                                | Latest              |
-
-**Supported web servers**:
-
-| Type      | Documentation                     | Version      | Support type |
-| --------- | --------------------------------- | ------------ | ------------ |
-| Puma      | http://puma.io/                   | 2.16+ / 3.6+ | Full         |
-| Unicorn   | https://bogomips.org/unicorn/     | 4.8+ / 5.1+  | Full         |
-| Passenger | https://www.phusionpassenger.com/ | 5.0+         | Full         |
-
-**Supported tracing frameworks**:
-
-| Type        | Documentation                                   | Version               | Gem version support |
-| ----------- | ----------------------------------------------- | --------------------- | ------------------- |
-| OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+ (w/ Ruby 2.1+) | >= 0.16.0           |
-
-*Full* support indicates all tracer features are available.
-
-*Deprecated* indicates support will transition to *Maintenance* in a future release.
-
-*Maintenance* indicates only critical bugfixes are backported until EOL.
-
-*EOL* indicates support is no longer provided.
-
-## Installation
-
-The following steps will help you quickly start tracing your Ruby application.
 
 ### Setup the Datadog Agent
 
 Before downloading tracing on your application, install the Datadog Agent. The Ruby APM tracer sends trace data through the Datadog Agent.
 
 [Install and configure the Datadog Agent](https://docs.datadoghq.com/tracing/setup), see additional documentation for [tracing Docker applications](https://docs.datadoghq.com/tracing/setup/docker/).
+
+### Installation
+
+The following steps will help you quickly start tracing your Ruby application.
 
 ### Quickstart for Rails applications
 
@@ -305,7 +221,52 @@ You can also get the root span of the current active trace using the `active_roo
 
 current_root_span = Datadog.tracer.active_root_span
 current_root_span.set_tag('my_tag', 'my_value') unless current_root_span.nil?
-```
+```  
+
+## Compatibility
+
+**Supported Ruby interpreters**:
+
+| Type  | Documentation              | Version | Support type                         | Gem version support |
+| ----- | -------------------------- | -----   | ------------------------------------ | ------------------- |
+| MRI   | https://www.ruby-lang.org/ | 2.6     | Full                                 | Latest              |
+|       |                            | 2.5     | Full                                 | Latest              |
+|       |                            | 2.4     | Full                                 | Latest              |
+|       |                            | 2.3     | Full                                 | Latest              |
+|       |                            | 2.2     | Full                                 | Latest              |
+|       |                            | 2.1     | Full                                 | Latest              |
+|       |                            | 2.0     | Full                                 | Latest              |
+|       |                            | 1.9.3   | Maintenance (until August 6th, 2020) | < 0.27.0            |
+|       |                            | 1.9.1   | Maintenance (until August 6th, 2020) | < 0.27.0            |
+| JRuby | http://jruby.org/          | 9.1.5   | Alpha                                | Latest              |
+
+**Supported web servers**:
+
+| Type      | Documentation                     | Version      | Support type |
+| --------- | --------------------------------- | ------------ | ------------ |
+| Puma      | http://puma.io/                   | 2.16+ / 3.6+ | Full         |
+| Unicorn   | https://bogomips.org/unicorn/     | 4.8+ / 5.1+  | Full         |
+| Passenger | https://www.phusionpassenger.com/ | 5.0+         | Full         |
+
+**Supported tracing frameworks**:
+
+| Type        | Documentation                                   | Version               | Gem version support |
+| ----------- | ----------------------------------------------- | --------------------- | ------------------- |
+| OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+ (w/ Ruby 2.1+) | >= 0.16.0           |
+
+Reach out to [support][1] for details on general availability of alpha/beta features.
+
+*Full* support indicates all tracer features are available.
+
+*Deprecated* indicates support will transition to *Maintenance* in a future release.
+
+*Maintenance* indicates only critical bugfixes are backported until EOL.
+
+*EOL* indicates support is no longer provided.
+
+[1]:https://docs.datadoghq.com/help/
+
+
 
 ## Integration instrumentation
 
@@ -1433,7 +1394,6 @@ Available options are:
  - `env`: set the environment. Rails users may set it to `Rails.env` to use their application settings.
  - `tags`: set global tags that should be applied to all spans. Defaults to an empty hash
  - `log`: defines a custom logger.
- - `partial_flush`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
 
 #### Custom logging
 
@@ -1660,7 +1620,7 @@ end
 
 Traces that originate from HTTP requests can be configured to include the time spent in a frontend web server or load balancer queue before the request reaches the Ruby application.
 
-This functionality is **experimental** and deactivated by default.
+This functionality is in *alpha* and deactivated by default.
 
 To activate this feature, you must add an `X-Request-Start` or `X-Queue-Start` header from your web server (i.e., Nginx). The following is an Nginx configuration example:
 
