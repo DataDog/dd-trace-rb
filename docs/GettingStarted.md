@@ -18,6 +18,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 - [Install Agent][1] 
 - [Install Client][2]  
 - [Compatibility][3] 
+- [Supported Integrations][4]
 - [Manual Instrumentation][5]  
 - [Advanced Configuration][6]
 
