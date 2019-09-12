@@ -7,7 +7,7 @@ module Datadog
           :name,
           :default
 
-        def initialize(name, meta = {})
+        def initialize(name, meta = {}, &block)
           @name = name.to_sym
           @enabled = meta.fetch(:enabled, true)
           @defer = meta.fetch(:defer, false)

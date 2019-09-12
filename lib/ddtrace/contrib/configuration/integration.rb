@@ -5,7 +5,7 @@ module Datadog
       class Integration
         attr_reader \
           :definition,
-          :apply_callbacks
+          :callbacks
 
         def initialize(definition, context)
           @definition = definition
@@ -25,14 +25,22 @@ module Datadog
           @enabled == true
         end
 
+        def defaults_applied?
+          @defaults_applied == true
+        end
+
         def configure(*args, &block)
           if args.first == false
             disable!
           elsif args.first == true
             enable!
           elsif args.any? || block_given?
+            # Configuration implies the integration is enabled.
+            # Ensure this integration is enabled.
+            enable! unless enabled?
+
             if definition.defer?
-              add_apply_callback(*args, &block)
+              add_callback(*args, &block)
             else
               apply_defaults! unless defaults_applied?
               apply!(*args, &block)
@@ -42,8 +50,8 @@ module Datadog
 
         # Add a callback that applies configuration
         # when the integration is activated.
-        def add_apply_callback(*args, &block)
-          apply_callbacks << proc { apply!(*args, &block) }
+        def add_callback(*args, &block)
+          callbacks << proc { apply!(*args, &block) }
         end
 
         # Apply configuration to integration
@@ -67,7 +75,7 @@ module Datadog
         end
 
         def apply_callbacks!
-          apply_callbacks.each(&:call)
+          callbacks.each(&:call)
         end
 
         # Apply configuration and activate the integration.
@@ -83,26 +91,21 @@ module Datadog
           apply_callbacks!
 
           # Then apply any supplied configuration (as an override)
-          apply!(*args, &block)
+          apply!(*args, &block) if args.any? || block_given?
 
           # Then activate the integration
           activate!
         end
 
         def activate!
+          return unless enabled?
           Datadog.configuration.use(definition.name)
         end
 
         def reset
           @enabled = definition.enabled?
-          @apply_callbacks = []
+          @callbacks = []
           @defaults_applied = false
-        end
-
-        protected
-
-        def defaults_applied?
-          @defaults_applied == true
         end
       end
     end

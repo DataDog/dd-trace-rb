@@ -50,15 +50,15 @@ module Datadog
 
         # Instance behavior for a configuration object with options
         module InstanceMethods
+          def integrations
+            @integrations ||= IntegrationSet.new
+          end
+
           # Applies configuration and activates an integration
-          # TODO: Implement #use/#set/#[] from Extensions instead
+          # TODO: Merge behavior with #use/#set/#[] from Extensions instead
           def apply_and_activate!(name, *args, &block)
             integration = get_integration(name)
             integration.apply_and_activate!(*args, &block)
-          end
-
-          def integrations
-            @integrations ||= IntegrationSet.new
           end
 
           def configure_integration(name, *args, &block)
