@@ -58,4 +58,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
   spec.add_development_dependency 'pry', '~> 0.10.4'
   spec.add_development_dependency 'pry-stack_explorer', '~> 0.4.9.2'
+  spec.add_development_dependency 'warning' if RUBY_VERSION >= '2.5.0'
 end
