@@ -34,6 +34,8 @@ RSpec.shared_context 'Rails 5 base application' do
       config.eager_load = false
       config.consider_all_requests_local = true
       config.middleware.delete ActionDispatch::DebugExceptions
+      config.active_record.sqlite3.represent_boolean_as_integer = true
+
       instance_eval(&during_init)
 
       if ENV['USE_SIDEKIQ']
