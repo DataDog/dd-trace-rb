@@ -34,7 +34,10 @@ RSpec.shared_context 'Rails 6 base application' do
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
       config.eager_load = false
       config.consider_all_requests_local = true
-      config.middleware.delete ActionDispatch::DebugExceptions
+
+      # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
+      config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)
+
       instance_eval(&during_init)
 
       if ENV['USE_SIDEKIQ']
@@ -77,12 +80,15 @@ RSpec.shared_context 'Rails 6 base application' do
         get k => v
       end
     end
+
+    # ActionText requires ApplicationController to be loaded since Rails 6
+    example = self
+    ActiveSupport.on_load(:action_text_content) do
+      example.stub_const('ApplicationController', Class.new(ActionController::Base))
+    end
   end
 
   def append_controllers!
-    # ActionText requires an ApplicationController to be defined since Rails 6
-    Kernel.const_set('ApplicationController', Class.new(ActionController::Base))
-
     controllers
   end
 
