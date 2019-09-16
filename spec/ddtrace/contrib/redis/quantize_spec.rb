@@ -74,5 +74,10 @@ RSpec.describe Datadog::Contrib::Redis::Quantize do
         it { expect(output[496..499]).to eq('X...') }
       end
     end
+
+    context 'given a nested array' do
+      let(:args) { [[:set, 'KEY', 'VALUE']] }
+      it { is_expected.to eq('SET KEY VALUE') }
+    end
   end
 end
