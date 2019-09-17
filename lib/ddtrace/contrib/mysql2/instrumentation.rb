@@ -10,29 +10,7 @@ module Datadog
       # Mysql2::Client patch module
       module Instrumentation
         def self.included(base)
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
-            base.class_eval do
-              # Instance methods
-              include InstanceMethodsCompatibility
-              include InstanceMethods
-            end
-          else
-            base.send(:prepend, InstanceMethods)
-          end
-        end
-
-        # Mysql2::Client patch 1.9.3 instance methods
-        module InstanceMethodsCompatibility
-          def self.included(base)
-            base.class_eval do
-              alias_method :query_without_datadog, :query
-              remove_method :query
-            end
-          end
-
-          def query(*args, &block)
-            query_without_datadog(*args, &block)
-          end
+          base.send(:prepend, InstanceMethods)
         end
 
         # Mysql2::Client patch instance methods

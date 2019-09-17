@@ -19,10 +19,6 @@ module Datadog
           super && defined?(::Rake)
         end
 
-        def self.compatible?
-          super && RUBY_VERSION >= '2.0.0'
-        end
-
         def default_configuration
           Configuration::Settings.new
         end

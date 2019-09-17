@@ -189,8 +189,8 @@ end
 
 desc 'CI task; it runs all tests for current version of Ruby'
 task :ci do
-  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
-    raise NotImplementedError, 'Ruby versions < 2.0.0 are not supported!'
+  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
+    raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
   elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
     # Main library
