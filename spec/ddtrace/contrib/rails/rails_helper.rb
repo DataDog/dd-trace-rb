@@ -20,6 +20,59 @@ ENV['DATABASE_URL'] = adapter
 # version; this is controlled with Appraisals
 logger.info "Testing against Rails #{Rails.version} with adapter '#{adapter}'"
 
+RSpec.shared_context 'Tracer' do
+  let(:tracer) { get_test_tracer }
+
+  let(:writer) { tracer.writer }
+
+  let(:spans) { writer.spans }
+
+  def spans
+    @spans ||= writer.spans
+  end
+
+  # Returns the only span in the current writer.
+  #
+  # This method will not allow for ambiguous use,
+  # meaning it will throw an error when more than
+  # one span is available.
+  def span
+    @span ||= begin
+      expect(spans).to have(1).item
+      spans.first
+    end
+  end
+
+  def clear_spans
+    writer.spans(:clear)
+
+    @spans = nil
+    @span = nil
+  end
+end
+
+# TODO these two following methods smell bad
+
+# update Datadog user configuration; you should pass:
+#
+# * +key+: the key that should be updated
+# * +value+: the value of the key
+def update_config(key, value)
+  Datadog.configuration[:rails][key] = value
+  Datadog::Contrib::Rails::Framework.setup
+end
+
+# reset default configuration and replace any dummy tracer
+# with the global one
+def reset_config
+  Datadog.configure do |c|
+    c.use :rails
+    c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+  end
+
+  Datadog::Contrib::Rails::Framework.setup
+end
+
 # ################################
 # #### Testing Rails in RSpec ####
 # ################################

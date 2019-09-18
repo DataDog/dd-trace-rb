@@ -52,4 +52,7 @@ RSpec.shared_context 'Rails test application' do
   else
     logger.error 'A Rails app for this version is not found!'
   end
+
+  let(:app_name) { Datadog::Contrib::Rails::Utils.app_name }
+  let(:adapter_name) { Datadog::Contrib::ActiveRecord::Utils.adapter_name }
 end

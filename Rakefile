@@ -47,7 +47,7 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:railsdisableenv) do |t, args|
+  RSpec::Core::RakeTask.new(:railsdisableenv) do |t, args| # TODO figure out if we can remove this
     t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
