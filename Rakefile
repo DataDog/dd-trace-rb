@@ -12,7 +12,7 @@ desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
   task all: [:main,
-             :rails, :railsredis, :railssidekiq, :railsactivejob,
+             :rails, :railsredis, :railssidekiq, :railsactivejob, :railsactioncable,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -443,6 +443,7 @@ task :ci do
       sh 'bundle exec appraisal rails4-postgres rake spec:rails'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails5-postgres rake spec:railsactioncable'
     end
   elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
