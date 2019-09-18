@@ -109,33 +109,71 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
-  describe 'shutdown executes only once' do
+  describe 'shutdown' do
     include_context 'agent-based test'
 
-    before(:each) do
-      tracer.trace('my.short.op') do |span|
-        span.service = 'my.service'
+    context 'executes only once' do
+      subject(:multiple_shutdown) do
+        tracer.trace('my.short.op') do |span|
+          span.service = 'my.service'
+        end
+
+        threads = Array.new(10) do
+          Thread.new { tracer.shutdown! }
+        end
+
+        threads.each(&:join)
       end
 
-      mutex = Mutex.new
-      @shutdown_results = []
+      let(:stats) { tracer.writer.stats }
 
-      threads = Array.new(10) do
-        Thread.new { mutex.synchronize { @shutdown_results << tracer.shutdown! } }
+      it do
+        multiple_shutdown
+        expect(stats[:traces_flushed]).to eq(1)
+        expect(stats[:services_flushed]).to be_nil
+        expect(stats[:transport].client_error).to eq(0)
+        expect(stats[:transport].server_error).to eq(0)
+        expect(stats[:transport].internal_error).to eq(0)
       end
-
-      threads.each(&:join)
     end
 
-    let(:stats) { tracer.writer.stats }
+    context 'when sent TERM' do
+      subject(:terminated_process) do
+        # Initiate IO pipe
+        pipe
 
-    it do
-      expect(@shutdown_results.count(true)).to eq(1)
-      expect(stats[:traces_flushed]).to eq(1)
-      expect(stats[:services_flushed]).to be_nil
-      expect(stats[:transport].client_error).to eq(0)
-      expect(stats[:transport].server_error).to eq(0)
-      expect(stats[:transport].internal_error).to eq(0)
+        # Fork the process
+        fork_id = fork do
+          allow(Datadog.tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
+            m.call(*args).tap { write.write(graceful_signal) }
+          end
+
+          tracer.trace('my.short.op') do |span|
+            span.service = 'my.service'
+          end
+
+          sleep(1)
+        end
+
+        # Give the fork a chance to setup and sleep
+        sleep(0.2)
+
+        # Kill the process
+        write.close
+        Process.kill('TERM', fork_id) rescue nil
+
+        # Read and return any output
+        read.read.tap do
+          Process.waitpid(fork_id)
+        end
+      end
+
+      let(:pipe) { IO.pipe }
+      let(:read) { pipe.first }
+      let(:write) { pipe.last }
+      let(:graceful_signal) { 'graceful' }
+
+      it { expect(terminated_process).to eq(graceful_signal) }
     end
   end
 
