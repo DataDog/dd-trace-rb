@@ -12,7 +12,7 @@ module Datadog
         register_as :action_cable, auto_patch: false
 
         def self.version
-          Gem.loaded_specs['rails'] && Gem.loaded_specs['rails'].version
+          Gem.loaded_specs['actioncable'] && Gem.loaded_specs['actioncable'].version
         end
 
         def self.present?
@@ -20,11 +20,7 @@ module Datadog
         end
 
         def self.compatible?
-          # Rails 5 Requires Ruby 2.2.2 or higher
-          return false if ENV['DISABLE_DATADOG_RAILS']
-          super && defined?(::ActiveSupport::Notifications) &&
-            defined?(::Rails::VERSION) && ::Rails::VERSION::MAJOR.to_i >= 5 &&
-            RUBY_VERSION >= '2.2.2'
+          super && Rails::Integration.compatible?
         end
 
         def default_configuration

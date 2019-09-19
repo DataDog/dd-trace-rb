@@ -19,16 +19,7 @@ module Datadog
         def patch
           do_once(:action_cable) do
             begin
-              # Subscribe to ActionCable events
               Events.subscribe!
-
-              # Set service info
-              configuration = Datadog.configuration[:action_cable]
-              configuration[:tracer].set_service_info(
-                configuration[:service_name],
-                Ext::APP,
-                Datadog::Ext::AppTypes::WORKER
-              )
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply ActionCable integration: #{e}")
             end

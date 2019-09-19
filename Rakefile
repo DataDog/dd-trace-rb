@@ -12,7 +12,7 @@ desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
   task all: [:main,
-             :rails, :railsredis, :railssidekiq, :railsactivejob, :railsactioncable,
+             :rails, :railsredis, :railssidekiq, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -59,6 +59,7 @@ namespace :spec do
   end
 
   [
+    :action_cable,
     :action_pack,
     :action_view,
     :active_model_serializers,
@@ -443,7 +444,6 @@ task :ci do
       sh 'bundle exec appraisal rails4-postgres rake spec:rails'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
-      sh 'bundle exec appraisal rails5-postgres rake spec:railsactioncable'
     end
   elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
@@ -554,6 +554,7 @@ task :ci do
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
       sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
       # Rails specs
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
     end
@@ -609,6 +610,7 @@ task :ci do
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
       sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
       # Rails specs
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
     end

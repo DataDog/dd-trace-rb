@@ -17,10 +17,9 @@ module Datadog
 
           option :service_name, default: Ext::SERVICE_NAME
           option :tracer, default: Datadog.tracer do |value|
-            (value || Datadog.tracer).tap do |v|
-              # Make sure to update tracers of all subscriptions
+            value.tap do
               Events.subscriptions.each do |subscription|
-                subscription.tracer = v
+                subscription.tracer = value
               end
             end
           end

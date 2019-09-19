@@ -1,4 +1,7 @@
+require 'ddtrace/contrib/action_cable/event'
+require 'ddtrace/contrib/action_cable/events/broadcast'
 require 'ddtrace/contrib/action_cable/events/perform_action'
+require 'ddtrace/contrib/action_cable/events/transmit'
 
 module Datadog
   module Contrib
@@ -6,7 +9,9 @@ module Datadog
       # Defines collection of instrumented ActionCable events
       module Events
         ALL = [
-          Events::PerformAction
+          Events::Broadcast,
+          Events::PerformAction,
+          Events::Transmit
         ].freeze
 
         module_function

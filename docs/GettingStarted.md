@@ -360,7 +360,7 @@ For a list of available integrations, and their configuration options, please re
 
 ### Action Cable
 
-The Action Cable integration provides tracing for Rails ActionCable actions.
+The Action Cable integration traces broadcast messages and channel actions.
 
 You can enable it through `Datadog.configure`:
 

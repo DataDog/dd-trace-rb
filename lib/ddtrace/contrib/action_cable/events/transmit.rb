@@ -5,11 +5,11 @@ module Datadog
   module Contrib
     module ActionCable
       module Events
-        # Defines instrumentation for 'perform_action.action_cable' event
-        module PerformAction
+        # Defines instrumentation for 'transmit.action_cable' event
+        module Transmit
           include ActionCable::Event
 
-          EVENT_NAME = 'perform_action.action_cable'.freeze
+          EVENT_NAME = 'transmit.action_cable'.freeze
 
           module_function
 
@@ -18,20 +18,19 @@ module Datadog
           end
 
           def span_name
-            Ext::SPAN_PERFORM_ACTION
+            Ext::SPAN_TRANSMIT
           end
 
           def span_type
-            # A request to perform_action comes from a WebSocket connection
+            # ActionCable transmits data over WebSockets
             Datadog::Ext::AppTypes::WEB
           end
 
           def process(span, _event, _id, payload)
             channel_class = payload[:channel_class]
-            action = payload[:action]
 
             span.service = configuration[:service_name]
-            span.resource = "#{channel_class}##{action}"
+            span.resource = channel_class
             span.span_type = span_type
 
             # Set analytics sample rate
@@ -40,7 +39,7 @@ module Datadog
             end
 
             span.set_tag(Ext::TAG_CHANNEL_CLASS, channel_class)
-            span.set_tag(Ext::TAG_ACTION, action)
+            span.set_tag(Ext::TAG_TRANSMIT_VIA, payload[:via])
           end
         end
       end
