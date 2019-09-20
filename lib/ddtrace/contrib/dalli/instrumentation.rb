@@ -58,7 +58,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog.configuration[:dalli]
+            Datadog.configuration[:dalli, "#{hostname}:#{port}"] || Datadog.configuration[:dalli]
           end
         end
       end
