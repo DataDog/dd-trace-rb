@@ -34,7 +34,7 @@ RSpec.describe 'Dalli instrumentation' do
   end
 
   describe 'when a client calls #set' do
-    before(:each) do
+    before do
       client.set('abc', 123)
       try_wait_until { all_spans.any? }
     end
@@ -53,6 +53,34 @@ RSpec.describe 'Dalli instrumentation' do
       expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
       expect(span.get_tag('out.host')).to eq(test_host)
       expect(span.get_tag('out.port')).to eq(test_port)
+    end
+  end
+
+  describe 'when multiplexed configuration is provided' do
+    let(:service_name) { 'multiplex-service' }
+
+    before do
+      Datadog.configure do |c|
+        c.use :dalli, describes: "#{test_host}:#{test_port}", tracer: tracer, service_name: service_name
+      end
+    end
+
+    context 'and #set is called' do
+      before do
+        client.set('abc', 123)
+        try_wait_until { all_spans.any? }
+      end
+
+      it 'calls instrumentation' do
+        expect(all_spans.size).to eq(1)
+        expect(span.service).to eq(service_name)
+        expect(span.name).to eq('memcached.command')
+        expect(span.span_type).to eq('memcached')
+        expect(span.resource).to eq('SET')
+        expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
+        expect(span.get_tag('out.host')).to eq(test_host)
+        expect(span.get_tag('out.port')).to eq(test_port)
+      end
     end
   end
 end
