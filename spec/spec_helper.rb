@@ -9,30 +9,30 @@ require 'ddtrace/encoding'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
 
-# require 'support/test_access_patch'
-require 'support/faux_writer'
-require 'support/faux_transport'
-require 'support/spy_transport'
-require 'support/tracer_helpers'
-# require 'support/rails_active_record_helpers'
 require 'support/configuration_helpers'
-require 'support/synchronization_helpers'
-require 'support/log_helpers'
-require 'support/http_helpers'
-require 'support/metric_helpers'
 require 'support/container_helpers'
+require 'support/faux_transport'
+require 'support/faux_writer'
+require 'support/http_helpers'
+require 'support/log_helpers'
+require 'support/metric_helpers'
+require 'support/span_helpers'
+require 'support/spy_transport'
+require 'support/synchronization_helpers'
+require 'support/tracer_helpers'
 
 WebMock.allow_net_connect!
 WebMock.disable!
 
 RSpec.configure do |config|
-  config.include TracerHelpers
-  config.include HttpHelpers
   config.include ConfigurationHelpers
-  config.include SynchronizationHelpers
+  config.include ContainerHelpers
+  config.include HttpHelpers
   config.include LogHelpers
   config.include MetricHelpers
-  config.include ContainerHelpers
+  config.include SpanHelpers
+  config.include SynchronizationHelpers
+  config.include TracerHelpers
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true

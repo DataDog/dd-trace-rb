@@ -46,7 +46,7 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
         expect(span.service).to eq('resque')
-        expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+        expect(span).to_not have_error
       end
 
       it_behaves_like 'analytics for integration' do
@@ -78,9 +78,9 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
         expect(span.service).to eq('resque')
-        expect(span.get_tag(Datadog::Ext::Errors::MSG)).to eq(error_message)
-        expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
-        expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to eq(error_class_name)
+        expect(span).to have_error_message(error_message)
+        expect(span).to have_error
+        expect(span).to have_error_type(error_class_name)
       end
     end
   end

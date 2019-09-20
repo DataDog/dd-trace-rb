@@ -58,7 +58,7 @@ RSpec.describe 'Racecar patcher' do
           expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
           expect(span.get_tag('kafka.offset')).to eq(offset.to_s)
           expect(span.get_tag('kafka.first_offset')).to be nil
-          expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+          expect(span).to_not have_error
         end
       end
     end
@@ -86,7 +86,7 @@ RSpec.describe 'Racecar patcher' do
           expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
           expect(span.get_tag('kafka.offset')).to eq(offset.to_s)
           expect(span.get_tag('kafka.first_offset')).to be nil
-          expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
+          expect(span).to have_error
         end
       end
     end
@@ -133,7 +133,7 @@ RSpec.describe 'Racecar patcher' do
           expect(span.get_tag('kafka.offset')).to be nil
           expect(span.get_tag('kafka.first_offset')).to eq(offset.to_s)
           expect(span.get_tag('kafka.message_count')).to eq(message_count.to_s)
-          expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+          expect(span).to_not have_error
         end
       end
     end
@@ -161,7 +161,7 @@ RSpec.describe 'Racecar patcher' do
           expect(span.get_tag('kafka.offset')).to be nil
           expect(span.get_tag('kafka.first_offset')).to eq(offset.to_s)
           expect(span.get_tag('kafka.message_count')).to eq(message_count.to_s)
-          expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
+          expect(span).to have_error
         end
       end
     end
