@@ -3,7 +3,7 @@ require 'ddtrace/contrib/action_view/ext'
 module Datadog
   module Contrib
     module ActionView
-      module Instrumentations
+      module Instrumentation
         # Instrumentation for template rendering
         module TemplateRenderer
           # Rails < 3.1 template rendering
