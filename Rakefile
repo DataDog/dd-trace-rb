@@ -553,10 +553,19 @@ task :ci do
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
       sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails6-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails6-postgres rake test:rails'
+      sh 'bundle exec appraisal rails6-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails6-postgres-redis-activesupport rake test:railsredis'
+      sh 'bundle exec appraisal rails6-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails6-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails6-postgres rake test:railsdisableenv'
       # Rails specs
       sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails6-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails6-postgres rake spec:rails'
     end
   elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
     # Main library
@@ -609,10 +618,19 @@ task :ci do
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
       sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails6-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails6-postgres rake test:rails'
+      sh 'bundle exec appraisal rails6-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails6-postgres-redis-activesupport rake test:railsredis'
+      sh 'bundle exec appraisal rails6-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails6-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails6-postgres rake test:railsdisableenv'
       # Rails specs
       sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails6-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails6-postgres rake spec:rails'
     end
   end
 end

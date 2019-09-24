@@ -69,7 +69,6 @@ RSpec.shared_context 'Rails 5 base application' do
   def append_routes!
     # Make sure to load controllers first
     # otherwise routes won't draw properly.
-    controllers
     test_routes = routes
 
     rails_test_application.instance.routes.append do
@@ -77,6 +76,10 @@ RSpec.shared_context 'Rails 5 base application' do
         get k => v
       end
     end
+  end
+
+  def append_controllers!
+    controllers
   end
 
   # Rails 5 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables

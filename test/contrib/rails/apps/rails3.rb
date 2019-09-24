@@ -22,6 +22,7 @@ Datadog.configure do |c|
 end
 
 # Initialize the Rails application
+require 'contrib/rails/apps/routes'
 require 'contrib/rails/apps/controllers'
 Rails3.initialize!
 require 'contrib/rails/apps/models'

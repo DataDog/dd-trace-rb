@@ -33,7 +33,11 @@ RSpec.shared_context 'Rails test application' do
     end
   end
 
-  if Rails.version >= '5.0'
+  if Rails.version >= '6.0'
+    let(:rails_test_application) do
+      stub_const('Rails6::Application', Class.new(rails_base_application))
+    end
+  elsif Rails.version >= '5.0'
     let(:rails_test_application) do
       stub_const('Rails5::Application', Class.new(rails_base_application))
     end
