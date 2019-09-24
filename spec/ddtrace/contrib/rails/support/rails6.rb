@@ -10,7 +10,7 @@ require 'ddtrace/contrib/rails/support/controllers'
 require 'ddtrace/contrib/rails/support/middleware'
 require 'ddtrace/contrib/rails/support/models'
 
-RSpec.shared_context 'Rails 4 base application' do
+RSpec.shared_context 'Rails 6 base application' do
   include_context 'Rails controllers'
   include_context 'Rails middleware'
   include_context 'Rails models'
@@ -22,7 +22,6 @@ RSpec.shared_context 'Rails 4 base application' do
         raise parsed.to_yaml # Replace this line to add custom connections to the hash from database.yml
       end
     end
-
     during_init = initialize_block
 
     klass.send(:define_method, :initialize) do |*args|
@@ -30,12 +29,15 @@ RSpec.shared_context 'Rails 4 base application' do
       redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
       file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
 
+      config.load_defaults '6.0'
       config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
       config.eager_load = false
       config.consider_all_requests_local = true
-      config.active_support.test_order = :random
-      config.middleware.delete ActionDispatch::DebugExceptions
+
+      # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
+      config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)
+
       instance_eval(&during_init)
 
       if ENV['USE_SIDEKIQ']
@@ -71,17 +73,18 @@ RSpec.shared_context 'Rails 4 base application' do
   def append_routes!
     # Make sure to load controllers first
     # otherwise routes won't draw properly.
-    delegate = method(:draw_test_routes!)
+    test_routes = routes
 
-    # Then set the routes
-    if Rails.version >= '3.2.22.5'
-      rails_test_application.instance.routes.append do
-        delegate.call(self)
+    rails_test_application.instance.routes.append do
+      test_routes.each do |k, v|
+        get k => v
       end
-    else
-      rails_test_application.instance.routes.draw do
-        delegate.call(self)
-      end
+    end
+
+    # ActionText requires ApplicationController to be loaded since Rails 6
+    example = self
+    ActiveSupport.on_load(:action_text_content) do
+      example.stub_const('ApplicationController', Class.new(ActionController::Base))
     end
   end
 
@@ -89,24 +92,20 @@ RSpec.shared_context 'Rails 4 base application' do
     controllers
   end
 
-  def draw_test_routes!(mapper)
-    # Rails 4 accumulates these route drawing
-    # blocks errantly, and this prevents them from
-    # drawing more than once.
-    return if @drawn
-
-    test_routes = routes
-    mapper.instance_exec do
-      test_routes.each do |k, v|
-        get k => v
-      end
-    end
-    @drawn = true
-  end
-
-  # Rails 4 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
+  # Rails 5 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
+    # Reset autoloaded constants
+    ActiveSupport::Dependencies.clear
+
+    reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
+    # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
+    ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
+
+    reset_class_variable(ActiveSupport::Dependencies, :@@autoload_paths)
+    reset_class_variable(ActiveSupport::Dependencies, :@@autoload_once_paths)
+    reset_class_variable(ActiveSupport::Dependencies, :@@_eager_load_paths)
+
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_dirs, nil)
@@ -115,5 +114,16 @@ RSpec.shared_context 'Rails 4 base application' do
     end
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
+  end
+
+  # Resets configuration that needs to be restored to its original value
+  # between each run of a Rails application.
+  def reset_class_variable(clazz, variable)
+    value = Datadog::Contrib::Rails::Test::Configuration.fetch(
+      "#{clazz}.#{variable}",
+      clazz.class_variable_get(variable)
+    )
+
+    clazz.class_variable_set(variable, value.deep_dup)
   end
 end
