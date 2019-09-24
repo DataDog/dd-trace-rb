@@ -8,8 +8,7 @@ module Datadog
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_ACTION_CABLE_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'action_cable'.freeze
         SPAN_BROADCAST = 'action_cable.broadcast'.freeze
-        SPAN_PERFORM_ACTION = 'action_cable.perform_action'.freeze
-        SPAN_TRANSMIT = 'action_cable.transmit'.freeze
+        SPAN_ACTION = 'action_cable.action'.freeze
         TAG_ACTION = 'action_cable.action'.freeze
         TAG_BROADCAST_CODER = 'action_cable.broadcast.coder'.freeze
         TAG_CHANNEL = 'action_cable.channel'.freeze

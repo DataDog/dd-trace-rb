@@ -3,6 +3,7 @@ require 'ddtrace/ext/app_types'
 
 require 'ddtrace/contrib/active_record/integration'
 require 'ddtrace/contrib/active_support/integration'
+require 'ddtrace/contrib/action_cable/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/grape/endpoint'
@@ -41,6 +42,7 @@ module Datadog
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"
+            config[:web_sockets_service] ||= "#{config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}"
           end
         end
 
@@ -61,6 +63,16 @@ module Datadog
           Datadog.configuration.use(
             :active_support,
             cache_service: config[:cache_service],
+            tracer: config[:tracer]
+          )
+        end
+
+        def self.activate_action_cable!(config)
+          return unless defined?(::ActionCable)
+
+          Datadog.configuration.use(
+            :action_cable,
+            service_name: config[:web_sockets_service],
             tracer: config[:tracer]
           )
         end

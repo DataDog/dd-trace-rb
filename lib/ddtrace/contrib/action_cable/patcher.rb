@@ -2,6 +2,7 @@ require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/action_cable/ext'
 require 'ddtrace/contrib/action_cable/events'
+require 'ddtrace/contrib/action_cable/instrumentation'
 
 module Datadog
   module Contrib
@@ -20,6 +21,7 @@ module Datadog
           do_once(:action_cable) do
             begin
               Events.subscribe!
+              ::ActionCable::Connection::Base.prepend(Instrumentation::ActionCableConnection)
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply ActionCable integration: #{e}")
             end

@@ -56,8 +56,15 @@ module Datadog
             value.tap { Datadog.configuration[:action_view][:template_base_path] = value }
           end
 
+          option :web_sockets_service do |value|
+            value.tap do
+              Datadog.configuration[:action_cable][:service_name] = value
+            end
+          end
+
           option :tracer, default: Datadog.tracer do |value|
             value.tap do
+              Datadog.configuration[:action_cable][:tracer] = value
               Datadog.configuration[:active_record][:tracer] = value
               Datadog.configuration[:active_support][:tracer] = value
               Datadog.configuration[:action_pack][:tracer] = value

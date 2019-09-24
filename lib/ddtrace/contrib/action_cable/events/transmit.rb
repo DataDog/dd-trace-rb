@@ -18,7 +18,7 @@ module Datadog
           end
 
           def span_name
-            Ext::SPAN_TRANSMIT
+            Ext::SPAN_ACTION
           end
 
           def span_type
@@ -30,7 +30,7 @@ module Datadog
             channel_class = payload[:channel_class]
 
             span.service = configuration[:service_name]
-            span.resource = channel_class
+            span.resource = "#{channel_class}.transmit"
             span.span_type = span_type
 
             # Set analytics sample rate
