@@ -1,33 +1,15 @@
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'Default service' do
+RSpec.describe 'Rails default service' do
   include_context 'Rails test application'
-  include_context 'Tracer'
 
-  before { app } # Force Rails initialization
+  before { app }
 
-  subject(:response) { get '/', {}, headers }
+  context 'span without explicit service' do
+    subject! { tracer.trace('name') {} }
 
-  before do
-    @original_tracer = Datadog.configuration[:rails][:tracer]
-    Datadog.configuration[:rails][:tracer] = tracer
-    update_config(:tracer, tracer)
-  end
-
-  after do
-    Datadog.configuration[:rails][:tracer] = @original_tracer
-  end
-
-  it 'span has rails service' do
-    # Manually creating the span and forgetting service on purpose
-    tracer.trace('web.request') do |span|
-      span.resource = '/index'
+    it 'has default service' do
+      expect(span.service).to eq(app_name)
     end
-
-    expect(spans).to have(1).item
-
-    expect(span.name).to eq('web.request')
-    expect(span.resource).to eq('/index')
-    expect(span.service).to eq(app_name)
   end
 end

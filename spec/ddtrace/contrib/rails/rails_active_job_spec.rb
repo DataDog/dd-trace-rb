@@ -7,39 +7,26 @@ require 'active_job'
 
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails application with Sidekiq' do
+RSpec.describe 'Rails with Sidekiq' do
   include_context 'Rails test application'
-  include_context 'Tracer'
 
   before do
     allow(ENV).to receive(:[]).and_call_original
-    allow(ENV).to receive(:[]).with("USE_SIDEKIQ").and_return("true")
+    allow(ENV).to receive(:[]).with('USE_SIDEKIQ').and_return('true')
   end
 
   before do
-    # don't pollute the global tracer
-    @original_tracer = Datadog.configuration[:rails][:tracer]
-    @original_writer = @original_tracer.writer
+    Datadog.configuration[:sidekiq][:tracer] = tracer
 
-    Datadog.tracer.writer = tracer.writer
-
-    Datadog.configuration[:rails][:tracer] = tracer
-
-    # configure Sidekiq
     Sidekiq.configure_client do |config|
-      config.redis = {url: ENV['REDIS_URL']}
+      config.redis = { url: ENV['REDIS_URL'] }
     end
 
     Sidekiq.configure_server do |config|
-      config.redis = {url: ENV['REDIS_URL']}
+      config.redis = { url: ENV['REDIS_URL'] }
     end
 
     Sidekiq::Testing.inline!
-  end
-
-  after do
-    Datadog.configuration[:rails][:tracer] = @original_tracer
-    Datadog.configuration[:rails][:tracer].writer = @original_writer
   end
 
   before { app }

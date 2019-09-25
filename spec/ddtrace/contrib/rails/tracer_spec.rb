@@ -1,24 +1,11 @@
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'Tracer' do
+RSpec.describe 'Rails tracer' do
   include_context 'Rails test application'
-  include_context 'Tracer'
 
-  before { app } # Force Rails initialization
+  before { app }
 
   let(:config) { Datadog.configuration[:rails] }
-
-  before do
-    # don't pollute the global tracer
-    Datadog.configuration[:rails].reset_options!
-    config[:tracer] = tracer
-
-    Datadog::Contrib::Rails::Framework.setup
-  end
-
-  after do
-    reset_config
-  end
 
   it 'configurations application correctly' do
     expect(app_name).to eq(config[:service_name])

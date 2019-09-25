@@ -3,27 +3,23 @@ require 'ddtrace/contrib/rails/ext'
 
 require 'ddtrace/contrib/rails/rails_helper'
 
-# TODO better method names and RSpec contexts
 RSpec.describe 'Rails cache' do
   include_context 'Rails test application'
-  include_context 'Tracer'
 
   before do
-    @original_tracer = Datadog.configuration[:rails][:tracer]
     Datadog.configuration[:rails][:cache_service] = 'rails-cache'
-    Datadog.configuration[:rails][:tracer] = tracer
-  end
-
-  after do
-    Datadog.configuration[:rails][:tracer] = @original_tracer
   end
 
   before { app }
 
-  context '#read' do
-    subject(:read) { Rails.cache.read('custom-key') }
+  let(:cache) { Rails.cache }
 
-    before { Rails.cache.write('custom-key', 50) }
+  let(:key) { 'custom-key' }
+
+  context '#read' do
+    subject(:read) { cache.read(key) }
+
+    before { cache.write(key, 50) }
 
     it do
       expect(read).to eq(50)
@@ -35,14 +31,13 @@ RSpec.describe 'Rails cache' do
       expect(get.resource).to eq('GET')
       expect(get.service).to eq('rails-cache')
       expect(get.get_tag('rails.cache.backend').to_s).to eq('file_store')
-      expect(get.get_tag('rails.cache.key')).to eq('custom-key')
+      expect(get.get_tag('rails.cache.key')).to eq(key)
       expect(set.name).to eq('rails.cache')
     end
   end
 
   context '#write' do
-    subject(:write) { Rails.cache.write(key, 50) }
-    let(:key) { 'custom-key' }
+    subject(:write) { cache.write(key, 50) }
 
     it do
       write
@@ -55,8 +50,7 @@ RSpec.describe 'Rails cache' do
     end
 
     context 'with custom cache_service' do
-      before { update_config(:cache_service, 'service-cache') }
-      after { reset_config }
+      before { Datadog.configuration[:rails][:cache_service] = 'service-cache' }
 
       it 'uses the proper service name' do
         write
@@ -76,7 +70,7 @@ RSpec.describe 'Rails cache' do
   end
 
   context '#delete' do
-    subject!(:delete) { Rails.cache.delete('custom-key') }
+    subject!(:delete) { cache.delete(key) }
 
     it do
       expect(span.name).to eq('rails.cache')
@@ -84,13 +78,13 @@ RSpec.describe 'Rails cache' do
       expect(span.resource).to eq('DELETE')
       expect(span.service).to eq('rails-cache')
       expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
-      expect(span.get_tag('rails.cache.key')).to eq('custom-key')
+      expect(span.get_tag('rails.cache.key')).to eq(key)
     end
   end
 
   context '#fetch' do
     context 'with exception' do
-      subject(:fetch) { Rails.cache.fetch('exception') { raise 'oops' } }
+      subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
 
       it do
         expect { fetch }.to raise_error(StandardError)
@@ -111,7 +105,7 @@ RSpec.describe 'Rails cache' do
     it 'truncates key too large' do
       max_key_size = Datadog::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
       large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)
-      Rails.cache.write(large_key, 'foobar')
+      cache.write(large_key, 'foobar')
 
       expect(large_key.size).to be > max_key_size
       expect(span.name).to eq('rails.cache')

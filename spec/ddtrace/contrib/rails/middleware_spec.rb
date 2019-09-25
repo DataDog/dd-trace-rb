@@ -1,6 +1,6 @@
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails request' do
+RSpec.describe 'Rails middleware' do
   include Rack::Test::Methods
   include_context 'Rails test application'
 
@@ -15,12 +15,6 @@ RSpec.describe 'Rails request' do
     end)
   end
 
-  let(:tracer) { get_test_tracer }
-
-  def all_spans
-    tracer.writer.spans(:keep)
-  end
-
   RSpec::Matchers.define :have_kind_of_middleware do |expected|
     match do |actual|
       while actual
@@ -31,17 +25,15 @@ RSpec.describe 'Rails request' do
     end
   end
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
-      c.use :rack, rack_options if use_rack
-      c.use :rails, rails_options if use_rails
+      c.use :rack if use_rack
+      c.use :rails, rails_options
     end
   end
 
   let(:use_rack) { true }
-  let(:rack_options) { { tracer: tracer } }
-  let(:use_rails) { true }
-  let(:rails_options) { { tracer: tracer } }
+  let(:rails_options) { {} }
 
   context 'with middleware' do
     context 'that does nothing' do
@@ -58,7 +50,7 @@ RSpec.describe 'Rails request' do
       end
 
       context 'and added after tracing is enabled' do
-        before(:each) do
+        before do
           passthrough_middleware = middleware
           rails_test_application.configure { config.app_middleware.use passthrough_middleware }
         end
@@ -92,7 +84,7 @@ RSpec.describe 'Rails request' do
       end
 
       context 'and added after tracing is enabled' do
-        before(:each) do
+        before do
           custom_span_middleware = middleware
           rails_test_application.configure { config.app_middleware.use custom_span_middleware }
         end
@@ -103,7 +95,7 @@ RSpec.describe 'Rails request' do
 
           it do
             get '/'
-            span = all_spans.find { |s| s.name == 'rack.request' }
+            span = spans.find { |s| s.name == 'rack.request' }
             expect(span.resource).to eq('TestController#index')
           end
         end
@@ -111,7 +103,7 @@ RSpec.describe 'Rails request' do
     end
 
     context 'that raises an exception' do
-      before(:each) { get '/' }
+      before { get '/' }
 
       let(:rails_middleware) { [middleware] }
       let(:middleware) do
@@ -130,11 +122,11 @@ RSpec.describe 'Rails request' do
       it do
         expect(app).to have_kind_of_middleware(middleware)
         expect(last_response).to be_server_error
-        expect(all_spans.length).to be >= 2
+        expect(spans).to have_at_least(2).items
       end
 
       context 'rack span' do
-        subject(:span) { all_spans.first }
+        subject(:span) { spans.first }
 
         it do
           expect(span.name).to eq('rack.request')
@@ -152,7 +144,7 @@ RSpec.describe 'Rails request' do
     end
 
     context 'that raises a known NotFound exception' do
-      before(:each) { get '/' }
+      before { get '/' }
 
       let(:rails_middleware) { [middleware] }
       let(:middleware) do
@@ -171,11 +163,11 @@ RSpec.describe 'Rails request' do
       it do
         expect(app).to have_kind_of_middleware(middleware)
         expect(last_response).to be_not_found
-        expect(all_spans.length).to be >= 2
+        expect(spans).to have_at_least(2).items
       end
 
       context 'rack span' do
-        subject(:span) { all_spans.first }
+        subject(:span) { spans.first }
 
         it do
           expect(span.name).to eq('rack.request')
@@ -202,7 +194,7 @@ RSpec.describe 'Rails request' do
     end
 
     context 'that raises a custom exception' do
-      before(:each) { get '/' }
+      before { get '/' }
 
       let(:rails_middleware) { [middleware] }
       let(:error_class) do
@@ -232,11 +224,11 @@ RSpec.describe 'Rails request' do
       it do
         expect(app).to have_kind_of_middleware(middleware)
         expect(last_response).to be_server_error
-        expect(all_spans.length).to be >= 2
+        expect(spans).to have_at_least(2).items
       end
 
       context 'rack span' do
-        subject(:span) { all_spans.first }
+        subject(:span) { spans.first }
 
         it do
           expect(span.name).to eq('rack.request')
@@ -267,7 +259,7 @@ RSpec.describe 'Rails request' do
             end
           end
 
-          after(:each) do
+          after do
             # Be sure to delete configuration after, so it doesn't carry over to other examples.
             # TODO: Clear this configuration automatically via rails_helper shared examples
             ActionDispatch::Railtie.config.action_dispatch.rescue_responses.delete('CustomError')
@@ -279,11 +271,11 @@ RSpec.describe 'Rails request' do
           it do
             expect(app).to have_kind_of_middleware(middleware)
             expect(last_response).to be_not_found
-            expect(all_spans.length).to be >= 2
+            expect(spans).to have_at_least(2).items
           end
 
           context 'rack span' do
-            subject(:span) { all_spans.first }
+            subject(:span) { spans.first }
 
             it do
               expect(span.name).to eq('rack.request')

@@ -6,32 +6,31 @@ require 'ddtrace/contrib/rails/rails_helper'
 # framework to do it for them. So it should work smoothly without
 # including anything.
 # raise 'Redis cannot be loaded for a realistic Rails test' if defined? Redis
+RSpec.describe 'Rails Redis cache' do
+  before(:all) do
+    expect(Datadog::Contrib::ActiveSupport::Cache::Patcher.patched?).to(
+      be_falsey, <<MESSAGE)
+      ActiveSupport::Cache has already been patched.
+      This suite tests the behaviour of dd-trace-rb when patching with Redis enabled.
+      Please run this suite before ActiveSupport::Cache is patched.
+MESSAGE
+  end
 
-# TODO better method names and RSpec contexts
-RSpec.describe 'Rails application' do
   include_context 'Rails test application'
-  include_context 'Tracer'
 
   before do
     host = ENV.fetch('TEST_REDIS_HOST', '127.0.0.1')
     port = ENV.fetch('TEST_REDIS_PORT', 6379)
 
     allow(ENV).to receive(:[]).and_call_original
-    allow(ENV).to receive(:[]).with("REDIS_URL").and_return("redis://#{host}:#{port}")
+    allow(ENV).to receive(:[]).with('REDIS_URL').and_return("redis://#{host}:#{port}")
   end
 
   before { app }
 
   before do
-    # switch Rails with a dummy tracer
-    @original_tracer = Datadog.configuration[:rails][:tracer]
-    Datadog.configuration[:rails][:tracer] = tracer
     Datadog.configuration.use(:redis)
-    Datadog.configure(client_from_driver(driver), tracer: tracer)
-  end
-
-  after do
-    Datadog.configuration[:rails][:tracer] = @original_tracer
+    Datadog.configure(client_from_driver(driver), tracer_options)
   end
 
   let(:driver) do
@@ -44,23 +43,22 @@ RSpec.describe 'Rails application' do
     Gem.loaded_specs['redis-activesupport'] ? 'redis_store' : 'redis_cache_store'
   end
 
-  it 'cache.read() and cache.fetch() are properly traced' do
-    # read and fetch should behave exactly the same, and we shall
-    # never see a read() having a fetch() as parent.
-    [:read, :fetch].each do |f|
-      # use the cache and assert the proper span
-      Rails.cache.write('custom-key', 50)
-      value = Rails.cache.send(f, 'custom-key')
-      expect(value).to eq(50)
+  let(:cache) { Rails.cache }
+  after { cache.clear }
+
+  let(:key) { 'custom-key' }
+
+  shared_examples 'reader method' do |method|
+    subject(:read) { cache.public_send(method, key) }
+
+    before { cache.write(key, 50) }
+
+    it do
+      expect(read).to eq(50)
 
       expect(spans).to have(4).items
       cache, _, redis, = spans
-      expect(cache.name).to eq('rails.cache')
-      expect(cache.span_type).to eq('cache')
-      expect(cache.resource).to eq('GET')
-      expect(cache.service).to eq("#{app_name}-cache")
-      expect(cache.get_tag('rails.cache.backend').to_s).to eq(cache_store_name)
-      expect(cache.get_tag('rails.cache.key')).to eq('custom-key')
+      expect(cache.get_tag('rails.cache.backend')).to eq(cache_store_name)
 
       expect(redis.name).to eq('redis.command')
       expect(redis.span_type).to eq('redis')
@@ -73,102 +71,84 @@ RSpec.describe 'Rails application' do
     end
   end
 
-  it 'cache.fetch() is properly traced and handles blocks' do
-    Rails.cache.delete('custom-key')
-    clear_spans # empty spans
-
-    # value does not exist, fetch should both store it and return it
-    value = Rails.cache.fetch('custom-key') do
-      51
-    end
-    expect(value).to eq(51)
-
-    expect(spans).to have(4).items
-
-    cache_get, cache_set, redis_get, redis_set = spans
-
-    expect(cache_set.name).to eq('rails.cache')
-    expect(cache_set.resource).to eq('SET')
-    expect(redis_set.name).to eq('redis.command')
-    expect(cache_get.name).to eq('rails.cache')
-    expect(cache_get.resource).to eq('GET')
-    expect(redis_get.name).to eq('redis.command')
-
-    # check that the value is really updated, and persistent
-    value = Rails.cache.read('custom-key')
-    clear_spans # empty spans
-    expect(value).to eq(51)
-
-    # if value exists, fetch returns it and does no update
-    value = Rails.cache.fetch('custom-key') do
-      52
-    end
-    expect(value).to eq(51)
-
-    expect(spans).to have(2).items
-
-    cache, redis = spans
-    expect(cache.name).to eq('rails.cache')
-    expect(redis.name).to eq('redis.command')
+  context '#read' do
+    it_behaves_like 'reader method', :read
   end
 
-  it 'cache.write() is properly traced' do
-    # use the cache and assert the proper span
-    Rails.cache.write('custom-key', 50)
-    expect(spans).to have(2).items
-    cache, redis = spans
+  context '#fetch' do
+    it_behaves_like 'reader method', :fetch
 
-    expect(cache.name).to eq('rails.cache')
-    expect(cache.span_type).to eq('cache')
-    expect(cache.resource).to eq('SET')
-    expect(cache.service).to eq("#{app_name}-cache")
-    expect(cache.get_tag('rails.cache.backend').to_s).to eq(cache_store_name)
-    expect(cache.get_tag('rails.cache.key')).to eq('custom-key')
+    context 'with block' do
+      subject(:fetch) { cache.fetch(key) { 51 } }
 
-    expect(redis.name).to eq('redis.command')
-    expect(redis.span_type).to eq('redis')
-    expect(redis.resource).to match(/SET custom-key .*ActiveSupport.*/)
-    expect(redis.get_tag('redis.raw_command')).to match(/SET custom-key .*ActiveSupport.*/)
-    expect(redis.service).to eq('redis')
-    # the following ensures span will be correctly displayed (parent/child of the same trace)
-    expect(cache.trace_id).to eq(redis.trace_id)
-    expect(cache.span_id).to eq(redis.parent_id)
-  end
+      it 'retrieves and stores default value' do
+        expect(fetch).to eq(51)
 
-  it 'cache.delete() is properly traced' do
-    # use the cache and assert the proper span
-    Rails.cache.delete('custom-key')
-    expect(spans).to have(2).items
-    cache, del = spans
+        expect(spans).to have(4).items
 
-    expect(cache.name).to eq('rails.cache')
-    expect(cache.span_type).to eq('cache')
-    expect(cache.resource).to eq('DELETE')
-    expect(cache.service).to eq("#{app_name}-cache")
-    expect(cache.get_tag('rails.cache.backend').to_s).to eq(cache_store_name)
-    expect(cache.get_tag('rails.cache.key')).to eq('custom-key')
+        cache_get, cache_set, redis_get, redis_set = spans
 
-    expect(del.name).to eq('redis.command')
-    expect(del.span_type).to eq('redis')
-    expect(del.resource).to eq('DEL custom-key')
-    expect(del.get_tag('redis.raw_command')).to eq('DEL custom-key')
-    expect(del.service).to eq('redis')
-    # the following ensures span will be correctly displayed (parent/child of the same trace)
-    expect(cache.trace_id).to eq(del.trace_id)
-    expect(cache.span_id).to eq(del.parent_id)
-  end
+        expect(cache_set.name).to eq('rails.cache')
+        expect(cache_set.resource).to eq('SET')
+        expect(redis_set.name).to eq('redis.command')
+        expect(cache_get.name).to eq('rails.cache')
+        expect(cache_get.resource).to eq('GET')
+        expect(redis_get.name).to eq('redis.command')
 
-  it 'cache key is expanded using ActiveSupport' do
-    class User
-      def cache_key
-        'User:3'
+        # check that the value is really updated, and persistent
+        expect(cache.read(key)).to eq(51)
+        clear_spans
+
+        # if value exists, fetch returns it and does no update
+        expect(cache.fetch(key) { 7 }).to eq(51)
+
+        expect(spans).to have(2).items
+
+        cache, redis = spans
+        expect(cache.name).to eq('rails.cache')
+        expect(redis.name).to eq('redis.command')
       end
     end
+  end
 
-    Rails.cache.write(['custom-key', %w[x y], User.new], 50)
-    expect(spans).to have(2).items
-    cache, _redis = spans
-    expect(cache.get_tag('rails.cache.key')).to eq('custom-key/x/y/User:3')
+  context '#write' do
+    subject!(:write) { cache.write(key, 50) }
+
+    it do
+      expect(spans).to have(2).items
+      cache, redis = spans
+
+      expect(cache.get_tag('rails.cache.backend')).to eq(cache_store_name)
+
+      expect(redis.name).to eq('redis.command')
+      expect(redis.span_type).to eq('redis')
+      expect(redis.resource).to match(/SET custom-key .*ActiveSupport.*/)
+      expect(redis.get_tag('redis.raw_command')).to match(/SET custom-key .*ActiveSupport.*/)
+      expect(redis.service).to eq('redis')
+      # the following ensures span will be correctly displayed (parent/child of the same trace)
+      expect(cache.trace_id).to eq(redis.trace_id)
+      expect(cache.span_id).to eq(redis.parent_id)
+    end
+  end
+
+  context '#write' do
+    subject!(:write) { cache.delete(key) }
+
+    it do
+      expect(spans).to have(2).items
+      cache, del = spans
+
+      expect(cache.get_tag('rails.cache.backend')).to eq(cache_store_name)
+
+      expect(del.name).to eq('redis.command')
+      expect(del.span_type).to eq('redis')
+      expect(del.resource).to eq('DEL custom-key')
+      expect(del.get_tag('redis.raw_command')).to eq('DEL custom-key')
+      expect(del.service).to eq('redis')
+      # the following ensures span will be correctly displayed (parent/child of the same trace)
+      expect(cache.trace_id).to eq(del.trace_id)
+      expect(cache.span_id).to eq(del.parent_id)
+    end
   end
 
   private
