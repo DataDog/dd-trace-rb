@@ -8,11 +8,19 @@ RSpec.describe 'Rails middleware' do
   let(:controllers) { [controller] }
 
   let(:controller) do
+    begin
+      puts 'a'
+      # x = ActionController::Base
+      puts 'b'
     stub_const('TestController', Class.new(ActionController::Base) do
       def index
         head :ok
       end
     end)
+    rescue => e
+      puts e
+      puts e.backtrace
+    end
   end
 
   RSpec::Matchers.define :have_kind_of_middleware do |expected|

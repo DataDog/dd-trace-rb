@@ -3,7 +3,7 @@ require 'ddtrace/contrib/rails/ext'
 
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails cache' do
+RSpec.xdescribe 'Rails cache' do
   include_context 'Rails test application'
 
   before do
@@ -36,7 +36,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context '#write' do
+  xcontext '#write' do
     subject(:write) { cache.write(key, 50) }
 
     it do
@@ -69,7 +69,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context '#delete' do
+  xcontext '#delete' do
     subject!(:delete) { cache.delete(key) }
 
     it do
@@ -82,7 +82,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context '#fetch' do
+  xcontext '#fetch' do
     context 'with exception' do
       subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
 
@@ -101,7 +101,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context 'with very large cache key' do
+  xcontext 'with very large cache key' do
     it 'truncates key too large' do
       max_key_size = Datadog::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
       large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)

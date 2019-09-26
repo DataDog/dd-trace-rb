@@ -364,14 +364,14 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-cache', '1.7.1'
     end
 
-    appraise 'rails32-mysql2' do
-      gem 'test-unit'
-      gem 'rails', '3.2.22.5'
-      gem 'mysql2', '0.3.21', platform: :ruby
-      gem 'activerecord-mysql-adapter', platform: :ruby
-      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
-      gem 'rack-cache', '1.7.1'
-    end
+    # appraise 'rails32-mysql2' do
+    #   gem 'test-unit'
+    #   gem 'rails', '3.2.22.5'
+    #   gem 'mysql2', '0.3.21', platform: :ruby
+    #   gem 'activerecord-mysql-adapter', platform: :ruby
+    #   gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+    #   gem 'rack-cache', '1.7.1'
+    # end
 
     appraise 'rails32-postgres' do
       gem 'test-unit'

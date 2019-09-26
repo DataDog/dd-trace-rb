@@ -6,7 +6,7 @@ require 'ddtrace/contrib/rails/rails_helper'
 # framework to do it for them. So it should work smoothly without
 # including anything.
 # raise 'Redis cannot be loaded for a realistic Rails test' if defined? Redis
-RSpec.describe 'Rails Redis cache' do
+RSpec.xdescribe 'Rails Redis cache' do
   before(:all) do
     expect(Datadog::Contrib::ActiveSupport::Cache::Patcher.patched?).to(
       be_falsey, <<MESSAGE)

@@ -4,7 +4,7 @@
 
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails disabled' do
+RSpec.xdescribe 'Rails disabled' do
   before(:all) do
     expect(Datadog::Contrib::Rails::Patcher.patched?).to(
       be_falsey, <<MESSAGE)

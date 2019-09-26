@@ -1,13 +1,17 @@
 # This module tests the right integration between Sidekiq and
 # Rails. Functionality tests for Rails and Sidekiq must go
 # in their testing modules.
-require 'sidekiq/testing'
-require 'ddtrace/contrib/sidekiq/server_tracer'
-require 'active_job'
-
+# require 'sidekiq/testing'
+# require 'ddtrace/contrib/sidekiq/server_tracer'
+begin
+  require 'active_job'
+rescue LoadError
+end
 require 'ddtrace/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails with Sidekiq' do
+  before { skip unless defined? ::ActiveJob }
+
   include_context 'Rails test application'
 
   before do

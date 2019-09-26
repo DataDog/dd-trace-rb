@@ -1,6 +1,6 @@
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails database' do
+RSpec.xdescribe 'Rails database' do
   include_context 'Rails test application'
 
   let(:database_service) { adapter_name }
