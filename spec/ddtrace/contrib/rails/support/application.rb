@@ -12,10 +12,13 @@ RSpec.shared_context 'Rails test application' do
 
   after do
     # Reset references stored in the Rails class
-    Rails.app_class = nil
-    Rails.cache = nil
-    Rails.logger = nil
     Rails.application = nil
+    Rails.logger = nil
+
+    if Rails::VERSION::MAJOR >= 4
+      Rails.app_class = nil
+      Rails.cache = nil
+    end
   end
 
   let(:app) do
