@@ -44,7 +44,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [gRPC](#grpc)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
-     - [Net/HTTP](#nethttp)
+     - [Net/HTTP](#net-http)
      - [Racecar](#racecar)
      - [Rack](#rack)
      - [Rails](#rails)
@@ -342,7 +342,7 @@ For a list of available integrations, and their configuration options, please re
 | gRPC                     | `grpc`                     | `>= 1.10`                | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
 | MongoDB                  | `mongo`                    | `>= 2.0`                 | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
-| Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
+| Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#net-http)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
 | Racecar                  | `racecar`                  | `>= 0.3.5`               | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
 | Rack                     | `rack`                     | `>= 1.4.7`               | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
 | Rails                    | `rails`                    | `>= 3.2, < 6.0`         | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
@@ -1627,8 +1627,8 @@ For more details on how to activate distributed tracing for integrations, see th
 
 - [Excon](#excon)
 - [Faraday](#faraday)
-- [Rest Client](#restclient)
-- [Net/HTTP](#nethttp)
+- [Rest Client](#rest-client)
+- [Net/HTTP](#net-http)
 - [Rack](#rack)
 - [Rails](#rails)
 - [Sinatra](#sinatra)
