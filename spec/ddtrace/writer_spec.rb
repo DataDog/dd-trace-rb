@@ -48,11 +48,12 @@ RSpec.describe Datadog::Writer do
         subject(:send_spans) { writer.send_spans(traces, writer.transport) }
         let(:traces) { get_test_traces(1) }
         let(:transport_stats) { instance_double(Datadog::Transport::Statistics) }
+        let(:responses) { [response] }
 
         before do
           allow(transport).to receive(:send_traces)
             .with(traces)
-            .and_return(response)
+            .and_return(responses)
 
           allow(transport).to receive(:stats).and_return(transport_stats)
         end
@@ -94,7 +95,7 @@ RSpec.describe Datadog::Writer do
         end
 
         context 'which returns a response that is' do
-          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
+          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
 
           context 'successful' do
             before do
@@ -158,9 +159,39 @@ RSpec.describe Datadog::Writer do
           end
         end
 
+        context 'with multiple responses' do
+          let(:response1) do
+            instance_double(Datadog::Transport::HTTP::Traces::Response,
+                            internal_error?: false,
+                            server_error?: false,
+                            trace_count: 10)
+          end
+          let(:response2) do
+            instance_double(Datadog::Transport::HTTP::Traces::Response,
+                            internal_error?: false,
+                            server_error?: false,
+                            trace_count: 20)
+          end
+
+          let(:responses) { [response1, response2] }
+
+          context 'and at least one being server error' do
+            let(:response2) do
+              instance_double(Datadog::Transport::HTTP::Traces::Response,
+                              internal_error?: false,
+                              server_error?: true)
+            end
+
+            it do
+              is_expected.to be_falsey
+              expect(writer.stats[:traces_flushed]).to eq(10)
+            end
+          end
+        end
+
         context 'with report hostname' do
           let(:hostname) { 'my-host' }
-          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
+          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
 
           before do
             allow(Datadog::Runtime::Socket).to receive(:hostname).and_return(hostname)
@@ -181,7 +212,7 @@ RSpec.describe Datadog::Writer do
               expect(transport).to receive(:send_traces) do |traces|
                 root_span = traces.first.first
                 expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to eq(hostname)
-                response
+                [response]
               end
 
               send_spans
@@ -200,7 +231,7 @@ RSpec.describe Datadog::Writer do
               expect(writer.transport).to receive(:send_traces) do |traces|
                 root_span = traces.first.first
                 expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to be nil
-                response
+                [response]
               end
 
               send_spans

@@ -20,20 +20,6 @@ RSpec.describe Datadog::Transport::Traces::Parcel do
 
     it { is_expected.to be length }
   end
-
-  describe '#encode_with' do
-    subject(:encode_with) { parcel.encode_with(encoder) }
-    let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
-    let(:encoded_data) { double('encoded data') }
-
-    before do
-      expect(encoder).to receive(:encode_traces)
-        .with(data)
-        .and_return(encoded_data)
-    end
-
-    it { is_expected.to be encoded_data }
-  end
 end
 
 RSpec.describe Datadog::Transport::Traces::Request do

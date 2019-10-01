@@ -37,11 +37,11 @@ RSpec.describe Datadog::Transport::HTTP::Client do
       expect(api).to receive(:send_traces) do |env|
         expect(env).to be_a_kind_of(Datadog::Transport::HTTP::Env)
         expect(env.request).to be_a_kind_of(Datadog::Transport::Traces::Request)
-        response
+        [response]
       end
     end
 
-    it { is_expected.to be response }
+    it { is_expected.to eq([response]) }
   end
 end
 
@@ -153,12 +153,14 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
 
     before do
       allow(handler).to receive(:http_response).and_return(http_response)
-      allow(encoder).to receive(:encode_traces).with(traces).and_return(encoded_traces)
+      allow(encoder).to receive(:encode_traces).with(traces) do |&block|
+        [block.call(encoded_traces, traces.size)]
+      end
     end
 
     shared_examples_for 'traces request' do
       it 'has correct attributes' do
-        is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Traces::Response)
+        is_expected.to all(be_a(Datadog::Transport::HTTP::Traces::Response))
         expect(handler).to have_received(:verb).with(:post)
         expect(handler).to have_received(:path).with(path)
         expect(handler).to have_received(:body).with(encoded_traces)
@@ -167,6 +169,10 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
           described_class::HEADER_TRACE_COUNT => '2'
         )
       end
+    end
+
+    it 'response has trace count' do
+      expect(call.first.trace_count).to eq(2)
     end
 
     context 'when service_rates? is false' do
@@ -186,7 +192,7 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
 
       it_behaves_like 'traces request'
       it 'includes service rates' do
-        expect(call.service_rates).to eq(service_rates)
+        expect(call.first.service_rates).to eq(service_rates)
       end
     end
   end

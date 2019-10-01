@@ -12,10 +12,13 @@ RSpec.describe 'Datadog::Transport::HTTP integration tests' do
     it { is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Client) }
 
     describe '#send_traces' do
-      subject(:response) { client.send_traces(traces) }
+      subject(:responses) { client.send_traces(traces) }
       let(:traces) { get_test_traces(2) }
       it do
-        is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Traces::Response)
+        is_expected.to all(be_a(Datadog::Transport::HTTP::Traces::Response))
+
+        expect(responses).to have(1).item
+        response = responses.first
         expect(response.ok?).to be true
         expect(response.service_rates).to_not be nil
       end

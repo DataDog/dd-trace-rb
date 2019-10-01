@@ -40,6 +40,7 @@ RSpec.describe Datadog::Transport::HTTP::Client do
     let(:response) do
       stub_const('TestResponse', Class.new { include Datadog::Transport::Response }).new
     end
+    let(:responses) { [response] }
 
     context 'given a block' do
       let(:handler) { double }
@@ -55,14 +56,14 @@ RSpec.describe Datadog::Transport::HTTP::Client do
       before do
         allow(handler).to receive(:api)
         allow(handler).to receive(:env)
-        allow(handler).to receive(:response).and_return(response)
+        allow(handler).to receive(:response).and_return(responses)
       end
 
       context 'which returns an OK response' do
         before { allow(response).to receive(:ok?).and_return(true) }
 
         it 'sends to only the current API once' do
-          is_expected.to be response
+          is_expected.to eq(responses)
           expect(handler).to have_received(:api).with(api_v2).once
           expect(handler).to_not have_received(:api).with(api_v1)
           expect(handler).to have_received(:env).with(kind_of(Datadog::Transport::HTTP::Env)).once
@@ -83,7 +84,7 @@ RSpec.describe Datadog::Transport::HTTP::Client do
         end
 
         it 'attempts each API once as it falls back after each failure' do
-          is_expected.to be response
+          is_expected.to eq(responses)
           expect(handler).to have_received(:api).with(api_v2).once
           expect(handler).to have_received(:api).with(api_v1).once
           expect(handler).to have_received(:env).with(kind_of(Datadog::Transport::HTTP::Env)).twice
@@ -104,7 +105,7 @@ RSpec.describe Datadog::Transport::HTTP::Client do
         end
 
         it 'attempts each API once as it falls back after each failure' do
-          is_expected.to be response
+          is_expected.to eq(responses)
           expect(handler).to have_received(:api).with(api_v2).once
           expect(handler).to have_received(:api).with(api_v1).once
           expect(handler).to have_received(:env).with(kind_of(Datadog::Transport::HTTP::Env)).twice
@@ -169,6 +170,45 @@ RSpec.describe Datadog::Transport::HTTP::Client do
             expect(client.stats.server_error).to eq(0)
             expect(client.stats.internal_error).to eq(2)
             expect(client.stats.consecutive_errors).to eq(2)
+          end
+        end
+      end
+
+      context 'which returns multiple responses' do
+        let(:error_response) do
+          stub_const('TestResponse', Class.new { include Datadog::Transport::Response }).new
+        end
+        let(:responses) { [response, error_response] }
+
+        before do
+          allow(response).to receive(:ok?).and_return(true)
+          allow(error_response).to receive(:ok?).and_return(false)
+          allow(error_response).to receive(:client_error?).and_return(true)
+        end
+
+        it 'updates statistics' do
+          is_expected.to eq(responses)
+
+          expect(client.stats.success).to eq(1)
+          expect(client.stats.client_error).to eq(1)
+        end
+
+        context 'with an unsupported response' do
+          before do
+            allow(error_response).to receive(:unsupported?).and_return(true)
+          end
+
+          it 'downgrades connection' do
+            is_expected.to eq(responses)
+
+            expect(client.current_api).to eq(api_v1)
+          end
+
+          it 'updates statistics for both original and downgraded request' do
+            is_expected.to eq(responses)
+
+            expect(client.stats.success).to eq(2)
+            expect(client.stats.client_error).to eq(2)
           end
         end
       end

@@ -192,41 +192,6 @@ class FauxTransport < Datadog::Transport::HTTP::Client
   end
 end
 
-# SpyTransport is a dummy Datadog::Transport that tracks what would be sent.
-class SpyTransport < Datadog::Transport::HTTP::Client
-  attr_reader :helper_sent
-
-  def initialize(*)
-    @helper_sent = { 200 => {}, 500 => {} }
-    @helper_mutex = Mutex.new
-    @helper_error_mode = false
-    @helper_encoder = Datadog::Encoding::JSONEncoder # easiest to inspect
-  end
-
-  def send_traces(data)
-    data = @helper_encoder.encode_traces(data)
-
-    @helper_mutex.synchronize do
-      code = @helper_error_mode ? 500 : 200
-      @helper_sent[code][:traces] = [] unless @helper_sent[code].key?(:traces)
-      @helper_sent[code][:traces] << data
-      return build_trace_response(code)
-    end
-  end
-
-  def dump
-    Marshal.load(Marshal.dump(@helper_sent))
-  end
-
-  def build_trace_response(code)
-    Datadog::Transport::HTTP::Traces::Response.new(
-      Datadog::Transport::HTTP::Adapters::Net::Response.new(
-        Net::HTTPResponse.new(1.0, code, code.to_s)
-      )
-    )
-  end
-end
-
 # update Datadog user configuration; you should pass:
 #
 # * +key+: the key that should be updated

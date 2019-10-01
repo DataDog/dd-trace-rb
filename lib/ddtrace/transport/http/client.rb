@@ -23,19 +23,19 @@ module Datadog
           # Build request into env
           env = build_env(request)
 
-          # Get response from API
-          response = yield(current_api, env)
+          # Get responses from API
+          responses = yield(current_api, env)
 
           # Update statistics
-          update_stats_from_response!(response)
+          responses.each { |r| update_stats_from_response!(r) }
 
           # If API should be downgraded, downgrade and try again.
-          if downgrade?(response)
+          if responses.find { |r| downgrade?(r) }
             downgrade!
-            response = send_request(request, &block)
+            responses = send_request(request, &block)
           end
 
-          response
+          responses
         rescue StandardError => e
           message = "Internal error during HTTP transport request. Cause: #{e.message} Location: #{e.backtrace.first}"
 

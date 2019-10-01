@@ -11,10 +11,6 @@ module Datadog
         def count
           data.length
         end
-
-        def encode_with(encoder)
-          encoder.encode_traces(data)
-        end
       end
 
       # Traces request
@@ -26,7 +22,7 @@ module Datadog
 
       # Traces response
       module Response
-        attr_reader :service_rates
+        attr_reader :service_rates, :trace_count
       end
     end
   end
