@@ -20,7 +20,9 @@ module Datadog
         end
 
         def format_command_args(command_args)
+          command_args = resolve_command_args(command_args)
           return 'AUTH ?' if auth_command?(command_args)
+
           cmd = command_args.map { |x| format_arg(x) }.join(' ')
           Utils.truncate(cmd, CMD_MAX_LEN, TOO_LONG_MARK)
         end
@@ -29,6 +31,16 @@ module Datadog
           return false unless command_args.is_a?(Array) && !command_args.empty?
           command_args.first.to_sym == :auth
         end
+
+        # Unwraps command array when Redis is called with the following syntax:
+        #   redis.call([:cmd, 'arg1', ...])
+        def resolve_command_args(command_args)
+          return command_args.first if command_args.is_a?(Array) && command_args.first.is_a?(Array)
+
+          command_args
+        end
+
+        private_class_method :auth_command?, :resolve_command_args
       end
     end
   end

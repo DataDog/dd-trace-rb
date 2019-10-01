@@ -1,5 +1,8 @@
 require 'action_view/testing/resolvers'
 
+# ActionText requires an ApplicationController to be defined since Rails 6
+class ApplicationController < ActionController::Base; end
+
 class TracingController < ActionController::Base
   include Rails.application.routes.url_helpers
 
@@ -106,37 +109,5 @@ end
 class ErrorsController < ActionController::Base
   def internal_server_error
     head :internal_server_error
-  end
-end
-
-routes = {
-  '/' => 'tracing#index',
-  '/nested_partial' => 'tracing#nested_partial',
-  '/partial' => 'tracing#partial',
-  '/full' => 'tracing#full',
-  '/error' => 'tracing#error',
-  '/soft_error' => 'tracing#soft_error',
-  '/sub_error' => 'tracing#sub_error',
-  '/not_found' => 'tracing#not_found',
-  '/error_template' => 'tracing#error_template',
-  '/error_partial' => 'tracing#error_partial',
-  '/missing_template' => 'tracing#missing_template',
-  '/missing_partial' => 'tracing#missing_partial',
-  '/custom_resource' => 'tracing#custom_resource',
-  '/custom_tag' => 'tracing#custom_tag',
-  '/internal_server_error' => 'errors#internal_server_error'
-}
-
-if Rails.version >= '3.2.22.5'
-  Rails.application.routes.append do
-    routes.each do |k, v|
-      get k => v
-    end
-  end
-else
-  Rails.application.routes.draw do
-    routes.each do |k, v|
-      get k, to: v
-    end
   end
 end
