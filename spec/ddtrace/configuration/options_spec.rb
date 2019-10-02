@@ -49,6 +49,19 @@ RSpec.describe Datadog::Configuration::Options do
           expect(options_class.new).to respond_to(name)
           expect(options_class.new).to respond_to("#{name}=")
         end
+
+        context 'when given :accessors' do
+          context 'as false' do
+            let(:meta) { { accessors: false } }
+
+            it 'creates an option definition without accessors' do
+              is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition)
+              expect(options_class.options).to include(name)
+              expect(options_class.new).to_not respond_to(name)
+              expect(options_class.new).to_not respond_to("#{name}=")
+            end
+          end
+        end
       end
     end
 

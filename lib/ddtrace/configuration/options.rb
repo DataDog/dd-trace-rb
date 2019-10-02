@@ -24,8 +24,10 @@ module Datadog
         protected
 
         def option(name, meta = {}, &block)
+          accessors = meta.key?(:accessors) ? meta.delete(:accessors) : true
+
           options[name] = OptionDefinition.new(name, meta, &block).tap do
-            define_option_accessors(name)
+            define_option_accessors(name) if accessors
           end
         end
 

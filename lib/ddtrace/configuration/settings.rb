@@ -44,7 +44,7 @@ module Datadog
               },
               lazy: true
 
-      option :tracer, default: Tracer.new
+      option :tracer, default: Tracer.new, accessors: false
 
       def initialize(options = {})
         configure(options)
@@ -81,7 +81,6 @@ module Datadog
       end
 
       # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
-      remove_method :tracer
       def tracer(options = nil)
         tracer = options && options.key?(:instance) ? set_option(:tracer, options[:instance]) : get_option(:tracer)
 
@@ -94,6 +93,10 @@ module Datadog
             t.class.debug_logging = options.fetch(:debug, false)
           end
         end
+      end
+
+      def tracer=(value)
+        set_option(:tracer, value)
       end
     end
   end
