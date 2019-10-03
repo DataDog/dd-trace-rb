@@ -14,12 +14,26 @@ module Datadog
         configure(options)
       end
 
-      def configure(options = {})
-        self.class.options.dependency_order.each do |name|
-          next unless options.key?(name)
-          respond_to?("#{name}=") ? send("#{name}=", options[name]) : set_option(name, options[name])
+      def configure(opts = {})
+        # Sort the options in preference of dependency order first
+        ordering = self.class.options.dependency_order
+        sorted_opts = opts.sort_by do |name, _value|
+          ordering.index(name) || (ordering.length + 1)
         end
 
+        # Ruby 2.0 doesn't support Array#to_h
+        sorted_opts = Hash[*sorted_opts.flatten]
+
+        # Apply options in sort order
+        sorted_opts.each do |name, value|
+          if respond_to?("#{name}=")
+            send("#{name}=", value)
+          elsif option_defined?(name)
+            set_option(name, value)
+          end
+        end
+
+        # Apply any additional settings from block
         yield(self) if block_given?
       end
 
