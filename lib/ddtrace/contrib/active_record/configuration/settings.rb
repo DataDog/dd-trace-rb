@@ -21,10 +21,13 @@ module Datadog
                  default: -> { Utils.adapter_name },
                  lazy: true
 
-          option :tracer, default: Datadog.tracer do |value|
-            value.tap do
-              Events.subscriptions.each do |subscription|
-                subscription.tracer = value
+          option :tracer do |o|
+            o.default Datadog.tracer
+            o.setter do |value|
+              value.tap do
+                Events.subscriptions.each do |subscription|
+                  subscription.tracer = value
+                end
               end
             end
           end

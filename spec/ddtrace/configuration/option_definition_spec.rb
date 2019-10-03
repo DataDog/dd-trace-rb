@@ -102,3 +102,207 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     end
   end
 end
+
+RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
+  subject(:builder) { described_class.new(name, initialize_options, &initialize_block) }
+
+  let(:name) { :enabled }
+  let(:initialize_options) { {} }
+  let(:initialize_block) { nil }
+
+  describe '#initialize' do
+    context 'given no arguments' do
+      context 'creates a Builder' do
+        context 'where #helpers' do
+          subject(:helpers) { builder.helpers }
+          it { is_expected.to eq({}) }
+        end
+
+        context 'where #to_definition' do
+          subject(:definition) { builder.to_definition }
+
+          it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition) }
+
+          it 'generates an OptionDefinition with defaults' do
+            is_expected.to have_attributes(
+              default: nil,
+              depends_on: [],
+              lazy: false,
+              name: name,
+              setter: Datadog::Configuration::OptionDefinition::IDENTITY
+            )
+          end
+        end
+      end
+    end
+
+    context 'given a block' do
+      it 'yields to the block' do
+        expect { |b| described_class.new(name, initialize_options, &b) }.to yield_with_args(kind_of(described_class))
+      end
+    end
+
+    context 'given options and a block' do
+      context 'that override one another' do
+        let(:initialize_options) { { default: true } }
+        let(:initialize_block) { proc { |o| o.default false } }
+
+        context '#to_definition' do
+          subject(:definition) { builder.to_definition }
+
+          it 'yields an OptionDefinition with the block\'s value' do
+            is_expected.to have_attributes(default: false)
+          end
+        end
+      end
+    end
+  end
+
+  describe '#depends_on' do
+    subject(:depends_on) { builder.depends_on(*values) }
+
+    context 'given a list of arguments' do
+      let(:values) { [:foo, :bar] }
+      it { is_expected.to eq(values) }
+    end
+
+    context 'given an nested Array' do
+      let(:values) { [[:foo], [:bar]] }
+      it { is_expected.to eq([:foo, :bar]) }
+    end
+  end
+
+  describe '#default' do
+    subject(:default) { builder.default(value, &block) }
+    let(:value) { nil }
+    let(:block) { nil }
+
+    context 'given a value' do
+      let(:value) { true }
+      it { is_expected.to be value }
+    end
+
+    context 'given a block' do
+      let(:block) { proc { false } }
+      it { is_expected.to be block }
+    end
+
+    context 'given a value and block' do
+      let(:value) { true }
+      let(:block) { proc { false } }
+      it { is_expected.to be block }
+    end
+  end
+
+  describe '#helper' do
+    subject(:helper) { builder.helper(name, *args, &block) }
+    let(:name) { :enabled }
+    let(:args) { [] }
+    let(:block) { nil }
+
+    context 'given false and no block' do
+      let(:args) { [false] }
+
+      it 'defines a nil helper' do
+        is_expected.to be nil
+        expect(builder.helpers).to include(name => nil)
+      end
+    end
+
+    context 'given a block' do
+      let(:block) { proc { :bar } }
+
+      it 'defines a helper' do
+        is_expected.to be block
+        expect(builder.helpers).to include(name => block)
+      end
+    end
+  end
+
+  describe '#lazy' do
+    subject(:lazy) { builder.lazy(value) }
+    let(:value) { true }
+    it { is_expected.to be value }
+  end
+
+  describe '#setter' do
+    subject(:setter) { builder.setter(&block) }
+    let(:block) { proc {} }
+    it { is_expected.to be block }
+  end
+
+  describe '#apply_options!' do
+    subject(:apply_options!) { builder.apply_options!(options) }
+    let(:options) { {} }
+
+    context 'given :default' do
+      let(:options) { { default: value } }
+      let(:value) { double('value') }
+
+      it do
+        expect(builder).to receive(:default).with(value)
+        apply_options!
+      end
+    end
+
+    context 'given :depends_on' do
+      let(:options) { { depends_on: value } }
+      let(:value) { [double('value'), double('value')] }
+
+      it do
+        expect(builder).to receive(:depends_on).with(*value)
+        apply_options!
+      end
+    end
+
+    context 'given :lazy' do
+      let(:options) { { lazy: value } }
+      let(:value) { double('value') }
+
+      it do
+        expect(builder).to receive(:lazy).with(value)
+        apply_options!
+      end
+    end
+
+    context 'given :setter' do
+      let(:options) { { setter: value } }
+      let(:value) { proc {} }
+
+      it do
+        expect(builder).to receive(:setter) do |&block|
+          expect(block).to be value
+        end
+
+        apply_options!
+      end
+    end
+  end
+
+  describe '#to_definition' do
+    subject(:definition) { builder.to_definition }
+    let(:option_definition) { instance_double(Datadog::Configuration::OptionDefinition) }
+
+    before do
+      expect(Datadog::Configuration::OptionDefinition).to receive(:new)
+        .with(name, builder.meta)
+        .and_return(option_definition)
+    end
+
+    it { is_expected.to be option_definition }
+  end
+
+  describe '#meta' do
+    subject(:meta) { builder.meta }
+    it { is_expected.to be_a_kind_of(Hash) }
+
+    it 'contains the arguments for OptionDefinition' do
+      expect(meta.keys).to include(
+        :default,
+        :depends_on,
+        :lazy,
+        :setter
+      )
+    end
+  end
+end

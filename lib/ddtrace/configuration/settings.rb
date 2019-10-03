@@ -46,7 +46,24 @@ module Datadog
               },
               lazy: true
 
-      option :tracer, default: Tracer.new
+      option :tracer do |o|
+        o.default Tracer.new
+
+        # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
+        o.helper :tracer do |options = nil|
+          tracer = options && options.key?(:instance) ? set_option(:tracer, options[:instance]) : get_option(:tracer)
+
+          tracer.tap do |t|
+            unless options.nil?
+              t.configure(options)
+              t.class.log = options[:log] if options[:log]
+              t.set_tags(options[:tags]) if options[:tags]
+              t.set_tags(env: options[:env]) if options[:env]
+              t.class.debug_logging = options.fetch(:debug, false)
+            end
+          end
+        end
+      end
 
       def distributed_tracing
         # TODO: Move distributed tracing configuration to it's own Settings sub-class
@@ -59,22 +76,6 @@ module Datadog
         return runtime_metrics if options.nil?
 
         runtime_metrics.configure(options)
-      end
-
-      # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
-      remove_method :tracer
-      def tracer(options = nil)
-        tracer = options && options.key?(:instance) ? set_option(:tracer, options[:instance]) : get_option(:tracer)
-
-        tracer.tap do |t|
-          unless options.nil?
-            t.configure(options)
-            t.class.log = options[:log] if options[:log]
-            t.set_tags(options[:tags]) if options[:tags]
-            t.set_tags(env: options[:env]) if options[:env]
-            t.class.debug_logging = options.fetch(:debug, false)
-          end
-        end
       end
     end
   end

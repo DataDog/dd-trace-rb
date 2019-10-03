@@ -16,11 +16,14 @@ module Datadog
                   lazy: true
 
           option :service_name, default: Ext::SERVICE_NAME
-          option :tracer, default: Datadog.tracer do |value|
-            (value || Datadog.tracer).tap do |v|
-              # Make sure to update tracers of all subscriptions
-              Events.subscriptions.each do |subscription|
-                subscription.tracer = v
+          option :tracer do |o|
+            o.default Datadog.tracer
+            o.setter do |value|
+              (value || Datadog.tracer).tap do |v|
+                # Make sure to update tracers of all subscriptions
+                Events.subscriptions.each do |subscription|
+                  subscription.tracer = v
+                end
               end
             end
           end

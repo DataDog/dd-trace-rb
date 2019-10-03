@@ -24,22 +24,33 @@ module Datadog
         protected
 
         def option(name, meta = {}, &block)
-          options[name] = OptionDefinition.new(name, meta, &block).tap do
-            define_option_accessors(name)
+          builder = OptionDefinition::Builder.new(name, meta, &block)
+          options[name] = builder.to_definition.tap do
+            # Resolve and define helper functions
+            helpers = default_helpers(name).merge(builder.helpers)
+            define_helpers(helpers)
           end
         end
 
         private
 
-        def define_option_accessors(name)
-          option_name = name
+        def default_helpers(name)
+          option_name = name.to_sym
 
-          define_method(option_name) do
-            get_option(option_name)
-          end
+          {
+            option_name.to_sym => proc do
+              get_option(option_name)
+            end,
+            "#{option_name}=".to_sym => proc do |value|
+              set_option(option_name, value)
+            end
+          }
+        end
 
-          define_method("#{option_name}=") do |value|
-            set_option(option_name, value)
+        def define_helpers(helpers)
+          helpers.each do |name, block|
+            next unless block.is_a?(Proc)
+            define_method(name, &block)
           end
         end
       end
