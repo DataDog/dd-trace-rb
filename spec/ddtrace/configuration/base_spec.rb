@@ -10,6 +10,27 @@ RSpec.describe Datadog::Configuration::Base do
       end
     end
 
+    describe 'class behavior' do
+      describe '#settings' do
+        subject(:settings) { base_class.send(:settings, name, &block) }
+
+        context 'given a name and block' do
+          let(:name) { :debug }
+          let(:block) { proc { option :enabled } }
+
+          it 'adds a settings option' do
+            settings
+
+            base_class.options[name].tap do |option|
+              expect(option).to be_a_kind_of(Datadog::Configuration::OptionDefinition)
+              expect(option.default_value).to be_a_kind_of(described_class)
+              expect(option.default_value.option_defined?(:enabled)).to be true
+            end
+          end
+        end
+      end
+    end
+
     describe 'instance behavior' do
       subject(:base_object) { base_class.new }
 
