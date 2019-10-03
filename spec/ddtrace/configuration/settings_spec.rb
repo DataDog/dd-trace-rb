@@ -6,34 +6,6 @@ RSpec.describe Datadog::Configuration::Settings do
   subject(:configuration) { described_class.new(registry: registry) }
   let(:registry) { Datadog::Contrib::Registry.new }
 
-  describe '#to_h' do
-    subject(:hash) { configuration.to_h }
-    let(:options_hash) { double('options hash') }
-
-    before do
-      allow(configuration).to receive(:options_hash)
-        .and_return(options_hash)
-    end
-
-    it do
-      is_expected.to be(options_hash)
-      expect(configuration).to have_received(:options_hash)
-    end
-  end
-
-  describe '#reset!' do
-    subject(:reset!) { configuration.reset! }
-
-    before do
-      allow(configuration).to receive(:reset_options!)
-      reset!
-    end
-
-    it 'resets the options' do
-      expect(configuration).to have_received(:reset_options!)
-    end
-  end
-
   # TODO: Extract integration behavior to `contrib`
   describe '#use' do
     subject(:result) { configuration.use(name, options) }
