@@ -60,6 +60,10 @@ module Datadog
           options[name].get
         end
 
+        def option_defined?(name)
+          self.class.options.key?(name)
+        end
+
         def options_hash
           options.each_with_object({}) do |(key, _), hash|
             hash[key] = get_option(key)
@@ -81,7 +85,7 @@ module Datadog
         end
 
         def assert_valid_option!(name)
-          unless self.class.options.key?(name)
+          unless option_defined?(name)
             raise(InvalidOptionError, "#{self.class.name} doesn't define the option: #{name}")
           end
         end
