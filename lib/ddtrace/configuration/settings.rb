@@ -1,9 +1,9 @@
+require 'ddtrace/configuration/base'
+
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/runtime'
-require 'ddtrace/configuration/options'
 
-require 'ddtrace/environment'
 require 'ddtrace/tracer'
 require 'ddtrace/metrics'
 
@@ -11,9 +11,11 @@ module Datadog
   module Configuration
     # Global configuration settings for the trace library.
     class Settings
-      extend Datadog::Environment::Helpers
-      include Options
+      include Base
 
+      #
+      # Configuration options
+      #
       option  :analytics_enabled,
               default: -> { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) },
               lazy: true
@@ -45,27 +47,6 @@ module Datadog
               lazy: true
 
       option :tracer, default: Tracer.new
-
-      def initialize(options = {})
-        configure(options)
-      end
-
-      def configure(options = {})
-        self.class.options.dependency_order.each do |name|
-          next unless options.key?(name)
-          respond_to?("#{name}=") ? send("#{name}=", options[name]) : set_option(name, options[name])
-        end
-
-        yield(self) if block_given?
-      end
-
-      def to_h
-        options_hash
-      end
-
-      def reset!
-        reset_options!
-      end
 
       def distributed_tracing
         # TODO: Move distributed tracing configuration to it's own Settings sub-class

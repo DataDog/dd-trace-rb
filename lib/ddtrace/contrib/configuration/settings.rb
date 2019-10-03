@@ -1,13 +1,11 @@
-require 'ddtrace/environment'
-require 'ddtrace/configuration/options'
+require 'ddtrace/configuration/base'
 
 module Datadog
   module Contrib
     module Configuration
       # Common settings for all integrations
       class Settings
-        extend Datadog::Environment::Helpers
-        include Datadog::Configuration::Options
+        include Datadog::Configuration::Base
 
         option :service_name
         option :tracer,
@@ -15,10 +13,6 @@ module Datadog
                lazy: true
         option :analytics_enabled, default: false
         option :analytics_sample_rate, default: 1.0
-
-        def initialize(options = {})
-          configure(options)
-        end
 
         def configure(options = {})
           self.class.options.dependency_order.each do |name|
@@ -34,14 +28,6 @@ module Datadog
 
         def []=(name, value)
           respond_to?("#{name}=") ? send("#{name}=", value) : set_option(name, value)
-        end
-
-        def to_h
-          options_hash
-        end
-
-        def reset!
-          reset_options!
         end
       end
     end
