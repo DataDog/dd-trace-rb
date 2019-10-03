@@ -24,8 +24,15 @@ module Datadog
       end
 
       def reset
-        @is_set = false
-        @value = nil
+        @value = if definition.resetter
+                   # Don't change @is_set to false; custom resetters are
+                   # responsible for changing @value back to a good state.
+                   # Setting @is_set = false would cause a default to be applied.
+                   @context.instance_exec(@value, &definition.resetter)
+                 else
+                   @is_set = false
+                   nil
+                 end
       end
     end
   end

@@ -84,6 +84,20 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     end
   end
 
+  describe '#resetter' do
+    subject(:resetter) { definition.resetter }
+
+    context 'when given a value' do
+      let(:meta) { { resetter: resetter_value } }
+      let(:resetter_value) { double('resetter') }
+      it { is_expected.to be resetter_value }
+    end
+
+    context 'when not initialized' do
+      it { is_expected.to be nil }
+    end
+  end
+
   describe '#default_value' do
     subject(:result) { definition.default_value }
     let(:meta) { { default: default } }
@@ -129,6 +143,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
               depends_on: [],
               lazy: false,
               name: name,
+              resetter: nil,
               setter: Datadog::Configuration::OptionDefinition::IDENTITY
             )
           end
@@ -225,6 +240,12 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
     it { is_expected.to be value }
   end
 
+  describe '#resetter' do
+    subject(:resetter) { builder.resetter(&block) }
+    let(:block) { proc {} }
+    it { is_expected.to be block }
+  end
+
   describe '#setter' do
     subject(:setter) { builder.setter(&block) }
     let(:block) { proc {} }
@@ -265,6 +286,19 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
       end
     end
 
+    context 'given :resetter' do
+      let(:options) { { resetter: value } }
+      let(:value) { proc {} }
+
+      it do
+        expect(builder).to receive(:resetter) do |&block|
+          expect(block).to be value
+        end
+
+        apply_options!
+      end
+    end
+
     context 'given :setter' do
       let(:options) { { setter: value } }
       let(:value) { proc {} }
@@ -301,6 +335,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
         :default,
         :depends_on,
         :lazy,
+        :resetter,
         :setter
       )
     end

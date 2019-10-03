@@ -9,6 +9,7 @@ module Datadog
         :depends_on,
         :lazy,
         :name,
+        :resetter,
         :setter
 
       def initialize(name, meta = {}, &block)
@@ -16,6 +17,7 @@ module Datadog
         @depends_on = meta[:depends_on] || []
         @lazy = meta[:lazy] || false
         @name = name.to_sym
+        @resetter = meta[:resetter]
         @setter = meta[:setter] || block || IDENTITY
       end
 
@@ -35,6 +37,7 @@ module Datadog
           @lazy = false
           @name = name.to_sym
           @setter = OptionDefinition::IDENTITY
+          @resetter = nil
 
           # If options were supplied, apply them.
           apply_options!(options)
@@ -51,18 +54,22 @@ module Datadog
           @default = block_given? ? block : value
         end
 
+        def helper(name, *_args, &block)
+          @helpers[name] = block
+        end
+
         # rubocop:disable Style/TrivialAccessors
         # (Rubocop erroneously thinks #lazy == #lazy= )
         def lazy(value)
           @lazy = value
         end
 
-        def setter(&block)
-          @setter = block
+        def resetter(&block)
+          @resetter = block
         end
 
-        def helper(name, *_args, &block)
-          @helpers[name] = block
+        def setter(&block)
+          @setter = block
         end
 
         # For applying options for OptionDefinition
@@ -72,6 +79,7 @@ module Datadog
           default(options[:default]) if options.key?(:default)
           depends_on(*options[:depends_on]) if options.key?(:depends_on)
           lazy(options[:lazy]) if options.key?(:lazy)
+          resetter(&options[:resetter]) if options.key?(:resetter)
           setter(&options[:setter]) if options.key?(:setter)
         end
 
@@ -84,6 +92,7 @@ module Datadog
             default: @default,
             depends_on: @depends_on,
             lazy: @lazy,
+            resetter: @resetter,
             setter: @setter
           }
         end
