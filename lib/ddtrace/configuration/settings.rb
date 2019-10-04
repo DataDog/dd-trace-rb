@@ -16,35 +16,42 @@ module Datadog
       #
       # Configuration options
       #
-      option  :analytics_enabled,
-              default: -> { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) },
-              lazy: true
+      option :analytics_enabled do |o|
+        o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
+        o.lazy true
+      end
 
-      option  :report_hostname,
-              default: -> { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) },
-              lazy: true
+      option :report_hostname do |o|
+        o.default { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) }
+        o.lazy true
+      end
 
-      option  :runtime_metrics_enabled,
-              default: -> { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) },
-              lazy: true
+      option :runtime_metrics_enabled do |o|
+        o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
+        o.lazy true
+      end
 
-      # Look for all headers by default
-      option  :propagation_extract_style,
-              default: lambda {
-                env_to_list(Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV,
-                            [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
-                             Ext::DistributedTracing::PROPAGATION_STYLE_B3,
-                             Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER])
-              },
-              lazy: true
+      option :propagation_extract_style do |o|
+        o.default do
+          # Look for all headers by default
+          env_to_list(Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV,
+                      [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
+                       Ext::DistributedTracing::PROPAGATION_STYLE_B3,
+                       Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER])
+        end
 
-      # Only inject Datadog headers by default
-      option  :propagation_inject_style,
-              default: lambda {
-                env_to_list(Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
-                            [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
-              },
-              lazy: true
+        o.lazy true
+      end
+
+      option :propagation_inject_style do |o|
+        o.default do
+          # Only inject Datadog headers by default
+          env_to_list(Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
+                      [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
+        end
+
+        o.lazy true
+      end
 
       option :tracer do |o|
         o.default Tracer.new
