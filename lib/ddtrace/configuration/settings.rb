@@ -31,26 +31,28 @@ module Datadog
         o.lazy
       end
 
-      option :propagation_extract_style do |o|
-        o.default do
-          # Look for all headers by default
-          env_to_list(Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV,
-                      [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
-                       Ext::DistributedTracing::PROPAGATION_STYLE_B3,
-                       Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER])
+      settings :distributed_tracing do
+        option :propagation_extract_style do |o|
+          o.default do
+            # Look for all headers by default
+            env_to_list(Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV,
+                        [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
+                         Ext::DistributedTracing::PROPAGATION_STYLE_B3,
+                         Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER])
+          end
+
+          o.lazy
         end
 
-        o.lazy
-      end
+        option :propagation_inject_style do |o|
+          o.default do
+            # Only inject Datadog headers by default
+            env_to_list(Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
+                        [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
+          end
 
-      option :propagation_inject_style do |o|
-        o.default do
-          # Only inject Datadog headers by default
-          env_to_list(Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
-                      [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
+          o.lazy
         end
-
-        o.lazy
       end
 
       option :tracer do |o|
@@ -77,12 +79,6 @@ module Datadog
             end
           end
         end
-      end
-
-      def distributed_tracing
-        # TODO: Move distributed tracing configuration to it's own Settings sub-class
-        # DEV: We do this to fake `Datadog.configuration.distributed_tracing.propagation_inject_style`
-        self
       end
 
       def runtime_metrics(options = nil)
