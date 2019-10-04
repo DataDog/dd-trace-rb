@@ -23,11 +23,9 @@ module Datadog
 
           option :tracer do |o|
             o.default Datadog.tracer
-            o.setter do |value|
-              value.tap do
-                Events.subscriptions.each do |subscription|
-                  subscription.tracer = value
-                end
+            o.on_set do |value|
+              Events.subscriptions.each do |subscription|
+                subscription.tracer = value
               end
             end
           end
