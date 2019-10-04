@@ -1,4 +1,3 @@
-require 'ddtrace/configuration/option'
 require 'ddtrace/configuration/option_set'
 require 'ddtrace/configuration/option_definition'
 require 'ddtrace/configuration/option_definition_set'
@@ -90,7 +89,7 @@ module Datadog
         def add_option(name)
           assert_valid_option!(name)
           definition = self.class.options[name]
-          Option.new(definition, self).tap do |option|
+          definition.build(self).tap do |option|
             options[name] = option
           end
         end

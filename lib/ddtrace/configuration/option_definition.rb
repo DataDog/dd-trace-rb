@@ -1,3 +1,5 @@
+require 'ddtrace/configuration/option'
+
 module Datadog
   module Configuration
     # Represents a definition for an integration configuration option
@@ -25,6 +27,11 @@ module Datadog
 
       def default_value
         lazy ? @default.call : @default
+      end
+
+      # Creates a new Option, bound to the context provided.
+      def build(context)
+        Option.new(self, context)
       end
 
       # Acts as DSL for building OptionDefinitions

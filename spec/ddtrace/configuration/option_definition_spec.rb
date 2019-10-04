@@ -129,6 +129,20 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
       it { is_expected.to be default }
     end
   end
+
+  describe '#build' do
+    subject(:build) { definition.build(context) }
+    let(:context) { double('context') }
+    let(:option) { instance_double(Datadog::Configuration::Option) }
+
+    before do
+      expect(Datadog::Configuration::Option).to receive(:new)
+        .with(definition, context)
+        .and_return(option)
+    end
+
+    it { is_expected.to be option }
+  end
 end
 
 RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
