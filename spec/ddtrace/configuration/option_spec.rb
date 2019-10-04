@@ -8,6 +8,7 @@ RSpec.describe Datadog::Configuration::Option do
     instance_double(
       Datadog::Configuration::OptionDefinition,
       default_value: default_value,
+      on_set: nil,
       resetter: nil,
       setter: setter
     )
@@ -25,9 +26,33 @@ RSpec.describe Datadog::Configuration::Option do
     subject(:set) { option.set(value) }
     let(:value) { double('value') }
 
-    before(:each) { expect(context).to receive(:instance_exec).with(value, &setter) }
+    before do
+      allow(definition).to receive(:on_set).and_return nil
+      expect(context).to receive(:instance_exec).with(value, &setter)
+    end
 
     it { is_expected.to be(setter_value) }
+
+    context 'and an :on_set event is defined' do
+      let(:on_set) { proc { on_set_value } }
+      let(:on_set_value) { double('on_set_value') }
+
+      before do
+        allow(definition).to receive(:on_set).and_return(on_set)
+
+        expect(context).to receive(:instance_exec) do |*args, &block|
+          expect(args.first).to be(value)
+          expect(block).to be on_set
+          on_set.call
+        end
+      end
+
+      context 'then #get is invoked' do
+        subject(:get) { option.get }
+        before { set }
+        it { is_expected.to be(setter_value) }
+      end
+    end
   end
 
   describe '#get' do

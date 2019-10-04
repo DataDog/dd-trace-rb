@@ -65,6 +65,20 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     end
   end
 
+  describe '#on_set' do
+    subject(:on_set) { definition.on_set }
+
+    context 'when given a value' do
+      let(:meta) { { on_set: on_set_value } }
+      let(:on_set_value) { double('on_set') }
+      it { is_expected.to be on_set_value }
+    end
+
+    context 'when not initialized' do
+      it { is_expected.to be nil }
+    end
+  end
+
   describe '#setter' do
     subject(:setter) { definition.setter }
 
@@ -143,6 +157,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
               depends_on: [],
               lazy: false,
               name: name,
+              on_set: nil,
               resetter: nil,
               setter: Datadog::Configuration::OptionDefinition::IDENTITY
             )
@@ -240,6 +255,12 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
     it { is_expected.to be value }
   end
 
+  describe '#on_set' do
+    subject(:on_set) { builder.on_set(&block) }
+    let(:block) { proc {} }
+    it { is_expected.to be block }
+  end
+
   describe '#resetter' do
     subject(:resetter) { builder.resetter(&block) }
     let(:block) { proc {} }
@@ -282,6 +303,19 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
 
       it do
         expect(builder).to receive(:lazy).with(value)
+        apply_options!
+      end
+    end
+
+    context 'given :on_set' do
+      let(:options) { { on_set: value } }
+      let(:value) { proc {} }
+
+      it do
+        expect(builder).to receive(:on_set) do |&block|
+          expect(block).to be value
+        end
+
         apply_options!
       end
     end
@@ -335,6 +369,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
         :default,
         :depends_on,
         :lazy,
+        :on_set,
         :resetter,
         :setter
       )

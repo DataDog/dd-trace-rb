@@ -9,6 +9,7 @@ module Datadog
         :depends_on,
         :lazy,
         :name,
+        :on_set,
         :resetter,
         :setter
 
@@ -17,6 +18,7 @@ module Datadog
         @depends_on = meta[:depends_on] || []
         @lazy = meta[:lazy] || false
         @name = name.to_sym
+        @on_set = meta[:on_set]
         @resetter = meta[:resetter]
         @setter = meta[:setter] || block || IDENTITY
       end
@@ -36,8 +38,9 @@ module Datadog
           @helpers = {}
           @lazy = false
           @name = name.to_sym
-          @setter = OptionDefinition::IDENTITY
+          @on_set = nil
           @resetter = nil
+          @setter = OptionDefinition::IDENTITY
 
           # If options were supplied, apply them.
           apply_options!(options)
@@ -64,6 +67,10 @@ module Datadog
           @lazy = value
         end
 
+        def on_set(&block)
+          @on_set = block
+        end
+
         def resetter(&block)
           @resetter = block
         end
@@ -79,6 +86,7 @@ module Datadog
           default(options[:default]) if options.key?(:default)
           depends_on(*options[:depends_on]) if options.key?(:depends_on)
           lazy(options[:lazy]) if options.key?(:lazy)
+          on_set(&options[:on_set]) if options.key?(:on_set)
           resetter(&options[:resetter]) if options.key?(:resetter)
           setter(&options[:setter]) if options.key?(:setter)
         end
@@ -92,6 +100,7 @@ module Datadog
             default: @default,
             depends_on: @depends_on,
             lazy: @lazy,
+            on_set: @on_set,
             resetter: @resetter,
             setter: @setter
           }

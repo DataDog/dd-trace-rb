@@ -15,6 +15,7 @@ module Datadog
       def set(value)
         @value = @context.instance_exec(value, &definition.setter).tap do
           @is_set = true
+          @context.instance_exec(value, &definition.on_set) if definition.on_set
         end
       end
 
