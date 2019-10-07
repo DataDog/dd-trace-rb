@@ -18,7 +18,7 @@ module Datadog
         end
 
         def compatible?
-          Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0') && present?
+          Gem::Version.new(RUBY_VERSION) >= Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION) && present?
         end
       end
 

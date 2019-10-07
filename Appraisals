@@ -1,5 +1,9 @@
-if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
-  raise NotImplementedError, 'Ruby versions < 2.0.0 are not supported!'
+lib = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'ddtrace/version'
+
+if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
+  raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
 elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
   if RUBY_PLATFORM != 'java'
