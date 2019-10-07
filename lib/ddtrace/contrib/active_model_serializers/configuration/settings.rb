@@ -18,16 +18,6 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
-          option :tracer do |o|
-            o.default Datadog.tracer
-            o.setter { |value| value || Datadog.tracer }
-            o.on_set do |value|
-              # Make sure to update tracers of all subscriptions
-              Events.subscriptions.each do |subscription|
-                subscription.tracer = value
-              end
-            end
-          end
         end
       end
     end

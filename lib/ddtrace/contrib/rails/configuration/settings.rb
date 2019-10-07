@@ -65,7 +65,7 @@ module Datadog
           end
 
           option :tracer do |o|
-            o.default Datadog.tracer
+            o.delegate_to { Datadog.tracer }
             o.on_set do |value|
               Datadog.configuration[:active_record][:tracer] = value
               Datadog.configuration[:active_support][:tracer] = value

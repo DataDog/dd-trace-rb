@@ -54,7 +54,8 @@ module Datadog
       end
 
       option :tracer do |o|
-        o.default Tracer.new
+        o.default { Tracer.new }
+        o.lazy
 
         # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
         o.helper :tracer do |options = nil|

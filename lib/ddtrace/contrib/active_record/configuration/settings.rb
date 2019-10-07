@@ -23,15 +23,6 @@ module Datadog
             o.default { Utils.adapter_name }
             o.lazy
           end
-
-          option :tracer do |o|
-            o.default Datadog.tracer
-            o.on_set do |value|
-              Events.subscriptions.each do |subscription|
-                subscription.tracer = value
-              end
-            end
-          end
         end
       end
     end
