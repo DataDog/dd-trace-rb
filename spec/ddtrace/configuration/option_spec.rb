@@ -61,6 +61,19 @@ RSpec.describe Datadog::Configuration::Option do
     context 'when #set' do
       context 'hasn\'t been called' do
         it { is_expected.to be(default_value) }
+
+        context 'and #get is called twice' do
+          before do
+            expect(definition).to receive(:default_value)
+              .once
+              .and_return(default_value)
+          end
+
+          it 'keeps and re-uses the same default object' do
+            is_expected.to be default_value
+            expect(option.get).to be default_value
+          end
+        end
       end
 
       context 'has been called' do

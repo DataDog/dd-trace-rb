@@ -20,7 +20,12 @@ module Datadog
       end
 
       def get
-        return definition.default_value unless @is_set
+        # Initialize to default value, if not set
+        unless @is_set
+          @value = definition.default_value
+          @is_set = true
+        end
+
         @value
       end
 
