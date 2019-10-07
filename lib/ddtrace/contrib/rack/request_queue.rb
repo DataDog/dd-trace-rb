@@ -13,9 +13,7 @@ module Datadog
           return unless header
 
           # nginx header is in the format "t=1512379167.574"
-          # TODO: this should be generic enough to work with any
-          # frontend web server or load balancer
-          time_string = header.split('t=')[1]
+          time_string = header.to_s.sub('t=', '')
           return if time_string.nil?
 
           # Return nil if the time is clearly invalid

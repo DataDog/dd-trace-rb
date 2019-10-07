@@ -14,6 +14,11 @@ RSpec.describe Datadog::Contrib::Rack::QueueTime do
         let(:value) { 1512379167.574 }
         it { expect(request_start.to_f).to eq(value) }
 
+        context 'but does not start with t=' do
+          let(:env) { { described_class::REQUEST_START => value } }
+          it { expect(request_start.to_f).to eq(value) }
+        end
+
         context 'but a malformed value' do
           let(:value) { 'foobar' }
           it { is_expected.to be nil }
