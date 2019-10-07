@@ -264,9 +264,16 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
   end
 
   describe '#lazy' do
-    subject(:lazy) { builder.lazy(value) }
-    let(:value) { true }
-    it { is_expected.to be value }
+    context 'given no arguments' do
+      subject(:lazy) { builder.lazy }
+      it { is_expected.to be true }
+    end
+
+    context 'given a value' do
+      subject(:lazy) { builder.lazy(value) }
+      let(:value) { double('value') }
+      it { is_expected.to be value }
+    end
   end
 
   describe '#on_set' do

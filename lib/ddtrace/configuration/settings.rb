@@ -18,17 +18,17 @@ module Datadog
       #
       option :analytics_enabled do |o|
         o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
-        o.lazy true
+        o.lazy
       end
 
       option :report_hostname do |o|
         o.default { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) }
-        o.lazy true
+        o.lazy
       end
 
       option :runtime_metrics_enabled do |o|
         o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
-        o.lazy true
+        o.lazy
       end
 
       option :propagation_extract_style do |o|
@@ -40,7 +40,7 @@ module Datadog
                        Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER])
         end
 
-        o.lazy true
+        o.lazy
       end
 
       option :propagation_inject_style do |o|
@@ -50,7 +50,7 @@ module Datadog
                       [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
         end
 
-        o.lazy true
+        o.lazy
       end
 
       option :tracer do |o|
