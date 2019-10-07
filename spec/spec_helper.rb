@@ -21,6 +21,14 @@ require 'support/spy_transport'
 require 'support/synchronization_helpers'
 require 'support/tracer_helpers'
 
+begin
+  # Ignore interpreter warnings from external libraries
+  require 'warning'
+  Warning.ignore([:method_redefined, :not_reached, :unused_var], %r{.*/gems/[^/]*/lib/})
+rescue LoadError
+  puts 'warning suppressing gem not available, external library warnings will be displayed'
+end
+
 WebMock.allow_net_connect!
 WebMock.disable!
 
