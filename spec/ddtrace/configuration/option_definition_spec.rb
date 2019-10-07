@@ -23,6 +23,20 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     end
   end
 
+  describe '#delegate_to' do
+    subject(:delegate_to) { definition.delegate_to }
+
+    context 'when given a value' do
+      let(:meta) { { delegate_to: delegate_to_value } }
+      let(:delegate_to_value) { double('delegate_to') }
+      it { is_expected.to be delegate_to_value }
+    end
+
+    context 'when not initialized' do
+      it { is_expected.to be nil }
+    end
+  end
+
   describe '#depends_on' do
     subject(:default) { definition.depends_on }
 
@@ -168,6 +182,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
           it 'generates an OptionDefinition with defaults' do
             is_expected.to have_attributes(
               default: nil,
+              delegate_to: nil,
               depends_on: [],
               lazy: false,
               name: name,
@@ -238,6 +253,12 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
     end
   end
 
+  describe '#delegate_to' do
+    subject(:delegate_to) { builder.delegate_to(&block) }
+    let(:block) { proc {} }
+    it { is_expected.to be block }
+  end
+
   describe '#helper' do
     subject(:helper) { builder.helper(name, *args, &block) }
     let(:name) { :enabled }
@@ -304,6 +325,19 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
 
       it do
         expect(builder).to receive(:default).with(value)
+        apply_options!
+      end
+    end
+
+    context 'given :delegate_to' do
+      let(:options) { { delegate_to: value } }
+      let(:value) { proc {} }
+
+      it do
+        expect(builder).to receive(:delegate_to) do |&block|
+          expect(block).to be value
+        end
+
         apply_options!
       end
     end
@@ -388,6 +422,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
     it 'contains the arguments for OptionDefinition' do
       expect(meta.keys).to include(
         :default,
+        :delegate_to,
         :depends_on,
         :lazy,
         :on_set,

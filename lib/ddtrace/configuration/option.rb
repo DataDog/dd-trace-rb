@@ -13,20 +13,20 @@ module Datadog
       end
 
       def set(value)
-        @value = @context.instance_exec(value, &definition.setter).tap do
+        (@value = context_exec(value, &definition.setter)).tap do |v|
           @is_set = true
-          @context.instance_exec(value, &definition.on_set) if definition.on_set
+          context_exec(v, &definition.on_set) if definition.on_set
         end
       end
 
       def get
-        # Initialize to default value, if not set
-        unless @is_set
-          @value = definition.default_value
-          @is_set = true
+        if @is_set
+          @value
+        elsif definition.delegate_to
+          context_eval(&definition.delegate_to)
+        else
+          set(definition.default_value)
         end
-
-        @value
       end
 
       def reset
@@ -34,11 +34,21 @@ module Datadog
                    # Don't change @is_set to false; custom resetters are
                    # responsible for changing @value back to a good state.
                    # Setting @is_set = false would cause a default to be applied.
-                   @context.instance_exec(@value, &definition.resetter)
+                   context_exec(@value, &definition.resetter)
                  else
                    @is_set = false
                    nil
                  end
+      end
+
+      private
+
+      def context_exec(*args, &block)
+        @context.instance_exec(*args, &block)
+      end
+
+      def context_eval(&block)
+        @context.instance_eval(&block)
       end
     end
   end

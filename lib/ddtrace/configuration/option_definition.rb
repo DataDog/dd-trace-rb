@@ -8,6 +8,7 @@ module Datadog
 
       attr_reader \
         :default,
+        :delegate_to,
         :depends_on,
         :lazy,
         :name,
@@ -17,6 +18,7 @@ module Datadog
 
       def initialize(name, meta = {}, &block)
         @default = meta[:default]
+        @delegate_to = meta[:delegate_to]
         @depends_on = meta[:depends_on] || []
         @lazy = meta[:lazy] || false
         @name = name.to_sym
@@ -41,6 +43,7 @@ module Datadog
 
         def initialize(name, options = {})
           @default = nil
+          @delegate_to = nil
           @depends_on = []
           @helpers = {}
           @lazy = false
@@ -62,6 +65,10 @@ module Datadog
 
         def default(value = nil, &block)
           @default = block_given? ? block : value
+        end
+
+        def delegate_to(&block)
+          @delegate_to = block
         end
 
         def helper(name, *_args, &block)
@@ -91,6 +98,7 @@ module Datadog
           return if options.nil? || options.empty?
 
           default(options[:default]) if options.key?(:default)
+          delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
           depends_on(*options[:depends_on]) if options.key?(:depends_on)
           lazy(options[:lazy]) if options.key?(:lazy)
           on_set(&options[:on_set]) if options.key?(:on_set)
@@ -105,6 +113,7 @@ module Datadog
         def meta
           {
             default: @default,
+            delegate_to: @delegate_to,
             depends_on: @depends_on,
             lazy: @lazy,
             on_set: @on_set,

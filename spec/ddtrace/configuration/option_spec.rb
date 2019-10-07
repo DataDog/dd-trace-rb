@@ -8,12 +8,14 @@ RSpec.describe Datadog::Configuration::Option do
     instance_double(
       Datadog::Configuration::OptionDefinition,
       default_value: default_value,
+      delegate_to: delegate,
       on_set: nil,
       resetter: nil,
       setter: setter
     )
   end
   let(:default_value) { double('default value') }
+  let(:delegate) { nil }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
   let(:context) { double('configuration object') }
@@ -28,7 +30,11 @@ RSpec.describe Datadog::Configuration::Option do
 
     before do
       allow(definition).to receive(:on_set).and_return nil
-      expect(context).to receive(:instance_exec).with(value, &setter)
+      expect(context).to receive(:instance_exec) do |*args, &block|
+        expect(args.first).to be(value)
+        expect(block).to be setter
+        setter.call
+      end
     end
 
     it { is_expected.to be(setter_value) }
@@ -41,7 +47,7 @@ RSpec.describe Datadog::Configuration::Option do
         allow(definition).to receive(:on_set).and_return(on_set)
 
         expect(context).to receive(:instance_exec) do |*args, &block|
-          expect(args.first).to be(value)
+          expect(args.first).to be(setter_value)
           expect(block).to be on_set
           on_set.call
         end
@@ -60,6 +66,14 @@ RSpec.describe Datadog::Configuration::Option do
 
     context 'when #set' do
       context 'hasn\'t been called' do
+        before do
+          expect(context).to receive(:instance_exec) do |*args, &block|
+            expect(args.first).to be(default_value)
+            expect(block).to be setter
+            default_value
+          end
+        end
+
         it { is_expected.to be(default_value) }
 
         context 'and #get is called twice' do
@@ -80,7 +94,12 @@ RSpec.describe Datadog::Configuration::Option do
         let(:value) { double('value') }
 
         before(:each) do
-          allow(context).to receive(:instance_exec).with(value, &setter)
+          expect(context).to receive(:instance_exec) do |*args, &block|
+            expect(args.first).to be(value)
+            expect(block).to be setter
+            setter.call
+          end
+
           option.set(value)
         end
 
