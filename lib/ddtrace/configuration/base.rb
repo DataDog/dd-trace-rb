@@ -3,46 +3,79 @@ require 'ddtrace/configuration/options'
 
 module Datadog
   module Configuration
-    # Global configuration settings for the trace library.
+    # Basic configuration behavior
     module Base
       def self.included(base)
         base.send(:extend, Datadog::Environment::Helpers)
         base.send(:include, Options)
+
+        base.send(:extend, ClassMethods)
+        base.send(:include, InstanceMethods)
       end
 
-      def initialize(options = {})
-        configure(options)
-      end
+      # Class methods for configuration
+      module ClassMethods
+        protected
 
-      def configure(opts = {})
-        # Sort the options in preference of dependency order first
-        ordering = self.class.options.dependency_order
-        sorted_opts = opts.sort_by do |name, _value|
-          ordering.index(name) || (ordering.length + 1)
-        end
+        # Allows subgroupings of settings to be defined.
+        # e.g. `settings :foo { option :bar }` --> `config.foo.bar`
+        def settings(name, &block)
+          settings_class = new_settings_class(&block)
 
-        # Ruby 2.0 doesn't support Array#to_h
-        sorted_opts = Hash[*sorted_opts.flatten]
-
-        # Apply options in sort order
-        sorted_opts.each do |name, value|
-          if respond_to?("#{name}=")
-            send("#{name}=", value)
-          elsif option_defined?(name)
-            set_option(name, value)
+          option(name) do |o|
+            o.default settings_class.new
+            o.resetter do |value|
+              value.reset! if value.respond_to?(:reset!)
+              value
+            end
           end
         end
 
-        # Apply any additional settings from block
-        yield(self) if block_given?
+        private
+
+        def new_settings_class(&block)
+          Class.new { include Datadog::Configuration::Base }.tap do |klass|
+            klass.instance_eval(&block) if block_given?
+          end
+        end
       end
 
-      def to_h
-        options_hash
-      end
+      # Instance methods for configuration
+      module InstanceMethods
+        def initialize(options = {})
+          configure(options)
+        end
 
-      def reset!
-        reset_options!
+        def configure(opts = {})
+          # Sort the options in preference of dependency order first
+          ordering = self.class.options.dependency_order
+          sorted_opts = opts.sort_by do |name, _value|
+            ordering.index(name) || (ordering.length + 1)
+          end
+
+          # Ruby 2.0 doesn't support Array#to_h
+          sorted_opts = Hash[*sorted_opts.flatten]
+
+          # Apply options in sort order
+          sorted_opts.each do |name, value|
+            if respond_to?("#{name}=")
+              send("#{name}=", value)
+            elsif option_defined?(name)
+              set_option(name, value)
+            end
+          end
+
+          # Apply any additional settings from block
+          yield(self) if block_given?
+        end
+
+        def to_h
+          options_hash
+        end
+
+        def reset!
+          reset_options!
+        end
       end
     end
   end
