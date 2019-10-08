@@ -17,7 +17,7 @@ module Datadog
           end
 
           def tracer
-            configuration[:tracer]
+            -> { configuration[:tracer] }
           end
 
           def configuration

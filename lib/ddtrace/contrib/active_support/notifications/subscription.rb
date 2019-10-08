@@ -5,7 +5,6 @@ module Datadog
         # An ActiveSupport::Notification subscription that wraps events with tracing.
         class Subscription
           attr_accessor \
-            :tracer,
             :span_name,
             :options
 
@@ -16,6 +15,10 @@ module Datadog
             @options = options
             @handler = Handler.new(&block)
             @callbacks = Callbacks.new
+          end
+
+          def tracer
+            @tracer.is_a?(Proc) ? @tracer.call : @tracer
           end
 
           # ActiveSupport 3.x calls this

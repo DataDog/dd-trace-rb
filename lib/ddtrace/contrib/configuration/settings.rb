@@ -7,12 +7,12 @@ module Datadog
       class Settings
         include Datadog::Configuration::Base
 
-        option :service_name
-        option :tracer,
-               default: -> { Datadog.tracer },
-               lazy: true
         option :analytics_enabled, default: false
         option :analytics_sample_rate, default: 1.0
+        option :service_name
+        option :tracer do |o|
+          o.delegate_to { Datadog.tracer }
+        end
 
         def configure(options = {})
           self.class.options.dependency_order.each do |name|
