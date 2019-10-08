@@ -11,6 +11,7 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Checking code quality](#checking-code-quality)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
+       - [Configuration for integrations](#configuration-for-integrations)
      - [Custom transport adapters](#custom-transport-adapters)
 
 ## Setting up
@@ -131,6 +132,276 @@ Then [open a pull request](https://github.com/DataDog/dd-trace-rb/CONTRIBUTING.m
  - Links to the repository/website of the library being integrated
  - Screenshots showing a sample trace
  - Any additional code snippets, sample apps, benchmarks, or other resources that demonstrate its implementation are a huge plus!
+
+#### Configuration for integrations
+
+Integrations can define their own custom settings, which can be configured by the user via:
+
+```ruby
+Datadog.configure do |c|
+  # Hash syntax
+  c.use :my_integration, my_option: 'my-config-value'
+
+  # Block syntax
+  c.use :my_integration do |integration|
+    integration.my_option = 'my-config-value'
+  end
+end
+````
+
+These settings can then be accessed, and used by the integration to drive behavior for the instrumentation via:
+
+```ruby
+Datadog.configuration[:my_integration][:my_option]`
+```
+
+They are defined by creating a class that inherits from `Datadog::Contrib::Configuration::Settings`:
+
+```ruby
+class Datadog::Contrib::MyIntegration::Configuration::Settings < Contrib::Configuration::Settings
+  # Configuration definitions go here...
+  option :my_option, default: 'my-default_value'
+end
+```
+
+**Defining options**
+
+Options store a value that can be set by users and subsequently used by instrumentation.
+
+Options can be defined using `#option`:
+
+```
+option OPTION_NAME, META = {}, &BLOCK
+```
+
+ - `OPTION_NAME`: A `Symbol` name for the option
+ - `META` (optional): A `Hash` of attributes that describes how the option should behave (see list below)
+ - `BLOCK` (optional): A `Proc` that accepts an `option` argument, and describes how the option should behave (see list below)
+
+Attributes for options:
+
+**default**
+
+Defines default value for this option. Defaults to `nil`. Default value is eagerly evaluated once.
+
+```ruby
+# Hash syntax
+option :my_option, default: 'default'
+
+# Block syntax
+option :my_option do |o|
+  o.default 'default'
+end
+```
+
+When passed a block and `lazy` is set to true, the block will be evaluated once, at first access time:
+
+```ruby
+# Hash syntax
+option :my_option, default: -> { 'default' }, lazy: true
+
+# Block syntax
+option :my_option do |o|
+  o.default { 'default' }
+  o.lazy
+end
+```
+
+Default is ignored if `delegate_to` is defined, which acts as a substitute.
+
+**delegate_to**
+
+Defines a "passthrough" default function, for when the option is not set. Useful if you want to defer to some other value by default, but retain the ability to override it.
+
+```ruby
+# Hash syntax
+option :my_option, delegate_to: -> { SecureRandom.uuid }
+
+# Block syntax
+option :my_option do |o|
+  o.delegate_to { SecureRandom.uuid }
+end
+
+# Example behavior
+settings.my_option # => '2133b034-0f84-44e6-9ee8-2671c118c40a'
+settings.my_option # => 'c7078bd2-75e7-4d1e-bc36-b0b6f84ba638'
+settings.my_option = 'b37118ef-d67f-44f4-9a2a-f97b99c6f0d7'
+settings.my_option # => 'b37118ef-d67f-44f4-9a2a-f97b99c6f0d7'
+```
+
+Although they have similar purpose, `delegate_to` and `default` are different in that `default` is only evaluated once, and the value is stored, and `delegate_to` is evaluated each time the option is accessed *until* a value is assigned to the option, after which the assigned value is returned.
+
+**depends_on**
+
+List of options this option depends on. Used when an option depends on another option already being initialized.
+
+```ruby
+# Hash syntax
+option :my_option, depends_on: [:parent_a, :parent_b]
+
+# Block syntax
+option :my_option do |o|
+  o.depends_on :parent_a, :parent_b
+end
+
+# Example usage
+option :child do |o|
+  o.depends_on :parent_a, :parent_b
+  o.setter do |value|
+    "#{value}, child of #{get_option(:parent_a)} and #{get_option(:parent_b)}"
+  end
+end
+```
+
+**helper**
+
+Describes helper function to be added to the settings object.
+
+```ruby
+# Block syntax
+option :my_option do |o|
+  o.helper :my_option_enabled? do
+    !get_option(:my_option).nil?
+  end
+end
+
+# Example behavior
+settings.my_option # => nil
+settings.my_option_enabled? # => false
+settings.my_option = true
+settings.my_option_enabled? # => true
+```
+
+It can be used to override the default get/set helper methods on the settings object:
+
+```ruby
+# Block syntax
+option :my_option do |o|
+  o.helper :my_option do |&block|
+    block_given? ? yield : get_option(:my_option)
+  end
+end
+
+# Example behavior
+settings.my_option = 'default'
+settings.my_option # => 'default'
+settings.my_option { 'block' } # => 'block'
+```
+
+**lazy**
+
+Changes evaluation of default value from eager to access time.
+
+```ruby
+# NOTE: This $value would be eagerly evaluated as the default
+#       if not placed inside a block and given :lazy.
+$value = :a
+
+# Hash syntax
+option :my_option, default: -> { $value }, lazy: true
+
+# Block syntax
+option :my_option do |o|
+  o.default { $value }
+  o.lazy
+end
+
+# Example behavior
+$value = :b
+settings.my_option # => :b
+```
+
+**on_set**
+
+Defines a callback that is each time after the value is set (except on reset.)
+
+```ruby
+# Hash syntax
+option :my_option, on_set: -> { |value| puts "Set #{value}!" }
+
+# Block syntax
+option :my_option do |o|
+  o.on_set { |value| puts "Set #{value}!" }
+end
+
+# Example behavior
+settings.my_option = 'my-value'
+# Set my-value!
+# => 'my-value'
+```
+
+**resetter**
+
+Defines how the value is reset. Return value is set as the option's value. By default it is reset to `nil`.
+
+```ruby
+# Hash syntax
+option :my_option, resetter: -> { |value| value.clear }
+
+# Block syntax
+option :my_option do |o|
+  o.resetter { |value| value.clear }
+end
+
+# Example behavior
+settings.my_option = [:a]
+settings.my_option.object_id # => 46931674974120
+settings.reset!
+settings.my_option # => []
+settings.my_option.object_id # => 46931674974120
+```
+
+**setter**
+
+Defines how the value is set. Return value is set as the option's value. Useful for sanitizing, normalizing, or validating input. By default it is the value given.
+
+```ruby
+# Hash syntax
+option :my_option, setter: -> { |value| value + 1 }
+
+# Block syntax
+option :my_option do |o|
+  o.setter { |value| value + 1 }
+end
+
+# Example behavior
+settings.my_option = 1
+settings.my_option # => 2
+```
+
+**Defining settings subgroups**
+
+Subgroups can be used to group options together. Useful for compartmentalizing configuration options together, and presenting a cleaner interface.
+
+Subgroups can be defined using `#settings`:
+
+```
+settings GROUP_NAME &BLOCK
+```
+
+ - `GROUP_NAME`: A `Symbol` name for the subgroup
+ - `BLOCK`: A `Proc` that can be evaluated as a settings class.
+
+```ruby
+settings :debug do
+  option :level, default: Logger::INFO
+
+  settings :stdout do
+    option :enabled, default: false
+  end
+
+  settings :log do
+    option :enabled, default: false
+    option :filepath, default: 'logs/trace.log'
+  end
+end
+
+# Example behavior
+settings.debug.level # => Logger::INFO
+settings.debug.stdout.enabled # => false
+settings.debug.log.enabled # => false
+settings.debug.log.filepath # => 'logs/trace.log'
+```
 
 ### Custom transport adapters
 
