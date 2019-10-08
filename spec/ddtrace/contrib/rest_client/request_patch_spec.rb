@@ -104,13 +104,13 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has error set' do
-            expect(span.get_tag(Datadog::Ext::Errors::MSG)).to eq('500 Internal Server Error')
+            expect(span).to have_error_message('500 Internal Server Error')
           end
           it 'has error stack' do
             expect(span.get_tag(Datadog::Ext::Errors::STACK)).not_to be_nil
           end
           it 'has error set' do
-            expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to eq('RestClient::InternalServerError')
+            expect(span).to have_error_type('RestClient::InternalServerError')
           end
         end
 
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'error is not set' do
-            expect(span.get_tag(Datadog::Ext::Errors::MSG)).to be_nil
+            expect(span).to_not have_error_message
           end
         end
       end

@@ -243,7 +243,7 @@ module Datadog
 
     private
 
-    if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+    if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION) < Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION)
       def now_allocations
         0
       end

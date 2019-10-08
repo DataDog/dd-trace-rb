@@ -96,7 +96,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
-      expect(request_span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+      expect(request_span).to_not have_error
     end
   end
 
@@ -113,15 +113,15 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
-      expect(request_span.status).to eq(Datadog::Ext::Errors::STATUS)
-      expect(request_span.get_tag(Datadog::Ext::Errors::TYPE)).to eq('Error 500')
-      expect(request_span.get_tag(Datadog::Ext::Errors::MSG)).to eq('Boom!')
+      expect(request_span).to have_error
+      expect(request_span).to have_error_type('Error 500')
+      expect(request_span).to have_error_message('Boom!')
     end
   end
 
   context 'when the path is not found' do
     subject!(:response) { connection.get(path: '/not_found') }
-    it { expect(request_span.status).to_not eq(Datadog::Ext::Errors::STATUS) }
+    it { expect(request_span).to_not have_error }
   end
 
   context 'when the request times out' do
@@ -129,7 +129,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     it do
       expect { subject }.to raise_error(Excon::Error::Timeout)
       expect(request_span.finished?).to eq(true)
-      expect(request_span.status).to eq(Datadog::Ext::Errors::STATUS)
+      expect(request_span).to have_error
       expect(request_span.get_tag('error.type')).to eq('Excon::Error::Timeout')
     end
 
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     let(:configuration_options) { super().merge(error_handler: custom_handler) }
     let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
     after(:each) { Datadog.configuration[:excon][:error_handler] = nil }
-    it { expect(request_span.status).to eq(Datadog::Ext::Errors::STATUS) }
+    it { expect(request_span).to have_error }
   end
 
   context 'when split by domain' do

@@ -60,7 +60,7 @@ RSpec.describe Datadog::Contrib::Ethon do
       end
 
       it 'has timeout set on GET request span' do
-        expect(span_get.get_tag(Datadog::Ext::Errors::MSG)).to eq('Request has failed: Timeout was reached')
+        expect(span_get).to have_error_message('Request has failed: Timeout was reached')
       end
 
       it 'has span hierarchy properly set up' do

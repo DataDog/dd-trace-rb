@@ -49,6 +49,49 @@ RSpec.describe Datadog::Configuration::Options do
           expect(options_class.new).to respond_to(name)
           expect(options_class.new).to respond_to("#{name}=")
         end
+
+        context 'when given a block' do
+          it 'invokes it with a builder' do
+            expect { |b| options_class.send(:option, name, meta, &b) }.to yield_with_args(
+              kind_of(Datadog::Configuration::OptionDefinition::Builder)
+            )
+          end
+
+          context 'that defines helpers' do
+            context 'to disable defaults' do
+              let(:block) do
+                proc do |o|
+                  o.helper name, false
+                  o.helper "#{name}=".to_sym, false
+                end
+              end
+
+              it 'does not define default helpers' do
+                is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition)
+                expect(options_class.options).to include(name)
+                expect(options_class.new).to_not respond_to(name)
+                expect(options_class.new).to_not respond_to("#{name}=")
+              end
+            end
+
+            context 'to add a custom helper' do
+              let(:custom_helper) { :foobar }
+              let(:block) do
+                proc do |o|
+                  o.helper(custom_helper) { custom_helper }
+                end
+              end
+
+              it 'defines an additional helper' do
+                is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition)
+                expect(options_class.options).to include(name)
+                expect(options_class.new).to respond_to(name)
+                expect(options_class.new).to respond_to("#{name}=")
+                expect(options_class.new).to respond_to(custom_helper)
+              end
+            end
+          end
+        end
       end
     end
 
@@ -101,8 +144,22 @@ RSpec.describe Datadog::Configuration::Options do
         end
       end
 
-      describe '#to_h' do
-        subject(:hash) { options_object.to_h }
+      describe '#option_defined?' do
+        subject(:option_defined?) { options_object.option_defined?(name) }
+        let(:name) { :foo }
+
+        context 'when no options are defined' do
+          it { is_expected.to be false }
+        end
+
+        context 'when option is defined' do
+          before { options_class.send(:option, name) }
+          it { is_expected.to be true }
+        end
+      end
+
+      describe '#options_hash' do
+        subject(:hash) { options_object.options_hash }
 
         context 'when no options are defined' do
           it { is_expected.to eq({}) }

@@ -9,28 +9,11 @@ module Datadog
       # Instruments every interaction with the memcached server
       module Instrumentation
         def self.included(base)
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
-            base.class_eval do
-              alias_method :request_without_datadog, :request
-              remove_method :request
-              include InstanceMethods
-            end
-          else
-            base.send(:prepend, InstanceMethods)
-          end
-        end
-
-        # Compatibility shim for Rubies not supporting `.prepend`
-        module InstanceMethodsCompatibility
-          def request(*args, &block)
-            request_without_datadog(*args, &block)
-          end
+          base.send(:prepend, InstanceMethods)
         end
 
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
-          include InstanceMethodsCompatibility unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
-
           def request(op, *args)
             tracer.trace(Datadog::Contrib::Dalli::Ext::SPAN_COMMAND) do |span|
               span.resource = op.to_s.upcase
@@ -58,7 +41,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog.configuration[:dalli]
+            Datadog.configuration[:dalli, "#{hostname}:#{port}"] || Datadog.configuration[:dalli]
           end
         end
       end
