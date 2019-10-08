@@ -101,8 +101,22 @@ RSpec.describe Datadog::Configuration::Options do
         end
       end
 
-      describe '#to_h' do
-        subject(:hash) { options_object.to_h }
+      describe '#option_defined?' do
+        subject(:option_defined?) { options_object.option_defined?(name) }
+        let(:name) { :foo }
+
+        context 'when no options are defined' do
+          it { is_expected.to be false }
+        end
+
+        context 'when option is defined' do
+          before { options_class.send(:option, name) }
+          it { is_expected.to be true }
+        end
+      end
+
+      describe '#options_hash' do
+        subject(:hash) { options_object.options_hash }
 
         context 'when no options are defined' do
           it { is_expected.to eq({}) }

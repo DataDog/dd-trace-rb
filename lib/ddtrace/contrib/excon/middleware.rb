@@ -17,7 +17,7 @@ module Datadog
 
         def initialize(stack, options = {})
           super(stack)
-          @options = Datadog.configuration[:excon].to_h.merge(options)
+          @options = Datadog.configuration[:excon].options_hash.merge(options)
         end
 
         def request_call(datum)

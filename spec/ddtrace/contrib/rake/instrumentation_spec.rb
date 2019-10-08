@@ -17,7 +17,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
     skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Integration.compatible?
 
     # Reset options (that might linger from other tests)
-    Datadog.configuration[:rake].reset_options!
+    Datadog.configuration[:rake].reset!
 
     # Patch Rake
     Datadog.configure do |c|

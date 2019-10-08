@@ -3,9 +3,10 @@ require 'spec_helper'
 require 'ddtrace/configuration/settings'
 
 RSpec.describe Datadog::Configuration::Settings do
-  let(:configuration) { described_class.new(registry: registry) }
+  subject(:configuration) { described_class.new(registry: registry) }
   let(:registry) { Datadog::Contrib::Registry.new }
 
+  # TODO: Extract integration behavior to `contrib`
   describe '#use' do
     subject(:result) { configuration.use(name, options) }
     let(:name) { :example }

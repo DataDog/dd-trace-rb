@@ -7,7 +7,7 @@ class TracerTest < ActionDispatch::IntegrationTest
     # don't pollute the global tracer
     @tracer = get_test_tracer
     @config = Datadog.configuration[:rails]
-    Datadog.configuration[:rails].reset_options!
+    Datadog.configuration[:rails].reset!
     @config[:tracer] = @tracer
   end
 

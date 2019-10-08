@@ -7,6 +7,34 @@ RSpec.describe Datadog::Contrib::Configuration::Settings do
 
   it { is_expected.to be_a_kind_of(Datadog::Configuration::Options) }
 
+  describe '#to_h' do
+    subject(:hash) { settings.to_h }
+    let(:options_hash) { double('options hash') }
+
+    before do
+      allow(settings).to receive(:options_hash)
+        .and_return(options_hash)
+    end
+
+    it do
+      is_expected.to be(options_hash)
+      expect(settings).to have_received(:options_hash)
+    end
+  end
+
+  describe '#reset!' do
+    subject(:reset!) { settings.reset! }
+
+    before do
+      allow(settings).to receive(:reset_options!)
+      reset!
+    end
+
+    it 'resets the options' do
+      expect(settings).to have_received(:reset_options!)
+    end
+  end
+
   describe '#options' do
     subject(:options) { settings.options }
 
