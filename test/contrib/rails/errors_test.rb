@@ -54,6 +54,8 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'missing rendering should close the template Span' do
+    skip 'Recent versions use events, and cannot suffer from this issue' if Rails.version >= '4.0.0'
+
     # this route raises an exception, but the notification `render_template.action_view`
     # is not fired, causing unfinished spans; this test protects from regressions
     assert_raises ::ActionView::MissingTemplate do
@@ -84,6 +86,8 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'missing partial rendering should close the template Span' do
+    skip 'Recent versions use events, and cannot suffer from this issue' if Rails.version >= '4.0.0'
+
     # this route raises an exception, but the notification `render_partial.action_view`
     # is not fired, causing unfinished spans; this test protects from regressions
     assert_raises ::ActionView::Template::Error do
