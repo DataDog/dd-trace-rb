@@ -16,7 +16,7 @@ RSpec.describe 'ExampleClient' do
   end
 
   let(:klass) do
-    class FooClient
+    Class.new do
       include HTTParty
       base_uri 'https://example.com'
       dd_options service_name: 'foo_service'
@@ -25,7 +25,6 @@ RSpec.describe 'ExampleClient' do
         self.class.get('/foo')
       end
     end
-    FooClient
   end
 
   describe '.foo' do

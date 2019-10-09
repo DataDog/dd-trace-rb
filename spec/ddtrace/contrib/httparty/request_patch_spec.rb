@@ -74,6 +74,10 @@ RSpec.describe Datadog::Contrib::HTTParty::RequestPatch do
             expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
           end
 
+          it 'has resource named HTTP method' do
+            expect(span.resource).to eq('GET')
+          end
+
           it 'is http type' do
             expect(span.span_type).to eq('http')
           end
@@ -113,7 +117,7 @@ RSpec.describe Datadog::Contrib::HTTParty::RequestPatch do
               expect(span.get_tag(Datadog::Ext::Errors::MSG)).to eq('Code 500 - response')
             end
 
-            it 'has error stack sewt' do
+            it 'has error stack set' do
               expect(span.get_tag(Datadog::Ext::Errors::STACK)).not_to be_nil
             end
 
@@ -137,8 +141,6 @@ RSpec.describe Datadog::Contrib::HTTParty::RequestPatch do
           end
 
           context 'raising on error response' do
-            subject(:request) { HTTParty.get(url, raise_on: 400...600) }
-
             subject(:request) { HTTParty.get(url, raise_on: 400...600) }
 
             before do

@@ -57,7 +57,3 @@ gemfiles/*
 
 # bundle config
 gemfiles/.bundle
-
-# RubyMine/IntelliJ
-.idea
-*.iml
