@@ -12,12 +12,14 @@ module Datadog
           header = env[REQUEST_START] || env[QUEUE_START]
           return unless header
 
-          # nginx header is in the format "t=1512379167.574"
-          time_string = header.to_s.sub('t=', '')
+          # nginx header is milliseconds in the format "t=1512379167.574"
+          # apache header is microseconds in the format "t=1570633834463123"
+          # heorku header is milliseconds in the format "1570634024294"
+          time_string = header.to_s.gsub(/t=|\./, '')
           return if time_string.nil?
 
           # Return nil if the time is clearly invalid
-          time_value = time_string.to_f
+          time_value = "#{time_string[0, 10]}.#{time_string[10, 13]}".to_f
           return if time_value.zero?
 
           # return the request_start only if it's lesser than
