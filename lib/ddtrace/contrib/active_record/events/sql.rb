@@ -24,6 +24,20 @@ module Datadog
             Ext::SPAN_SQL
           end
 
+          def prepare_parameterized_statement(args)
+            if Array === args[1] && args[1].length > 0
+              query = args[0]
+              parameters = args[1]
+              counter = 0
+              loop do
+                break if !query.include? "$#{counter+=1}"
+                parameter = parameters[counter-1].is_a?(String) ? "'#{parameters[counter-1].gsub("'","''")}'" : parameters[counter-1]
+                query = query.sub("$#{counter}","\"#{parameter.to_s}\"")
+              end
+            end
+            query
+          end
+
           def process(span, event, _id, payload)
             config = Utils.connection_config(payload[:connection], payload[:connection_id])
             settings = Datadog.configuration[:active_record, config]
@@ -36,7 +50,7 @@ module Datadog
 
             span.name = "#{adapter_name}.query"
             span.service = service_name
-            span.resource = payload.fetch(:sql)
+            span.resource = prepare_parameterized_statement([payload[:sql],payload[:type_casted_binds]]) #payload.fetch(:sql)
             span.span_type = Datadog::Ext::SQL::TYPE
 
             # Set analytics sample rate
