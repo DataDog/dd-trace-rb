@@ -2,11 +2,11 @@ require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
-require 'ddtrace/contrib/httparty/request_patch'
+require 'ddtrace/contrib/httparty/instrumentation/request'
 require 'httparty'
 require 'httparty/request'
 
-RSpec.describe Datadog::Contrib::HTTParty::RequestPatch do
+RSpec.describe Datadog::Contrib::HTTParty::Instrumentation::Request do
   let(:tracer) { get_test_tracer }
   let(:configuration_options) { { tracer: tracer } }
 

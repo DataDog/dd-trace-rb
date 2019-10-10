@@ -13,14 +13,14 @@ module Datadog
 
         def patch
           do_once(:httparty) do
-            require 'ddtrace/contrib/httparty/module_patch'
-            require 'ddtrace/contrib/httparty/request_patch'
+            require 'ddtrace/contrib/httparty/instrumentation/helpers'
+            require 'ddtrace/contrib/httparty/instrumentation/request'
 
             # patch the HTTParty module
-            ::HTTParty::ClassMethods.send(:include, ModulePatch)
+            ::HTTParty::ClassMethods.send(:include, Instrumentation::Helpers)
 
             # patch the HTTParty::Request class
-            ::HTTParty::Request.send(:include, RequestPatch)
+            ::HTTParty::Request.send(:include, Instrumentation::Request)
           end
         end
       end
