@@ -15,7 +15,7 @@ module Datadog
           # nginx header is milliseconds in the format "t=1512379167.574"
           # apache header is microseconds in the format "t=1570633834463123"
           # heorku header is milliseconds in the format "1570634024294"
-          time_string = header.to_s.gsub(/t=|\./, '')
+          time_string = header.to_s.delete('^0-9')
           return if time_string.nil?
 
           # Return nil if the time is clearly invalid
