@@ -12,7 +12,7 @@ module Datadog
           header = env[REQUEST_START] || env[QUEUE_START]
           return unless header
 
-          # nginx header is milliseconds in the format "t=1512379167.574"
+          # nginx header is seconds in the format "t=1512379167.574"
           # apache header is microseconds in the format "t=1570633834463123"
           # heorku header is milliseconds in the format "1570634024294"
           time_string = header.to_s.delete('^0-9')
