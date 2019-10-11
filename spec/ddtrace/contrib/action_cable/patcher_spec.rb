@@ -56,11 +56,11 @@ RSpec.describe 'ActionCable patcher' do
 
         expect(span.service).to eq('action_cable')
         expect(span.name).to eq('action_cable.broadcast')
-        expect(span.span_type).to eq('custom')
+        expect(span.span_type).to eq('web')
         expect(span.resource).to eq('action_cable.broadcast')
         expect(span.get_tag('action_cable.channel')).to eq(channel)
         expect(span.get_tag('action_cable.broadcast.coder')).to eq('ActiveSupport::JSON')
-        expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+        expect(span).to_not have_error
       end
 
       it_behaves_like 'analytics for integration' do
@@ -95,7 +95,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.resource).to eq('ChatChannel#foo')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
         expect(span.get_tag('action_cable.action')).to eq('foo')
-        expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+        expect(span).to_not have_error
       end
 
       it_behaves_like 'analytics for integration' do
@@ -129,7 +129,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.resource).to eq('ChatChannel.transmit')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
         expect(span.get_tag('action_cable.transmit.via')).to eq('streamed from chat_channel')
-        expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+        expect(span).to_not have_error
       end
 
       it_behaves_like 'analytics for integration' do
