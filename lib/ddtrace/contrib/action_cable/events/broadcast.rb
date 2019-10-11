@@ -5,7 +5,10 @@ module Datadog
   module Contrib
     module ActionCable
       module Events
-        # Defines instrumentation for 'broadcast.action_cable' event
+        # Defines instrumentation for 'broadcast.action_cable' event.
+        #
+        # A single 'broadcast' event will trigger as many 'transmit' events
+        # as there are clients subscribed to a channel.
         module Broadcast
           include ActionCable::Event
 
@@ -22,7 +25,8 @@ module Datadog
           end
 
           def span_type
-            Datadog::Ext::AppTypes::CUSTOM
+            # Starts a broadcast of messages over WebSockets
+            Datadog::Ext::AppTypes::WEB
           end
 
           def process(span, _event, _id, payload)

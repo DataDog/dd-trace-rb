@@ -5,7 +5,9 @@ module Datadog
   module Contrib
     module ActionCable
       module Events
-        # Defines instrumentation for 'transmit.action_cable' event
+        # Defines instrumentation for 'transmit.action_cable' event.
+        #
+        # A 'transmit' event sends a message to a single client subscribed to a channel.
         module Transmit
           include ActionCable::Event
 
@@ -18,7 +20,7 @@ module Datadog
           end
 
           def span_name
-            Ext::SPAN_ACTION
+            Ext::SPAN_TRANSMIT
           end
 
           def span_type
