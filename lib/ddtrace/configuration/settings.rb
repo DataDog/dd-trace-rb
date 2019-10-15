@@ -6,6 +6,7 @@ require 'ddtrace/ext/runtime'
 
 require 'ddtrace/tracer'
 require 'ddtrace/metrics'
+require 'ddtrace/debug/health'
 
 module Datadog
   module Configuration
@@ -49,6 +50,18 @@ module Datadog
             # Only inject Datadog headers by default
             env_to_list(Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
                         [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
+          end
+
+          o.lazy
+        end
+      end
+
+      settings :debug do
+        option :health_metrics do |o|
+          o.default do
+            Datadog::Debug::Health::Metrics.new(
+              enabled: env_to_bool(Datadog::Ext::Debug::Health::Metrics::ENV_ENABLED, true)
+            )
           end
 
           o.lazy

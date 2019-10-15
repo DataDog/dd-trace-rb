@@ -21,6 +21,12 @@ module Datadog
         distribution :traces_filtered, Ext::Debug::Health::Metrics::METRIC_TRACES_FILTERED
         distribution :writer_cpu_time, Ext::Debug::Health::Metrics::METRIC_WRITER_CPU_TIME
       end
+
+      module_function
+
+      def metrics
+        Datadog.configuration.debug.health_metrics
+      end
     end
   end
 end
