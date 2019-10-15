@@ -125,8 +125,26 @@ module Datadog
       end
     end
 
+    # For defining and adding helpers to metrics
+    module Helpers
+      [
+        :distribution,
+        :increment,
+        :gauge,
+        :time
+      ].each do |metric_type|
+        define_method(metric_type) do |name, stat|
+          name = name.to_sym
+          define_method(name) do |*args, &block|
+            send(metric_type, stat, *args, &block)
+          end
+        end
+      end
+    end
+
     # Make available on for both class and instance.
     include Options
     extend Options
+    extend Helpers
   end
 end
