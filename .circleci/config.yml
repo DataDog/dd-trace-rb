@@ -126,7 +126,7 @@ jobs:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
       - restore_cache:
           keys:
-            - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-2.0-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
+            - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-2.0-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
             - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-2.0-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-
             - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-2.0-{{ checksum "lib/ddtrace/version.rb" }}
       - *step_init_bundle_checksum
