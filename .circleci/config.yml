@@ -126,9 +126,9 @@ jobs:
             - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-2.0-{{ .Environment.CIRCLE_SHA1 }}'
       - restore_cache:
           keys:
-            - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ .Environment.RUBY_VERSION }}-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
-            - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ .Environment.RUBY_VERSION }}-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-
-            - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ .Environment.RUBY_VERSION }}-{{ checksum "lib/ddtrace/version.rb" }}
+            - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-2.0-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
+            - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-2.0-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-
+            - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-2.0-{{ checksum "lib/ddtrace/version.rb" }}
       - *step_init_bundle_checksum
       - restore_cache:
           keys:
@@ -145,7 +145,7 @@ jobs:
           paths:
             - /usr/local/bundle
       - save_cache:
-          key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ .Environment.RUBY_VERSION }}-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
+          key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-2.0-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
           paths:
             - /usr/local/bundle
   test-2.0:
