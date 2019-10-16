@@ -244,7 +244,7 @@ Many popular libraries and frameworks are supported out-of-the-box, which can be
 ```ruby
 Datadog.configure do |c|
   # Activates and configures an integration
-  c.use :integration_name, options
+  c.use :integration_key, options
 end
 ```
 
@@ -304,7 +304,7 @@ Traces produced by `ddtrace` can be correlated with your log entries for easy di
 
 **TODO: Add screenshot showing correlated log message here**
 
-It can be quickly activated with Lograge, Rails or other Ruby applications; read more about how to configure and activate this in our [documentation](https://github.com/DataDog/dd-trace-rb/blob/master/docs/TraceCorrelation.md).
+It can be quickly activated with Lograge, Rails or other Ruby applications; read more about how to configure and activate this in our [documentation](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Correlation.md#with-logs).
 
 ### Runtime metrics
 
@@ -328,7 +328,7 @@ Datadog supports interoperatibility with OpenTracing instrumentation out-of-the 
 
 **TODO: Add screenshot showing flamegraph with OpenTracing instrumentation here**
 
-See the [Quickstart for OpenTracing](#quickstart-for-opentracing) section for setup instructions, or the [documentation]((https://github.com/DataDog/dd-trace-rb/blob/master/docs/OpenTracing.md)) for more details about how `ddtrace` works with OpenTracing.
+See the [Quickstart for OpenTracing](#quickstart-for-opentracing) section for setup instructions, or the [documentation](https://github.com/DataDog/dd-trace-rb/blob/master/docs/OpenTracing.md) for more details about how `ddtrace` works with OpenTracing.
 
 ## Compatibility
 
@@ -382,19 +382,20 @@ The API documentation for our latest release can be found in our [gem documentat
 For more details about other facets of `ddtrace`:
 
  - [Supported integrations](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Integrations.md)
- - [Configuring the tracer](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Tracer.md)
-    - [Tracer settings](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Tracer.md#tracer-settings)
-    - [Customizing trace logs](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Tracer.md#custom-logging)
-    - [Setting the environment and other default tags](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Tracer.md#environment-and-tags)
-    - [Configuring how trace data is sent](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Tracer.md#configuring-the-transport-layer)
- - [Sampling](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Sampling.md)
-    - [Priority sampling](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Sampling.md#priority-sampling)
+ - [Advanced usage](https://github.com/DataDog/dd-trace-rb/blob/master/docs/AdvancedUsage.md)
+    - [Tracer settings](https://github.com/DataDog/dd-trace-rb/blob/master/docs/AdvancedUsage.md#adjusting-tracer-settings)
+    - [Customizing trace logs](https://github.com/DataDog/dd-trace-rb/blob/master/docs/AdvancedUsage.md#custom-logging)
+    - [Setting the environment and other default tags](https://github.com/DataDog/dd-trace-rb/blob/master/docs/AdvancedUsage.md#environment-and-tags)
+    - [Configuring how trace data is sent](https://github.com/DataDog/dd-trace-rb/blob/master/docs/AdvancedUsage.md#configuring-the-transport-layer)
+    - [Sampling](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Sampling.md)
+        - [Priority sampling](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Sampling.md#priority-sampling)
  - [Distributed tracing](https://github.com/DataDog/dd-trace-rb/blob/master/docs/DistributedTracing.md)
- - [Measuring HTTP request queue times](https://github.com/DataDog/dd-trace-rb/blob/master/docs/WebServers.md#http-request-queuing)
+ - [Web servers](https://github.com/DataDog/dd-trace-rb/blob/master/docs/WebServers.md)
+    - [Measuring HTTP request queue times](https://github.com/DataDog/dd-trace-rb/blob/master/docs/WebServers.md#http-request-queuing)
  - [Using the processing pipeline](https://github.com/DataDog/dd-trace-rb/blob/master/docs/ProcessingPipeline.md)
     - [To filter spans](https://github.com/DataDog/dd-trace-rb/blob/master/docs/ProcessingPipeline.md#filtering)
     - [To modify spans](https://github.com/DataDog/dd-trace-rb/blob/master/docs/ProcessingPipeline.md#processing)
- - [Correlating traces with logs](https://github.com/DataDog/dd-trace-rb/blob/master/docs/TraceCorrelation.md)
+ - [Correlating traces with logs](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Correlation.md#with-logs)
  - [Metrics](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Metrics.md)
     - [For the application runtime](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Metrics.md#for-application-runtime)
  - [Using Datadog with OpenTracing](https://github.com/DataDog/dd-trace-rb/blob/master/docs/OpenTracing.md)
