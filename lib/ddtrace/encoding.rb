@@ -10,12 +10,11 @@ module Datadog
         raise NotImplementedError
       end
 
-      # Trace agent limit payload size of 10 MiB (as of agent v6.14.1):
+      # Trace agent limit payload size of 10 MiB (since agent v5.11.0):
       # https://github.com/DataDog/datadog-agent/blob/6.14.1/pkg/trace/api/api.go#L46
       #
-      # This value is set lower than the hard limit, in case transport overhead pushes
-      # the payload size over the limit.
-      DEFAULT_MAX_PAYLOAD_SIZE = 9 * 1024 * 1024
+      # We set the value to a conservative 5 MiB, in case network speed is slow.
+      DEFAULT_MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
 
       # Encodes a list of traces in batches, expecting a list of items where each items
       # is a list of spans.
@@ -73,9 +72,7 @@ module Datadog
         # TODO: Datadog::Debug::HealthMetrics.increment('tracer.encoder.trace.encode')
         if encoded.size > max_size
           # This single trace is too large, we can't flush it
-          # TODO should I add `trace` to the message? It will definitely be very large!
-          # TODO Datadog::Debug::HealthMetrics.increment('tracer.encoder.trace.max_size_exceed')
-          Datadog::Tracer.log.debug('Trace payload too large')
+          Datadog::Tracer.log.debug { "Trace payload too large: #{trace.to_hash}" }
           return nil
         end
 
