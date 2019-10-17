@@ -19,7 +19,7 @@ module Datadog
 
       # Builds a new Transport::HTTP::Client
       def new(&block)
-        Builder.new(&block).to_client
+        Builder.new(&block).to_transport
       end
 
       # Builds a new Transport::HTTP::Client with default settings

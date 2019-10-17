@@ -9,7 +9,7 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:block) { proc {} }
 
       let(:builder) { instance_double(Datadog::Transport::HTTP::Builder) }
-      let(:client) { instance_double(Datadog::Transport::HTTP::Client) }
+      let(:transport) { instance_double(Datadog::Transport::HTTP::Transport) }
 
       before do
         expect(Datadog::Transport::HTTP::Builder).to receive(:new) do |&blk|
@@ -17,19 +17,19 @@ RSpec.describe Datadog::Transport::HTTP do
           builder
         end
 
-        expect(builder).to receive(:to_client)
-          .and_return(client)
+        expect(builder).to receive(:to_transport)
+          .and_return(transport)
       end
 
-      it { is_expected.to be client }
+      it { is_expected.to be transport }
     end
   end
 
   describe '.default' do
     subject(:default) { described_class.default }
 
-    it 'returns an HTTP client with default configuration' do
-      is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Client)
+    it 'returns an HTTP transport with default configuration' do
+      is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Transport)
       expect(default.current_api_id).to eq(Datadog::Transport::HTTP::API::V4)
 
       expect(default.apis.keys).to eq(
@@ -55,8 +55,8 @@ RSpec.describe Datadog::Transport::HTTP do
       context 'that are empty' do
         let(:options) { {} }
 
-        it 'returns an HTTP client with default configuration' do
-          is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Client)
+        it 'returns an HTTP transport with default configuration' do
+          is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Transport)
           expect(default.current_api_id).to eq(Datadog::Transport::HTTP::API::V4)
 
           expect(default.apis.keys).to eq(
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Transport::HTTP do
         let(:hostname) { double('hostname') }
         let(:port) { double('port') }
 
-        it 'returns an HTTP client with default configuration' do
+        it 'returns an HTTP transport with default configuration' do
           default.apis.each do |_key, api|
             expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(hostname)

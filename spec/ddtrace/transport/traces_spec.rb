@@ -23,13 +23,21 @@ RSpec.describe Datadog::Transport::Traces::Parcel do
 end
 
 RSpec.describe Datadog::Transport::Traces::Request do
-  subject(:request) { described_class.new(traces) }
-  let(:traces) { instance_double(Array) }
+  subject(:request) { described_class.new(data, trace_count, content_type) }
+  let(:data) { double }
+  let(:trace_count) { 1 }
+  let(:content_type) { 'text/plain' }
 
   it { is_expected.to be_a_kind_of(Datadog::Transport::Request) }
 
   describe '#initialize' do
-    it { is_expected.to have_attributes(parcel: kind_of(Datadog::Transport::Traces::Parcel)) }
+    it do
+      is_expected.to have_attributes(
+        parcel: kind_of(Datadog::Transport::Traces::Parcel),
+        trace_count: trace_count,
+        content_type: content_type
+      )
+    end
   end
 end
 

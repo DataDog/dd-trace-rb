@@ -15,8 +15,8 @@ module Datadog
 
       # Traces request
       class Request < Transport::Request
-        def initialize(traces)
-          super(Parcel.new(traces))
+        def initialize(data, trace_count, content_type)
+          super(Parcel.new(data), trace_count, content_type)
         end
       end
 

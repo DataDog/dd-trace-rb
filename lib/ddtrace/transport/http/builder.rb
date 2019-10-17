@@ -2,6 +2,7 @@ require 'ddtrace/transport/http/adapters/registry'
 require 'ddtrace/transport/http/api/map'
 require 'ddtrace/transport/http/api/instance'
 require 'ddtrace/transport/http/client'
+require 'ddtrace/transport/http/transport'
 
 module Datadog
   module Transport
@@ -70,13 +71,10 @@ module Datadog
           @default_api = key
         end
 
-        def to_client
+        def to_transport
           raise NoDefaultApiError if @default_api.nil?
 
-          @client ||= Client.new(
-            to_api_instances,
-            @default_api
-          )
+          HTTP::Transport.new(to_api_instances, @default_api)
         end
 
         def to_api_instances

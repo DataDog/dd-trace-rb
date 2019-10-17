@@ -9,7 +9,7 @@ RSpec.describe Datadog::Writer do
   describe 'instance' do
     subject(:writer) { described_class.new(options) }
     let(:options) { { transport: transport } }
-    let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+    let(:transport) { instance_double(Datadog::Transport::HTTP::Transport) }
 
     describe 'behavior' do
       describe '#initialize' do

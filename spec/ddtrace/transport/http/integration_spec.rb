@@ -7,12 +7,12 @@ RSpec.describe 'Datadog::Transport::HTTP integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   describe 'HTTP#default' do
-    subject(:client) { Datadog::Transport::HTTP.default(&client_options) }
+    subject(:transport) { Datadog::Transport::HTTP.default(&client_options) }
     let(:client_options) { proc { |_client| } }
-    it { is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Client) }
+    it { is_expected.to be_a(Datadog::Transport::HTTP::Transport) }
 
     describe '#send_traces' do
-      subject(:responses) { client.send_traces(traces) }
+      subject(:responses) { transport.send_traces(traces) }
       let(:traces) { get_test_traces(2) }
       it do
         is_expected.to all(be_a(Datadog::Transport::HTTP::Traces::Response))

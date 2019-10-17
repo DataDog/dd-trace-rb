@@ -22,13 +22,12 @@ RSpec.describe Datadog::Transport::HTTP::Traces::Response do
 end
 
 RSpec.describe Datadog::Transport::HTTP::Client do
-  subject(:client) { described_class.new(apis, :v1) }
-  let(:apis) { Datadog::Transport::HTTP::API::Map[v1: api] }
+  subject(:client) { described_class.new(api) }
   let(:api) { instance_double(Datadog::Transport::HTTP::API::Instance) }
 
-  describe '#send_traces' do
-    subject(:send_traces) { client.send_traces(traces) }
-    let(:traces) { instance_double(Array) }
+  describe '#send_payload' do
+    subject(:send_payload) { client.send_payload(request) }
+    let(:request) { instance_double(Datadog::Transport::Traces::Request) }
     let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
 
     before do
@@ -36,12 +35,12 @@ RSpec.describe Datadog::Transport::HTTP::Client do
 
       expect(api).to receive(:send_traces) do |env|
         expect(env).to be_a_kind_of(Datadog::Transport::HTTP::Env)
-        expect(env.request).to be_a_kind_of(Datadog::Transport::Traces::Request)
-        [response]
+        expect(env.request).to be(request)
+        response
       end
     end
 
-    it { is_expected.to eq([response]) }
+    it { is_expected.to eq(response) }
   end
 end
 
@@ -74,6 +73,15 @@ RSpec.describe Datadog::Transport::HTTP::API::Spec do
 
       it { is_expected.to be response }
     end
+  end
+
+  describe '#encoder' do
+    subject { spec.encoder }
+
+    let!(:endpoint) { spec.traces = instance_double(Datadog::Transport::HTTP::Traces::API::Endpoint, encoder: encoder) }
+    let(:encoder) { double }
+
+    it { is_expected.to eq(encoder) }
   end
 end
 
@@ -133,11 +141,12 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
   describe '#call' do
     subject(:call) { endpoint.call(env, &block) }
     let(:env) { Datadog::Transport::HTTP::Env.new(request) }
-    let(:request) { Datadog::Transport::Traces::Request.new(traces) }
-    let(:traces) { [double('trace_once'), double('trace_two')] }
+    let(:request) { Datadog::Transport::Traces::Request.new(data, trace_count, 'text/plain') }
+    let(:data) { double('trace_once') }
+    let(:trace_count) { 123 }
 
     let(:handler) { spy('handler') }
-    let(:http_response) { instance_double(Datadog::Transport::Response) }
+    let(:http_response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: trace_count) }
 
     let(:block) do
       proc do |env|
@@ -149,30 +158,25 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
       end
     end
 
-    let(:encoded_traces) { '(encoded traces)' }
-
     before do
       allow(handler).to receive(:http_response).and_return(http_response)
-      allow(encoder).to receive(:encode_traces).with(traces) do |&block|
-        [block.call(encoded_traces, traces.size)]
-      end
     end
 
     shared_examples_for 'traces request' do
       it 'has correct attributes' do
-        is_expected.to all(be_a(Datadog::Transport::HTTP::Traces::Response))
+        is_expected.to be_a(Datadog::Transport::HTTP::Traces::Response)
         expect(handler).to have_received(:verb).with(:post)
         expect(handler).to have_received(:path).with(path)
-        expect(handler).to have_received(:body).with(encoded_traces)
+        expect(handler).to have_received(:body).with(data)
         expect(handler).to have_received(:headers).with(
           described_class::HEADER_CONTENT_TYPE => content_type,
-          described_class::HEADER_TRACE_COUNT => '2'
+          described_class::HEADER_TRACE_COUNT => trace_count.to_s
         )
       end
     end
 
     it 'response has trace count' do
-      expect(call.first.trace_count).to eq(2)
+      expect(call.trace_count).to eq(trace_count)
     end
 
     context 'when service_rates? is false' do
@@ -192,7 +196,7 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
 
       it_behaves_like 'traces request'
       it 'includes service rates' do
-        expect(call.first.service_rates).to eq(service_rates)
+        expect(call.service_rates).to eq(service_rates)
       end
     end
   end
