@@ -3,7 +3,7 @@ require 'ddtrace/contrib/rails/ext'
 
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.xdescribe 'Rails cache' do
+RSpec.describe 'Rails cache' do
   include_context 'Rails test application'
 
   before do
