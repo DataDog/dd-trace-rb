@@ -52,10 +52,9 @@ RSpec.shared_context 'Rails 3 base application' do
       instance_eval(&during_init)
     end
 
+    after_rails_application_creation_callback = after_rails_application_creation
     before_test_init = before_test_initialize_block
     after_test_init = after_test_initialize_block
-
-    puts " === 0 #{Rails.application.config.object_id} #{Rails.application.config.action_view}"
 
     klass.send(:define_method, :test_initialize!) do
       # Enables the auto-instrumentation for the testing application
@@ -64,11 +63,12 @@ RSpec.shared_context 'Rails 3 base application' do
         c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
       end
 
-      puts " == 1 #{Rails.application.config.object_id} #{Rails.application.config.action_view}"
+      after_rails_application_creation_callback
       before_test_init.call
+
       begin
         puts " == A #{Rails.application.config.object_id} #{Rails.application.config.action_view}"
-      initialize!
+        initialize!
         puts " == Z #{Rails.application.config.action_view}"
       rescue => e
         puts " == BAD #{Rails.application.config.action_view}"
@@ -100,7 +100,8 @@ RSpec.shared_context 'Rails 3 base application' do
     end
   end
 
-  def append_controllers!; end
+  def append_controllers!;
+  end
 
   def draw_test_routes!(mapper)
     # Rails 3 accumulates these route drawing
@@ -121,6 +122,25 @@ RSpec.shared_context 'Rails 3 base application' do
       end
     end
     @drawn = true
+  end
+
+  # Version of Ruby < 4 have initializers with persistent side effects:
+  # actionpack-3.0.20/lib/action_view/railtie.rb:22
+  def after_rails_application_creation
+    Rails.application.config.action_view = ActiveSupport::OrderedOptions.new
+
+    # Prevent initializer from performing destructive operation on configuration.
+    # This affects subsequent runs.
+    Rails.application.config.action_view.define_singleton_method(:delete) do |*args, &block|
+      case args.first
+      when :stylesheet_expansions
+        {}
+      when :javascript_expansions
+        { :defaults => ['prototype', 'effects', 'dragdrop', 'controls', 'rails'] }
+      else
+        super
+      end
+    end
   end
 
   # Rails 3 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables

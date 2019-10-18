@@ -42,7 +42,7 @@ module Datadog
       require 'datadog/statsd' unless defined?(::Datadog::Statsd)
 
       # Create a StatsD client that points to the agent.
-      Datadog::Statsd.new(default_hostname, default_port)
+      # Datadog::Statsd.new(default_hostname, default_port) # TODO UNDO ME
     end
 
     def configure(options = {})
