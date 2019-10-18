@@ -9,16 +9,11 @@ RSpec.describe 'Rails middleware' do
 
   let(:controller) do
     begin
-      puts 'a'
-      # x = ActionController::Base
-      puts 'b'
-      ActionController::Base # TODO remove me
-      puts 'c'
-    stub_const('TestController', Class.new(ActionController::Base) do
-      def index
-        head :ok
-      end
-    end)
+      stub_const('TestController', Class.new(ActionController::Base) do
+        def index
+          head :ok
+        end
+      end)
       puts 'd'
     rescue => e
       puts e

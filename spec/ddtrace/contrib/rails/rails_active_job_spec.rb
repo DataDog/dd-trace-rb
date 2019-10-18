@@ -6,7 +6,9 @@
 begin
   require 'active_job'
 rescue LoadError
+  puts 'ActiveJob not supported in this version of Rails'
 end
+
 require 'ddtrace/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails with Sidekiq' do

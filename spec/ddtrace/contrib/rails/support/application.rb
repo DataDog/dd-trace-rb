@@ -15,8 +15,6 @@ RSpec.shared_context 'Rails test application' do
     Rails.application = nil
     Rails.logger = nil
 
-    Rails
-
     if Rails::VERSION::MAJOR >= 4
       Rails.app_class = nil
       Rails.cache = nil
