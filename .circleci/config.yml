@@ -121,7 +121,6 @@ orbs:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
           - *step_bundle_install
-          - *step_rubocop
           - *step_appraisal_install
           - *step_compute_bundle_checksum
           - save_cache:
@@ -193,6 +192,28 @@ orbs:
           - run:
               name: Run Benchmark without ddtracer
               command: rm -f lib/ddtrace.rb && bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
+      lint:
+        <<: *job_defaults
+        parameters:
+          ruby_version:
+            description: Ruby version
+            type: string
+          image:
+            description: Docker image location
+            type: string
+        docker:
+          - <<: *container_base
+            image: <<parameters.image>>
+            environment:
+              - BUNDLE_GEMFILE: /app/Gemfile
+        steps:
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+          - *step_rubocop
     commands:
     executors:
 
@@ -372,6 +393,11 @@ workflows:
           name: test-2.6
           requires:
             - build-2.6
+      - orb/lint:
+          <<: *config-2_1
+          name: lint
+          requires:
+            - build-2.1
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
           requires:
@@ -382,6 +408,7 @@ workflows:
             - test-2.4
             - test-2.5
             - test-2.6
+            - lint
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
@@ -392,3 +419,4 @@ workflows:
             - test-2.4
             - test-2.5
             - test-2.6
+            - lint
