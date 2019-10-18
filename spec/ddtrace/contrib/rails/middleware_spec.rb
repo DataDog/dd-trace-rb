@@ -145,7 +145,7 @@ RSpec.describe 'Rails middleware' do
           expect(span.get_tag('http.status_code')).to eq('500')
           expect(span.get_tag('error.type')).to eq('NotImplementedError')
           expect(span.get_tag('error.msg')).to eq('NotImplementedError')
-          expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
+          expect(span).to have_error
           expect(span.get_tag('error.stack')).to_not be nil
         end
       end
@@ -188,13 +188,13 @@ RSpec.describe 'Rails middleware' do
           if Rails.version >= '3.2'
             expect(span.get_tag('error.type')).to be nil
             expect(span.get_tag('error.msg')).to be nil
-            expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+            expect(span).to_not have_error
             expect(span.get_tag('error.stack')).to be nil
           else
             # Rails 3.0 raises errors for 404 routing errors
             expect(span.get_tag('error.type')).to eq('ActionController::RoutingError')
             expect(span.get_tag('error.msg')).to eq('/missing_route')
-            expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
+            expect(span).to have_error
             expect(span.get_tag('error.stack')).to_not be nil
           end
         end
@@ -249,7 +249,7 @@ RSpec.describe 'Rails middleware' do
           expect(span.get_tag('http.status_code')).to eq('500')
           expect(span.get_tag('error.type')).to eq('CustomError')
           expect(span.get_tag('error.msg')).to eq('Custom error message!')
-          expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
+          expect(span).to have_error
           expect(span.get_tag('error.stack')).to_not be nil
         end
       end
@@ -294,7 +294,7 @@ RSpec.describe 'Rails middleware' do
               expect(span.get_tag('http.status_code')).to eq('404')
               expect(span.get_tag('error.type')).to be nil
               expect(span.get_tag('error.msg')).to be nil
-              expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+              expect(span).to_not have_error
               expect(span.get_tag('error.stack')).to be nil
             end
           end

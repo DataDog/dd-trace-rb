@@ -1,23 +1,17 @@
-require 'ddtrace/environment'
-require 'ddtrace/configuration/options'
+require 'ddtrace/configuration/base'
 
 module Datadog
   module Contrib
     module Configuration
       # Common settings for all integrations
       class Settings
-        extend Datadog::Environment::Helpers
-        include Datadog::Configuration::Options
+        include Datadog::Configuration::Base
 
-        option :service_name
-        option :tracer,
-               default: -> { Datadog.tracer },
-               lazy: true
         option :analytics_enabled, default: false
         option :analytics_sample_rate, default: 1.0
-
-        def initialize(options = {})
-          configure(options)
+        option :service_name
+        option :tracer do |o|
+          o.delegate_to { Datadog.tracer }
         end
 
         def configure(options = {})

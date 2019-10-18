@@ -71,13 +71,13 @@ RSpec.shared_examples_for 'instrumented request' do
         end
 
         it 'has error set' do
-          expect(span.get_tag(Datadog::Ext::Errors::MSG)).to eq('Request has failed with HTTP error: 500')
+          expect(span).to have_error_message('Request has failed with HTTP error: 500')
         end
         it 'has no error stack' do
-          expect(span.get_tag(Datadog::Ext::Errors::STACK)).to be_nil
+          expect(span).to_not have_error_stack
         end
         it 'has no error type' do
-          expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to be_nil
+          expect(span).to_not have_error_type
         end
       end
 
@@ -91,7 +91,7 @@ RSpec.shared_examples_for 'instrumented request' do
         end
 
         it 'has no error set' do
-          expect(span.get_tag(Datadog::Ext::Errors::MSG)).to be_nil
+          expect(span).to_not have_error_message
         end
       end
 
@@ -105,7 +105,7 @@ RSpec.shared_examples_for 'instrumented request' do
         end
 
         it 'has error set' do
-          expect(span.get_tag(Datadog::Ext::Errors::MSG)).to eq('Request has failed: Timeout was reached')
+          expect(span).to have_error_message('Request has failed: Timeout was reached')
         end
       end
     end
