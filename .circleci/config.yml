@@ -121,6 +121,7 @@ orbs:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
           - *step_bundle_install
+          - *step_rubocop
           - *step_appraisal_install
           - *step_compute_bundle_checksum
           - save_cache:
