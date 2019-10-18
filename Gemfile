@@ -51,10 +51,10 @@ gem 'pry-nav', git: 'https://github.com/nixme/pry-nav.git', branch: 'master'
 # gem 'sidekiq'
 # gem 'redis-rails'
 
-gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-gem 'debase'
-gem 'pg', '0.15.1', platform: :ruby
-gem 'rack-cache', '1.7.1'
-gem 'rails', '3.0.20'
-gem 'ruby-debug-ide'
-gem 'test-unit'
+# gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+# gem 'debase'
+# gem 'pg', '0.15.1', platform: :ruby
+# gem 'rack-cache', '1.7.1'
+# gem 'rails', '3.0.20'
+# gem 'ruby-debug-ide'
+# gem 'test-unit'
