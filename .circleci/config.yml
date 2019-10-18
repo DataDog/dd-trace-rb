@@ -5,7 +5,7 @@ job_defaults: &job_defaults
   working_directory: /app
   shell: /bin/bash --login
 
-test_containers: &test_containers
+test_containers:
   - &container_base
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
@@ -242,7 +242,7 @@ jobs:
           path: pkg/
           destination: gem
 
-job_configuration: &job_configuration
+job_configuration:
   - &config-2_0
     <<: *filters_all_branches_and_tags
     ruby_version: '2.0'
