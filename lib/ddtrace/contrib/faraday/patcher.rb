@@ -45,7 +45,7 @@ module Datadog
         end
 
         def add_default_middleware!
-          ::Faraday::RackBuilder.prepend(RackBuilder)
+          ::Faraday::RackBuilder.send(:prepend, RackBuilder)
         end
 
         def get_option(option)
