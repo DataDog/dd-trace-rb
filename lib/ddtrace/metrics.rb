@@ -92,6 +92,17 @@ module Datadog
       end
     end
 
+    def send_metrics(metrics)
+      metrics.each { |m| send(m.type, *[m.name, m.value, m.options].compact) }
+    end
+
+    Metric = Struct.new(:type, :name, :value, :options) do
+      def initialize(*args)
+        super
+        self.options = options || {}
+      end
+    end
+
     # For defining and adding default options to metrics
     module Options
       DEFAULT = {

@@ -445,4 +445,38 @@ RSpec.describe Datadog::Metrics do
       end
     end
   end
+
+  describe '#send_metrics' do
+    subject(:send_metrics) { metrics.send_metrics(metrics_list) }
+
+    context 'given an Array of Metrics' do
+      let(:metrics_list) do
+        [
+          described_class::Metric.new(:distribution, dist_name, dist_value, dist_options),
+          described_class::Metric.new(:increment, inc_name, nil, inc_options)
+        ]
+      end
+
+      let(:dist_name) { double('distribution name') }
+      let(:dist_value) { 1 }
+      let(:dist_options) { double('distribution options') }
+      let(:inc_name) { double('increment name') }
+      let(:inc_options) { double('increment options') }
+
+      before do
+        allow(metrics).to receive(:distribution)
+        allow(metrics).to receive(:increment)
+      end
+
+      it 'sends each metric' do
+        send_metrics
+
+        expect(metrics).to have_received(:distribution)
+          .with(dist_name, dist_value, dist_options)
+
+        expect(metrics).to have_received(:increment)
+          .with(inc_name, inc_options)
+      end
+    end
+  end
 end
