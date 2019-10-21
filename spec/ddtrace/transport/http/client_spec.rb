@@ -1,5 +1,6 @@
 require 'spec_helper'
 
+require 'ddtrace'
 require 'ddtrace/transport/http/client'
 
 RSpec.describe Datadog::Transport::HTTP::Client do
@@ -21,7 +22,7 @@ RSpec.describe Datadog::Transport::HTTP::Client do
   describe '#initialize' do
     include_context 'APIs with fallbacks'
 
-    it { is_expected.to be_a_kind_of(Datadog::Transport::Statistics) }
+    it { is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Statistics) }
 
     it do
       is_expected.to have_attributes(
