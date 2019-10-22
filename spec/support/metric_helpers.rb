@@ -19,6 +19,12 @@ module MetricHelpers
     end
 
     # Define matchers for use in examples
+    def have_received_count_metric(stat, value = kind_of(Numeric), options = {})
+      options = metric_options(options)
+      check_options!(options)
+      have_received(:count).with(stat, value, options)
+    end
+
     def have_received_distribution_metric(stat, value = kind_of(Numeric), options = {})
       options = metric_options(options)
       check_options!(options)
@@ -44,6 +50,15 @@ module MetricHelpers
     end
 
     # Define shared examples
+    shared_examples_for 'an operation that sends count metric' do |stat, options = {}|
+      let(:value) { kind_of(Numeric) }
+
+      it do
+        subject
+        expect(statsd).to have_received_count_metric(stat, value, options)
+      end
+    end
+
     shared_examples_for 'an operation that sends distribution metric' do |stat, options = {}|
       let(:value) { kind_of(Numeric) }
 

@@ -54,6 +54,13 @@ module Datadog
       enabled? && !statsd.nil?
     end
 
+    def count(stat, value, options = nil)
+      return unless send_stats? && statsd.respond_to?(:count)
+      statsd.count(stat, value, metric_options(options))
+    rescue StandardError => e
+      Datadog::Tracer.log.error("Failed to send count stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+    end
+
     def distribution(stat, value, options = nil)
       return unless send_stats? && statsd.respond_to?(:distribution)
       statsd.distribution(stat, value, metric_options(options))
@@ -139,6 +146,7 @@ module Datadog
     # For defining and adding helpers to metrics
     module Helpers
       [
+        :count,
         :distribution,
         :increment,
         :gauge,

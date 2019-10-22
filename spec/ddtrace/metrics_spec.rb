@@ -202,6 +202,63 @@ RSpec.describe Datadog::Metrics do
     end
   end
 
+  describe '#count' do
+    subject(:count) { metrics.count(stat, value, stat_options) }
+    let(:stat) { :foo }
+    let(:value) { 100 }
+    let(:stat_options) { nil }
+
+    context 'when #statsd is nil' do
+      before(:each) do
+        allow(metrics).to receive(:statsd).and_return(nil)
+        expect { count }.to_not raise_error
+      end
+
+      it { expect(statsd).to_not have_received_count_metric(stat) }
+    end
+
+    context 'when #statsd is a Datadog::Statsd' do
+      context 'and given no options' do
+        before(:each) { expect { count }.to_not raise_error }
+        it { expect(statsd).to have_received_count_metric(stat) }
+      end
+
+      context 'and given options' do
+        before(:each) { expect { count }.to_not raise_error }
+
+        context 'that are empty' do
+          let(:stat_options) { {} }
+          it { expect(statsd).to have_received_count_metric(stat) }
+        end
+
+        context 'that are frozen' do
+          let(:stat_options) { {}.freeze }
+          it { expect(statsd).to have_received_count_metric(stat) }
+        end
+
+        context 'that contain :tags' do
+          let(:stat_options) { { tags: tags } }
+          let(:tags) { %w[foo bar] }
+          it { expect(statsd).to have_received_count_metric(stat, kind_of(Numeric), stat_options) }
+
+          context 'which are frozen' do
+            let(:tags) { super().freeze }
+            it { expect(statsd).to have_received_count_metric(stat, kind_of(Numeric), stat_options) }
+          end
+        end
+      end
+
+      context 'which raises an error' do
+        before(:each) do
+          expect(statsd).to receive(:count).and_raise(StandardError)
+          expect(Datadog::Tracer.log).to receive(:error)
+        end
+
+        it { expect { count }.to_not raise_error }
+      end
+    end
+  end
+
   describe '#distribution' do
     subject(:distribution) { metrics.distribution(stat, value, stat_options) }
     let(:stat) { :foo }
