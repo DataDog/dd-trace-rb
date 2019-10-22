@@ -60,7 +60,7 @@ module Datadog
         option :health_metrics do |o|
           o.default do
             Datadog::Debug::Health::Metrics.new(
-              enabled: env_to_bool(Datadog::Ext::Debug::Health::Metrics::ENV_ENABLED, true)
+              enabled: env_to_bool(Datadog::Ext::Debug::Health::Metrics::ENV_ENABLED, false)
             )
           end
 

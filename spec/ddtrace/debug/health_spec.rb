@@ -23,17 +23,17 @@ RSpec.describe Datadog::Debug::Health::Metrics do
   end
 
   # rubocop:disable Metrics/LineLength
-  it_behaves_like 'a health metric', :distribution, :api_errors, Datadog::Ext::Debug::Health::Metrics::METRIC_API_ERRORS
-  it_behaves_like 'a health metric', :distribution, :api_requests, Datadog::Ext::Debug::Health::Metrics::METRIC_API_REQUESTS
-  it_behaves_like 'a health metric', :distribution, :api_responses, Datadog::Ext::Debug::Health::Metrics::METRIC_API_RESPONSES
-  it_behaves_like 'a health metric', :distribution, :queue_accepted, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_ACCEPTED
-  it_behaves_like 'a health metric', :distribution, :queue_accepted_lengths, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_ACCEPTED_LENGTHS
-  it_behaves_like 'a health metric', :distribution, :queue_accepted_size, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_ACCEPTED_SIZE
-  it_behaves_like 'a health metric', :distribution, :queue_dropped, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_DROPPED
+  it_behaves_like 'a health metric', :count, :api_errors, Datadog::Ext::Debug::Health::Metrics::METRIC_API_ERRORS
+  it_behaves_like 'a health metric', :count, :api_requests, Datadog::Ext::Debug::Health::Metrics::METRIC_API_REQUESTS
+  it_behaves_like 'a health metric', :count, :api_responses, Datadog::Ext::Debug::Health::Metrics::METRIC_API_RESPONSES
+  it_behaves_like 'a health metric', :count, :queue_accepted, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_ACCEPTED
+  it_behaves_like 'a health metric', :count, :queue_accepted_lengths, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_ACCEPTED_LENGTHS
+  it_behaves_like 'a health metric', :count, :queue_accepted_size, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_ACCEPTED_SIZE
+  it_behaves_like 'a health metric', :count, :queue_dropped, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_DROPPED
   it_behaves_like 'a health metric', :gauge, :queue_length, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_LENGTH
   it_behaves_like 'a health metric', :gauge, :queue_max_length, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_MAX_LENGTH
   it_behaves_like 'a health metric', :gauge, :queue_size, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_SIZE
   it_behaves_like 'a health metric', :gauge, :queue_spans, Datadog::Ext::Debug::Health::Metrics::METRIC_QUEUE_SPANS
-  it_behaves_like 'a health metric', :distribution, :traces_filtered, Datadog::Ext::Debug::Health::Metrics::METRIC_TRACES_FILTERED
-  it_behaves_like 'a health metric', :distribution, :writer_cpu_time, Datadog::Ext::Debug::Health::Metrics::METRIC_WRITER_CPU_TIME
+  it_behaves_like 'a health metric', :count, :traces_filtered, Datadog::Ext::Debug::Health::Metrics::METRIC_TRACES_FILTERED
+  it_behaves_like 'a health metric', :count, :writer_cpu_time, Datadog::Ext::Debug::Health::Metrics::METRIC_WRITER_CPU_TIME
 end
