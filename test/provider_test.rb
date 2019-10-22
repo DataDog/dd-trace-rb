@@ -3,7 +3,7 @@ require 'ddtrace/tracer'
 
 class ProviderTest < Minitest::Test
   def test_default_provider
-    provider = Datadog::DefaultContextProvider.new
+    provider = Datadog::Context::DefaultProvider.new
 
     ctx = provider.context
     assert_kind_of(Datadog::Context, ctx)
@@ -21,7 +21,7 @@ class ProviderTest < Minitest::Test
   end
 
   def test_setting_a_context
-    provider = Datadog::DefaultContextProvider.new
+    provider = Datadog::Context::DefaultProvider.new
     custom_context = Datadog::Context.new
     provider.context = custom_context
 

@@ -61,4 +61,64 @@ RSpec.describe Datadog::Context do
       it { expect(context.origin).to eq('synthetics') }
     end
   end
+
+  describe '#delete_span_if' do
+    subject(:configure_root_span) { context.delete_span_if(&block) }
+
+    let(:remaining_span) { Datadog::Span.new(tracer, 'remaining', context: context).tap(&:finish) }
+    let(:deleted_span) { Datadog::Span.new(tracer, 'deleted', context: context).tap(&:finish) }
+    let(:block) { proc { |s| s == deleted_span } }
+
+    before do
+      context.add_span(remaining_span)
+      context.add_span(deleted_span)
+    end
+
+    it 'returns deleted spans' do
+      is_expected.to contain_exactly(deleted_span)
+    end
+
+    it 'keeps spans not deleted' do
+      expect { subject }.to change { context.finished_span_count }.from(2).to(1)
+
+      expect(context.get[0]).to contain_exactly(remaining_span)
+    end
+
+    it 'detaches context from delete span' do
+      expect { subject }.to change { deleted_span.context }.from(context).to(nil)
+    end
+  end
+
+  describe '#configure_root_span' do
+    subject(:configure_root_span) { context.configure_root_span }
+    let(:root_span) { Datadog::Span.new(nil, 'dummy') }
+
+    let(:options) { { origin: origin, sampled: sampled, sampling_priority: sampling_priority } }
+
+    let(:origin) { nil }
+    let(:sampled) { nil }
+    let(:sampling_priority) { nil }
+
+    before do
+      context.add_span(root_span)
+
+      subject
+    end
+
+    context 'with origin' do
+      let(:origin) { 'origin_1' }
+      it do
+        expect(root_span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq(origin)
+      end
+    end
+
+    context 'with sampling priority' do
+      let(:sampled) { true }
+      let(:sampling_priority) { 1 }
+
+      it do
+        expect(root_span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority)
+      end
+    end
+  end
 end
