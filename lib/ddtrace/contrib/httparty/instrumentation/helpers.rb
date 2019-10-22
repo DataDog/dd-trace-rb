@@ -9,6 +9,8 @@ module Datadog
       module Instrumentation
         # HTTParty Helpers
         module Helpers
+          DATADOG_TRACER_OPTIONS_KEY = :ddtrace_options
+
           def self.included(base)
             base.send(:include, ClassMethods)
           end
@@ -19,10 +21,10 @@ module Datadog
             #
             #   class Foo
             #     include HTTParty
-            #     dd_options service_name: 'foo-client'
+            #     ddtrace_options service_name: 'foo-client'
             #   end
-            def dd_options(options = nil)
-              default_options[:dd_options] = options
+            define_method(DATADOG_TRACER_OPTIONS_KEY) do |options = nil|
+              default_options[DATADOG_TRACER_OPTIONS_KEY] = options
             end
           end
         end

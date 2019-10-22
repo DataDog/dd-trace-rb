@@ -80,10 +80,11 @@ module Datadog
             end
 
             def datadog_pin
-              return nil unless options[:dd_options]
+              return nil unless options[Helpers::DATADOG_TRACER_OPTIONS_KEY]
               @datadog_pin ||= begin
-                service_name = options[:dd_options][:service_name] || datadog_configuration[:service_name]
-                tracer = options[:dd_options][:tracer] || datadog_configuration[:tracer]
+                service_name = options[Helpers::DATADOG_TRACER_OPTIONS_KEY][:service_name] ||
+                               datadog_configuration[:service_name]
+                tracer = options[Helpers::DATADOG_TRACER_OPTIONS_KEY][:tracer] || datadog_configuration[:tracer]
                 Datadog::Pin.new(
                   service_name,
                   app: Ext::APP,

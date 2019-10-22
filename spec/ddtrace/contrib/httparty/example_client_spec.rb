@@ -19,7 +19,7 @@ RSpec.describe 'ExampleClient' do
     Class.new do
       include HTTParty
       base_uri 'https://example.com'
-      dd_options service_name: 'foo_service'
+      ddtrace_options service_name: 'foo_service'
 
       def foo
         self.class.get('/foo')
