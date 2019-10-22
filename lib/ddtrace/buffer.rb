@@ -1,3 +1,4 @@
+require 'objspace'
 require 'thread'
 
 module Datadog
@@ -7,9 +8,11 @@ module Datadog
   class TraceBuffer
     def initialize(max_size)
       @max_size = max_size
+      Debug::Health.metrics.queue_max_length(@max_size)
 
       @mutex = Mutex.new()
       @traces = []
+      @span_count = 0
       @closed = false
     end
 
@@ -21,10 +24,20 @@ module Datadog
         len = @traces.length
         if len < @max_size || @max_size <= 0
           @traces << trace
+          @span_count += trace.length
+
+          measure_accept(trace)
         else
           # we should replace a random trace with the new one
-          @traces[rand(len)] = trace
+          target = rand(len)
+          @span_count -= @traces[target].length
+          @traces[target] = trace
+          @span_count += trace.length
+
+          measure_drop
         end
+
+        measure_queue
       end
     end
 
@@ -47,6 +60,10 @@ module Datadog
       @mutex.synchronize do
         traces = @traces
         @traces = []
+        @span_count = 0
+
+        measure_queue
+
         return traces
       end
     end
@@ -55,6 +72,30 @@ module Datadog
       @mutex.synchronize do
         @closed = true
       end
+    end
+
+    private
+
+    def measure_accept(trace)
+      Debug::Health.metrics.queue_accepted(1)
+      Debug::Health.metrics.queue_accepted_lengths(trace.length)
+      Debug::Health.metrics.queue_accepted_size(ObjectSpace.memsize_of(trace)) if ObjectSpace.respond_to?(:memsize_of)
+    rescue StandardError => e
+      Datadog::Tracer.log.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{e.backtrace.first}")
+    end
+
+    def measure_drop
+      Debug::Health.metrics.queue_dropped(1)
+    rescue StandardError => e
+      Datadog::Tracer.log.debug("Failed to measure queue drop. Cause: #{e.message} Source: #{e.backtrace.first}")
+    end
+
+    def measure_queue
+      Debug::Health.metrics.queue_spans(@span_count)
+      Debug::Health.metrics.queue_length(@traces.length)
+      Debug::Health.metrics.queue_size(ObjectSpace.memsize_of(@traces)) if ObjectSpace.respond_to?(:memsize_of)
+    rescue StandardError => e
+      Datadog::Tracer.log.debug("Failed to measure queue. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
   end
 end
