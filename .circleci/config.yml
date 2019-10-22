@@ -394,10 +394,10 @@ workflows:
           requires:
             - build-2.6
       - orb/lint:
-          <<: *config-2_1
+          <<: *config-2_6
           name: lint
           requires:
-            - build-2.1
+            - build-2.6
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
           requires:
