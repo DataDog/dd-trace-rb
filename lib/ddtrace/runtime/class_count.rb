@@ -5,12 +5,12 @@ module Datadog
       module_function
 
       def value
-        ObjectSpace.count_objects[:T_CLASS]
+        ::ObjectSpace.count_objects[:T_CLASS]
       end
 
       def available?
-        ObjectSpace.respond_to?(:count_objects) \
-          && ObjectSpace.count_objects.key?(:T_CLASS)
+        ::ObjectSpace.respond_to?(:count_objects) \
+          && ::ObjectSpace.count_objects.key?(:T_CLASS)
       end
     end
   end
