@@ -147,3 +147,23 @@ RSpec.shared_context 'Rails 3 base application' do
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
   end
 end
+
+#
+# ActiveSupport::OrderedOptions in Rails 3 doesn't respect the contract for `respond_to?`,
+# which can include a second optional parameter:
+# https://github.com/rails/rails/blob/v3.2.22.5/activesupport/lib/active_support/ordered_options.rb#L40-L42
+# https://ruby-doc.org/core-2.0.0/Object.html#method-i-respond_to-3F
+#
+# This prevents us from using RSpec mocks on this this class.
+#
+# We fix that with this monkey-patching.
+# Newer versions of Rails don't suffer from this issue.
+#
+require 'active_support/ordered_options'
+module ActiveSupport
+  class OrderedOptions
+    def respond_to?(*args)
+      true
+    end
+  end
+end

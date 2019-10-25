@@ -80,3 +80,12 @@ gem 'pry-nav', git: 'https://github.com/nixme/pry-nav.git', branch: 'master'
 # gem "redis"
 # gem "sprockets", "< 4"
 #
+
+# gem "pry-nav", git: "https://github.com/nixme/pry-nav.git", branch: "master"
+# gem "test-unit"
+# gem "rails", "3.2.22.5"
+# gem "pg", "0.15.1", platform: :ruby
+# gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
+# gem "redis-rails"
+# gem "redis", "< 4.0"
+# gem "rack-cache", "1.7.1"
