@@ -40,7 +40,6 @@ RSpec.shared_context 'Rails 3 base application' do
       config.active_support.test_order = :random
       config.active_support.deprecation = :stderr
       config.consider_all_requests_local = true
-      puts "Put them back: #{config.object_id}"
       config.action_view.javascript_expansions = {}
       config.action_view.stylesheet_expansions = {}
       config.middleware.delete ActionDispatch::DebugExceptions if Rails.version >= '3.2.22.5'
@@ -64,18 +63,7 @@ RSpec.shared_context 'Rails 3 base application' do
       end
 
       before_test_init.call
-
-      begin
-        puts " == A #{Rails.application.config.object_id} #{Rails.application.config.action_view}"
-        initialize!
-        puts " == Z #{Rails.application.config.action_view}"
-      rescue => e
-        puts " == BAD #{Rails.application.config.action_view}"
-        puts ' ==== HERE ===='
-        puts e
-        puts e.backtrace
-        raise e
-      end
+      initialize!
       after_test_init.call
     end
     klass
