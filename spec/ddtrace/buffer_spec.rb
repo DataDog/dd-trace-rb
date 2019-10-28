@@ -9,6 +9,18 @@ RSpec.describe Datadog::TraceBuffer do
   subject(:buffer) { described_class.new(max_size) }
   let(:max_size) { 0 }
 
+  def measure_traces_size(traces)
+    traces.inject(Datadog::Runtime::ObjectSpace.estimate_bytesize(traces)) do |sum, trace|
+      sum + measure_trace_size(trace)
+    end
+  end
+
+  def measure_trace_size(trace)
+    trace.inject(Datadog::Runtime::ObjectSpace.estimate_bytesize(trace)) do |sum, span|
+      sum + Datadog::Runtime::ObjectSpace.estimate_bytesize(span)
+    end
+  end
+
   describe '#initialize' do
     it do
       is_expected.to be_a_kind_of(described_class)
@@ -19,102 +31,95 @@ RSpec.describe Datadog::TraceBuffer do
   end
 
   describe '#push' do
-    subject(:push) { buffer.push(trace) }
-    let(:trace) { get_test_traces(1).first }
+    let(:output) { buffer.pop }
 
-    it 'sends health metrics' do
-      push
+    context 'given a trace' do
+      subject(:push) { buffer.push(trace) }
+      let(:trace) { get_test_traces(1).first }
 
-      # Metrics for accept event
-      expect(health_metrics).to have_received(:queue_accepted)
-        .with(1)
-      expect(health_metrics).to have_received(:queue_accepted_lengths)
-        .with(trace.length)
-      expect(health_metrics).to have_received_lazy_health_metric(
-        :queue_accepted_size,
-        Datadog::Runtime::ObjectSpace.estimate_bytesize(trace)
-      )
+      it 'sends health metrics' do
+        push
 
-      # Metrics for queue gauges
-      expect(health_metrics).to have_received(:queue_spans)
-        .with(trace.length)
-      expect(health_metrics).to have_received(:queue_length)
-        .with(1)
-      expect(health_metrics).to have_received_lazy_health_metric(
-        :queue_size,
-        Datadog::Runtime::ObjectSpace.estimate_bytesize(trace)
-      )
+        # Metrics for accept event
+        expect(health_metrics).to have_received(:queue_accepted)
+          .with(1)
+        expect(health_metrics).to have_received(:queue_accepted_lengths)
+          .with(trace.length)
+        expect(health_metrics).to have_received_lazy_health_metric(
+          :queue_accepted_size,
+          Datadog::Runtime::ObjectSpace.estimate_bytesize(trace)
+        )
+
+        # Metrics for queue gauges
+        expect(health_metrics).to have_received(:queue_spans)
+          .with(trace.length)
+        expect(health_metrics).to have_received(:queue_length)
+          .with(1)
+        expect(health_metrics).to have_received_lazy_health_metric(
+          :queue_size,
+          Datadog::Runtime::ObjectSpace.estimate_bytesize(trace)
+        )
+      end
     end
 
     context 'given no limit' do
-      subject(:push) do
-        buffer.push([1])
-        buffer.push([2])
-        buffer.push([3])
-        buffer.push([4])
-      end
-
+      let(:traces) { get_test_traces(4) }
       let(:max_size) { 0 }
-      let(:output) { buffer.pop }
 
       it 'retains all items' do
-        push
+        traces.each { |t| buffer.push(t) }
         expect(output.length).to eq(4)
       end
     end
 
     context 'given a max size' do
-      subject(:push) do
-        buffer.push([1])
-        buffer.push([2])
-        buffer.push([3])
-        buffer.push([4])
-      end
-
+      let(:traces) { get_test_traces(max_size + 1) }
       let(:max_size) { 3 }
-      let(:output) { buffer.pop }
 
       it 'does not exceed it' do
-        push
-        expect(output.length).to eq(3)
-        expect(output).to include([4])
+        traces.each { |t| buffer.push(t) }
+
+        expect(output.length).to eq(max_size)
+        expect(output).to include(traces.last)
+
+        # A trace will be dropped at random, except the trace
+        # that triggered the overflow.
+        dropped_traces = traces.reject { |t| output.include?(t) }
+        expected_traces = traces - dropped_traces
 
         # Metrics for accept events and one drop event
         expect(health_metrics).to have_received(:queue_accepted)
           .with(1).exactly(3).times
         expect(health_metrics).to have_received(:queue_accepted_lengths)
-          .with(1).exactly(3).times
+          .with(kind_of(Numeric)).exactly(3).times
         expect(health_metrics).to have_received_lazy_health_metric(
           :queue_accepted_size,
-          Datadog::Runtime::ObjectSpace.estimate_bytesize([1])
+          Datadog::Runtime::ObjectSpace.estimate_bytesize(expected_traces.first)
         ).exactly(3).times
 
         expect(health_metrics).to have_received(:queue_dropped)
-          .with(1).once
+          .with(dropped_traces.length).once
 
-        # Metrics for queue gauges; once for 3rd push, once for 4th push.
+        # Metrics for queue gauges; for each #push and once for the #pop
         expect(health_metrics).to have_received(:queue_length)
-          .with(3).twice
+          .with(kind_of(Numeric)).exactly(5).times
       end
     end
 
     context 'when closed' do
-      subject(:push) do
-        buffer.push([1])
-        buffer.push([2])
-        buffer.push([3])
-        buffer.push([4])
-        buffer.close
-        buffer.push([5])
-        buffer.push([6])
-      end
+      let(:max_size) { 0 }
+      let(:traces) { get_test_traces(6) }
 
       let(:output) { buffer.pop }
 
       it 'retains items up to close' do
-        push
+        traces.first(4).each { |t| buffer.push(t) }
+        buffer.close
+        traces.last(2).each { |t| buffer.push(t) }
+
         expect(output.length).to eq(4)
-        expect(output).to_not include([5], [6])
+        expect(output).to_not include(*traces.last(2))
+
         expect(health_metrics).to have_received(:queue_accepted).exactly(4).times
         # When the buffer is closed, drops don't count. (Should they?)
         expect(health_metrics).to_not have_received(:queue_dropped)
@@ -175,25 +180,31 @@ RSpec.describe Datadog::TraceBuffer do
 
   describe '#pop' do
     subject(:pop) { buffer.pop }
-
-    let(:input_traces) { get_test_traces(2) }
+    let(:traces) { get_test_traces(2) }
 
     before do
-      buffer.push(input_traces[0])
-      buffer.push(input_traces[1])
+      traces.each { |t| buffer.push(t) }
     end
 
     it do
-      expect(pop.length).to eq(2)
-      expect(pop).to include(*input_traces)
+      expect(pop.length).to eq(traces.length)
+      expect(pop).to include(*traces)
       expect(buffer.empty?).to be true
 
-      # Metrics for queue gauges
+      # Metrics for queue, once for each #push, once for the #pop.
+      traces.length.times do |i|
+        expect(health_metrics).to have_received(:queue_spans)
+          .with(traces.first(i + 1).inject(0) { |sum, trace| sum + trace.length }).ordered
+        expect(health_metrics).to have_received(:queue_length)
+          .with(i + 1).ordered
+      end
+
       expect(health_metrics).to have_received(:queue_spans)
-        .with(0)
+        .with(0).ordered
       expect(health_metrics).to have_received(:queue_length)
-        .with(0)
-      # Twice for the two pushes, once for the pop.
+        .with(0).ordered
+
+      # Once for each #push, once for the #pop.
       expect(health_metrics).to have_received_lazy_health_metric(
         :queue_size,
         Datadog::Runtime::ObjectSpace.estimate_bytesize([])
