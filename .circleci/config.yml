@@ -108,6 +108,10 @@ orbs:
           image:
             description: Docker image location
             type: string
+          rubocop:
+            description: Run Rubocop on this version of Ruby
+            type: boolean
+            default: true
         docker:
           - <<: *container_base
             image: <<parameters.image>>
@@ -121,7 +125,10 @@ orbs:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
           - *step_bundle_install
-          - *step_rubocop
+          - when:
+              condition: <<parameters.rubocop>>
+              steps:
+                - *step_rubocop
           - *step_appraisal_install
           - *step_compute_bundle_checksum
           - save_cache:
@@ -281,6 +288,7 @@ workflows:
           name: checkout-2.0
       - orb/build:
           <<: *config-2_0
+          rubocop: false
           name: build-2.0
           requires:
             - checkout-2.0
