@@ -1,5 +1,5 @@
-require 'objspace'
 require 'thread'
+require 'ddtrace/runtime/object_space'
 
 module Datadog
   # Trace buffer that stores application traces. The buffer has a maximum size and when
@@ -79,7 +79,7 @@ module Datadog
     def measure_accept(trace)
       Debug::Health.metrics.queue_accepted(1)
       Debug::Health.metrics.queue_accepted_lengths(trace.length)
-      Debug::Health.metrics.queue_accepted_size(ObjectSpace.memsize_of(trace)) if ObjectSpace.respond_to?(:memsize_of)
+      Debug::Health.metrics.queue_accepted_size { Datadog::Runtime::ObjectSpace.estimate_bytesize(trace) }
     rescue StandardError => e
       Datadog::Tracer.log.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
@@ -93,7 +93,7 @@ module Datadog
     def measure_queue
       Debug::Health.metrics.queue_spans(@span_count)
       Debug::Health.metrics.queue_length(@traces.length)
-      Debug::Health.metrics.queue_size(ObjectSpace.memsize_of(@traces)) if ObjectSpace.respond_to?(:memsize_of)
+      Debug::Health.metrics.queue_size { Datadog::Runtime::ObjectSpace.estimate_bytesize(@traces) }
     rescue StandardError => e
       Datadog::Tracer.log.debug("Failed to measure queue. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
