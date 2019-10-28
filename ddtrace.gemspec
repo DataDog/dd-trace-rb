@@ -57,6 +57,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'addressable', '~> 2.4.0'
   spec.add_development_dependency 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
   spec.add_development_dependency 'pry', '~> 0.12.2'
-  spec.add_development_dependency 'pry-byebug', '~> 3.4.3'
+  spec.add_development_dependency 'pry-nav', '~> 0.3.0'
+  spec.add_development_dependency 'pry-stack_explorer', '~> 0.4.9'
   spec.add_development_dependency 'warning' if RUBY_VERSION >= '2.5.0'
 end
