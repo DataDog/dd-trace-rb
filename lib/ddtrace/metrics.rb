@@ -54,15 +54,21 @@ module Datadog
       enabled? && !statsd.nil?
     end
 
-    def count(stat, value, options = nil)
+    def count(stat, value = nil, options = nil, &block)
       return unless send_stats? && statsd.respond_to?(:count)
+      value, options = yield if block_given?
+      raise ArgumentError if value.nil?
+
       statsd.count(stat, value, metric_options(options))
     rescue StandardError => e
       Datadog::Tracer.log.error("Failed to send count stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def distribution(stat, value, options = nil)
+    def distribution(stat, value = nil, options = nil, &block)
       return unless send_stats? && statsd.respond_to?(:distribution)
+      value, options = yield if block_given?
+      raise ArgumentError if value.nil?
+
       statsd.distribution(stat, value, metric_options(options))
     rescue StandardError => e
       Datadog::Tracer.log.error("Failed to send distribution stat. Cause: #{e.message} Source: #{e.backtrace.first}")
@@ -70,13 +76,18 @@ module Datadog
 
     def increment(stat, options = nil)
       return unless send_stats? && statsd.respond_to?(:increment)
+      options = yield if block_given?
+
       statsd.increment(stat, metric_options(options))
     rescue StandardError => e
       Datadog::Tracer.log.error("Failed to send increment stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def gauge(stat, value, options = nil)
+    def gauge(stat, value = nil, options = nil, &block)
       return unless send_stats? && statsd.respond_to?(:gauge)
+      value, options = yield if block_given?
+      raise ArgumentError if value.nil?
+
       statsd.gauge(stat, value, metric_options(options))
     rescue StandardError => e
       Datadog::Tracer.log.error("Failed to send gauge stat. Cause: #{e.message} Source: #{e.backtrace.first}")

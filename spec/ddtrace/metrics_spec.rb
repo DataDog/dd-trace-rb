@@ -12,6 +12,13 @@ RSpec.describe Datadog::Metrics do
 
   it { is_expected.to have_attributes(statsd: statsd) }
 
+  shared_examples_for 'missing value arg' do
+    it 'logs an error without raising' do
+      expect(Datadog::Tracer.log).to receive(:error)
+      expect { subject }.to_not raise_error
+    end
+  end
+
   describe '#supported?' do
     subject(:supported?) { metrics.supported? }
 
@@ -218,6 +225,20 @@ RSpec.describe Datadog::Metrics do
     end
 
     context 'when #statsd is a Datadog::Statsd' do
+      context 'and given a block' do
+        context 'that does not yield args' do
+          subject(:count) { metrics.count(stat) {} }
+          it_behaves_like 'missing value arg'
+        end
+
+        context 'that yields args' do
+          subject(:count) { metrics.count(stat) { [value, stat_options] } }
+          let(:stat_options) { {} }
+          before { count }
+          it { expect(statsd).to have_received_count_metric(stat) }
+        end
+      end
+
       context 'and given no options' do
         before(:each) { expect { count }.to_not raise_error }
         it { expect(statsd).to have_received_count_metric(stat) }
@@ -275,6 +296,20 @@ RSpec.describe Datadog::Metrics do
     end
 
     context 'when #statsd is a Datadog::Statsd' do
+      context 'and given a block' do
+        context 'that does not yield args' do
+          subject(:distribution) { metrics.distribution(stat) {} }
+          it_behaves_like 'missing value arg'
+        end
+
+        context 'that yields args' do
+          subject(:distribution) { metrics.distribution(stat) { [value, stat_options] } }
+          let(:stat_options) { {} }
+          before { distribution }
+          it { expect(statsd).to have_received_distribution_metric(stat) }
+        end
+      end
+
       context 'and given no options' do
         before(:each) { expect { distribution }.to_not raise_error }
         it { expect(statsd).to have_received_distribution_metric(stat) }
@@ -332,6 +367,20 @@ RSpec.describe Datadog::Metrics do
     end
 
     context 'when #statsd is a Datadog::Statsd' do
+      context 'and given a block' do
+        context 'that does not yield args' do
+          subject(:gauge) { metrics.gauge(stat) {} }
+          it_behaves_like 'missing value arg'
+        end
+
+        context 'that yields args' do
+          subject(:gauge) { metrics.gauge(stat) { [value, stat_options] } }
+          let(:stat_options) { {} }
+          before { gauge }
+          it { expect(statsd).to have_received_gauge_metric(stat) }
+        end
+      end
+
       context 'and given no options' do
         before(:each) { expect { gauge }.to_not raise_error }
         it { expect(statsd).to have_received_gauge_metric(stat) }
@@ -388,6 +437,15 @@ RSpec.describe Datadog::Metrics do
     end
 
     context 'when #statsd is a Datadog::Statsd' do
+      context 'and given a block' do
+        context 'that yields args' do
+          subject(:increment) { metrics.increment(stat) { stat_options } }
+          let(:stat_options) { {} }
+          before { increment }
+          it { expect(statsd).to have_received_increment_metric(stat) }
+        end
+      end
+
       context 'and given no options' do
         before(:each) { expect { increment }.to_not raise_error }
         it { expect(statsd).to have_received_increment_metric(stat) }
