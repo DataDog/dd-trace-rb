@@ -14,6 +14,13 @@ module Datadog
     def initialize(options = {})
       @statsd = options.fetch(:statsd) { default_statsd_client if supported? }
       @enabled = options.fetch(:enabled, true)
+      @env = options[:env]
+    end
+
+    # The environment value can either be explicitly configured
+    # or delegated to the global configuration instance.
+    def env
+      @env || Datadog.configuration.env
     end
 
     def supported?
@@ -49,13 +56,14 @@ module Datadog
     def configure(options = {})
       @statsd = options[:statsd] if options.key?(:statsd)
       self.enabled = options[:enabled] if options.key?(:enabled)
+      @env = options[:env] if options.key?(:env)
     end
 
     def send_stats?
       enabled? && !statsd.nil?
     end
 
-    def count(stat, value = nil, options = nil, &block)
+    def count(stat, value = nil, options = {}, &block)
       return unless send_stats? && statsd.respond_to?(:count)
       value, options = yield if block_given?
       raise ArgumentError if value.nil?
@@ -65,7 +73,7 @@ module Datadog
       Datadog::Tracer.log.error("Failed to send count stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def distribution(stat, value = nil, options = nil, &block)
+    def distribution(stat, value = nil, options = {}, &block)
       return unless send_stats? && statsd.respond_to?(:distribution)
       value, options = yield if block_given?
       raise ArgumentError if value.nil?
@@ -75,7 +83,7 @@ module Datadog
       Datadog::Tracer.log.error("Failed to send distribution stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def increment(stat, options = nil)
+    def increment(stat, options = {})
       return unless send_stats? && statsd.respond_to?(:increment)
       options = yield if block_given?
 
@@ -84,7 +92,7 @@ module Datadog
       Datadog::Tracer.log.error("Failed to send increment stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def gauge(stat, value = nil, options = nil, &block)
+    def gauge(stat, value = nil, options = {}, &block)
       return unless send_stats? && statsd.respond_to?(:gauge)
       value, options = yield if block_given?
       raise ArgumentError if value.nil?
@@ -94,7 +102,7 @@ module Datadog
       Datadog::Tracer.log.error("Failed to send gauge stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def time(stat, options = nil)
+    def time(stat, options = {})
       return yield unless send_stats?
 
       # Calculate time, send it as a distribution.
@@ -122,6 +130,26 @@ module Datadog
       end
     end
 
+    # Return instance specific tags.
+    def instance_tags
+      tags = []
+      tags << "#{Ext::Metrics::TAG_ENV}:#{env}" if env
+      tags
+    end
+
+    # Add instance tags to default metrics
+    def default_metric_options
+      # Return dupes, so that the constant isn't modified,
+      # and defaults are unfrozen for mutation in Statsd.
+      super.tap do |options|
+        options[:tags] = options[:tags].dup
+
+        # Add tags dynamically because they might change during
+        # runtime (i.e. when calling #configure).
+        options[:tags].concat(instance_tags)
+      end
+    end
+
     # For defining and adding default options to metrics
     module Options
       DEFAULT = {
@@ -133,10 +161,12 @@ module Datadog
         ].freeze
       }.freeze
 
-      def metric_options(options = nil)
-        return default_metric_options if options.nil?
+      def metric_options(*options)
+        merge_with_tags(default_metric_options, *options)
+      end
 
-        default_metric_options.merge(options) do |key, old_value, new_value|
+      def merge_with_tags(hash, *hashes)
+        hash.merge(*hashes) do |key, old_value, new_value|
           case key
           when :tags
             old_value.dup.concat(new_value).uniq

@@ -2,6 +2,7 @@ require 'ddtrace/configuration/base'
 
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/ext/global'
 require 'ddtrace/ext/runtime'
 
 require 'ddtrace/tracer'
@@ -29,6 +30,11 @@ module Datadog
 
       option :runtime_metrics_enabled do |o|
         o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
+        o.lazy
+      end
+
+      option :env do |o|
+        o.default { ENV[Ext::Global::APP_ENV] }
         o.lazy
       end
 

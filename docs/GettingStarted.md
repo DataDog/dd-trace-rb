@@ -1455,19 +1455,31 @@ Datadog::Tracer.log.info { "this is typically called by tracing code" }
 
 ### Environment and tags
 
-By default, the trace agent (not this library, but the program running in the background collecting data from various clients) uses the tags set in the agent config file, see our [environments tutorial](https://app.datadoghq.com/apm/docs/tutorials/environments) for details.
+By default, the trace agent (not this library, but the program running in the background collecting data from various clients) uses the tags set in the agent config file, see our documentation around [Assigning Tags](https://docs.datadoghq.com/tagging/assigning_tags/?tab=agentv6#add-tags) and [APM environment configuration](https://docs.datadoghq.com/tracing/send_traces/#configure-your-environment) for details.
 
-These values can be overridden at the tracer level:
+These values can be overridden at configuration level:
 
 ```ruby
 Datadog.configure do |c|
-  c.tracer tags: { 'env' => 'prod' }
+  # Allows application to report from an environment
+  # different from the background tracer agent.
+  # You can also set DATADOG_ENV=... to configure this.
+  c.env 'prod'
+
+  # Custom tags sent with every trace.
+  c.tracer tags: { 'owner' => 'team-rocket' }
 end
 ```
 
-This enables you to set this value on a per tracer basis, so you can have for example several applications reporting for different environments on the same host.
+This enables you to set these values on a per tracer basis, so you can have for example several applications reporting for different environments on the same host.
 
-Ultimately, tags can be set per span, but `env` should typically be the same for all spans belonging to a given trace.
+Ultimately, tags can be set per span:
+
+```ruby
+span.set_tag('name', 'value')
+```
+
+The `env` tag in particular, if overwritten at span level, should be the same for all spans belonging to a given trace.
 
 ### Sampling
 

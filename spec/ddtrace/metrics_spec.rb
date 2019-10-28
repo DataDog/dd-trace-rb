@@ -19,6 +19,27 @@ RSpec.describe Datadog::Metrics do
     end
   end
 
+  describe '#initialize' do
+    context 'with globally configured environment' do
+      let(:env) { 'test_env' }
+
+      before do
+        allow(Datadog.configuration).to receive(:env).and_return(env)
+      end
+
+      it { expect(metrics.env).to eq(env) }
+
+      context 'that gets reconfigured' do
+        let(:new_env) { 'new_env' }
+
+        it 'refreshes the environment value' do
+          expect { allow(Datadog.configuration).to receive(:env).and_return(new_env) }
+            .to change { metrics.env }.from(env).to(new_env)
+        end
+      end
+    end
+  end
+
   describe '#supported?' do
     subject(:supported?) { metrics.supported? }
 
@@ -182,6 +203,15 @@ RSpec.describe Datadog::Metrics do
           it { expect(metrics.enabled?).to be(false) }
         end
       end
+
+      context ':env' do
+        let(:configure_options) { { env: custom_env } }
+        let(:custom_env) { 'custom_env' }
+
+        before { configure }
+
+        it { expect(metrics.env).to eq(custom_env) }
+      end
     end
   end
 
@@ -213,7 +243,7 @@ RSpec.describe Datadog::Metrics do
     subject(:count) { metrics.count(stat, value, stat_options) }
     let(:stat) { :foo }
     let(:value) { 100 }
-    let(:stat_options) { nil }
+    let(:stat_options) { {} }
 
     context 'when #statsd is nil' do
       before(:each) do
@@ -284,7 +314,7 @@ RSpec.describe Datadog::Metrics do
     subject(:distribution) { metrics.distribution(stat, value, stat_options) }
     let(:stat) { :foo }
     let(:value) { 100 }
-    let(:stat_options) { nil }
+    let(:stat_options) { {} }
 
     context 'when #statsd is nil' do
       before(:each) do
@@ -355,7 +385,7 @@ RSpec.describe Datadog::Metrics do
     subject(:gauge) { metrics.gauge(stat, value, stat_options) }
     let(:stat) { :foo }
     let(:value) { 100 }
-    let(:stat_options) { nil }
+    let(:stat_options) { {} }
 
     context 'when #statsd is nil' do
       before(:each) do
@@ -425,7 +455,7 @@ RSpec.describe Datadog::Metrics do
   describe '#increment' do
     subject(:increment) { metrics.increment(stat, stat_options) }
     let(:stat) { :foo }
-    let(:stat_options) { nil }
+    let(:stat_options) { {} }
 
     context 'when #statsd is nil' do
       before(:each) do
@@ -496,7 +526,7 @@ RSpec.describe Datadog::Metrics do
   describe '#time' do
     subject(:time) { metrics.time(stat, stat_options, &block) }
     let(:stat) { :foo }
-    let(:stat_options) { nil }
+    let(:stat_options) { {} }
     let(:block) { proc {} }
 
     context 'when #statsd is nil' do

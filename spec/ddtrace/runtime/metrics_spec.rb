@@ -15,12 +15,23 @@ RSpec.describe Datadog::Runtime::Metrics do
     before do
       expect(span).to receive(:set_tag)
         .with(Datadog::Ext::Runtime::TAG_LANG, Datadog::Runtime::Identity.lang)
-
-      associate_with_span
     end
 
     it 'registers the span\'s service' do
+      subject
       expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
+    end
+
+    context 'with environment configured' do
+      before { runtime_metrics.configure(options) }
+      let(:options) { { env: env } }
+      let(:env) { 'test_env' }
+
+      before do
+        expect(span).to receive(:set_tag).with(Datadog::Ext::Runtime::TAG_ENV, env)
+      end
+
+      it { subject }
     end
   end
 
@@ -140,6 +151,18 @@ RSpec.describe Datadog::Runtime::Metrics do
           is_expected.to include(*Datadog::Metrics.default_metric_options[:tags])
           is_expected.to include('language:ruby')
           is_expected.to include(*services.collect { |service| "service:#{service}" })
+        end
+      end
+
+      context 'with environment configured' do
+        before { runtime_metrics.configure(options) }
+        let(:options) { { env: env } }
+        let(:env) { 'test_env' }
+
+        it do
+          is_expected.to include(*Datadog::Metrics.default_metric_options[:tags])
+          is_expected.to include('env:test_env')
+          is_expected.to include('language:ruby')
         end
       end
     end

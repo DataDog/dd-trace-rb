@@ -9,6 +9,7 @@ module Datadog
       LANG_VERSION = RUBY_VERSION
       TRACER_VERSION = Datadog::VERSION::STRING
 
+      TAG_ENV = 'env'.freeze
       TAG_LANG = 'language'.freeze
 
       # Metrics
