@@ -108,6 +108,23 @@ RSpec.describe 'Redis test' do
       end
     end
 
+    context 'arguments wrapped in array' do
+      before(:each) do
+        expect(redis.call([:set, 'FOO', 'bar'])).to eq('OK')
+      end
+
+      it { expect(all_spans).to have(1).item }
+
+      describe 'span' do
+        subject(:span) { all_spans[-1] }
+
+        it do
+          expect(span.resource).to eq('SET FOO bar')
+          expect(span.get_tag('redis.raw_command')).to eq('SET FOO bar')
+        end
+      end
+    end
+
     context 'pipeline' do
       before(:each) do
         redis.pipelined do

@@ -54,7 +54,7 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:contrib) do |t, args|
     # rubocop:disable Metrics/LineLength
-    t.pattern = 'spec/**/contrib/{analytics,configurable,integration,patchable,patcher,registerable,registry,configuration/*}_spec.rb'
+    t.pattern = 'spec/**/contrib/{analytics,configurable,extensions,integration,patchable,patcher,registerable,registry,configuration/*}_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -189,8 +189,8 @@ end
 
 desc 'CI task; it runs all tests for current version of Ruby'
 task :ci do
-  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
-    raise NotImplementedError, 'Ruby versions < 2.0.0 are not supported!'
+  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
+    raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
   elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
     # Main library
@@ -552,9 +552,18 @@ task :ci do
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
       sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails6-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails6-postgres rake test:rails'
+      sh 'bundle exec appraisal rails6-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails6-postgres-redis-activesupport rake test:railsredis'
+      sh 'bundle exec appraisal rails6-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails6-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails6-postgres rake test:railsdisableenv'
       # Rails specs
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails6-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails6-postgres rake spec:rails'
     end
   elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
     # Main library
@@ -607,9 +616,18 @@ task :ci do
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railssidekiq'
       sh 'bundle exec appraisal rails5-postgres-sidekiq rake test:railsactivejob'
       sh 'bundle exec appraisal rails5-postgres rake test:railsdisableenv'
+      sh 'bundle exec appraisal rails6-mysql2 rake test:rails'
+      sh 'bundle exec appraisal rails6-postgres rake test:rails'
+      sh 'bundle exec appraisal rails6-postgres-redis rake test:railsredis'
+      sh 'bundle exec appraisal rails6-postgres-redis-activesupport rake test:railsredis'
+      sh 'bundle exec appraisal rails6-postgres-sidekiq rake test:railssidekiq'
+      sh 'bundle exec appraisal rails6-postgres-sidekiq rake test:railsactivejob'
+      sh 'bundle exec appraisal rails6-postgres rake test:railsdisableenv'
       # Rails specs
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails6-mysql2 rake spec:rails'
+      sh 'bundle exec appraisal rails6-postgres rake spec:rails'
     end
   end
 end

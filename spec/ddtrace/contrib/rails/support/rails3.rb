@@ -86,6 +86,8 @@ RSpec.shared_context 'Rails 3 base application' do
     end
   end
 
+  def append_controllers!; end
+
   def draw_test_routes!(mapper)
     # Rails 3 accumulates these route drawing
     # blocks errantly, and this prevents them from

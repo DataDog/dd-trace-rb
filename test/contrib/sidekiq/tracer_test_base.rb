@@ -10,8 +10,8 @@ class TracerTestBase < Minitest::Test
   REDIS_PORT = ENV.fetch('TEST_REDIS_PORT', 6379)
 
   def setup
-    @writer = FauxWriter.new()
-    @tracer = Datadog::Tracer.new(writer: @writer)
+    @tracer = get_test_tracer
+    @writer = @tracer.writer
 
     redis_url = "redis://#{REDIS_HOST}:#{REDIS_PORT}"
 

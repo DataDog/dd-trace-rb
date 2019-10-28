@@ -1,9 +1,9 @@
+require 'ddtrace/configuration/base'
+
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/runtime'
-require 'ddtrace/configuration/options'
 
-require 'ddtrace/environment'
 require 'ddtrace/tracer'
 require 'ddtrace/metrics'
 
@@ -11,58 +11,74 @@ module Datadog
   module Configuration
     # Global configuration settings for the trace library.
     class Settings
-      extend Datadog::Environment::Helpers
-      include Options
+      include Base
 
-      option  :analytics_enabled,
-              default: -> { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) },
-              lazy: true
-
-      option  :report_hostname,
-              default: -> { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) },
-              lazy: true
-
-      option  :runtime_metrics_enabled,
-              default: -> { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) },
-              lazy: true
-
-      # Look for all headers by default
-      option  :propagation_extract_style,
-              default: lambda {
-                env_to_list(Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV,
-                            [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
-                             Ext::DistributedTracing::PROPAGATION_STYLE_B3,
-                             Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER])
-              },
-              lazy: true
-
-      # Only inject Datadog headers by default
-      option  :propagation_inject_style,
-              default: lambda {
-                env_to_list(Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
-                            [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
-              },
-              lazy: true
-
-      option :tracer, default: Tracer.new
-
-      def initialize(options = {})
-        configure(options)
+      #
+      # Configuration options
+      #
+      option :analytics_enabled do |o|
+        o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
+        o.lazy
       end
 
-      def configure(options = {})
-        self.class.options.dependency_order.each do |name|
-          next unless options.key?(name)
-          respond_to?("#{name}=") ? send("#{name}=", options[name]) : set_option(name, options[name])
+      option :report_hostname do |o|
+        o.default { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) }
+        o.lazy
+      end
+
+      option :runtime_metrics_enabled do |o|
+        o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
+        o.lazy
+      end
+
+      settings :distributed_tracing do
+        option :propagation_extract_style do |o|
+          o.default do
+            # Look for all headers by default
+            env_to_list(Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV,
+                        [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
+                         Ext::DistributedTracing::PROPAGATION_STYLE_B3,
+                         Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER])
+          end
+
+          o.lazy
         end
 
-        yield(self) if block_given?
+        option :propagation_inject_style do |o|
+          o.default do
+            # Only inject Datadog headers by default
+            env_to_list(Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
+                        [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
+          end
+
+          o.lazy
+        end
       end
 
-      def distributed_tracing
-        # TODO: Move distributed tracing configuration to it's own Settings sub-class
-        # DEV: We do this to fake `Datadog.configuration.distributed_tracing.propagation_inject_style`
-        self
+      option :tracer do |o|
+        o.default Tracer.new
+
+        # On reset, shut down the old tracer,
+        # then instantiate a new one.
+        o.resetter do |tracer|
+          tracer.shutdown!
+          Tracer.new
+        end
+
+        # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
+        o.helper :tracer do |options = nil|
+          tracer = options && options.key?(:instance) ? set_option(:tracer, options[:instance]) : get_option(:tracer)
+
+          tracer.tap do |t|
+            unless options.nil?
+              t.configure(options)
+              t.class.log = options[:log] if options[:log]
+              t.set_tags(options[:tags]) if options[:tags]
+              t.set_tags(env: options[:env]) if options[:env]
+              t.class.debug_logging = options.fetch(:debug, false)
+            end
+          end
+        end
       end
 
       def runtime_metrics(options = nil)
@@ -70,22 +86,6 @@ module Datadog
         return runtime_metrics if options.nil?
 
         runtime_metrics.configure(options)
-      end
-
-      # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
-      remove_method :tracer
-      def tracer(options = nil)
-        tracer = options && options.key?(:instance) ? set_option(:tracer, options[:instance]) : get_option(:tracer)
-
-        tracer.tap do |t|
-          unless options.nil?
-            t.configure(options)
-            t.class.log = options[:log] if options[:log]
-            t.set_tags(options[:tags]) if options[:tags]
-            t.set_tags(env: options[:env]) if options[:env]
-            t.class.debug_logging = options.fetch(:debug, false)
-          end
-        end
       end
     end
   end

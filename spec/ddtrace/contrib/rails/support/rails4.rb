@@ -71,7 +71,6 @@ RSpec.shared_context 'Rails 4 base application' do
   def append_routes!
     # Make sure to load controllers first
     # otherwise routes won't draw properly.
-    controllers
     delegate = method(:draw_test_routes!)
 
     # Then set the routes
@@ -84,6 +83,10 @@ RSpec.shared_context 'Rails 4 base application' do
         delegate.call(self)
       end
     end
+  end
+
+  def append_controllers!
+    controllers
   end
 
   def draw_test_routes!(mapper)

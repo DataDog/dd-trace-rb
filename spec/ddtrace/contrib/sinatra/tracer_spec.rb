@@ -242,8 +242,8 @@ RSpec.describe 'Sinatra instrumentation' do
         it do
           is_expected.to be_bad_request
           expect(spans).to have(1).items
-          expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to be nil
-          expect(span.get_tag(Datadog::Ext::Errors::MSG)).to be nil
+          expect(span).to_not have_error_type
+          expect(span).to_not have_error_message
           expect(span.status).to eq(0)
         end
       end
@@ -262,8 +262,8 @@ RSpec.describe 'Sinatra instrumentation' do
         it do
           is_expected.to be_server_error
           expect(spans).to have(1).items
-          expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to be nil
-          expect(span.get_tag(Datadog::Ext::Errors::MSG)).to be nil
+          expect(span).to_not have_error_type
+          expect(span).to_not have_error_message
           expect(span.status).to eq(1)
         end
       end
@@ -282,8 +282,8 @@ RSpec.describe 'Sinatra instrumentation' do
         it do
           is_expected.to be_server_error
           expect(spans).to have(1).items
-          expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to eq('StandardError')
-          expect(span.get_tag(Datadog::Ext::Errors::MSG)).to eq('something bad')
+          expect(span).to have_error_type('StandardError')
+          expect(span).to have_error_message('something bad')
           expect(span.status).to eq(1)
         end
       end

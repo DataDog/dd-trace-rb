@@ -116,7 +116,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'has error set' do
-        expect(span.get_tag(Datadog::Ext::Errors::MSG)).to eq('Request has failed with HTTP error: 500')
+        expect(span).to have_error_message('Request has failed with HTTP error: 500')
       end
     end
 
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'has no error set' do
-        expect(span.get_tag(Datadog::Ext::Errors::MSG)).to be_nil
+        expect(span).to_not have_error_message
       end
     end
 
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'has error set' do
-        expect(span.get_tag(Datadog::Ext::Errors::MSG)).to eq('Request has failed: Timeout was reached')
+        expect(span).to have_error_message('Request has failed: Timeout was reached')
       end
     end
   end

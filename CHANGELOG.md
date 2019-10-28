@@ -1,8 +1,22 @@
 # Changelog
 
-## [Unreleased (stable)]
+## [Unreleased]
 
-## [Unreleased (beta)]
+## [0.28.0] - 2019-10-01
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.28.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.27.0...v0.28.0
+
+### Added
+
+- Support for Rails 6.0 (#814)
+- Multiplexing on hostname/port for Dalli (#823)
+- Support for Redis array arguments (#796, #817) (@brafales)
+
+### Refactored
+
+- Encapsulate span resource name in Faraday integration (#811) (@giancarlocosta)
 
 ## [0.27.0] - 2019-09-04
 
@@ -929,8 +943,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.27.0...master
-[Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.27.0...0.28-dev
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.28.0...master
+[0.28.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...v0.26.0
 [0.25.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.0...v0.25.1

@@ -24,7 +24,7 @@ module Datadog
       end
 
       # Inject all configured propagation styles
-      ::Datadog.configuration.propagation_inject_style.each do |style|
+      ::Datadog.configuration.distributed_tracing.propagation_inject_style.each do |style|
         propagator = PROPAGATION_STYLES[style]
         propagator.inject!(context, env) unless propagator.nil?
       end
@@ -36,7 +36,7 @@ module Datadog
       context = nil
       dd_context = nil
 
-      ::Datadog.configuration.propagation_extract_style.each do |style|
+      ::Datadog.configuration.distributed_tracing.propagation_extract_style.each do |style|
         propagator = PROPAGATION_STYLES[style]
         next if propagator.nil?
 

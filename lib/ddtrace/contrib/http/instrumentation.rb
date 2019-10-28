@@ -12,15 +12,7 @@ module Datadog
       # Instrumentation for Net::HTTP
       module Instrumentation
         def self.included(base)
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
-            base.class_eval do
-              # Instance methods
-              include InstanceMethodsCompatibility
-              include InstanceMethods
-            end
-          else
-            base.send(:prepend, InstanceMethods)
-          end
+          base.send(:prepend, InstanceMethods)
         end
 
         # Span hook invoked after request is completed.
@@ -31,20 +23,6 @@ module Datadog
           else
             # Get hook
             @after_request ||= nil
-          end
-        end
-
-        # Compatibility shim for Rubies not supporting `.prepend`
-        module InstanceMethodsCompatibility
-          def self.included(base)
-            base.class_eval do
-              alias_method :request_without_datadog, :request
-              remove_method :request
-            end
-          end
-
-          def request(*args, &block)
-            request_without_datadog(*args, &block)
           end
         end
 

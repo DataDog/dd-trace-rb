@@ -19,7 +19,7 @@ This guide covers some of the common how-tos and technical reference material fo
 
 The trace library uses Docker Compose to create a Ruby environment to develop and test within, as well as containers for any dependencies that might be necessary for certain kinds of tests.
 
-To start a development environment, choose a target Ruby version (e.g. between `1.9` and `2.4`) then run the following:
+To start a development environment, choose a target Ruby version then run the following:
 
 ```
 # In the root directory of the project...
