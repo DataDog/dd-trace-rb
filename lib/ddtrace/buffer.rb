@@ -79,7 +79,7 @@ module Datadog
     def measure_accept(trace)
       Debug::Health.metrics.queue_accepted(1)
       Debug::Health.metrics.queue_accepted_lengths(trace.length)
-      Debug::Health.metrics.queue_accepted_size { Datadog::Runtime::ObjectSpace.estimate_bytesize(trace) }
+      Debug::Health.metrics.queue_accepted_size { measure_trace_size(trace) }
     rescue StandardError => e
       Datadog::Tracer.log.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
@@ -93,9 +93,21 @@ module Datadog
     def measure_queue
       Debug::Health.metrics.queue_spans(@span_count)
       Debug::Health.metrics.queue_length(@traces.length)
-      Debug::Health.metrics.queue_size { Datadog::Runtime::ObjectSpace.estimate_bytesize(@traces) }
+      Debug::Health.metrics.queue_size { measure_traces_size(@traces) }
     rescue StandardError => e
       Datadog::Tracer.log.debug("Failed to measure queue. Cause: #{e.message} Source: #{e.backtrace.first}")
+    end
+
+    def measure_traces_size(traces)
+      traces.inject(Datadog::Runtime::ObjectSpace.estimate_bytesize(traces)) do |sum, trace|
+        sum + measure_trace_size(trace)
+      end
+    end
+
+    def measure_trace_size(trace)
+      trace.inject(Datadog::Runtime::ObjectSpace.estimate_bytesize(trace)) do |sum, span|
+        sum + Datadog::Runtime::ObjectSpace.estimate_bytesize(span)
+      end
     end
   end
 end

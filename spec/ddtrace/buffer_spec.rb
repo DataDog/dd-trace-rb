@@ -47,7 +47,7 @@ RSpec.describe Datadog::TraceBuffer do
           .with(trace.length)
         expect(health_metrics).to have_received_lazy_health_metric(
           :queue_accepted_size,
-          Datadog::Runtime::ObjectSpace.estimate_bytesize(trace)
+          measure_trace_size(trace)
         )
 
         # Metrics for queue gauges
@@ -57,7 +57,7 @@ RSpec.describe Datadog::TraceBuffer do
           .with(1)
         expect(health_metrics).to have_received_lazy_health_metric(
           :queue_size,
-          Datadog::Runtime::ObjectSpace.estimate_bytesize(trace)
+          measure_traces_size([trace])
         )
       end
     end
@@ -85,17 +85,18 @@ RSpec.describe Datadog::TraceBuffer do
         # A trace will be dropped at random, except the trace
         # that triggered the overflow.
         dropped_traces = traces.reject { |t| output.include?(t) }
-        expected_traces = traces - dropped_traces
 
         # Metrics for accept events and one drop event
         expect(health_metrics).to have_received(:queue_accepted)
           .with(1).exactly(3).times
         expect(health_metrics).to have_received(:queue_accepted_lengths)
           .with(kind_of(Numeric)).exactly(3).times
-        expect(health_metrics).to have_received_lazy_health_metric(
-          :queue_accepted_size,
-          Datadog::Runtime::ObjectSpace.estimate_bytesize(expected_traces.first)
-        ).exactly(3).times
+
+        expect(health_metrics).to have_received(:queue_accepted_size) { |&block|
+          @i ||= 0
+          expect(block.call).to eq(measure_trace_size(traces[@i]))
+          @i += 1
+        }.exactly(3).times
 
         expect(health_metrics).to have_received(:queue_dropped)
           .with(dropped_traces.length).once
