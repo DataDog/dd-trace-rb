@@ -7,6 +7,49 @@ RSpec.describe Datadog::Context do
   let(:options) { {} }
   let(:tracer) { get_test_tracer }
 
+  describe '#get' do
+    subject(:get) { context.get }
+
+    context 'with no trace' do
+      it { is_expected.to eq([nil, false]) }
+    end
+
+    context 'with a trace' do
+      let(:span) { Datadog::Span.new(nil, 'dummy') }
+      let(:trace) { [span] }
+      let(:sampled) { double('sampled flag') }
+
+      before do
+        span.sampled = sampled
+        context.add_span(span)
+
+        allow(context).to receive(:configure_root_span)
+      end
+
+      context 'unfinished' do
+        it { is_expected.to eq([nil, sampled]) }
+
+        it 'does not configure unfinished root span' do
+          subject
+          expect(context).to_not have_received(:configure_root_span)
+        end
+      end
+
+      context 'finished' do
+        before do
+          context.close_span(span)
+        end
+
+        it { is_expected.to eq([trace, sampled]) }
+
+        it 'configures root span' do
+          subject
+          expect(context).to have_received(:configure_root_span)
+        end
+      end
+    end
+  end
+
   describe '#current_root_span' do
     subject(:current_root_span) { context.current_root_span }
 

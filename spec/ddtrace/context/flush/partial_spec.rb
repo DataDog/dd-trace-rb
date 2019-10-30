@@ -27,24 +27,38 @@ RSpec.describe Datadog::Context::Flush::Partial do
       end
 
       context 'with at least the minimum required spans' do
-        let(:finished_spans) { [double, double] }
+        context 'with spans available' do
+          let(:finished_spans) { [double, double] }
 
-        before do
-          allow(context).to receive(:delete_span_if) do |&block|
-            expect(block).to eq(:finished?.to_proc)
-            finished_spans
+          before do
+            allow(context).to receive(:delete_span_if) do |&block|
+              expect(block).to eq(:finished?.to_proc)
+              finished_spans
+            end
+
+            allow(context).to receive(:configure_root_span).with(finished_spans[0])
           end
 
-          allow(context).to receive(:configure_root_span).with(finished_spans[0])
+          it 'returns finished spans' do
+            is_expected.to eq(finished_spans)
+          end
+
+          it 'apply root span settings to first span' do
+            subject
+            expect(context).to have_received(:configure_root_span).with(finished_spans[0])
+          end
         end
 
-        it 'returns finished spans' do
-          is_expected.to eq(finished_spans)
-        end
+        context 'with no span available due to race condition' do
+          # Can happen if between the call to +context.finished_span_count+
+          # and +context.delete_span_if+ all finished spans are consumed.
 
-        it 'apply root span settings to first span' do
-          subject
-          expect(context).to have_received(:configure_root_span).with(finished_spans[0])
+          let(:finished_spans) { [] }
+          before { allow(context).to receive(:delete_span_if).and_return(finished_spans) }
+
+          it 'returns finished spans' do
+            is_expected.to be_nil
+          end
         end
       end
     end

@@ -161,10 +161,11 @@ module Datadog
         trace = @trace
         sampled = @sampled
 
-        configure_root_span
-
         # still return sampled attribute, even if context is not finished
         return nil, sampled unless check_finished_spans()
+
+        # Root span is finished at this point, we can configure it
+        configure_root_span
 
         reset
         [trace, sampled]

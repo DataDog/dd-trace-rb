@@ -25,15 +25,17 @@ module Datadog
         def partial_trace(context)
           return nil if context.finished_span_count < @min_spans_for_partial
 
-          partial_traces(context)
+          finished_spans(context)
         end
 
-        def partial_traces(context)
-          context.send(:delete_span_if, &:finished?).tap do |spans|
+        def finished_spans(context)
+          trace = context.send(:delete_span_if, &:finished?).tap do |spans|
             # Ensure that the first span in a partial trace has
             # sampling and origin information.
             context.configure_root_span(spans[0]) if spans[0]
           end
+
+          trace unless trace.empty?
         end
       end
     end
