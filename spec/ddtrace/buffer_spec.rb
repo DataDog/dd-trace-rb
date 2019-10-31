@@ -24,9 +24,6 @@ RSpec.describe Datadog::TraceBuffer do
   describe '#initialize' do
     it do
       is_expected.to be_a_kind_of(described_class)
-
-      expect(health_metrics).to have_received(:queue_max_length)
-        .with(max_size)
     end
   end
 
@@ -59,6 +56,8 @@ RSpec.describe Datadog::TraceBuffer do
           :queue_size,
           measure_traces_size([trace])
         )
+        expect(health_metrics).to have_received(:queue_max_length)
+          .with(max_size)
       end
     end
 
@@ -210,6 +209,9 @@ RSpec.describe Datadog::TraceBuffer do
         :queue_size,
         Datadog::Runtime::ObjectSpace.estimate_bytesize([])
       ).exactly(3).times
+
+      expect(health_metrics).to have_received(:queue_max_length)
+        .with(max_size).exactly(3).times
     end
   end
 end

@@ -8,7 +8,6 @@ module Datadog
   class TraceBuffer
     def initialize(max_size)
       @max_size = max_size
-      Debug::Health.metrics.queue_max_length(@max_size)
 
       @mutex = Mutex.new()
       @traces = []
@@ -92,6 +91,7 @@ module Datadog
     end
 
     def measure_queue
+      Debug::Health.metrics.queue_max_length(@max_size)
       Debug::Health.metrics.queue_spans(@span_count)
       Debug::Health.metrics.queue_length(@traces.length)
       Debug::Health.metrics.queue_size { measure_traces_size(@traces) }
