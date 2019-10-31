@@ -86,17 +86,17 @@ RSpec.describe Datadog::TraceBuffer do
         # that triggered the overflow.
         dropped_traces = traces.reject { |t| output.include?(t) }
 
-        # Metrics for accept events and one drop event
+        # Expect an accept event for every push, and one drop for the overflow.
         expect(health_metrics).to have_received(:queue_accepted)
-          .with(1).exactly(3).times
+          .with(1).exactly(traces.length).times
         expect(health_metrics).to have_received(:queue_accepted_lengths)
-          .with(kind_of(Numeric)).exactly(3).times
+          .with(kind_of(Numeric)).exactly(traces.length).times
 
         expect(health_metrics).to have_received(:queue_accepted_size) { |&block|
           @i ||= 0
           expect(block.call).to eq(measure_trace_size(traces[@i]))
           @i += 1
-        }.exactly(3).times
+        }.exactly(traces.length).times
 
         expect(health_metrics).to have_received(:queue_dropped)
           .with(dropped_traces.length).once

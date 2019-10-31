@@ -34,6 +34,7 @@ module Datadog
           @traces[target] = trace
           @span_count += trace.length
 
+          measure_accept(trace)
           measure_drop
         end
 
