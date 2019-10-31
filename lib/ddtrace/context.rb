@@ -151,11 +151,17 @@ module Datadog
     end
 
     # Returns both the trace list generated in the current context and
-    # if the context is sampled or not. It returns +[nil,nil]+ if the ``Context`` is
-    # not finished. If a trace is returned, the \Context will be reset so that it
+    # if the context is sampled or not.
+    #
+    # It returns +[nil,@sampled]+ if the \Context is
+    # not finished.
+    #
+    # If a trace is returned, the \Context will be reset so that it
     # can be re-used immediately.
     #
     # This operation is thread-safe.
+    #
+    # @return [Array<Array<Span>, Boolean>] finished trace and sampled flag
     def get
       @mutex.synchronize do
         trace = @trace

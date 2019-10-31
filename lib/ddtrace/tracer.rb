@@ -333,6 +333,12 @@ module Datadog
       record_context(context)
     end
 
+    # Consume trace from +context+, according to +@context_flush+
+    # criteria.
+    #
+    # \ContextFlush#consume can return nil or an empty list if the
+    # trace is not available to flush or if the trace has not been
+    # chosen to be sampled.
     def record_context(context)
       trace = @context_flush.consume(context)
 
