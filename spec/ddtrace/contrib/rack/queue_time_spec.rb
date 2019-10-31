@@ -30,6 +30,11 @@ RSpec.describe Datadog::Contrib::Rack::QueueTime do
             let(:value) { 'foobar' }
             it { is_expected.to be nil }
           end
+
+          context 'before the start of the acceptable time range' do
+            let(:value) { 999_999_999.000 }
+            it { is_expected.to be nil }
+          end
         end
 
         context described_class::QUEUE_START do

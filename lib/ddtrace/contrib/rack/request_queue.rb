@@ -5,6 +5,7 @@ module Datadog
       module QueueTime
         REQUEST_START = 'HTTP_X_REQUEST_START'.freeze
         QUEUE_START = 'HTTP_X_QUEUE_START'.freeze
+        MINIMUM_ACCEPTABLE_TIME_VALUE = 1_000_000_000.freeze
 
         module_function
 
@@ -19,8 +20,8 @@ module Datadog
           return if time_string.nil?
 
           # Return nil if the time is clearly invalid
-          time_value = "#{time_string[0, 10]}.#{time_string[10, 13]}".to_f
-          return if time_value.zero?
+          time_value = "#{time_string[0, 10]}.#{time_string[10, 6]}".to_f
+          return if time_value.zero? || time_value < MINIMUM_ACCEPTABLE_TIME_VALUE
 
           # return the request_start only if it's lesser than
           # current time, to avoid significant clock skew
