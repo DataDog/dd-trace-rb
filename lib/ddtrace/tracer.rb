@@ -391,8 +391,8 @@ module Datadog
       transport_options = options.fetch(:transport_options, {})
 
       # Compile writer options
-      rebuild_writer = false
-      writer_options = {}
+      writer_options = options.fetch(:writer_options, {})
+      rebuild_writer = !writer_options.empty?
 
       # Re-build the sampler and writer if priority sampling is enabled,
       # but neither are configured. Verify the sampler isn't already a
