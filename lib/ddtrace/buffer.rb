@@ -11,8 +11,13 @@ module Datadog
 
       @mutex = Mutex.new()
       @traces = []
-      @span_count = 0
       @closed = false
+
+      # Initialize metric values
+      @buffer_accepted = 0
+      @buffer_accepted_lengths = 0
+      @buffer_dropped = 0
+      @buffer_spans = 0
     end
 
     # Add a new ``trace`` in the local queue. This method doesn't block the execution
@@ -23,21 +28,14 @@ module Datadog
         len = @traces.length
         if len < @max_size || @max_size <= 0
           @traces << trace
-          @span_count += trace.length
-
           measure_accept(trace)
         else
           # we should replace a random trace with the new one
-          target = rand(len)
-          @span_count -= @traces[target].length
-          @traces[target] = trace
-          @span_count += trace.length
-
-          measure_accept(trace)
-          measure_drop
+          replace_index = rand(len)
+          replaced_trace = @traces[replace_index]
+          @traces[replace_index] = trace
+          measure_drop(replaced_trace, trace)
         end
-
-        measure_queue
       end
     end
 
@@ -60,9 +58,8 @@ module Datadog
       @mutex.synchronize do
         traces = @traces
         @traces = []
-        @span_count = 0
 
-        measure_queue
+        measure_pop(traces)
 
         return traces
       end
@@ -74,27 +71,50 @@ module Datadog
       end
     end
 
-    private
+    # Aggregate metrics:
+    # They reflect buffer activity since last #pop.
+    # These may not be as accurate or as granular, but they
+    # don't use as much network traffic as live stats.
 
     def measure_accept(trace)
-      Debug::Health.metrics.queue_accepted(1)
-      Debug::Health.metrics.queue_accepted_lengths(trace.length)
-      Debug::Health.metrics.queue_accepted_size { measure_trace_size(trace) }
+      @buffer_spans += trace.length
+      @buffer_accepted += 1
+      @buffer_accepted_lengths += trace.length
     rescue StandardError => e
       Datadog::Tracer.log.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def measure_drop
-      Debug::Health.metrics.queue_dropped(1)
+    def measure_drop(old_trace, new_trace)
+      @buffer_dropped += 1
+      @buffer_spans -= old_trace.length
+      @buffer_accepted_lengths -= old_trace.length
+      @buffer_accepted += 1
+      @buffer_spans += new_trace.length
+      @buffer_accepted_lengths += new_trace.length
     rescue StandardError => e
       Datadog::Tracer.log.debug("Failed to measure queue drop. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def measure_queue
+    def measure_pop(traces)
+      # Accepted
+      Debug::Health.metrics.queue_accepted(@buffer_accepted)
+      Debug::Health.metrics.queue_accepted_lengths(@buffer_accepted_lengths)
+      Debug::Health.metrics.queue_accepted_size { measure_traces_size(traces) }
+
+      # Dropped
+      Debug::Health.metrics.queue_dropped(@buffer_dropped)
+
+      # Queue gauges
       Debug::Health.metrics.queue_max_length(@max_size)
-      Debug::Health.metrics.queue_spans(@span_count)
-      Debug::Health.metrics.queue_length(@traces.length)
-      Debug::Health.metrics.queue_size { measure_traces_size(@traces) }
+      Debug::Health.metrics.queue_spans(@buffer_spans)
+      Debug::Health.metrics.queue_length(traces.length)
+      Debug::Health.metrics.queue_size { measure_traces_size(traces) }
+
+      # Reset aggregated metrics
+      @buffer_accepted = 0
+      @buffer_accepted_lengths = 0
+      @buffer_dropped = 0
+      @buffer_spans = 0
     rescue StandardError => e
       Datadog::Tracer.log.debug("Failed to measure queue. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
