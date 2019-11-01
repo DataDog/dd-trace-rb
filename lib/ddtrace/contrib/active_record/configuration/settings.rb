@@ -8,25 +8,20 @@ module Datadog
       module Configuration
         # Custom settings for the ActiveRecord integration
         class Settings < Contrib::Configuration::Settings
-          option  :analytics_enabled,
-                  default: -> { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) },
-                  lazy: true
+          option :analytics_enabled do |o|
+            o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) }
+            o.lazy
+          end
 
-          option  :analytics_sample_rate,
-                  default: -> { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) },
-                  lazy: true
+          option :analytics_sample_rate do |o|
+            o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
+            o.lazy
+          end
 
           option :orm_service_name
-          option :service_name,
-                 default: -> { Utils.adapter_name },
-                 lazy: true
-
-          option :tracer, default: Datadog.tracer do |value|
-            value.tap do
-              Events.subscriptions.each do |subscription|
-                subscription.tracer = value
-              end
-            end
+          option :service_name do |o|
+            o.default { Utils.adapter_name }
+            o.lazy
           end
         end
       end

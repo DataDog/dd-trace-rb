@@ -545,6 +545,14 @@ jobs:
     docker:
       - *container-2_5
     steps:
+      - run:
+          name: Check if this commit author has publishing credentials
+          command: |
+            if [[ -z "${AWS_ACCESS_KEY_ID}" ]]
+            then
+              echo 'No AWS credentials, skipping publish of pre-release build.'
+              circleci task halt
+            fi
       - checkout
       - run:
           command: |

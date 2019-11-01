@@ -18,8 +18,8 @@ module Datadog
 
     def initialize(options = {})
       # writer and transport parameters
-      @buff_size = options.fetch(:buffer_size, 100)
-      @flush_interval = options.fetch(:flush_interval, 1)
+      @buff_size = options.fetch(:buffer_size, Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE)
+      @flush_interval = options.fetch(:flush_interval, Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL)
       transport_options = options.fetch(:transport_options, {})
 
       # priority sampling
