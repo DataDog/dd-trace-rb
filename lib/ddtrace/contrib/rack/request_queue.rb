@@ -5,7 +5,7 @@ module Datadog
       module QueueTime
         REQUEST_START = 'HTTP_X_REQUEST_START'.freeze
         QUEUE_START = 'HTTP_X_QUEUE_START'.freeze
-        MINIMUM_ACCEPTABLE_TIME_VALUE = 1_000_000_000.freeze
+        MINIMUM_ACCEPTABLE_TIME_VALUE = 1_000_000_000
 
         module_function
 
