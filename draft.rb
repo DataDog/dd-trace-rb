@@ -1,8 +1,3 @@
-begin
-
-  true
-end
-
 global_rate_limiter = RateLimiter.new(100) # hit/s
 
 local_rate_limiter = RateLimiter.new(50)
@@ -30,81 +25,7 @@ sampling = [
   Rule.new(CurrentImplemention), # Implicit default fallback, that does the same thing as today, probably not needed when a catch all rule is present
 ]
 
-class TokenBucket
-  # TODO:
-end
 
-class Rule
-  # @abstract
-  # @!method sample
-  # @param span
-  # @return [Boolean, Float] sampling decision and sampling rate, or +nil+ if this rule does not apply
-end
-
-class SimpleRule < Rule
-  MATCH_ALL = Proc.new { |_obj| true }
-
-  attr_reader :service, :name, :sampling_rate
-
-  #
-  # (e.g. \String, \Regexp, \Proc)
-  #
-  # @param service Matcher for case equality (===) with the service name, defaults to always match
-  # @param name Matcher for case equality (===) with the span name, defaults to always match
-  # @param sampling_rate
-  def initialize(service: MATCH_ALL, name: MATCH_ALL, sampling_rate:)
-    @sampler = Datadog::RateSampler.new(sampling_rate)
-  end
-
-  def sample(span)
-    [@sampler.sample?(span), sampling_rate] if match?(span)
-  end
-
-  private
-
-  def match?(span)
-    service === span.service && name === span.name
-  end
-end
-
-class CustomRule < Rule
-  attr_reader :block
-
-  def initialize(&block)
-  end
-
-  def sample(span)
-    block.(span.service, span.name)
-  end
-end
-
-def sample(span)
-  # Check to see if there is a user defined rule that matches this span
-  matching_rule = user_defined_rules.find do |rule|
-    rule.matches(span)
-  end
-
-  # No rule matches this span, fallback to existing behavior
-  unless matching_rule
-    return existing_priority_sampler.sample(span)
-  end
-
-  # Check if the matching rule will sample the span
-  unless matching_rule.sample(span)
-    span.sampling_priority = AUTO_REJECT
-    return false
-  end
-
-  # The span was sampled, verify we do not exceed our rate limit
-  unless rate_limiter.is_allowed()
-    span.sampling_priority = AUTO_REJECT
-    return false
-  end
-
-  # Span should be sampled
-  span.sampling_priority = AUTO_KEEP
-  return true
-end
 
 
 _dd.agent_psr - agent service priority rate
