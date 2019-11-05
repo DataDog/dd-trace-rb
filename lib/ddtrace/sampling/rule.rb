@@ -1,10 +1,19 @@
 module Datadog
   module Sampling
     class Rule
+      # Returns `true` if the span should conforms to this rule, `false` otherwise.
+      #
+      # If sampling was applied in this rule, return the sampling rate as a second
+      # return value inside an Array.
+      #
       # @abstract
-      # @!method sample
-      # @param span
-      # @return [Boolean, Float] sampling decision and sampling rate, or +nil+ if this rule does not apply
+      # @param [Span] span
+      # @return [Boolean] sampling decision, or `nil` if this rule does not apply
+      # @return [Array<Boolean, Float>] sampling decision and sampling rate,
+      #   or `nil` if this rule does not apply
+      def sample(span)
+        raise NotImplementedError
+      end
     end
 
     class SimpleRule < Rule
@@ -13,7 +22,7 @@ module Datadog
       attr_reader :service, :name, :sampling_rate
 
       #
-      # (e.g. \String, \Regexp, \Proc)
+      # (e.g. {String}, {Regexp}, {Proc})
       #
       # @param service Matcher for case equality (===) with the service name, defaults to always match
       # @param name Matcher for case equality (===) with the span name, defaults to always match

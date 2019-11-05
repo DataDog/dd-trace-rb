@@ -1,6 +1,6 @@
 module Datadog
   module Sampling
-    class DatadogSampler
+    class RuleSampler
       def sample(span)
         # Check to see if there is a user defined rule that matches this span
         matching_rule = user_defined_rules.find do |rule|
