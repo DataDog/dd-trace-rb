@@ -17,6 +17,15 @@ module Datadog
         @last_refill = now
       end
 
+      # Checks if a message of provided +size+
+      # conforms with the current bucket limit.
+      #
+      # If it does, return +true+ and remove +size+
+      # tokens from the bucket.
+      # If it does not, return +false+ without affecting
+      # the tokens form the bucket.
+      #
+      # @return [Boolean] +true+ if message conforms with current bucket limit
       def conform?(size)
         refill_since_last_message
 
@@ -31,14 +40,21 @@ module Datadog
         true
       end
 
-      def available_tokens
-        @tokens
-      end
-
+      # Ratio of 'conformance' per 'total messages' checked
+      # on this bucket.
+      #
+      # Returns +1.0+ when no messages have been checked yet.
+      #
+      # @return [Float] Conformance ratio, between +[0,1]+
       def conformance_rate
         return 1.0 if @total_messages == 0
 
         @conforming_messages.to_f / @total_messages
+      end
+
+      # @return [Numeric] number of tokens currently available
+      def available_tokens
+        @tokens
       end
 
       private
