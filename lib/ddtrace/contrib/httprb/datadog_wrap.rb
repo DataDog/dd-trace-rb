@@ -19,37 +19,42 @@ module Datadog
         end
 
         def wrap_request(request)
-          return super unless tracer_enabled?
+          begin
+            return super(request) unless tracer_enabled?
 
-          datadog_span = datadog_configuration[:tracer].trace(
-            Ext::SPAN_REQUEST,
-            service: datadog_configuration[:service_name],
-            span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
-          )
-          
-          if request && request.headers
-            Datadog::HTTPPropagator.inject!(datadog_span.context, request.headers)
+            datadog_span = datadog_configuration[:tracer].trace(
+              Ext::SPAN_REQUEST,
+              service: datadog_configuration[:service_name],
+              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
+            )
+            
+            if request && request.headers
+              Datadog::HTTPPropagator.inject!(datadog_span.context, request.headers)
+            end
+
+            Contrib::Analytics.set_sample_rate(datadog_span, analytics_sample_rate) if analytics_enabled?
+
+            http_method = request.try(:verb).try(:to_s).try(:upcase)
+
+            datadog_span.resource = http_method  
+
+            if request.try(:uri)
+              uri = request.uri
+              datadog_span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
+              datadog_span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
+              datadog_span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
+              datadog_span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
+            end
+
+            return request
+          ensure
+            return request
           end
-
-          Contrib::Analytics.set_sample_rate(datadog_span, analytics_sample_rate) if analytics_enabled?
-
-          http_method = request.try(:verb).try(:to_s).try(:upcase)
-
-          datadog_span.resource = http_method  
-
-          if request.try(:uri)
-            uri = request.uri
-            datadog_span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
-            datadog_span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
-            datadog_span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
-            datadog_span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
-          end
-
-          return request
         end
 
         def wrap_response(response)
           begin
+            return super(request) unless tracer_enabled?
 
             tracer = datadog_configuration[:tracer]
             datadog_span = tracer.active_span
@@ -77,6 +82,7 @@ module Datadog
             return response
           ensure
             datadog_configuration[:tracer].active_span.finish
+            return response
           end
         end
 
