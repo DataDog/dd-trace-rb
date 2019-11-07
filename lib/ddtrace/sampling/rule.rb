@@ -1,55 +1,54 @@
+require 'ddtrace/sampling/matcher'
+require 'ddtrace/sampler'
+
 module Datadog
   module Sampling
     class Rule
-      # Returns `true` if the span should conforms to this rule, `false` otherwise.
+      attr_reader :matcher, :sampler
+
+      def initialize(matcher, sampler)
+        @matcher = matcher
+        @sampler = sampler
+      end
+
+      # Evaluates if the provided `span` conforms to the `matcher`
+      # and is accepted by the `sampler`.
       #
-      # If sampling was applied in this rule, return the sampling rate as a second
-      # return value inside an Array.
+      # If the `matcher` rejects the `span` this method returns `nil`,
+      # to represent that this rule does not apply to the `span`.
       #
-      # @abstract
+      # If the `matcher` returns `true` the `sampler` is invoked next.
+      #
+      # If `sampler` accepts the `span`, this method returns an {Array}
+      # with the sampling decision {Boolean} and a sampling rate {Float}.
+      #
+      # If the concept of sampling rate does not apply to the `sampler`
+      # `nil` is returned as the sample rate.
+      #
       # @param [Span] span
-      # @return [Boolean] sampling decision, or `nil` if this rule does not apply
-      # @return [Array<Boolean, Float>] sampling decision and sampling rate,
+      # @return [Array<Boolean, Float>] sampling decision and sampling rate
+      # @return [NilClass] if this rule does not apply
       #   or `nil` if this rule does not apply
       def sample(span)
-        raise NotImplementedError
+        match = begin
+          @matcher.match?(span)
+        rescue => e
+          Datadog::Tracer.log.error("Matcher failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+          nil
+        end
+
+        return unless match
+
+        [@sampler.sample?(span), @sampler.sample_rate(span)]
+      rescue => e
+        Datadog::Tracer.log.error("Sampler failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+        nil
       end
     end
 
     class SimpleRule < Rule
-      MATCH_ALL = Proc.new { |_obj| true }
-
-      attr_reader :service, :name, :sampling_rate
-
-      #
-      # (e.g. {String}, {Regexp}, {Proc})
-      #
-      # @param service Matcher for case equality (===) with the service name, defaults to always match
-      # @param name Matcher for case equality (===) with the span name, defaults to always match
-      # @param sampling_rate
-      def initialize(service: MATCH_ALL, name: MATCH_ALL, sampling_rate:)
-        @sampler = Datadog::RateSampler.new(sampling_rate)
-      end
-
-      def sample(span)
-        [@sampler.sample?(span), sampling_rate] if match?(span)
-      end
-
-      private
-
-      def match?(span)
-        service === span.service && name === span.name
-      end
-    end
-
-    class CustomRule < Rule
-      attr_reader :block
-
-      def initialize(&block)
-      end
-
-      def sample(span)
-        block.(span.service, span.name)
+      def initialize(name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL, sample_rate:)
+        super(SimpleMatcher.new(name: name, service: service), RateSampler.new(sample_rate))
       end
     end
   end

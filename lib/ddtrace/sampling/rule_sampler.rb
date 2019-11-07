@@ -1,32 +1,55 @@
+require 'ddtrace/ext/priority'
+
+require 'ddtrace/ext/sampling'
+require 'ddtrace/sampler'
+
 module Datadog
   module Sampling
+    # TODO:
     class RuleSampler
-      def sample(span)
-        # Check to see if there is a user defined rule that matches this span
-        matching_rule = user_defined_rules.find do |rule|
-          rule.matches(span)
+      extend Forwardable
+
+      attr_reader :rules, :rate_limiter, :priority_sampler
+
+      def initialize(rules, rate_limiter, priority_sampler = Datadog::RateByServiceSampler.new)
+        @rules = rules
+        @rate_limiter = rate_limiter
+        @priority_sampler = priority_sampler
+      end
+
+      def sample?(span)
+        sampled, _ = sample_span(span) { |s| return @priority_sampler.sample?(s) }
+        sampled
+      end
+
+      def sample!(span)
+        sampled, sample_rate = sample_span(span) { |s| return @priority_sampler.sample!(s) }
+
+        # Set metrics regardless of sampling outcome
+        set_metrics(span, sample_rate, rate_limiter.effective_rate)
+
+        span.sampled = sampled
+        sampled
+      end
+
+      def_delegators :@priority_sampler, :update
+
+      private
+
+      def sample_span(span)
+        sampled, sample_rate = @rules.find do |rule|
+          result = rule.sample(span)
+          break result if result
         end
 
-        # No rule matches this span, fallback to existing behavior
-        unless matching_rule
-          return existing_priority_sampler.sample(span)
-        end
+        return yield(span) if sampled.nil?
 
-        # Check if the matching rule will sample the span
-        unless matching_rule.sample(span)
-          span.sampling_priority = AUTO_REJECT
-          return false
-        end
+        [sampled && rate_limiter.allow?(1), sample_rate]
+      end
 
-        # The span was sampled, verify we do not exceed our rate limit
-        unless rate_limiter.is_allowed()
-          span.sampling_priority = AUTO_REJECT
-          return false
-        end
-
-        # Span should be sampled
-        span.sampling_priority = AUTO_KEEP
-        return true
+      def set_metrics(span, sample_rate, limiter_rate)
+        span.set_metric(Ext::Sampling::RULE_SAMPLE_RATE, sample_rate)
+        span.set_metric(Ext::Sampling::RATE_LIMITER_RATE, limiter_rate)
       end
     end
   end

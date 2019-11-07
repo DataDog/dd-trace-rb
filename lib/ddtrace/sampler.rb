@@ -12,6 +12,10 @@ module Datadog
     def sample!(_span)
       raise NotImplementedError, 'Samplers must implement the #sample! method'
     end
+
+    def sample_rate(span)
+      raise NotImplementedError, 'Samplers must implement the #sample_rate method'
+    end
   end
 
   # \AllSampler samples all the traces.
@@ -23,14 +27,16 @@ module Datadog
     def sample!(span)
       span.sampled = true
     end
+
+    def sample_rate(_)
+      1.0
+    end
   end
 
   # \RateSampler is based on a sample rate.
   class RateSampler < Sampler
     KNUTH_FACTOR = 1111111111111111111
     SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
-
-    attr_reader :sample_rate
 
     # Initialize a \RateSampler.
     # This sampler keeps a random subset of the traces. Its main purpose is to
@@ -46,6 +52,10 @@ module Datadog
       end
 
       self.sample_rate = sample_rate
+    end
+
+    def sample_rate(_)
+      @sample_rate
     end
 
     def sample_rate=(sample_rate)
@@ -67,8 +77,9 @@ module Datadog
   # \RateByServiceSampler samples different services at different rates
   class RateByServiceSampler < Sampler
     DEFAULT_KEY = 'service:,env:'.freeze
+    DEFAULT_RATE = 1.0
 
-    def initialize(rate = 1.0, opts = {})
+    def initialize(rate = DEFAULT_RATE, opts = {})
       @env = opts.fetch(:env, Datadog.tracer.tags[:env])
       @mutex = Mutex.new
       @fallback = RateSampler.new(rate)
@@ -96,6 +107,8 @@ module Datadog
 
       @mutex.synchronize do
         @sampler.fetch(key, @fallback).sample_rate
+        # TODO set sampling metric here, for fallback case
+        # TODO I think this should be one in a separate PR
       end
     end
 
@@ -141,10 +154,17 @@ module Datadog
         # If priority sampling has already been applied upstream, use that, otherwise...
         unless priority_assigned_upstream?(span)
           # Roll the dice and determine whether how we set the priority.
+          priority = priority_sample!(span) ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
+
           # NOTE: We'll want to leave `span.sampled = true` here; all spans for priority sampling must
           #       be sent to the agent. Otherwise metrics for traces will not be accurate, since the
           #       agent will have an incomplete dataset.
-          priority = priority_sample(span) ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
+          #
+          #       We also ensure that the sampling rate is not propagated to the agent, to avoid erroneous
+          #       metric upscaling.
+          span.sampled = true
+          span.set_metric(SAMPLE_RATE_METRIC_KEY, 1.0) if span.get_metric(SAMPLE_RATE_METRIC_KEY) # TODO do i have to unset it? or setting to 1.0 is fine?
+
           assign_priority!(span, priority)
         end
       else
@@ -175,8 +195,8 @@ module Datadog
       span.context && !span.context.sampling_priority.nil?
     end
 
-    def priority_sample(span)
-      @priority_sampler.sample?(span)
+    def priority_sample!(span)
+      @priority_sampler.sample!(span)
     end
 
     def assign_priority!(span, priority)

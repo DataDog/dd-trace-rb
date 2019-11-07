@@ -1,5 +1,18 @@
+# TODO move outsize of sampling?
 module Datadog
   module Sampling
+    class RateLimiter
+      # TODO
+      # @return [Boolean]
+      def allow?(size)
+      end
+
+      # TODO
+      # @return [Float]
+      def effective_rate
+      end
+    end
+
     # Implementation of the Token Bucket metering algorithm.
     #
     # TODO: Find more canonical link: https://en.wikipedia.org/wiki/Token_bucket
@@ -26,7 +39,7 @@ module Datadog
       # the tokens form the bucket.
       #
       # @return [Boolean] +true+ if message conforms with current bucket limit
-      def conform?(size)
+      def allow?(size)
         refill_since_last_message
 
         increment_total_count
@@ -46,7 +59,7 @@ module Datadog
       # Returns +1.0+ when no messages have been checked yet.
       #
       # @return [Float] Conformance ratio, between +[0,1]+
-      def conformance_rate
+      def effective_rate
         return 1.0 if @total_messages == 0
 
         @conforming_messages.to_f / @total_messages

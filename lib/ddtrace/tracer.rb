@@ -297,6 +297,7 @@ module Datadog
             span = start_span(name, options)
           # rubocop:disable Lint/UselessAssignment
           rescue StandardError => e
+            pp e
             Datadog::Tracer.log.debug('Failed to start span: #{e}')
           ensure
             return_value = yield(span)
