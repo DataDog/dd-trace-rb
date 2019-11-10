@@ -7,15 +7,13 @@ require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/http_propagator'
 
-require 'http'
-
 module Datadog
   module Contrib
     module Httprb
-      class DatadogWrap < ::HTTP::Feature
+      class DatadogWrap
 
-        def initialize(*)
-          super
+        def initialize(opts = {})
+          @opts = opts
         end
 
         def wrap_request(request)
@@ -30,7 +28,7 @@ module Datadog
               Datadog::HTTPPropagator.inject!(datadog_span.context, request.headers) if request.headers
               Contrib::Analytics.set_sample_rate(datadog_span, analytics_sample_rate) if analytics_enabled?
 
-              if request.verb && request.verb.is_a? String
+              if request.verb && request.verb.is_a?(String)
                 http_method = request.verb.to_s.upcase
                 datadog_span.resource = http_method
               else
@@ -89,6 +87,8 @@ module Datadog
             return response
           end
         end
+
+        def on_error(request, error); end
 
         private
 

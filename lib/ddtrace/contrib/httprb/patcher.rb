@@ -1,7 +1,6 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/httprb/instrumentation'
 require 'ddtrace/contrib/httprb/datadog_wrap'
-require 'http'
 
 module Datadog
   module Contrib

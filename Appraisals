@@ -73,6 +73,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'ethon'
       gem 'excon'
       gem 'hiredis'
+      gem 'http'
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'rack', '1.4.7'
@@ -183,6 +184,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'ethon'
       gem 'excon'
       gem 'hiredis'
+      gem 'http'
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'rack', '1.4.7'
@@ -343,6 +345,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'graphql', '< 1.9.4'
       gem 'grpc'
       gem 'hiredis'
+      gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
@@ -502,6 +505,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'graphql'
       gem 'grpc'
       gem 'hiredis'
+      gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
@@ -577,6 +581,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'graphql'
       gem 'grpc'
       gem 'hiredis'
+      gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
@@ -688,6 +693,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'graphql'
       gem 'grpc'
       gem 'hiredis'
+      gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
@@ -798,6 +804,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'graphql'
       gem 'grpc'
       gem 'hiredis'
+      gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
