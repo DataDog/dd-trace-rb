@@ -10,81 +10,78 @@ require 'ddtrace/propagation/http_propagator'
 module Datadog
   module Contrib
     module Httprb
+      # custom httprb feature
       class DatadogWrap
-
         def initialize(opts = {})
           @opts = opts
         end
 
         def wrap_request(request)
-          begin
-            if tracer_enabled?
-              datadog_span = datadog_configuration[:tracer].trace(
-                Ext::SPAN_REQUEST,
-                service: datadog_configuration[:service_name],
-                span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
-              )
+          if tracer_enabled?
+            datadog_span = datadog_configuration[:tracer].trace(
+              Ext::SPAN_REQUEST,
+              service: datadog_configuration[:service_name],
+              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
+            )
 
-              Datadog::HTTPPropagator.inject!(datadog_span.context, request.headers) if request.headers
-              Contrib::Analytics.set_sample_rate(datadog_span, analytics_sample_rate) if analytics_enabled?
+            Datadog::HTTPPropagator.inject!(datadog_span.context, request.headers) if request.headers
+            Contrib::Analytics.set_sample_rate(datadog_span, analytics_sample_rate) if analytics_enabled?
 
-              if request.verb && request.verb.is_a?(String)
-                http_method = request.verb.to_s.upcase
-                datadog_span.resource = http_method
-              else
-                log.debug("span #{Ext::SPAN_REQUEST} missing request verb, no resource set")
-              end          
-
-              if request.uri
-                uri = request.uri
-                datadog_span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
-                datadog_span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
-                datadog_span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
-                datadog_span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
-              else
-                log.debug("service #{datadog_configuration[:service_name]} span #{Ext::SPAN_REQUEST} missing uri, no uri metadata set")
-              end
+            if request.verb && request.verb.is_a?(String)
+              http_method = request.verb.to_s.upcase
+              datadog_span.resource = http_method
+            else
+              log.debug("span #{Ext::SPAN_REQUEST} missing request verb, no resource set")
             end
-          rescue StandardError => e
-            log.error(e.message)
-          ensure
-            return request
+
+            if request.uri
+              uri = request.uri
+              datadog_span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
+              datadog_span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
+              datadog_span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
+              datadog_span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
+            else
+              log.debug("service #{datadog_configuration[:service_name]} span #{Ext::SPAN_REQUEST} missing uri")
+            end
           end
+
+          return request
+        rescue StandardError => e
+          log.error(e.message)
+          return request
         end
 
-        def wrap_response(response)          
-          begin
-            if tracer_enabled?
+        def wrap_response(response)
+          if tracer_enabled
+            tracer = datadog_configuration[:tracer]
+            datadog_span = tracer.active_span
 
-              tracer = datadog_configuration[:tracer]
-              datadog_span = tracer.active_span
+            response_status = response.status
 
-              response_status = response.try(:status)
-
-              if response_status
-                datadog_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response_status)
-              end
-
-              if Datadog::Ext::HTTP::ERROR_RANGE.cover?(response_status)
-                datadog_span.status = Datadog::Ext::Errors::STATUS
-
-                message = response.try(:reason)
-
-                if message
-                  datadog_span.set_tag(Datadog::Ext::Errors::MSG, message)
-                else
-                  datadog_span.set_tag(Datadog::Ext::Errors::MSG, "Request has failed: #{200}")
-                end
-              end
-            end
-          rescue StandardError => e
-            log.error(e.message)            
-          ensure
-            if datadog_configuration[:tracer] && datadog_configuration[:tracer].active_span
-              datadog_configuration[:tracer].active_span.finish unless datadog_configuration[:tracer].active_span.finished?
+            if response_status
+              datadog_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response_status)
             end
 
-            return response
+            if Datadog::Ext::HTTP::ERROR_RANGE.cover?(response_status)
+              datadog_span.status = Datadog::Ext::Errors::STATUS
+
+              message = response.reason
+
+              if message
+                datadog_span.set_tag(Datadog::Ext::Errors::MSG, message)
+              else
+                datadog_span.set_tag(Datadog::Ext::Errors::MSG, "Request has failed: #{response_status}")
+              end
+            end
+          end
+
+          return response
+        rescue StandardError => e
+          log.error(e.message)
+          return response
+        ensure
+          if datadog_configuration[:tracer] && datadog_configuration[:tracer].active_span
+            datadog_configuration[:tracer].active_span.finish unless datadog_configuration[:tracer].active_span.finished?
           end
         end
 
@@ -110,7 +107,7 @@ module Datadog
 
         def log
           Datadog::Tracer.log
-        end    
+        end
       end
     end
   end
