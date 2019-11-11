@@ -27,9 +27,10 @@ module Datadog
             Datadog::HTTPPropagator.inject!(datadog_span.context, request.headers) if request.headers
             Contrib::Analytics.set_sample_rate(datadog_span, analytics_sample_rate) if analytics_enabled?
 
-            if request.verb && request.verb.is_a?(String)
+            if request.verb && request.verb.is_a?(String) || request.verb.is_a?(Symbol)
               http_method = request.verb.to_s.upcase
               datadog_span.resource = http_method
+              datadog_span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
             else
               log.debug("span #{Ext::SPAN_REQUEST} missing request verb, no resource set")
             end
@@ -37,7 +38,6 @@ module Datadog
             if request.uri
               uri = request.uri
               datadog_span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
-              datadog_span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
               datadog_span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
               datadog_span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
             else
@@ -56,7 +56,7 @@ module Datadog
             tracer = datadog_configuration[:tracer]
             datadog_span = tracer.active_span
 
-            response_status = response.status
+            response_status = response.code
 
             if response_status
               datadog_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response_status)

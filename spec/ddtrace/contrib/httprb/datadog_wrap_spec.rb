@@ -66,6 +66,51 @@ RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
       it 'returns response' do
         expect(response.body.to_s).to eq(@body.to_s)
       end
+
+      describe 'created span' do
+        subject(:span) { tracer.writer.spans.first }
+
+        context 'response is successfull' do
+          before { response }
+
+          it 'has tag with target host' do
+            expect(span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq(host)
+          end
+
+          it 'has tag with target port' do
+            expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(port.to_s)
+          end
+
+          it 'has tag with target method' do
+            expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
+          end
+
+          it 'has tag with target url path' do
+            expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
+          end
+
+          it 'has tag with status code' do
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+          end
+
+          it 'is http type' do
+            expect(span.span_type).to eq('http')
+          end
+
+          it 'is named correctly' do
+            expect(span.name).to eq('httprb.request')
+          end
+
+          it 'has correct service name' do
+            expect(span.service).to eq('httprb')
+          end
+
+          it_behaves_like 'analytics for integration' do
+            let(:analytics_enabled_var) { Datadog::Contrib::Httprb::Ext::ENV_ANALYTICS_ENABLED }
+            let(:analytics_sample_rate_var) { Datadog::Contrib::Httprb::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          end
+        end
+      end
     end
 
     it_behaves_like 'instrumented request'
