@@ -52,7 +52,7 @@ module Datadog
         end
 
         def wrap_response(response)
-          if tracer_enabled
+          if tracer_enabled?
             tracer = datadog_configuration[:tracer]
             datadog_span = tracer.active_span
 
