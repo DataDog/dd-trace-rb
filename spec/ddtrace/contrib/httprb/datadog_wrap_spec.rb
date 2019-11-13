@@ -15,8 +15,6 @@ RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
     server = WEBrick::HTTPServer.new(Port: 0, Logger: log, AccessLog: access_log)
     server.mount_proc '/' do |req, res|
       body = JSON.parse(req.body)
-      sleep(1) if body['simulate_timeout'] == true
-
       res.status = (body['status']).to_i
 
       req.each do |header_name|
@@ -55,13 +53,12 @@ RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
   describe 'instrumented request' do
     let(:host) { 'localhost' }
     let(:status) { 200 }
-    let(:simulate_timeout) { false }
     let(:path) { '/sample/path' }
     let(:port) { @port }
     let(:url) { "http://#{host}:#{@port}#{path}" }
-    let(:body) { { 'hello' => 'world', 'status' => status, 'simulate_timeout' => simulate_timeout } }
+    let(:body) { { 'hello' => 'world', 'status' => status } }
     let(:headers) { { accept: 'application/json' } }
-    let(:response) { HTTP.timeout(0.5).post(url, body: body.to_json, headers: headers) }
+    let(:response) { HTTP.post(url, body: body.to_json, headers: headers) }
 
     shared_examples_for 'instrumented request' do
       it 'creates a span' do
@@ -131,6 +128,10 @@ RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
           it 'has error message' do
             expect(span.get_tag(Datadog::Ext::Errors::MSG)).not_to be_nil
           end
+
+          it 'has error set' do
+            expect(span).to have_error_message('Internal Server Error')
+          end
         end
 
         context 'response has not found status' do
@@ -146,19 +147,29 @@ RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
           end
         end
 
-        # TODO: test case for http connection error
-        # context 'request timed out' do
-        #   let(:simulate_timeout) { true }
-        #   before { response }
+        context 'distributed tracing default' do
+          let(:http_response) { response }
 
-        #   it 'has no status code set' do
-        #     expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to be_nil
-        #   end
+          it 'propagates the parent id header' do
+            expect(http_response.headers['x-datadog-parent-id']).to eq(span.span_id.to_s)
+          end
 
-        #   it 'has error set' do
-        #     expect(span).to have_error_message('Request has failed: Timeout was reached')
-        #   end
-        # end
+          it 'propogrates the trace id header' do
+            expect(http_response.headers['x-datadog-trace-id']).to eq(span.trace_id.to_s)
+          end
+        end
+
+        context 'with sampling priority' do
+          let(:sampling_priority) { 0.2 }
+
+          before do
+            tracer.provider.context.sampling_priority = sampling_priority
+          end
+
+          it 'propagates sampling priority' do
+            expect(response.headers['x-datadog-sampling-priority']).to eq(sampling_priority.to_s)
+          end
+        end
       end
     end
 
