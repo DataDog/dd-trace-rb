@@ -4,17 +4,21 @@ require 'ddtrace'
 require 'ddtrace/contrib/httprb/datadog_wrap'
 require 'http'
 require 'webrick'
+require 'json'
 
 RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
   before(:all) do
-    @body = '{"hello": "world!"}'
     @log_buffer = StringIO.new # set to $stderr to debug
     log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
     access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
 
     server = WEBrick::HTTPServer.new(Port: 0, Logger: log, AccessLog: access_log)
     server.mount_proc '/' do |req, res|
-      res.status = 200
+      body = JSON.parse(req.body)
+      sleep(1) if body['simulate_timeout'] == true
+
+      res.status = (body['status']).to_i
+
       req.each do |header_name|
         # for some reason these are formatted as 1 length arrays
         header_in_array = req.header[header_name]
@@ -23,7 +27,7 @@ RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
         end
       end
 
-      res.body = @body
+      res.body = req.body
     end
 
     Thread.new { server.start }
@@ -51,12 +55,13 @@ RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
   describe 'instrumented request' do
     let(:host) { 'localhost' }
     let(:status) { 200 }
+    let(:simulate_timeout) { false }
     let(:path) { '/sample/path' }
     let(:port) { @port }
     let(:url) { "http://#{host}:#{@port}#{path}" }
-    let(:body) { @body }
+    let(:body) { { 'hello' => 'world', 'status' => status, 'simulate_timeout' => simulate_timeout } }
     let(:headers) { { accept: 'application/json' } }
-    let(:response) { HTTP.post(url, body: body, headers: headers) }
+    let(:response) { HTTP.timeout(0.5).post(url, body: body.to_json, headers: headers) }
 
     shared_examples_for 'instrumented request' do
       it 'creates a span' do
@@ -64,7 +69,7 @@ RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
       end
 
       it 'returns response' do
-        expect(response.body.to_s).to eq(@body.to_s)
+        expect(response.body.to_s).to eq(body.to_json)
       end
 
       describe 'created span' do
@@ -110,6 +115,50 @@ RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
             let(:analytics_sample_rate_var) { Datadog::Contrib::Httprb::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
         end
+
+        context 'response has internal server error status' do
+          let(:status) { 500 }
+          before { response }
+
+          it 'has tag with status code' do
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+          end
+
+          it 'has error set' do
+            expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
+          end
+
+          it 'has error message' do
+            expect(span.get_tag(Datadog::Ext::Errors::MSG)).not_to be_nil
+          end
+        end
+
+        context 'response has not found status' do
+          let(:status) { 404 }
+          before { response }
+
+          it 'has tag with status code' do
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+          end
+
+          it 'has no error set' do
+            expect(span).to_not have_error_message
+          end
+        end
+
+        # TODO: test case for http connection error
+        # context 'request timed out' do
+        #   let(:simulate_timeout) { true }
+        #   before { response }
+
+        #   it 'has no status code set' do
+        #     expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to be_nil
+        #   end
+
+        #   it 'has error set' do
+        #     expect(span).to have_error_message('Request has failed: Timeout was reached')
+        #   end
+        # end
       end
     end
 

@@ -85,7 +85,17 @@ module Datadog
           end
         end
 
-        def on_error(request, error); end
+        def on_error(request, error)
+          if tracer_enabled?
+            tracer = datadog_configuration[:tracer]
+            datadog_span = tracer.active_span
+            datadog_span.set_error(error) if datadog_span
+          end
+        ensure
+          if datadog_configuration[:tracer] && datadog_configuration[:tracer].active_span
+            datadog_configuration[:tracer].active_span.finish unless datadog_configuration[:tracer].active_span.finished?
+          end
+        end
 
         private
 
