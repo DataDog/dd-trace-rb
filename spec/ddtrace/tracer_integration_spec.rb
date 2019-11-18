@@ -103,7 +103,7 @@ RSpec.describe Datadog::Tracer do
         tracer.provider.context = synthetics_context
       end
 
-      describe 'when used to trace the local application' do
+      shared_examples_for 'a synthetics-sourced trace' do
         before do
           tracer.trace('local.operation') do |local_span|
             @local_span = local_span
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Tracer do
           end
         end
 
-        it 'produces a well-formed trace' do
+        it 'that is well-formed' do
           expect(spans).to have(1).item
           expect(spans.first).to be(@local_span)
 
@@ -122,6 +122,16 @@ RSpec.describe Datadog::Tracer do
             expect(sampling_priority_metric(local_span)).to eq(sampling_priority)
           end
         end
+      end
+
+      context 'for a synthetics request' do
+        let(:origin) { 'synthetics' }
+        it_behaves_like 'a synthetics-sourced trace'
+      end
+
+      context 'for a synthetics browser request' do
+        let(:origin) { 'synthetics-browser' }
+        it_behaves_like 'a synthetics-sourced trace'
       end
     end
   end
