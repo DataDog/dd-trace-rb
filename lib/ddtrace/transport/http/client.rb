@@ -1,4 +1,4 @@
-require 'ddtrace/transport/statistics'
+require 'ddtrace/transport/http/statistics'
 require 'ddtrace/transport/http/env'
 
 module Datadog
@@ -6,7 +6,7 @@ module Datadog
     module HTTP
       # Routes, encodes, and sends tracer data to the trace agent via HTTP.
       class Client
-        include Transport::Statistics
+        include Transport::HTTP::Statistics
 
         attr_reader \
           :apis,
@@ -47,8 +47,7 @@ module Datadog
           end
 
           # Update statistics
-          stats.internal_error += 1
-          stats.consecutive_errors += 1
+          update_stats_from_exception!(e)
 
           InternalErrorResponse.new(e)
         end
