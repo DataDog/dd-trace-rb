@@ -16,7 +16,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.28.0...v0.29.0
 
 - Default trace buffer size from 100 to 1000 (#865)
 - Rack request start headers to accept more values (#832) (@JamesHarker)
-- Faraday to apply default instrumenation out-of-the-box (#786, #843) (@mdross95)
+- Faraday to apply default instrumentation out-of-the-box (#786, #843) (@mdross95)
 
 ### Fixed
 
