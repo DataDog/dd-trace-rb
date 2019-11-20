@@ -28,14 +28,15 @@ module Datadog
         len = @traces.length
         if len < @max_size || @max_size <= 0
           @traces << trace
-          measure_accept(trace)
         else
           # we should replace a random trace with the new one
           replace_index = rand(len)
           replaced_trace = @traces[replace_index]
           @traces[replace_index] = trace
-          measure_drop(replaced_trace, trace)
+          measure_drop(replaced_trace)
         end
+
+        measure_accept(trace)
       end
     end
 
@@ -84,13 +85,10 @@ module Datadog
       Datadog::Tracer.log.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def measure_drop(old_trace, new_trace)
+    def measure_drop(trace)
       @buffer_dropped += 1
-      @buffer_spans -= old_trace.length
-      @buffer_accepted_lengths -= old_trace.length
-      @buffer_accepted += 1
-      @buffer_spans += new_trace.length
-      @buffer_accepted_lengths += new_trace.length
+      @buffer_spans -= trace.length
+      @buffer_accepted_lengths -= trace.length
     rescue StandardError => e
       Datadog::Tracer.log.debug("Failed to measure queue drop. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
