@@ -1,4 +1,5 @@
 require 'thread'
+require 'ddtrace/diagnostics/health'
 require 'ddtrace/runtime/object_space'
 
 module Datadog
@@ -95,18 +96,18 @@ module Datadog
 
     def measure_pop(traces)
       # Accepted
-      Debug::Health.metrics.queue_accepted(@buffer_accepted)
-      Debug::Health.metrics.queue_accepted_lengths(@buffer_accepted_lengths)
-      Debug::Health.metrics.queue_accepted_size { measure_traces_size(traces) }
+      Diagnostics::Health.metrics.queue_accepted(@buffer_accepted)
+      Diagnostics::Health.metrics.queue_accepted_lengths(@buffer_accepted_lengths)
+      Diagnostics::Health.metrics.queue_accepted_size { measure_traces_size(traces) }
 
       # Dropped
-      Debug::Health.metrics.queue_dropped(@buffer_dropped)
+      Diagnostics::Health.metrics.queue_dropped(@buffer_dropped)
 
       # Queue gauges
-      Debug::Health.metrics.queue_max_length(@max_size)
-      Debug::Health.metrics.queue_spans(@buffer_spans)
-      Debug::Health.metrics.queue_length(traces.length)
-      Debug::Health.metrics.queue_size { measure_traces_size(traces) }
+      Diagnostics::Health.metrics.queue_max_length(@max_size)
+      Diagnostics::Health.metrics.queue_spans(@buffer_spans)
+      Diagnostics::Health.metrics.queue_length(traces.length)
+      Diagnostics::Health.metrics.queue_size { measure_traces_size(traces) }
 
       # Reset aggregated metrics
       @buffer_accepted = 0

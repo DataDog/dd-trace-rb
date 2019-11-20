@@ -1,4 +1,4 @@
-require 'ddtrace/debug/health'
+require 'ddtrace/diagnostics/health'
 
 module Datadog
   module Transport
@@ -20,7 +20,7 @@ module Datadog
         end
 
         # Send health metrics
-        Debug::Health.metrics.send_metrics(
+        Diagnostics::Health.metrics.send_metrics(
           metrics_for_response(response).values
         )
       end
@@ -37,7 +37,7 @@ module Datadog
         stats.consecutive_errors += 1
 
         # Send health metrics
-        Debug::Health.metrics.send_metrics(
+        Diagnostics::Health.metrics.send_metrics(
           metrics_for_exception(exception).values
         )
       end

@@ -6,7 +6,7 @@ require 'ddtrace/ext/runtime'
 
 require 'ddtrace/tracer'
 require 'ddtrace/metrics'
-require 'ddtrace/debug/health'
+require 'ddtrace/diagnostics/health'
 
 module Datadog
   module Configuration
@@ -56,11 +56,11 @@ module Datadog
         end
       end
 
-      settings :debug do
+      settings :diagnostics do
         option :health_metrics do |o|
           o.default do
-            Datadog::Debug::Health::Metrics.new(
-              enabled: env_to_bool(Datadog::Ext::Debug::Health::Metrics::ENV_ENABLED, false)
+            Datadog::Diagnostics::Health::Metrics.new(
+              enabled: env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false)
             )
           end
 

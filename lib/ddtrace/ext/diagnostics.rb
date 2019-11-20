@@ -1,11 +1,11 @@
 module Datadog
   module Ext
-    module Debug
+    module Diagnostics
       # Health
       module Health
         # Metrics
         module Metrics
-          ENV_ENABLED = 'DD_DEBUG_HEALTH_METRICS_ENABLED'.freeze
+          ENV_ENABLED = 'DD_HEALTH_METRICS_ENABLED'.freeze
 
           METRIC_API_ERRORS = 'datadog.tracer.api.errors'.freeze
           METRIC_API_REQUESTS = 'datadog.tracer.api.requests'.freeze
