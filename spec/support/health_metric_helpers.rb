@@ -15,11 +15,9 @@ module HealthMetricHelpers
       queue_accepted_lengths: {
         type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED_LENGTHS
       },
-      queue_accepted_size: { type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED_SIZE },
       queue_dropped: { type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_DROPPED },
       queue_length: { type: :gauge, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_LENGTH },
       queue_max_length: { type: :gauge, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_MAX_LENGTH },
-      queue_size: { type: :gauge, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_SIZE },
       queue_spans: { type: :gauge, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_SPANS },
       traces_filtered: { type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_TRACES_FILTERED },
       writer_cpu_time: { type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_WRITER_CPU_TIME }

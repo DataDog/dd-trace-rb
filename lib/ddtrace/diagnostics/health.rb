@@ -12,11 +12,9 @@ module Datadog
         count :api_responses, Ext::Diagnostics::Health::Metrics::METRIC_API_RESPONSES
         count :queue_accepted, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED
         count :queue_accepted_lengths, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED_LENGTHS
-        count :queue_accepted_size, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED_SIZE
         count :queue_dropped, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_DROPPED
         gauge :queue_length, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_LENGTH
         gauge :queue_max_length, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_MAX_LENGTH
-        gauge :queue_size, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_SIZE
         gauge :queue_spans, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_SPANS
         count :traces_filtered, Ext::Diagnostics::Health::Metrics::METRIC_TRACES_FILTERED
         count :writer_cpu_time, Ext::Diagnostics::Health::Metrics::METRIC_WRITER_CPU_TIME

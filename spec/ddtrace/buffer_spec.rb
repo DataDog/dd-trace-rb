@@ -54,7 +54,6 @@ RSpec.describe Datadog::TraceBuffer do
 
         expected_traces = traces - dropped_traces
         expected_spans = expected_traces.inject(0) { |sum, t| sum + t.length }
-        expected_traces_size = measure_traces_size(expected_traces)
 
         # Calling #pop produces metrics:
         # Accept events for every #push, and one drop event for overflow
@@ -62,10 +61,6 @@ RSpec.describe Datadog::TraceBuffer do
           .with(traces.length)
         expect(health_metrics).to have_received(:queue_accepted_lengths)
           .with(expected_spans)
-        expect(health_metrics).to have_received_lazy_health_metric(
-          :queue_accepted_size,
-          expected_traces_size
-        )
 
         expect(health_metrics).to have_received(:queue_dropped)
           .with(dropped_traces.length)
@@ -77,10 +72,6 @@ RSpec.describe Datadog::TraceBuffer do
           .with(expected_spans)
         expect(health_metrics).to have_received(:queue_length)
           .with(max_size)
-        expect(health_metrics).to have_received_lazy_health_metric(
-          :queue_size,
-          expected_traces_size
-        )
       end
     end
 
@@ -102,7 +93,6 @@ RSpec.describe Datadog::TraceBuffer do
         dropped_traces = traces.reject { |t| output.include?(t) }
         expected_traces = traces - dropped_traces
         expected_spans = expected_traces.inject(0) { |sum, t| sum + t.length }
-        expected_traces_size = measure_traces_size(expected_traces)
 
         # Calling #pop produces metrics:
         # Metrics for accept events and no drop events
@@ -111,10 +101,6 @@ RSpec.describe Datadog::TraceBuffer do
           .with(4)
         expect(health_metrics).to have_received(:queue_accepted_lengths)
           .with(expected_spans)
-        expect(health_metrics).to have_received_lazy_health_metric(
-          :queue_accepted_size,
-          expected_traces_size
-        )
         expect(health_metrics).to have_received(:queue_dropped)
           .with(0)
 
@@ -125,10 +111,6 @@ RSpec.describe Datadog::TraceBuffer do
           .with(expected_spans)
         expect(health_metrics).to have_received(:queue_length)
           .with(expected_traces.length)
-        expect(health_metrics).to have_received_lazy_health_metric(
-          :queue_size,
-          expected_traces_size
-        )
       end
     end
 
@@ -198,7 +180,6 @@ RSpec.describe Datadog::TraceBuffer do
       expect(buffer.empty?).to be true
 
       expected_spans = traces.inject(0) { |sum, t| sum + t.length }
-      expected_traces_size = measure_traces_size(traces)
 
       # Calling #pop produces metrics:
       # Metrics for accept events and one drop event
@@ -206,10 +187,6 @@ RSpec.describe Datadog::TraceBuffer do
         .with(traces.length)
       expect(health_metrics).to have_received(:queue_accepted_lengths)
         .with(expected_spans)
-      expect(health_metrics).to have_received_lazy_health_metric(
-        :queue_accepted_size,
-        expected_traces_size
-      )
 
       expect(health_metrics).to have_received(:queue_dropped)
         .with(0)
@@ -221,10 +198,6 @@ RSpec.describe Datadog::TraceBuffer do
         .with(expected_spans)
       expect(health_metrics).to have_received(:queue_length)
         .with(traces.length)
-      expect(health_metrics).to have_received_lazy_health_metric(
-        :queue_size,
-        expected_traces_size
-      )
     end
   end
 end
