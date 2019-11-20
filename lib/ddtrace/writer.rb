@@ -106,7 +106,7 @@ module Datadog
         Datadog::Patcher.do_once('Writer#write') do
           Datadog::Tracer.log.warn(%(
             write: Writing services has been deprecated and no longer need to be provided.
-            write(traces, services) can be updted to write(traces)
+            write(traces, services) can be updated to write(traces)
           ))
         end
       end
