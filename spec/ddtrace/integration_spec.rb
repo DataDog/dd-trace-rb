@@ -190,12 +190,9 @@ RSpec.describe 'Tracer integration tests' do
   describe 'sampling priority integration' do
     include_context 'agent-based test'
 
-    before(:each) do
-      tracer.configure(
-        enabled: true,
-        priority_sampling: true
-      )
-    end
+    # Expect default tracer & tracer instance to both have priority sampling.
+    it { expect(Datadog.tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler) }
+    it { expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler) }
 
     it do
       3.times do |i|

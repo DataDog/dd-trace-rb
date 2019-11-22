@@ -69,7 +69,7 @@ module Datadog
     DEFAULT_KEY = 'service:,env:'.freeze
 
     def initialize(rate = 1.0, opts = {})
-      @env = opts.fetch(:env, Datadog.tracer.tags[:env])
+      @env = opts[:env]
       @mutex = Mutex.new
       @fallback = RateSampler.new(rate)
       @sampler = { DEFAULT_KEY => @fallback }
