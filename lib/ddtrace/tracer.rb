@@ -444,8 +444,10 @@ module Datadog
       @sampler = if base_sampler.is_a?(PrioritySampler)
                    base_sampler
                  else
-                   PrioritySampler.new(base_sampler: base_sampler,
-                                       post_sampler: Datadog::RateByServiceSampler.new(1.0, env: tags[:env]))
+                   PrioritySampler.new(
+                     base_sampler: base_sampler,
+                     post_sampler: Datadog::RateByServiceSampler.new(1.0, env: proc { tags[:env] })
+                   )
                  end
     end
 

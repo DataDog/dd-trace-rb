@@ -164,7 +164,10 @@ module Datadog
     private
 
     def key_for(span)
-      "service:#{span.service},env:#{@env}"
+      # Resolve env dynamically, if Proc is given.
+      env = @env.is_a?(Proc) ? @env.call : @env
+
+      "service:#{span.service},env:#{env}"
     end
   end
 
