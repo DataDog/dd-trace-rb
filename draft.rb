@@ -1,6 +1,12 @@
 # rubocop:disable all
 # SCRATCHPAD TODO: Remove this file
 
+# Tracing without limits
+Datadog.configure do |c|
+  c.tracer sampler: Datadog::PrioritySampler.new(post_sampler: Datadog::Sampling::RuleSampler.new)
+end
+
+# Rule-based tracing
 Datadog.configure do |c|
   c.tracer sampler: Datadog::Sampling::RuleSampler.new(
     [

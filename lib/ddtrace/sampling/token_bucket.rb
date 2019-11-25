@@ -98,5 +98,21 @@ module Datadog
         @conforming_messages += 1
       end
     end
+
+    # TODO: This class name is so bad, yet so good.
+    # [Class documentation]
+    class UnlimitedLimiter < RateLimiter
+      # TODO
+      # @return [Boolean]
+      def allow?(_size)
+        true
+      end
+
+      # TODO
+      # @return [Float]
+      def effective_rate
+        1.0
+      end
+    end
   end
 end

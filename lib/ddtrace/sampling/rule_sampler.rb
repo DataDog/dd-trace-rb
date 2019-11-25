@@ -2,6 +2,7 @@ require 'ddtrace/ext/priority'
 
 require 'ddtrace/ext/sampling'
 require 'ddtrace/sampler'
+require 'ddtrace/sampling/token_bucket'
 
 module Datadog
   module Sampling
@@ -12,7 +13,9 @@ module Datadog
 
       attr_reader :rules, :rate_limiter, :priority_sampler
 
-      def initialize(rules, rate_limiter, priority_sampler)
+      def initialize(rules = [],
+                     rate_limiter = Datadog::Sampling::UnlimitedLimiter.new,
+                     priority_sampler = Datadog::AllSampler.new)
         @rules = rules
         @rate_limiter = rate_limiter
         @priority_sampler = priority_sampler
