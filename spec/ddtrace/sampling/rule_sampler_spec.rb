@@ -31,88 +31,23 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     end
   end
 
-  shared_examples 'a sampled? span' do
-    it { is_expected.to eq(expected_sampled) }
-  end
-
-  describe '#sample?' do
-    subject(:sample) { rule_sampler.sample?(span) }
-
-    context 'with matching rule' do
-      include_context 'matching rule'
-
-      context 'and sampled' do
-        let(:sampled) { true }
-
-        context 'and not rate limited' do
-          let(:allow?) { true }
-
-          it_behaves_like 'a sampled? span' do
-            let(:expected_sampled) { true }
-          end
-        end
-
-        context 'and rate limited' do
-          let(:allow?) { false }
-
-          it_behaves_like 'a sampled? span' do
-            let(:expected_sampled) { false }
-          end
-        end
-
-        context 'with many rules' do
-          let(:rules) { [non_matching_rule, rule, late_matching_rule] }
-          let(:non_matching_rule) { instance_double(Datadog::Sampling::Rule) }
-          let(:late_matching_rule) { instance_double(Datadog::Sampling::Rule) }
-
-          before do
-            allow(non_matching_rule).to receive(:sample).and_return(nil)
-            allow(late_matching_rule).to receive(:sample).and_return([!sampled, 0.0])
-          end
-
-          it 'matches first matching rule' do
-            is_expected.to eq(sampled)
-
-            expect(non_matching_rule).to have_received(:sample)
-            expect(late_matching_rule).to_not have_received(:sample)
-          end
-        end
-      end
-
-      context 'and not sampled' do
-        let(:sampled) { false }
-
-        it_behaves_like 'a sampled? span' do
-          let(:expected_sampled) { false }
-        end
-      end
-    end
-
-    context 'with no matching rule' do
-      let(:delegated) { double }
-
-      before do
-        allow(priority_sampler).to receive(:sample?).with(span).and_return(delegated)
-      end
-
-      it { is_expected.to eq(delegated) }
-    end
-  end
-
   describe '#sample!' do
     subject(:sample) { rule_sampler.sample!(span) }
 
     shared_examples 'a sampled! span' do
-      it_behaves_like 'a sampled? span'
-
       before { subject }
+
+      it { is_expected.to eq(expected_sampled) }
 
       it 'sets `span.sampled` flag' do
         expect(span.sampled).to eq(expected_sampled)
       end
 
-      it 'sets metrics' do
+      it 'sets rule metrics' do
         expect(span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to eq(sample_rate)
+      end
+
+      it 'sets limiter metrics' do
         expect(span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to eq(effective_rate)
       end
     end
@@ -145,6 +80,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
         it_behaves_like 'a sampled! span' do
           let(:expected_sampled) { false }
+          let(:effective_rate) { nil } # Rate limiter was not evaluated
         end
       end
     end
@@ -163,5 +99,11 @@ RSpec.describe Datadog::Sampling::RuleSampler do
         expect(span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to be_nil
       end
     end
+  end
+
+  describe '#sample?' do
+    subject(:sample) { rule_sampler.sample?(span) }
+
+    it { expect { subject }.to raise_error(StandardError, 'RuleSampler cannot be evaluated without side-effects') }
   end
 end

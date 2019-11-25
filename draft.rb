@@ -8,7 +8,13 @@ Datadog.configure do |c|
       Datadog::Sampling::SimpleRule.new(sample_rate: 0.7) { |span| span.name != 'important.operation' },
       Datadog::Sampling::SimpleRule.new(sample_rate: 1.0),
     ],
-    Datadog::Sampling::TokenBucket.new(1)
+    Datadog::Sampling::TokenBucket.new(1),
+    Datadog::PrioritySampler.new(
+      post_sampler: Datadog::RateByServiceSampler.new(
+        1.0,
+        env: proc { Datadog.tracer.tags[:env] } # TODO how do I provide `tracer.tags`? Seems like a circular reference here.
+      )
+    )
   )
 end
 
