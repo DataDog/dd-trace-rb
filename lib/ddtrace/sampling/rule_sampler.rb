@@ -6,6 +6,7 @@ require 'ddtrace/sampler'
 module Datadog
   module Sampling
     # TODO: Write class documentation
+    # RuleSampler
     class RuleSampler
       extend Forwardable
 

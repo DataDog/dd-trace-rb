@@ -1,3 +1,4 @@
+# rubocop:disable all
 # SCRATCHPAD TODO: Remove this file
 
 Datadog.configure do |c|
@@ -6,13 +7,13 @@ Datadog.configure do |c|
       Datadog::Sampling::SimpleRule.new(name: 'operation.name', sample_rate: 0.9),
       Datadog::Sampling::SimpleRule.new(service: 'service-1', sample_rate: 0.9),
       Datadog::Sampling::SimpleRule.new(sample_rate: 0.7) { |span| span.name != 'important.operation' },
-      Datadog::Sampling::SimpleRule.new(sample_rate: 1.0),
+      Datadog::Sampling::SimpleRule.new(sample_rate: 1.0)
     ],
     Datadog::Sampling::TokenBucket.new(1),
     Datadog::PrioritySampler.new(
       post_sampler: Datadog::RateByServiceSampler.new(
         1.0,
-        env: proc { Datadog.tracer.tags[:env] } # TODO how do I provide `tracer.tags`? Seems like a circular reference here.
+        env: proc { Datadog.tracer.tags[:env] } # TODO: how do I provide `tracer.tags`? Seems like a circular reference here.
       )
     )
   )

@@ -107,7 +107,7 @@ module Datadog
 
       @mutex.synchronize do
         @sampler.fetch(key, @fallback).sample_rate
-        # TODO set sampling metric here, for fallback case
+        # TODO: set sampling metric here, for fallback case
         # TODO I think this should be done in a separate PR
       end
     end
@@ -163,7 +163,9 @@ module Datadog
           #       We also ensure that the sampling rate is not propagated to the agent, to avoid erroneous
           #       metric upscaling.
           span.sampled = true
-          span.set_metric(SAMPLE_RATE_METRIC_KEY, 1.0) if span.get_metric(SAMPLE_RATE_METRIC_KEY) # TODO do i have to unset it? or setting to 1.0 is fine?
+          # TODO: do i have to unset SAMPLE_RATE_METRIC_KEY? or setting it to 1.0 is fine?
+          # TODO: a method to unset doesn't exist yet.
+          span.set_metric(SAMPLE_RATE_METRIC_KEY, 1.0) if span.get_metric(SAMPLE_RATE_METRIC_KEY)
 
           assign_priority!(span, priority)
         end

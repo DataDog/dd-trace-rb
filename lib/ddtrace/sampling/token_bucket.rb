@@ -1,16 +1,16 @@
-# TODO move to a folder outside of 'ddtrace/sampling', as this is technically a generic rate limiter?
+# TODO: move to a folder outside of 'ddtrace/sampling', as this is technically a generic rate limiter?
 module Datadog
   module Sampling
+    # TODO: Write class documentation
+    # [Class documentation]
     class RateLimiter
       # TODO
       # @return [Boolean]
-      def allow?(size)
-      end
+      def allow?(size); end
 
       # TODO
       # @return [Float]
-      def effective_rate
-      end
+      def effective_rate; end
     end
 
     # Implementation of the Token Bucket metering algorithm.
@@ -60,7 +60,7 @@ module Datadog
       #
       # @return [Float] Conformance ratio, between +[0,1]+
       def effective_rate
-        return 1.0 if @total_messages == 0
+        return 1.0 if @total_messages.zero?
 
         @conforming_messages.to_f / @total_messages
       end

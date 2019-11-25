@@ -1,7 +1,7 @@
 module Datadog
   module Ext
     module Sampling
-      # TODO Comments have to be polished
+      # TODO: Comments have to be polished
 
       # If a rule matches, add this tag with the sample rate configured for that rule
       # Set this regardless of p0 or p1
@@ -11,7 +11,7 @@ module Datadog
       # should be set whether rate limiter allows the span or not
       RATE_LIMITER_RATE = '_dd.limit_psr'.freeze
 
-      # TODO move this metric to future PR
+      # TODO: move this metric to future PR
       # agent service priority rate
       # the rate limit returned by the agent
       # only needs to be added if no rules match and we fallback to existing sampling behavior

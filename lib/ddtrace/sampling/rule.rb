@@ -3,6 +3,8 @@ require 'ddtrace/sampler'
 
 module Datadog
   module Sampling
+    # TODO: Write class documentation
+    # [Class documentation]
     class Rule
       attr_reader :matcher, :sampler
 
@@ -45,6 +47,8 @@ module Datadog
       end
     end
 
+    # TODO: Write class documentation
+    # [Class documentation]
     class SimpleRule < Rule
       def initialize(name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL, sample_rate:)
         super(SimpleMatcher.new(name: name, service: service), RateSampler.new(sample_rate))

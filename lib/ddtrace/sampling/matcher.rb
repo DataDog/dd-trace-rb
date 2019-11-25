@@ -1,5 +1,7 @@
 module Datadog
   module Sampling
+    # TODO: Write class documentation
+    # [Class documentation]
     class Matcher
       # Returns `true` if the span should conforms to this rule, `false` otherwise
       #
@@ -11,12 +13,14 @@ module Datadog
       end
     end
 
+    # TODO: Write class documentation
+    # [Class documentation]
     class SimpleMatcher < Matcher
       # Returns `true` for case equality (===) with any object
       MATCH_ALL = Class.new do
         # DEV: A class that implements `#===` is ~20% faster than
         #   a `Proc` that always returns `true`.
-        def ===(_)
+        def ===(other)
           true
         end
       end.new
@@ -33,11 +37,15 @@ module Datadog
         @service = service
       end
 
+      # rubocop:disable Style/CaseEquality
       def match?(span)
         name === span.name && service === span.service
       end
+      # rubocop:enable Style/CaseEquality
     end
 
+    # TODO: Write class documentation
+    # [Class documentation]
     class ProcMatcher < Matcher
       attr_reader :block
 
@@ -46,7 +54,7 @@ module Datadog
       end
 
       def match?(span)
-        block.(span.name, span.service)
+        block.call(span.name, span.service)
       end
     end
   end

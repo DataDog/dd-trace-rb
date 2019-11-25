@@ -118,7 +118,6 @@ RSpec.describe Datadog::Sampling::SimpleMatcher do
   end
 end
 
-
 RSpec.describe Datadog::Sampling::ProcMatcher do
   let(:span) { Datadog::Span.new(nil, span_name, service: span_service) }
   let(:span_name) { 'operation.name' }
