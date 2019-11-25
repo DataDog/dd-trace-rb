@@ -1,3 +1,5 @@
+# SCRATCHPAD TODO: Remove this file
+
 Datadog.configure do |c|
   c.tracer sampler: Datadog::Sampling::RuleSampler.new(
     [
