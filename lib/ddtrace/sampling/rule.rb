@@ -26,9 +26,8 @@ module Datadog
       # `nil` is returned as the sample rate.
       #
       # @param [Span] span
-      # @return [Array<Boolean, Float>] sampling decision and sampling rate
+      # @return [Array<Boolean, Float>] sampling decision and sampling rate, if this rules applies
       # @return [NilClass] if this rule does not apply
-      #   or `nil` if this rule does not apply
       def sample(span)
         match = begin
           @matcher.match?(span)
