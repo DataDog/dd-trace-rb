@@ -17,8 +17,8 @@ RSpec.describe Datadog::Sampling::TokenBucket do
     end
   end
 
-  describe '#conform?' do
-    subject(:conform) { bucket.conform?(size) }
+  describe '#allow?' do
+    subject(:conform) { bucket.allow?(size) }
     let(:size) { 1 }
 
     context 'with message the same size of or smaller than available tokens' do
@@ -42,7 +42,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
     end
 
     context 'and tokens consumed' do
-      before { bucket.conform?(max_tokens) }
+      before { bucket.allow?(max_tokens) }
 
       context 'with any message' do
         let(:size) { 1 }
@@ -80,22 +80,22 @@ RSpec.describe Datadog::Sampling::TokenBucket do
     end
   end
 
-  describe '#conformance_rate' do
-    subject(:conformance_rate) { bucket.conformance_rate }
+  describe '#effective_rate' do
+    subject(:effective_rate) { bucket.effective_rate }
 
     context 'before first message' do
       it { is_expected.to eq(1.0) }
     end
 
     context 'after checking a message' do
-      before { bucket.conform?(size) }
+      before { bucket.allow?(size) }
 
       context 'with a conforming message' do
         let(:size) { max_tokens }
         it { is_expected.to eq(1.0) }
 
         context 'and one non-conforming message' do
-          before { bucket.conform?(max_tokens + 1) }
+          before { bucket.allow?(max_tokens + 1) }
 
           it { is_expected.to eq(0.5) }
         end

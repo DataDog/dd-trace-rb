@@ -1,4 +1,4 @@
-# TODO move outsize of sampling?
+# TODO move to a folder outside of 'ddtrace/sampling', as this is technically a generic rate limiter?
 module Datadog
   module Sampling
     class RateLimiter
@@ -17,7 +17,7 @@ module Datadog
     #
     # TODO: Find more canonical link: https://en.wikipedia.org/wiki/Token_bucket
     #
-    class TokenBucket
+    class TokenBucket < RateLimiter
       attr_reader :rate, :max_tokens
 
       def initialize(rate, max_tokens = rate)

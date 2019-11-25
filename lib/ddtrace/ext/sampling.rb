@@ -1,7 +1,7 @@
 module Datadog
   module Ext
     module Sampling
-      # TODO comments have to be redone
+      # TODO Comments have to be polished
 
       # If a rule matches, add this tag with the sample rate configured for that rule
       # Set this regardless of p0 or p1

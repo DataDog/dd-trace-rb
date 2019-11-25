@@ -108,7 +108,7 @@ module Datadog
       @mutex.synchronize do
         @sampler.fetch(key, @fallback).sample_rate
         # TODO set sampling metric here, for fallback case
-        # TODO I think this should be one in a separate PR
+        # TODO I think this should be done in a separate PR
       end
     end
 
