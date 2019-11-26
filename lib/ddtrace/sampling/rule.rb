@@ -42,7 +42,7 @@ module Datadog
       # @param name [String,Regexp,Proc] Matcher for case equality (===) with the span name, defaults to always match
       # @param service [String,Regexp,Proc] Matcher for case equality (===) with the service name, defaults to always match
       # @param sample_rate [Float] Sampling rate between +[0,1]+
-      def initialize(name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL, sample_rate:)
+      def initialize(name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL, sample_rate: 1.0)
         super(SimpleMatcher.new(name: name, service: service), RateSampler.new(sample_rate))
       end
     end
