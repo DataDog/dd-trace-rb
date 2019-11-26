@@ -4,6 +4,16 @@
 
 ## [Unreleased (beta)]
 
+## [0.26.1] - 2019-11-26
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.26.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.26.0...v0.26.1
+
+### Fixed
+
+- Priority sampling not activating by default (#868)
+
 ## [0.26.0] - 2019-08-06
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.26.0
@@ -904,6 +914,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 [Unreleased (stable)]: https://github.com/DataDog/dd-trace-rb/compare/v0.26.0...master
 [Unreleased (beta)]: https://github.com/DataDog/dd-trace-rb/compare/v0.26.0...0.27-dev
+[0.26.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.26.0...v0.26.1
 [0.26.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...v0.26.0
 [0.25.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.0...v0.25.1
 [0.25.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.24.0...v0.25.0
