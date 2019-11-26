@@ -19,14 +19,33 @@ module Datadog
       attr_reader :rules, :rate_limiter, :default_sampler
 
       # @param rules [Array<Rule>] ordered list of rules to be applied to a span
+      # @param rate_limit [Float] rate limit, between +[0,1]+
       # @param rate_limiter [RateLimiter] limiter applied after rule matching
+      # @param default_sample_rate [Float] fallback sample rate when no rules apply to a span between +[0,1]+
       # @param default_sampler [Sample] fallback strategy when no rules apply to a span
       def initialize(rules = [],
-                     rate_limiter = Datadog::Sampling::UnlimitedLimiter.new,
-                     default_sampler = Datadog::AllSampler.new)
+                     rate_limit: nil,
+                     rate_limiter: nil,
+                     default_sample_rate: nil,
+                     default_sampler: nil)
+
         @rules = rules
-        @rate_limiter = rate_limiter
-        @default_sampler = default_sampler
+
+        @rate_limiter = if rate_limiter
+                          rate_limiter
+                        elsif rate_limit
+                          Datadog::Sampling::TokenBucket.new(rate_limit)
+                        else
+                          Datadog::Sampling::UnlimitedLimiter.new
+                        end
+
+        @default_sampler = if default_sampler
+                             default_sampler
+                           elsif default_sample_rate
+                             Datadog::RateSampler.new(default_sample_rate)
+                           else
+                             Datadog::AllSampler.new
+                           end
       end
 
       # /RuleSampler's components (it's rate limiter, for example) are

@@ -29,6 +29,11 @@ module Datadog
       # @param rate [Float] Allowance rate between +[0,1]+
       # @param max_tokens [Numeric] Limit of available tokens
       def initialize(rate, max_tokens = rate)
+        unless rate >= 0.0 && rate <= 1.0
+          Datadog::Tracer.log.error('rate is not between 0 and 1, setting limiter to 100% as a fallback')
+          rate = 1.0
+        end
+
         @rate = rate
         @max_tokens = max_tokens
 

@@ -5,7 +5,7 @@ require 'ddtrace/sampling/rule'
 require 'ddtrace/sampling/token_bucket'
 
 RSpec.describe Datadog::Sampling::RuleSampler do
-  let(:rule_sampler) { described_class.new(rules, rate_limiter, default_sampler) }
+  let(:rule_sampler) { described_class.new(rules, rate_limiter: rate_limiter, default_sampler: default_sampler) }
   let(:rules) { [] }
   let(:rate_limiter) { instance_double(Datadog::Sampling::RateLimiter) }
   let(:default_sampler) { instance_double(Datadog::RateByServiceSampler) }
