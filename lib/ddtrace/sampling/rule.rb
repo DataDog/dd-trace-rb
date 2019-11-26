@@ -5,13 +5,16 @@ require 'ddtrace/sampler'
 
 module Datadog
   module Sampling
-    # TODO: Write class documentation
-    # [Class documentation]
+    # Sampling rule that dictates if a span matches
+    # a specific criteria and what sampling strategy to
+    # apply in case of a positive match.
     class Rule
       extend Forwardable
 
       attr_reader :matcher, :sampler
 
+      # @param [Matcher] matcher A matcher to verify span conformity against
+      # @param [Sampler] sampler A sampler to be consulted on a positive match
       def initialize(matcher, sampler)
         @matcher = matcher
         @sampler = sampler
@@ -32,9 +35,13 @@ module Datadog
       def_delegators :@sampler, :sample?, :sample_rate
     end
 
-    # TODO: Write class documentation
-    # [Class documentation]
+    # A \Rule that matches a span based on
+    # operation name and/or service name and
+    # applies a fixed sampling to matching spans.
     class SimpleRule < Rule
+      # @param name [String,Regexp,Proc] Matcher for case equality (===) with the span name, defaults to always match
+      # @param service [String,Regexp,Proc] Matcher for case equality (===) with the service name, defaults to always match
+      # @param sample_rate [Float] Sampling rate between +[0,1]+
       def initialize(name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL, sample_rate:)
         super(SimpleMatcher.new(name: name, service: service), RateSampler.new(sample_rate))
       end
