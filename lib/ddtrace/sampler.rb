@@ -28,7 +28,7 @@ module Datadog
       span.sampled = true
     end
 
-    def sample_rate(_)
+    def sample_rate(*_)
       1.0
     end
   end
@@ -54,7 +54,7 @@ module Datadog
       self.sample_rate = sample_rate
     end
 
-    def sample_rate(_)
+    def sample_rate(*_)
       @sample_rate
     end
 
@@ -146,11 +146,14 @@ module Datadog
     def sample!(span)
       # If pre-sampling is configured, do it first. (By default, this will sample at 100%.)
       # NOTE: Pre-sampling at rates < 100% may result in partial traces; not recommended.
-      span.sampled = pre_sample?(span) ? @pre_sampler.sample!(span) : true
+      pre_sample = pre_sample?(span)
+      span.sampled = pre_sample ? @pre_sampler.sample!(span) : true
 
       if span.sampled
         # If priority sampling has already been applied upstream, use that, otherwise...
         unless priority_assigned_upstream?(span)
+          pre_sample_rate_metric = span.get_metric(SAMPLE_RATE_METRIC_KEY)
+
           # Roll the dice and determine whether how we set the priority.
           priority = priority_sample!(span) ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
 
@@ -158,12 +161,14 @@ module Datadog
           #       be sent to the agent. Otherwise metrics for traces will not be accurate, since the
           #       agent will have an incomplete dataset.
           #
-          #       We also ensure that the sampling rate is not propagated to the agent, to avoid erroneous
-          #       metric upscaling.
+          #       We also ensure that the agent knows we that our `post_sampler` is not performing true sampling,
+          #       to avoid erroneous metric upscaling.
           span.sampled = true
-          # TODO: do i have to unset SAMPLE_RATE_METRIC_KEY? or setting it to 1.0 is fine?
-          # TODO: a method to unset doesn't exist yet.
-          span.set_metric(SAMPLE_RATE_METRIC_KEY, 1.0) if span.get_metric(SAMPLE_RATE_METRIC_KEY)
+          if pre_sample_rate_metric
+            span.set_metric(SAMPLE_RATE_METRIC_KEY, pre_sample_rate_metric) # Restore true sampling metric
+          else
+            span.clear_metric(SAMPLE_RATE_METRIC_KEY)
+          end
 
           assign_priority!(span, priority)
         end

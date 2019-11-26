@@ -133,7 +133,7 @@ RSpec.describe Datadog::PrioritySampler do
 
           before(:each) do
             # Expect priority sampler to choose a priority
-            expect(priority_sampler).to receive(:sample?)
+            expect(priority_sampler).to receive(:sample!)
               .with(span)
               .and_return(true)
           end
