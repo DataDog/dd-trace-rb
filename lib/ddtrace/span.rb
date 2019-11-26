@@ -86,7 +86,7 @@ module Datadog
 
     # This method removes a tag for the given key.
     def clear_tag(key)
-      @meta[key] = nil
+      @meta.delete(key)
     end
 
     # Return the tag with the given key, nil if it doesn't exist.
@@ -106,7 +106,7 @@ module Datadog
 
     # This method removes a metric for the given key. It acts like {#remove_tag}.
     def clear_metric(key)
-      @metrics[key] = nil
+      @metrics.delete(key)
     end
 
     # Return the metric with the given key, nil if it doesn't exist.

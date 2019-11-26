@@ -146,8 +146,7 @@ module Datadog
     def sample!(span)
       # If pre-sampling is configured, do it first. (By default, this will sample at 100%.)
       # NOTE: Pre-sampling at rates < 100% may result in partial traces; not recommended.
-      pre_sample = pre_sample?(span)
-      span.sampled = pre_sample ? @pre_sampler.sample!(span) : true
+      span.sampled = pre_sample?(span) ? @pre_sampler.sample!(span) : true
 
       if span.sampled
         # If priority sampling has already been applied upstream, use that, otherwise...
