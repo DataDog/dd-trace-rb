@@ -64,56 +64,110 @@ module Datadog
     end
   end
 
-  # \RateByServiceSampler samples different services at different rates
-  class RateByServiceSampler < Sampler
-    DEFAULT_KEY = 'service:,env:'.freeze
+  # Samples at different rates by key.
+  class RateByKeySampler < Sampler
+    attr_reader \
+      :default_key
 
-    def initialize(rate = 1.0, opts = {})
-      @env = opts.fetch(:env, Datadog.tracer.tags[:env])
+    def initialize(default_key, default_rate = 1.0, &block)
+      raise ArgumentError, 'No resolver given!' unless block_given?
+
+      @default_key = default_key
+      @resolver = block
       @mutex = Mutex.new
-      @fallback = RateSampler.new(rate)
-      @sampler = { DEFAULT_KEY => @fallback }
+      @samplers = {}
+
+      set_rate(default_key, default_rate)
+    end
+
+    def resolve(span)
+      @resolver.call(span)
+    end
+
+    def default_sampler
+      @samplers[default_key]
     end
 
     def sample?(span)
-      key = key_for(span)
+      key = resolve(span)
 
       @mutex.synchronize do
-        @sampler.fetch(key, @fallback).sample?(span)
+        @samplers.fetch(key, default_sampler).sample?(span)
       end
     end
 
     def sample!(span)
-      key = key_for(span)
+      key = resolve(span)
 
       @mutex.synchronize do
-        @sampler.fetch(key, @fallback).sample!(span)
+        @samplers.fetch(key, default_sampler).sample!(span)
       end
     end
 
     def sample_rate(span)
-      key = key_for(span)
+      key = resolve(span)
 
       @mutex.synchronize do
-        @sampler.fetch(key, @fallback).sample_rate
+        @samplers.fetch(key, default_sampler).sample_rate
       end
     end
 
-    def update(rate_by_service)
+    def update(key, rate)
       @mutex.synchronize do
-        @sampler.delete_if { |key, _| key != DEFAULT_KEY && !rate_by_service.key?(key) }
+        set_rate(key, rate)
+      end
+    end
 
-        rate_by_service.each do |key, rate|
-          @sampler[key] ||= RateSampler.new(rate)
-          @sampler[key].sample_rate = rate
-        end
+    def update_all(rate_by_key)
+      @mutex.synchronize do
+        rate_by_key.each { |key, rate| set_rate(key, rate) }
+      end
+    end
+
+    def delete(key)
+      @mutex.synchronize do
+        @samplers.delete(key)
+      end
+    end
+
+    def delete_if(&block)
+      @mutex.synchronize do
+        @samplers.delete_if(&block)
       end
     end
 
     private
 
+    def set_rate(key, rate)
+      @samplers[key] ||= RateSampler.new(rate)
+      @samplers[key].sample_rate = rate
+    end
+  end
+
+  # \RateByServiceSampler samples different services at different rates
+  class RateByServiceSampler < RateByKeySampler
+    DEFAULT_KEY = 'service:,env:'.freeze
+
+    def initialize(default_rate = 1.0, options = {})
+      super(DEFAULT_KEY, default_rate, &method(:key_for))
+      @env = options[:env]
+    end
+
+    def update(rate_by_service)
+      # Remove any old services
+      delete_if { |key, _| key != DEFAULT_KEY && !rate_by_service.key?(key) }
+
+      # Update each service rate
+      update_all(rate_by_service)
+    end
+
+    private
+
     def key_for(span)
-      "service:#{span.service},env:#{@env}"
+      # Resolve env dynamically, if Proc is given.
+      env = @env.is_a?(Proc) ? @env.call : @env
+
+      "service:#{span.service},env:#{env}"
     end
   end
 

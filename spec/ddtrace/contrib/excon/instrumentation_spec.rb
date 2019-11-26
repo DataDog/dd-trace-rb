@@ -173,7 +173,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
             headers = datum[:headers]
             expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id.to_s)
             expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id.to_s)
-            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
+            expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
           end
         end
 

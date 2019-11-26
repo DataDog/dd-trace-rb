@@ -120,6 +120,9 @@ module Datadog
 
       @mutex = Mutex.new
       @tags = {}
+
+      # Enable priority sampling by default
+      activate_priority_sampling!(@sampler)
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
@@ -441,7 +444,10 @@ module Datadog
       @sampler = if base_sampler.is_a?(PrioritySampler)
                    base_sampler
                  else
-                   PrioritySampler.new(base_sampler: base_sampler)
+                   PrioritySampler.new(
+                     base_sampler: base_sampler,
+                     post_sampler: Datadog::RateByServiceSampler.new(1.0, env: proc { tags[:env] })
+                   )
                  end
     end
 
