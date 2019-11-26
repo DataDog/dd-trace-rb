@@ -40,6 +40,8 @@ module Datadog
       #
       # @return [Boolean] +true+ if message conforms with current bucket limit
       def allow?(size)
+        return false if @rate.zero?
+
         refill_since_last_message
 
         increment_total_count
@@ -60,6 +62,7 @@ module Datadog
       #
       # @return [Float] Conformance ratio, between +[0,1]+
       def effective_rate
+        return 0.0 if @rate.zero?
         return 1.0 if @total_messages.zero?
 
         @conforming_messages.to_f / @total_messages

@@ -13,14 +13,14 @@ module Datadog
     class RuleSampler
       extend Forwardable
 
-      attr_reader :rules, :rate_limiter, :fallback_sampler
+      attr_reader :rules, :rate_limiter, :default_sampler
 
       def initialize(rules = [],
                      rate_limiter = Datadog::Sampling::UnlimitedLimiter.new,
-                     fallback_sampler = Datadog::AllSampler.new)
+                     default_sampler = Datadog::AllSampler.new)
         @rules = rules
         @rate_limiter = rate_limiter
-        @fallback_sampler = fallback_sampler
+        @default_sampler = default_sampler
       end
 
       # /RuleSampler's components (it's rate limiter, for example) are
@@ -34,14 +34,15 @@ module Datadog
       end
 
       def sample!(span)
-        sampled = sample_span(span) { |s| @fallback_sampler.sample!(s) }
+        sampled = sample_span(span) { |s| @default_sampler.sample!(s) }
 
         sampled.tap do
-          span.sampled = sampled
+          span.sampled = true
+          span.context.sampling_priority = sampled ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
         end
       end
 
-      def_delegators :@fallback_sampler, :update
+      def_delegators :@default_sampler, :update
 
       private
 

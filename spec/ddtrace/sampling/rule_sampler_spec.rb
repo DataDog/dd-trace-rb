@@ -5,17 +5,17 @@ require 'ddtrace/sampling/rule'
 require 'ddtrace/sampling/token_bucket'
 
 RSpec.describe Datadog::Sampling::RuleSampler do
-  let(:rule_sampler) { described_class.new(rules, rate_limiter, fallback_sampler) }
+  let(:rule_sampler) { described_class.new(rules, rate_limiter, default_sampler) }
   let(:rules) { [] }
   let(:rate_limiter) { instance_double(Datadog::Sampling::RateLimiter) }
-  let(:fallback_sampler) { instance_double(Datadog::RateByServiceSampler) }
+  let(:default_sampler) { instance_double(Datadog::RateByServiceSampler) }
   let(:effective_rate) { 0.9 }
   let(:allow?) { true }
 
   let(:span) { Datadog::Span.new(nil, 'dummy') }
 
   before do
-    allow(fallback_sampler).to receive(:sample?).with(span).and_return(nil)
+    allow(default_sampler).to receive(:sample?).with(span).and_return(nil)
     allow(rate_limiter).to receive(:effective_rate).and_return(effective_rate)
     allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
   end
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
       let(:delegated) { double }
 
       before do
-        allow(fallback_sampler).to receive(:sample!).with(span).and_return(delegated)
+        allow(default_sampler).to receive(:sample!).with(span).and_return(delegated)
       end
 
       it { is_expected.to eq(delegated) }
