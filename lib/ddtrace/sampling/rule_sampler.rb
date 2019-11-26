@@ -8,13 +8,19 @@ require 'ddtrace/sampling/token_bucket'
 
 module Datadog
   module Sampling
-    # TODO: Write class documentation
-    # RuleSampler
+    # Span {Sampler} that applies a set of {Rule}s to decide
+    # on sampling outcome. Then, a rate limiter is applied.
+    #
+    # If a span does not conform to any rules, a default
+    # sampling strategy is applied.
     class RuleSampler
       extend Forwardable
 
       attr_reader :rules, :rate_limiter, :default_sampler
 
+      # @param rules [Array<Rule>] ordered list of rules to be applied to a span
+      # @param rate_limiter [RateLimiter] limiter applied after rule matching
+      # @param default_sampler [Sample] fallback strategy when no rules apply to a span
       def initialize(rules = [],
                      rate_limiter = Datadog::Sampling::UnlimitedLimiter.new,
                      default_sampler = Datadog::AllSampler.new)
@@ -37,8 +43,7 @@ module Datadog
         sampled = sample_span(span) { |s| @default_sampler.sample!(s) }
 
         sampled.tap do
-          span.sampled = true
-          span.context.sampling_priority = sampled ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
+          span.sampled = sampled
         end
       end
 
