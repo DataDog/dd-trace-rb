@@ -1,3 +1,5 @@
+require 'forwardable'
+
 require 'ddtrace/ext/priority'
 
 require 'ddtrace/ext/sampling'
@@ -11,14 +13,14 @@ module Datadog
     class RuleSampler
       extend Forwardable
 
-      attr_reader :rules, :rate_limiter, :priority_sampler
+      attr_reader :rules, :rate_limiter, :fallback_sampler
 
       def initialize(rules = [],
                      rate_limiter = Datadog::Sampling::UnlimitedLimiter.new,
-                     priority_sampler = Datadog::AllSampler.new)
+                     fallback_sampler = Datadog::AllSampler.new)
         @rules = rules
         @rate_limiter = rate_limiter
-        @priority_sampler = priority_sampler
+        @fallback_sampler = fallback_sampler
       end
 
       # /RuleSampler's components (it's rate limiter, for example) are
@@ -27,27 +29,29 @@ module Datadog
       # return the same result as a successive call to {#sample!} with the same span.
       #
       # Use {#sample!} instead
-      def sample?(span)
+      def sample?(_span)
         raise 'RuleSampler cannot be evaluated without side-effects'
       end
 
       def sample!(span)
-        sample_span(span).tap do |sampled|
+        sampled = sample_span(span) { |s| @fallback_sampler.sample!(s) }
+
+        sampled.tap do
           span.sampled = sampled
         end
       end
 
-      def_delegators :@priority_sampler, :update
+      def_delegators :@fallback_sampler, :update
 
       private
 
       def sample_span(span)
-        sampled, sample_rate = @rules.find do |rule|
-          result = rule.sample(span)
-          break result if result
-        end
+        rule = @rules.find { |r| r.match?(span) }
 
-        return @priority_sampler.sample!(span) if sampled.nil?
+        return yield(span) if rule.nil?
+
+        sampled = rule.sample?(span)
+        sample_rate = rule.sample_rate(span)
 
         set_rule_metrics(span, sample_rate)
 
@@ -56,6 +60,9 @@ module Datadog
         rate_limiter.allow?(1).tap do
           set_limiter_metrics(span, rate_limiter.effective_rate)
         end
+      rescue StandardError => e
+        Datadog::Tracer.log.error("Rule sampling failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+        yield(span)
       end
 
       def set_rule_metrics(span, sample_rate)

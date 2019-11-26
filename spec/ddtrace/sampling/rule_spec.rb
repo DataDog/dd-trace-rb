@@ -8,64 +8,27 @@ RSpec.describe Datadog::Sampling::Rule do
   let(:span_name) { 'operation.name' }
   let(:span_service) { nil }
 
-  describe '#sample' do
-    subject(:sample) { rule.sample(span) }
-    let(:rule) { described_class.new(matcher, sampler) }
+  let(:rule) { described_class.new(matcher, sampler) }
+  let(:matcher) { instance_double(Datadog::Sampling::Matcher) }
+  let(:sampler) { instance_double(Datadog::Sampler) }
 
-    let(:matcher) { instance_double(Datadog::Sampling::Matcher) }
+  describe '#match?' do
+    subject(:match) { rule.match?(span) }
+
     let(:matched) { true }
 
     before do
       allow(matcher).to receive(:match?).with(span).and_return(matched)
     end
 
-    let(:sampler) { instance_double(Datadog::Sampler) }
-    let(:sampled) { true }
-    let(:sample_rate) { double }
-
-    before do
-      allow(sampler).to receive(:sample?).with(span).and_return(sampled)
-      allow(sampler).to receive(:sample_rate).with(span).and_return(sample_rate)
-    end
-
-    shared_examples 'span not matching rule' do
-      it { is_expected.to eq(nil) }
-    end
-
-    shared_examples 'span rejected by sampler' do
-      it { is_expected.to eq([false, sample_rate]) }
-    end
-
-    shared_examples 'span sampled' do
-      it { is_expected.to eq([true, sample_rate]) }
-    end
-
     context 'with matching span' do
       let(:matched) { true }
-
-      context 'and sampled' do
-        let(:sampled) { true }
-        it_behaves_like 'span sampled'
-      end
-
-      context 'and not sampled' do
-        let(:sampled) { false }
-        it_behaves_like 'span rejected by sampler'
-      end
-
-      context 'when sampler errs' do
-        before do
-          allow(sampler).to receive(:sample?).with(span).and_raise(StandardError)
-          allow(sampler).to receive(:sample_rate).with(span).and_raise(StandardError)
-        end
-
-        it_behaves_like 'span not matching rule'
-      end
+      it { is_expected.to eq(true) }
     end
 
     context 'with span not matching' do
       let(:matched) { false }
-      it_behaves_like 'span not matching rule'
+      it { is_expected.to eq(false) }
     end
 
     context 'when matcher errs' do
@@ -73,7 +36,31 @@ RSpec.describe Datadog::Sampling::Rule do
         allow(matcher).to receive(:match?).and_raise(StandardError)
       end
 
-      it_behaves_like 'span not matching rule'
+      it { is_expected.to be nil }
     end
+  end
+
+  describe '#sample?' do
+    subject(:sample) { rule.sample?(span) }
+
+    let(:sample) { double }
+
+    before do
+      allow(sampler).to receive(:sample?).with(span).and_return(sample)
+    end
+
+    it { is_expected.to be(sample) }
+  end
+
+  describe '#sample_rate' do
+    subject(:sample_rate) { rule.sample_rate(span) }
+
+    let(:sample_rate) { double }
+
+    before do
+      allow(sampler).to receive(:sample_rate).with(span).and_return(sample_rate)
+    end
+
+    it { is_expected.to be(sample_rate) }
   end
 end

@@ -1,3 +1,5 @@
+require 'forwardable'
+
 require 'ddtrace/sampling/matcher'
 require 'ddtrace/sampler'
 
@@ -6,6 +8,8 @@ module Datadog
     # TODO: Write class documentation
     # [Class documentation]
     class Rule
+      extend Forwardable
+
       attr_reader :matcher, :sampler
 
       def initialize(matcher, sampler)
@@ -13,38 +17,19 @@ module Datadog
         @sampler = sampler
       end
 
-      # Evaluates if the provided `span` conforms to the `matcher`
-      # and is accepted by the `sampler`.
-      #
-      # If the `matcher` rejects the `span` this method returns `nil`,
-      # to represent that this rule does not apply to the `span`.
-      #
-      # If the `matcher` returns `true` the `sampler` is invoked next.
-      #
-      # If `sampler` accepts the `span`, this method returns an {Array}
-      # with the sampling decision {Boolean} and a sampling rate {Float}.
-      #
-      # If the concept of sampling rate does not apply to the `sampler`
-      # `nil` is returned as the sample rate.
+      # Evaluates if the provided `span` conforms to the `matcher`.
       #
       # @param [Span] span
-      # @return [Array<Boolean, Float>] sampling decision and sampling rate, if this rules applies
-      # @return [NilClass] if this rule does not apply
-      def sample(span)
-        match = begin
-          @matcher.match?(span)
-        rescue => e
-          Datadog::Tracer.log.error("Matcher failed. Cause: #{e.message} Source: #{e.backtrace.first}")
-          nil
-        end
-
-        return unless match
-
-        [@sampler.sample?(span), @sampler.sample_rate(span)]
+      # @return [Boolean] whether this rules applies to the span
+      # @return [NilClass] if the matcher fails errs during evaluation
+      def match?(span)
+        @matcher.match?(span)
       rescue => e
-        Datadog::Tracer.log.error("Sampler failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog::Tracer.log.error("Matcher failed. Cause: #{e.message} Source: #{e.backtrace.first}")
         nil
       end
+
+      def_delegators :@sampler, :sample?, :sample_rate
     end
 
     # TODO: Write class documentation

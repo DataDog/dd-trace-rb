@@ -5,17 +5,17 @@ require 'ddtrace/sampling/rule'
 require 'ddtrace/sampling/token_bucket'
 
 RSpec.describe Datadog::Sampling::RuleSampler do
-  let(:rule_sampler) { described_class.new(rules, rate_limiter, priority_sampler) }
+  let(:rule_sampler) { described_class.new(rules, rate_limiter, fallback_sampler) }
   let(:rules) { [] }
   let(:rate_limiter) { instance_double(Datadog::Sampling::RateLimiter) }
-  let(:priority_sampler) { instance_double(Datadog::RateByServiceSampler) }
+  let(:fallback_sampler) { instance_double(Datadog::RateByServiceSampler) }
   let(:effective_rate) { 0.9 }
   let(:allow?) { true }
 
   let(:span) { Datadog::Span.new(nil, 'dummy') }
 
   before do
-    allow(priority_sampler).to receive(:sample?).with(span).and_return(nil)
+    allow(fallback_sampler).to receive(:sample?).with(span).and_return(nil)
     allow(rate_limiter).to receive(:effective_rate).and_return(effective_rate)
     allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
   end
@@ -23,11 +23,12 @@ RSpec.describe Datadog::Sampling::RuleSampler do
   shared_context 'matching rule' do
     let(:rules) { [rule] }
     let(:rule) { instance_double(Datadog::Sampling::Rule) }
-    let(:response) { [sampled, sample_rate] }
     let(:sample_rate) { 0.8 }
 
     before do
-      allow(rule).to receive(:sample).with(span).and_return(response)
+      allow(rule).to receive(:match?).with(span).and_return(true)
+      allow(rule).to receive(:sample?).with(span).and_return(sampled)
+      allow(rule).to receive(:sample_rate).with(span).and_return(sample_rate)
     end
   end
 
@@ -89,7 +90,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
       let(:delegated) { double }
 
       before do
-        allow(priority_sampler).to receive(:sample!).with(span).and_return(delegated)
+        allow(fallback_sampler).to receive(:sample!).with(span).and_return(delegated)
       end
 
       it { is_expected.to eq(delegated) }
