@@ -6,6 +6,7 @@ require 'ddtrace/ext/errors'
 require 'ddtrace/ext/priority'
 require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
+require 'ddtrace/diagnostics/health'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -154,6 +155,7 @@ module Datadog
         @tracer.record(self)
       rescue StandardError => e
         Datadog::Tracer.log.debug("error recording finished trace: #{e}")
+        Diagnostics::Health.metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
       self
     end

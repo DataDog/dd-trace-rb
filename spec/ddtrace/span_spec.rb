@@ -8,6 +8,39 @@ RSpec.describe Datadog::Span do
   let(:context) { Datadog::Context.new }
   let(:name) { 'my.span' }
 
+  describe '#finish' do
+    subject(:finish) { span.finish }
+
+    context 'when an error occurs while closing the span on the context' do
+      include_context 'health metrics'
+
+      let(:error) { error_class.new }
+      let(:error_class) { stub_const('SpanCloseError', Class.new(StandardError)) }
+
+      RSpec::Matchers.define :a_record_finish_error do |error|
+        match { |actual| actual == "error recording finished trace: #{error}" }
+      end
+
+      before do
+        allow(Datadog::Tracer.log).to receive(:debug)
+        allow(context).to receive(:close_span)
+          .with(span)
+          .and_raise(error)
+        finish
+      end
+
+      it 'logs a debug message' do
+        expect(Datadog::Tracer.log).to have_received(:debug)
+          .with(a_record_finish_error(error))
+      end
+
+      it 'sends a span finish error metric' do
+        expect(health_metrics).to have_received(:error_span_finish)
+          .with(1, tags: ["error:#{error_class.name}"])
+      end
+    end
+  end
+
   describe '#clear_tag' do
     subject(:clear_tag) { span.clear_tag(key) }
     let(:key) { 'key' }
