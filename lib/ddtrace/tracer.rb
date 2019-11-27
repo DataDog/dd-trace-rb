@@ -121,6 +121,9 @@ module Datadog
 
       @mutex = Mutex.new
       @tags = {}
+
+      # Enable priority sampling by default
+      activate_priority_sampling!(@sampler)
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
@@ -231,9 +234,10 @@ module Datadog
         # root span
         @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
-        if ctx && ctx.trace_id && ctx.span_id
+
+        if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
-          span.parent_id = ctx.span_id
+          span.parent_id = ctx.span_id unless ctx.span_id.nil?
         end
       else
         # child span
@@ -441,7 +445,10 @@ module Datadog
       @sampler = if base_sampler.is_a?(PrioritySampler)
                    base_sampler
                  else
-                   PrioritySampler.new(base_sampler: base_sampler)
+                   PrioritySampler.new(
+                     base_sampler: base_sampler,
+                     post_sampler: Datadog::RateByServiceSampler.new(1.0, env: proc { tags[:env] })
+                   )
                  end
     end
 

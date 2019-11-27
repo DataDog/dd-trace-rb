@@ -10,7 +10,7 @@ module Datadog
     # will perform a task at regular intervals. The thread can be stopped
     # with the +stop()+ method and can start with the +start()+ method.
     class AsyncTransport
-      DEFAULT_BUFFER_MAX_SIZE = 100
+      DEFAULT_BUFFER_MAX_SIZE = 1000
       DEFAULT_FLUSH_INTERVAL = 1
       DEFAULT_TIMEOUT = 5
       BACK_OFF_RATIO = 1.2

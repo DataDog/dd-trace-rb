@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace'
+require 'ddtrace/ext/distributed'
 require 'ddtrace/sampler'
 
 RSpec.describe Datadog::AllSampler do
@@ -101,6 +101,9 @@ RSpec.describe Datadog::RateSampler do
       end
     end
   end
+end
+
+RSpec.describe Datadog::RateByServiceSampler do
 end
 
 RSpec.describe Datadog::PrioritySampler do
