@@ -1,4 +1,7 @@
 # TODO: move to a folder outside of 'ddtrace/sampling', as this is technically a generic rate limiter?
+
+require 'ddtrace/utils/time'
+
 module Datadog
   module Sampling
     # Checks for rate limiting on a resource.
@@ -40,7 +43,7 @@ module Datadog
         @tokens = max_tokens
         @total_messages = 0
         @conforming_messages = 0
-        @last_refill = now
+        @last_refill = Utils::Time.get_time
       end
 
       # Checks if a message of provided +size+
@@ -89,7 +92,7 @@ module Datadog
       private
 
       def refill_since_last_message
-        now = now()
+        now = Utils::Time.get_time
         elapsed = now - @last_refill
 
         refill_tokens(@rate * elapsed)
@@ -100,10 +103,6 @@ module Datadog
       def refill_tokens(size)
         @tokens += size
         @tokens = @max_tokens if @tokens > @max_tokens
-      end
-
-      def now
-        Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
 
       def increment_total_count

@@ -8,7 +8,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
   let(:max_tokens) { 10 }
 
   before do
-    allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(0)
+    allow(Datadog::Utils::Time).to receive(:get_time).and_return(0)
   end
 
   describe '#initialize' do
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
 
     context 'after 1 second' do
       before do
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(0, 1)
+        allow(Datadog::Utils::Time).to receive(:get_time).and_return(0, 1)
       end
 
       it 'does not exceed maximum allowance' do
@@ -51,7 +51,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
 
       context 'after 1 second' do
         before do
-          allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(1)
+          allow(Datadog::Utils::Time).to receive(:get_time).and_return(1)
         end
 
         context 'with message the same size of or smaller than replenished tokens' do
@@ -69,7 +69,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
         let(:size) { 0 } # No-op message, only to force token refilling
 
         before do
-          allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(10)
+          allow(Datadog::Utils::Time).to receive(:get_time).and_return(10)
         end
 
         it 'catches up the lost time' do
