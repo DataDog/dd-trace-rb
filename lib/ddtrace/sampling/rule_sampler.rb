@@ -19,7 +19,7 @@ module Datadog
       attr_reader :rules, :rate_limiter, :default_sampler
 
       # @param rules [Array<Rule>] ordered list of rules to be applied to a span
-      # @param rate_limit [Float] number of traces per second, defaults to unlimited
+      # @param rate_limit [Float] number of traces per second, defaults to 100
       # @param rate_limiter [RateLimiter] limiter applied after rule matching
       # @param default_sample_rate [Float] fallback sample rate when no rules apply to a span,
       #   between +[0,1]+, defaults to +1+
@@ -37,7 +37,7 @@ module Datadog
                         elsif rate_limit
                           Datadog::Sampling::TokenBucket.new(rate_limit)
                         else
-                          Datadog::Sampling::UnlimitedLimiter.new
+                          Datadog::Sampling::TokenBucket.new(100)
                         end
 
         @default_sampler = if default_sampler
