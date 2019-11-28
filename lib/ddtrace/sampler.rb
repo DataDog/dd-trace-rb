@@ -204,25 +204,8 @@ module Datadog
       if span.sampled
         # If priority sampling has already been applied upstream, use that, otherwise...
         unless priority_assigned_upstream?(span)
-          pre_sample_rate_metric = span.get_metric(SAMPLE_RATE_METRIC_KEY)
-
           # Roll the dice and determine whether how we set the priority.
           priority = priority_sample!(span) ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
-
-          # NOTE: We'll want to leave `span.sampled = true` here; all spans for priority sampling must
-          #       be sent to the agent. Otherwise metrics for traces will not be accurate, since the
-          #       agent will have an incomplete dataset.
-          #
-          #       We also ensure that the agent knows we that our `post_sampler` is not performing true sampling,
-          #       to avoid erroneous metric upscaling.
-          span.sampled = true
-          if pre_sample_rate_metric
-            # Restore true sampling metric, as only the @pre_sampler can reject traces
-            span.set_metric(SAMPLE_RATE_METRIC_KEY, pre_sample_rate_metric)
-          else
-            # If @pre_sampler is not enable, sending this metric would be misleading
-            span.clear_metric(SAMPLE_RATE_METRIC_KEY)
-          end
 
           assign_priority!(span, priority)
         end
@@ -255,7 +238,32 @@ module Datadog
     end
 
     def priority_sample!(span)
-      @priority_sampler.sample!(span)
+      preserving_sampling(span) do
+        @priority_sampler.sample!(span)
+      end
+    end
+
+    # Ensures the span is always propagated to the writer and that
+    # the sample rate metric represents the true client-side sampling.
+    def preserving_sampling(span)
+      pre_sample_rate_metric = span.get_metric(SAMPLE_RATE_METRIC_KEY)
+
+      yield.tap do
+        # NOTE: We'll want to leave `span.sampled = true` here; all spans for priority sampling must
+        #       be sent to the agent. Otherwise metrics for traces will not be accurate, since the
+        #       agent will have an incomplete dataset.
+        #
+        #       We also ensure that the agent knows we that our `post_sampler` is not performing true sampling,
+        #       to avoid erroneous metric upscaling.
+        span.sampled = true
+        if pre_sample_rate_metric
+          # Restore true sampling metric, as only the @pre_sampler can reject traces
+          span.set_metric(SAMPLE_RATE_METRIC_KEY, pre_sample_rate_metric)
+        else
+          # If @pre_sampler is not enable, sending this metric would be misleading
+          span.clear_metric(SAMPLE_RATE_METRIC_KEY)
+        end
+      end
     end
 
     def assign_priority!(span, priority)
