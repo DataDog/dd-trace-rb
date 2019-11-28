@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace/sampling/token_bucket'
+require 'ddtrace/sampling/rate_limiter'
 
 RSpec.describe Datadog::Sampling::TokenBucket do
   subject(:bucket) { described_class.new(rate, max_tokens) }

@@ -3,6 +3,13 @@ require 'spec_helper'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/sampler'
 
+RSpec.shared_examples 'sampler with sample rate' do |sample_rate|
+  subject(:sampler_sample_rate) { sampler.sample_rate(span) }
+  let(:span) { Datadog::Span.new(nil, 'dummy') }
+
+  it { is_expected.to eq(sample_rate) }
+end
+
 RSpec.describe Datadog::AllSampler do
   subject(:sampler) { described_class.new }
 
@@ -25,6 +32,8 @@ RSpec.describe Datadog::AllSampler do
       end
     end
   end
+
+  it_behaves_like 'sampler with sample rate', 1.0
 end
 
 RSpec.describe Datadog::RateSampler do
@@ -37,22 +46,24 @@ RSpec.describe Datadog::RateSampler do
     context 'given a sample rate' do
       context 'that is negative' do
         let(:sample_rate) { -1.0 }
-        it { expect(sampler.sample_rate).to eq(1.0) }
+        it_behaves_like 'sampler with sample rate', 1.0 do
+          let(:span) { nil }
+        end
       end
 
       context 'that is 0' do
         let(:sample_rate) { 0.0 }
-        it { expect(sampler.sample_rate).to eq(1.0) }
+        it_behaves_like 'sampler with sample rate', 1.0
       end
 
       context 'that is between 0 and 1.0' do
         let(:sample_rate) { 0.5 }
-        it { expect(sampler.sample_rate).to eq(0.5) }
+        it_behaves_like 'sampler with sample rate', 0.5
       end
 
       context 'that is greater than 1.0' do
         let(:sample_rate) { 1.5 }
-        it { expect(sampler.sample_rate).to eq(1.0) }
+        it_behaves_like 'sampler with sample rate', 1.0
       end
     end
   end
@@ -107,8 +118,10 @@ RSpec.describe Datadog::RateByServiceSampler do
 end
 
 RSpec.describe Datadog::PrioritySampler do
-  subject(:sampler) { described_class.new(options) }
-  let(:options) { {} }
+  subject(:sampler) { described_class.new(base_sampler: base_sampler, post_sampler: post_sampler) }
+  let(:base_sampler) { nil }
+  let(:post_sampler) { nil }
+
   let(:sample_rate_tag_value) { nil }
 
   before(:each) { Datadog::Tracer.log.level = Logger::FATAL }
@@ -132,15 +145,6 @@ RSpec.describe Datadog::PrioritySampler do
         let(:context) { Datadog::Context.new }
 
         context 'but no sampling priority' do
-          let(:priority_sampler) { sampler.instance_variable_get(:@priority_sampler) }
-
-          before(:each) do
-            # Expect priority sampler to choose a priority
-            expect(priority_sampler).to receive(:sample!)
-              .with(span)
-              .and_return(true)
-          end
-
           it do
             expect(sample).to be true
             expect(context.sampling_priority).to be(Datadog::Ext::Priority::AUTO_KEEP)
@@ -195,45 +199,55 @@ RSpec.describe Datadog::PrioritySampler do
       end
     end
 
-    context 'when configured with defaults' do
-      let(:sampler) { described_class.new }
-      it_behaves_like 'priority sampling'
-    end
-
-    context 'when configured with a pre-sampler RateSampler < 1.0' do
-      let(:sampler) { described_class.new(base_sampler: Datadog::RateSampler.new(sample_rate)) }
-      let(:sample_rate) { 0.5 }
-
-      it_behaves_like 'priority sampling' do
-        # It must set this tag; otherwise it won't scale up metrics properly.
-        let(:sample_rate_tag_value) { sample_rate }
-      end
-    end
-
-    context 'when configured with a priority-sampler RateByServiceSampler < 1.0' do
-      let(:sampler) { described_class.new(post_sampler: Datadog::RateByServiceSampler.new(sample_rate)) }
-      let(:sample_rate) { 0.5 }
-
+    shared_examples_for 'priority sampling without scaling' do
       it_behaves_like 'priority sampling' do
         # It should not set this tag; otherwise it will errantly scale up metrics.
         let(:sample_rate_tag_value) { nil }
       end
     end
 
-    context 'when configured with a pre-sampler RateSampler < 1.0 and priority-sampler RateByServiceSampler < 1.0' do
-      let(:sampler) do
-        described_class.new(
-          base_sampler: Datadog::RateSampler.new(sample_rate),
-          post_sampler: Datadog::RateByServiceSampler.new(sample_rate)
-        )
-      end
+    context 'when configured with defaults' do
+      let(:sampler) { described_class.new }
+      it_behaves_like 'priority sampling without scaling'
+    end
 
+    context 'when configured with a pre-sampler RateSampler < 1.0' do
+      let(:base_sampler) { Datadog::RateSampler.new(sample_rate) }
       let(:sample_rate) { 0.5 }
 
       it_behaves_like 'priority sampling' do
         # It must set this tag; otherwise it won't scale up metrics properly.
         let(:sample_rate_tag_value) { sample_rate }
       end
+
+      context 'with a priority-sampler that sets sampling rate metrics' do
+        let(:post_sampler) { Datadog::RateSampler.new(1.0) }
+
+        it_behaves_like 'priority sampling' do
+          # It must set this tag; otherwise it won't scale up metrics properly.
+          let(:sample_rate_tag_value) { sample_rate }
+        end
+      end
+    end
+
+    context 'when configured with a pre-sampler RateSampler = 1.0' do
+      let(:base_sampler) { Datadog::RateSampler.new(sample_rate) }
+      let(:sample_rate) { 1.0 }
+
+      it_behaves_like 'priority sampling without scaling'
+
+      context 'with a priority-sampler that sets sampling rate metrics' do
+        let(:post_sampler) { Datadog::RateSampler.new(1.0) }
+
+        it_behaves_like 'priority sampling without scaling'
+      end
+    end
+
+    context 'when configured with a priority-sampler RateByServiceSampler < 1.0' do
+      let(:post_sampler) { Datadog::RateByServiceSampler.new(sample_rate) }
+      let(:sample_rate) { 0.5 }
+
+      it_behaves_like 'priority sampling without scaling'
     end
   end
 end

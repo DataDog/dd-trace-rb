@@ -1,5 +1,3 @@
-# TODO: move to a folder outside of 'ddtrace/sampling', as this is technically a generic rate limiter?
-
 require 'ddtrace/utils/time'
 
 module Datadog

@@ -4,7 +4,7 @@ require 'ddtrace/ext/priority'
 
 require 'ddtrace/ext/sampling'
 require 'ddtrace/sampler'
-require 'ddtrace/sampling/token_bucket'
+require 'ddtrace/sampling/rate_limiter'
 
 module Datadog
   module Sampling

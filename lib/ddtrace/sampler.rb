@@ -217,8 +217,10 @@ module Datadog
           #       to avoid erroneous metric upscaling.
           span.sampled = true
           if pre_sample_rate_metric
-            span.set_metric(SAMPLE_RATE_METRIC_KEY, pre_sample_rate_metric) # Restore true sampling metric
+            # Restore true sampling metric, as only the @pre_sampler can reject traces
+            span.set_metric(SAMPLE_RATE_METRIC_KEY, pre_sample_rate_metric)
           else
+            # If @pre_sampler is not enable, sending this metric would be misleading
             span.clear_metric(SAMPLE_RATE_METRIC_KEY)
           end
 

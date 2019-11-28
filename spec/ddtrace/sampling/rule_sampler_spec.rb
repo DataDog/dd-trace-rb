@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'ddtrace/sampling/rule_sampler'
 require 'ddtrace/sampling/rule'
-require 'ddtrace/sampling/token_bucket'
+require 'ddtrace/sampling/rate_limiter'
 
 RSpec.describe Datadog::Sampling::RuleSampler do
   let(:rule_sampler) { described_class.new(rules, rate_limiter: rate_limiter, default_sampler: default_sampler) }
