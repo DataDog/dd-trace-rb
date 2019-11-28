@@ -9,20 +9,9 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:excon)
-        end
-
         def patch
-          do_once(:excon) do
-            begin
-              require 'ddtrace/contrib/excon/middleware'
-
-              add_middleware
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Excon integration: #{e}")
-            end
-          end
+          require 'ddtrace/contrib/excon/middleware'
+          add_middleware
         end
 
         def add_middleware

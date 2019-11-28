@@ -10,18 +10,8 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:active_support)
-        end
-
         def patch
-          do_once(:active_support) do
-            begin
-              Cache::Patcher.patch
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Active Support integration: #{e}")
-            end
-          end
+          Cache::Patcher.patch
         end
       end
     end

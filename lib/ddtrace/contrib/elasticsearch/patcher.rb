@@ -13,23 +13,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:elasticsearch)
-        end
-
         def patch
-          do_once(:elasticsearch) do
-            begin
-              require 'uri'
-              require 'json'
-              require 'ddtrace/pin'
-              require 'ddtrace/contrib/elasticsearch/quantize'
+          require 'uri'
+          require 'json'
+          require 'ddtrace/pin'
+          require 'ddtrace/contrib/elasticsearch/quantize'
 
-              patch_elasticsearch_transport_client
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Elasticsearch integration: #{e}")
-            end
-          end
+          patch_elasticsearch_transport_client
         end
 
         # rubocop:disable Metrics/MethodLength

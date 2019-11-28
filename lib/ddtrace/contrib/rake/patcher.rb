@@ -12,19 +12,9 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:rake)
-        end
-
         def patch
-          do_once(:rake) do
-            begin
-              # Add instrumentation patch to Rake task
-              ::Rake::Task.send(:include, Instrumentation)
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Rake integration: #{e}")
-            end
-          end
+          # Add instrumentation patch to Rake task
+          ::Rake::Task.send(:include, Instrumentation)
         end
 
         def get_option(option)

@@ -10,24 +10,14 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:grpc)
-        end
-
         def patch
-          do_once(:grpc) do
-            begin
-              require 'ddtrace/propagation/grpc_propagator'
-              require 'ddtrace/contrib/grpc/datadog_interceptor'
-              require 'ddtrace/contrib/grpc/intercept_with_datadog'
+          require 'ddtrace/propagation/grpc_propagator'
+          require 'ddtrace/contrib/grpc/datadog_interceptor'
+          require 'ddtrace/contrib/grpc/intercept_with_datadog'
 
-              add_pin!
+          add_pin!
 
-              prepend_interceptor
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply gRPC integration: #{e}")
-            end
-          end
+          prepend_interceptor
         end
 
         def add_pin!

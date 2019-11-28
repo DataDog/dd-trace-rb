@@ -6,21 +6,31 @@ module Datadog
     module Patcher
       def self.included(base)
         base.send(:include, Datadog::Patcher)
-        base.send(:extend, InstanceMethods)
-        base.send(:include, InstanceMethods)
+
+        base.singleton_class.send(:prepend, CommonMethods)
+        base.send(:prepend, CommonMethods) if base.class == Class
       end
 
-      # Class methods for patchers
-      module ClassMethods
-        def patch
-          raise NotImplementedError, '#patch not implemented for Patcher!'
+      # Prepended instance methods for all patchers
+      module CommonMethods
+        def patch_name
+          self.class != Class && self.class != Module ? self.class.name : name
         end
-      end
 
-      # Instance methods for patchers
-      module InstanceMethods
+        def patched?
+          done?(:patch)
+        end
+
         def patch
-          raise NotImplementedError, '#patch not implemented for Patcher!'
+          return unless defined?(super)
+
+          do_once(:patch) do
+            begin
+              super
+            rescue StandardError => e
+              Datadog::Tracer.log.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
+            end
+          end
         end
       end
     end

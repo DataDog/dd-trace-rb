@@ -12,22 +12,12 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:faraday)
-        end
-
         def patch
-          do_once(:faraday) do
-            begin
-              require 'ddtrace/contrib/faraday/middleware'
+          require 'ddtrace/contrib/faraday/middleware'
 
-              add_pin!
-              register_middleware!
-              add_default_middleware!
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Faraday integration: #{e}")
-            end
-          end
+          add_pin!
+          register_middleware!
+          add_default_middleware!
         end
 
         def add_pin!
