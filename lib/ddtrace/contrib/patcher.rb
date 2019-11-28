@@ -28,7 +28,14 @@ module Datadog
             begin
               super
             rescue StandardError => e
+              # Log the error
               Datadog::Tracer.log.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
+
+              # Emit a metric
+              Diagnostics::Health.metrics.error_instrumentation_patch(
+                1,
+                tags: ["patcher:#{patch_name}", "error:#{e.class.name}"]
+              )
             end
           end
         end

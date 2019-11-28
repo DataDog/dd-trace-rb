@@ -10,6 +10,8 @@ RSpec.describe Datadog::Contrib::Patcher do
   describe 'implemented in a class' do
     describe 'class behavior' do
       describe '#patch' do
+        include_context 'health metrics'
+
         subject(:patch) { patcher.patch }
 
         context 'when patcher does not define .patch' do
@@ -42,19 +44,22 @@ RSpec.describe Datadog::Contrib::Patcher do
               include Datadog::Contrib::Patcher
 
               def self.patch
-                raise 'Patch error!'
+                raise StandardError, 'Patch error!'
               end
             end)
           end
 
           before do
             allow(Datadog::Tracer.log).to receive(:error)
+            allow(health_metrics).to receive(:error_instrumentation_patch)
           end
 
           it 'handles the error' do
             expect { patch }.to_not raise_error
             expect(Datadog::Tracer.log).to have_received(:error)
               .with(a_patch_error(patcher.name))
+            expect(health_metrics).to have_received(:error_instrumentation_patch)
+              .with(1, tags: ['patcher:TestPatcher', 'error:StandardError'])
           end
         end
       end
@@ -139,6 +144,8 @@ RSpec.describe Datadog::Contrib::Patcher do
   describe 'implemented in a module' do
     describe 'module behavior' do
       describe '#patch' do
+        include_context 'health metrics'
+
         subject(:patch) { patcher.patch }
 
         context 'when patcher does not define .patch' do
@@ -171,7 +178,7 @@ RSpec.describe Datadog::Contrib::Patcher do
               include Datadog::Contrib::Patcher
 
               def self.patch
-                raise 'Patch error!'
+                raise StandardError, 'Patch error!'
               end
             end)
           end
@@ -184,6 +191,8 @@ RSpec.describe Datadog::Contrib::Patcher do
             expect { patch }.to_not raise_error
             expect(Datadog::Tracer.log).to have_received(:error)
               .with(a_patch_error(patcher.name))
+            expect(health_metrics).to have_received(:error_instrumentation_patch)
+              .with(1, tags: ['patcher:TestPatcher', 'error:StandardError'])
           end
         end
       end
