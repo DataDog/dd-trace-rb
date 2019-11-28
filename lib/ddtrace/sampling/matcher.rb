@@ -33,11 +33,9 @@ module Datadog
         @service = service
       end
 
-      # rubocop:disable Style/CaseEquality
       def match?(span)
         name === span.name && service === span.service
       end
-      # rubocop:enable Style/CaseEquality
     end
 
     # A \Matcher that allows for arbitrary span matching
