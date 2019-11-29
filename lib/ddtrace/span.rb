@@ -84,6 +84,11 @@ module Datadog
       Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
 
+    # This method removes a tag for the given key.
+    def clear_tag(key)
+      @meta.delete(key)
+    end
+
     # Return the tag with the given key, nil if it doesn't exist.
     def get_tag(key)
       @meta[key]
@@ -97,6 +102,11 @@ module Datadog
       @metrics[key] = value
     rescue StandardError => e
       Datadog::Tracer.log.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
+    end
+
+    # This method removes a metric for the given key. It acts like {#remove_tag}.
+    def clear_metric(key)
+      @metrics.delete(key)
     end
 
     # Return the metric with the given key, nil if it doesn't exist.

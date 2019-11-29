@@ -75,3 +75,7 @@ Style/SymbolArray:
 # expressions.
 Style/GuardClause:
   Enabled: false
+
+# Case equality is not intrinsically problematic.
+Style/CaseEquality:
+  Enabled: false

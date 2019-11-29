@@ -8,6 +8,40 @@ RSpec.describe Datadog::Span do
   let(:context) { Datadog::Context.new }
   let(:name) { 'my.span' }
 
+  describe '#clear_tag' do
+    subject(:clear_tag) { span.clear_tag(key) }
+    let(:key) { 'key' }
+
+    before { span.set_tag(key, value) }
+    let(:value) { 'value' }
+
+    it do
+      expect { subject }.to change { span.get_tag(key) }.from(value).to(nil)
+    end
+
+    it 'removes value, instead of setting to nil, to ensure correct deserialization by agent' do
+      subject
+      expect(span.instance_variable_get(:@meta)).to_not have_key(key)
+    end
+  end
+
+  describe '#clear_metric' do
+    subject(:clear_metric) { span.clear_metric(key) }
+    let(:key) { 'key' }
+
+    before { span.set_metric(key, value) }
+    let(:value) { 1.0 }
+
+    it do
+      expect { subject }.to change { span.get_metric(key) }.from(value).to(nil)
+    end
+
+    it 'removes value, instead of setting to nil, to ensure correct deserialization by agent' do
+      subject
+      expect(span.instance_variable_get(:@metrics)).to_not have_key(key)
+    end
+  end
+
   describe '#set_tag' do
     subject(:set_tag) { span.set_tag(key, value) }
     before { set_tag }
