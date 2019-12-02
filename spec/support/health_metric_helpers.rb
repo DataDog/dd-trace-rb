@@ -22,6 +22,9 @@ module HealthMetricHelpers
       error_unfinished_spans: {
         type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_ERROR_UNFINISHED_SPANS
       },
+      instrumentation_patched: {
+        type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_INSTRUMENTATION_PATCHED
+      },
       queue_accepted: { type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED },
       queue_accepted_lengths: {
         type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED_LENGTHS

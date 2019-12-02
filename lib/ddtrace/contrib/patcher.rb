@@ -26,7 +26,10 @@ module Datadog
 
           do_once(:patch) do
             begin
-              super
+              super.tap do
+                # Emit a metric
+                Diagnostics::Health.metrics.instrumentation_patched(1, tags: default_tags)
+              end
             rescue StandardError => e
               # Log the error
               Datadog::Tracer.log.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")

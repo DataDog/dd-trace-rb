@@ -14,6 +14,7 @@ module Datadog
           METRIC_ERROR_INSTRUMENTATION_PATCH = 'datadog.tracer.error.instrumentation_patch'.freeze
           METRIC_ERROR_SPAN_FINISH = 'datadog.tracer.error.span_finish'.freeze
           METRIC_ERROR_UNFINISHED_SPANS = 'datadog.tracer.error.unfinished_spans'.freeze
+          METRIC_INSTRUMENTATION_PATCHED = 'datadog.tracer.instrumentation_patched'.freeze
           METRIC_QUEUE_ACCEPTED = 'datadog.tracer.queue.accepted'.freeze
           METRIC_QUEUE_ACCEPTED_LENGTHS = 'datadog.tracer.queue.accepted_lengths'.freeze
           METRIC_QUEUE_DROPPED = 'datadog.tracer.queue.dropped'.freeze
