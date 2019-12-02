@@ -27,14 +27,11 @@ module Datadog
     class TokenBucket < RateLimiter
       attr_reader :rate, :max_tokens
 
-      # @param rate [Float] Allowance rate between +[0,1]+
+      # @param rate [Numeric] Allowance rate, in units per second
+      #  if rate is negative, always allow
+      #  if rate is zero, never allow
       # @param max_tokens [Numeric] Limit of available tokens
       def initialize(rate, max_tokens = rate)
-        unless rate >= 0.0 && rate <= 1.0
-          Datadog::Tracer.log.error('rate is not between 0 and 1, setting limiter to 100% as a fallback')
-          rate = 1.0
-        end
-
         @rate = rate
         @max_tokens = max_tokens
 
@@ -55,6 +52,7 @@ module Datadog
       # @return [Boolean] +true+ if message conforms with current bucket limit
       def allow?(size)
         return false if @rate.zero?
+        return true if @rate < 0
 
         refill_since_last_message
 
@@ -77,7 +75,7 @@ module Datadog
       # @return [Float] Conformance ratio, between +[0,1]+
       def effective_rate
         return 0.0 if @rate.zero?
-        return 1.0 if @total_messages.zero?
+        return 1.0 if @rate < 0 || @total_messages.zero?
 
         @conforming_messages.to_f / @total_messages
       end

@@ -78,6 +78,18 @@ RSpec.describe Datadog::Sampling::TokenBucket do
         end
       end
     end
+
+    context 'with negative rate' do
+      let(:rate) { -1 }
+
+      it { is_expected.to eq(true) }
+    end
+
+    context 'with zero rate' do
+      let(:rate) { 0 }
+
+      it { is_expected.to eq(false) }
+    end
   end
 
   describe '#effective_rate' do
@@ -105,6 +117,18 @@ RSpec.describe Datadog::Sampling::TokenBucket do
         let(:size) { max_tokens + 1 }
         it { is_expected.to eq(0.0) }
       end
+    end
+
+    context 'with negative rate' do
+      let(:rate) { -1 }
+
+      it { is_expected.to eq(1.0) }
+    end
+
+    context 'with zero rate' do
+      let(:rate) { 0 }
+
+      it { is_expected.to eq(0.0) }
     end
   end
 end
