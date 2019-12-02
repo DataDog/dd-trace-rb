@@ -9,6 +9,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           require 'ddtrace/contrib/sidekiq/client_tracer'
           ::Sidekiq.configure_client do |config|

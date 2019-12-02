@@ -11,6 +11,10 @@ module Datadog
 
           module_function
 
+          def target_version
+            Integration.version
+          end
+
           def patch
             patch_cache_store_read
             patch_cache_store_fetch

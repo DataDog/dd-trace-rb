@@ -12,6 +12,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         # patch applies our patch if needed
         def patch
           ::Net::HTTP.send(:include, Instrumentation)

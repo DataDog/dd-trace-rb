@@ -12,6 +12,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           # Add instrumentation patch to Rake task
           ::Rake::Task.send(:include, Instrumentation)

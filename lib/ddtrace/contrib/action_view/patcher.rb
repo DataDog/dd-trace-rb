@@ -14,13 +14,17 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           patch_renderer
         end
 
         def patch_renderer
           if defined?(::ActionView::TemplateRenderer) && defined?(::ActionView::PartialRenderer)
-            if Integration.version < Gem::Version.new('6.0.0')
+            if target_version < Gem::Version.new('6.0.0')
               ::ActionView::TemplateRenderer.send(:prepend, Instrumentation::TemplateRenderer::Rails31To5)
               ::ActionView::PartialRenderer.send(:prepend, Instrumentation::PartialRenderer::RailsLessThan6)
             else

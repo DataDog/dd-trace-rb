@@ -10,6 +10,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           require 'ddtrace/contrib/delayed_job/plugin'
           add_instrumentation(::Delayed::Worker)

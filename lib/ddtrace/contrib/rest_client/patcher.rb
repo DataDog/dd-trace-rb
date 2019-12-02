@@ -7,6 +7,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           require 'ddtrace/ext/app_types'
           require 'ddtrace/contrib/rest_client/request_patch'

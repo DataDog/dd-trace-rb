@@ -11,6 +11,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           ::Mongo::Address.send(:include, Instrumentation::Address)
           ::Mongo::Client.send(:include, Instrumentation::Client)

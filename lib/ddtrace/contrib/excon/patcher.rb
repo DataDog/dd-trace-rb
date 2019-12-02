@@ -9,6 +9,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           require 'ddtrace/contrib/excon/middleware'
           add_middleware

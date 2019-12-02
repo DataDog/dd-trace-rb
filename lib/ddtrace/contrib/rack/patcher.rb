@@ -7,6 +7,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           # Patch middleware
           require_relative 'middlewares'
@@ -18,6 +22,10 @@ module Datadog
         include Contrib::Patcher
 
         module_function
+
+        def target_version
+          Integration.version
+        end
 
         def patch
           patch_middleware_names
@@ -68,6 +76,10 @@ module Datadog
 
         def patched?
           PATCHERS.all?(&:patched?)
+        end
+
+        def target_version
+          Integration.version
         end
 
         def patch

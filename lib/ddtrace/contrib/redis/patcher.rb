@@ -10,6 +10,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         # patch applies our patch if needed
         def patch
           # do not require these by default, but only when actually patching

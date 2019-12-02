@@ -32,11 +32,19 @@ module Datadog
               Datadog::Tracer.log.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
 
               # Emit a metric
-              Diagnostics::Health.metrics.error_instrumentation_patch(
-                1,
-                tags: ["patcher:#{patch_name}", "error:#{e.class.name}"]
-              )
+              tags = default_tags
+              tags << "error:#{e.class.name}"
+
+              Diagnostics::Health.metrics.error_instrumentation_patch(1, tags: tags)
             end
+          end
+        end
+
+        private
+
+        def default_tags
+          ["patcher:#{patch_name}"].tap do |tags|
+            tags << "target_version:#{target_version}" if respond_to?(:target_version) && !target_version.nil?
           end
         end
       end

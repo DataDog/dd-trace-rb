@@ -10,6 +10,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           require 'ddtrace/propagation/grpc_propagator'
           require 'ddtrace/contrib/grpc/datadog_interceptor'

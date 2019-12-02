@@ -39,27 +39,57 @@ RSpec.describe Datadog::Contrib::Patcher do
         end
 
         context 'when patcher .patch raises an error' do
-          let(:patcher) do
-            stub_const('TestPatcher', Class.new do
-              include Datadog::Contrib::Patcher
+          context 'and #target_version is not defined' do
+            let(:patcher) do
+              stub_const('TestPatcher', Class.new do
+                include Datadog::Contrib::Patcher
 
-              def self.patch
-                raise StandardError, 'Patch error!'
-              end
-            end)
+                def self.patch
+                  raise StandardError, 'Patch error!'
+                end
+              end)
+            end
+
+            before do
+              allow(Datadog::Tracer.log).to receive(:error)
+              allow(health_metrics).to receive(:error_instrumentation_patch)
+            end
+
+            it 'handles the error' do
+              expect { patch }.to_not raise_error
+              expect(Datadog::Tracer.log).to have_received(:error)
+                .with(a_patch_error(patcher.name))
+              expect(health_metrics).to have_received(:error_instrumentation_patch)
+                .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
+            end
           end
 
-          before do
-            allow(Datadog::Tracer.log).to receive(:error)
-            allow(health_metrics).to receive(:error_instrumentation_patch)
-          end
+          context 'and #target_version is defined' do
+            let(:patcher) do
+              stub_const('TestPatcher', Class.new do
+                include Datadog::Contrib::Patcher
 
-          it 'handles the error' do
-            expect { patch }.to_not raise_error
-            expect(Datadog::Tracer.log).to have_received(:error)
-              .with(a_patch_error(patcher.name))
-            expect(health_metrics).to have_received(:error_instrumentation_patch)
-              .with(1, tags: ['patcher:TestPatcher', 'error:StandardError'])
+                def self.patch
+                  raise StandardError, 'Patch error!'
+                end
+
+                def self.target_version
+                  Gem::Version.new(1.0)
+                end
+              end)
+            end
+
+            before do
+              allow(Datadog::Tracer.log).to receive(:error)
+            end
+
+            it 'handles the error' do
+              expect { patch }.to_not raise_error
+              expect(Datadog::Tracer.log).to have_received(:error)
+                .with(a_patch_error(patcher.name))
+              expect(health_metrics).to have_received(:error_instrumentation_patch)
+                .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
+            end
           end
         end
       end
@@ -173,26 +203,56 @@ RSpec.describe Datadog::Contrib::Patcher do
         end
 
         context 'when patcher .patch raises an error' do
-          let(:patcher) do
-            stub_const('TestPatcher', Module.new do
-              include Datadog::Contrib::Patcher
+          context 'and #target_version is not defined' do
+            let(:patcher) do
+              stub_const('TestPatcher', Module.new do
+                include Datadog::Contrib::Patcher
 
-              def self.patch
-                raise StandardError, 'Patch error!'
-              end
-            end)
+                def self.patch
+                  raise StandardError, 'Patch error!'
+                end
+              end)
+            end
+
+            before do
+              allow(Datadog::Tracer.log).to receive(:error)
+            end
+
+            it 'handles the error' do
+              expect { patch }.to_not raise_error
+              expect(Datadog::Tracer.log).to have_received(:error)
+                .with(a_patch_error(patcher.name))
+              expect(health_metrics).to have_received(:error_instrumentation_patch)
+                .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
+            end
           end
 
-          before do
-            allow(Datadog::Tracer.log).to receive(:error)
-          end
+          context 'and #target_version is defined' do
+            let(:patcher) do
+              stub_const('TestPatcher', Module.new do
+                include Datadog::Contrib::Patcher
 
-          it 'handles the error' do
-            expect { patch }.to_not raise_error
-            expect(Datadog::Tracer.log).to have_received(:error)
-              .with(a_patch_error(patcher.name))
-            expect(health_metrics).to have_received(:error_instrumentation_patch)
-              .with(1, tags: ['patcher:TestPatcher', 'error:StandardError'])
+                def self.patch
+                  raise StandardError, 'Patch error!'
+                end
+
+                def self.target_version
+                  Gem::Version.new(1.0)
+                end
+              end)
+            end
+
+            before do
+              allow(Datadog::Tracer.log).to receive(:error)
+            end
+
+            it 'handles the error' do
+              expect { patch }.to_not raise_error
+              expect(Datadog::Tracer.log).to have_received(:error)
+                .with(a_patch_error(patcher.name))
+              expect(health_metrics).to have_received(:error_instrumentation_patch)
+                .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
+            end
           end
         end
       end

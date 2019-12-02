@@ -11,6 +11,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           require 'ddtrace/contrib/sucker_punch/exception_handler'
           require 'ddtrace/contrib/sucker_punch/instrumentation'

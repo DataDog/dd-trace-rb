@@ -11,6 +11,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           require 'ddtrace/contrib/aws/parsed_context'
           require 'ddtrace/contrib/aws/instrumentation'

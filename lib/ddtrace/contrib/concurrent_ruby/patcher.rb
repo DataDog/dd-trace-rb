@@ -9,6 +9,10 @@ module Datadog
 
         module_function
 
+        def target_version
+          Integration.version
+        end
+
         def patch
           require 'ddtrace/contrib/concurrent_ruby/future_patch'
           patch_future
