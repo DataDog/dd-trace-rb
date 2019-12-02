@@ -20,6 +20,25 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
   end
 
+  context '#initialize' do
+    subject(:rule_sampler) { described_class.new(rules) }
+
+    it { expect(subject.rate_limiter).to be_a(Datadog::Sampling::UnlimitedLimiter) }
+    it { expect(subject.default_sampler).to be_a(Datadog::AllSampler) }
+
+    context 'with rate_limit' do
+      subject(:rule_sampler) { described_class.new(rules, rate_limit: 1.0) }
+
+      it { expect(subject.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
+    end
+
+    context 'with default_sample_rate' do
+      subject(:rule_sampler) { described_class.new(rules, default_sample_rate: 1.0) }
+
+      it { expect(subject.default_sampler).to be_a(Datadog::RateSampler) }
+    end
+  end
+
   shared_context 'matching rule' do
     let(:rules) { [rule] }
     let(:rule) { instance_double(Datadog::Sampling::Rule) }
