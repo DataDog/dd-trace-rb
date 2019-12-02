@@ -37,7 +37,7 @@ module Datadog
                         elsif rate_limit
                           Datadog::Sampling::TokenBucket.new(rate_limit)
                         else
-                          Datadog::Sampling::TokenBucket.new(100)
+                          Datadog::Sampling::UnlimitedLimiter.new
                         end
 
         @default_sampler = if default_sampler
