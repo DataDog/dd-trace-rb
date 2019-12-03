@@ -1,9 +1,7 @@
 require 'thread'
 
-require 'ddtrace/context/default_provider'
-require 'ddtrace/context/thread_local'
-require 'ddtrace/context/flush/finished'
-require 'ddtrace/context/flush/partial'
+require 'ddtrace/context_flush'
+require 'ddtrace/context_provider'
 
 module Datadog
   # \Context is used to keep track of a hierarchy of spans for the current
@@ -171,7 +169,7 @@ module Datadog
         return nil, sampled unless check_finished_spans()
 
         # Root span is finished at this point, we can configure it
-        configure_root_span
+        annotate_for_flush(@current_root_span)
 
         reset
         [trace, sampled]
@@ -206,7 +204,7 @@ module Datadog
     end
 
     # Set tags to root span required for flush
-    def configure_root_span(span = @current_root_span)
+    def annotate_for_flush(span)
       attach_sampling_priority(span) if @sampled && @sampling_priority
       attach_origin(span) if @origin
     end
