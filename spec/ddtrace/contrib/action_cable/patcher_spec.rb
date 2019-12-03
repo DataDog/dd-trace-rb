@@ -126,7 +126,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.service).to eq('action_cable')
         expect(span.name).to eq('action_cable.transmit')
         expect(span.span_type).to eq('web')
-        expect(span.resource).to eq('ChatChannel.transmit')
+        expect(span.resource).to eq('ChatChannel')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
         expect(span.get_tag('action_cable.transmit.via')).to eq('streamed from chat_channel')
         expect(span).to_not have_error

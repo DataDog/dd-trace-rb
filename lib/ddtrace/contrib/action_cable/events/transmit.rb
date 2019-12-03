@@ -32,7 +32,7 @@ module Datadog
             channel_class = payload[:channel_class]
 
             span.service = configuration[:service_name]
-            span.resource = "#{channel_class}.transmit"
+            span.resource = channel_class
             span.span_type = span_type
 
             # Set analytics sample rate
