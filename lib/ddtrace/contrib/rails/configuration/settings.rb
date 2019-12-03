@@ -64,13 +64,6 @@ module Datadog
             end
           end
 
-          option :web_sockets_service do |o|
-            o.on_set do |value|
-              # Update ActionCable service name too
-              Datadog.configuration[:action_cable][:service_name] = value
-            end
-          end
-
           option :tracer do |o|
             o.delegate_to { Datadog.tracer }
             o.on_set do |value|

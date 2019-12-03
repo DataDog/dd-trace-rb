@@ -24,6 +24,7 @@ module Datadog
           config = config_with_defaults
 
           activate_rack!(config)
+          activate_action_cable!(config)
           activate_active_support!(config)
           activate_action_pack!(config)
           activate_action_view!(config)
@@ -42,7 +43,6 @@ module Datadog
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"
-            config[:web_sockets_service] ||= "#{config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}"
           end
         end
 
@@ -72,7 +72,7 @@ module Datadog
 
           Datadog.configuration.use(
             :action_cable,
-            service_name: config[:web_sockets_service],
+            service_name: "#{config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}",
             tracer: config[:tracer]
           )
         end
