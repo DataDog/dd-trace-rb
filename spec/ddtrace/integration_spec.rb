@@ -18,6 +18,15 @@ RSpec.describe 'Tracer integration tests' do
     let(:configure_options) { { enabled: true } }
   end
 
+  shared_examples 'flushed trace' do
+    it do
+      expect(stats[:traces_flushed]).to eq(1)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
+    end
+  end
+
   describe 'agent receives span' do
     include_context 'agent-based test'
 
@@ -101,11 +110,97 @@ RSpec.describe 'Tracer integration tests' do
     it do
       expect(@first_shutdown).to be true
       expect(@span.finished?).to be true
-      expect(stats[:traces_flushed]).to eq(1)
       expect(stats[:services_flushed]).to be_nil
-      expect(stats[:transport].client_error).to eq(0)
-      expect(stats[:transport].server_error).to eq(0)
-      expect(stats[:transport].internal_error).to eq(0)
+    end
+
+    it_behaves_like 'flushed trace'
+  end
+
+  describe 'rule sampler' do
+    include_context 'agent-based test'
+
+    shared_examples 'priority sampled' do |sampling_priority|
+      it { expect(@sampling_priority).to eq(sampling_priority) }
+    end
+
+    shared_examples 'rule sampling rate metric' do |rate|
+      it { expect(@rule_sample_rate).to eq(rate) }
+    end
+
+    shared_examples 'rate limit metric' do |rate|
+      it { expect(@rate_limiter_rate).to eq(rate) }
+    end
+
+    before(:each) do
+      tracer.trace('my.op') do |span|
+        @sampling_priority = span.context.sampling_priority
+        @rule_sample_rate = span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)
+        @rate_limiter_rate = span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)
+      end
+
+      tracer.shutdown!
+    end
+
+    let(:stats) { tracer.writer.stats }
+    let(:initialize_options) { { sampler: Datadog::PrioritySampler.new(post_sampler: rule_sampler) } }
+
+    context 'with default settings' do
+      let(:rule_sampler) { Datadog::Sampling::RuleSampler.new }
+
+      it_behaves_like 'flushed trace'
+      it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
+      it_behaves_like 'rule sampling rate metric', nil
+      it_behaves_like 'rate limit metric', nil
+    end
+
+    context 'with low default sample rate' do
+      let(:rule_sampler) { Datadog::Sampling::RuleSampler.new(default_sample_rate: Float::MIN) }
+
+      it_behaves_like 'flushed trace'
+      it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
+      it_behaves_like 'rule sampling rate metric', nil
+      it_behaves_like 'rate limit metric', nil
+    end
+
+    context 'with rule' do
+      let(:rule_sampler) { Datadog::Sampling::RuleSampler.new([rule], **rule_sampler_opt) }
+      let(:rule_sampler_opt) { {} }
+
+      context 'matching span' do
+        let(:rule) { Datadog::Sampling::SimpleRule.new(name: 'my.op') }
+
+        it_behaves_like 'flushed trace'
+        it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
+        it_behaves_like 'rule sampling rate metric', 1.0
+        it_behaves_like 'rate limit metric', 1.0
+
+        context 'with low sample rate' do
+          let(:rule) { Datadog::Sampling::SimpleRule.new(sample_rate: Float::MIN) }
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
+          it_behaves_like 'rule sampling rate metric', Float::MIN
+          it_behaves_like 'rate limit metric', nil
+        end
+
+        context 'rate limited' do
+          let(:rule_sampler_opt) { { rate_limit: Float::MIN } }
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 0.0
+        end
+      end
+
+      context 'not matching span' do
+        let(:rule) { Datadog::Sampling::SimpleRule.new(name: 'not.my.op') }
+
+        it_behaves_like 'flushed trace'
+        it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
+        it_behaves_like 'rule sampling rate metric', nil
+        it_behaves_like 'rate limit metric', nil
+      end
     end
   end
 
@@ -131,12 +226,10 @@ RSpec.describe 'Tracer integration tests' do
 
     it do
       expect(@shutdown_results.count(true)).to eq(1)
-      expect(stats[:traces_flushed]).to eq(1)
       expect(stats[:services_flushed]).to be_nil
-      expect(stats[:transport].client_error).to eq(0)
-      expect(stats[:transport].server_error).to eq(0)
-      expect(stats[:transport].internal_error).to eq(0)
     end
+
+    it_behaves_like 'flushed trace'
   end
 
   describe 'sampling priority metrics' do
@@ -190,12 +283,9 @@ RSpec.describe 'Tracer integration tests' do
   describe 'sampling priority integration' do
     include_context 'agent-based test'
 
-    before(:each) do
-      tracer.configure(
-        enabled: true,
-        priority_sampling: true
-      )
-    end
+    # Expect default tracer & tracer instance to both have priority sampling.
+    it { expect(Datadog.tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler) }
+    it { expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler) }
 
     it do
       3.times do |i|

@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/faraday/ext'
+require 'ddtrace/contrib/faraday/rack_builder'
 
 module Datadog
   module Contrib
@@ -21,7 +22,8 @@ module Datadog
               require 'ddtrace/contrib/faraday/middleware'
 
               add_pin!
-              add_middleware!
+              register_middleware!
+              add_default_middleware!
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Faraday integration: #{e}")
             end
@@ -38,8 +40,12 @@ module Datadog
             ).onto(::Faraday)
         end
 
-        def add_middleware!
+        def register_middleware!
           ::Faraday::Middleware.register_middleware(ddtrace: Middleware)
+        end
+
+        def add_default_middleware!
+          ::Faraday::RackBuilder.send(:prepend, RackBuilder)
         end
 
         def get_option(option)

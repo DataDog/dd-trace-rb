@@ -18,8 +18,8 @@ module Datadog
 
     def initialize(options = {})
       # writer and transport parameters
-      @buff_size = options.fetch(:buffer_size, 100)
-      @flush_interval = options.fetch(:flush_interval, 1)
+      @buff_size = options.fetch(:buffer_size, Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE)
+      @flush_interval = options.fetch(:flush_interval, Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL)
       transport_options = options.fetch(:transport_options, {})
 
       # priority sampling
@@ -106,7 +106,7 @@ module Datadog
         Datadog::Patcher.do_once('Writer#write') do
           Datadog::Tracer.log.warn(%(
             write: Writing services has been deprecated and no longer need to be provided.
-            write(traces, services) can be updted to write(traces)
+            write(traces, services) can be updated to write(traces)
           ))
         end
       end

@@ -10,7 +10,7 @@ RSpec.describe 'Faraday middleware' do
 
   let(:client) do
     ::Faraday.new('http://example.com') do |builder|
-      builder.use(:ddtrace, middleware_options)
+      builder.use(:ddtrace, middleware_options) if use_middleware
       builder.adapter(:test) do |stub|
         stub.get('/success') { |_| [200, {}, 'OK'] }
         stub.post('/failure') { |_| [500, {}, 'Boom!'] }
@@ -19,6 +19,7 @@ RSpec.describe 'Faraday middleware' do
     end
   end
 
+  let(:use_middleware) { true }
   let(:middleware_options) { {} }
   let(:configuration_options) { { tracer: tracer } }
 
@@ -37,6 +38,27 @@ RSpec.describe 'Faraday middleware' do
     Datadog.registry[:faraday].reset_configuration!
     example.run
     Datadog.registry[:faraday].reset_configuration!
+  end
+
+  context 'without explicit middleware configured' do
+    subject!(:response) { client.get('/success') }
+    let(:use_middleware) { false }
+
+    it 'uses default configuration' do
+      expect(response.status).to eq(200)
+
+      expect(request_span).to_not be nil
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
+      expect(request_span.resource).to eq('GET')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+      expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
+      expect(request_span).to_not have_error
+    end
   end
 
   context 'when there is no interference' do

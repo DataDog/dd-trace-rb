@@ -16,6 +16,7 @@ require 'support/faux_writer'
 require 'support/http_helpers'
 require 'support/log_helpers'
 require 'support/metric_helpers'
+require 'support/health_metric_helpers'
 require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
@@ -38,6 +39,7 @@ RSpec.configure do |config|
   config.include HttpHelpers
   config.include LogHelpers
   config.include MetricHelpers
+  config.include HealthMetricHelpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
   config.include TracerHelpers

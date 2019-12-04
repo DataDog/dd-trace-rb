@@ -1,5 +1,12 @@
 require 'thread'
 
+# During development, we load `ddtrace` by through `ddtrace.gemspec`,
+# which in turn eager loads 'ddtrace/version'.
+#
+# Users load this gem by requiring this file.
+# We need to ensure that any files loaded in our gemspec are also loaded here.
+require 'ddtrace/version'
+
 require 'ddtrace/pin'
 require 'ddtrace/tracer'
 require 'ddtrace/error'

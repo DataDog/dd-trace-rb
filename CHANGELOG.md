@@ -2,6 +2,44 @@
 
 ## [Unreleased]
 
+## [0.29.1] - 2019-11-26
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.29.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.29.0...v0.29.1
+
+### Fixed
+
+- Priority sampling not activating by default (#868)
+
+## [0.29.0] - 2019-11-20
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.29.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.28.0...v0.29.0
+
+### Added
+
+- Tracer health metrics (#838, #859)
+
+### Changed
+
+- Default trace buffer size from 100 to 1000 (#865)
+- Rack request start headers to accept more values (#832) (@JamesHarker)
+- Faraday to apply default instrumentation out-of-the-box (#786, #843) (@mdross95)
+
+### Fixed
+
+- Synthetics trace context being ignored (#856)
+
+### Refactored
+
+- Tracer buffer constants (#851)
+
+### Removed
+
+- Some old Ruby 1.9 code (#819, #844)
+
 ## [0.28.0] - 2019-10-01
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.28.0
@@ -34,16 +72,16 @@ Version 0.26.x will receive only critical bugfixes for 1 year following the rele
 
 ### Added
 
- - Support for Ruby 2.5 & 2.6 (#800, #802)
- - Ethon integration (#527, #778) (@al-kudryavtsev)
+- Support for Ruby 2.5 & 2.6 (#800, #802)
+- Ethon integration (#527, #778) (@al-kudryavtsev)
 
 ### Refactored
 
- - Rails integration into smaller integrations per component (#747, #762, #795)
+- Rails integration into smaller integrations per component (#747, #762, #795)
 
 ### Removed
 
- - Support for Ruby 1.9 (#791)
+- Support for Ruby 1.9 (#791)
 
 ## [0.26.0] - 2019-08-06
 
@@ -97,25 +135,25 @@ Version 0.26.x will receive only critical bugfixes for 1 year following the rele
 
 ### Added
 
- - Unix socket support for transport layer (#770)
+- Unix socket support for transport layer (#770)
 
 ### Changed
 
- - Renamed 'ForcedTracing' to 'ManualTracing' (#765)
+- Renamed 'ForcedTracing' to 'ManualTracing' (#765)
 
 ### Fixed
 
- - HTTP headers for distributed tracing sometimes appearing in duplicate (#768)
+- HTTP headers for distributed tracing sometimes appearing in duplicate (#768)
 
 ### Refactored
 
- - Transport layer (#628)
+- Transport layer (#628)
 
 ### Deprecated
 
- - Ruby < 2.0 support (#771)
- - Use of `Datadog::HTTPTransport` (#628)
- - Use of `Datadog::Ext::ForcedTracing` (#765)
+- Ruby < 2.0 support (#771)
+- Use of `Datadog::HTTPTransport` (#628)
+- Use of `Datadog::Ext::ForcedTracing` (#765)
 
 ## [0.24.0] - 2019-05-21
 
@@ -943,7 +981,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.28.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.29.1...master
+[0.29.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.29.0...v0.29.1
+[0.29.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...v0.26.0

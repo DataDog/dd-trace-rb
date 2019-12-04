@@ -10,6 +10,8 @@ module Datadog
     # will perform a task at regular intervals. The thread can be stopped
     # with the +stop()+ method and can start with the +start()+ method.
     class AsyncTransport
+      DEFAULT_BUFFER_MAX_SIZE = 1000
+      DEFAULT_FLUSH_INTERVAL = 1
       DEFAULT_TIMEOUT = 5
       BACK_OFF_RATIO = 1.2
       BACK_OFF_MAX = 5
@@ -26,12 +28,12 @@ module Datadog
         @runtime_metrics_task = options[:on_runtime_metrics]
 
         # Intervals
-        interval = options.fetch(:interval, 1)
+        interval = options.fetch(:interval, DEFAULT_FLUSH_INTERVAL)
         @flush_interval = interval
         @back_off = interval
 
         # Buffers
-        buffer_size = options.fetch(:buffer_size, 100)
+        buffer_size = options.fetch(:buffer_size, DEFAULT_BUFFER_MAX_SIZE)
         @trace_buffer = TraceBuffer.new(buffer_size)
 
         # Threading
