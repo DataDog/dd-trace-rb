@@ -32,8 +32,13 @@ RSpec.describe Datadog::Sampling::Rule do
     end
 
     context 'when matcher errs' do
+      let(:error) { StandardError }
+
       before do
-        allow(matcher).to receive(:match?).and_raise(StandardError)
+        allow(matcher).to receive(:match?).and_raise(error)
+
+        expect(Datadog::Tracer.log).to receive(:error)
+          .with(a_string_including("Matcher failed. Cause: #{error}"))
       end
 
       it { is_expected.to be nil }
