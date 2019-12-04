@@ -1,7 +1,8 @@
 require 'spec_helper'
-require 'ddtrace'
 
+require 'ddtrace'
 require 'ddtrace/contrib/analytics_examples'
+
 require 'rails'
 require 'active_support/core_ext/hash/indifferent_access'
 
@@ -102,6 +103,24 @@ RSpec.describe 'ActionCable patcher' do
         before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::PerformAction::EVENT_NAME) }
         let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+
+      context 'with a leaking context' do
+        let!(:leaky_span) { tracer.trace('unfinished_span') }
+
+        before do
+          expect(Datadog::Diagnostics::Health.metrics).to receive(:error_unfinished_context)
+            .with(1, tags: [
+                    'span_name:unfinished_span',
+                    'event:Datadog::Contrib::ActionCable::Events::PerformAction'
+                  ])
+        end
+
+        it 'traces transmit event' do
+          perform
+
+          expect(span.name).to eq('action_cable.action')
+        end
       end
     end
 

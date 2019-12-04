@@ -10,7 +10,7 @@ module Datadog
         # An action, triggered by a WebSockets client, invokes a method
         # in the server's channel instance.
         module PerformAction
-          include ActionCable::Event
+          include ActionCable::RootContextEvent
 
           EVENT_NAME = 'perform_action.action_cable'.freeze
 

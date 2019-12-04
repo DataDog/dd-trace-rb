@@ -13,6 +13,7 @@ module Datadog
         count :error_context_overflow, Ext::Diagnostics::Health::Metrics::METRIC_ERROR_CONTEXT_OVERFLOW
         count :error_span_finish, Ext::Diagnostics::Health::Metrics::METRIC_ERROR_SPAN_FINISH
         count :error_unfinished_spans, Ext::Diagnostics::Health::Metrics::METRIC_ERROR_UNFINISHED_SPANS
+        count :error_unfinished_context, Ext::Diagnostics::Health::Metrics::METRIC_ERROR_UNFINISHED_CONTEXT
         count :queue_accepted, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED
         count :queue_accepted_lengths, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED_LENGTHS
         count :queue_dropped, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_DROPPED
