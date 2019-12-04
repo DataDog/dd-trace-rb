@@ -18,8 +18,22 @@ module Datadog
         def patch
           do_once(:resque) do
             begin
-              require_relative 'resque_job'
-              get_option(:workers).each { |worker| worker.extend(ResqueJob) }
+              require_relative 'enqueue'
+              require_relative 'job'
+              require_relative 'worker'
+
+              # Patch Resque class
+              ::Resque.class_eval { prepend Enqueue }
+              # Patch Resque::Job class
+              ::Resque::Job.class_eval { prepend Job }
+              # Patch Resque::Worker class
+              ::Resque::Worker.class_eval { prepend Worker }
+
+              # Setup pin on Resque
+              Datadog::Pin.new(
+                get_option(:service_name),
+                tracer: get_option(:tracer)
+              ).onto(::Resque)
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply Resque integration: #{e}")
             end
