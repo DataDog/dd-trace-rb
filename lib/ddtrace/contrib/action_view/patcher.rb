@@ -15,38 +15,30 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:action_view)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:action_view) do
-            begin
-              patch_renderer
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Action View integration: #{e} Location: #{e.backtrace.first}")
-            end
-          end
+          patch_renderer
         end
 
         def patch_renderer
-          do_once(:patch_renderer) do
-            if Integration.version >= Gem::Version.new('4.0.0')
-              Events.subscribe!
-            elsif defined?(::ActionView::TemplateRenderer) && defined?(::ActionView::PartialRenderer)
-              # Rails < 4 compatibility:
-              #  Rendering events are not nested in this version, creating
-              #  render_partial spans outside of the parent render_template span.
-              #  We fall back to manual patching instead.
-              ::ActionView::TemplateRenderer.send(:prepend, Instrumentation::TemplateRenderer::RailsLessThan4)
-              ::ActionView::PartialRenderer.send(:prepend, Instrumentation::PartialRenderer::RailsLessThan4)
-            elsif defined?(::ActionView::Rendering) && defined?(::ActionView::Partials::PartialRenderer)
-              # NOTE: Rails < 3.1 compatibility: different classes are used
-              ::ActionView::Rendering.send(:prepend, Instrumentation::TemplateRenderer::Rails30)
-              ::ActionView::Partials::PartialRenderer.send(:prepend, Instrumentation::PartialRenderer::RailsLessThan4)
-            else
-              Datadog::Tracer.log.debug('Expected Template/Partial classes not found; template rendering disabled')
-            end
+          if target_version >= Gem::Version.new('4.0.0')
+            Events.subscribe!
+          elsif defined?(::ActionView::TemplateRenderer) && defined?(::ActionView::PartialRenderer)
+            # Rails < 4 compatibility:
+            #  Rendering events are not nested in this version, creating
+            #  render_partial spans outside of the parent render_template span.
+            #  We fall back to manual patching instead.
+            ::ActionView::TemplateRenderer.send(:prepend, Instrumentation::TemplateRenderer::RailsLessThan4)
+            ::ActionView::PartialRenderer.send(:prepend, Instrumentation::PartialRenderer::RailsLessThan4)
+          elsif defined?(::ActionView::Rendering) && defined?(::ActionView::Partials::PartialRenderer)
+            # NOTE: Rails < 3.1 compatibility: different classes are used
+            ::ActionView::Rendering.send(:prepend, Instrumentation::TemplateRenderer::Rails30)
+            ::ActionView::Partials::PartialRenderer.send(:prepend, Instrumentation::PartialRenderer::RailsLessThan4)
+          else
+            Datadog::Tracer.log.debug('Expected Template/Partial classes not found; template rendering disabled')
           end
         end
       end

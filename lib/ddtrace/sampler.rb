@@ -1,6 +1,7 @@
 require 'forwardable'
 
 require 'ddtrace/ext/priority'
+require 'ddtrace/diagnostics/health'
 
 module Datadog
   # \Sampler performs client-side trace sampling.
@@ -11,6 +12,10 @@ module Datadog
 
     def sample!(_span)
       raise NotImplementedError, 'Samplers must implement the #sample! method'
+    end
+
+    def sample_rate(span)
+      raise NotImplementedError, 'Samplers must implement the #sample_rate method'
     end
   end
 
@@ -23,14 +28,16 @@ module Datadog
     def sample!(span)
       span.sampled = true
     end
+
+    def sample_rate(*_)
+      1.0
+    end
   end
 
   # \RateSampler is based on a sample rate.
   class RateSampler < Sampler
     KNUTH_FACTOR = 1111111111111111111
     SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
-
-    attr_reader :sample_rate
 
     # Initialize a \RateSampler.
     # This sampler keeps a random subset of the traces. Its main purpose is to
@@ -46,6 +53,10 @@ module Datadog
       end
 
       self.sample_rate = sample_rate
+    end
+
+    def sample_rate(*_)
+      @sample_rate
     end
 
     def sample_rate=(sample_rate)
@@ -136,6 +147,10 @@ module Datadog
       end
     end
 
+    def length
+      @samplers.length
+    end
+
     private
 
     def set_rate(key, rate)
@@ -159,6 +174,9 @@ module Datadog
 
       # Update each service rate
       update_all(rate_by_service)
+
+      # Emit metric for service cache size
+      Diagnostics::Health.metrics.sampling_service_cache_length(length)
     end
 
     private
@@ -195,10 +213,8 @@ module Datadog
         # If priority sampling has already been applied upstream, use that, otherwise...
         unless priority_assigned_upstream?(span)
           # Roll the dice and determine whether how we set the priority.
-          # NOTE: We'll want to leave `span.sampled = true` here; all spans for priority sampling must
-          #       be sent to the agent. Otherwise metrics for traces will not be accurate, since the
-          #       agent will have an incomplete dataset.
-          priority = priority_sample(span) ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
+          priority = priority_sample!(span) ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
+
           assign_priority!(span, priority)
         end
       else
@@ -229,8 +245,33 @@ module Datadog
       span.context && !span.context.sampling_priority.nil?
     end
 
-    def priority_sample(span)
-      @priority_sampler.sample?(span)
+    def priority_sample!(span)
+      preserving_sampling(span) do
+        @priority_sampler.sample!(span)
+      end
+    end
+
+    # Ensures the span is always propagated to the writer and that
+    # the sample rate metric represents the true client-side sampling.
+    def preserving_sampling(span)
+      pre_sample_rate_metric = span.get_metric(SAMPLE_RATE_METRIC_KEY)
+
+      yield.tap do
+        # NOTE: We'll want to leave `span.sampled = true` here; all spans for priority sampling must
+        #       be sent to the agent. Otherwise metrics for traces will not be accurate, since the
+        #       agent will have an incomplete dataset.
+        #
+        #       We also ensure that the agent knows we that our `post_sampler` is not performing true sampling,
+        #       to avoid erroneous metric upscaling.
+        span.sampled = true
+        if pre_sample_rate_metric
+          # Restore true sampling metric, as only the @pre_sampler can reject traces
+          span.set_metric(SAMPLE_RATE_METRIC_KEY, pre_sample_rate_metric)
+        else
+          # If @pre_sampler is not enable, sending this metric would be misleading
+          span.clear_metric(SAMPLE_RATE_METRIC_KEY)
+        end
+      end
     end
 
     def assign_priority!(span, priority)

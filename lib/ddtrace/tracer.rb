@@ -10,6 +10,7 @@ require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
+require 'ddtrace/sampling'
 require 'ddtrace/correlation'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
