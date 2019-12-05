@@ -84,7 +84,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Datadog do
     let(:env) { {} }
 
     context 'with empty env' do
-      it { is_expected.to be_nil }
+      it { is_expected.to be nil }
     end
 
     context 'with trace_id and span_id' do
@@ -95,8 +95,8 @@ RSpec.describe Datadog::DistributedTracing::Headers::Datadog do
 
       it { expect(context.trace_id).to eq(10000) }
       it { expect(context.span_id).to eq(20000) }
-      it { expect(context.sampling_priority).to be_nil }
-      it { expect(context.origin).to be_nil }
+      it { expect(context.sampling_priority).to be nil }
+      it { expect(context.origin).to be nil }
 
       context 'with sampling priority' do
         let(:env) do
@@ -108,7 +108,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Datadog do
         it { expect(context.trace_id).to eq(10000) }
         it { expect(context.span_id).to eq(20000) }
         it { expect(context.sampling_priority).to eq(1) }
-        it { expect(context.origin).to be_nil }
+        it { expect(context.origin).to be nil }
 
         context 'with origin' do
           let(:env) do
@@ -134,29 +134,29 @@ RSpec.describe Datadog::DistributedTracing::Headers::Datadog do
 
         it { expect(context.trace_id).to eq(10000) }
         it { expect(context.span_id).to eq(20000) }
-        it { expect(context.sampling_priority).to be_nil }
+        it { expect(context.sampling_priority).to be nil }
         it { expect(context.origin).to eq('synthetics') }
       end
     end
 
     context 'with span_id' do
       let(:env) { { env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID) => '10000' } }
-      it { is_expected.to be_nil }
+      it { is_expected.to be nil }
     end
 
     context 'with origin' do
       let(:env) { { env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN) => 'synthetics' } }
-      it { is_expected.to be_nil }
+      it { is_expected.to be nil }
     end
 
     context 'with sampling priority' do
       let(:env) { { env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY) => '1' } }
-      it { is_expected.to be_nil }
+      it { is_expected.to be nil }
     end
 
     context 'with trace_id' do
       let(:env) { { env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID) => '10000' } }
-      it { is_expected.to be_nil }
+      it { is_expected.to be nil }
 
       context 'with synthetics origin' do
         let(:env) do
@@ -165,8 +165,8 @@ RSpec.describe Datadog::DistributedTracing::Headers::Datadog do
         end
 
         it { expect(context.trace_id).to eq(10000) }
-        it { expect(context.span_id).to be_nil }
-        it { expect(context.sampling_priority).to be_nil }
+        it { expect(context.span_id).to be nil }
+        it { expect(context.sampling_priority).to be nil }
         it { expect(context.origin).to eq('synthetics') }
       end
 
@@ -176,7 +176,10 @@ RSpec.describe Datadog::DistributedTracing::Headers::Datadog do
             env_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN) => 'custom-origin' }
         end
 
-        it { is_expected.to be_nil }
+        it { expect(context.trace_id).to eq(10000) }
+        it { expect(context.span_id).to be nil }
+        it { expect(context.sampling_priority).to be nil }
+        it { expect(context.origin).to eq('custom-origin') }
       end
     end
   end

@@ -1,3 +1,5 @@
+require 'ddtrace/diagnostics/health'
+
 module Datadog
   module Transport
     # Tracks statistics for transports
@@ -16,6 +18,32 @@ module Datadog
           stats.internal_error += 1 if response.internal_error?
           stats.consecutive_errors += 1
         end
+
+        # Send health metrics
+        Diagnostics::Health.metrics.send_metrics(
+          metrics_for_response(response).values
+        )
+      end
+
+      def metrics_for_response(response)
+        {}.tap do |metrics|
+          metrics[:api_errors] = Metrics::Metric.new(:api_errors, nil, 1) if response.internal_error?
+          metrics[:api_responses] = Metrics::Metric.new(:api_responses, nil, 1) unless response.internal_error?
+        end
+      end
+
+      def update_stats_from_exception!(exception)
+        stats.internal_error += 1
+        stats.consecutive_errors += 1
+
+        # Send health metrics
+        Diagnostics::Health.metrics.send_metrics(
+          metrics_for_exception(exception).values
+        )
+      end
+
+      def metrics_for_exception(_exception)
+        { api_errors: Metrics::Metric.new(:api_errors, nil, 1) }
       end
 
       # Stat counts

@@ -10,19 +10,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:delayed_job)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:delayed_job) do
-            begin
-              require 'ddtrace/contrib/delayed_job/plugin'
-              add_instrumentation(::Delayed::Worker)
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply DelayedJob integration: #{e}")
-            end
-          end
+          require 'ddtrace/contrib/delayed_job/plugin'
+          add_instrumentation(::Delayed::Worker)
         end
 
         def add_instrumentation(klass)

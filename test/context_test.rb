@@ -380,7 +380,7 @@ end
 
 class ThreadLocalContextTest < Minitest::Test
   def test_get
-    local_ctx = Datadog::Context::ThreadLocal.new
+    local_ctx = Datadog::ThreadLocalContext.new
     ctx = local_ctx.local
     refute_nil(ctx)
     assert_instance_of(Datadog::Context, ctx)
@@ -388,7 +388,7 @@ class ThreadLocalContextTest < Minitest::Test
 
   def test_set
     tracer = get_test_tracer
-    local_ctx = Datadog::Context::ThreadLocal.new
+    local_ctx = Datadog::ThreadLocalContext.new
     ctx = Datadog::Context.new
 
     span = Datadog::Span.new(tracer, 'test.op')
@@ -402,7 +402,7 @@ class ThreadLocalContextTest < Minitest::Test
 
   def test_multiple_threads_multiple_context
     tracer = get_test_tracer
-    local_ctx = Datadog::Context::ThreadLocal.new
+    local_ctx = Datadog::ThreadLocalContext.new
 
     n = 100
     threads = []

@@ -8,6 +8,7 @@ require 'ddtrace/context'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
+require 'ddtrace/sampling'
 require 'ddtrace/correlation'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
@@ -111,8 +112,8 @@ module Datadog
       @writer = options.fetch(:writer, Datadog::Writer.new)
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
 
-      @provider = options.fetch(:context_provider, Datadog::Context::DefaultProvider.new)
-      @provider ||= Datadog::Context::DefaultProvider.new # @provider should never be nil
+      @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
+      @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
       @context_flush = if options[:partial_flush]
                          Datadog::Context::Flush::Partial.new(options)
@@ -122,6 +123,9 @@ module Datadog
 
       @mutex = Mutex.new
       @tags = {}
+
+      # Enable priority sampling by default
+      activate_priority_sampling!(@sampler)
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
@@ -232,9 +236,10 @@ module Datadog
         # root span
         @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
-        if ctx && ctx.trace_id && ctx.span_id
+
+        if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
-          span.parent_id = ctx.span_id
+          span.parent_id = ctx.span_id unless ctx.span_id.nil?
         end
       else
         # child span
@@ -389,8 +394,8 @@ module Datadog
       transport_options = options.fetch(:transport_options, {})
 
       # Compile writer options
-      rebuild_writer = false
-      writer_options = {}
+      writer_options = options.fetch(:writer_options, {})
+      rebuild_writer = !writer_options.empty?
 
       # Re-build the sampler and writer if priority sampling is enabled,
       # but neither are configured. Verify the sampler isn't already a
@@ -438,7 +443,10 @@ module Datadog
       @sampler = if base_sampler.is_a?(PrioritySampler)
                    base_sampler
                  else
-                   PrioritySampler.new(base_sampler: base_sampler)
+                   PrioritySampler.new(
+                     base_sampler: base_sampler,
+                     post_sampler: Datadog::RateByServiceSampler.new(1.0, env: proc { tags[:env] })
+                   )
                  end
     end
 

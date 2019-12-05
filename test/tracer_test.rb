@@ -344,7 +344,7 @@ class TracerTest < Minitest::Test
   end
 
   def test_provider
-    provider = Datadog::Context::DefaultProvider.new
+    provider = Datadog::DefaultContextProvider.new
     tracer = Datadog::Tracer.new(context_provider: provider)
     assert_same(provider, tracer.provider)
   end
