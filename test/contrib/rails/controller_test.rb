@@ -59,6 +59,27 @@ class TracingControllerTest < ActionController::TestCase
     assert_includes(span.get_tag('rails.layout'), 'layouts/application')
   end
 
+  test 'template rendering is properly without explicit layout' do
+    begin
+      # Most users of Rails do not explicitly specify a controller layout
+      TracingController.class_eval { layout nil }
+
+      # render the template and assert the proper span
+      get :index
+      assert_response :success
+      spans = @tracer.writer.spans()
+      assert_equal(spans.length, 2)
+      span = spans[1]
+      assert_equal(span.name, 'rails.render_template')
+      assert_equal(span.span_type, 'template')
+      assert_equal(span.resource, 'rails.render_template')
+      assert_equal(span.get_tag('rails.template_name'), 'tracing/index.html.erb') if Rails.version >= '3.2.22.5'
+      assert_includes(span.get_tag('rails.template_name'), 'tracing/index.html')
+    ensure
+      TracingController.class_eval { layout 'application' }
+    end
+  end
+
   test 'template partial rendering is properly traced' do
     # render the template and assert the proper span
     get :partial
