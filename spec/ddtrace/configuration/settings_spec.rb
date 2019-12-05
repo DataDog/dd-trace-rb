@@ -1,5 +1,6 @@
 require 'spec_helper'
 
+require 'ddtrace'
 require 'ddtrace/configuration/settings'
 
 RSpec.describe Datadog::Configuration::Settings do
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Configuration::Settings do
           port: 1234,
           env: :config_test,
           tags: { foo: :bar },
+          writer_options: { buffer_size: 1234 },
           instance: tracer
         )
       end
@@ -39,6 +41,14 @@ RSpec.describe Datadog::Configuration::Settings do
         expect(tracer.writer.transport.current_api.adapter.port).to eq(1234)
         expect(tracer.tags[:env]).to eq(:config_test)
         expect(tracer.tags[:foo]).to eq(:bar)
+      end
+    end
+
+    context 'given :writer_options' do
+      before { settings.tracer(writer_options: { buffer_size: 1234 }) }
+
+      it 'applies settings correctly' do
+        expect(settings.tracer.writer.instance_variable_get(:@buff_size)).to eq(1234)
       end
     end
 

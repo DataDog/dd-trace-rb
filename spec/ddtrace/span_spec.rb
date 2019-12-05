@@ -8,6 +8,73 @@ RSpec.describe Datadog::Span do
   let(:context) { Datadog::Context.new }
   let(:name) { 'my.span' }
 
+  describe '#finish' do
+    subject(:finish) { span.finish }
+
+    context 'when an error occurs while closing the span on the context' do
+      include_context 'health metrics'
+
+      let(:error) { error_class.new }
+      let(:error_class) { stub_const('SpanCloseError', Class.new(StandardError)) }
+
+      RSpec::Matchers.define :a_record_finish_error do |error|
+        match { |actual| actual == "error recording finished trace: #{error}" }
+      end
+
+      before do
+        allow(Datadog::Tracer.log).to receive(:debug)
+        allow(context).to receive(:close_span)
+          .with(span)
+          .and_raise(error)
+        finish
+      end
+
+      it 'logs a debug message' do
+        expect(Datadog::Tracer.log).to have_received(:debug)
+          .with(a_record_finish_error(error))
+      end
+
+      it 'sends a span finish error metric' do
+        expect(health_metrics).to have_received(:error_span_finish)
+          .with(1, tags: ["error:#{error_class.name}"])
+      end
+    end
+  end
+
+  describe '#clear_tag' do
+    subject(:clear_tag) { span.clear_tag(key) }
+    let(:key) { 'key' }
+
+    before { span.set_tag(key, value) }
+    let(:value) { 'value' }
+
+    it do
+      expect { subject }.to change { span.get_tag(key) }.from(value).to(nil)
+    end
+
+    it 'removes value, instead of setting to nil, to ensure correct deserialization by agent' do
+      subject
+      expect(span.instance_variable_get(:@meta)).to_not have_key(key)
+    end
+  end
+
+  describe '#clear_metric' do
+    subject(:clear_metric) { span.clear_metric(key) }
+    let(:key) { 'key' }
+
+    before { span.set_metric(key, value) }
+    let(:value) { 1.0 }
+
+    it do
+      expect { subject }.to change { span.get_metric(key) }.from(value).to(nil)
+    end
+
+    it 'removes value, instead of setting to nil, to ensure correct deserialization by agent' do
+      subject
+      expect(span.instance_variable_get(:@metrics)).to_not have_key(key)
+    end
+  end
+
   describe '#set_tag' do
     subject(:set_tag) { span.set_tag(key, value) }
     before { set_tag }

@@ -22,11 +22,8 @@ RSpec.describe 'Rack integration with other middleware' do
 
   before(:each) do
     # Undo the Rack middleware name patch
-    Datadog.registry[:rack].patcher.tap do |patcher|
-      if patcher.instance_variable_defined?(:@done_once)
-        patcher.instance_variable_get(:@done_once).delete(:rack)
-        patcher.instance_variable_get(:@done_once).delete(:rack_middleware_names)
-      end
+    Datadog.registry[:rack].patcher::PATCHERS.each do |patcher|
+      remove_patch!(patcher)
     end
 
     Datadog.configure do |c|
