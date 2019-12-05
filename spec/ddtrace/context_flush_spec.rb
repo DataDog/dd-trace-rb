@@ -1,9 +1,45 @@
 require 'spec_helper'
 
-require 'ddtrace/context'
-require_relative 'shared_examples'
+require 'ddtrace/context_flush'
 
-RSpec.describe Datadog::Context::Flush::Partial do
+RSpec.shared_context 'trace context' do
+  let(:context) { instance_double(Datadog::Context, get: get) }
+
+  let(:get) { [trace, sampled] }
+  let(:sampled) { true }
+  let(:trace) { [double] }
+end
+
+RSpec.shared_examples_for 'a context flusher' do
+  context 'with request not sampled' do
+    let(:sampled) { false }
+
+    it 'returns nil' do
+      is_expected.to be_nil
+    end
+  end
+
+  context 'with request sampled' do
+    let(:sampled) { true }
+
+    it 'returns the original trace' do
+      is_expected.to eq(trace)
+    end
+  end
+end
+
+RSpec.describe Datadog::ContextFlush::Finished do
+  subject(:context_flush) { described_class.new }
+
+  describe '#consume' do
+    subject(:consume) { context_flush.consume(context) }
+
+    include_context 'trace context'
+    it_behaves_like 'a context flusher'
+  end
+end
+
+RSpec.describe Datadog::ContextFlush::Partial do
   subject(:context_flush) { described_class.new(min_spans_before_partial_flush: min_spans_for_partial) }
   let(:min_spans_for_partial) { 2 }
 

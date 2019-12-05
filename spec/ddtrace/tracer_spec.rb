@@ -10,12 +10,12 @@ RSpec.describe Datadog::Tracer do
     subject!(:configure) { tracer.configure(options) }
     let(:options) { {} }
 
-    it { expect(tracer.context_flush).to be_a(Datadog::Context::Flush::Finished) }
+    it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Finished) }
 
     context 'with partial flushing' do
       let(:options) { { partial_flush: true } }
 
-      it { expect(tracer.context_flush).to be_a(Datadog::Context::Flush::Partial) }
+      it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Partial) }
     end
   end
 
@@ -177,7 +177,7 @@ RSpec.describe Datadog::Tracer do
       let(:trace) { [Datadog::Span.new(tracer, 'dummy')] }
 
       before do
-        expect_any_instance_of(Datadog::Context::Flush::Finished)
+        expect_any_instance_of(Datadog::ContextFlush::Finished)
           .to receive(:consume).with(context).and_return(trace)
 
         subject

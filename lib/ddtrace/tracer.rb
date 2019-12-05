@@ -116,9 +116,9 @@ module Datadog
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
       @context_flush = if options[:partial_flush]
-                         Datadog::Context::Flush::Partial.new(options)
+                         Datadog::ContextFlush::Partial.new(options)
                        else
-                         Datadog::Context::Flush::Finished.new
+                         Datadog::ContextFlush::Finished.new
                        end
 
       @mutex = Mutex.new
@@ -152,9 +152,9 @@ module Datadog
       configure_writer(options)
 
       @context_flush = if options[:partial_flush]
-                         Datadog::Context::Flush::Partial.new(options)
+                         Datadog::ContextFlush::Partial.new(options)
                        else
-                         Datadog::Context::Flush::Finished.new
+                         Datadog::ContextFlush::Finished.new
                        end
     end
 
