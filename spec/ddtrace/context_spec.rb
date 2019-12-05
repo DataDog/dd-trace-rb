@@ -249,7 +249,7 @@ RSpec.describe Datadog::Context do
         span.sampled = sampled
         context.add_span(span)
 
-        allow(context).to receive(:annotate_for_flush)
+        allow(context).to receive(:annotate_for_flush!)
       end
 
       context 'unfinished' do
@@ -257,7 +257,7 @@ RSpec.describe Datadog::Context do
 
         it 'does not configure unfinished root span' do
           subject
-          expect(context).to_not have_received(:annotate_for_flush)
+          expect(context).to_not have_received(:annotate_for_flush!)
         end
       end
 
@@ -270,7 +270,7 @@ RSpec.describe Datadog::Context do
 
         it 'configures root span' do
           subject
-          expect(context).to have_received(:annotate_for_flush)
+          expect(context).to have_received(:annotate_for_flush!)
         end
       end
     end
@@ -332,7 +332,7 @@ RSpec.describe Datadog::Context do
   end
 
   describe '#delete_span_if' do
-    subject(:annotate_for_flush) { context.delete_span_if(&block) }
+    subject(:annotate_for_flush!) { context.delete_span_if(&block) }
 
     let(:remaining_span) { Datadog::Span.new(tracer, 'remaining', context: context).tap(&:finish) }
     let(:deleted_span) { Datadog::Span.new(tracer, 'deleted', context: context).tap(&:finish) }
@@ -358,8 +358,8 @@ RSpec.describe Datadog::Context do
     end
   end
 
-  describe '#annotate_for_flush' do
-    subject(:annotate_for_flush) { context.annotate_for_flush }
+  describe '#annotate_for_flush!' do
+    subject(:annotate_for_flush!) { context.annotate_for_flush!(root_span) }
     let(:root_span) { Datadog::Span.new(nil, 'dummy') }
 
     let(:options) { { origin: origin, sampled: sampled, sampling_priority: sampling_priority } }

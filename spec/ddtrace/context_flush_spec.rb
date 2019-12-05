@@ -72,7 +72,7 @@ RSpec.describe Datadog::ContextFlush::Partial do
               finished_spans
             end
 
-            allow(context).to receive(:annotate_for_flush).with(finished_spans[0])
+            allow(context).to receive(:annotate_for_flush!).with(finished_spans[0])
           end
 
           it 'returns finished spans' do
@@ -81,7 +81,7 @@ RSpec.describe Datadog::ContextFlush::Partial do
 
           it 'apply root span settings to first span' do
             subject
-            expect(context).to have_received(:annotate_for_flush).with(finished_spans[0])
+            expect(context).to have_received(:annotate_for_flush!).with(finished_spans[0])
           end
         end
 

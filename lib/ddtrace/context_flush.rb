@@ -42,7 +42,7 @@ module Datadog
         # Ensure that the first span in a partial trace has
         # sampling and origin information.
         if trace[0]
-          context.annotate_for_flush(trace[0])
+          context.annotate_for_flush!(trace[0])
         else
           Datadog::Tracer.log.debug('Tried to retrieve trace from context, but got nothing. ' \
             "Is there another consumer for this context? #{context.trace_id}")

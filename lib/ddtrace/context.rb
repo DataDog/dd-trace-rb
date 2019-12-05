@@ -184,7 +184,7 @@ module Datadog
         return nil, sampled unless all_spans_finished?
 
         # Root span is finished at this point, we can configure it
-        annotate_for_flush(@current_root_span)
+        annotate_for_flush!(@current_root_span)
 
         reset
         [trace, sampled]
@@ -219,7 +219,7 @@ module Datadog
     end
 
     # Set tags to root span required for flush
-    def annotate_for_flush(span)
+    def annotate_for_flush!(span)
       attach_sampling_priority(span) if @sampled && @sampling_priority
       attach_origin(span) if @origin
     end
