@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.30.0] - 2019-12-04
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.30.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.29.1...v0.30.0
+
+### Added
+
+- Additional tracer health metrics (#867)
+- Integration patching instrumentation (#871)
+- Rule-based trace sampling (#854)
+
+### Fixed
+
+- Rails template layout name error (#872) (@djmb)
+
 ## [0.29.1] - 2019-11-26
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.29.1
@@ -981,7 +997,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.29.1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.30.0...master
+[0.30.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.29.1...v0.30.0
 [0.29.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.27.0...v0.28.0
