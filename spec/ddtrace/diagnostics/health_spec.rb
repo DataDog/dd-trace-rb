@@ -27,8 +27,10 @@ RSpec.describe Datadog::Diagnostics::Health::Metrics do
   it_behaves_like 'a health metric', :count, :api_requests, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_API_REQUESTS
   it_behaves_like 'a health metric', :count, :api_responses, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_API_RESPONSES
   it_behaves_like 'a health metric', :count, :error_context_overflow, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_ERROR_CONTEXT_OVERFLOW
+  it_behaves_like 'a health metric', :count, :error_instrumentation_patch, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_ERROR_INSTRUMENTATION_PATCH
   it_behaves_like 'a health metric', :count, :error_span_finish, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_ERROR_SPAN_FINISH
   it_behaves_like 'a health metric', :count, :error_unfinished_spans, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_ERROR_UNFINISHED_SPANS
+  it_behaves_like 'a health metric', :count, :instrumentation_patched, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_INSTRUMENTATION_PATCHED
   it_behaves_like 'a health metric', :count, :queue_accepted, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED
   it_behaves_like 'a health metric', :count, :queue_accepted_lengths, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED_LENGTHS
   it_behaves_like 'a health metric', :count, :queue_dropped, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_DROPPED

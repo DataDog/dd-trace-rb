@@ -11,23 +11,17 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:sucker_punch)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:sucker_punch) do
-            begin
-              require 'ddtrace/contrib/sucker_punch/exception_handler'
-              require 'ddtrace/contrib/sucker_punch/instrumentation'
+          require 'ddtrace/contrib/sucker_punch/exception_handler'
+          require 'ddtrace/contrib/sucker_punch/instrumentation'
 
-              add_pin!
-              ExceptionHandler.patch!
-              Instrumentation.patch!
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply SuckerPunch integration: #{e}")
-            end
-          end
+          add_pin!
+          ExceptionHandler.patch!
+          Instrumentation.patch!
         end
 
         def add_pin!

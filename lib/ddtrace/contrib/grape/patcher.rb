@@ -14,24 +14,18 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:grape)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:grape) do
-            begin
-              # Patch endpoints
-              ::Grape::Endpoint.send(:include, Instrumentation)
+          # Patch endpoints
+          ::Grape::Endpoint.send(:include, Instrumentation)
 
-              add_pin!
+          add_pin!
 
-              # Subscribe to ActiveSupport events
-              Datadog::Contrib::Grape::Endpoint.subscribe
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Grape integration: #{e}")
-            end
-          end
+          # Subscribe to ActiveSupport events
+          Datadog::Contrib::Grape::Endpoint.subscribe
         end
 
         def add_pin!

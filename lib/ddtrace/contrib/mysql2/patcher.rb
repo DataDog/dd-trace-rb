@@ -10,18 +10,12 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:mysql2)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:mysql2) do
-            begin
-              patch_mysql2_client
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply mysql2 integration: #{e}")
-            end
-          end
+          patch_mysql2_client
         end
 
         def patch_mysql2_client
