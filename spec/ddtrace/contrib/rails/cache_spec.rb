@@ -36,7 +36,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  xcontext '#write' do
+  context '#write' do
     subject(:write) { cache.write(key, 50) }
 
     it do
@@ -69,7 +69,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  xcontext '#delete' do
+  context '#delete' do
     subject!(:delete) { cache.delete(key) }
 
     it do
@@ -82,7 +82,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  xcontext '#fetch' do
+  context '#fetch' do
     context 'with exception' do
       subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
 
@@ -101,7 +101,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  xcontext 'with very large cache key' do
+  context 'with very large cache key' do
     it 'truncates key too large' do
       max_key_size = Datadog::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
       large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)
