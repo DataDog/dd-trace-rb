@@ -23,7 +23,7 @@ module Datadog
             tracing_context = payload.fetch(:tracing_context)
             tracing_context[:dd_request_span] = span
           rescue StandardError => e
-            Datadog::Tracer.log.error(e.message)
+            Datadog::Logger.log.error(e.message)
           end
 
           def finish_processing(payload)
@@ -67,7 +67,7 @@ module Datadog
               span.finish
             end
           rescue StandardError => e
-            Datadog::Tracer.log.error(e.message)
+            Datadog::Logger.log.error(e.message)
           end
 
           def exception_controller?(payload)

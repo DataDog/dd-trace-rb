@@ -30,7 +30,7 @@ module Datadog
         rescue StandardError => e
           # in case of an Exception we don't create a
           # `request.queuing` span
-          Datadog::Tracer.log.debug("[rack] unable to parse request queue headers: #{e}")
+          Datadog::Logger.log.debug("[rack] unable to parse request queue headers: #{e}")
           nil
         end
       end
