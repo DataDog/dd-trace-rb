@@ -37,6 +37,7 @@ module Datadog
                     template_name = Utils.normalize_template_name(template_name)
 
                     if template_name
+                      active_datadog_span.resource = template_name
                       active_datadog_span.set_tag(
                         Ext::TAG_TEMPLATE_NAME,
                         template_name
@@ -113,6 +114,7 @@ module Datadog
               layout = layout_name.try(:[], 'virtual_path') # Proc can be called without parameters since Rails 6
 
               if template_name
+                active_datadog_span.resource = template_name
                 active_datadog_span.set_tag(
                   Ext::TAG_TEMPLATE_NAME,
                   template_name
