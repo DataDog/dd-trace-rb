@@ -30,7 +30,7 @@ module Datadog
 
         def patch
           if !self.class.compatible? || patcher.nil?
-            Datadog::Tracer.log.warn("Unable to patch #{self.class.name}")
+            Datadog::Logger.log.warn("Unable to patch #{self.class.name}")
             return
           end
 

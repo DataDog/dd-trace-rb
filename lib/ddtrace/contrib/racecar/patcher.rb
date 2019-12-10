@@ -12,19 +12,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:racecar)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:racecar) do
-            begin
-              # Subscribe to Racecar events
-              Events.subscribe!
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Racecar integration: #{e}")
-            end
-          end
+          # Subscribe to Racecar events
+          Events.subscribe!
         end
       end
     end

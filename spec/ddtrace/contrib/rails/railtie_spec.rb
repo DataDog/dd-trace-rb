@@ -3,11 +3,9 @@ require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
 require 'ddtrace/contrib/rack/middlewares'
 
-RSpec.describe 'Rails application' do
-  before(:each) { skip 'Test not compatible with Rails < 4.0' if Rails.version < '4.0' }
+RSpec.describe 'Rails Railtie' do
+  before { skip 'Test not compatible with Rails < 4.0' if Rails.version < '4.0' }
   include_context 'Rails test application'
-
-  let(:tracer) { get_test_tracer }
 
   let(:routes) { { '/' => 'test#index' } }
   let(:controllers) { [controller] }
@@ -37,14 +35,13 @@ RSpec.describe 'Rails application' do
     chain :copies, :count
   end
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
-      c.use :rails, rails_options if use_rails
+      c.use :rails, rails_options
     end
   end
 
-  let(:use_rails) { true }
-  let(:rails_options) { { tracer: tracer } }
+  let(:rails_options) { {} }
 
   describe 'with Rails integration #middleware option' do
     context 'set to true' do
@@ -56,7 +53,7 @@ RSpec.describe 'Rails application' do
 
     context 'set to false' do
       let(:rails_options) { super().merge(middleware: false) }
-      after(:each) { Datadog.configuration[:rails][:middleware] = true }
+      after { Datadog.configuration[:rails][:middleware] = true }
 
       it { expect(app).to_not have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware) }
       it { expect(app).to_not have_kind_of_middleware(Datadog::Contrib::Rails::ExceptionMiddleware) }
@@ -64,7 +61,7 @@ RSpec.describe 'Rails application' do
   end
 
   describe 'when load hooks run twice' do
-    before(:each) do
+    subject! do
       # Set expectations
       expect(Datadog::Contrib::Rails::Patcher).to receive(:add_middleware)
         .with(a_kind_of(Rails::Application))

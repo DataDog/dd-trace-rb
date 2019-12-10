@@ -12,17 +12,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:rails)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:rails) do
-            patch_before_intialize
-            patch_after_intialize
-          end
-        rescue => e
-          Datadog::Tracer.log.error("Unable to apply Rails integration: #{e}")
+          patch_before_intialize
+          patch_after_intialize
         end
 
         def patch_before_intialize

@@ -6,6 +6,7 @@ require 'ddtrace/ext/runtime'
 
 require 'ddtrace/tracer'
 require 'ddtrace/metrics'
+require 'ddtrace/diagnostics/health'
 
 module Datadog
   module Configuration
@@ -55,6 +56,18 @@ module Datadog
         end
       end
 
+      settings :diagnostics do
+        option :health_metrics do |o|
+          o.default do
+            Datadog::Diagnostics::Health::Metrics.new(
+              enabled: env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false)
+            )
+          end
+
+          o.lazy
+        end
+      end
+
       option :tracer do |o|
         o.default Tracer.new
 
@@ -72,10 +85,10 @@ module Datadog
           tracer.tap do |t|
             unless options.nil?
               t.configure(options)
-              t.class.log = options[:log] if options[:log]
+              Datadog::Logger.log = options[:log] if options[:log]
               t.set_tags(options[:tags]) if options[:tags]
               t.set_tags(env: options[:env]) if options[:env]
-              t.class.debug_logging = options.fetch(:debug, false)
+              Datadog::Logger.debug_logging = options.fetch(:debug, false)
             end
           end
         end

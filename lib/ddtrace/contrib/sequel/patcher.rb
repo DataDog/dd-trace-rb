@@ -11,19 +11,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:sequel)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:sequel) do
-            begin
-              patch_sequel_database
-              patch_sequel_dataset
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Sequel integration: #{e}")
-            end
-          end
+          patch_sequel_database
+          patch_sequel_dataset
         end
 
         def patch_sequel_database

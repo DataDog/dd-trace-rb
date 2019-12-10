@@ -4,39 +4,39 @@ require 'helper'
 require 'ddtrace/span'
 
 class LoggerTest < Minitest::Test
-  DEFAULT_LOG = Datadog::Tracer.log
+  DEFAULT_LOG = Datadog::Logger.log
 
   def setup
     @buf = StringIO.new
-    Datadog::Tracer.log = Datadog::Logger.new(@buf)
-    Datadog::Tracer.log.level = ::Logger::WARN
+    Datadog::Logger.log = Datadog::Logger.new(@buf)
+    Datadog::Logger.log.level = ::Logger::WARN
   end
 
   def teardown
-    Datadog::Tracer.log = DEFAULT_LOG
+    Datadog::Logger.log = DEFAULT_LOG
   end
 
   def test_tracer_logger
     # a logger must be available by default
-    assert Datadog::Tracer.log
-    Datadog::Tracer.log.debug('a logger is here!')
-    Datadog::Tracer.log.info() { 'flash info' } # &block syntax
+    assert Datadog::Logger.log
+    Datadog::Logger.log.debug('a logger is here!')
+    Datadog::Logger.log.info() { 'flash info' } # &block syntax
   end
 
   def test_tracer_default_debug_mode
-    logger = Datadog::Tracer.log
+    logger = Datadog::Logger.log
     assert_equal(logger.level, Logger::WARN)
   end
 
   def test_tracer_set_debug_mode
-    logger = Datadog::Tracer.log
+    logger = Datadog::Logger.log
 
     # enable the debug mode
-    Datadog::Tracer.debug_logging = true
+    Datadog::Logger.debug_logging = true
     assert_equal(logger.level, Logger::DEBUG)
 
     # revert to production mode
-    Datadog::Tracer.debug_logging = false
+    Datadog::Logger.debug_logging = false
     assert_equal(logger.level, Logger::WARN)
   end
 
@@ -45,25 +45,25 @@ class LoggerTest < Minitest::Test
     custom_buf = StringIO.new
     custom_logger = Logger.new(custom_buf)
     custom_logger.level = ::Logger::INFO
-    Datadog::Tracer.log = custom_logger
+    Datadog::Logger.log = custom_logger
 
-    Datadog::Tracer.debug_logging = false
+    Datadog::Logger.debug_logging = false
     assert_equal(custom_logger.level, ::Logger::INFO)
   end
 
   def test_tracer_logger_override
-    assert_equal(false, Datadog::Tracer.log.debug?)
-    assert_equal(false, Datadog::Tracer.log.info?)
-    assert_equal(true, Datadog::Tracer.log.warn?)
-    assert_equal(true, Datadog::Tracer.log.error?)
-    assert_equal(true, Datadog::Tracer.log.fatal?)
+    assert_equal(false, Datadog::Logger.log.debug?)
+    assert_equal(false, Datadog::Logger.log.info?)
+    assert_equal(true, Datadog::Logger.log.warn?)
+    assert_equal(true, Datadog::Logger.log.error?)
+    assert_equal(true, Datadog::Logger.log.fatal?)
 
-    Datadog::Tracer.log.debug('never to be seen')
-    Datadog::Tracer.log.warn('careful here')
-    Datadog::Tracer.log.error() { 'this does not work' }
-    Datadog::Tracer.log.error('foo') { 'neither does this' }
-    Datadog::Tracer.log.progname = 'bar'
-    Datadog::Tracer.log.add(Logger::WARN, 'add some warning')
+    Datadog::Logger.log.debug('never to be seen')
+    Datadog::Logger.log.warn('careful here')
+    Datadog::Logger.log.error() { 'this does not work' }
+    Datadog::Logger.log.error('foo') { 'neither does this' }
+    Datadog::Logger.log.progname = 'bar'
+    Datadog::Logger.log.add(Logger::WARN, 'add some warning')
 
     lines = @buf.string.lines
 
@@ -92,16 +92,16 @@ class LoggerTest < Minitest::Test
   end
 
   def test_tracer_logger_override_debug
-    Datadog::Tracer.log.level = ::Logger::DEBUG
+    Datadog::Logger.log.level = ::Logger::DEBUG
 
-    assert_equal(true, Datadog::Tracer.log.debug?)
-    assert_equal(true, Datadog::Tracer.log.info?)
-    assert_equal(true, Datadog::Tracer.log.warn?)
-    assert_equal(true, Datadog::Tracer.log.error?)
-    assert_equal(true, Datadog::Tracer.log.fatal?)
+    assert_equal(true, Datadog::Logger.log.debug?)
+    assert_equal(true, Datadog::Logger.log.info?)
+    assert_equal(true, Datadog::Logger.log.warn?)
+    assert_equal(true, Datadog::Logger.log.error?)
+    assert_equal(true, Datadog::Logger.log.fatal?)
 
-    Datadog::Tracer.log.debug('detailed things')
-    Datadog::Tracer.log.info() { 'more detailed info' }
+    Datadog::Logger.log.debug('detailed things')
+    Datadog::Logger.log.info() { 'more detailed info' }
 
     lines = @buf.string.lines
 
@@ -130,12 +130,12 @@ class LoggerTest < Minitest::Test
 
     buf_log = Datadog::Logger.new(buf)
 
-    Datadog::Tracer.log = buf_log
-    Datadog::Tracer.log.level = ::Logger::DEBUG
+    Datadog::Logger.log = buf_log
+    Datadog::Logger.log.level = ::Logger::DEBUG
 
-    Datadog::Tracer.log = nil
-    assert_equal(buf_log, Datadog::Tracer.log)
-    Datadog::Tracer.log = "this won't work"
-    assert_equal(buf_log, Datadog::Tracer.log)
+    Datadog::Logger.log = nil
+    assert_equal(buf_log, Datadog::Logger.log)
+    Datadog::Logger.log = "this won't work"
+    assert_equal(buf_log, Datadog::Logger.log)
   end
 end

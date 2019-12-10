@@ -31,7 +31,7 @@ module Datadog
             span.resource = payload.fetch(:action)
             tracing_context[:dd_cache_span] = span
           rescue StandardError => e
-            Datadog::Tracer.log.debug(e.message)
+            Datadog::Logger.log.debug(e.message)
           end
 
           def finish_trace_cache(payload)
@@ -56,7 +56,7 @@ module Datadog
               span.finish
             end
           rescue StandardError => e
-            Datadog::Tracer.log.debug(e.message)
+            Datadog::Logger.log.debug(e.message)
           end
 
           # Defines instrumentation for ActiveSupport cache reading

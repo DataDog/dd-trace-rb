@@ -10,25 +10,19 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:redis)
+        def target_version
+          Integration.version
         end
 
         # patch applies our patch if needed
         def patch
-          do_once(:redis) do
-            begin
-              # do not require these by default, but only when actually patching
-              require 'redis'
-              require 'ddtrace/ext/app_types'
-              require 'ddtrace/contrib/redis/tags'
-              require 'ddtrace/contrib/redis/quantize'
+          # do not require these by default, but only when actually patching
+          require 'redis'
+          require 'ddtrace/ext/app_types'
+          require 'ddtrace/contrib/redis/tags'
+          require 'ddtrace/contrib/redis/quantize'
 
-              patch_redis_client
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Redis integration: #{e}")
-            end
-          end
+          patch_redis_client
         end
 
         # rubocop:disable Metrics/MethodLength

@@ -33,7 +33,7 @@ module HttpHelpers
         res = Net::HTTP.get_response(uri)
         return true if res.code == '200'
       rescue StandardError => e
-        Datadog::Tracer.log.error("Failed waiting for http server #{e.message}") if attempts_left < 5
+        Datadog::Logger.log.error("Failed waiting for http server #{e.message}") if attempts_left < 5
       end
     end
   end

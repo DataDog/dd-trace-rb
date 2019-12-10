@@ -4,7 +4,7 @@ module Datadog
   module Contrib
     module ActionView
       module Instrumentation
-        # Instrumentation for partial rendering
+        # Legacy instrumentation for partial rendering for Rails < 4
         module PartialRenderer
           def render(*args, &block)
             datadog_tracer.trace(
@@ -21,7 +21,7 @@ module Datadog
 
               datadog_render_partial(template)
             rescue StandardError => e
-              Datadog::Tracer.log.debug(e.message)
+              Datadog::Logger.log.debug(e.message)
             end
 
             # execute the original function anyway
@@ -54,21 +54,13 @@ module Datadog
             self.active_datadog_span = nil
           end
 
-          # Rails < 6 partial rendering
-          module RailsLessThan6
+          # Rails < 4 partial rendering
+          # ActiveSupport events are used instead for Rails >= 4
+          module RailsLessThan4
             include PartialRenderer
 
             def datadog_template(*args)
               @template
-            end
-          end
-
-          # Rails >= 6 partial rendering
-          module Rails6Plus
-            include PartialRenderer
-
-            def datadog_template(*args)
-              args[1]
             end
           end
         end
