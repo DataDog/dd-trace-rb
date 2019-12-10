@@ -67,7 +67,13 @@ module Datadog
         end
 
         def service_name(env)
-          return env[:url].host if options[:split_by_domain]
+          if options[:split_by_domain]
+            host = env[:url].host
+            options[:split_by_domain_map].each do |matcher, service_name|
+              return service_name if matcher =~ host
+            end
+            return host
+          end
 
           options[:service_name]
         end

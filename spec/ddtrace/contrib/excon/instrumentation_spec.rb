@@ -163,6 +163,19 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     end
   end
 
+  context 'when split by domain with a domain map' do
+    subject!(:response) { connection.get(path: '/success') }
+    let(:configuration_options) { super().merge(split_by_domain: true, split_by_domain_map: { /example\.com/ => 'bar' }) }
+    after(:each) do
+      Datadog.configuration[:excon][:split_by_domain] = false
+      Datadog.configuration[:excon][:split_by_domain_map] = {}
+    end
+
+    it 'overrides the domain from the map' do
+      expect(request_span.service).to eq('bar')
+    end
+  end
+
   context 'default request headers' do
     subject!(:response) do
       expect_any_instance_of(Datadog::Contrib::Excon::Middleware).to receive(:request_call)

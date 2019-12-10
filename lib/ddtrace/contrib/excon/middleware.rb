@@ -146,7 +146,15 @@ module Datadog
 
         def service_name(datum)
           # TODO: Change this to implement more sensible multiplexing
-          split_by_domain? ? datum[:host] : @options[:service_name]
+          if split_by_domain?
+            host = datum[:host]
+            @options[:split_by_domain_map].each do |matcher, service_name|
+              return service_name if matcher =~ host
+            end
+            return host
+          end
+
+          @options[:service_name]
         end
       end
     end

@@ -140,6 +140,15 @@ RSpec.describe 'Faraday middleware' do
     end
   end
 
+  context 'when split by domain with a domain map' do
+    subject!(:response) { client.get('/success') }
+    let(:middleware_options) { { split_by_domain: true, split_by_domain_map: { /example\.com/ => 'bar' } } }
+
+    it 'overrides the domain from the map' do
+      expect(request_span.service).to eq('bar')
+    end
+  end
+
   context 'default request headers' do
     subject(:response) { client.get('/success') }
 
