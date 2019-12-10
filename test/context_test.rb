@@ -187,19 +187,19 @@ class ContextTest < Minitest::Test
   def test_log_unfinished_spans
     tracer = get_test_tracer
 
-    default_log = Datadog::Tracer.log
-    default_level = Datadog::Tracer.log.level
+    default_log = Datadog::Logger.log
+    default_level = Datadog::Logger.log.level
 
     buf = StringIO.new
 
-    Datadog::Tracer.log = Datadog::Logger.new(buf)
-    Datadog::Tracer.log.level = ::Logger::DEBUG
+    Datadog::Logger.log = Datadog::Logger.new(buf)
+    Datadog::Logger.log.level = ::Logger::DEBUG
 
-    assert_equal(true, Datadog::Tracer.log.debug?)
-    assert_equal(true, Datadog::Tracer.log.info?)
-    assert_equal(true, Datadog::Tracer.log.warn?)
-    assert_equal(true, Datadog::Tracer.log.error?)
-    assert_equal(true, Datadog::Tracer.log.fatal?)
+    assert_equal(true, Datadog::Logger.log.debug?)
+    assert_equal(true, Datadog::Logger.log.info?)
+    assert_equal(true, Datadog::Logger.log.warn?)
+    assert_equal(true, Datadog::Logger.log.error?)
+    assert_equal(true, Datadog::Logger.log.fatal?)
 
     root = Datadog::Span.new(tracer, 'parent')
     child1 = Datadog::Span.new(tracer, 'child_1', trace_id: root.trace_id, parent_id: root.span_id)
@@ -239,8 +239,8 @@ class ContextTest < Minitest::Test
       i += 1
     end
 
-    Datadog::Tracer.log = default_log
-    Datadog::Tracer.log.level = default_level
+    Datadog::Logger.log = default_log
+    Datadog::Logger.log.level = default_level
   end
 
   def test_thread_safe

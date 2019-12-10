@@ -22,7 +22,7 @@ RSpec.describe Datadog::Span do
       end
 
       before do
-        allow(Datadog::Tracer.log).to receive(:debug)
+        allow(Datadog::Logger.log).to receive(:debug)
         allow(context).to receive(:close_span)
           .with(span)
           .and_raise(error)
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Span do
       end
 
       it 'logs a debug message' do
-        expect(Datadog::Tracer.log).to have_received(:debug)
+        expect(Datadog::Logger.log).to have_received(:debug)
           .with(a_record_finish_error(error))
       end
 

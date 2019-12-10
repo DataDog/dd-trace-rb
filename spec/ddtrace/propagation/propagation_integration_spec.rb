@@ -30,9 +30,9 @@ RSpec.describe 'Context propagation' do
       it 'does not raise an error or propagate the trace' do
         on_size_exceeded do |span|
           # Verify warning message is produced.
-          allow(Datadog::Tracer.log).to receive(:debug)
+          allow(Datadog::Logger.log).to receive(:debug)
           expect { Datadog::HTTPPropagator.inject!(span.context, env) }.to_not raise_error
-          expect(Datadog::Tracer.log).to have_received(:debug).with(/Cannot inject context/)
+          expect(Datadog::Logger.log).to have_received(:debug).with(/Cannot inject context/)
 
           # The context has reached its max size and cannot be propagated.
           # Check headers aren't present.

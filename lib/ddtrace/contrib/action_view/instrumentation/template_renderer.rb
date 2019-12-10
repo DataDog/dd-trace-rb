@@ -50,7 +50,7 @@ module Datadog
                       )
                     end
                   rescue StandardError => e
-                    Datadog::Tracer.log.debug(e.message)
+                    Datadog::Logger.log.debug(e.message)
                   end
 
                   # execute the original function anyway
@@ -99,7 +99,7 @@ module Datadog
 
                 datadog_render_template(template, layout_name)
               rescue StandardError => e
-                Datadog::Tracer.log.debug(e.message)
+                Datadog::Logger.log.debug(e.message)
               end
 
               # execute the original function anyway

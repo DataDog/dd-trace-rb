@@ -21,7 +21,7 @@ module Datadog
 
               datadog_render_partial(template)
             rescue StandardError => e
-              Datadog::Tracer.log.debug(e.message)
+              Datadog::Logger.log.debug(e.message)
             end
 
             # execute the original function anyway
