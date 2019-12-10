@@ -30,7 +30,7 @@ module Datadog
               end
             end
           rescue StandardError => e
-            Datadog::Tracer.log.debug(e.message)
+            Datadog::Logger.log.debug(e.message)
           end
 
           @stack.request_call(datum)
@@ -137,7 +137,7 @@ module Datadog
             end
           end
         rescue StandardError => e
-          Datadog::Tracer.log.debug(e.message)
+          Datadog::Logger.log.debug(e.message)
         end
 
         def propagate!(span, datum)

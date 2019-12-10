@@ -11,19 +11,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:resque)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:resque) do
-            begin
-              require_relative 'resque_job'
-              get_option(:workers).each { |worker| worker.extend(ResqueJob) }
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Resque integration: #{e}")
-            end
-          end
+          require_relative 'resque_job'
+          get_option(:workers).each { |worker| worker.extend(ResqueJob) }
         end
 
         def get_option(option)

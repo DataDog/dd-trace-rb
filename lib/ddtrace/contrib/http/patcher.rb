@@ -12,19 +12,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:http)
+        def target_version
+          Integration.version
         end
 
         # patch applies our patch if needed
         def patch
-          do_once(:http) do
-            begin
-              ::Net::HTTP.send(:include, Instrumentation)
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply net/http integration: #{e}")
-            end
-          end
+          ::Net::HTTP.send(:include, Instrumentation)
         end
       end
     end

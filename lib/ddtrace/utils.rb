@@ -57,7 +57,7 @@ module Datadog
         str.encode(::Encoding::UTF_8)
       end
     rescue => e
-      Tracer.log.debug("Error encoding string in UTF-8: #{e}")
+      Logger.log.debug("Error encoding string in UTF-8: #{e}")
 
       options.fetch(:placeholder, STRING_PLACEHOLDER)
     end
