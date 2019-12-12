@@ -80,7 +80,17 @@ module Datadog
     #
     #   span.set_tag('http.method', request.method)
     def set_tag(key, value = nil)
-      @meta[key] = value.to_s
+      # Keys must be unique between tags and metrics
+      @metrics.delete(key) if @metrics.key?(key)
+
+      # NOTE: Adding numeric tags as metrics is stop-gap support
+      #       for numeric typed tags. Eventually they will become
+      #       tags again.
+      if value.is_a?(Numeric)
+        set_metric(key, value)
+      else
+        @meta[key] = value.to_s
+      end
     rescue StandardError => e
       Datadog::Logger.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
@@ -98,6 +108,9 @@ module Datadog
     # This method sets a tag with a floating point value for the given key. It acts
     # like `set_tag()` and it simply add a tag without further processing.
     def set_metric(key, value)
+      # Keys must be unique between tags and metrics
+      @meta.delete(key) if @meta.key?(key)
+
       # enforce that the value is a floating point number
       value = Float(value)
       @metrics[key] = value
