@@ -208,7 +208,7 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     context 'executes only once' do
-      subject(:multiple_shutdown) do
+      subject!(:multiple_shutdown) do
         tracer.trace('my.short.op') do |span|
           span.service = 'my.service'
         end
@@ -222,10 +222,7 @@ RSpec.describe 'Tracer integration tests' do
 
       let(:stats) { tracer.writer.stats }
 
-      it do
-        multiple_shutdown
-        expect(stats[:services_flushed]).to be_nil
-      end
+      it { expect(stats[:services_flushed]).to be_nil }
 
       it_behaves_like 'flushed trace'
     end
