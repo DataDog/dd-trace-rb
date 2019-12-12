@@ -25,7 +25,7 @@ module Datadog
         register_service(span.service) unless span.service.nil?
 
         # Tag span with language and runtime ID for association with metrics
-        span.set_tag(Ext::Runtime::TAG_LANG, Runtime::Identity.lang)
+        span.set_tag(Ext::Runtime::TAG_LANG, Runtime::Identity.lang) unless span.external_resource?
       end
 
       # Associate service with runtime metrics

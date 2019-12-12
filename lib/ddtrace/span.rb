@@ -8,6 +8,8 @@ require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
 require 'ddtrace/diagnostics/health'
 
+require 'ddtrace/span/external_resource'
+
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
   # Each span consists of a start time and a duration. For example, a span can describe the time
@@ -19,6 +21,7 @@ module Datadog
   class Span
     prepend Analytics::Span
     prepend ForcedTracing::Span
+    include ExternalResource
 
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
