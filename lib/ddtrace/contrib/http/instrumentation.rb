@@ -46,7 +46,7 @@ module Datadog
                   Datadog::HTTPPropagator.inject!(span.context, req)
                 end
               rescue StandardError => e
-                Datadog::Tracer.log.error("error preparing span for http request: #{e}")
+                Datadog::Logger.log.error("error preparing span for http request: #{e}")
               ensure
                 response = super(req, body, &block)
               end

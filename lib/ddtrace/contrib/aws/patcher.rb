@@ -11,22 +11,16 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:aws)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:aws) do
-            begin
-              require 'ddtrace/contrib/aws/parsed_context'
-              require 'ddtrace/contrib/aws/instrumentation'
-              require 'ddtrace/contrib/aws/services'
+          require 'ddtrace/contrib/aws/parsed_context'
+          require 'ddtrace/contrib/aws/instrumentation'
+          require 'ddtrace/contrib/aws/services'
 
-              add_plugin(Seahorse::Client::Base, *loaded_constants)
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply AWS integration: #{e}")
-            end
-          end
+          add_plugin(Seahorse::Client::Base, *loaded_constants)
         end
 
         def add_plugin(*targets)

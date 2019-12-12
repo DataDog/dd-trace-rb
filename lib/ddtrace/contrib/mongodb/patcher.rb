@@ -11,20 +11,14 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:mongo)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:mongo) do
-            begin
-              ::Mongo::Address.send(:include, Instrumentation::Address)
-              ::Mongo::Client.send(:include, Instrumentation::Client)
-              add_mongo_monitoring
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply MongoDB integration: #{e}")
-            end
-          end
+          ::Mongo::Address.send(:include, Instrumentation::Address)
+          ::Mongo::Client.send(:include, Instrumentation::Client)
+          add_mongo_monitoring
         end
 
         def add_mongo_monitoring

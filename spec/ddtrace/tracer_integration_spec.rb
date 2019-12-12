@@ -76,4 +76,63 @@ RSpec.describe Datadog::Tracer do
       it { expect(@child_root_span).to be child_span }
     end
   end
+
+  context 'with synthetics' do
+    context 'which applies the context from distributed tracing headers' do
+      let(:trace_id) { 3238677264721744442 }
+      let(:parent_id) { 0 }
+      let(:sampling_priority) { 1 }
+      let(:origin) { 'synthetics' }
+
+      let(:distributed_tracing_headers) do
+        {
+          rack_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID) => trace_id.to_s,
+          rack_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID) => parent_id.to_s,
+          rack_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY) => sampling_priority.to_s,
+          rack_header(Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN) => origin
+        }
+      end
+
+      def rack_header(header)
+        "http-#{header}".upcase!.tr('-', '_')
+      end
+
+      let(:synthetics_context) { Datadog::HTTPPropagator.extract(distributed_tracing_headers) }
+
+      before do
+        tracer.provider.context = synthetics_context
+      end
+
+      shared_examples_for 'a synthetics-sourced trace' do
+        before do
+          tracer.trace('local.operation') do |local_span|
+            @local_span = local_span
+            @local_context = tracer.call_context
+          end
+        end
+
+        it 'that is well-formed' do
+          expect(spans).to have(1).item
+          expect(spans.first).to be(@local_span)
+
+          spans.first.tap do |local_span|
+            expect(local_span.trace_id).to eq(trace_id)
+            expect(local_span.parent_id).to eq(parent_id)
+            expect(origin_tag(local_span)).to eq(origin)
+            expect(sampling_priority_metric(local_span)).to eq(sampling_priority)
+          end
+        end
+      end
+
+      context 'for a synthetics request' do
+        let(:origin) { 'synthetics' }
+        it_behaves_like 'a synthetics-sourced trace'
+      end
+
+      context 'for a synthetics browser request' do
+        let(:origin) { 'synthetics-browser' }
+        it_behaves_like 'a synthetics-sourced trace'
+      end
+    end
+  end
 end

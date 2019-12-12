@@ -60,7 +60,7 @@ RSpec.describe Datadog::Runtime::Metrics do
       end
 
       context 'when an error is thrown' do
-        before(:each) { allow(Datadog::Tracer.log).to receive(:error) }
+        before(:each) { allow(Datadog::Logger.log).to receive(:error) }
 
         it do
           allow(metric).to receive(:available?)
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
           flush
 
-          expect(Datadog::Tracer.log).to have_received(:error)
+          expect(Datadog::Logger.log).to have_received(:error)
             .with(/Error while sending runtime metric./)
             .at_least(:once)
         end
@@ -127,8 +127,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
       context 'when no services have been registered' do
         it do
-          is_expected.to have(1).items
-
+          is_expected.to include(*Datadog::Metrics.default_metric_options[:tags])
           is_expected.to include('language:ruby')
         end
       end
@@ -138,8 +137,7 @@ RSpec.describe Datadog::Runtime::Metrics do
         before(:each) { services.each { |service| runtime_metrics.register_service(service) } }
 
         it do
-          is_expected.to have(3).items
-
+          is_expected.to include(*Datadog::Metrics.default_metric_options[:tags])
           is_expected.to include('language:ruby')
           is_expected.to include(*services.collect { |service| "service:#{service}" })
         end

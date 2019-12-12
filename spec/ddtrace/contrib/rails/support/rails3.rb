@@ -51,6 +51,7 @@ RSpec.shared_context 'Rails 3 base application' do
       instance_eval(&during_init)
     end
 
+    after_rails_application_creation
     before_test_init = before_test_initialize_block
     after_test_init = after_test_initialize_block
 
@@ -109,6 +110,21 @@ RSpec.shared_context 'Rails 3 base application' do
     @drawn = true
   end
 
+  # Version of Ruby < 4 have initializers with persistent side effects:
+  # actionpack-3.0.20/lib/action_view/railtie.rb:22
+  def after_rails_application_creation
+    Rails.application.config.action_view = ActiveSupport::OrderedOptions.new
+
+    # Prevent initializer from performing destructive operation on configuration.
+    # This affects subsequent runs.
+    allow(Rails.application.config.action_view).to receive(:delete).with(:stylesheet_expansions).and_return({})
+    allow(Rails.application.config.action_view)
+      .to receive(:delete).with(:javascript_expansions)
+                          .and_return(defaults: %w[prototype effects dragdrop controls rails])
+    allow(Rails.application.config.action_view).to receive(:delete)
+      .with(:embed_authenticity_token_in_remote_forms).and_return(true)
+  end
+
   # Rails 3 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
@@ -119,5 +135,25 @@ RSpec.shared_context 'Rails 3 base application' do
     end
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
+  end
+end
+
+#
+# ActiveSupport::OrderedOptions in Rails 3 doesn't respect the contract for `respond_to?`,
+# which can include a second optional parameter:
+# https://github.com/rails/rails/blob/v3.2.22.5/activesupport/lib/active_support/ordered_options.rb#L40-L42
+# https://ruby-doc.org/core-2.0.0/Object.html#method-i-respond_to-3F
+#
+# This prevents us from using RSpec mocks on this this class.
+#
+# We fix that with this monkey-patching.
+# Newer versions of Rails don't suffer from this issue.
+#
+require 'active_support/ordered_options'
+module ActiveSupport
+  class OrderedOptions
+    def respond_to?(*args)
+      true
+    end
   end
 end

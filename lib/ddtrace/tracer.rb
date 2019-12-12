@@ -10,6 +10,7 @@ require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
+require 'ddtrace/sampling'
 require 'ddtrace/correlation'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
@@ -27,50 +28,10 @@ module Datadog
     ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
     DEFAULT_ON_ERROR = proc { |span, error| span.set_error(error) unless span.nil? }
 
-    # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
-    # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
-    def self.log
-      unless defined? @logger
-        @logger = Datadog::Logger.new(STDOUT)
-        @logger.level = Logger::WARN
-      end
-      @logger
-    end
-
-    # Override the default logger with a custom one.
-    def self.log=(logger)
-      return unless logger
-      return unless logger.respond_to? :methods
-      return unless logger.respond_to? :error
-      if logger.respond_to? :methods
-        unimplemented = Logger.new(STDOUT).methods - logger.methods
-        unless unimplemented.empty?
-          logger.error("logger #{logger} does not implement #{unimplemented}")
-          return
-        end
-      end
-      @logger = logger
-    end
-
-    # Activate the debug mode providing more information related to tracer usage
-    # Default to Warn level unless using custom logger
-    def self.debug_logging=(value)
-      if value
-        log.level = Logger::DEBUG
-      elsif log.is_a?(Datadog::Logger)
-        log.level = Logger::WARN
-      end
-    end
-
-    # Return if the debug mode is activated or not
-    def self.debug_logging
-      log.level == Logger::DEBUG
-    end
-
     def services
       # Only log each deprecation warning once (safeguard against log spam)
       Datadog::Patcher.do_once('Tracer#set_service_info') do
-        Datadog::Tracer.log.warn('services: Usage of Tracer.services has been deprecated')
+        Datadog::Logger.log.warn('services: Usage of Tracer.services has been deprecated')
       end
 
       {}
@@ -120,6 +81,9 @@ module Datadog
 
       @mutex = Mutex.new
       @tags = {}
+
+      # Enable priority sampling by default
+      activate_priority_sampling!(@sampler)
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
@@ -160,7 +124,7 @@ module Datadog
     def set_service_info(service, app, app_type)
       # Only log each deprecation warning once (safeguard against log spam)
       Datadog::Patcher.do_once('Tracer#set_service_info') do
-        Datadog::Tracer.log.warn(%(
+        Datadog::Logger.log.warn(%(
           set_service_info: Usage of set_service_info has been deprecated,
           service information no longer needs to be reported to the trace agent.
         ))
@@ -175,7 +139,7 @@ module Datadog
       begin
         @default_service = File.basename($PROGRAM_NAME, '.*')
       rescue StandardError => e
-        Datadog::Tracer.log.error("unable to guess default service: #{e}")
+        Datadog::Logger.log.error("unable to guess default service: #{e}")
         @default_service = 'ruby'.freeze
       end
       @default_service
@@ -230,9 +194,10 @@ module Datadog
         # root span
         @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
-        if ctx && ctx.trace_id && ctx.span_id
+
+        if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
-          span.parent_id = ctx.span_id
+          span.parent_id = ctx.span_id unless ctx.span_id.nil?
         end
       else
         # child span
@@ -297,7 +262,7 @@ module Datadog
             span = start_span(name, options)
           # rubocop:disable Lint/UselessAssignment
           rescue StandardError => e
-            Datadog::Tracer.log.debug('Failed to start span: #{e}')
+            Datadog::Logger.log.debug('Failed to start span: #{e}')
           ensure
             return_value = yield(span)
           end
@@ -367,11 +332,11 @@ module Datadog
     def write(trace)
       return if @writer.nil? || !@enabled
 
-      if Datadog::Tracer.debug_logging
-        Datadog::Tracer.log.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
+      if Datadog::Logger.debug_logging
+        Datadog::Logger.log.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
         str = String.new('')
         PP.pp(trace, str)
-        Datadog::Tracer.log.debug(str)
+        Datadog::Logger.log.debug(str)
       end
 
       @writer.write(trace)
@@ -391,8 +356,8 @@ module Datadog
       transport_options = options.fetch(:transport_options, {})
 
       # Compile writer options
-      rebuild_writer = false
-      writer_options = {}
+      writer_options = options.fetch(:writer_options, {})
+      rebuild_writer = !writer_options.empty?
 
       # Re-build the sampler and writer if priority sampling is enabled,
       # but neither are configured. Verify the sampler isn't already a
@@ -440,7 +405,10 @@ module Datadog
       @sampler = if base_sampler.is_a?(PrioritySampler)
                    base_sampler
                  else
-                   PrioritySampler.new(base_sampler: base_sampler)
+                   PrioritySampler.new(
+                     base_sampler: base_sampler,
+                     post_sampler: Datadog::RateByServiceSampler.new(1.0, env: proc { tags[:env] })
+                   )
                  end
     end
 

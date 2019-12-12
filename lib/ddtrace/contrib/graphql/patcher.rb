@@ -9,22 +9,16 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:graphql)
+        def target_version
+          Integration.version
         end
 
         def patch
           return if get_option(:schemas).nil?
 
-          do_once(:graphql) do
-            begin
-              require 'ddtrace/ext/app_types'
-              require 'ddtrace/ext/http'
-              get_option(:schemas).each { |s| patch_schema!(s) }
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply GraphQL integration: #{e}")
-            end
-          end
+          require 'ddtrace/ext/app_types'
+          require 'ddtrace/ext/http'
+          get_option(:schemas).each { |s| patch_schema!(s) }
         end
 
         def patch_schema!(schema)

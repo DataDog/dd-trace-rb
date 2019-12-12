@@ -9,19 +9,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:shoryuken)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:shoryuken) do
-            begin
-              ::Shoryuken.server_middleware do |chain|
-                chain.add Shoryuken::Tracer
-              end
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Shoryuken integration: #{e}")
-            end
+          ::Shoryuken.server_middleware do |chain|
+            chain.add Shoryuken::Tracer
           end
         end
       end

@@ -108,6 +108,10 @@ orbs:
           image:
             description: Docker image location
             type: string
+          rubocop:
+            description: Run Rubocop on this version of Ruby
+            type: boolean
+            default: true
         docker:
           - <<: *container_base
             image: <<parameters.image>>
@@ -116,11 +120,20 @@ orbs:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}
           - *step_init_bundle_checksum
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
           - *step_bundle_install
+          - when:
+              condition: <<parameters.rubocop>>
+              steps:
+                - *step_rubocop
           - *step_appraisal_install
           - *step_compute_bundle_checksum
           - save_cache:
@@ -129,6 +142,10 @@ orbs:
                 - /app
           - save_cache:
               key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+              paths:
+                - /usr/local/bundle
+          - save_cache:
+              key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}-{{ checksum ".circleci/bundle_checksum" }}'
               paths:
                 - /usr/local/bundle
       test:
@@ -243,6 +260,14 @@ jobs:
       - <<: *container_base
         image: marcotc/docker-library:ddtrace_rb_2_5_6
     steps:
+      - run:
+          name: Check if this commit author has publishing credentials
+          command: |
+            if [[ -z "${AWS_ACCESS_KEY_ID}" ]]
+            then
+              echo 'No AWS credentials, skipping publish of pre-release build.'
+              circleci task halt
+            fi
       - checkout
       - run:
           command: |
@@ -302,6 +327,7 @@ workflows:
           name: checkout-2.0
       - orb/build:
           <<: *config-2_0
+          rubocop: false
           name: build-2.0
           requires:
             - checkout-2.0

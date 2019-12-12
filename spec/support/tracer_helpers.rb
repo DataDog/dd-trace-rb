@@ -2,48 +2,59 @@ require 'ddtrace/tracer'
 require 'ddtrace/span'
 require 'support/faux_writer'
 
+# rubocop:disable Metrics/ModuleLength
 module TracerHelpers
   # Return a test tracer instance with a faux writer.
-  def get_test_tracer(options = {})
-    writer = FauxWriter.new(
-      transport: Datadog::Transport::HTTP.default do |t|
-        t.adapter :test
-      end
-    )
+  def tracer
+    @tracer ||= new_tracer
+  end
 
-    options = { writer: writer }.merge(options)
-    Datadog::Tracer.new(options).tap do |tracer|
-      # TODO: Let's try to get rid of this override, which has too much
-      #       knowledge about the internal workings of the tracer.
-      #       It is done to prevent the activation of priority sampling
-      #       from wiping out the configured test writer, by replacing it.
-      tracer.define_singleton_method(:configure) do |opts = {}|
-        super(opts)
+  def new_tracer(options = {})
+    @tracer ||= begin
+      writer = FauxWriter.new(
+        transport: Datadog::Transport::HTTP.default do |t|
+          t.adapter :test
+        end
+      )
 
-        # Re-configure the tracer with a new test writer
-        # since priority sampling will wipe out the old test writer.
-        unless @writer.is_a?(FauxWriter)
-          @writer = if @sampler.is_a?(Datadog::PrioritySampler)
-                      FauxWriter.new(
-                        priority_sampler: @sampler,
-                        transport: Datadog::Transport::HTTP.default do |t|
-                          t.adapter :test
-                        end
-                      )
-                    else
-                      FauxWriter.new(
-                        transport: Datadog::Transport::HTTP.default do |t|
-                          t.adapter :test
-                        end
-                      )
-                    end
+      options = { writer: writer }.merge(options)
+      Datadog::Tracer.new(options).tap do |tracer|
+        # TODO: Let's try to get rid of this override, which has too much
+        #       knowledge about the internal workings of the tracer.
+        #       It is done to prevent the activation of priority sampling
+        #       from wiping out the configured test writer, by replacing it.
+        tracer.define_singleton_method(:configure) do |opts = {}|
+          super(opts)
 
-          statsd = opts.fetch(:statsd, nil)
-          @writer.runtime_metrics.statsd = statsd unless statsd.nil?
+          # Re-configure the tracer with a new test writer
+          # since priority sampling will wipe out the old test writer.
+          unless @writer.is_a?(FauxWriter)
+            @writer = if @sampler.is_a?(Datadog::PrioritySampler)
+                        FauxWriter.new(
+                          priority_sampler: @sampler,
+                          transport: Datadog::Transport::HTTP.default do |t|
+                            t.adapter :test
+                          end
+                        )
+                      else
+                        FauxWriter.new(
+                          transport: Datadog::Transport::HTTP.default do |t|
+                            t.adapter :test
+                          end
+                        )
+                      end
+
+            statsd = opts.fetch(:statsd, nil)
+            @writer.runtime_metrics.statsd = statsd unless statsd.nil?
+          end
         end
       end
     end
   end
+
+  # TODO: Replace references to `get_test_tracer` with `tracer`.
+  # TODO: Use `new_tracer` instead if custom options are provided.
+  alias get_test_tracer new_tracer
 
   # Return a test tracer instance with a faux writer.
   def get_test_tracer_with_old_transport(options = {})
@@ -115,5 +126,32 @@ module TracerHelpers
   def get_test_services
     { 'rest-api' => { 'app' => 'rails', 'app_type' => 'web' },
       'master' => { 'app' => 'postgres', 'app_type' => 'db' } }
+  end
+
+  def writer
+    tracer.writer
+  end
+
+  def spans
+    @spans ||= writer.spans
+  end
+
+  # Returns the only span in the current tracer writer.
+  #
+  # This method will not allow for ambiguous use,
+  # meaning it will throw an error when more than
+  # one span is available.
+  def span
+    @span ||= begin
+      expect(spans).to have(1).item, "Requested the only span, but #{spans.size} spans are available"
+      spans.first
+    end
+  end
+
+  def clear_spans
+    writer.spans(:clear)
+
+    @spans = nil
+    @span = nil
   end
 end
