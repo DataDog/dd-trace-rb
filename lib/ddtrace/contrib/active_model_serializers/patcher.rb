@@ -12,19 +12,12 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:active_model_serializers)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:active_model_serializers) do
-            begin
-              # Subscribe to ActiveModelSerializers events
-              Events.subscribe!
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply ActiveModelSerializers integration: #{e}")
-            end
-          end
+          Events.subscribe!
         end
 
         def get_option(option)

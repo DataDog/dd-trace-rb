@@ -12,19 +12,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:dalli)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:dalli) do
-            begin
-              add_pin!
-              ::Dalli::Server.send(:include, Instrumentation)
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Dalli integration: #{e}")
-            end
-          end
+          add_pin!
+          ::Dalli::Server.send(:include, Instrumentation)
         end
 
         # DEPRECATED: Only kept for users still using `Dalli.datadog_pin` to configure.
@@ -63,7 +57,7 @@ module Datadog
 
           def log_deprecation_warning(method_name)
             do_once(method_name) do
-              Datadog::Tracer.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
+              Datadog::Logger.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
             end
           end
         end

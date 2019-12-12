@@ -28,7 +28,7 @@ module Datadog
           # Return early if this propagation is not valid
           # DEV: To be valid we need to have a trace id and a parent id or when it is a synthetics trace, just the trace id
           # DEV: `DistributedHeaders#id` will not return 0
-          return unless (trace_id && parent_id) || (origin == 'synthetics' && trace_id)
+          return unless (trace_id && parent_id) || (origin && trace_id)
 
           # Return new context
           ::Datadog::Context.new(trace_id: trace_id,
