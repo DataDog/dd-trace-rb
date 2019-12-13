@@ -48,7 +48,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.resource, 'TracingController#full')
     assert_equal(request_span.get_tag('http.url'), '/full')
     assert_equal(request_span.get_tag('http.method'), 'GET')
-    assert_equal(request_span.get_tag('http.status_code'), '200')
+    assert_equal(request_span.get_tag('http.status_code'), 200)
 
     assert_equal(controller_span.name, 'rails.action_controller')
     assert_equal(controller_span.span_type, 'web')
@@ -78,7 +78,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
       assert_equal(instantiation_span.service, Datadog.configuration[:rails][:service_name])
       assert_equal(instantiation_span.resource, 'Article')
       assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'Article')
-      assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), '0')
+      assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), 0)
     end
 
     assert_equal(cache_span.name, 'rails.cache')
@@ -110,7 +110,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.resource, 'TracingController#error')
     assert_equal(request_span.get_tag('http.url'), '/error')
     assert_equal(request_span.get_tag('http.method'), 'GET')
-    assert_equal(request_span.get_tag('http.status_code'), '500')
+    assert_equal(request_span.get_tag('http.status_code'), 500)
     assert_equal(request_span.status, 1, 'span should be flagged as an error')
     refute_nil(request_span.get_tag('error.stack')) # error stack is in rack span
     assert_match(/controllers\.rb.*error/, request_span.get_tag('error.stack'))
@@ -138,7 +138,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.resource, 'TracingController#soft_error')
     assert_equal(request_span.get_tag('http.url'), '/soft_error')
     assert_equal(request_span.get_tag('http.method'), 'GET')
-    assert_equal(request_span.get_tag('http.status_code'), '520')
+    assert_equal(request_span.get_tag('http.status_code'), 520)
     assert_equal(request_span.status, 1, 'span should be flagged as an error')
     assert_nil(request_span.get_tag('error.stack'))
   end
@@ -164,7 +164,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.resource, 'TracingController#sub_error')
     assert_equal(request_span.get_tag('http.url'), '/sub_error')
     assert_equal(request_span.get_tag('http.method'), 'GET')
-    assert_equal(request_span.get_tag('http.status_code'), '500')
+    assert_equal(request_span.get_tag('http.status_code'), 500)
     assert_equal(request_span.status, 1, 'span should be flagged as an error')
     assert_equal(controller_span.get_tag('error.type'), 'ZeroDivisionError')
     assert_equal(controller_span.get_tag('error.msg'), 'divided by 0')
@@ -218,7 +218,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.resource, 'GET 404')
     assert_equal(request_span.get_tag('http.url'), '/not_existing')
     assert_equal(request_span.get_tag('http.method'), 'GET')
-    assert_equal(request_span.get_tag('http.status_code'), '404')
+    assert_equal(request_span.get_tag('http.status_code'), 404)
     assert_equal(request_span.status, 0)
   end
 end

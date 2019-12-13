@@ -33,7 +33,7 @@ RSpec.describe 'Rails database' do
       expect(span.get_tag('active_record.db.name')).to eq(database_name)
       expect(span.get_tag('active_record.db.cached')).to be_nil
       expect(adapter_host.to_s).to eq(span.get_tag('out.host'))
-      expect(adapter_port.to_s).to eq(span.get_tag('out.port'))
+      expect(adapter_port).to eq(span.get_tag('out.port'))
       expect(span.resource).to include('SELECT COUNT(*) FROM')
       # ensure that the sql.query tag is not set
       expect(span.get_tag('sql.query')).to be_nil
@@ -61,7 +61,7 @@ RSpec.describe 'Rails database' do
         expect(span.service).to eq('active_record')
         expect(span.resource).to eq('Article')
         expect(span.get_tag('active_record.instantiation.class_name')).to eq('Article')
-        expect(span.get_tag('active_record.instantiation.record_count')).to eq('1')
+        expect(span.get_tag('active_record.instantiation.record_count')).to eq(1)
       end
 
       context 'inside parent trace' do
@@ -84,7 +84,7 @@ RSpec.describe 'Rails database' do
           expect(instantiation_span.service).to eq(parent_span.service) # Because within parent
           expect(instantiation_span.resource).to eq('Article')
           expect(instantiation_span.get_tag('active_record.instantiation.class_name')).to eq('Article')
-          expect(instantiation_span.get_tag('active_record.instantiation.record_count')).to eq('1')
+          expect(instantiation_span.get_tag('active_record.instantiation.record_count')).to eq(1)
         end
       end
     end

@@ -91,10 +91,10 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(200)
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
     end
@@ -109,9 +109,9 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.resource).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/failure')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('500')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(500)
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Error 500')

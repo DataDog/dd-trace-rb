@@ -6,7 +6,7 @@ RSpec.shared_examples_for 'span' do
   end
 
   it 'has tag with target port' do
-    expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(port.to_s)
+    expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(port.to_f)
   end
 
   it 'has tag with method' do
@@ -18,7 +18,8 @@ RSpec.shared_examples_for 'span' do
   end
 
   it 'has tag with status code' do
-    expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
+    expected_status = status ? status.to_f : nil
+    expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(expected_status)
   end
 
   it 'has resource set up properly' do
@@ -67,7 +68,7 @@ RSpec.shared_examples_for 'instrumented request' do
         before { request }
 
         it 'has tag with status code' do
-          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_f)
         end
 
         it 'has error set' do
@@ -87,7 +88,7 @@ RSpec.shared_examples_for 'instrumented request' do
         before { request }
 
         it 'has tag with status code' do
-          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_f)
         end
 
         it 'has no error set' do

@@ -72,7 +72,7 @@ module Datadog
           assert_equal('sucker_punch.perform_in', span.name)
           assert_equal('ENQUEUE DummyWorker', span.resource)
           assert_equal('DummyWorker', span.get_tag('sucker_punch.queue'))
-          assert_equal('0', span.get_tag('sucker_punch.perform_in'))
+          assert_equal(0, span.get_tag('sucker_punch.perform_in'))
         end
 
         private

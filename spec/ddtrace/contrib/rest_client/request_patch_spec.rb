@@ -59,7 +59,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with target port' do
-            expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+            expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
           end
 
           it 'has tag with target port' do
@@ -71,7 +71,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
           end
 
           it 'is http type' do
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
           end
 
           it 'has error set' do
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
           end
 
           it 'error is not set' do
@@ -161,7 +161,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             end
 
             it 'has tag with target port' do
-              expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+              expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
             end
 
             it 'has tag with target port' do

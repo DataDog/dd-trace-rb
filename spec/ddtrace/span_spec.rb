@@ -77,15 +77,55 @@ RSpec.describe Datadog::Span do
 
   describe '#set_tag' do
     subject(:set_tag) { span.set_tag(key, value) }
-    before { set_tag }
+
+    context 'given a numeric tag' do
+      let(:key) { 'http.status_code' }
+      let(:value) { 100 }
+
+      context 'that conflicts with an existing tag' do
+        before { span.set_tag(key, 'old value') }
+
+        it 'removes the tag' do
+          expect { set_tag }.to change { span.instance_variable_get(:@meta)[key] }
+            .from('old value')
+            .to(nil)
+        end
+
+        it 'adds a new metric' do
+          expect { set_tag }.to change { span.instance_variable_get(:@metrics)[key] }
+            .from(nil)
+            .to(value)
+        end
+      end
+
+      context 'that conflicts with an existing metric' do
+        before { span.set_metric(key, 10) }
+
+        it 'replaces the metric' do
+          expect { set_tag }.to change { span.instance_variable_get(:@metrics)[key] }
+            .from(10)
+            .to(value)
+
+          expect(span.instance_variable_get(:@meta)[key]).to be nil
+        end
+      end
+    end
+
+    # context 'that conflicts with a metric' do
+    #   it 'removes the metric'
+    #   it 'adds a new tag'
+    # end
 
     context 'given Datadog::Ext::Analytics::TAG_ENABLED' do
       let(:key) { Datadog::Ext::Analytics::TAG_ENABLED }
       let(:value) { true }
 
+      before { set_tag }
+
       it 'sets the analytics sample rate' do
+        # Both should return the same tag
         expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
-        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
+        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be 1.0
       end
     end
 
@@ -93,13 +133,18 @@ RSpec.describe Datadog::Span do
       let(:key) { Datadog::Ext::Analytics::TAG_SAMPLE_RATE }
       let(:value) { 0.5 }
 
+      before { set_tag }
+
       it 'sets the analytics sample rate' do
+        # Both should return the same tag
         expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(value)
-        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
+        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be value
       end
     end
 
     shared_examples 'setting sampling priority tag' do |key, expected_value|
+      before { set_tag }
+
       context "given #{key}" do
         let(:key) { key }
 

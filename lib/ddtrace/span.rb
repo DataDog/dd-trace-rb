@@ -102,7 +102,7 @@ module Datadog
 
     # Return the tag with the given key, nil if it doesn't exist.
     def get_tag(key)
-      @meta[key]
+      @meta[key] || @metrics[key]
     end
 
     # This method sets a tag with a floating point value for the given key. It acts
@@ -125,7 +125,7 @@ module Datadog
 
     # Return the metric with the given key, nil if it doesn't exist.
     def get_metric(key)
-      @metrics[key]
+      @metrics[key] || @meta[key]
     end
 
     # Mark the span with the given error.
