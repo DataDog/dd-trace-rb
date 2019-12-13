@@ -647,6 +647,12 @@ require 'ddtrace'
 
 Datadog.configure do |c|
   c.use :ethon, options
+
+  # optionally, specify a different service name for hostnames matching a regex
+  c.use :ethon, describes: /user-[^.]+\.example\.com/ do |ethon|
+    ethon.service_name = 'user.example.com'
+    ethon.split_by_domain = false # Only necessary if split_by_domain is true by default
+  end
 end
 ```
 
@@ -657,6 +663,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `ethon` instrumentation. | `'ethon'` |
+| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### Excon
@@ -670,6 +677,12 @@ require 'ddtrace'
 # Configure default Excon tracing behavior
 Datadog.configure do |c|
   c.use :excon, options
+
+  # optionally, specify a different service name for hostnames matching a regex
+  c.use :excon, describes: /user-[^.]+\.example\.com/ do |excon|
+    excon.service_name = 'user.example.com'
+    excon.split_by_domain = false # Only necessary if split_by_domain is true by default
+  end
 end
 
 connection = Excon.new('https://example.com')
@@ -685,7 +698,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
 | `service_name` | Service name for Excon instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'excon'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
-| `split_by_domain_map` | When splitting by domain, provide a hash of regex => service name to override the service name for matched domains. | `{}` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 **Configuring connections to use different settings**
@@ -724,6 +736,12 @@ require 'ddtrace'
 # Configure default Faraday tracing behavior
 Datadog.configure do |c|
   c.use :faraday, options
+
+  # optionally, specify a different service name for hostnames matching a regex
+  c.use :faraday, describes: /user-[^.]+\.example\.com/ do |faraday|
+    faraday.service_name = 'user.example.com'
+    faraday.split_by_domain = false # Only necessary if split_by_domain is true by default
+  end
 end
 
 # Configure Faraday tracing behavior for single connection
@@ -744,7 +762,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
 | `service_name` | Service name for Faraday instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'faraday'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
-| `split_by_domain_map` | When splitting by domain, provide a hash of regex => service name to override the service name for matched domains. | `{}` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually, you don't need to set this. | `Datadog.tracer` |
 
 ### Grape
@@ -946,6 +963,12 @@ require 'ddtrace'
 
 Datadog.configure do |c|
   c.use :http, options
+
+  # optionally, specify a different service name for hostnames matching a regex
+  c.use :http, describes: /user-[^.]+\.example\.com/ do |http|
+    http.service_name = 'user.example.com'
+    http.split_by_domain = false # Only necessary if split_by_domain is true by default
+  end
 end
 
 Net::HTTP.start('127.0.0.1', 8080) do |http|
@@ -963,6 +986,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name used for `http` instrumentation | `'net/http'` |
+| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 If you wish to configure each connection object individually, you may use the `Datadog.configure` as it follows:

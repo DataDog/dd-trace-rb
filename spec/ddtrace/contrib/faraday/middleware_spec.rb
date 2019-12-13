@@ -129,23 +129,31 @@ RSpec.describe 'Faraday middleware' do
   end
 
   context 'when split by domain' do
-    subject!(:response) { client.get('/success') }
+    subject(:response) { client.get('/success') }
 
-    let(:middleware_options) { { split_by_domain: true } }
+    let(:configuration_options) { super().merge(split_by_domain: true) }
 
     it do
+      response
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.service).to eq('example.com')
       expect(request_span.resource).to eq('GET')
     end
-  end
 
-  context 'when split by domain with a domain map' do
-    subject!(:response) { client.get('/success') }
-    let(:middleware_options) { { split_by_domain: true, split_by_domain_map: { /example\.com/ => 'bar' } } }
+    context 'and the host matches a specific configuration' do
+      before do
+        Datadog.configure do |c|
+          c.use :faraday, describe: /example\.com/ do |faraday|
+            faraday.service_name = 'bar'
+            faraday.split_by_domain = false
+          end
+        end
+      end
 
-    it 'overrides the domain from the map' do
-      expect(request_span.service).to eq('bar')
+      it 'uses the configured service name over the domain name' do
+        response
+        expect(request_span.service).to eq('bar')
+      end
     end
   end
 

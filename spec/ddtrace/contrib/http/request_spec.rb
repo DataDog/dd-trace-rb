@@ -203,6 +203,37 @@ RSpec.describe 'net/http requests' do
     end
   end
 
+  context 'when split by domain' do
+    subject(:response) { client.get(path) }
+    let(:path) { '/my/path' }
+    let(:span) { spans.first }
+    let(:configuration_options) { super().merge(split_by_domain: true) }
+    before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
+
+    it do
+      response
+      expect(span.name).to eq(Datadog::Contrib::HTTP::Ext::SPAN_REQUEST)
+      expect(span.service).to eq(host)
+      expect(span.resource).to eq('GET')
+    end
+
+    context 'and the host matches a specific configuration' do
+      before do
+        Datadog.configure do |c|
+          c.use :http, describe: /example\.com/ do |http|
+            http.service_name = 'bar'
+            http.split_by_domain = false
+          end
+        end
+      end
+
+      it 'uses the configured service name over the domain name' do
+        response
+        expect(span.service).to eq('bar')
+      end
+    end
+  end
+
   describe 'distributed tracing' do
     let(:path) { '/my/path' }
 

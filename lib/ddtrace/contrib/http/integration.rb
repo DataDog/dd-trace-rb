@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/http/configuration/settings'
+require 'ddtrace/contrib/configuration/resolvers/regexp_resolver'
 require 'ddtrace/contrib/http/patcher'
 require 'ddtrace/contrib/http/circuit_breaker'
 
@@ -25,6 +26,10 @@ module Datadog
 
         def patcher
           Patcher
+        end
+
+        def resolver
+          @resolver ||= Contrib::Configuration::Resolvers::RegexpResolver.new
         end
       end
     end

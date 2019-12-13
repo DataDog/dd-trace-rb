@@ -30,12 +30,13 @@ module Datadog
           end
         end
 
-        def configure(key, options = {}, &block)
-          key = resolver.resolve(key || :default)
+        def configure(key = :default, options = {}, &block)
+          resolver.add_key(key) unless key == :default
+          resolved_key = resolver.resolve(key)
 
-          configurations[key].tap do |settings|
+          configurations[resolved_key].tap do |settings|
             settings.configure(options, &block)
-            configurations[key] = settings
+            configurations[resolved_key] = settings
           end
         end
 

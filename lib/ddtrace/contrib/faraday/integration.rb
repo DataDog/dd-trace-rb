@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/integration'
+require 'ddtrace/contrib/configuration/resolvers/regexp_resolver'
 require 'ddtrace/contrib/faraday/configuration/settings'
 require 'ddtrace/contrib/faraday/patcher'
 
@@ -29,6 +30,10 @@ module Datadog
 
         def patcher
           Patcher
+        end
+
+        def resolver
+          @resolver ||= Contrib::Configuration::Resolvers::RegexpResolver.new
         end
       end
     end

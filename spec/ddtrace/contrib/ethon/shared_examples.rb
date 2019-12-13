@@ -56,7 +56,7 @@ RSpec.shared_examples_for 'instrumented request' do
         tracer.writer.spans.select { |span| span.name == 'ethon.request' }.first
       end
 
-      context 'response is successfull' do
+      context 'response is successful' do
         before { request }
 
         it_behaves_like 'span'
@@ -147,6 +147,31 @@ RSpec.shared_examples_for 'instrumented request' do
           headers = JSON.parse(response.body)['headers']
 
           expect(headers).to include('x-datadog-sampling-priority' => [sampling_priority.to_s])
+        end
+      end
+    end
+
+    context 'when split by domain' do
+      let(:configuration_options) { super().merge(split_by_domain: true) }
+
+      it do
+        expect(span.name).to eq(Datadog::Contrib::Ethon::Ext::SPAN_REQUEST)
+        expect(span.service).to eq('example.com')
+        expect(span.resource).to eq('GET')
+      end
+
+      context 'and the host matches a specific configuration' do
+        before do
+          Datadog.configure do |c|
+            c.use :ethon, describe: /example\.com/ do |ethon|
+              ethon.service_name = 'bar'
+              ethon.split_by_domain = false
+            end
+          end
+        end
+
+        it 'uses the configured service name over the domain name' do
+          expect(request_span.service).to eq('bar')
         end
       end
     end
