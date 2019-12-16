@@ -78,9 +78,83 @@ RSpec.describe Datadog::Span do
   describe '#set_tag' do
     subject(:set_tag) { span.set_tag(key, value) }
 
+    shared_examples_for 'meta tag' do
+      let(:old_value) { nil }
+
+      it 'sets a tag' do
+        expect { set_tag }.to change { span.instance_variable_get(:@meta)[key] }
+          .from(old_value)
+          .to(value.to_s)
+      end
+
+      it 'does not set a metric' do
+        expect { set_tag }.to_not change { span.instance_variable_get(:@metrics)[key] }
+          .from(old_value)
+      end
+    end
+
+    shared_examples_for 'metric tag' do
+      let(:old_value) { nil }
+
+      it 'does not set a tag' do
+        expect { set_tag }.to_not change { span.instance_variable_get(:@meta)[key] }
+          .from(old_value)
+      end
+
+      it 'sets a metric' do
+        expect { set_tag }.to change { span.instance_variable_get(:@metrics)[key] }
+          .from(old_value)
+          .to(value.to_f)
+      end
+    end
+
     context 'given a numeric tag' do
       let(:key) { 'http.status_code' }
-      let(:value) { 100 }
+      let(:value) { 200 }
+
+      context 'which is an integer' do
+        context 'that exceeds the upper limit' do
+          let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.max.to_i + 1 }
+          it_behaves_like 'meta tag'
+        end
+
+        context 'at the upper limit' do
+          let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.max.to_i }
+          it_behaves_like 'metric tag'
+        end
+
+        context 'at the lower limit' do
+          let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.min.to_i }
+          it_behaves_like 'metric tag'
+        end
+
+        context 'that is below the lower limit' do
+          let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.min.to_i - 1 }
+          it_behaves_like 'meta tag'
+        end
+      end
+
+      context 'which is a float' do
+        context 'that exceeds the upper limit' do
+          let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.max.to_f + 1.0 }
+          it_behaves_like 'metric tag'
+        end
+
+        context 'at the upper limit' do
+          let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.max.to_f }
+          it_behaves_like 'metric tag'
+        end
+
+        context 'at the lower limit' do
+          let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.min.to_f }
+          it_behaves_like 'metric tag'
+        end
+
+        context 'that is below the lower limit' do
+          let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.min.to_f - 1.0 }
+          it_behaves_like 'metric tag'
+        end
+      end
 
       context 'that conflicts with an existing tag' do
         before { span.set_tag(key, 'old value') }
@@ -99,11 +173,11 @@ RSpec.describe Datadog::Span do
       end
 
       context 'that conflicts with an existing metric' do
-        before { span.set_metric(key, 10) }
+        before { span.set_metric(key, 404) }
 
         it 'replaces the metric' do
           expect { set_tag }.to change { span.instance_variable_get(:@metrics)[key] }
-            .from(10)
+            .from(404)
             .to(value)
 
           expect(span.instance_variable_get(:@meta)[key]).to be nil

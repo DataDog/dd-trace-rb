@@ -31,6 +31,9 @@ module Datadog
     # parsing 64-bit integers for distributed tracing since an upstream system may generate one
     EXTERNAL_MAX_ID = 2**64
 
+    # This limit is for numeric tags because uint64 could end up rounded.
+    NUMERIC_TAG_SIZE_RANGE = (-2**53..2**53)
+
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
@@ -81,12 +84,14 @@ module Datadog
     #   span.set_tag('http.method', request.method)
     def set_tag(key, value = nil)
       # Keys must be unique between tags and metrics
-      @metrics.delete(key) if @metrics.key?(key)
+      @metrics.delete(key)
 
       # NOTE: Adding numeric tags as metrics is stop-gap support
       #       for numeric typed tags. Eventually they will become
       #       tags again.
-      if value.is_a?(Numeric)
+      # Any numeric that is not an integer greater than max size is logged as a metric.
+      # Everything else gets logged as a tag.
+      if value.is_a?(Numeric) && !(value.is_a?(Integer) && !NUMERIC_TAG_SIZE_RANGE.cover?(value))
         set_metric(key, value)
       else
         @meta[key] = value.to_s
@@ -109,7 +114,7 @@ module Datadog
     # like `set_tag()` and it simply add a tag without further processing.
     def set_metric(key, value)
       # Keys must be unique between tags and metrics
-      @meta.delete(key) if @meta.key?(key)
+      @meta.delete(key)
 
       # enforce that the value is a floating point number
       value = Float(value)

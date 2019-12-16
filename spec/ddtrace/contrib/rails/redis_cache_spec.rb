@@ -41,7 +41,7 @@ MESSAGE
 
   let(:cache_store_name) do
     if Gem.loaded_specs['redis-activesupport'] \
-       && Gem::Version.new(Rails::VERSION::STRING) < Gem::Version.new('5.0')
+       && Gem::Version.new(Rails::VERSION::STRING) < Gem::Version.new('5.2')
       'redis_store'
     else
       'redis_cache_store'
