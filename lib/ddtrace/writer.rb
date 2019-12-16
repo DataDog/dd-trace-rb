@@ -128,7 +128,9 @@ module Datadog
       end
 
       # Associate root span with runtime metrics
-      runtime_metrics.associate_with_span(trace.first) unless trace.empty?
+      if Datadog.configuration.runtime_metrics_enabled && !trace.empty?
+        runtime_metrics.associate_with_span(trace.first)
+      end
 
       @worker.enqueue_trace(trace)
     end

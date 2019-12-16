@@ -177,7 +177,8 @@ class TracerTest < Minitest::Test
     assert_equal('special-service', span.service)
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
-    assert_equal(6, span.meta.length)
+    expected_length = Datadog.configuration.runtime_metrics_enabled ? 6 : 5
+    assert_equal(expected_length, span.meta.length)
     assert_equal('test', span.get_tag('env'))
     assert_equal('cool', span.get_tag('temp'))
     assert_equal('value1', span.get_tag('tag1'))
