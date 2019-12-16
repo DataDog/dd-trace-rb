@@ -32,6 +32,7 @@ module Datadog
             template_name = Utils.normalize_template_name(template.try('identifier'))
 
             if template_name
+              active_datadog_span.resource = template_name
               active_datadog_span.set_tag(
                 Ext::TAG_TEMPLATE_NAME,
                 template_name
