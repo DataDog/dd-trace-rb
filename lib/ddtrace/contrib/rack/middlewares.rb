@@ -17,6 +17,8 @@ module Datadog
       # information available at the Rack level.
       # rubocop:disable Metrics/ClassLength
       class TraceMiddleware
+        include BaseInstrumentation
+
         # DEPRECATED: Remove in 1.0 in favor of Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN
         # This constant will remain here until then, for backwards compatibility.
         RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
@@ -25,14 +27,14 @@ module Datadog
           @app = app
         end
 
-        def compute_queue_time(env, tracer)
+        def compute_queue_time(env)
           return unless configuration[:request_queuing]
 
           # parse the request queue time
           request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
           return if request_start.nil?
 
-          tracer.trace(
+          trace(
             Ext::SPAN_HTTP_SERVER_QUEUE,
             span_type: Datadog::Ext::HTTP::TYPE_PROXY,
             start_time: request_start,
@@ -42,7 +44,7 @@ module Datadog
 
         def call(env)
           # retrieve integration settings
-          tracer = configuration[:tracer]
+          #tracer = configuration[:tracer]
 
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.
@@ -53,7 +55,7 @@ module Datadog
 
           # [experimental] create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
-          frontend_span = compute_queue_time(env, tracer)
+          frontend_span = compute_queue_time(env)
 
           trace_options = {
             service: configuration[:service_name],
@@ -63,7 +65,7 @@ module Datadog
 
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
-          request_span = tracer.trace(Ext::SPAN_REQUEST, trace_options)
+          request_span = trace(Ext::SPAN_REQUEST, trace_options)
           env[RACK_REQUEST_SPAN] = request_span
 
           # TODO: Add deprecation warnings back in

@@ -10,14 +10,21 @@ module Datadog
       module ActionController
         # Instrumentation for ActionController components
         module Instrumentation
+          extend BaseInstrumentation
+
           module_function
 
+          def span_options
+            { service: configuration[:controller_service] }
+          end
+
+          def configuration
+            Datadog.configuration[:action_pack]
+          end
+
           def start_processing(payload)
-            # trace the execution
-            tracer = Datadog.configuration[:action_pack][:tracer]
-            service = Datadog.configuration[:action_pack][:controller_service]
             type = Datadog::Ext::HTTP::TYPE_INBOUND
-            span = tracer.trace(Ext::SPAN_ACTION_CONTROLLER, service: service, span_type: type)
+            span = trace(Ext::SPAN_ACTION_CONTROLLER, span_type: type)
 
             # attach the current span to the tracing context
             tracing_context = payload.fetch(:tracing_context)
@@ -79,12 +86,12 @@ module Datadog
             # guess whether this is an exception controller from the headers.
             if exception_controller_class.nil?
               !headers[:request_exception].nil?
-            # If an exception controller class has been specified,
-            # check if the controller is a kind of the exception controller class.
+              # If an exception controller class has been specified,
+              # check if the controller is a kind of the exception controller class.
             elsif exception_controller_class.is_a?(Class) || exception_controller_class.is_a?(Module)
               controller <= exception_controller_class
-            # Otherwise if the exception controller class is some other value (like false)
-            # assume that this controller doesn't handle exceptions.
+              # Otherwise if the exception controller class is some other value (like false)
+              # assume that this controller doesn't handle exceptions.
             else
               false
             end
@@ -115,13 +122,13 @@ module Datadog
                 status = datadog_response_status
                 payload[:status] = status unless status.nil?
                 result
-              # rubocop:disable Lint/RescueException
+                  # rubocop:disable Lint/RescueException
               rescue Exception => e
                 payload[:exception] = [e.class.name, e.message]
                 payload[:exception_object] = e
                 raise e
               end
-            # rubocop:enable Lint/RescueException
+                # rubocop:enable Lint/RescueException
             ensure
               Instrumentation.finish_processing(payload)
             end
