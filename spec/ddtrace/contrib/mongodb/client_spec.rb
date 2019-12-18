@@ -11,7 +11,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
   let(:client) { Mongo::Client.new(["#{host}:#{port}"], client_options) }
   let(:client_options) { { database: database } }
   let(:host) { ENV.fetch('TEST_MONGODB_HOST', '127.0.0.1') }
-  let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017) }
+  let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017).to_i }
   let(:database) { 'test' }
   let(:collection) { :artists }
 
@@ -88,9 +88,10 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.service).to eq('mongodb')
         expect(span.span_type).to eq('mongodb')
         expect(span.get_tag('mongodb.db')).to eq(database)
-        expect(span.get_tag('mongodb.collection')).to eq(collection.to_s)
+        collection_value = collection.is_a?(Numeric) ? collection : collection.to_s
+        expect(span.get_tag('mongodb.collection')).to eq(collection_value)
         expect(span.get_tag('out.host')).to eq(host)
-        expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.get_tag('out.port')).to eq(port)
       end
 
       it_behaves_like 'analytics for integration' do
@@ -153,7 +154,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           else
             expect(span.resource).to be_quantized.except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
           end
-          expect(span.get_tag('mongodb.rows')).to eq('1')
+          expect(span.get_tag('mongodb.rows')).to eq(1)
         end
       end
 
@@ -169,7 +170,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           else
             expect(span.resource).to be_quantized.except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
           end
-          expect(span.get_tag('mongodb.rows')).to eq('1')
+          expect(span.get_tag('mongodb.rows')).to eq(1)
         end
       end
     end
@@ -195,7 +196,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           else
             expect(span.resource).to be_quantized.except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
           end
-          expect(span.get_tag('mongodb.rows')).to eq('2')
+          expect(span.get_tag('mongodb.rows')).to eq(2)
         end
       end
     end
@@ -276,7 +277,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         else
           expect(span.resource).to be_quantized.except('operation' => 'update', 'database' => database, 'collection' => collection.to_s)
         end
-        expect(span.get_tag('mongodb.rows')).to eq('1')
+        expect(span.get_tag('mongodb.rows')).to eq(1)
       end
     end
 
@@ -313,7 +314,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         else
           expect(span.resource).to be_quantized.except('operation' => 'update', 'database' => database, 'collection' => collection.to_s)
         end
-        expect(span.get_tag('mongodb.rows')).to eq('2')
+        expect(span.get_tag('mongodb.rows')).to eq(2)
       end
     end
 
@@ -342,7 +343,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         else
           expect(span.resource).to be_quantized.except('operation' => 'delete', 'database' => database, 'collection' => collection.to_s)
         end
-        expect(span.get_tag('mongodb.rows')).to eq('1')
+        expect(span.get_tag('mongodb.rows')).to eq(1)
       end
     end
 
@@ -379,7 +380,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         else
           expect(span.resource).to be_quantized.except('operation' => 'delete', 'database' => database, 'collection' => collection.to_s)
         end
-        expect(span.get_tag('mongodb.rows')).to eq('2')
+        expect(span.get_tag('mongodb.rows')).to eq(2)
       end
     end
 

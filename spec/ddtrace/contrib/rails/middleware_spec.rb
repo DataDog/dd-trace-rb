@@ -134,7 +134,7 @@ RSpec.describe 'Rails middleware' do
           expect(span.resource).to eq('TestController#index')
           expect(span.get_tag('http.url')).to eq('/')
           expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('500')
+          expect(span.get_tag('http.status_code')).to eq(500)
           expect(span.get_tag('error.type')).to eq('NotImplementedError')
           expect(span.get_tag('error.msg')).to eq('NotImplementedError')
           expect(span).to have_error
@@ -175,7 +175,7 @@ RSpec.describe 'Rails middleware' do
           expect(span.resource).to eq('TestController#index')
           expect(span.get_tag('http.url')).to eq('/')
           expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('404')
+          expect(span.get_tag('http.status_code')).to eq(404)
 
           if Rails.version >= '3.2'
             expect(span.get_tag('error.type')).to be nil
@@ -238,7 +238,7 @@ RSpec.describe 'Rails middleware' do
           expect(span.get_tag('http.url')).to eq('/') if Rails.version >= '3.2'
 
           expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('500')
+          expect(span.get_tag('http.status_code')).to eq(500)
           expect(span.get_tag('error.type')).to eq('CustomError')
           expect(span.get_tag('error.msg')).to eq('Custom error message!')
           expect(span).to have_error
@@ -283,7 +283,7 @@ RSpec.describe 'Rails middleware' do
               expect(span.resource).to eq('TestController#index')
               expect(span.get_tag('http.url')).to eq('/')
               expect(span.get_tag('http.method')).to eq('GET')
-              expect(span.get_tag('http.status_code')).to eq('404')
+              expect(span.get_tag('http.status_code')).to eq(404)
               expect(span.get_tag('error.type')).to be nil
               expect(span.get_tag('error.msg')).to be nil
               expect(span).to_not have_error

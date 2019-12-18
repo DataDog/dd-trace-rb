@@ -84,7 +84,7 @@ RSpec.describe 'Rack integration configuration' do
         expect(rack_span.service).to eq(Datadog.configuration[:rack][:service_name])
         expect(rack_span.resource).to eq('GET 200')
         expect(rack_span.get_tag('http.method')).to eq('GET')
-        expect(rack_span.get_tag('http.status_code')).to eq('200')
+        expect(rack_span.get_tag('http.status_code')).to eq(200)
         expect(rack_span.get_tag('http.url')).to eq('/')
         expect(rack_span.status).to eq(0)
 
@@ -103,7 +103,7 @@ RSpec.describe 'Rack integration configuration' do
         expect(span.service).to eq(Datadog.configuration[:rack][:service_name])
         expect(span.resource).to eq('GET 200')
         expect(span.get_tag('http.method')).to eq('GET')
-        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('http.status_code')).to eq(200)
         expect(span.get_tag('http.url')).to eq('/')
         expect(span.status).to eq(0)
 
