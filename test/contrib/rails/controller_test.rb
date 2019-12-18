@@ -52,11 +52,33 @@ class TracingControllerTest < ActionController::TestCase
     span = spans[1]
     assert_equal(span.name, 'rails.render_template')
     assert_equal(span.span_type, 'template')
-    assert_equal(span.resource, 'rails.render_template')
+    assert_equal(span.resource, 'tracing/index.html.erb')
     assert_equal(span.get_tag('rails.template_name'), 'tracing/index.html.erb') if Rails.version >= '3.2.22.5'
     assert_includes(span.get_tag('rails.template_name'), 'tracing/index.html')
     assert_equal(span.get_tag('rails.layout'), 'layouts/application') if Rails.version >= '3.2.22.5'
     assert_includes(span.get_tag('rails.layout'), 'layouts/application')
+  end
+
+  test 'template rendering is properly without explicit layout' do
+    begin
+      # Most users of Rails do not explicitly specify a controller layout
+      TracingController.class_eval { layout nil }
+
+      # render the template and assert the proper span
+      get :index
+      assert_response :success
+      spans = @tracer.writer.spans()
+      assert_equal(spans.length, 2)
+      span = spans[1]
+      assert_equal(span.name, 'rails.render_template')
+      assert_equal(span.span_type, 'template')
+      assert_equal(span.resource, 'tracing/index.html.erb') if Rails.version >= '3.2.22.5'
+      assert_includes(span.resource, 'tracing/index.html')
+      assert_equal(span.get_tag('rails.template_name'), 'tracing/index.html.erb') if Rails.version >= '3.2.22.5'
+      assert_includes(span.get_tag('rails.template_name'), 'tracing/index.html')
+    ensure
+      TracingController.class_eval { layout 'application' }
+    end
   end
 
   test 'template partial rendering is properly traced' do
@@ -69,7 +91,7 @@ class TracingControllerTest < ActionController::TestCase
     _, span_partial, span_template = spans
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.span_type, 'template')
-    assert_equal(span_partial.resource, 'rails.render_partial')
+    assert_equal(span_partial.resource, 'tracing/_body.html.erb')
     assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_body.html.erb') if Rails.version >= '3.2.22.5'
     assert_includes(span_partial.get_tag('rails.template_name'), 'tracing/_body.html')
     assert_equal(span_partial.parent, span_template)
@@ -87,12 +109,12 @@ class TracingControllerTest < ActionController::TestCase
     spans = @tracer.writer.spans
     assert_equal(spans.length, 4)
 
-    _, span_outer_partial, span_inner_partial, span_template = spans
+    _, span_inner_partial, span_outer_partial, span_template = spans
 
     # Outer partial
     assert_equal('rails.render_partial', span_outer_partial.name)
     assert_equal('template', span_outer_partial.span_type)
-    assert_equal('rails.render_partial', span_outer_partial.resource)
+    assert_equal('tracing/_outer_partial.html.erb', span_outer_partial.resource)
     if Rails.version >= '3.2.22.5'
       assert_equal('tracing/_outer_partial.html.erb', span_outer_partial.get_tag('rails.template_name'))
     end
@@ -102,7 +124,7 @@ class TracingControllerTest < ActionController::TestCase
     # Inner partial
     assert_equal('rails.render_partial', span_inner_partial.name)
     assert_equal('template', span_inner_partial.span_type)
-    assert_equal('rails.render_partial', span_inner_partial.resource)
+    assert_equal('tracing/_inner_partial.html.erb', span_inner_partial.resource)
     if Rails.version >= '3.2.22.5'
       assert_equal('tracing/_inner_partial.html.erb', span_inner_partial.get_tag('rails.template_name'))
     end

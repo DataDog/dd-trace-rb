@@ -68,7 +68,7 @@ module Datadog
             span = Sinatra::Env.datadog_span(env)
 
             unless span
-              Datadog::Tracer.log.error('missing request span in :after hook')
+              Datadog::Logger.log.error('missing request span in :after hook')
               return
             end
 

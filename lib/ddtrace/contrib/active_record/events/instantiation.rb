@@ -48,7 +48,7 @@ module Datadog
             span.set_tag(Ext::TAG_INSTANTIATION_CLASS_NAME, payload.fetch(:class_name))
             span.set_tag(Ext::TAG_INSTANTIATION_RECORD_COUNT, payload.fetch(:record_count))
           rescue StandardError => e
-            Datadog::Tracer.log.debug(e.message)
+            Datadog::Logger.log.debug(e.message)
           end
         end
       end

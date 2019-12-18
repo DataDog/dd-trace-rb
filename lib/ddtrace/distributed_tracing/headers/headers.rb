@@ -13,6 +13,8 @@ module Datadog
           @env = env
         end
 
+        # TODO: Don't assume Rack format.
+        #       Make distributed tracing headers apathetic.
         def header(name)
           rack_header = "http-#{name}".upcase!.tr('-', '_')
 

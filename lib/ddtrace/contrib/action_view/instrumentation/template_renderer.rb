@@ -4,9 +4,9 @@ module Datadog
   module Contrib
     module ActionView
       module Instrumentation
-        # Instrumentation for template rendering
+        # Legacy instrumentation for template rendering for Rails < 4
         module TemplateRenderer
-          # Rails < 3.1 template rendering
+          # Legacy Rails < 3.1 template rendering
           module Rails30
             # rubocop:disable Metrics/MethodLength
             def self.prepended(base)
@@ -37,6 +37,7 @@ module Datadog
                     template_name = Utils.normalize_template_name(template_name)
 
                     if template_name
+                      active_datadog_span.resource = template_name
                       active_datadog_span.set_tag(
                         Ext::TAG_TEMPLATE_NAME,
                         template_name
@@ -50,7 +51,7 @@ module Datadog
                       )
                     end
                   rescue StandardError => e
-                    Datadog::Tracer.log.debug(e.message)
+                    Datadog::Logger.log.debug(e.message)
                   end
 
                   # execute the original function anyway
@@ -82,7 +83,7 @@ module Datadog
             end
           end
 
-          # Shared code for Rails >= 3.1 template rendering
+          # Legacy shared code for Rails >= 3.1 template rendering
           module Rails31Plus
             def render(*args, &block)
               datadog_tracer.trace(
@@ -99,7 +100,7 @@ module Datadog
 
                 datadog_render_template(template, layout_name)
               rescue StandardError => e
-                Datadog::Tracer.log.debug(e.message)
+                Datadog::Logger.log.debug(e.message)
               end
 
               # execute the original function anyway
@@ -113,6 +114,7 @@ module Datadog
               layout = layout_name.try(:[], 'virtual_path') # Proc can be called without parameters since Rails 6
 
               if template_name
+                active_datadog_span.resource = template_name
                 active_datadog_span.set_tag(
                   Ext::TAG_TEMPLATE_NAME,
                   template_name
@@ -143,20 +145,12 @@ module Datadog
             end
           end
 
-          # Rails >= 3.1 && < 6 template rendering
-          module Rails31To5
+          # Rails >= 3.1, < 4 template rendering
+          # ActiveSupport events are used instead for Rails >= 4
+          module RailsLessThan4
             include Rails31Plus
 
             def datadog_parse_args(template, layout_name, *args)
-              [template, layout_name]
-            end
-          end
-
-          # Rails >= 6 template rendering
-          module Rails6Plus
-            include Rails31Plus
-
-            def datadog_parse_args(view, template, layout_name, *args)
               [template, layout_name]
             end
           end

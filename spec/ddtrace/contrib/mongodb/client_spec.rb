@@ -430,7 +430,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
     describe 'with LDAP/SASL authentication' do
       let(:client_options) do
-        super().merge(auth_mech: :plain)
+        super().merge(auth_mech: :plain, user: 'plain_user', password: 'plain_pass')
       end
 
       context 'which fails' do
@@ -465,7 +465,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
             expect(insert_span.resource).to match(/"operation"\s*=>\s*:insert/)
             expect(insert_span.status).to eq(1)
             expect(insert_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
-            expect(insert_span.get_tag('error.msg')).to eq('User  is not authorized to access test.')
+            expect(insert_span.get_tag('error.msg')).to match(/.*is not authorized to access.*/)
           end
 
           expect(auth_span.name).to eq('mongo.cmd')

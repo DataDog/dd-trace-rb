@@ -16,6 +16,10 @@ module Datadog
         end
 
         def_delegators :@http_response, *Transport::Response.instance_methods
+
+        def code
+          @http_response.respond_to?(:code) ? @http_response.code : nil
+        end
       end
     end
   end

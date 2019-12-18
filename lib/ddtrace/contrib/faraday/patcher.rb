@@ -12,22 +12,16 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:faraday)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:faraday) do
-            begin
-              require 'ddtrace/contrib/faraday/middleware'
+          require 'ddtrace/contrib/faraday/middleware'
 
-              add_pin!
-              register_middleware!
-              add_default_middleware!
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Faraday integration: #{e}")
-            end
-          end
+          add_pin!
+          register_middleware!
+          add_default_middleware!
         end
 
         def add_pin!
@@ -72,7 +66,7 @@ module Datadog
 
           def log_deprecation_warning(method_name)
             do_once(method_name) do
-              Datadog::Tracer.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
+              Datadog::Logger.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
             end
           end
         end

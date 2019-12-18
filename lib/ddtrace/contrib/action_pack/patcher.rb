@@ -10,18 +10,12 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:action_pack)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:action_pack) do
-            begin
-              ActionController::Patcher.patch
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply ActionPack integration: #{e}")
-            end
-          end
+          ActionController::Patcher.patch
         end
       end
     end

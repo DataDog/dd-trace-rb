@@ -58,7 +58,8 @@ class FullStackTest < ActionDispatch::IntegrationTest
 
     assert_equal(render_span.name, 'rails.render_template')
     assert_equal(render_span.span_type, 'template')
-    assert_equal(render_span.resource, 'rails.render_template')
+    assert_equal(render_span.service, Datadog.configuration[:rails][:service_name])
+    assert_equal(render_span.resource, 'tracing/full.html.erb')
     assert_equal(render_span.get_tag('rails.template_name'), 'tracing/full.html.erb')
 
     adapter_name = get_adapter_name
