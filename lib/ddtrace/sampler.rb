@@ -194,6 +194,7 @@ module Datadog
     extend Forwardable
 
     SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
+    AGENT_RATE_METRIC_KEY = '_dd.agent_psr'.freeze
 
     def initialize(opts = {})
       @pre_sampler = opts[:base_sampler] || AllSampler.new
@@ -247,7 +248,15 @@ module Datadog
 
     def priority_sample!(span)
       preserving_sampling(span) do
-        @priority_sampler.sample!(span)
+        @priority_sampler.sample!(span).tap do
+          # We want to make sure the span is tagged with the agent-derived
+          # service rate. Retrieve this from the rate by service sampler.
+          # Only do this if it was set by a RateByServiceSampler.
+          if @priority_sampler.is_a?(RateByServiceSampler)
+            agent_rate = @priority_sampler.sample_rate(span)
+            span.set_metric(AGENT_RATE_METRIC_KEY, agent_rate)
+          end
+        end
       end
     end
 
