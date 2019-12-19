@@ -148,21 +148,21 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'rails4-mysql2' do
-      gem 'rails', '4.2.7.1'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'rails', '4.2.11.1'
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails4-postgres' do
-      gem 'rails', '4.2.7.1'
+      gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails4-postgres-redis' do
-      gem 'rails', '4.2.7.1'
+      gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
@@ -259,21 +259,21 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'rails4-mysql2' do
-      gem 'rails', '4.2.7.1'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'rails', '4.2.11.1'
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails4-postgres' do
-      gem 'rails', '4.2.7.1'
+      gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails4-postgres-redis' do
-      gem 'rails', '4.2.7.1'
+      gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
@@ -282,7 +282,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'rails4-postgres-sidekiq' do
-      gem 'rails', '4.2.7.1'
+      gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sidekiq'
@@ -292,7 +292,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
     end
 
@@ -312,7 +312,6 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -338,6 +337,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'ethon'
       gem 'excon'
+      gem 'faraday'
       gem 'grape'
       gem 'graphql', '< 1.9.4'
       gem 'grpc'
@@ -417,21 +417,21 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'rails4-mysql2' do
-      gem 'rails', '4.2.7.1'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'rails', '4.2.11.1'
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails4-postgres' do
-      gem 'rails', '4.2.7.1'
+      gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails4-postgres-redis' do
-      gem 'rails', '4.2.7.1'
+      gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis-rails'
@@ -440,7 +440,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'rails4-postgres-sidekiq' do
-      gem 'rails', '4.2.7.1'
+      gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sidekiq'
@@ -450,7 +450,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
     end
 
@@ -470,7 +470,6 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -496,6 +495,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'ethon'
       gem 'excon'
+      gem 'faraday'
       gem 'grape'
       gem 'graphql'
       gem 'grpc'
@@ -523,7 +523,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
   if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
     end
 
@@ -536,7 +536,6 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -544,7 +543,6 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -570,6 +568,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'ethon'
       gem 'excon'
+      gem 'faraday'
       gem 'grape'
       gem 'graphql'
       gem 'grpc'
@@ -597,7 +596,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
   if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
     end
 
@@ -610,7 +609,6 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -618,7 +616,6 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -633,7 +630,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'rails6-mysql2' do
       gem 'rails', '~> 6.0.0'
-      gem 'mysql2', '< 0.6', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
     end
 
@@ -646,7 +643,6 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -654,7 +650,6 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -680,6 +675,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'ethon'
       gem 'excon'
+      gem 'faraday'
       gem 'grape'
       gem 'graphql'
       gem 'grpc'
@@ -706,7 +702,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
   if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
     end
 
@@ -719,7 +715,6 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -727,7 +722,6 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -742,7 +736,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
 
     appraise 'rails6-mysql2' do
       gem 'rails', '~> 6.0.0'
-      gem 'mysql2', '< 0.6', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
     end
 
@@ -755,7 +749,6 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -763,7 +756,6 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
     appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
     end
@@ -789,6 +781,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'elasticsearch-transport'
       gem 'ethon'
       gem 'excon'
+      gem 'faraday'
       gem 'grape'
       gem 'graphql'
       gem 'grpc'

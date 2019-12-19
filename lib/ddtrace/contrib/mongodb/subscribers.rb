@@ -50,7 +50,7 @@ module Datadog
           # the framework itself, so we set only the error and the message
           span.set_error(event)
         rescue StandardError => e
-          Datadog::Tracer.log.debug("error when handling MongoDB 'failed' event: #{e}")
+          Datadog::Logger.log.debug("error when handling MongoDB 'failed' event: #{e}")
         ensure
           # whatever happens, the Span must be removed from the local storage and
           # it must be finished to prevent any leak
@@ -66,7 +66,7 @@ module Datadog
           rows = event.reply.fetch('n', nil)
           span.set_tag(Ext::TAG_ROWS, rows) unless rows.nil?
         rescue StandardError => e
-          Datadog::Tracer.log.debug("error when handling MongoDB 'succeeded' event: #{e}")
+          Datadog::Logger.log.debug("error when handling MongoDB 'succeeded' event: #{e}")
         ensure
           # whatever happens, the Span must be removed from the local storage and
           # it must be finished to prevent any leak

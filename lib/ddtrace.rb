@@ -1,5 +1,12 @@
 require 'thread'
 
+# During development, we load `ddtrace` by through `ddtrace.gemspec`,
+# which in turn eager loads 'ddtrace/version'.
+#
+# Users load this gem by requiring this file.
+# We need to ensure that any files loaded in our gemspec are also loaded here.
+require 'ddtrace/version'
+
 require 'ddtrace/pin'
 require 'ddtrace/tracer'
 require 'ddtrace/error'
@@ -19,6 +26,11 @@ module Datadog
   # Load and extend Contrib by default
   require 'ddtrace/contrib/extensions'
   extend Contrib::Extensions
+
+  # Add shutdown hook:
+  # Ensures the tracer has an opportunity to flush traces
+  # and cleanup before terminating the process.
+  at_exit { Datadog.tracer.shutdown! }
 end
 
 require 'ddtrace/contrib/action_pack/integration'

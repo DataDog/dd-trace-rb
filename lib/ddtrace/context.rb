@@ -1,4 +1,5 @@
 require 'thread'
+require 'ddtrace/diagnostics/health'
 
 module Datadog
   # \Context is used to keep track of a hierarchy of spans for the current
@@ -89,9 +90,17 @@ module Datadog
         # by default has 10000 spans, all of which belong to unfinished parts of a
         # larger trace. This is a catch-all to reduce global memory usage.
         if @max_length > 0 && @trace.length >= @max_length
-          Datadog::Tracer.log.debug("context full, ignoring span #{span.name}")
           # Detach the span from any context, it's being dropped and ignored.
           span.context = nil
+          Datadog::Logger.log.debug("context full, ignoring span #{span.name}")
+
+          # If overflow has already occurred, don't send this metric.
+          # Prevents metrics spam if buffer repeatedly overflows for the same trace.
+          unless @overflow
+            Diagnostics::Health.metrics.error_context_overflow(1, tags: ["max_length:#{@max_length}"])
+            @overflow = true
+          end
+
           return
         end
         set_current_span(span)
@@ -111,12 +120,18 @@ module Datadog
         # on per-instrumentation code to retrieve handle parent/child relations.
         set_current_span(span.parent)
         return if span.tracer.nil?
-        return unless Datadog::Tracer.debug_logging
-        if span.parent.nil? && !check_finished_spans
-          opened_spans = @trace.length - @finished_spans
-          Datadog::Tracer.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
-          @trace.each do |s|
-            Datadog::Tracer.log.debug("unfinished span: #{s}") unless s.finished?
+        if span.parent.nil? && !all_spans_finished?
+          if Datadog::Logger.debug_logging
+            opened_spans = @trace.length - @finished_spans
+            Datadog::Logger.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
+          end
+
+          @trace.reject(&:finished?).group_by(&:name).each do |unfinished_span_name, unfinished_spans|
+            Datadog::Logger.log.debug("unfinished span: #{unfinished_spans.first}") if Datadog::Logger.debug_logging
+            Diagnostics::Health.metrics.error_unfinished_spans(
+              unfinished_spans.length,
+              tags: ["name:#{unfinished_span_name}"]
+            )
           end
         end
       end
@@ -126,7 +141,7 @@ module Datadog
     # is considered finished if all spans in this context are finished.
     def finished?
       @mutex.synchronize do
-        return check_finished_spans
+        return all_spans_finished?
       end
     end
 
@@ -153,7 +168,7 @@ module Datadog
         attach_origin if @origin
 
         # still return sampled attribute, even if context is not finished
-        return nil, sampled unless check_finished_spans()
+        return nil, sampled unless all_spans_finished?
 
         reset
         [trace, sampled]
@@ -180,6 +195,7 @@ module Datadog
       @finished_spans = 0
       @current_span = nil
       @current_root_span = nil
+      @overflow = false
     end
 
     def set_current_span(span)
@@ -195,7 +211,7 @@ module Datadog
 
     # Returns if the trace for the current Context is finished or not.
     # Low-level internal function, not thread-safe.
-    def check_finished_spans
+    def all_spans_finished?
       @finished_spans > 0 && @trace.length == @finished_spans
     end
 

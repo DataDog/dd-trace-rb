@@ -10,18 +10,12 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:active_record)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:active_record) do
-            begin
-              Events.subscribe!
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Active Record integration: #{e}")
-            end
-          end
+          Events.subscribe!
         end
       end
     end

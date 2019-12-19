@@ -52,7 +52,7 @@ RSpec.describe 'Dalli instrumentation' do
       expect(span.resource).to eq('SET')
       expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
       expect(span.get_tag('out.host')).to eq(test_host)
-      expect(span.get_tag('out.port')).to eq(test_port)
+      expect(span.get_tag('out.port')).to eq(test_port.to_f)
     end
   end
 
@@ -79,7 +79,7 @@ RSpec.describe 'Dalli instrumentation' do
         expect(span.resource).to eq('SET')
         expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
         expect(span.get_tag('out.host')).to eq(test_host)
-        expect(span.get_tag('out.port')).to eq(test_port)
+        expect(span.get_tag('out.port')).to eq(test_port.to_f)
       end
     end
   end

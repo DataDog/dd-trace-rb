@@ -2,36 +2,33 @@ module Datadog
   module Contrib
     module Rack
       # Provides instrumentation for `rack`
-      module Patcher
+      module MiddlewarePatcher
         include Contrib::Patcher
 
         module_function
 
-        def patched?
-          done?(:rack)
+        def target_version
+          Integration.version
         end
 
         def patch
           # Patch middleware
-          do_once(:rack) do
-            require_relative 'middlewares'
-          end
+          require_relative 'middlewares'
+        end
+      end
 
-          # Patch middleware names
-          if !done?(:rack_middleware_names) && get_option(:middleware_names)
-            if get_option(:application)
-              do_once(:rack_middleware_names) do
-                patch_middleware_names
-              end
-            else
-              Datadog::Tracer.log.warn(%(
-              Rack :middleware_names requires you to also pass :application.
-              Middleware names have NOT been patched; please provide :application.
-              e.g. use: :rack, middleware_names: true, application: my_rack_app).freeze)
-            end
-          end
-        rescue StandardError => e
-          Datadog::Tracer.log.error("Unable to apply Rack integration: #{e}")
+      # Provides instrumentation for Rack middleware names
+      module MiddlewareNamePatcher
+        include Contrib::Patcher
+
+        module_function
+
+        def target_version
+          Integration.version
+        end
+
+        def patch
+          patch_middleware_names
         end
 
         def patch_middleware_names
@@ -41,7 +38,7 @@ module Datadog
           # context of middleware patching outside a Rails server process (eg. a
           # process that doesn't serve HTTP requests but has Rails environment
           # loaded such as a Resque master process)
-          Tracer.log.debug("Error patching middleware stack: #{e}")
+          Logger.log.debug("Error patching middleware stack: #{e}")
         end
 
         def retain_middleware_name(middleware)
@@ -61,6 +58,44 @@ module Datadog
                       end
 
           retain_middleware_name(following)
+        end
+
+        def get_option(option)
+          Datadog.configuration[:rack].get_option(option)
+        end
+      end
+
+      # Applies multiple patches
+      module Patcher
+        PATCHERS = [
+          MiddlewarePatcher,
+          MiddlewareNamePatcher
+        ].freeze
+
+        module_function
+
+        def patched?
+          PATCHERS.all?(&:patched?)
+        end
+
+        def target_version
+          Integration.version
+        end
+
+        def patch
+          MiddlewarePatcher.patch unless MiddlewarePatcher.patched?
+
+          # Patch middleware names
+          if !MiddlewareNamePatcher.patched? && get_option(:middleware_names)
+            if get_option(:application)
+              MiddlewareNamePatcher.patch
+            else
+              Datadog::Logger.log.warn(%(
+              Rack :middleware_names requires you to also pass :application.
+              Middleware names have NOT been patched; please provide :application.
+              e.g. use: :rack, middleware_names: true, application: my_rack_app).freeze)
+            end
+          end
         end
 
         def get_option(option)

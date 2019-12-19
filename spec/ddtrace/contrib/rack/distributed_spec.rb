@@ -76,7 +76,7 @@ RSpec.describe 'Rack integration distributed tracing' do
       expect(span.name).to eq('rack.request')
       expect(span.trace_id).to_not eq(trace_id)
       expect(span.parent_id).to eq(0)
-      expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to be nil
+      expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to_not be nil
       expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to be nil
     end
   end

@@ -82,11 +82,11 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
           expect(span.resource).to eq('GET _cluster/health')
           expect(span.get_tag('elasticsearch.url')).to eq('_cluster/health')
           expect(span.get_tag('elasticsearch.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('200')
+          expect(span.get_tag('http.status_code')).to eq(200)
           expect(span.get_tag('elasticsearch.params')).to be nil
           expect(span.get_tag('elasticsearch.body')).to be nil
           expect(span.get_tag('out.host')).to eq(host)
-          expect(span.get_tag('out.port')).to eq(port.to_s)
+          expect(span.get_tag('out.port')).to eq(port)
         end
       end
 
@@ -111,11 +111,11 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
             expect(span.resource).to eq('PUT my/thing/?')
             expect(span.get_tag('elasticsearch.url')).to eq(path)
             expect(span.get_tag('elasticsearch.method')).to eq('PUT')
-            expect(span.get_tag('http.status_code')).to eq('201')
+            expect(span.get_tag('http.status_code')).to eq(201)
             expect(span.get_tag('elasticsearch.params')).to eq(params.to_json)
             expect(span.get_tag('elasticsearch.body')).to eq('{"data1":"?","data2":"?"}')
             expect(span.get_tag('out.host')).to eq(host)
-            expect(span.get_tag('out.port')).to eq(port.to_s)
+            expect(span.get_tag('out.port')).to eq(port)
           end
         end
 
