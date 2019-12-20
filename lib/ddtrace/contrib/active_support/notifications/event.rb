@@ -56,6 +56,40 @@ module Datadog
             end
           end
         end
+
+        # Extension to {Event} class that ensures the current {Context}
+        # is always clean when the event is processed.
+        #
+        # This is a safeguard as Contexts are thread-bound.
+        # If an integration re-uses threads, the context from a previous
+        # execution could leak into the new execution.
+        #
+        # This module *cannot* be used for events can be nested, as
+        # it drops all spans currently active in the {Context}.
+        module RootEvent
+          def subscription(*args)
+            super.tap do |subscription|
+              subscription.before_trace { ensure_clean_context! }
+            end
+          end
+
+          private
+
+          # Clears context if there are unfinished spans in it
+          def ensure_clean_context!
+            unfinished_span = configuration[:tracer].call_context.current_span
+            return unless unfinished_span
+
+            Diagnostics::Health.metrics.error_unfinished_context(
+              1, tags: [
+                "span_name:#{unfinished_span.name}",
+                "event:#{self}"
+              ]
+            )
+
+            configuration[:tracer].provider.context = Context.new
+          end
+        end
       end
     end
   end
