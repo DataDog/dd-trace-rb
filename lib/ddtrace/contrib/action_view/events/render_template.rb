@@ -26,15 +26,17 @@ module Datadog
           def process(span, _event, _id, payload)
             span.span_type = Datadog::Ext::HTTP::TEMPLATE
 
-            template_name = Utils.normalize_template_name(payload[:identifier])
-            span.set_tag(Ext::TAG_TEMPLATE_NAME, template_name) if template_name
+            if (template_name = Utils.normalize_template_name(payload[:identifier]))
+              span.resource = template_name
+              span.set_tag(Ext::TAG_TEMPLATE_NAME, template_name)
+            end
 
             layout = payload[:layout]
             span.set_tag(Ext::TAG_LAYOUT, layout) if layout
 
             record_exception(span, payload)
           rescue StandardError => e
-            Datadog::Tracer.log.debug(e.message)
+            Datadog::Logger.log.debug(e.message)
           end
         end
       end

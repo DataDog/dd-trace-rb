@@ -37,7 +37,7 @@ module Datadog
     attr_accessor :trace, :sampled, :finished_spans, :current_span
   end
   class Span
-    attr_accessor :meta
+    attr_accessor :meta, :metrics
   end
 end
 

@@ -45,7 +45,7 @@ if Datadog::OpenTracer.supported?
           context 'when given tags' do
             let(:options) { { tags: tags } }
             let(:tags) { { 'operation.type' => 'validate', 'account_id' => 1 } }
-            it { tags.each { |k, v| expect(datadog_span.get_tag(k)).to eq(v.to_s) } }
+            it { tags.each { |k, v| expect(datadog_span.get_tag(k)).to eq(v.is_a?(Numeric) ? v.to_f : v) } }
           end
         end
       end
@@ -196,7 +196,7 @@ if Datadog::OpenTracer.supported?
           context 'when given tags' do
             let(:options) { { tags: tags } }
             let(:tags) { { 'operation.type' => 'validate', 'account_id' => 1 } }
-            it { tags.each { |k, v| expect(datadog_span.get_tag(k)).to eq(v.to_s) } }
+            it { tags.each { |k, v| expect(datadog_span.get_tag(k)).to eq(v.is_a?(Numeric) ? v.to_f : v) } }
           end
         end
 

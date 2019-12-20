@@ -92,7 +92,7 @@ module Datadog
         if @max_length > 0 && @trace.length >= @max_length
           # Detach the span from any context, it's being dropped and ignored.
           span.context = nil
-          Datadog::Tracer.log.debug("context full, ignoring span #{span.name}")
+          Datadog::Logger.log.debug("context full, ignoring span #{span.name}")
 
           # If overflow has already occurred, don't send this metric.
           # Prevents metrics spam if buffer repeatedly overflows for the same trace.
@@ -121,13 +121,13 @@ module Datadog
         set_current_span(span.parent)
         return if span.tracer.nil?
         if span.parent.nil? && !all_spans_finished?
-          if Datadog::Tracer.debug_logging
+          if Datadog::Logger.debug_logging
             opened_spans = @trace.length - @finished_spans
-            Datadog::Tracer.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
+            Datadog::Logger.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
           end
 
           @trace.reject(&:finished?).group_by(&:name).each do |unfinished_span_name, unfinished_spans|
-            Datadog::Tracer.log.debug("unfinished span: #{unfinished_spans.first}") if Datadog::Tracer.debug_logging
+            Datadog::Logger.log.debug("unfinished span: #{unfinished_spans.first}") if Datadog::Logger.debug_logging
             Diagnostics::Health.metrics.error_unfinished_spans(
               unfinished_spans.length,
               tags: ["name:#{unfinished_span_name}"]

@@ -38,7 +38,7 @@ module Datadog
             ::ActionView::Rendering.send(:prepend, Instrumentation::TemplateRenderer::Rails30)
             ::ActionView::Partials::PartialRenderer.send(:prepend, Instrumentation::PartialRenderer::RailsLessThan4)
           else
-            Datadog::Tracer.log.debug('Expected Template/Partial classes not found; template rendering disabled')
+            Datadog::Logger.log.debug('Expected Template/Partial classes not found; template rendering disabled')
           end
         end
       end

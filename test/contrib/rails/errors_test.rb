@@ -125,7 +125,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_template.status, 1)
     assert_equal(span_template.span_type, 'template')
-    assert_equal(span_template.resource, 'rails.render_template')
+    assert_equal(span_template.resource, 'tracing/missing_partial.html.erb')
     assert_equal(span_template.get_tag('rails.template_name'), 'tracing/missing_partial.html.erb')
     assert_equal(span_template.get_tag('rails.layout'), 'layouts/application')
     assert_includes(span_template.get_tag('error.msg'), error_msg)
@@ -153,8 +153,9 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_template.status, 1)
     assert_equal(span_template.span_type, 'template')
-    assert_equal(span_template.resource, 'rails.render_template')
+    assert_includes(span_template.resource, 'tracing/error.html')
     if Rails.version >= '3.2.22.5'
+      assert_equal(span_template.resource, 'tracing/error.html.erb')
       assert_equal(span_template.get_tag('rails.template_name'),
                    'tracing/error.html.erb')
     end
@@ -189,8 +190,9 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.status, 1)
     assert_equal(span_partial.span_type, 'template')
-    assert_equal(span_partial.resource, 'rails.render_partial')
+    assert_includes(span_partial.resource, 'tracing/_inner_error.html')
     if Rails.version >= '3.2.22.5'
+      assert_equal(span_partial.resource, 'tracing/_inner_error.html.erb')
       assert_equal(span_partial.get_tag('rails.template_name'),
                    'tracing/_inner_error.html.erb')
     end
@@ -201,7 +203,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_template.status, 1)
     assert_equal(span_template.span_type, 'template')
-    assert_equal(span_template.resource, 'rails.render_template')
+    assert_includes(span_template.resource, 'tracing/error_partial.html')
     if Rails.version >= '3.2.22.5'
       assert_equal(span_template.get_tag('rails.template_name'),
                    'tracing/error_partial.html.erb')

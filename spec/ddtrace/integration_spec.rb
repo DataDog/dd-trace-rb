@@ -204,32 +204,67 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
-  describe 'shutdown executes only once' do
+  describe 'shutdown' do
     include_context 'agent-based test'
 
-    before(:each) do
-      tracer.trace('my.short.op') do |span|
-        span.service = 'my.service'
+    context 'executes only once' do
+      subject!(:multiple_shutdown) do
+        tracer.trace('my.short.op') do |span|
+          span.service = 'my.service'
+        end
+
+        threads = Array.new(10) do
+          Thread.new { tracer.shutdown! }
+        end
+
+        threads.each(&:join)
       end
 
-      mutex = Mutex.new
-      @shutdown_results = []
+      let(:stats) { tracer.writer.stats }
 
-      threads = Array.new(10) do
-        Thread.new { mutex.synchronize { @shutdown_results << tracer.shutdown! } }
+      it { expect(stats[:services_flushed]).to be_nil }
+
+      it_behaves_like 'flushed trace'
+    end
+
+    context 'when sent TERM' do
+      subject(:terminated_process) do
+        # Initiate IO pipe
+        pipe
+
+        # Fork the process
+        fork_id = fork do
+          allow(Datadog.tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
+            m.call(*args).tap { write.write(graceful_signal) }
+          end
+
+          tracer.trace('my.short.op') do |span|
+            span.service = 'my.service'
+          end
+
+          sleep(1)
+        end
+
+        # Give the fork a chance to setup and sleep
+        sleep(0.2)
+
+        # Kill the process
+        write.close
+        Process.kill('TERM', fork_id) rescue nil
+
+        # Read and return any output
+        read.read.tap do
+          Process.waitpid(fork_id)
+        end
       end
 
-      threads.each(&:join)
+      let(:pipe) { IO.pipe }
+      let(:read) { pipe.first }
+      let(:write) { pipe.last }
+      let(:graceful_signal) { 'graceful' }
+
+      it { expect(terminated_process).to eq(graceful_signal) }
     end
-
-    let(:stats) { tracer.writer.stats }
-
-    it do
-      expect(@shutdown_results.count(true)).to eq(1)
-      expect(stats[:services_flushed]).to be_nil
-    end
-
-    it_behaves_like 'flushed trace'
   end
 
   describe 'sampling priority metrics' do

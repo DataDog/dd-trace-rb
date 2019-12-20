@@ -61,7 +61,7 @@ module Datadog
         interval: @flush_interval
       )
 
-      @worker.start()
+      @worker.start
     end
 
     # stops worker for spans.
@@ -69,6 +69,7 @@ module Datadog
       return if worker.nil?
       @worker.stop
       @worker = nil
+      true
     end
 
     # flush spans to the trace-agent, handles spans only
@@ -104,7 +105,7 @@ module Datadog
     def write(trace, services = nil)
       unless services.nil?
         Datadog::Patcher.do_once('Writer#write') do
-          Datadog::Tracer.log.warn(%(
+          Datadog::Logger.log.warn(%(
             write: Writing services has been deprecated and no longer need to be provided.
             write(traces, services) can be updated to write(traces)
           ))
@@ -128,7 +129,9 @@ module Datadog
       end
 
       # Associate root span with runtime metrics
-      runtime_metrics.associate_with_span(trace.first) unless trace.empty?
+      if Datadog.configuration.runtime_metrics_enabled && !trace.empty?
+        runtime_metrics.associate_with_span(trace.first)
+      end
 
       @worker.enqueue_trace(trace)
     end

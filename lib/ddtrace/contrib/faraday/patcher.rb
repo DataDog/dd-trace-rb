@@ -66,7 +66,7 @@ module Datadog
 
           def log_deprecation_warning(method_name)
             do_once(method_name) do
-              Datadog::Tracer.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
+              Datadog::Logger.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
             end
           end
         end

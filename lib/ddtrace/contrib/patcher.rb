@@ -32,7 +32,7 @@ module Datadog
               end
             rescue StandardError => e
               # Log the error
-              Datadog::Tracer.log.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
+              Datadog::Logger.log.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
 
               # Emit a metric
               tags = default_tags

@@ -8,12 +8,12 @@ RSpec.describe Datadog::Configuration::Settings do
 
   describe '#tracer' do
     let(:tracer) { Datadog::Tracer.new }
-    let(:debug_state) { tracer.class.debug_logging }
+    let(:debug_state) { Datadog::Logger.debug_logging }
     let(:custom_log) { Logger.new(STDOUT) }
 
     context 'given some settings' do
       before(:each) do
-        @original_log = tracer.class.log
+        @original_log = Datadog::Logger.log
 
         settings.tracer(
           enabled: false,
@@ -29,14 +29,14 @@ RSpec.describe Datadog::Configuration::Settings do
       end
 
       after(:each) do
-        tracer.class.debug_logging = debug_state
-        tracer.class.log = @original_log
+        Datadog::Logger.debug_logging = debug_state
+        Datadog::Logger.log = @original_log
       end
 
       it 'applies settings correctly' do
         expect(tracer.enabled).to be false
         expect(debug_state).to be false
-        expect(Datadog::Tracer.log).to eq(custom_log)
+        expect(Datadog::Logger.log).to eq(custom_log)
         expect(tracer.writer.transport.current_api.adapter.hostname).to eq('tracer.host.com')
         expect(tracer.writer.transport.current_api.adapter.port).to eq(1234)
         expect(tracer.tags[:env]).to eq(:config_test)
