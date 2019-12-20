@@ -14,7 +14,14 @@ RSpec.describe 'Adapters::Net integration tests' do
 
   shared_context 'HTTP server' do
     # HTTP
-    let(:server) { WEBrick::HTTPServer.new(Port: port, Logger: log, AccessLog: access_log) }
+    let(:server) do
+      WEBrick::HTTPServer.new(
+        Port: port,
+        Logger: log,
+        AccessLog: access_log,
+        StartCallback: -> { init_signal.push(1) }
+      )
+    end
     let(:hostname) { '127.0.0.1' }
     let(:port) { 6218 }
     let(:log) { WEBrick::Log.new(log_buffer) }
@@ -26,12 +33,14 @@ RSpec.describe 'Adapters::Net integration tests' do
         res.body = '{}'
       end
     end
+    let(:init_signal) { Queue.new }
 
     let(:messages) { [] }
 
     before do
       server.mount_proc('/', &server_proc)
       Thread.new { server.start }
+      init_signal.pop
     end
 
     after { server.shutdown }
