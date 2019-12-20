@@ -22,7 +22,13 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     let(:messages) { [] }
 
     # HTTP
-    let(:http) { WEBrick::HTTPServer.new(Logger: log, AccessLog: access_log) }
+    let(:http) do
+      WEBrick::HTTPServer.new(
+        Logger: log,
+        AccessLog: access_log,
+        StartCallback: -> { http_init_signal.push(1) }
+      )
+    end
     let(:log) { WEBrick::Log.new(log_buffer) }
     let(:log_buffer) { StringIO.new }
     let(:access_log) { [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
@@ -32,6 +38,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
         res.body = '{}'
       end
     end
+    let(:http_init_signal) { Queue.new }
 
     def cleanup_socket
       File.delete(filepath) if File.exist?(filepath)
@@ -54,6 +61,8 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
           puts "UNIX server error!: #{e}"
         end
       end
+
+      http_init_signal.pop
     end
 
     after do
