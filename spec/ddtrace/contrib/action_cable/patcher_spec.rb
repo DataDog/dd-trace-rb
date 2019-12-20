@@ -108,17 +108,8 @@ RSpec.describe 'ActionCable patcher' do
       context 'with a leaking context' do
         let!(:leaky_span) { tracer.trace('unfinished_span') }
 
-        before do
-          expect(Datadog::Diagnostics::Health.metrics).to receive(:error_unfinished_context)
-            .with(1, tags: [
-                    'span_name:unfinished_span',
-                    'event:Datadog::Contrib::ActionCable::Events::PerformAction'
-                  ])
-        end
-
         it 'traces transmit event' do
           perform
-
           expect(span.name).to eq('action_cable.action')
         end
       end

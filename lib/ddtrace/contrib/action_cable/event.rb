@@ -55,15 +55,7 @@ module Datadog
           # could leak into the new trace. This "cleans" current context,
           # preventing such a leak.
           def ensure_clean_context!
-            unfinished_span = configuration[:tracer].call_context.current_span
-            return unless unfinished_span
-
-            Diagnostics::Health.metrics.error_unfinished_context(1,
-                                                                 tags: [
-                                                                   "span_name:#{unfinished_span.name}",
-                                                                   "event:#{self}"
-                                                                 ])
-
+            return unless configuration[:tracer].call_context.current_span
             configuration[:tracer].provider.context = Context.new
           end
         end
