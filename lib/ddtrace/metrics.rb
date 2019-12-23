@@ -70,7 +70,7 @@ module Datadog
 
       statsd.count(stat, value, metric_options(options))
     rescue StandardError => e
-      Datadog::Tracer.log.error("Failed to send count stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog::Logger.log.error("Failed to send count stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def distribution(stat, value = nil, options = {}, &block)
@@ -80,7 +80,7 @@ module Datadog
 
       statsd.distribution(stat, value, metric_options(options))
     rescue StandardError => e
-      Datadog::Tracer.log.error("Failed to send distribution stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog::Logger.log.error("Failed to send distribution stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def increment(stat, options = {})
@@ -89,7 +89,7 @@ module Datadog
 
       statsd.increment(stat, metric_options(options))
     rescue StandardError => e
-      Datadog::Tracer.log.error("Failed to send increment stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog::Logger.log.error("Failed to send increment stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def gauge(stat, value = nil, options = {}, &block)
@@ -99,7 +99,7 @@ module Datadog
 
       statsd.gauge(stat, value, metric_options(options))
     rescue StandardError => e
-      Datadog::Tracer.log.error("Failed to send gauge stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog::Logger.log.error("Failed to send gauge stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def time(stat, options = {})
@@ -115,7 +115,7 @@ module Datadog
           distribution(stat, ((finished - start) * 1000), options)
         end
       rescue StandardError => e
-        Datadog::Tracer.log.error("Failed to send time stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog::Logger.log.error("Failed to send time stat. Cause: #{e.message} Source: #{e.backtrace.first}")
       end
     end
 

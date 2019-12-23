@@ -1450,7 +1450,7 @@ Datadog.configure do |c|
   c.tracer log: Logger.new(f)                 # Overriding the default tracer
 end
 
-Datadog::Tracer.log.info { "this is typically called by tracing code" }
+Datadog::Logger.log.info { "this is typically called by tracing code" }
 ```
 
 ### Environment and tags

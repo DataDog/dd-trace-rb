@@ -120,7 +120,7 @@ RSpec.describe Datadog::Transport::HTTP::Client do
 
         before do
           allow(handler).to receive(:response).and_raise(error_class)
-          allow(Datadog::Tracer).to receive(:log).and_return(logger)
+          allow(Datadog::Logger).to receive(:log).and_return(logger)
           allow(logger).to receive(:debug)
           allow(logger).to receive(:error)
         end

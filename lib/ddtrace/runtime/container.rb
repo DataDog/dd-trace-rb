@@ -61,7 +61,7 @@ module Datadog
                 break
               end
             rescue StandardError => e
-              Datadog::Tracer.log.error(
+              Datadog::Logger.log.error(
                 "Error while parsing container info. Cause: #{e.message} Location: #{e.backtrace.first}"
               )
             end

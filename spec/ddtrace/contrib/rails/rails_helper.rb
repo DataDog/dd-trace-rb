@@ -152,9 +152,9 @@ logger.info "Testing against Rails #{Rails.version} with adapter '#{adapter}'"
 # In a nutshell, the resulting sequence of events looks like:
 #
 # 1. RSpec loads "My Rails test" example group
-# 2. "My Rails test" adds "Rails test application" context containing default `let` and `before(:each)`.
+# 2. "My Rails test" adds "Rails test application" context containing default `let` and `before`.
 # 3. RSpec discovers `it` inside "My Rails test"
-# 4. RSpec runs `before(:each)` inherited from "Rails test application", begins initializing the application.
+# 4. RSpec runs `before` inherited from "Rails test application", begins initializing the application.
 # 5. RSpec uses the overridden `let` blocks from "My Rails test" to initialize the application.
 # 6. `it` runs, calls `get '/'`, which references `let(:app)`, which references `let(:rails_test_application)`.
 # 7. Request runs against `let(:rails_test_application)`.

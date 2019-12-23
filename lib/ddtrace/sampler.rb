@@ -48,7 +48,7 @@ module Datadog
     #   sampled.
     def initialize(sample_rate = 1.0)
       unless sample_rate > 0.0 && sample_rate <= 1.0
-        Datadog::Tracer.log.error('sample rate is not between 0 and 1, disabling the sampler')
+        Datadog::Logger.log.error('sample rate is not between 0 and 1, disabling the sampler')
         sample_rate = 1.0
       end
 

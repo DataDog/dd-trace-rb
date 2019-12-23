@@ -14,7 +14,7 @@ RSpec.describe Datadog::Metrics do
 
   shared_examples_for 'missing value arg' do
     it 'logs an error without raising' do
-      expect(Datadog::Tracer.log).to receive(:error)
+      expect(Datadog::Logger.log).to receive(:error)
       expect { subject }.to_not raise_error
     end
   end
@@ -302,7 +302,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:count).and_raise(StandardError)
-          expect(Datadog::Tracer.log).to receive(:error)
+          expect(Datadog::Logger.log).to receive(:error)
         end
 
         it { expect { count }.to_not raise_error }
@@ -373,7 +373,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:distribution).and_raise(StandardError)
-          expect(Datadog::Tracer.log).to receive(:error)
+          expect(Datadog::Logger.log).to receive(:error)
         end
 
         it { expect { distribution }.to_not raise_error }
@@ -444,7 +444,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:gauge).and_raise(StandardError)
-          expect(Datadog::Tracer.log).to receive(:error)
+          expect(Datadog::Logger.log).to receive(:error)
         end
 
         it { expect { gauge }.to_not raise_error }
@@ -515,7 +515,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:increment).and_raise(StandardError)
-          expect(Datadog::Tracer.log).to receive(:error)
+          expect(Datadog::Logger.log).to receive(:error)
         end
 
         it { expect { increment }.to_not raise_error }
@@ -583,7 +583,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:distribution).and_raise(StandardError)
-          expect(Datadog::Tracer.log).to receive(:error)
+          expect(Datadog::Logger.log).to receive(:error)
         end
 
         it { expect { time }.to_not raise_error }
