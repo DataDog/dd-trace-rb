@@ -243,7 +243,7 @@ RSpec.describe Datadog::Metrics do
     subject(:count) { metrics.count(stat, value, stat_options) }
     let(:stat) { :foo }
     let(:value) { 100 }
-    let(:stat_options) { {} }
+    let(:stat_options) { nil }
 
     context 'when #statsd is nil' do
       before(:each) do
@@ -314,7 +314,7 @@ RSpec.describe Datadog::Metrics do
     subject(:distribution) { metrics.distribution(stat, value, stat_options) }
     let(:stat) { :foo }
     let(:value) { 100 }
-    let(:stat_options) { {} }
+    let(:stat_options) { nil }
 
     context 'when #statsd is nil' do
       before(:each) do
@@ -385,7 +385,7 @@ RSpec.describe Datadog::Metrics do
     subject(:gauge) { metrics.gauge(stat, value, stat_options) }
     let(:stat) { :foo }
     let(:value) { 100 }
-    let(:stat_options) { {} }
+    let(:stat_options) { nil }
 
     context 'when #statsd is nil' do
       before(:each) do
@@ -455,7 +455,7 @@ RSpec.describe Datadog::Metrics do
   describe '#increment' do
     subject(:increment) { metrics.increment(stat, stat_options) }
     let(:stat) { :foo }
-    let(:stat_options) { {} }
+    let(:stat_options) { nil }
 
     context 'when #statsd is nil' do
       before(:each) do
@@ -526,7 +526,7 @@ RSpec.describe Datadog::Metrics do
   describe '#time' do
     subject(:time) { metrics.time(stat, stat_options, &block) }
     let(:stat) { :foo }
-    let(:stat_options) { {} }
+    let(:stat_options) { nil }
     let(:block) { proc {} }
 
     context 'when #statsd is nil' do

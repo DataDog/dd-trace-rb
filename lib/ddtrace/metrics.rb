@@ -63,7 +63,7 @@ module Datadog
       enabled? && !statsd.nil?
     end
 
-    def count(stat, value = nil, options = {}, &block)
+    def count(stat, value = nil, options = nil, &block)
       return unless send_stats? && statsd.respond_to?(:count)
       value, options = yield if block_given?
       raise ArgumentError if value.nil?
@@ -73,7 +73,7 @@ module Datadog
       Datadog::Logger.log.error("Failed to send count stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def distribution(stat, value = nil, options = {}, &block)
+    def distribution(stat, value = nil, options = nil, &block)
       return unless send_stats? && statsd.respond_to?(:distribution)
       value, options = yield if block_given?
       raise ArgumentError if value.nil?
@@ -83,7 +83,7 @@ module Datadog
       Datadog::Logger.log.error("Failed to send distribution stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def increment(stat, options = {})
+    def increment(stat, options = nil)
       return unless send_stats? && statsd.respond_to?(:increment)
       options = yield if block_given?
 
@@ -92,7 +92,7 @@ module Datadog
       Datadog::Logger.log.error("Failed to send increment stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def gauge(stat, value = nil, options = {}, &block)
+    def gauge(stat, value = nil, options = nil, &block)
       return unless send_stats? && statsd.respond_to?(:gauge)
       value, options = yield if block_given?
       raise ArgumentError if value.nil?
@@ -102,7 +102,7 @@ module Datadog
       Datadog::Logger.log.error("Failed to send gauge stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
-    def time(stat, options = {})
+    def time(stat, options = nil)
       return yield unless send_stats?
 
       # Calculate time, send it as a distribution.
@@ -139,11 +139,7 @@ module Datadog
 
     # Add instance tags to default metrics
     def default_metric_options
-      # Return dupes, so that the constant isn't modified,
-      # and defaults are unfrozen for mutation in Statsd.
       super.tap do |options|
-        options[:tags] = options[:tags].dup
-
         # Add tags dynamically because they might change during
         # runtime (i.e. when calling #configure).
         options[:tags].concat(instance_tags)
@@ -161,12 +157,14 @@ module Datadog
         ].freeze
       }.freeze
 
-      def metric_options(*options)
-        merge_with_tags(default_metric_options, *options)
+      def metric_options(options)
+        merge_with_tags(default_metric_options, options)
       end
 
-      def merge_with_tags(hash, *hashes)
-        hash.merge(*hashes) do |key, old_value, new_value|
+      def merge_with_tags(hash, options)
+        return hash unless options
+
+        hash.merge(options) do |key, old_value, new_value|
           case key
           when :tags
             old_value.dup.concat(new_value).uniq
