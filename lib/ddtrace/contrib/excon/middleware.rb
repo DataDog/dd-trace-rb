@@ -29,10 +29,15 @@ module Datadog
         def request_call(datum)
           begin
             unless datum.key?(:datadog_span)
-              trace(Ext::SPAN_REQUEST).tap do |span|
-                datum[:datadog_span] = span
-                annotate!(span, datum)
-                propagate!(span, datum) if distributed_tracing?
+              begin
+                @datum = datum
+                trace(Ext::SPAN_REQUEST).tap do |span|
+                  datum[:datadog_span] = span
+                  annotate!(span, datum)
+                  propagate!(span, datum) if distributed_tracing?
+                end
+              ensure
+                @datum = nil
               end
             end
           rescue StandardError => e
@@ -107,7 +112,6 @@ module Datadog
 
         def annotate!(span, datum)
           span.resource = datum[:method].to_s.upcase
-          span.service = service_name(datum)
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
           # Set analytics sample rate
@@ -146,9 +150,9 @@ module Datadog
           Datadog::HTTPPropagator.inject!(span.context, datum[:headers])
         end
 
-        def service_name(datum)
+        def service_name
           # TODO: Change this to implement more sensible multiplexing
-          split_by_domain? ? datum[:host] : configuration[:service_name]
+          split_by_domain? ? @datum[:host] : configuration[:service_name]
         end
       end
     end

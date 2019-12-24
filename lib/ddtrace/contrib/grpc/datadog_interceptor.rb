@@ -47,7 +47,7 @@ module Datadog
             end
           end
 
-          def configuration
+          def base_configuration
             Datadog.configuration[:grpc]
           end
 

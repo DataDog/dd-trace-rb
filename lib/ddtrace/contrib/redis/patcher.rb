@@ -28,17 +28,25 @@ module Datadog
         # rubocop:disable Metrics/MethodLength
         # rubocop:disable Metrics/BlockLength
         def patch_redis_client
-          # TODO: Uses pin
           ::Redis::Client.class_eval do
+            include Contrib::Instrumentation
+
+            def service_name
+              (@pin && @pin.service) || super
+            end
+
+            def tracer
+              (@pin && @pin.tracer) || super
+            end
+
             alias_method :call_without_datadog, :call
             remove_method :call
             def call(*args, &block)
-              pin = Datadog::Pin.get_from(self)
-              return call_without_datadog(*args, &block) unless pin && pin.tracer
+              @pin = Datadog::Pin.get_from(self)
+              return call_without_datadog(*args, &block) unless @pin && @pin.tracer
 
               response = nil
-              pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-                span.service = pin.service
+              trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
                 span.resource = Datadog::Contrib::Redis::Quantize.format_command_args(*args)
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
@@ -52,12 +60,11 @@ module Datadog
             alias_method :call_pipeline_without_datadog, :call_pipeline
             remove_method :call_pipeline
             def call_pipeline(*args, &block)
-              pin = Datadog::Pin.get_from(self)
-              return call_pipeline_without_datadog(*args, &block) unless pin && pin.tracer
+              @pin = Datadog::Pin.get_from(self)
+              return call_pipeline_without_datadog(*args, &block) unless @pin && @pin.tracer
 
               response = nil
-              pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-                span.service = pin.service
+              trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
                 commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
                 span.resource = commands.join("\n")
