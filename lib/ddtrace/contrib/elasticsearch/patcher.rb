@@ -31,6 +31,16 @@ module Datadog
         def patch_elasticsearch_transport_client
           # rubocop:disable Metrics/BlockLength
           ::Elasticsearch::Transport::Client.class_eval do
+            include Contrib::Instrumentation
+
+            def service_name
+              (@pin && @pin.service) || super
+            end
+
+            def tracer
+              (@pin && @pin.tracer) || super
+            end
+
             alias_method :initialize_without_datadog, :initialize
             Datadog::Patcher.without_warnings do
               remove_method :initialize
@@ -54,8 +64,8 @@ module Datadog
             remove_method :perform_request
 
             def perform_request(*args)
-              pin = Datadog::Pin.get_from(self)
-              return perform_request_without_datadog(*args) unless pin && pin.tracer
+              @pin = Datadog::Pin.get_from(self)
+              return perform_request_without_datadog(*args) unless @pin && @pin.tracer
 
               method = args[0]
               path = args[1]
@@ -65,13 +75,12 @@ module Datadog
 
               url = full_url.path
               response = nil
-              pin.tracer.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY) do |span|
+              trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection
                   port = connection.host[:port] if connection
 
-                  span.service = pin.service
                   span.span_type = Datadog::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
 
                   # load JSON for the following fields unless they're already strings
@@ -79,15 +88,15 @@ module Datadog
                   body = JSON.generate(body) if body && !body.is_a?(String)
 
                   # Set analytics sample rate
-                  if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
-                    Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+                  if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+                    Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
                   end
 
                   span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_METHOD, method)
                   span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_URL, url)
                   span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_PARAMS, params) if params
                   if body
-                    quantize_options = datadog_configuration[:quantize]
+                    quantize_options = configuration[:quantize]
                     quantized_body = Datadog::Contrib::Elasticsearch::Quantize.format_body(body, quantize_options)
                     span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_BODY, quantized_body)
                   end
@@ -105,10 +114,11 @@ module Datadog
                 end
               end
               response
+            ensure
+              @pin = nil
             end
 
-            # TODO: Uses pin
-            def datadog_configuration
+            def configuration
               Datadog.configuration[:elasticsearch]
             end
           end
