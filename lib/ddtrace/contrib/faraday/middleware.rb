@@ -23,11 +23,14 @@ module Datadog
         end
 
         def call(env)
+          @env = env
           trace(Ext::SPAN_REQUEST) do |span|
             annotate!(span, env)
             propagate!(span, env) if configuration[:distributed_tracing] && tracer.enabled
             app.call(env).on_complete { |resp| handle_response(span, resp) }
           end
+        ensure
+          @env = nil
         end
 
         private
@@ -36,7 +39,6 @@ module Datadog
 
         def annotate!(span, env)
           span.resource = resource_name(env)
-          span.service = service_name(env)
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
           # Set analytics sample rate
@@ -62,8 +64,8 @@ module Datadog
           Datadog::HTTPPropagator.inject!(span.context, env[:request_headers])
         end
 
-        def service_name(env)
-          return env[:url].host if configuration[:split_by_domain]
+        def service_name
+          return @env[:url].host if configuration[:split_by_domain]
 
           configuration[:service_name]
         end
