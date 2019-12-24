@@ -28,7 +28,16 @@ module Datadog
 
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
-          # TODO: Uses pin
+          include Contrib::Instrumentation
+
+          def service_name
+            (datadog_pin && datadog_pin.service) || super
+          end
+
+          def tracer
+            (datadog_pin && datadog_pin.tracer) || super
+          end
+
           def request(req, body = nil, &block) # :yield: +response+
             pin = datadog_pin
             return super(req, body, &block) unless pin && pin.tracer
@@ -37,9 +46,8 @@ module Datadog
               return super(req, body, &block)
             end
 
-            pin.tracer.trace(Ext::SPAN_REQUEST) do |span|
+            trace(Ext::SPAN_REQUEST) do |span|
               begin
-                span.service = pin.service
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
@@ -97,16 +105,16 @@ module Datadog
 
           private
 
-          def datadog_configuration
+          def base_configuration
             Datadog.configuration[:http]
           end
 
           def analytics_enabled?
-            Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+            Contrib::Analytics.enabled?(configuration[:analytics_enabled])
           end
 
           def analytics_sample_rate
-            datadog_configuration[:analytics_sample_rate]
+            configuration[:analytics_sample_rate]
           end
         end
       end
