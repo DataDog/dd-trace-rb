@@ -10,6 +10,7 @@ module Datadog
         # :nodoc:
         class Base < ::GRPC::Interceptor
           include Contrib::Instrumentation
+          include Contrib::Instrumentation::Pin
 
           attr_accessor :datadog_pin
 
@@ -49,14 +50,6 @@ module Datadog
 
           def base_configuration
             Datadog.configuration[:grpc]
-          end
-
-          def tracer
-            (datadog_pin && datadog_pin.tracer) || super
-          end
-
-          def service_name
-            (datadog_pin && datadog_pin.service_name) || super
           end
 
           def analytics_enabled?

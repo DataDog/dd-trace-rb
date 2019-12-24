@@ -29,14 +29,7 @@ module Datadog
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
           include Contrib::Instrumentation
-
-          def service_name
-            (datadog_pin && datadog_pin.service) || super
-          end
-
-          def tracer
-            (datadog_pin && datadog_pin.tracer) || super
-          end
+          include Contrib::Instrumentation::Pin
 
           def request(req, body = nil, &block) # :yield: +response+
             pin = datadog_pin
@@ -96,8 +89,8 @@ module Datadog
 
           def datadog_pin
             @datadog_pin ||= begin
-              service = Datadog.configuration[:http][:service_name]
-              tracer = Datadog.configuration[:http][:tracer]
+              service = configuration[:service_name]
+              tracer = configuration[:tracer]
 
               Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
             end

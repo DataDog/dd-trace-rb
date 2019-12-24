@@ -69,6 +69,17 @@ module Datadog
 
         tracer.trace(name, **span_options, **options, &block)
       end
+
+      # Extension for instrumentations using `datadog_pin` ({Datadog::Pin})
+      module Pin
+        def service_name
+          (datadog_pin && datadog_pin.service) || super
+        end
+
+        def tracer
+          (datadog_pin && datadog_pin.tracer) || super
+        end
+      end
     end
   end
 end

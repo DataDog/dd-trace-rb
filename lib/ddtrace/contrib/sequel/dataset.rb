@@ -15,6 +15,9 @@ module Datadog
 
         # Instance methods for instrumenting Sequel::Dataset
         module InstanceMethods
+          include Contrib::Instrumentation
+          include Contrib::Instrumentation::Pin
+
           def execute(sql, options = ::Sequel::OPTS, &block)
             trace_execute(proc { super(sql, options, &block) }, sql, options, &block)
           end
@@ -41,8 +44,7 @@ module Datadog
             opts = Utils.parse_opts(sql, options, db.opts)
             response = nil
 
-            datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
-              span.service = datadog_pin.service
+            trace(Ext::SPAN_QUERY) do |span|
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
               Utils.set_analytics_sample_rate(span)

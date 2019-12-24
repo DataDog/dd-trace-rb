@@ -16,14 +16,7 @@ module Datadog
         # Mysql2::Client patch instance methods
         module InstanceMethods
           include Contrib::Instrumentation
-
-          def service_name
-            (datadog_pin && datadog_pin.service) || super
-          end
-
-          def tracer
-            (datadog_pin && datadog_pin.tracer) || super
-          end
+          include Contrib::Instrumentation::Pin
 
           def query(sql, options = {})
             trace(Ext::SPAN_QUERY) do |span|

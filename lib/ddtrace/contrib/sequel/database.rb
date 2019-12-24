@@ -15,14 +15,15 @@ module Datadog
 
         # Instance methods for instrumenting Sequel::Database
         module InstanceMethods
-          # TODO: Uses pin
+          include Contrib::Instrumentation
+          include Contrib::Instrumentation::Pin
+
           def run(sql, options = ::Sequel::OPTS)
             opts = parse_opts(sql, options)
 
             response = nil
 
-            datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
-              span.service = datadog_pin.service
+            trace(Ext::SPAN_QUERY) do |span|
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
               Utils.set_analytics_sample_rate(span)
