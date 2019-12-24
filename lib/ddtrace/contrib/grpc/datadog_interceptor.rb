@@ -9,6 +9,8 @@ module Datadog
       module DatadogInterceptor
         # :nodoc:
         class Base < ::GRPC::Interceptor
+          include Contrib::Instrumentation
+
           attr_accessor :datadog_pin
 
           def initialize(options = {})
@@ -45,24 +47,24 @@ module Datadog
             end
           end
 
-          def datadog_configuration
+          def configuration
             Datadog.configuration[:grpc]
           end
 
           def tracer
-            (datadog_pin && datadog_pin.tracer) || datadog_configuration[:tracer]
+            (datadog_pin && datadog_pin.tracer) || super
           end
 
           def service_name
-            (datadog_pin && datadog_pin.service_name) || datadog_configuration[:service_name]
+            (datadog_pin && datadog_pin.service_name) || super
           end
 
           def analytics_enabled?
-            Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+            Contrib::Analytics.enabled?(configuration[:analytics_enabled])
           end
 
           def analytics_sample_rate
-            datadog_configuration[:analytics_sample_rate]
+            configuration[:analytics_sample_rate]
           end
         end
 

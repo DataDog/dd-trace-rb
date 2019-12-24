@@ -15,14 +15,13 @@ module Datadog
           def trace(keywords)
             options = {
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
-              service: service_name,
               resource: format_resource(keywords[:method])
             }
             metadata = keywords[:call].metadata
 
             set_distributed_context!(tracer, metadata)
 
-            tracer.trace(Ext::SPAN_SERVICE, options) do |span|
+            super(Ext::SPAN_SERVICE, options) do |span|
               annotate!(span, metadata)
 
               yield
