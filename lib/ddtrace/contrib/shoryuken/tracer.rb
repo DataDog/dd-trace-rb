@@ -7,12 +7,8 @@ module Datadog
       class Tracer
         include Contrib::Instrumentation
 
-        def settings
+        def base_configuration
           Datadog.configuration[:shoryuken]
-        end
-
-        def span_options
-          { service: configuration[:service_name] }
         end
 
         def initialize(options = {})
