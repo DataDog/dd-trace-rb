@@ -11,16 +11,20 @@ module Datadog
         # inject trace context information into gRPC metadata prior to
         # sending the request to the server.
         class Client < Base
+          # TODO: Uses pin
+          def span_options
+            { service: service_name }
+          end
+
           def trace(keywords)
             keywords[:metadata] ||= {}
 
             options = {
               span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-              service: service_name,
               resource: format_resource(keywords[:method])
             }
 
-            tracer.trace(Ext::SPAN_CLIENT, options) do |span|
+            trace(Ext::SPAN_CLIENT, options) do |span|
               annotate!(span, keywords[:metadata])
 
               yield
@@ -45,9 +49,9 @@ module Datadog
 
           def format_resource(proto_method)
             proto_method.downcase
-                        .split('/')
-                        .reject(&:empty?)
-                        .join('.')
+              .split('/')
+              .reject(&:empty?)
+              .join('.')
           end
         end
       end

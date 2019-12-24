@@ -21,7 +21,7 @@ module Datadog
           condition do
             # If the option to prepend script names is enabled, then
             # prepend the script name from the request onto the action.
-            @datadog_route = if Datadog.configuration[:sinatra][:resource_script_names]
+            @datadog_route = if env["datadog.sinatra_instrumentation"].configuration[:resource_script_names]
                                "#{request.script_name}#{action}"
                              else
                                action
@@ -33,11 +33,14 @@ module Datadog
 
         def self.registered(app)
           ::Sinatra::Base.module_eval do
+            def dd_integration
+              env["datadog.sinatra_instrumentation"]
+            end
+
             def render(engine, data, *)
               output = ''
-              tracer = Datadog.configuration[:sinatra][:tracer]
-              if tracer.enabled
-                tracer.trace(Ext::SPAN_RENDER_TEMPLATE, span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
+              if dd_integration.tracer.enabled
+                dd_integration.trace(Ext::SPAN_RENDER_TEMPLATE, span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
                   # If data is a string, it is a literal template and we don't
                   # want to record it.
                   span.set_tag(Ext::TAG_TEMPLATE_NAME, data) if data.is_a? Symbol
@@ -55,7 +58,7 @@ module Datadog
           app.use TracerMiddleware
 
           app.before do
-            return unless Datadog.configuration[:sinatra][:tracer].enabled
+            return unless dd_integration.tracer.enabled
 
             span = Sinatra::Env.datadog_span(env)
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
@@ -63,7 +66,7 @@ module Datadog
           end
 
           app.after do
-            return unless Datadog.configuration[:sinatra][:tracer].enabled
+            return unless dd_integration.tracer.enabled
 
             span = Sinatra::Env.datadog_span(env)
 

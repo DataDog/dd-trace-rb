@@ -28,6 +28,7 @@ module Datadog
 
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
+          # TODO: Uses pin
           def request(req, body = nil, &block) # :yield: +response+
             pin = datadog_pin
             return super(req, body, &block) unless pin && pin.tracer

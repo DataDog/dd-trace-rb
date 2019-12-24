@@ -13,7 +13,7 @@ module Datadog
 
       # Generates Spans for all interactions with AWS
       class Handler < Seahorse::Client::Handler
-        include BaseInstrumentation
+        include Contrib::Instrumentation
 
         def call(context)
           trace(Ext::SPAN_COMMAND) do |span|

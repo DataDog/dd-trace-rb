@@ -11,19 +11,25 @@ module Datadog
     module Excon
       # Middleware implements an excon-middleware for ddtrace instrumentation
       class Middleware < ::Excon::Middleware::Base
+        include Contrib::Instrumentation
+
+        def base_configuration
+          Datadog.configuration[:excon]
+        end
+
         DEFAULT_ERROR_HANDLER = lambda do |response|
           Datadog::Ext::HTTP::ERROR_RANGE.cover?(response[:status])
         end
 
         def initialize(stack, options = {})
           super(stack)
-          @options = Datadog.configuration[:excon].options_hash.merge(options)
+          merge_with_configuration!(options)
         end
 
         def request_call(datum)
           begin
             unless datum.key?(:datadog_span)
-              tracer.trace(Ext::SPAN_REQUEST).tap do |span|
+              trace(Ext::SPAN_REQUEST).tap do |span|
                 datum[:datadog_span] = span
                 annotate!(span, datum)
                 propagate!(span, datum) if distributed_tracing?
@@ -79,28 +85,24 @@ module Datadog
 
         private
 
-        def tracer
-          @options[:tracer]
-        end
-
         def analytics_enabled?
-          Contrib::Analytics.enabled?(@options[:analytics_enabled])
+          Contrib::Analytics.enabled?(configuration[:analytics_enabled])
         end
 
         def analytics_sample_rate
-          @options[:analytics_sample_rate]
+          configuration[:analytics_sample_rate]
         end
 
         def distributed_tracing?
-          @options[:distributed_tracing] == true && tracer.enabled
+          configuration[:distributed_tracing] == true && tracer.enabled
         end
 
         def error_handler
-          @options[:error_handler] || DEFAULT_ERROR_HANDLER
+          configuration[:error_handler] || DEFAULT_ERROR_HANDLER
         end
 
         def split_by_domain?
-          @options[:split_by_domain] == true
+          configuration[:split_by_domain] == true
         end
 
         def annotate!(span, datum)
@@ -146,7 +148,7 @@ module Datadog
 
         def service_name(datum)
           # TODO: Change this to implement more sensible multiplexing
-          split_by_domain? ? datum[:host] : @options[:service_name]
+          split_by_domain? ? datum[:host] : configuration[:service_name]
         end
       end
     end

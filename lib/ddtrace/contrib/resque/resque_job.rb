@@ -9,15 +9,21 @@ module Datadog
     module Resque
       # Uses Resque job hooks to create traces
       module ResqueJob
-        def around_perform(*_)
-          return yield unless datadog_configuration && tracer
+        include Contrib::Instrumentation
 
-          tracer.trace(Ext::SPAN_JOB, span_options) do |span|
+        def base_configuration
+          Datadog.configuration[:resque]
+        end
+
+        def around_perform(*_)
+          return yield unless configuration && tracer
+
+          trace(Ext::SPAN_JOB) do |span|
             span.resource = name
             span.span_type = Datadog::Ext::AppTypes::WORKER
             # Set analytics sample rate
-            if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
-              Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
             end
             yield
           end
@@ -41,18 +47,6 @@ module Datadog
           pin = Datadog::Pin.get_from(::Resque)
           return false unless pin
           pin.config[:forked] == true
-        end
-
-        def span_options
-          { service: datadog_configuration[:service_name] }
-        end
-
-        def tracer
-          datadog_configuration.tracer
-        end
-
-        def datadog_configuration
-          Datadog.configuration[:resque]
         end
       end
     end

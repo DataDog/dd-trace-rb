@@ -55,40 +55,5 @@ module Datadog
         end
       end
     end
-
-
-    # TODO: Move me elsewhere
-    module BaseInstrumentation
-      #def self.extended(base)
-      #  base.extend ClassMethods
-      #end
-
-      #module ClassMethods
-      def span_options
-        { service: configuration[:service_name] }
-      end
-
-      def tracer_configuration
-        -> { configuration[:tracer] }
-      end
-
-      def configuration
-        raise NotImplementedError, 'Configuration must be provided'
-      end
-
-      def resolve_configuration(config)
-        config.is_a?(Proc) ? config.call : config
-      end
-
-      #end
-
-      def tracer
-        resolve_configuration(tracer_configuration)
-      end
-
-      def trace(name, options = {}, &block)
-        tracer.trace(name, **span_options, **options, &block)
-      end
-    end
   end
 end

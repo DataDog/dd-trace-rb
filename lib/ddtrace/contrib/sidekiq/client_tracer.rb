@@ -8,17 +8,12 @@ module Datadog
       class ClientTracer
         include Tracing
 
-        def initialize(options = {})
-          super
-          @sidekiq_service = options[:client_service_name] || configuration[:client_service_name]
-        end
-
         # Client middleware arguments are documented here:
         #   https://github.com/mperham/sidekiq/wiki/Middleware#client-middleware
         def call(worker_class, job, queue, redis_pool)
           resource = job_resource(job)
 
-          @tracer.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span|
+          trace(Ext::SPAN_PUSH) do |span|
             span.resource = resource
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -30,12 +25,6 @@ module Datadog
 
             yield
           end
-        end
-
-        private
-
-        def configuration
-          Datadog.configuration[:sidekiq]
         end
       end
     end

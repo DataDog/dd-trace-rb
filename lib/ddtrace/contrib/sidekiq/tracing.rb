@@ -6,8 +6,18 @@ module Datadog
     module Sidekiq
       # Common functionality used by both client-side and server-side tracers.
       module Tracing
+        include Contrib::Instrumentation
+
+        def base_configuration
+          Datadog.configuration[:sidekiq]
+        end
+
+        def span_options
+          { service: configuration[:client_service_name] }
+        end
+
         def initialize(options = {})
-          @tracer = options[:tracer] || Datadog.configuration[:sidekiq][:tracer]
+          merge_with_configuration!(options)
         end
 
         protected

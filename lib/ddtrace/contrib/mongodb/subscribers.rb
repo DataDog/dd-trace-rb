@@ -8,6 +8,7 @@ module Datadog
       # `MongoCommandSubscriber` listens to all events from the `Monitoring`
       # system available in the Mongo driver.
       class MongoCommandSubscriber
+        # TODO: Uses pin
         def started(event)
           pin = Datadog::Pin.get_from(event.address)
           return unless pin && pin.enabled?

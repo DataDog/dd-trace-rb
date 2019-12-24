@@ -17,7 +17,7 @@ module Datadog
       # information available at the Rack level.
       # rubocop:disable Metrics/ClassLength
       class TraceMiddleware
-        include BaseInstrumentation
+        include Contrib::Instrumentation
 
         # DEPRECATED: Remove in 1.0 in favor of Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN
         # This constant will remain here until then, for backwards compatibility.
@@ -205,7 +205,7 @@ module Datadog
           If you need the Rack request span, try using `Datadog.tracer.active_span`.
           This key will be removed in version 1.0).freeze
 
-        def configuration
+        def base_configuration
           Datadog.configuration[:rack]
         end
 

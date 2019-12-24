@@ -14,8 +14,17 @@ module Datadog
 
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
+          class << self
+            include Contrib::Instrumentation
+
+            def base_configuration
+              # TODO how to allow access to instance-level method #hostname here?
+              Datadog.configuration[:dalli, "#{hostname}:#{port}"] || Datadog.configuration[:dalli]
+            end
+          end
+
           def request(op, *args)
-            tracer.trace(Datadog::Contrib::Dalli::Ext::SPAN_COMMAND) do |span|
+            dd_instrumentation.trace(Datadog::Contrib::Dalli::Ext::SPAN_COMMAND) do |span|
               span.resource = op.to_s.upcase
               span.service = datadog_configuration[:service_name]
               span.span_type = Datadog::Contrib::Dalli::Ext::SPAN_TYPE_COMMAND
@@ -36,12 +45,9 @@ module Datadog
 
           private
 
-          def tracer
-            datadog_configuration[:tracer]
-          end
-
-          def datadog_configuration
-            Datadog.configuration[:dalli, "#{hostname}:#{port}"] || Datadog.configuration[:dalli]
+          def dd_instrumentation
+            # how do
+            self.singleton_class
           end
         end
       end

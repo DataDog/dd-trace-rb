@@ -107,6 +107,7 @@ module Datadog
               response
             end
 
+            # TODO Uses pin
             def datadog_configuration
               Datadog.configuration[:elasticsearch]
             end

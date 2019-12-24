@@ -11,24 +11,28 @@ module Datadog
       # Middleware implements a faraday-middleware for ddtrace instrumentation
       class Middleware < ::Faraday::Middleware
         include Datadog::Ext::DistributedTracing
+        include Contrib::Instrumentation
+
+        def base_configuration
+          Datadog.configuration[:faraday]
+        end
 
         def initialize(app, options = {})
           super(app)
-          @options = datadog_configuration.options_hash.merge(options)
-          setup_service!
+          merge_with_configuration!(options)
         end
 
         def call(env)
-          tracer.trace(Ext::SPAN_REQUEST) do |span|
+          trace(Ext::SPAN_REQUEST) do |span|
             annotate!(span, env)
-            propagate!(span, env) if options[:distributed_tracing] && tracer.enabled
+            propagate!(span, env) if configuration[:distributed_tracing] && tracer.enabled
             app.call(env).on_complete { |resp| handle_response(span, resp) }
           end
         end
 
         private
 
-        attr_reader :app, :options
+        attr_reader :app
 
         def annotate!(span, env)
           span.resource = resource_name(env)
@@ -47,7 +51,7 @@ module Datadog
         end
 
         def handle_response(span, env)
-          if options.fetch(:error_handler).call(env)
+          if configuration.fetch(:error_handler).call(env)
             span.set_error(["Error #{env[:status]}", env[:body]])
           end
 
@@ -58,18 +62,10 @@ module Datadog
           Datadog::HTTPPropagator.inject!(span.context, env[:request_headers])
         end
 
-        def datadog_configuration
-          Datadog.configuration[:faraday]
-        end
-
-        def tracer
-          options[:tracer]
-        end
-
         def service_name(env)
-          return env[:url].host if options[:split_by_domain]
+          return env[:url].host if configuration[:split_by_domain]
 
-          options[:service_name]
+          configuration[:service_name]
         end
 
         def resource_name(env)
@@ -77,15 +73,11 @@ module Datadog
         end
 
         def analytics_enabled?
-          Contrib::Analytics.enabled?(options[:analytics_enabled])
+          Contrib::Analytics.enabled?(configuration[:analytics_enabled])
         end
 
         def analytics_sample_rate
-          options[:analytics_sample_rate]
-        end
-
-        def setup_service!
-          return if options[:service_name] == datadog_configuration[:service_name]
+          configuration[:analytics_sample_rate]
         end
       end
     end

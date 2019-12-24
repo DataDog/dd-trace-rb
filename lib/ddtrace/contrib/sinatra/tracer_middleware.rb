@@ -8,6 +8,8 @@ module Datadog
     module Sinatra
       # Middleware used for automatically tagging configured headers and handle request span
       class TracerMiddleware
+        include Contrib::Instrumentation
+
         def initialize(app)
           @app = app
         end
@@ -20,12 +22,13 @@ module Datadog
           end
 
           # Begin the trace
-          tracer.trace(
+          trace(
             Ext::SPAN_REQUEST,
-            service: configuration[:service_name],
             span_type: Datadog::Ext::HTTP::TYPE_INBOUND
           ) do |span|
             Sinatra::Env.set_datadog_span(env, span)
+
+            env["datadog.sinatra_instrumentation"] = self
 
             Sinatra::Env.request_header_tags(env, configuration[:headers][:request]).each do |name, value|
               span.set_tag(name, value) if span.get_tag(name).nil?
@@ -47,10 +50,6 @@ module Datadog
 
         private
 
-        def tracer
-          configuration[:tracer]
-        end
-
         def analytics_enabled?
           Contrib::Analytics.enabled?(configuration[:analytics_enabled])
         end
@@ -59,7 +58,7 @@ module Datadog
           configuration[:analytics_sample_rate]
         end
 
-        def configuration
+        def base_configuration
           Datadog.configuration[:sinatra]
         end
 

@@ -12,10 +12,16 @@ module Datadog
 
         # Instance methods for Rake instrumentation
         module InstanceMethods
+          include Contrib::Instrumentation
+
+          def base_configuration
+            Datadog.configuration[:rake]
+          end
+
           def invoke(*args)
             return super unless enabled?
 
-            tracer.trace(Ext::SPAN_INVOKE, span_options) do |span|
+            trace(Ext::SPAN_INVOKE) do |span|
               super.tap { annotate_invoke!(span, args) }
             end
           ensure
@@ -25,7 +31,7 @@ module Datadog
           def execute(args = nil)
             return super unless enabled?
 
-            tracer.trace(Ext::SPAN_EXECUTE, span_options) do |span|
+            trace(Ext::SPAN_EXECUTE) do |span|
               super.tap { annotate_execute!(span, args) }
             end
           ensure
@@ -60,22 +66,6 @@ module Datadog
           def quantize_args(args)
             quantize_options = configuration[:quantize][:args]
             Datadog::Quantization::Hash.format(args, quantize_options)
-          end
-
-          def enabled?
-            configuration[:enabled] == true
-          end
-
-          def tracer
-            configuration[:tracer]
-          end
-
-          def span_options
-            { service: configuration[:service_name] }
-          end
-
-          def configuration
-            Datadog.configuration[:rake]
           end
         end
       end

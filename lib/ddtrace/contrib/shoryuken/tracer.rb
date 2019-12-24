@@ -5,13 +5,22 @@ module Datadog
     module Shoryuken
       # Tracer is a Shoryuken server-side middleware which traces executed jobs
       class Tracer
+        include Contrib::Instrumentation
+
+        def settings
+          Datadog.configuration[:shoryuken]
+        end
+
+        def span_options
+          { service: configuration[:service_name] }
+        end
+
         def initialize(options = {})
-          @tracer = options[:tracer] || configuration[:tracer]
-          @shoryuken_service = options[:service_name] || configuration[:service_name]
+          merge_with_configuration!(options)
         end
 
         def call(worker_instance, queue, sqs_msg, body)
-          @tracer.trace(Ext::SPAN_JOB, service: @shoryuken_service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
+          trace(Ext::SPAN_JOB, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
@@ -34,10 +43,6 @@ module Datadog
           job_class = body['job_class'] if body.is_a?(Hash)
           # If nothing is available, use the worker class name.
           job_class || worker_instance.class.name
-        end
-
-        def configuration
-          Datadog.configuration[:shoryuken]
         end
       end
     end

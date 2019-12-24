@@ -7,11 +7,17 @@ module Datadog
         # Defines instrumentation for ActiveSupport caching
         # rubocop:disable Lint/RescueException
         module Instrumentation
+          class << self
+            include Contrib::Instrumentation
+
+            def base_configuration
+              Datadog.configuration[:active_support]
+            end
+          end
+
           module_function
 
           def start_trace_cache(payload)
-            tracer = Datadog.configuration[:active_support][:tracer]
-
             # In most of the cases Rails ``fetch()`` and ``read()`` calls are nested.
             # This check ensures that two reads are not nested since they don't provide
             # interesting details.
@@ -19,15 +25,15 @@ module Datadog
             # to avoid any kind of issue.
             current_span = tracer.active_span
             return if payload[:action] == Ext::RESOURCE_CACHE_GET &&
-                      current_span.try(:name) == Ext::SPAN_CACHE &&
-                      current_span.try(:resource) == Ext::RESOURCE_CACHE_GET
+              current_span.try(:name) == Ext::SPAN_CACHE &&
+              current_span.try(:resource) == Ext::RESOURCE_CACHE_GET
 
             tracing_context = payload.fetch(:tracing_context)
 
             # create a new ``Span`` and add it to the tracing context
-            service = Datadog.configuration[:active_support][:cache_service]
+            service = configuration[:cache_service]
             type = Ext::SPAN_TYPE_CACHE
-            span = tracer.trace(Ext::SPAN_CACHE, service: service, span_type: type)
+            span = trace(Ext::SPAN_CACHE, service: service, span_type: type)
             span.resource = payload.fetch(:action)
             tracing_context[:dd_cache_span] = span
           rescue StandardError => e
@@ -59,7 +65,7 @@ module Datadog
             Datadog::Logger.log.debug(e.message)
           end
 
-          # Defines instrumentation for ActiveSupport cache reading
+              # Defines instrumentation for ActiveSupport cache reading
           module Read
             def read(*args, &block)
               payload = {
@@ -82,7 +88,7 @@ module Datadog
             end
           end
 
-          # Defines instrumentation for ActiveSupport cache fetching
+              # Defines instrumentation for ActiveSupport cache fetching
           module Fetch
             def fetch(*args, &block)
               payload = {
@@ -105,7 +111,7 @@ module Datadog
             end
           end
 
-          # Defines instrumentation for ActiveSupport cache writing
+              # Defines instrumentation for ActiveSupport cache writing
           module Write
             def write(*args, &block)
               payload = {
@@ -128,7 +134,7 @@ module Datadog
             end
           end
 
-          # Defines instrumentation for ActiveSupport cache deleting
+              # Defines instrumentation for ActiveSupport cache deleting
           module Delete
             def delete(*args, &block)
               payload = {
@@ -150,8 +156,8 @@ module Datadog
               Instrumentation.finish_trace_cache(payload)
             end
           end
+          end
         end
       end
     end
   end
-end

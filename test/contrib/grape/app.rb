@@ -2,7 +2,7 @@ require 'helper'
 require 'rack/test'
 
 require 'grape'
-require 'ddtrace/pin'
+require 'ddtrace'
 require 'ddtrace/contrib/grape/patcher'
 
 # patch Grape before the application

@@ -7,6 +7,14 @@ module Datadog
     module DelayedJob
       # DelayedJob plugin that instruments invoke_job hook
       class Plugin < Delayed::Plugin
+        class << self
+          include Contrib::Instrumentation
+
+          def base_configuration
+            Datadog.configuration[:delayed_job]
+          end
+        end
+
         def self.instrument(job, &block)
           return block.call(job) unless tracer && tracer.enabled
 
@@ -18,7 +26,7 @@ module Datadog
                        job.name
                      end
 
-          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name) do |span|
+          trace(Ext::SPAN_JOB, resource: job_name) do |span|
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
@@ -37,14 +45,6 @@ module Datadog
           yield worker
 
           tracer.shutdown! if tracer && tracer.enabled
-        end
-
-        def self.configuration
-          Datadog.configuration[:delayed_job]
-        end
-
-        def self.tracer
-          configuration[:tracer]
         end
 
         callbacks do |lifecycle|

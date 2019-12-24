@@ -8,17 +8,12 @@ module Datadog
       class ServerTracer
         include Tracing
 
-        def initialize(options = {})
-          super
-          @sidekiq_service = options[:service_name] || configuration[:service_name]
-        end
-
         def call(worker, job, queue)
           resource = job_resource(job)
 
-          service = service_from_worker_config(resource) || @sidekiq_service
+          service = service_from_worker_config(resource) || service_name
 
-          @tracer.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
+          trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
             span.resource = resource
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -35,10 +30,6 @@ module Datadog
         end
 
         private
-
-        def configuration
-          Datadog.configuration[:sidekiq]
-        end
 
         def service_from_worker_config(resource)
           # Try to get the Ruby class from the resource name.

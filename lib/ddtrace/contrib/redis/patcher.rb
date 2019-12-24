@@ -28,6 +28,7 @@ module Datadog
         # rubocop:disable Metrics/MethodLength
         # rubocop:disable Metrics/BlockLength
         def patch_redis_client
+          # TODO Uses pin
           ::Redis::Client.class_eval do
             alias_method :call_without_datadog, :call
             remove_method :call

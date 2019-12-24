@@ -10,17 +10,17 @@ module Datadog
       module ActionController
         # Instrumentation for ActionController components
         module Instrumentation
-          extend BaseInstrumentation
-
-          module_function
+          extend Contrib::Instrumentation
 
           def span_options
-            { service: configuration[:controller_service] }
+            super.merge(service: configuration[:controller_service])
           end
 
-          def configuration
+          def base_configuration
             Datadog.configuration[:action_pack]
           end
+
+          module_function
 
           def start_processing(payload)
             type = Datadog::Ext::HTTP::TYPE_INBOUND

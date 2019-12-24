@@ -14,6 +14,12 @@ module Datadog
         KEY_RENDER = 'datadog_grape_endpoint_render'.freeze
 
         class << self
+          include Contrib::Instrumentation
+
+          def base_configuration
+            Datadog.configuration[:grape]
+          end
+
           def subscribe
             # subscribe when a Grape endpoint is hit
             ::ActiveSupport::Notifications.subscribe('endpoint_run.grape.start_process') do |*args|
@@ -38,9 +44,8 @@ module Datadog
             return unless enabled?
 
             # Store the beginning of a trace
-            tracer.trace(
+            trace(
               Ext::SPAN_ENDPOINT_RUN,
-              service: service_name,
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND
             )
 
@@ -104,9 +109,8 @@ module Datadog
             return unless enabled?
 
             # Store the beginning of a trace
-            tracer.trace(
+            trace(
               Ext::SPAN_ENDPOINT_RENDER,
-              service: service_name,
               span_type: Datadog::Ext::HTTP::TEMPLATE
             )
 
@@ -144,9 +148,8 @@ module Datadog
             type = payload[:type]
             return if (!filters || filters.empty?) || !type || zero_length
 
-            span = tracer.trace(
+            span = trace(
               Ext::SPAN_ENDPOINT_RUN_FILTERS,
-              service: service_name,
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND
             )
 
@@ -169,28 +172,16 @@ module Datadog
 
           private
 
-          def tracer
-            datadog_configuration[:tracer]
-          end
-
-          def service_name
-            datadog_configuration[:service_name]
-          end
-
           def analytics_enabled?
-            Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+            Contrib::Analytics.enabled?(configuration[:analytics_enabled])
           end
 
           def analytics_sample_rate
-            datadog_configuration[:analytics_sample_rate]
+            configuration[:analytics_sample_rate]
           end
 
           def enabled?
-            datadog_configuration[:enabled] == true
-          end
-
-          def datadog_configuration
-            Datadog.configuration[:grape]
+            configuration[:enabled] == true
           end
         end
       end
