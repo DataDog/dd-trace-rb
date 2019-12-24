@@ -1,11 +1,13 @@
 module Datadog
   module Contrib
+    # TODO: Add docs
+    # placeholder
     module Instrumentation
-      #def self.extended(base)
+      # def self.extended(base)
       #  base.extend ClassMethods
-      #end
+      # end
 
-      #module ClassMethods
+      # module ClassMethods
 
       def wip_dsl_suggestion
         span_option :service, -> { configuration[:controller_service] }
@@ -28,7 +30,6 @@ module Datadog
         -> { configuration[:tracer] }
       end
 
-
       def configuration
         base_configuration.tap do |config|
           return config.options_hash.merge(@options) if @options
@@ -45,26 +46,26 @@ module Datadog
 
       # TODO: have an indirect configuartion method to allow for:
       # TODO: @options = Datadog.configuration[:faraday].options_hash.merge(options)
-      #def configuration
+      # def configuration
       #  datadog_configuration
-      #end
+      # end
 
       def resolve_configuration(config)
         config.is_a?(Proc) ? config.call : config
       end
 
-      #end
+      # end
 
       def tracer
         resolve_configuration(tracer_configuration)
       end
 
       def trace(name, options = {}, &block)
-        if false # TODO integrate this?
-          if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
-            Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
-          end
-        end
+        # if false # TODO: integrate this?
+        #  if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+        #    Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+        #  end
+        # end
 
         tracer.trace(name, **span_options, **options, &block)
       end

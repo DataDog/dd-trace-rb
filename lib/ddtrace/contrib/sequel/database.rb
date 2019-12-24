@@ -15,7 +15,7 @@ module Datadog
 
         # Instance methods for instrumenting Sequel::Database
         module InstanceMethods
-          # TODO Uses pin
+          # TODO: Uses pin
           def run(sql, options = ::Sequel::OPTS)
             opts = parse_opts(sql, options)
 

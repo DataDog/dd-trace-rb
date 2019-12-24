@@ -18,7 +18,7 @@ module Datadog
             include Contrib::Instrumentation
 
             def base_configuration
-              # TODO how to allow access to instance-level method #hostname here?
+              # TODO: how to allow access to instance-level method #hostname here?
               Datadog.configuration[:dalli, "#{hostname}:#{port}"] || Datadog.configuration[:dalli]
             end
           end
@@ -47,7 +47,7 @@ module Datadog
 
           def dd_instrumentation
             # how do
-            self.singleton_class
+            singleton_class
           end
         end
       end

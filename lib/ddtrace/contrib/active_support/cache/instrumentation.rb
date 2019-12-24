@@ -25,8 +25,8 @@ module Datadog
             # to avoid any kind of issue.
             current_span = tracer.active_span
             return if payload[:action] == Ext::RESOURCE_CACHE_GET &&
-              current_span.try(:name) == Ext::SPAN_CACHE &&
-              current_span.try(:resource) == Ext::RESOURCE_CACHE_GET
+                      current_span.try(:name) == Ext::SPAN_CACHE &&
+                      current_span.try(:resource) == Ext::RESOURCE_CACHE_GET
 
             tracing_context = payload.fetch(:tracing_context)
 
@@ -65,7 +65,7 @@ module Datadog
             Datadog::Logger.log.debug(e.message)
           end
 
-              # Defines instrumentation for ActiveSupport cache reading
+          # Defines instrumentation for ActiveSupport cache reading
           module Read
             def read(*args, &block)
               payload = {
@@ -88,7 +88,7 @@ module Datadog
             end
           end
 
-              # Defines instrumentation for ActiveSupport cache fetching
+          # Defines instrumentation for ActiveSupport cache fetching
           module Fetch
             def fetch(*args, &block)
               payload = {
@@ -111,7 +111,7 @@ module Datadog
             end
           end
 
-              # Defines instrumentation for ActiveSupport cache writing
+          # Defines instrumentation for ActiveSupport cache writing
           module Write
             def write(*args, &block)
               payload = {
@@ -134,7 +134,7 @@ module Datadog
             end
           end
 
-              # Defines instrumentation for ActiveSupport cache deleting
+          # Defines instrumentation for ActiveSupport cache deleting
           module Delete
             def delete(*args, &block)
               payload = {
@@ -156,8 +156,8 @@ module Datadog
               Instrumentation.finish_trace_cache(payload)
             end
           end
-          end
         end
       end
     end
   end
+end

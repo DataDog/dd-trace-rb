@@ -19,5 +19,4 @@ module Datadog
   end
 end
 
-
-require_relative 'instrumentation' # TODO require where it is actually needed
+require_relative 'instrumentation' # TODO: require where it is actually needed

@@ -49,9 +49,9 @@ module Datadog
 
           def format_resource(proto_method)
             proto_method.downcase
-              .split('/')
-              .reject(&:empty?)
-              .join('.')
+                        .split('/')
+                        .reject(&:empty?)
+                        .join('.')
           end
         end
       end

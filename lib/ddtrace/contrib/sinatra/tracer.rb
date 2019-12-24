@@ -21,7 +21,7 @@ module Datadog
           condition do
             # If the option to prepend script names is enabled, then
             # prepend the script name from the request onto the action.
-            @datadog_route = if env["datadog.sinatra_instrumentation"].configuration[:resource_script_names]
+            @datadog_route = if env['datadog.sinatra_instrumentation'].configuration[:resource_script_names]
                                "#{request.script_name}#{action}"
                              else
                                action
@@ -34,7 +34,7 @@ module Datadog
         def self.registered(app)
           ::Sinatra::Base.module_eval do
             def dd_integration
-              env["datadog.sinatra_instrumentation"]
+              env['datadog.sinatra_instrumentation']
             end
 
             def render(engine, data, *)

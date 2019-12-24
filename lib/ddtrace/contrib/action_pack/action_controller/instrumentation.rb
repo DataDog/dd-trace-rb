@@ -122,13 +122,13 @@ module Datadog
                 status = datadog_response_status
                 payload[:status] = status unless status.nil?
                 result
-                  # rubocop:disable Lint/RescueException
+              # rubocop:disable Lint/RescueException
               rescue Exception => e
                 payload[:exception] = [e.class.name, e.message]
                 payload[:exception_object] = e
                 raise e
               end
-                # rubocop:enable Lint/RescueException
+            # rubocop:enable Lint/RescueException
             ensure
               Instrumentation.finish_processing(payload)
             end

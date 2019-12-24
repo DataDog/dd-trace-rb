@@ -28,7 +28,7 @@ module Datadog
           ) do |span|
             Sinatra::Env.set_datadog_span(env, span)
 
-            env["datadog.sinatra_instrumentation"] = self
+            env['datadog.sinatra_instrumentation'] = self
 
             Sinatra::Env.request_header_tags(env, configuration[:headers][:request]).each do |name, value|
               span.set_tag(name, value) if span.get_tag(name).nil?
