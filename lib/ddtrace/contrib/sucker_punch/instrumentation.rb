@@ -10,18 +10,28 @@ module Datadog
         module_function
 
         # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/BlockLength
         def patch!
+          ::SuckerPunch::Job::ClassMethods.class.include(Contrib::Instrumentation)
           ::SuckerPunch::Job::ClassMethods.class_eval do
+            def service_name
+              (@pin && @pin.service) || super
+            end
+
+            def tracer
+              (@pin && @pin.tracer) || super
+            end
+
             alias_method :__run_perform_without_datadog, :__run_perform
             def __run_perform(*args)
-              pin = Datadog::Pin.get_from(::SuckerPunch)
-              pin.tracer.provider.context = Datadog::Context.new
+              @pin = Datadog::Pin.get_from(::SuckerPunch)
+              tracer.provider.context = Datadog::Context.new
 
               __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"
                 # Set analytics sample rate
-                if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
-                  Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+                if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+                  Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
                 end
                 __run_perform_without_datadog(*args)
               end
@@ -48,19 +58,20 @@ module Datadog
 
             private
 
-            def datadog_configuration
+            def base_configuration
               Datadog.configuration[:sucker_punch]
             end
 
             def __with_instrumentation(name)
-              pin = Datadog::Pin.get_from(::SuckerPunch)
+              @pin = Datadog::Pin.get_from(::SuckerPunch)
 
-              pin.tracer.trace(name) do |span|
-                span.service = pin.service
-                span.span_type = pin.app_type
+              trace(name) do |span|
+                span.span_type = @pin.app_type
                 span.set_tag(Ext::TAG_QUEUE, to_s)
                 yield span
               end
+            ensure
+              @pin = nil
             end
           end
         end
