@@ -13,13 +13,21 @@ module Datadog
           base.send(:prepend, InstanceMethods)
         end
 
+        def service_name
+          (datadog_pin && datadog_pin.service) || super
+        end
+
+        def tracer
+          (datadog_pin && datadog_pin.tracer) || super
+        end
+
         # Mysql2::Client patch instance methods
         module InstanceMethods
-          # TODO: Uses pin
+          include Contrib::Instrumentation
+
           def query(sql, options = {})
-            datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
+            trace(Ext::SPAN_QUERY) do |span|
               span.resource = sql
-              span.service = datadog_pin.service
               span.span_type = Datadog::Ext::SQL::TYPE
 
               # Set analytics sample rate
@@ -43,16 +51,16 @@ module Datadog
 
           private
 
-          def datadog_configuration
+          def base_configuration
             Datadog.configuration[:mysql2]
           end
 
           def analytics_enabled?
-            datadog_configuration[:analytics_enabled]
+            configuration[:analytics_enabled]
           end
 
           def analytics_sample_rate
-            datadog_configuration[:analytics_sample_rate]
+            configuration[:analytics_sample_rate]
           end
         end
       end
