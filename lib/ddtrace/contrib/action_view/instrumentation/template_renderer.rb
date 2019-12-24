@@ -12,13 +12,15 @@ module Datadog
             def self.prepended(base)
               # rubocop:disable Metrics/BlockLength
               base.class_eval do
+                include Contrib::Instrumentation
+
                 def render_with_datadog(*args, &block)
                   # NOTE: This check exists purely for Rails 3.0 compatibility.
                   #       The 'if' part can be removed when support for Rails 3.0 is removed.
                   if active_datadog_span
                     render_without_datadog(*args, &block)
                   else
-                    datadog_tracer.trace(
+                    trace(
                       Ext::SPAN_RENDER_TEMPLATE,
                       span_type: Datadog::Ext::HTTP::TEMPLATE
                     ) do |span|
@@ -62,8 +64,8 @@ module Datadog
 
                 attr_accessor :active_datadog_span
 
-                def datadog_tracer
-                  Datadog.configuration[:action_view][:tracer]
+                def base_configuration
+                  Datadog.configuration[:action_view]
                 end
 
                 def with_datadog_span(span)
@@ -85,8 +87,10 @@ module Datadog
 
           # Legacy shared code for Rails >= 3.1 template rendering
           module Rails31Plus
+            include Contrib::Instrumentation
+
             def render(*args, &block)
-              datadog_tracer.trace(
+              trace(
                 Ext::SPAN_RENDER_TEMPLATE,
                 span_type: Datadog::Ext::HTTP::TEMPLATE
               ) do |span|
@@ -133,8 +137,8 @@ module Datadog
 
             attr_accessor :active_datadog_span
 
-            def datadog_tracer
-              Datadog.configuration[:action_view][:tracer]
+            def base_configuration
+              Datadog.configuration[:action_view]
             end
 
             def with_datadog_span(span)

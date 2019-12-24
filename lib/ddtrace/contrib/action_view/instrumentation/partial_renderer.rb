@@ -6,8 +6,10 @@ module Datadog
       module Instrumentation
         # Legacy instrumentation for partial rendering for Rails < 4
         module PartialRenderer
+          include Contrib::Instrumentation
+
           def render(*args, &block)
-            datadog_tracer.trace(
+            trace(
               Ext::SPAN_RENDER_PARTIAL,
               span_type: Datadog::Ext::HTTP::TEMPLATE
             ) do |span|
@@ -44,8 +46,8 @@ module Datadog
 
           attr_accessor :active_datadog_span
 
-          def datadog_tracer
-            Datadog.configuration[:action_view][:tracer]
+          def base_configuration
+            Datadog.configuration[:action_view]
           end
 
           def with_datadog_span(span)
