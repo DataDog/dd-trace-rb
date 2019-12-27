@@ -8,7 +8,7 @@ module Datadog
         # Matches strings against Regexps.
         class RegexpResolver < Datadog::Contrib::Configuration::Resolver
           def add_key(pattern)
-            patterns << pattern.is_a?(Regexp) ? pattern : /#{pattern}/
+            patterns << pattern.is_a?(Regexp) ? pattern : /#{Regexp.quote(pattern)}/
           end
 
           def resolve(name)

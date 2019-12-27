@@ -45,8 +45,8 @@ module Datadog
               begin
                 # even though service_name might already be in request_options,
                 # we need to capture the name from the pin since it could be
-                # overridden. But it might also be the same :)
-                request_options[:service_name] = datadog_pin.service_name
+                # overridden
+                request_options[:service_name] = pin.service_name
                 span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
@@ -95,10 +95,36 @@ module Datadog
           end
 
           def datadog_pin(config = Datadog.configuration[:http])
-            @datadog_pin ||= begin
-              service = config[:service_name]
-              tracer = config[:tracer]
+            service = config[:service_name]
+            tracer = config[:tracer]
 
+            @datadog_pin ||= begin
+              Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
+            end
+
+            # this shockingly poor code exists to solve the case where someone
+            # calls datadog_pin on this object before running a request, which
+            # would cause the :default config to be used. If a request is then
+            # run for a hostname that matches a different configuration, we
+            # would use the wrong configs since the pin is memoized.
+            # The solution is to detect if we are using the default config and
+            # apply the new config if necessary, while still allowing custom
+            # values to be supplied
+            if @datadog_pin.service_name == default_datadog_pin.service_name && @datadog_pin.service_name != service
+              @datadog_pin.service = service
+            end
+            if @datadog_pin.tracer == default_datadog_pin.tracer && @datadog_pin.tracer != tracer
+              @datadog_pin.tracer = tracer
+            end
+
+            @datadog_pin
+          end
+
+          def default_datadog_pin
+            config = Datadog.configuration[:http]
+            service = config[:service_name]
+            tracer = config[:tracer]
+            @default_datadog_pin ||= begin
               Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
             end
           end

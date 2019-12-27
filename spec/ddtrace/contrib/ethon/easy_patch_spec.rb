@@ -53,6 +53,33 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       expect(easy.instance_eval { @datadog_span }).to be_instance_of(Datadog::Span)
     end
 
+    context 'when split by domain' do
+      let(:configuration_options) { super().merge(split_by_domain: true) }
+
+      it do
+        subject
+        expect(span.name).to eq(Datadog::Contrib::Ethon::Ext::SPAN_REQUEST)
+        expect(span.service).to eq('example.com')
+        expect(span.resource).to eq('N/A')
+      end
+
+      context 'and the host matches a specific configuration' do
+        before do
+          Datadog.configure do |c|
+            c.use :ethon, describe: /example\.com/ do |ethon|
+              ethon.service_name = 'baz'
+              ethon.split_by_domain = false
+            end
+          end
+        end
+
+        it 'uses the configured service name over the domain name' do
+          subject
+          expect(span.service).to eq('baz')
+        end
+      end
+    end
+
     it_behaves_like 'span' do
       before { subject }
       let(:method) { 'N/A' }

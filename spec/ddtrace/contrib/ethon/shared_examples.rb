@@ -150,30 +150,5 @@ RSpec.shared_examples_for 'instrumented request' do
         end
       end
     end
-
-    context 'when split by domain' do
-      let(:configuration_options) { super().merge(split_by_domain: true) }
-
-      it do
-        expect(span.name).to eq(Datadog::Contrib::Ethon::Ext::SPAN_REQUEST)
-        expect(span.service).to eq('example.com')
-        expect(span.resource).to eq('GET')
-      end
-
-      context 'and the host matches a specific configuration' do
-        before do
-          Datadog.configure do |c|
-            c.use :ethon, describe: /example\.com/ do |ethon|
-              ethon.service_name = 'bar'
-              ethon.split_by_domain = false
-            end
-          end
-        end
-
-        it 'uses the configured service name over the domain name' do
-          expect(request_span.service).to eq('bar')
-        end
-      end
-    end
   end
 end
