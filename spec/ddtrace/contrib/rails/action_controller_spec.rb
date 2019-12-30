@@ -1,10 +1,10 @@
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'ActionController tracing' do
+RSpec.describe 'Rails ActionController' do
   let(:tracer) { get_test_tracer }
   let(:rails_options) { { tracer: tracer } }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :rails, rails_options
       # Manually activate ActionPack to trigger patching.
@@ -55,7 +55,7 @@ RSpec.describe 'ActionController tracing' do
             let(:headers) { double('headers') }
             let(:body) { double('body') }
 
-            before(:each) do
+            before do
               expect_any_instance_of(controller).to receive(:response)
                 .at_least(:once)
                 .and_wrap_original do |m, *args|
@@ -81,7 +81,7 @@ RSpec.describe 'ActionController tracing' do
               )
             end
 
-            before(:each) do
+            before do
               expect_any_instance_of(controller).to receive(:response)
                 .at_least(:once)
                 .and_wrap_original do |m, *args|
