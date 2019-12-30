@@ -66,4 +66,17 @@ RSpec.describe Datadog::SyncWriter do
       end
     end
   end
+
+  describe 'integration' do
+    context 'when initializing a tracer' do
+      subject(:tracer) { Datadog::Tracer.new(writer: sync_writer) }
+      it { expect(tracer.writer).to be sync_writer }
+    end
+
+    context 'when configuring a tracer' do
+      subject(:tracer) { Datadog::Tracer.new }
+      before { tracer.configure(writer: sync_writer) }
+      it { expect(tracer.writer).to be sync_writer }
+    end
+  end
 end
