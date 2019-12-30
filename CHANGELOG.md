@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.30.1] - 2019-12-30
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.30.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.30.0...v0.30.1
+
+### Fixed
+
+- NoMethodError when configuring tracer with SyncWriter (#899, #900) (@Yurokle)
+- Spans associated with runtime metrics when disabled (#885)
+
+### Refactored
+
+- Improvements to test suite & CI (#815, #821, #846, #883, #890, #894)
+
 ## [0.30.0] - 2019-12-04
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.30.0
