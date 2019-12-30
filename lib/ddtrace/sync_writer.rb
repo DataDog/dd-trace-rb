@@ -6,6 +6,7 @@ module Datadog
   # SyncWriter flushes both services and traces synchronously
   class SyncWriter
     attr_reader \
+      :priority_sampler,
       :runtime_metrics,
       :transport
 
@@ -19,6 +20,8 @@ module Datadog
       @runtime_metrics = options.fetch(:runtime_metrics) do
         Runtime::Metrics.new
       end
+
+      @priority_sampler = options.fetch(:priority_sampler, nil)
     end
 
     def write(trace, services = nil)
