@@ -18,6 +18,8 @@ module Datadog
 
       attr_reader :rules, :rate_limiter, :default_sampler
 
+      DEFAULT_RATE_LIMIT = 100
+
       # @param rules [Array<Rule>] ordered list of rules to be applied to a span
       # @param rate_limit [Float] number of traces per second, defaults to +100+
       # @param rate_limiter [RateLimiter] limiter applied after rule matching
@@ -25,7 +27,7 @@ module Datadog
       #   between +[0,1]+, defaults to +1+
       # @param default_sampler [Sample] fallback strategy when no rules apply to a span
       def initialize(rules = [],
-                     rate_limit: 100,
+                     rate_limit: DEFAULT_RATE_LIMIT,
                      rate_limiter: nil,
                      default_sample_rate: nil,
                      default_sampler: nil)
