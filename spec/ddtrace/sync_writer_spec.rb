@@ -77,6 +77,22 @@ RSpec.describe Datadog::SyncWriter do
       subject(:tracer) { Datadog::Tracer.new }
       before { tracer.configure(writer: sync_writer) }
       it { expect(tracer.writer).to be sync_writer }
+
+      context 'then submitting a trace' do
+        let(:sync_writer) { described_class.new(transport: transport) }
+        let(:transport) { Datadog::Transport::HTTP.default { |t| t.adapter :test, buffer } }
+        let(:buffer) { [] }
+
+        before do
+          tracer.trace('parent.span') do
+            tracer.trace('child.span') do
+              # Do nothing
+            end
+          end
+        end
+
+        it { expect(buffer).to have(1).item }
+      end
     end
   end
 end
