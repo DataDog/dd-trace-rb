@@ -14,6 +14,13 @@ module Datadog
         configuration_from :action_pack
       end
 
+      def dd_with_configuration
+        old_config = config
+        yield(dd_instrument)
+      ensure
+        self.config = old_config
+      end
+
       def enabled?
         configuration[:enabled] == true
       end
@@ -67,7 +74,15 @@ module Datadog
         #  end
         # end
 
-        tracer.trace(name, **span_options, **options, &block)
+        if block_given?
+          tracer.trace(name, **span_options, **options, &block) do |span|
+            doit(span)
+          end
+        else
+          tracer.trace(name, **span_options, **options, &block).tap do |span|
+            doit(span)
+          end
+        end
       end
 
       # Extension for instrumentations using `datadog_pin` ({Datadog::Pin})
@@ -78,6 +93,22 @@ module Datadog
 
         def tracer
           (datadog_pin && datadog_pin.tracer) || super
+        end
+      end
+
+      module Analytics
+        #  if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+        #    Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+        #  end
+      end
+
+      module Peer
+        def peer_serive_name
+          span.service
+        end
+
+        def doit(span)
+          span.set_tag...
         end
       end
     end

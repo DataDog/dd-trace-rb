@@ -10,7 +10,11 @@ module Datadog
       module ActionController
         # Instrumentation for ActionController components
         module Instrumentation
-          extend Contrib::Instrumentation
+          class << self
+            include Contrib::Instrumentation
+          end
+
+          module_function
 
           def span_options
             super.merge(service: configuration[:controller_service])
@@ -19,8 +23,6 @@ module Datadog
           def base_configuration
             Datadog.configuration[:action_pack]
           end
-
-          module_function
 
           def start_processing(payload)
             type = Datadog::Ext::HTTP::TYPE_INBOUND
@@ -122,13 +124,13 @@ module Datadog
                 status = datadog_response_status
                 payload[:status] = status unless status.nil?
                 result
-              # rubocop:disable Lint/RescueException
+                  # rubocop:disable Lint/RescueException
               rescue Exception => e
                 payload[:exception] = [e.class.name, e.message]
                 payload[:exception_object] = e
                 raise e
               end
-            # rubocop:enable Lint/RescueException
+                # rubocop:enable Lint/RescueException
             ensure
               Instrumentation.finish_processing(payload)
             end

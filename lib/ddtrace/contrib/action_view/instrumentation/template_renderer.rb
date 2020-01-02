@@ -8,11 +8,50 @@ module Datadog
         module TemplateRenderer
           # Legacy Rails < 3.1 template rendering
           module Rails30
+            class << self
+              include Contrib::Instrumentation
+              extend Contrib::Instrumentation
+              prepend Contrib::Instrumentation
+            end
+            #include Contrib::Instrumentation
+
+            include Contrib::Instrumentation
+            extend Contrib::Instrumentation
+            prepend Contrib::Instrumentation
+
             # rubocop:disable Metrics/MethodLength
             def self.prepended(base)
               # rubocop:disable Metrics/BlockLength
+              #base.class.include Contrib::Instrumentation
+              base.singleton_class.include(Contrib::Instrumentation)
+              base.singleton_class.extend(Contrib::Instrumentation)
+              base.singleton_class.prepend(Contrib::Instrumentation)
+              base.include Contrib::Instrumentation
+              base.extend Contrib::Instrumentation
+              base.prepend Contrib::Instrumentation
               base.class_eval do
+                class << self
+                  include Contrib::Instrumentation
+                  extend Contrib::Instrumentation
+                  prepend Contrib::Instrumentation
+                end
+                #include Contrib::Instrumentation
+
                 include Contrib::Instrumentation
+                extend Contrib::Instrumentation
+                prepend Contrib::Instrumentation
+
+                def self.prepended(base)
+                  super
+                end
+
+                def self.extended(base)
+                  super
+                end
+
+                def self.included(base)
+                  super
+                end
 
                 def render_with_datadog(*args, &block)
                   # NOTE: This check exists purely for Rails 3.0 compatibility.
