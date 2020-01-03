@@ -13,19 +13,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:action_cable)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:action_cable) do
-            begin
-              Events.subscribe!
-              ::ActionCable::Connection::Base.prepend(Instrumentation::ActionCableConnection)
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply ActionCable integration: #{e}")
-            end
-          end
+          Events.subscribe!
+          ::ActionCable::Connection::Base.prepend(Instrumentation::ActionCableConnection)
         end
       end
     end
