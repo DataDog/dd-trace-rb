@@ -23,7 +23,8 @@ module Datadog
           settings_class = new_settings_class(&block)
 
           option(name) do |o|
-            o.default settings_class.new
+            o.default -> { settings_class.new }
+            o.lazy
             o.resetter do |value|
               value.reset! if value.respond_to?(:reset!)
               value
