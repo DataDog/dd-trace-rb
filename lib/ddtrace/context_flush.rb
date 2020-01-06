@@ -8,7 +8,7 @@ module Datadog
       # Any traces consumed are removed from +context+ as a side effect.
       #
       # @return [Array<Span>] trace to be flushed, or +nil+ if the trace is not finished
-      def consume(context)
+      def consume!(context)
         trace, sampled = context.get
         trace if sampled
       end
@@ -33,7 +33,7 @@ module Datadog
       # Any spans consumed are removed from +context+ as a side effect.
       #
       # @return [Array<Span>] partial or complete trace to be flushed, or +nil+ if no spans are finished
-      def consume(context)
+      def consume!(context)
         trace, sampled = context.get
 
         return nil unless sampled

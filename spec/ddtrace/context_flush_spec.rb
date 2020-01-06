@@ -32,7 +32,7 @@ RSpec.describe Datadog::ContextFlush::Finished do
   subject(:context_flush) { described_class.new }
 
   describe '#consume' do
-    subject(:consume) { context_flush.consume(context) }
+    subject(:consume) { context_flush.consume!(context) }
 
     include_context 'trace context'
     it_behaves_like 'a context flusher'
@@ -44,7 +44,7 @@ RSpec.describe Datadog::ContextFlush::Partial do
   let(:min_spans_for_partial) { 2 }
 
   describe '#consume' do
-    subject(:consume) { context_flush.consume(context) }
+    subject(:consume) { context_flush.consume!(context) }
 
     include_context 'trace context'
     it_behaves_like 'a context flusher'

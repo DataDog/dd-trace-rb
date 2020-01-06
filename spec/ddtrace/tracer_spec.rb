@@ -178,7 +178,7 @@ RSpec.describe Datadog::Tracer do
 
       before do
         expect_any_instance_of(Datadog::ContextFlush::Finished)
-          .to receive(:consume).with(context).and_return(trace)
+          .to receive(:consume!).with(context).and_return(trace)
 
         subject
       end
