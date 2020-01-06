@@ -50,7 +50,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
       expect(span.get_tag('active_record.db.name')).to eq('mysql')
       expect(span.get_tag('active_record.db.cached')).to eq(nil)
       expect(span.get_tag('out.host')).to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
-      expect(span.get_tag('out.port')).to eq(ENV.fetch('TEST_MYSQL_PORT', 3306).to_s)
+      expect(span.get_tag('out.port')).to eq(ENV.fetch('TEST_MYSQL_PORT', 3306).to_f)
       expect(span.get_tag('sql.query')).to eq(nil)
     end
 

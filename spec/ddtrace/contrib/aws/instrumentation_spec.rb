@@ -54,7 +54,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('path')).to eq('/')
         expect(span.get_tag('host')).to eq('s3.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('GET')
-        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('http.status_code')).to eq(200)
       end
 
       it 'returns the correct response' do

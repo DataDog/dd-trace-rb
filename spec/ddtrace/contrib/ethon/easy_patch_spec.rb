@@ -112,7 +112,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'has tag with status code' do
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('500')
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(500)
       end
 
       it 'has error set' do
@@ -127,7 +127,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'has tag with status code' do
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('404')
+        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(404)
       end
 
       it 'has no error set' do

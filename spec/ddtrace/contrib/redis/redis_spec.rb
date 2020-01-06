@@ -62,8 +62,8 @@ RSpec.describe 'Redis test' do
       it do
         expect(span).to_not be nil
         expect(span.get_tag('out.host')).to eq(host)
-        expect(span.get_tag('out.port')).to eq(port.to_s)
-        expect(span.get_tag('out.redis_db')).to eq('0')
+        expect(span.get_tag('out.port')).to eq(port)
+        expect(span.get_tag('out.redis_db')).to eq(0)
       end
 
       it_behaves_like 'analytics for integration' do

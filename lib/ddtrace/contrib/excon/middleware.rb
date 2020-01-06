@@ -30,7 +30,7 @@ module Datadog
               end
             end
           rescue StandardError => e
-            Datadog::Tracer.log.debug(e.message)
+            Datadog::Logger.log.debug(e.message)
           end
 
           @stack.request_call(datum)
@@ -116,7 +116,7 @@ module Datadog
           span.set_tag(Datadog::Ext::HTTP::URL, datum[:path])
           span.set_tag(Datadog::Ext::HTTP::METHOD, datum[:method].to_s.upcase)
           span.set_tag(Datadog::Ext::NET::TARGET_HOST, datum[:host])
-          span.set_tag(Datadog::Ext::NET::TARGET_PORT, datum[:port].to_s)
+          span.set_tag(Datadog::Ext::NET::TARGET_PORT, datum[:port])
         end
 
         def handle_response(datum)
@@ -137,7 +137,7 @@ module Datadog
             end
           end
         rescue StandardError => e
-          Datadog::Tracer.log.debug(e.message)
+          Datadog::Logger.log.debug(e.message)
         end
 
         def propagate!(span, datum)

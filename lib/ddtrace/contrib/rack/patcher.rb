@@ -38,7 +38,7 @@ module Datadog
           # context of middleware patching outside a Rails server process (eg. a
           # process that doesn't serve HTTP requests but has Rails environment
           # loaded such as a Resque master process)
-          Tracer.log.debug("Error patching middleware stack: #{e}")
+          Logger.log.debug("Error patching middleware stack: #{e}")
         end
 
         def retain_middleware_name(middleware)
@@ -90,7 +90,7 @@ module Datadog
             if get_option(:application)
               MiddlewareNamePatcher.patch
             else
-              Datadog::Tracer.log.warn(%(
+              Datadog::Logger.log.warn(%(
               Rack :middleware_names requires you to also pass :application.
               Middleware names have NOT been patched; please provide :application.
               e.g. use: :rack, middleware_names: true, application: my_rack_app).freeze)
