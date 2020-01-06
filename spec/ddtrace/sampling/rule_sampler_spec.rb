@@ -23,13 +23,19 @@ RSpec.describe Datadog::Sampling::RuleSampler do
   context '#initialize' do
     subject(:rule_sampler) { described_class.new(rules) }
 
-    it { expect(subject.rate_limiter).to be_a(Datadog::Sampling::UnlimitedLimiter) }
+    it { expect(subject.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
     it { expect(subject.default_sampler).to be_a(Datadog::AllSampler) }
 
     context 'with rate_limit' do
       subject(:rule_sampler) { described_class.new(rules, rate_limit: 1.0) }
 
       it { expect(subject.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
+    end
+
+    context 'with nil rate_limit' do
+      subject(:rule_sampler) { described_class.new(rules, rate_limit: nil) }
+
+      it { expect(subject.rate_limiter).to be_a(Datadog::Sampling::UnlimitedLimiter) }
     end
 
     context 'with default_sample_rate' do
