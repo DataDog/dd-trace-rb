@@ -54,6 +54,7 @@ namespace :spec do
   end
 
   [
+    :action_cable,
     :action_pack,
     :action_view,
     :active_model_serializers,
@@ -519,8 +520,10 @@ task :ci do
       sh 'bundle exec appraisal rails6-postgres-sidekiq rake spec:railsactivejob'
       sh 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
       # Rails specs
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails6-postgres rake spec:rails'
     end
@@ -581,8 +584,10 @@ task :ci do
       sh 'bundle exec appraisal rails6-postgres-sidekiq rake spec:railsactivejob'
       sh 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
       # Rails specs
+      sh 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
+      sh 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
       sh 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails6-postgres rake spec:rails'
     end
