@@ -6,6 +6,44 @@ require 'ddtrace/configuration/settings'
 RSpec.describe Datadog::Configuration::Settings do
   subject(:settings) { described_class.new }
 
+  describe '#sampling' do
+    describe '#rate_limit' do
+      subject(:rate_limit) { settings.sampling.rate_limit }
+
+      context 'default' do
+        it { is_expected.to be 100 }
+      end
+
+      context 'when ENV is provided' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(20.0) }
+      end
+    end
+
+    describe '#default_rate' do
+      subject(:default_rate) { settings.sampling.default_rate }
+
+      context 'default' do
+        it { is_expected.to be nil }
+      end
+
+      context 'when ENV is provided' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Sampling::ENV_SAMPLE_RATE => '0.5') do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(0.5) }
+      end
+    end
+  end
+
   describe '#tracer' do
     let(:tracer) { Datadog::Tracer.new }
     let(:debug_state) { Datadog::Logger.debug_logging }

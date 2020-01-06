@@ -3,6 +3,7 @@ require 'ddtrace/configuration/base'
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/runtime'
+require 'ddtrace/ext/sampling'
 
 require 'ddtrace/tracer'
 require 'ddtrace/metrics'
@@ -52,6 +53,18 @@ module Datadog
                         [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
           end
 
+          o.lazy
+        end
+      end
+
+      settings :sampling do
+        option :default_rate do |o|
+          o.default { env_to_float(Ext::Sampling::ENV_SAMPLE_RATE, nil) }
+          o.lazy
+        end
+
+        option :rate_limit do |o|
+          o.default { env_to_float(Ext::Sampling::ENV_RATE_LIMIT, 100) }
           o.lazy
         end
       end
