@@ -341,6 +341,7 @@ RSpec.describe 'net/http requests' do
         client.get(path)
       # rubocop:disable Lint/UselessAssignment
       rescue => e
+        nil
       end
     end
 
