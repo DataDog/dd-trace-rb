@@ -6,6 +6,19 @@ RSpec.describe Datadog::Tracer do
   let(:writer) { FauxWriter.new }
   subject(:tracer) { described_class.new(writer: writer) }
 
+  describe '#configure' do
+    subject!(:configure) { tracer.configure(options) }
+    let(:options) { {} }
+
+    it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Finished) }
+
+    context 'with partial flushing' do
+      let(:options) { { partial_flush: true } }
+
+      it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Partial) }
+    end
+  end
+
   describe '#trace' do
     let(:name) { 'span.name' }
     let(:options) { {} }
@@ -152,6 +165,37 @@ RSpec.describe Datadog::Tracer do
     it 'generates a single deprecation warnings' do
       expect(log_buffer.length).to be > 1
       expect(log_buffer).to contain_line_with('Usage of set_service_info has been deprecated')
+    end
+  end
+
+  describe '#record' do
+    subject(:record) { tracer.record(context) }
+
+    let(:context) { instance_double(Datadog::Context) }
+
+    context 'with trace' do
+      let(:trace) { [Datadog::Span.new(tracer, 'dummy')] }
+
+      before do
+        expect_any_instance_of(Datadog::ContextFlush::Finished)
+          .to receive(:consume!).with(context).and_return(trace)
+
+        subject
+      end
+
+      it { expect(writer.spans).to eq(trace) }
+    end
+
+    context 'with empty trace' do
+      let(:trace) { [] }
+
+      it { expect(writer.spans).to be_empty }
+    end
+
+    context 'with nil trace' do
+      let(:trace) { nil }
+
+      it { expect(writer.spans).to be_empty }
     end
   end
 end
