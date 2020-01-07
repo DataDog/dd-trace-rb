@@ -698,7 +698,8 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'typhoeus'
     end
   end
-elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
+elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
+      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
   if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
@@ -804,5 +805,113 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'typhoeus'
     end
   end
-end
+elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
+  if RUBY_PLATFORM != 'java'
+    appraise 'rails5-mysql2' do
+      gem 'rails', '~> 5.2.1'
+      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'sprockets', '< 4'
+    end
 
+    appraise 'rails5-postgres' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sprockets', '< 4'
+    end
+
+    appraise 'rails5-postgres-redis' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'redis-rails'
+      gem 'redis'
+      gem 'sprockets', '< 4'
+    end
+
+    appraise 'rails5-postgres-redis-activesupport' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'redis-rails'
+      gem 'redis'
+      gem 'sprockets', '< 4'
+    end
+
+    appraise 'rails5-postgres-sidekiq' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sidekiq'
+      gem 'activejob'
+      gem 'sprockets', '< 4'
+    end
+
+    appraise 'rails6-mysql2' do
+      gem 'rails', '~> 6.0.0'
+      gem 'mysql2', '< 0.6', platform: :ruby
+      gem 'sprockets', '< 4'
+    end
+
+    appraise 'rails6-postgres' do
+      gem 'rails', '~> 6.0.0'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sprockets', '< 4'
+    end
+
+    appraise 'rails6-postgres-redis' do
+      gem 'rails', '~> 6.0.0'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'redis-rails'
+      gem 'redis'
+      gem 'sprockets', '< 4'
+    end
+
+    appraise 'rails6-postgres-redis-activesupport' do
+      gem 'rails', '~> 6.0.0'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'redis-rails'
+      gem 'redis'
+      gem 'sprockets', '< 4'
+    end
+
+    appraise 'rails6-postgres-sidekiq' do
+      gem 'rails', '~> 6.0.0'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sidekiq'
+      gem 'activejob'
+      gem 'sprockets', '< 4'
+    end
+
+    appraise 'contrib' do
+      gem 'actionpack'
+      gem 'actionview'
+      gem 'active_model_serializers', '>= 0.10.0'
+      gem 'activerecord'
+      gem 'aws-sdk'
+      gem 'concurrent-ruby'
+      gem 'dalli'
+      gem 'delayed_job'
+      gem 'delayed_job_active_record'
+      gem 'elasticsearch-transport'
+      gem 'ethon'
+      gem 'excon'
+      gem 'grape'
+      gem 'graphql'
+      # gem 'grpc' # Pending 2.7 support: https://github.com/grpc/grpc/issues/21514
+      gem 'hiredis'
+      gem 'mongo', '>= 2.8.0'
+      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'racecar', '>= 0.3.5'
+      gem 'rack'
+      gem 'rack-test'
+      gem 'rake', '>= 12.3'
+      gem 'redis', '< 4.0'
+      gem 'rest-client'
+      gem 'resque', '< 2.0'
+      gem 'sequel'
+      gem 'shoryuken'
+      gem 'sidekiq'
+      gem 'sinatra'
+      gem 'sqlite3', '~> 1.4.1'
+      gem 'sucker_punch'
+      gem 'typhoeus'
+    end
+  end
+end
