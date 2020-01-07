@@ -347,12 +347,14 @@ RSpec.describe 'net/http requests' do
 
     let(:path) { '/my/path' }
 
-    context 'that raise a timeout exception' do
+    context 'that raises a timeout exception' do
+      let(:timeout_error) { Net::OpenTimeout.new }
+
       before(:each) { stub_request(:any, "#{uri}#{path}").to_timeout }
 
       let(:span) { spans.first }
 
-      it 'generates a well-formed trace with span tags available from request object', :focus do
+      it 'generates a well-formed trace with span tags available from request object' do
         expect(response).to eq(nil)
         expect(spans).to have(1).items
         expect(span.name).to eq('http.request')
@@ -362,6 +364,33 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.status).to eq(1)
+        expect(span.get_tag('error.type')).to eq(timeout_error.class.to_s)
+        expect(span.get_tag('error.msg')).to eq('execution expired')
+      end
+    end
+
+    context 'that raises an error' do
+      let(:custom_error_message) { 'example error' }
+      let(:custom_error) { StandardError.new(custom_error_message) }
+
+      before(:each) { stub_request(:any, "#{uri}#{path}").to_raise(custom_error) }
+
+      let(:span) { spans.first }
+
+      it 'generates a well-formed trace with span tags available from request object' do
+        expect(response).to eq(nil)
+        expect(spans).to have(1).items
+        expect(span.name).to eq('http.request')
+        expect(span.service).to eq('net/http')
+        expect(span.resource).to eq('GET')
+        expect(span.get_tag('http.url')).to eq(path)
+        expect(span.get_tag('http.method')).to eq('GET')
+        expect(span.get_tag('out.host')).to eq(host)
+        expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.status).to eq(1)
+        expect(span.get_tag('error.type')).to eq(custom_error.class.to_s)
+        expect(span.get_tag('error.msg')).to eq(custom_error_message)
       end
     end
   end
