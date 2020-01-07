@@ -334,4 +334,34 @@ RSpec.describe 'net/http requests' do
       end
     end
   end
+
+  describe 'request exceptions' do
+    subject(:response) do
+      begin
+        client.get(path)
+      # rubocop:disable Lint/UselessAssignment
+      rescue => e
+      end
+    end
+
+    let(:path) { '/my/path' }
+
+    context 'that raise a timeout exception' do
+      before(:each) { stub_request(:any, "#{uri}#{path}").to_timeout }
+
+      let(:span) { spans.first }
+
+      it 'generates a well-formed trace with span tags available from request object', :focus do
+        expect(response).to eq(nil)
+        expect(spans).to have(1).items
+        expect(span.name).to eq('http.request')
+        expect(span.service).to eq('net/http')
+        expect(span.resource).to eq('GET')
+        expect(span.get_tag('http.url')).to eq(path)
+        expect(span.get_tag('http.method')).to eq('GET')
+        expect(span.get_tag('out.host')).to eq(host)
+        expect(span.get_tag('out.port')).to eq(port.to_s)
+      end
+    end
+  end
 end

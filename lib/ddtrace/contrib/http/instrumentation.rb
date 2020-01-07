@@ -83,13 +83,15 @@ module Datadog
           end
 
           def annotate_span_with_res!(span, response)
+            return unless response && response.code
+
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
 
             case response.code.to_i
             when 400...599
               span.set_error(response)
             end
-          end          
+          end
 
           def datadog_pin
             @datadog_pin ||= begin
