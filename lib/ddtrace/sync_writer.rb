@@ -49,8 +49,9 @@ module Datadog
 
     def flush_trace(trace)
       processed_traces = Pipeline.process!([trace])
+      return if processed_traces.empty?
       inject_hostname!(processed_traces.first) if Datadog.configuration.report_hostname
-      transport.send(:traces, processed_traces)
+      transport.send_traces(processed_traces)
     end
 
     def inject_hostname!(trace)
