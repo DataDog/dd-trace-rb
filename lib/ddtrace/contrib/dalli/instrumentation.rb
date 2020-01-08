@@ -20,6 +20,36 @@ module Datadog
             { name: Datadog.configuration[:dalli, "#{hostname}:#{port}"] || Datadog.configuration[:dalli] }
           end
 
+          def request(*args, &block)
+            return super unless Datadog.tracer.enabled?
+
+            span = trace(name, service: service)
+            span.set_tag(Datadog::Ext::HTTP::BASE_URL, args.first)
+
+            super.tap do |ret|
+              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, ret)
+            end
+          rescue Exception => e
+            span.set_error(e)
+            raise e
+          ensure
+            span.finish
+          end
+
+          dd_instrument.decorate(:request) do
+            before do |span, args, block|
+              span.set_tag(Datadog::Ext::HTTP::BASE_URL, args.first)
+            end
+
+            after do |span, args, block, ret|
+              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, ret.code)
+            end
+
+            exception do |span, args, block, e|
+              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, e.code) if e.is_a?(::RestClient::ExceptionWithResponse)
+            end
+          end
+
           def request(op, *args)
             dd_instrumenter.with_configuration(my_configuration) do |instrument|
               instrument.trace(Datadog::Contrib::Dalli::Ext::SPAN_COMMAND) do |span|
