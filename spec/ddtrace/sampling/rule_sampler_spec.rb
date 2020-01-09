@@ -24,7 +24,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     subject(:rule_sampler) { described_class.new(rules) }
 
     it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
-    it { expect(rule_sampler.default_sampler).to be_a(Datadog::AllSampler) }
+    it { expect(rule_sampler.default_sampler).to be_a(Datadog::RateByServiceSampler) }
 
     context 'with rate_limit ENV' do
       before do
