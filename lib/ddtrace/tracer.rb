@@ -406,7 +406,7 @@ module Datadog
                  else
                    PrioritySampler.new(
                      base_sampler: base_sampler,
-                     post_sampler: Datadog::RateByServiceSampler.new(1.0, env: proc { tags[:env] })
+                     post_sampler: Sampling::RuleSampler.new
                    )
                  end
     end
