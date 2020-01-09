@@ -393,5 +393,23 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('error.msg')).to eq(custom_error_message)
       end
     end
+
+    context 'when configured with #after_request hook' do
+      before(:each) { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
+      after(:each) { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
+
+      context 'which defines each parameter' do
+        let(:callback) do
+          proc do |span, http, request, response|
+            expect(span).to be_a_kind_of(Datadog::Span)
+            expect(http).to be_a_kind_of(Net::HTTP)
+            expect(request).to be_a_kind_of(Net::HTTP::Get)
+            expect(response).to be nil
+          end
+        end
+
+        it { expect(response).to be nil }
+      end
+    end
   end
 end
