@@ -96,6 +96,7 @@ RSpec.describe 'net/http requests' do
               expect(span).to be_a_kind_of(Datadog::Span)
               expect(http).to be_a_kind_of(Net::HTTP)
               expect(request).to be_a_kind_of(Net::HTTP::Get)
+              expect(request).to be_a_kind_of(Net::HTTP::Get)
               expect(response).to be_a_kind_of(Net::HTTPNotFound)
             end
           end
@@ -336,26 +337,17 @@ RSpec.describe 'net/http requests' do
   end
 
   describe 'request exceptions' do
-    subject(:response) do
-      begin
-        client.get(path)
-      # rubocop:disable Lint/UselessAssignment
-      rescue => e
-        nil
-      end
-    end
-
+    subject(:response) { client.get(path) }
     let(:path) { '/my/path' }
 
-    context 'that raises a timeout exception' do
-      let(:timeout_error) { Net::OpenTimeout.new }
-
-      before(:each) { stub_request(:any, "#{uri}#{path}").to_timeout }
-
+    context 'that raises a timeout' do
+      let(:timeout_error) { Net::OpenTimeout.new('execution expired') }
       let(:span) { spans.first }
 
+      before(:each) { stub_request(:get, "#{uri}#{path}").to_raise(timeout_error) }
+
       it 'generates a well-formed trace with span tags available from request object' do
-        expect(response).to eq(nil)
+        expect { response }.to raise_error(timeout_error)
         expect(spans).to have(1).items
         expect(span.name).to eq('http.request')
         expect(span.service).to eq('net/http')
@@ -364,22 +356,21 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
-        expect(span.status).to eq(1)
-        expect(span.get_tag('error.type')).to eq(timeout_error.class.to_s)
-        expect(span.get_tag('error.msg')).to eq('execution expired')
+        expect(span).to have_error
+        expect(span).to have_error_type(timeout_error.class.to_s)
+        expect(span).to have_error_message(timeout_error.message)
       end
     end
 
     context 'that raises an error' do
       let(:custom_error_message) { 'example error' }
       let(:custom_error) { StandardError.new(custom_error_message) }
-
-      before(:each) { stub_request(:any, "#{uri}#{path}").to_raise(custom_error) }
-
       let(:span) { spans.first }
 
+      before(:each) { stub_request(:get, "#{uri}#{path}").to_raise(custom_error) }
+
       it 'generates a well-formed trace with span tags available from request object' do
-        expect(response).to eq(nil)
+        expect { response }.to raise_error(custom_error)
         expect(spans).to have(1).items
         expect(span.name).to eq('http.request')
         expect(span.service).to eq('net/http')
@@ -388,27 +379,9 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
-        expect(span.status).to eq(1)
-        expect(span.get_tag('error.type')).to eq(custom_error.class.to_s)
-        expect(span.get_tag('error.msg')).to eq(custom_error_message)
-      end
-    end
-
-    context 'when configured with #after_request hook' do
-      before(:each) { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
-      after(:each) { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
-
-      context 'which defines each parameter' do
-        let(:callback) do
-          proc do |span, http, request, response|
-            expect(span).to be_a_kind_of(Datadog::Span)
-            expect(http).to be_a_kind_of(Net::HTTP)
-            expect(request).to be_a_kind_of(Net::HTTP::Get)
-            expect(response).to be nil
-          end
-        end
-
-        it { expect(response).to be nil }
+        expect(span).to have_error
+        expect(span).to have_error_type(custom_error.class.to_s)
+        expect(span).to have_error_message(custom_error.message)
       end
     end
   end
