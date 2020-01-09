@@ -26,7 +26,7 @@ RSpec.describe Datadog::Transport::IO do
 
       before do
         expect(Datadog::Transport::IO::Client).to receive(:new)
-          .with(STDOUT, Datadog::Encoding::JSONEncoder)
+          .with(STDOUT, Datadog::Encoding::JSONEncoder::V2)
           .and_return(client)
       end
 

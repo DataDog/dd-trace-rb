@@ -370,8 +370,9 @@ RSpec.describe 'Tracer integration tests' do
         writer: writer
       )
 
-      # Verify Transport::HTTP is configured
+      # Verify Transport::IO is configured
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
+      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder::V2)
 
       # Verify sampling is configured properly
       expect(tracer.writer.priority_sampler).to_not be nil
@@ -406,7 +407,8 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport].client_error).to eq(0)
         expect(stats[:transport].server_error).to eq(0)
         expect(stats[:transport].internal_error).to eq(0)
-        expect(out).to have_received(:write).with(/"parent_id":0/)
+
+        expect(out).to have_received(:write)
       end
     end
   end
