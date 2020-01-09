@@ -41,7 +41,7 @@ module Datadog
 
             super.tap do |ret|
               # After method call
-              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, ret)
+              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, ret.code)
             end
           rescue Exception => e
             # On method error
@@ -90,16 +90,28 @@ module Datadog
             end
           end
 
+          def around
+            # you instrument and call yield
+
+            # if you didn't i'll do it
+          end
+
           # 👍
           dd_instrument.around(:request, Dalli::Ext::SPAN_COMMAND) do |span, args, block|
             span.set_tag(Datadog::Ext::HTTP::BASE_URL, args.first)
+            raise
 
             yield.tap do |ret|
               span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, ret.code)
+              raise
             end
           rescue ::RestClient::ExceptionWithResponse => e
             span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, e.code)
             raise e
+          end
+
+          Datadog.tracer.patch!('Dalli::request', Dalli::Ext::SPAN_COMMAND) do |dd_instrument, span, args, block|
+            # ...
           end
 
           # 👍
@@ -113,7 +125,13 @@ module Datadog
             span.set_tag(Datadog::Contrib::Dalli::Ext::TAG_COMMAND, cmd)
           end
 
-          def request(op, *args)
+          #
+          # 1. implement basic method instrumentation first (can we make it available to external parties?)
+          #       if they want to manually instrument their code
+          # 2. implement contrib instrumentation on top of the above (with configuration)
+          #
+
+          def request_(op, *args)
             dd_instrumenter.with_configuration(my_configuration) do |instrument|
               instrument.trace(Dalli::Ext::SPAN_COMMAND) do |span|
                 span.resource = op.to_s.upcase
