@@ -96,7 +96,6 @@ RSpec.describe 'net/http requests' do
               expect(span).to be_a_kind_of(Datadog::Span)
               expect(http).to be_a_kind_of(Net::HTTP)
               expect(request).to be_a_kind_of(Net::HTTP::Get)
-              expect(request).to be_a_kind_of(Net::HTTP::Get)
               expect(response).to be_a_kind_of(Net::HTTPNotFound)
             end
           end
