@@ -41,6 +41,12 @@ module Datadog
       Logger.log.debug(e)
     end
 
+    # Added for interface completeness
+    def stop
+      # No cleanup to do for the SyncWriter
+      true
+    end
+
     private
 
     def perform_concurrently(*tasks)
