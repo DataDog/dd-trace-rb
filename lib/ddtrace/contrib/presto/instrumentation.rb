@@ -19,32 +19,47 @@ module Datadog
           module InstanceMethods
             def run(query)
               datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
-                decorate!(span)
-                span.resource = query
-                span.span_type = Datadog::Ext::SQL::TYPE
-                span.set_tag(Ext::TAG_QUERY_ASYNC, false)
-                super(query)
+                begin
+                  decorate!(span)
+                  span.resource = query
+                  span.span_type = Datadog::Ext::SQL::TYPE
+                  span.set_tag(Ext::TAG_QUERY_ASYNC, false)
+                rescue StandardError => e
+                  Datadog::Logger.log.debug("error preparing span for presto: #{e}")
+                ensure
+                  super(query)
+                end
               end
             end
 
             def query(query, &blk)
               datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
-                decorate!(span)
-                span.resource = query
-                span.span_type = Datadog::Ext::SQL::TYPE
-                span.set_tag(Ext::TAG_QUERY_ASYNC, !blk.nil?)
-                super(query, &blk)
+                begin
+                  decorate!(span)
+                  span.resource = query
+                  span.span_type = Datadog::Ext::SQL::TYPE
+                  span.set_tag(Ext::TAG_QUERY_ASYNC, !blk.nil?)
+                rescue StandardError => e
+                  Datadog::Logger.log.debug("error preparing span for presto: #{e}")
+                ensure
+                  super(query, &blk)
+                end
               end
             end
 
             def kill(query_id)
               datadog_pin.tracer.trace(Ext::SPAN_KILL) do |span|
-                decorate!(span)
-                span.resource = Ext::SPAN_KILL
-                span.span_type = datadog_pin.app_type
-                # ^ not an SQL type span, since there's no SQL query
-                span.set_tag(Ext::TAG_QUERY_ID, query_id)
-                super(query_id)
+                begin
+                  decorate!(span)
+                  span.resource = Ext::SPAN_KILL
+                  span.span_type = datadog_pin.app_type
+                  # ^ not an SQL type span, since there's no SQL query
+                  span.set_tag(Ext::TAG_QUERY_ID, query_id)
+                rescue StandardError => e
+                  Datadog::Logger.log.debug("error preparing span for presto: #{e}")
+                ensure
+                  super(query_id)
+                end
               end
             end
 
@@ -70,6 +85,11 @@ module Datadog
               set_nilable_tag!(span, :language, Ext::TAG_LANGUAGE)
               set_nilable_tag!(span, :http_proxy, Ext::TAG_PROXY)
               set_nilable_tag!(span, :model_version, Ext::TAG_MODEL_VERSION)
+
+              # Set analytics sample rate
+              if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+                Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+              end
             end
 
             def set_nilable_tag!(span, key, tag_name)

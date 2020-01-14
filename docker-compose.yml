@@ -285,7 +285,7 @@ services:
     ports:
       - "${TEST_POSTGRES_PORT}:5432"
   presto:
-    image: starburstdata/presto:302-e.2 
+    image:  prestosql/presto
     expose:
       - "8080"
     ports:

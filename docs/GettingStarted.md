@@ -46,6 +46,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#nethttp)
+     - [Presto](#presto)
      - [Racecar](#racecar)
      - [Rack](#rack)
      - [Rails](#rails)
@@ -346,6 +347,7 @@ For a list of available integrations, and their configuration options, please re
 | MongoDB                  | `mongo`                    | `>= 2.0`                 | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
+| Presto                   | `presto`                   | `>= 0.5.14`              | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
 | Racecar                  | `racecar`                  | `>= 0.3.5`               | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
 | Rack                     | `rack`                     | `>= 1.4.7`               | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
 | Rails                    | `rails`                    | `>= 3.2`                 | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
@@ -994,6 +996,39 @@ If you wish to configure each connection object individually, you may use the `D
 client = Net::HTTP.new(host, port)
 Datadog.configure(client, options)
 ```
+
+### Presto
+
+The Presto integration traces any SQL command sent through `presto-client` gem.
+
+```ruby
+require 'presto-client'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :presto, options
+end
+
+client = Presto::Client.new(
+  server: "localhost:8880",
+  ssl: {verify: false},
+  catalog: "native",
+  schema: "default",
+  time_zone: "US/Pacific",
+  language: "English",
+  http_debug: true,
+)
+
+client.run("select * from system.nodes")
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `presto` instrumentation | `'presto'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### Racecar
 

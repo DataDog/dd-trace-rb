@@ -1,5 +1,4 @@
 require 'spec_helper'
-
 require 'ddtrace'
 require 'presto-client'
 
@@ -229,16 +228,19 @@ RSpec.describe 'Presto::Client instrumentation' do
         end
 
         it 'is an error' do
-          expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
-          expect(span.get_tag(Datadog::Ext::Errors::TYPE))
-            .to eq('Presto::Client::PrestoQueryError')
-          expect(span.get_tag(Datadog::Ext::Errors::MSG))
-            .to include("Column 'banana' cannot be resolved")
+          expect(span).to have_error
+          expect(span).to have_error_type('Presto::Client::PrestoQueryError')
+          expect(span).to have_error_message("Column 'banana' cannot be resolved")
+          # expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
+          # expect(span.get_tag(Datadog::Ext::Errors::TYPE))
+          #   .to eq()
+          # expect(span.get_tag(Datadog::Ext::Errors::MSG))
+          #   .to include("Column 'banana' cannot be resolved")
         end
       end
     end
 
-    describe '#query opertaion' do
+    describe '#query operation' do
       shared_examples_for 'a query trace' do
         it 'has a query resource' do
           expect(span.resource).to eq('SELECT 1')
