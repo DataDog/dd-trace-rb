@@ -100,6 +100,11 @@ RSpec.describe Datadog::SyncWriter do
     end
   end
 
+  describe '#stop' do
+    subject(:stop) { sync_writer.stop }
+    it { is_expected.to eq(true) }
+  end
+
   describe 'integration' do
     context 'when initializing a tracer' do
       subject(:tracer) { Datadog::Tracer.new(writer: sync_writer) }

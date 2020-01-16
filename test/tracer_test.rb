@@ -239,11 +239,9 @@ class TracerTest < Minitest::Test
     assert_equal(a.span_id, c.parent_id, 'a is the parent of c')
   end
 
-  # rubocop:disable Metrics/MethodLength
   def test_start_span_child_of_context
     tracer = get_test_tracer
 
-    mutex = Mutex.new
     hold = Mutex.new
 
     @thread_span = nil
@@ -251,20 +249,13 @@ class TracerTest < Minitest::Test
 
     hold.lock
     thread = Thread.new do
-      mutex.synchronize do
-        @thread_span = tracer.start_span('a')
-        @thread_ctx = @thread_span.context
-      end
+      @thread_span = tracer.start_span('a')
+      @thread_ctx = @thread_span.context
       hold.lock
       hold.unlock
     end
 
-    1000.times do
-      mutex.synchronize do
-        break unless @thread_ctx.nil? || @thread_span.nil?
-      end
-      sleep 0.01
-    end
+    try_wait_until { @thread_ctx && @thread_span }
 
     refute_equal(@thread_ctx, tracer.call_context, 'thread context is different')
 
