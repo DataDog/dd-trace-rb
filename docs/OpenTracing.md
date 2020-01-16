@@ -33,7 +33,6 @@
     - Activate Datadog integration instrumentation (see [Integration instrumentation](https://github.com/DataDog/dd-trace-rb/blob/master/docs/Integrations.md)
     - Add Datadog manual instrumentation around your code (see [Manual instrumentation](https://github.com/DataDog/dd-trace-rb/blob/master/README.md#manual-instrumentation)
 
-
 ## Configuring Datadog tracer settings
 
 The underlying Datadog tracer can be configured by passing options (which match `Datadog::Tracer`) when configuring the global tracer:
@@ -53,8 +52,8 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 
 ## Supported serialization formats
 
-| Type                           | Supported? | Additional information |
-| ------------------------------ | ---------- | ---------------------- |
-| `OpenTracing::FORMAT_TEXT_MAP` | Yes        |                        |
+| Type                           | Supported? | Additional information                                                                                                                                                                                                                                                                                         |
+|--------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `OpenTracing::FORMAT_TEXT_MAP` | Yes        |                                                                                                                                                                                                                                                                                                                |
 | `OpenTracing::FORMAT_RACK`     | Yes        | Because of the loss of resolution in the Rack format, please note that baggage items with names containing either upper case characters or `-` will be converted to lower case and `_` in a round-trip respectively. We recommend avoiding these characters or accommodating accordingly on the receiving end. |
-| `OpenTracing::FORMAT_BINARY`   | No         |                        |
+| `OpenTracing::FORMAT_BINARY`   | No         |                                                                                                                                                                                                                                                                                                                |
