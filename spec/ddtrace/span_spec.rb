@@ -108,9 +108,16 @@ RSpec.describe Datadog::Span do
       end
     end
 
-    context 'given a numeric tag' do
+    context 'given http.status_code' do
       let(:key) { 'http.status_code' }
       let(:value) { 200 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given a numeric tag' do
+      let(:key) { 'system.pid' }
+      let(:value) { 123 }
 
       context 'which is an integer' do
         context 'that exceeds the upper limit' do
