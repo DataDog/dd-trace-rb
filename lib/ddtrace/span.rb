@@ -86,6 +86,14 @@ module Datadog
       # Keys must be unique between tags and metrics
       @metrics.delete(key)
 
+      # Ensure `http.status_code` is always a string so it is added to
+      #   @meta instead of @metrics
+      # DEV: This is necessary because the agent looks to `meta['http.status_code']` for
+      #   tagging necessary metrics
+      if key == Ext::HTTP::STATUS_CODE
+        value = value.to_s
+      end
+
       # NOTE: Adding numeric tags as metrics is stop-gap support
       #       for numeric typed tags. Eventually they will become
       #       tags again.

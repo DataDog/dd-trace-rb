@@ -68,7 +68,7 @@ RSpec.shared_examples_for 'instrumented request' do
         before { request }
 
         it 'has tag with status code' do
-          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_f)
+          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
         end
 
         it 'has error set' do
@@ -88,7 +88,7 @@ RSpec.shared_examples_for 'instrumented request' do
         before { request }
 
         it 'has tag with status code' do
-          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_f)
+          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
         end
 
         it 'has no error set' do
