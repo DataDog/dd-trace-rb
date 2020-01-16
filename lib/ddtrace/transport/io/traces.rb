@@ -24,11 +24,19 @@ module Datadog
               encoded_data = request.parcel.encode_with(encoder)
 
               # Write to IO
-              bytes_written = out.write(encoded_data)
+              bytes_written = if block_given?
+                                yield(out, encoded_data)
+                              else
+                                write_trace_data(out, encoded_data)
+                              end
 
               # Generate response
               Traces::Response.new(bytes_written)
             end
+          end
+
+          def write_trace_data(out, data)
+            out.puts(data)
           end
         end
 

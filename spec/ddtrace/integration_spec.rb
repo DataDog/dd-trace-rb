@@ -380,7 +380,7 @@ RSpec.describe 'Tracer integration tests' do
       expect(tracer.sampler).to be(tracer.writer.priority_sampler)
 
       # Verify IO is written to
-      allow(out).to receive(:write)
+      allow(out).to receive(:puts)
 
       # Priority sampler does not receive updates because IO is one-way.
       expect(tracer.sampler).to_not receive(:update)
@@ -408,7 +408,7 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport].server_error).to eq(0)
         expect(stats[:transport].internal_error).to eq(0)
 
-        expect(out).to have_received(:write)
+        expect(out).to have_received(:puts)
       end
     end
   end
