@@ -18,7 +18,7 @@ RSpec.shared_examples_for 'span' do
   end
 
   it 'has tag with status code' do
-    expected_status = status ? status.to_f : nil
+    expected_status = status ? status.to_s : nil
     expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(expected_status)
   end
 
