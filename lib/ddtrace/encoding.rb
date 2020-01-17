@@ -62,7 +62,9 @@ module Datadog
             trace.map(&:to_hash).tap do |spans|
               # Convert IDs to hexadecimal
               spans.each do |span|
-                ENCODED_IDS.each { |id| span[id] = span[id].to_s(16) }
+                ENCODED_IDS.each do |id|
+                  span[id] = span[id].to_s(16) if span.key?(id)
+                end
               end
             end
           end
