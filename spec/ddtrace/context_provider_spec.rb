@@ -36,8 +36,8 @@ RSpec.describe Datadog::ThreadLocalContext do
         context = thread_local_context.local
 
         Thread.new do
-          expect { @thread_context = thread_local_context.local }.
-            to change { thread_contexts.size }.from(0).to(1)
+          expect { @thread_context = thread_local_context.local }
+            .to change { thread_contexts.size }.from(0).to(1)
 
           expect(@thread_context).to be_a Datadog::Context
         end.join
