@@ -8,10 +8,10 @@ module Datadog
         include Transport::Response
 
         attr_reader \
-          :bytes_written
+          :result
 
-        def initialize(bytes_written)
-          @bytes_written = bytes_written
+        def initialize(result)
+          @result = result
         end
 
         def ok?
