@@ -26,16 +26,16 @@ RSpec.describe Datadog::Transport::IO::Client do
       let(:parcel) { instance_double(Datadog::Transport::Parcel, data: data) }
       let(:data) { 'Hello, world!' }
       let(:encoded_data) { double('encoded data') }
-      let(:bytes_written) { data.bytesize }
+      let(:result) { double('IO result') }
 
       before do
-        expect(client.encoder).to receive(:encode)
-          .with(data)
+        expect(parcel).to receive(:encode_with)
+          .with(encoder)
           .and_return(encoded_data)
 
-        expect(client.out).to receive(:write)
+        expect(client.out).to receive(:puts)
           .with(encoded_data)
-          .and_return(bytes_written)
+          .and_return(result)
 
         expect(client).to receive(:update_stats_from_response!)
           .with(kind_of(Datadog::Transport::IO::Response))
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Transport::IO::Client do
 
       it do
         is_expected.to be_a_kind_of(Datadog::Transport::IO::Response)
-        expect(send_request.bytes_written).to eq(bytes_written)
+        expect(send_request.result).to eq(result)
       end
     end
 

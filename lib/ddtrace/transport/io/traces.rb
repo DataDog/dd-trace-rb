@@ -21,22 +21,18 @@ module Datadog
 
             send_request(req) do |out, request|
               # Encode trace data
-              encoded_data = request.parcel.encode_with(encoder)
+              data = encode_data(encoder, request)
 
               # Write to IO
-              bytes_written = if block_given?
-                                yield(out, encoded_data)
-                              else
-                                write_trace_data(out, encoded_data)
-                              end
+              result = if block_given?
+                         yield(out, data)
+                       else
+                         write_data(out, data)
+                       end
 
               # Generate response
-              Traces::Response.new(bytes_written)
+              Traces::Response.new(result)
             end
-          end
-
-          def write_trace_data(out, data)
-            out.puts(data)
           end
         end
 

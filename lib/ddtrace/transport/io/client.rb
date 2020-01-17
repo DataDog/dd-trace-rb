@@ -21,7 +21,11 @@ module Datadog
           # Write data to IO
           # If block is given, allow it to handle writing
           # Otherwise use default encoding.
-          response = block_given? ? yield(out, request) : send_default_request(out, request)
+          response = if block_given?
+                       yield(out, request)
+                     else
+                       send_default_request(out, request)
+                     end
 
           # Update statistics
           update_stats_from_response!(response)
@@ -44,17 +48,27 @@ module Datadog
           InternalErrorResponse.new(e)
         end
 
+        protected
+
+        def encode_data(encoder, request)
+          request.parcel.encode_with(encoder)
+        end
+
+        def write_data(out, data)
+          out.puts(data)
+        end
+
         private
 
         def send_default_request(out, request)
           # Encode data
-          encoded_data = encoder.encode(request.parcel.data)
+          data = encode_data(encoder, request)
 
           # Write to IO
-          bytes_written = out.write(encoded_data)
+          result = write_data(out, data)
 
           # Generate a response
-          IO::Response.new(bytes_written)
+          IO::Response.new(result)
         end
       end
     end
