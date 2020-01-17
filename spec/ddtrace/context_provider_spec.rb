@@ -11,6 +11,10 @@ RSpec.describe Datadog::ThreadLocalContext do
     end
   end
 
+  def thread_contexts
+    Thread.current.keys.select { |k| k.to_s.start_with?('datadog_context_') }
+  end
+
   describe '#local' do
     subject(:local) { thread_local_context.local }
 
@@ -32,7 +36,9 @@ RSpec.describe Datadog::ThreadLocalContext do
         context = thread_local_context.local
 
         Thread.new do
-          expect { @thread_context = thread_local_context.local }.to change { Thread.current.keys.size }.by(1)
+          expect { @thread_context = thread_local_context.local }.
+            to change { thread_contexts.size }.from(0).to(1)
+
           expect(@thread_context).to be_a Datadog::Context
         end.join
 
@@ -48,7 +54,7 @@ RSpec.describe Datadog::ThreadLocalContext do
     before { thread_local_context } # Force initialization
 
     it 'overrides thread-local variable' do
-      expect { subject }.to_not(change { Thread.current.keys.size })
+      expect { subject }.to_not(change { thread_contexts.size })
 
       expect(thread_local_context.local).to eq(context)
     end
