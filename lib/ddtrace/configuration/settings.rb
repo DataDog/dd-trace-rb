@@ -82,7 +82,8 @@ module Datadog
       end
 
       option :tracer do |o|
-        o.default Tracer.new
+        o.default { Tracer.new }
+        o.lazy
 
         # On reset, shut down the old tracer,
         # then instantiate a new one.
