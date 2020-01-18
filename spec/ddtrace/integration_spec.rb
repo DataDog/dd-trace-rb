@@ -461,4 +461,95 @@ RSpec.describe 'Tracer integration tests' do
       end
     end
   end
+
+  describe 'thread-local context' do
+    subject(:tracer) { new_tracer }
+
+    it 'clears context after tracer finishes' do
+      before = tracer.call_context
+
+      expect(before).to be_a(Datadog::Context)
+
+      span = tracer.trace('test')
+      during = tracer.call_context
+
+      expect(during).to be(before)
+      expect(during.trace_id).to_not be nil
+
+      span.finish
+      after = tracer.call_context
+
+      expect(after).to be(during)
+      expect(after.trace_id).to be nil
+    end
+
+    it 'reuses context for successive traces' do
+      span = tracer.trace('test1')
+      context1 = tracer.call_context
+      span.finish
+
+      expect(context1).to be_a(Datadog::Context)
+
+      span = tracer.trace('test2')
+      context2 = tracer.call_context
+      span.finish
+
+      expect(context2).to be(context1)
+    end
+
+    context 'with another tracer instance' do
+      let(:tracer2) { new_tracer }
+
+      it 'create one thread-local context per tracer' do
+        span = tracer.trace('test')
+        context = tracer.call_context
+
+        span2 = tracer2.trace('test2')
+        context2 = tracer2.call_context
+
+        span2.finish
+        span.finish
+
+        expect(context).to_not eq(context2)
+
+        expect(tracer.writer.spans[0].name).to eq('test')
+        expect(tracer2.writer.spans[0].name).to eq('test2')
+      end
+
+      context 'with another thread' do
+        it 'create one thread-local context per tracer per thread' do
+          span = tracer.trace('test')
+          context = tracer.call_context
+
+          span2 = tracer2.trace('test2')
+          context2 = tracer2.call_context
+
+          Thread.new do
+            thread_span = tracer.trace('thread_test')
+            @thread_context = tracer.call_context
+
+            thread_span2 = tracer2.trace('thread_test2')
+            @thread_context2 = tracer2.call_context
+
+            thread_span.finish
+            thread_span2.finish
+          end.join
+
+          span2.finish
+          span.finish
+
+          expect([context, context2, @thread_context, @thread_context2].uniq)
+            .to have(4).items
+
+          spans = tracer.writer.spans
+          expect(spans[0].name).to eq('test')
+          expect(spans[1].name).to eq('thread_test')
+
+          spans2 = tracer2.writer.spans
+          expect(spans2[0].name).to eq('test2')
+          expect(spans2[1].name).to eq('thread_test2')
+        end
+      end
+    end
+  end
 end
