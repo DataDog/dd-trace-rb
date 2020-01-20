@@ -131,7 +131,7 @@ RSpec.describe 'Tracer integration tests' do
       it { expect(@rate_limiter_rate).to eq(rate) }
     end
 
-    before(:each) do
+    let!(:trace) do
       tracer.trace('my.op') do |span|
         @sampling_priority = span.context.sampling_priority
         @rule_sample_rate = span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)
@@ -145,12 +145,24 @@ RSpec.describe 'Tracer integration tests' do
     let(:initialize_options) { { sampler: Datadog::PrioritySampler.new(post_sampler: rule_sampler) } }
 
     context 'with default settings' do
-      let(:rule_sampler) { Datadog::Sampling::RuleSampler.new }
+      let(:initialize_options) { {} }
 
       it_behaves_like 'flushed trace'
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
       it_behaves_like 'rule sampling rate metric', nil
       it_behaves_like 'rate limit metric', nil
+
+      context 'with default fallback RateByServiceSampler throttled to 0% sampling rate' do
+        let!(:trace) do
+          # Force configuration before span is traced
+          # DEV: Use MIN because 0.0 is "auto-corrected" to 1.0
+          tracer.sampler.update('service:,env:' => Float::MIN)
+
+          super()
+        end
+
+        it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
+      end
     end
 
     context 'with low default sample rate' do
