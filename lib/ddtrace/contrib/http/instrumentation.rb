@@ -36,7 +36,7 @@ module Datadog
               return super(req, body, &block)
             end
 
-            pin.tracer.trace(Ext::SPAN_REQUEST) do |span|
+            pin.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
               begin
                 span.service = pin.service
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
@@ -45,14 +45,17 @@ module Datadog
                 if pin.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(span.context, req)
                 end
+
+                # Add additional request specific tags to the span.
+                annotate_span_with_request!(span, req)
               rescue StandardError => e
                 Datadog::Logger.log.error("error preparing span for http request: #{e}")
               ensure
                 response = super(req, body, &block)
               end
 
-              # Add additional tags to the span.
-              annotate_span!(span, req, response)
+              # Add additional response specific tags to the span.
+              annotate_span_with_response!(span, response)
 
               # Invoke hook, if set.
               unless Contrib::HTTP::Instrumentation.after_request.nil?
@@ -63,10 +66,9 @@ module Datadog
             end
           end
 
-          def annotate_span!(span, request, response)
+          def annotate_span_with_request!(span, request)
             span.set_tag(Datadog::Ext::HTTP::URL, request.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, request.method)
-            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
 
             if request.respond_to?(:uri) && request.uri
               span.set_tag(Datadog::Ext::NET::TARGET_HOST, request.uri.host)
@@ -78,11 +80,21 @@ module Datadog
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+          end
+
+          def annotate_span_with_response!(span, response)
+            return unless response && response.code
+
+            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
 
             case response.code.to_i
             when 400...599
               span.set_error(response)
             end
+          end
+
+          def annotate_span_with_error!(span, error)
+            span.set_error(error)
           end
 
           def datadog_pin

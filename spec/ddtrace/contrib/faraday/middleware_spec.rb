@@ -15,6 +15,7 @@ RSpec.describe 'Faraday middleware' do
         stub.get('/success') { |_| [200, {}, 'OK'] }
         stub.post('/failure') { |_| [500, {}, 'Boom!'] }
         stub.get('/not_found') { |_| [404, {}, 'Not Found.'] }
+        stub.get('/error') { |_| raise ::Faraday::ConnectionFailed, 'Test error' }
       end
     end
   end
@@ -52,7 +53,7 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(200)
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
@@ -86,7 +87,7 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(200)
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
@@ -104,13 +105,33 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.resource).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/failure')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(500)
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('500')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Error 500')
       expect(request_span).to have_error_message('Boom!')
+    end
+  end
+
+  context 'with library error' do
+    subject(:response) { client.get('/error') }
+
+    it do
+      expect { response }.to raise_error(Faraday::ConnectionFailed)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
+      expect(request_span.resource).to eq('GET')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/error')
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to be nil
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
+      expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
+      expect(request_span).to have_error
+      expect(request_span).to have_error_type('Faraday::ConnectionFailed')
+      expect(request_span).to have_error_message(/Test error/)
     end
   end
 
