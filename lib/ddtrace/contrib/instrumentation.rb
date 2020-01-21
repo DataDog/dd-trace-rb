@@ -75,13 +75,13 @@ module Datadog
         # end
 
         if block_given?
-          tracer.trace(name, **span_options, **options, &block) do |span|
-            doit(span)
-          end
+          #tracer.trace(name, **span_options, **options, &block) do |span|
+          #  doit(span)
+          #end
         else
-          tracer.trace(name, **span_options, **options, &block).tap do |span|
-            doit(span)
-          end
+          #tracer.trace(name, **span_options, **options, &block).tap do |span|
+          #  doit(span)
+          #end
         end
       end
 

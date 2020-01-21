@@ -3,6 +3,8 @@ require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/dalli/ext'
 require 'ddtrace/contrib/dalli/quantize'
 
+return # TODO remove
+
 module Datadog
   module Contrib
     module Dalli

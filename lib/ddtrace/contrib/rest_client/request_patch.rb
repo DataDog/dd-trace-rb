@@ -3,6 +3,8 @@ require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/rest_client/ext'
 
+require_relative '../dalli/instrument' # TODO remove
+
 module Datadog
   module Contrib
     module RestClient
