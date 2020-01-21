@@ -33,6 +33,7 @@ module Datadog
   at_exit { Datadog.tracer.shutdown! }
 end
 
+require 'ddtrace/contrib/action_cable/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/active_model_serializers/integration'

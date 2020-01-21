@@ -20,7 +20,7 @@ module Datadog
         end
 
         def self.compatible?
-          super && version < Gem::Version.new('1.0.0')
+          super && version >= Gem::Version.new('0.14.0')
         end
 
         def default_configuration
