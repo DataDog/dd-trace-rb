@@ -1,22 +1,22 @@
 require 'grpc'
 
 module GRPCHelper
-  def run_request_reply(address = '0.0.0.0:50052', client = nil)
+  def run_request_reply(address = available_endpoint, client = nil)
     runner(address, client) { |c| c.basic(TestMessage.new) }
   end
 
-  def run_client_streamer(address = '0.0.0.0:50053', client = nil)
+  def run_client_streamer(address = available_endpoint, client = nil)
     runner(address, client) { |c| c.stream_from_client([TestMessage.new]) }
   end
 
-  def run_server_streamer(address = '0.0.0.0:50054', client = nil)
+  def run_server_streamer(address = available_endpoint, client = nil)
     runner(address, client) do |c|
       c.stream_from_server(TestMessage.new)
       sleep 0.05
     end
   end
 
-  def run_bidi_streamer(address = '0.0.0.0:50055', client = nil)
+  def run_bidi_streamer(address = available_endpoint, client = nil)
     runner(address, client) do |c|
       c.stream_both_ways([TestMessage.new])
       sleep 0.05

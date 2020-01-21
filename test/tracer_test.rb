@@ -177,12 +177,15 @@ class TracerTest < Minitest::Test
     assert_equal('special-service', span.service)
     assert_equal('extra-resource', span.resource)
     assert_equal('my-type', span.span_type)
-    assert_equal(6, span.meta.length)
+    # 2 tags from tracer, 2 for span, metrics for PID, and sampling priority,
+    # then optionally 1 from runtime metrics if enabled.
+    expected_length = Datadog.configuration.runtime_metrics_enabled ? 7 : 6
+    assert_equal(expected_length, span.meta.length + span.metrics.length)
     assert_equal('test', span.get_tag('env'))
     assert_equal('cool', span.get_tag('temp'))
     assert_equal('value1', span.get_tag('tag1'))
     assert_equal('value2', span.get_tag('tag2'))
-    assert_equal(true, span.meta.key?('system.pid')) # 5th key added because this is a root span
+    assert_equal(true, span.metrics.key?('system.pid')) # 5th key added because this is a root span
   end
 
   def test_start_span_all_args
@@ -236,11 +239,9 @@ class TracerTest < Minitest::Test
     assert_equal(a.span_id, c.parent_id, 'a is the parent of c')
   end
 
-  # rubocop:disable Metrics/MethodLength
   def test_start_span_child_of_context
     tracer = get_test_tracer
 
-    mutex = Mutex.new
     hold = Mutex.new
 
     @thread_span = nil
@@ -248,20 +249,13 @@ class TracerTest < Minitest::Test
 
     hold.lock
     thread = Thread.new do
-      mutex.synchronize do
-        @thread_span = tracer.start_span('a')
-        @thread_ctx = @thread_span.context
-      end
+      @thread_span = tracer.start_span('a')
+      @thread_ctx = @thread_span.context
       hold.lock
       hold.unlock
     end
 
-    1000.times do
-      mutex.synchronize do
-        break unless @thread_ctx.nil? || @thread_span.nil?
-      end
-      sleep 0.01
-    end
+    try_wait_until { @thread_ctx && @thread_span }
 
     refute_equal(@thread_ctx, tracer.call_context, 'thread context is different')
 
@@ -333,7 +327,7 @@ class TracerTest < Minitest::Test
   def test_root_span_has_pid_metadata
     tracer = get_test_tracer
     root = tracer.trace('something')
-    assert_equal(Process.pid.to_s, root.get_tag('system.pid'))
+    assert_equal(Process.pid.to_f, root.get_metric('system.pid'))
   end
 
   def test_child_span_has_no_pid_metadata

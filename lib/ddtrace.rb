@@ -26,8 +26,14 @@ module Datadog
   # Load and extend Contrib by default
   require 'ddtrace/contrib/extensions'
   extend Contrib::Extensions
+
+  # Add shutdown hook:
+  # Ensures the tracer has an opportunity to flush traces
+  # and cleanup before terminating the process.
+  at_exit { Datadog.tracer.shutdown! }
 end
 
+require 'ddtrace/contrib/action_cable/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/active_model_serializers/integration'

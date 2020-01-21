@@ -20,7 +20,7 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
   before(:each) do
     Datadog.configure do |c|
       c.use :sinatra, options
-      c.use :active_record
+      c.use :active_record, options
     end
   end
 
@@ -71,12 +71,12 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
         adapter: 'sqlite3',
         database: ':memory:'
       ).tap do |conn|
-        conn.connection.execute('SELECT 42')
+        conn.connection.execute("SELECT 'bootstrap query'")
       end
     end
 
-    let(:sinatra_span) { spans.first }
-    let(:sqlite_span) { spans.last }
+    let(:sinatra_span) { spans.find { |s| s.name == 'sinatra.request' } }
+    let(:sqlite_span) { spans.find { |s| s.parent_id != 0 } }
 
     let(:adapter_name) { Datadog::Contrib::ActiveRecord::Utils.adapter_name }
     let(:database_name) { Datadog::Contrib::ActiveRecord::Utils.database_name }

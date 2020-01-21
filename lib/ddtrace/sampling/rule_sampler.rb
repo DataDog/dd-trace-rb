@@ -19,15 +19,15 @@ module Datadog
       attr_reader :rules, :rate_limiter, :default_sampler
 
       # @param rules [Array<Rule>] ordered list of rules to be applied to a span
-      # @param rate_limit [Float] number of traces per second, defaults to 100
+      # @param rate_limit [Float] number of traces per second, defaults to +100+
       # @param rate_limiter [RateLimiter] limiter applied after rule matching
       # @param default_sample_rate [Float] fallback sample rate when no rules apply to a span,
       #   between +[0,1]+, defaults to +1+
       # @param default_sampler [Sample] fallback strategy when no rules apply to a span
       def initialize(rules = [],
-                     rate_limit: nil,
+                     rate_limit: Datadog.configuration.sampling.rate_limit,
                      rate_limiter: nil,
-                     default_sample_rate: nil,
+                     default_sample_rate: Datadog.configuration.sampling.default_rate,
                      default_sampler: nil)
 
         @rules = rules
@@ -53,7 +53,7 @@ module Datadog
                              # because it breaks its current contract to existing users.
                              Datadog::RateSampler.new.tap { |s| s.sample_rate = default_sample_rate }
                            else
-                             Datadog::AllSampler.new
+                             RateByServiceSampler.new(1.0, env: -> { Datadog.tracer.tags[:env] })
                            end
       end
 

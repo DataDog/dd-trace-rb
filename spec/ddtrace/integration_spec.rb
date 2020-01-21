@@ -131,7 +131,7 @@ RSpec.describe 'Tracer integration tests' do
       it { expect(@rate_limiter_rate).to eq(rate) }
     end
 
-    before(:each) do
+    let!(:trace) do
       tracer.trace('my.op') do |span|
         @sampling_priority = span.context.sampling_priority
         @rule_sample_rate = span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)
@@ -145,12 +145,24 @@ RSpec.describe 'Tracer integration tests' do
     let(:initialize_options) { { sampler: Datadog::PrioritySampler.new(post_sampler: rule_sampler) } }
 
     context 'with default settings' do
-      let(:rule_sampler) { Datadog::Sampling::RuleSampler.new }
+      let(:initialize_options) { {} }
 
       it_behaves_like 'flushed trace'
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
       it_behaves_like 'rule sampling rate metric', nil
       it_behaves_like 'rate limit metric', nil
+
+      context 'with default fallback RateByServiceSampler throttled to 0% sampling rate' do
+        let!(:trace) do
+          # Force configuration before span is traced
+          # DEV: Use MIN because 0.0 is "auto-corrected" to 1.0
+          tracer.sampler.update('service:,env:' => Float::MIN)
+
+          super()
+        end
+
+        it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
+      end
     end
 
     context 'with low default sample rate' do
@@ -204,32 +216,67 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
-  describe 'shutdown executes only once' do
+  describe 'shutdown' do
     include_context 'agent-based test'
 
-    before(:each) do
-      tracer.trace('my.short.op') do |span|
-        span.service = 'my.service'
+    context 'executes only once' do
+      subject!(:multiple_shutdown) do
+        tracer.trace('my.short.op') do |span|
+          span.service = 'my.service'
+        end
+
+        threads = Array.new(10) do
+          Thread.new { tracer.shutdown! }
+        end
+
+        threads.each(&:join)
       end
 
-      mutex = Mutex.new
-      @shutdown_results = []
+      let(:stats) { tracer.writer.stats }
 
-      threads = Array.new(10) do
-        Thread.new { mutex.synchronize { @shutdown_results << tracer.shutdown! } }
+      it { expect(stats[:services_flushed]).to be_nil }
+
+      it_behaves_like 'flushed trace'
+    end
+
+    context 'when sent TERM' do
+      subject(:terminated_process) do
+        # Initiate IO pipe
+        pipe
+
+        # Fork the process
+        fork_id = fork do
+          allow(Datadog.tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
+            m.call(*args).tap { write.write(graceful_signal) }
+          end
+
+          tracer.trace('my.short.op') do |span|
+            span.service = 'my.service'
+          end
+
+          sleep(1)
+        end
+
+        # Give the fork a chance to setup and sleep
+        sleep(0.2)
+
+        # Kill the process
+        write.close
+        Process.kill('TERM', fork_id) rescue nil
+
+        # Read and return any output
+        read.read.tap do
+          Process.waitpid(fork_id)
+        end
       end
 
-      threads.each(&:join)
+      let(:pipe) { IO.pipe }
+      let(:read) { pipe.first }
+      let(:write) { pipe.last }
+      let(:graceful_signal) { 'graceful' }
+
+      it { expect(terminated_process).to eq(graceful_signal) }
     end
-
-    let(:stats) { tracer.writer.stats }
-
-    it do
-      expect(@shutdown_results.count(true)).to eq(1)
-      expect(stats[:services_flushed]).to be_nil
-    end
-
-    it_behaves_like 'flushed trace'
   end
 
   describe 'sampling priority metrics' do
@@ -422,6 +469,97 @@ RSpec.describe 'Tracer integration tests' do
             expect(transport.current_api.adapter.port).to be port
             expect(transport.current_api.headers).to include(headers)
           end
+        end
+      end
+    end
+  end
+
+  describe 'thread-local context' do
+    subject(:tracer) { new_tracer }
+
+    it 'clears context after tracer finishes' do
+      before = tracer.call_context
+
+      expect(before).to be_a(Datadog::Context)
+
+      span = tracer.trace('test')
+      during = tracer.call_context
+
+      expect(during).to be(before)
+      expect(during.trace_id).to_not be nil
+
+      span.finish
+      after = tracer.call_context
+
+      expect(after).to be(during)
+      expect(after.trace_id).to be nil
+    end
+
+    it 'reuses context for successive traces' do
+      span = tracer.trace('test1')
+      context1 = tracer.call_context
+      span.finish
+
+      expect(context1).to be_a(Datadog::Context)
+
+      span = tracer.trace('test2')
+      context2 = tracer.call_context
+      span.finish
+
+      expect(context2).to be(context1)
+    end
+
+    context 'with another tracer instance' do
+      let(:tracer2) { new_tracer }
+
+      it 'create one thread-local context per tracer' do
+        span = tracer.trace('test')
+        context = tracer.call_context
+
+        span2 = tracer2.trace('test2')
+        context2 = tracer2.call_context
+
+        span2.finish
+        span.finish
+
+        expect(context).to_not eq(context2)
+
+        expect(tracer.writer.spans[0].name).to eq('test')
+        expect(tracer2.writer.spans[0].name).to eq('test2')
+      end
+
+      context 'with another thread' do
+        it 'create one thread-local context per tracer per thread' do
+          span = tracer.trace('test')
+          context = tracer.call_context
+
+          span2 = tracer2.trace('test2')
+          context2 = tracer2.call_context
+
+          Thread.new do
+            thread_span = tracer.trace('thread_test')
+            @thread_context = tracer.call_context
+
+            thread_span2 = tracer2.trace('thread_test2')
+            @thread_context2 = tracer2.call_context
+
+            thread_span.finish
+            thread_span2.finish
+          end.join
+
+          span2.finish
+          span.finish
+
+          expect([context, context2, @thread_context, @thread_context2].uniq)
+            .to have(4).items
+
+          spans = tracer.writer.spans
+          expect(spans[0].name).to eq('test')
+          expect(spans[1].name).to eq('thread_test')
+
+          spans2 = tracer2.writer.spans
+          expect(spans2[0].name).to eq('test2')
+          expect(spans2[1].name).to eq('thread_test2')
         end
       end
     end
