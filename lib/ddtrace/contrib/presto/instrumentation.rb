@@ -1,4 +1,3 @@
-require 'ddtrace/pin'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
@@ -18,7 +17,7 @@ module Datadog
           # Instance methods for Presto::Client
           module InstanceMethods
             def run(query)
-              datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
+              tracer.trace(Ext::SPAN_QUERY, span_options) do |span|
                 begin
                   decorate!(span)
                   span.resource = query
@@ -33,7 +32,7 @@ module Datadog
             end
 
             def query(query, &blk)
-              datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
+              tracer.trace(Ext::SPAN_QUERY, span_options) do |span|
                 begin
                   decorate!(span)
                   span.resource = query
@@ -48,11 +47,11 @@ module Datadog
             end
 
             def kill(query_id)
-              datadog_pin.tracer.trace(Ext::SPAN_KILL) do |span|
+              tracer.trace(Ext::SPAN_KILL, span_options) do |span|
                 begin
                   decorate!(span)
                   span.resource = Ext::SPAN_KILL
-                  span.span_type = datadog_pin.app_type
+                  span.span_type = Datadog::Ext::AppTypes::DB
                   # ^ not an SQL type span, since there's no SQL query
                   span.set_tag(Ext::TAG_QUERY_ID, query_id)
                 rescue StandardError => e
@@ -65,18 +64,23 @@ module Datadog
 
             private
 
-            def datadog_pin
-              @datadog_pin ||= Datadog::Pin.new(
-                Datadog.configuration[:presto][:service_name],
+            def datadog_configuration
+              Datadog.configuration[:presto]
+            end
+
+            def span_options
+              {
+                service: datadog_configuration[:service_name],
                 app: Ext::APP,
-                app_type: Datadog::Ext::AppTypes::DB,
-                tracer: Datadog.configuration[:presto][:tracer]
-              )
+                app_type: Datadog::Ext::AppTypes::DB
+              }
+            end
+
+            def tracer
+              datadog_configuration.tracer
             end
 
             def decorate!(span)
-              span.service = datadog_pin.service
-
               set_nilable_tag!(span, :server, Datadog::Ext::NET::TARGET_HOST)
               set_nilable_tag!(span, :user, Ext::TAG_USER_NAME)
               set_nilable_tag!(span, :schema, Ext::TAG_SCHEMA_NAME)

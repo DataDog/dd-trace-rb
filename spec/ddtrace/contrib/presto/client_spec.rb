@@ -231,11 +231,6 @@ RSpec.describe 'Presto::Client instrumentation' do
           expect(span).to have_error
           expect(span).to have_error_type('Presto::Client::PrestoQueryError')
           expect(span).to have_error_message("Column 'banana' cannot be resolved")
-          # expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
-          # expect(span.get_tag(Datadog::Ext::Errors::TYPE))
-          #   .to eq()
-          # expect(span.get_tag(Datadog::Ext::Errors::MSG))
-          #   .to include("Column 'banana' cannot be resolved")
         end
       end
     end
