@@ -5,8 +5,6 @@ require 'pathname'
 
 require 'ddtrace/span'
 require 'ddtrace/context'
-require 'ddtrace/context_flush'
-require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
@@ -21,7 +19,7 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
-    attr_reader :sampler, :tags, :provider
+    attr_reader :sampler, :tags, :provider, :context_flush
     attr_accessor :enabled, :writer
     attr_writer :default_service
 
@@ -78,7 +76,11 @@ module Datadog
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
-      @context_flush = options[:partial_flush] ? Datadog::ContextFlush.new(options) : nil
+      @context_flush = if options[:partial_flush]
+                         Datadog::ContextFlush::Partial.new(options)
+                       else
+                         Datadog::ContextFlush::Finished.new
+                       end
 
       @mutex = Mutex.new
       @tags = {}
@@ -93,6 +95,7 @@ module Datadog
     # * +enabled+: set if the tracer submits or not spans to the trace agent
     # * +hostname+: change the location of the trace agent
     # * +port+: change the port of the trace agent
+    # * +partial_flush+: enable partial trace flushing
     #
     # For instance, if the trace agent runs in a different location, just:
     #
@@ -103,18 +106,17 @@ module Datadog
 
       # Those are rare "power-user" options.
       sampler = options.fetch(:sampler, nil)
-      max_spans_before_partial_flush = options.fetch(:max_spans_before_partial_flush, nil)
-      min_spans_before_partial_flush = options.fetch(:min_spans_before_partial_flush, nil)
-      partial_flush_timeout = options.fetch(:partial_flush_timeout, nil)
 
       @enabled = enabled unless enabled.nil?
       @sampler = sampler unless sampler.nil?
 
       configure_writer(options)
 
-      @context_flush = Datadog::ContextFlush.new(options) unless min_spans_before_partial_flush.nil? &&
-                                                                 max_spans_before_partial_flush.nil? &&
-                                                                 partial_flush_timeout.nil?
+      @context_flush = if options[:partial_flush]
+                         Datadog::ContextFlush::Partial.new(options)
+                       else
+                         Datadog::ContextFlush::Finished.new
+                       end
     end
 
     # Set the information about the given service. A valid example is:
@@ -293,24 +295,20 @@ module Datadog
     def record(context)
       context = context.context if context.is_a?(Datadog::Span)
       return if context.nil?
-      trace, sampled = context.get
 
-      # If context flushing is configured...
-      if @context_flush
-        if sampled
-          if trace.nil? || trace.empty?
-            @context_flush.each_partial_trace(context) do |t|
-              write(t)
-            end
-          else
-            write(trace)
-          end
-        end
-      # Default behavior
-      else
-        ready = !trace.nil? && !trace.empty? && sampled
-        write(trace) if ready
-      end
+      record_context(context)
+    end
+
+    # Consume trace from +context+, according to +@context_flush+
+    # criteria.
+    #
+    # \ContextFlush#consume! can return nil or an empty list if the
+    # trace is not available to flush or if the trace has not been
+    # chosen to be sampled.
+    def record_context(context)
+      trace = @context_flush.consume!(context)
+
+      write(trace) if trace && !trace.empty?
     end
 
     # Return the current active span or +nil+.
@@ -408,7 +406,7 @@ module Datadog
                  else
                    PrioritySampler.new(
                      base_sampler: base_sampler,
-                     post_sampler: Datadog::RateByServiceSampler.new(1.0, env: proc { tags[:env] })
+                     post_sampler: Sampling::RuleSampler.new
                    )
                  end
     end
@@ -422,6 +420,7 @@ module Datadog
       :configure_writer,
       :deactivate_priority_sampling!,
       :guess_context_and_parent,
+      :record_context,
       :write
   end
 end

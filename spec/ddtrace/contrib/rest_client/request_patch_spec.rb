@@ -71,7 +71,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
           end
 
           it 'is http type' do
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
           end
 
           it 'has error set' do
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
           end
 
           it 'error is not set' do

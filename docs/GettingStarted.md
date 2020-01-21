@@ -26,6 +26,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Quickstart for OpenTracing](#quickstart-for-opentracing)
  - [Manual instrumentation](#manual-instrumentation)
  - [Integration instrumentation](#integration-instrumentation)
+     - [Action Cable](#action-cable)
      - [Action View](#action-view)
      - [Active Model Serializers](#active-model-serializers)
      - [Action Pack](#action-pack)
@@ -80,7 +81,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 | Type  | Documentation              | Version | Support type                         | Gem version support |
 | ----- | -------------------------- | -----   | ------------------------------------ | ------------------- |
-| MRI   | https://www.ruby-lang.org/ | 2.6     | Full                                 | Latest              |
+| MRI   | https://www.ruby-lang.org/ | 2.7     | Full                                 | Latest              |
+|       |                            | 2.6     | Full                                 | Latest              |
 |       |                            | 2.5     | Full                                 | Latest              |
 |       |                            | 2.4     | Full                                 | Latest              |
 |       |                            | 2.3     | Full                                 | Latest              |
@@ -324,6 +326,7 @@ For a list of available integrations, and their configuration options, please re
 
 | Name                     | Key                        | Versions Supported       | How to configure                    | Gem source                                                                     |
 | ------------------------ | -------------------------- | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------ |
+| Action Cable             | `action_cable`             | `>= 5.0`                 | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
 | Action View              | `action_view`              | `>= 3.2`                 | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Action Pack              | `action_pack`              | `>= 3.2`                 | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
@@ -355,6 +358,28 @@ For a list of available integrations, and their configuration options, please re
 | Sidekiq                  | `sidekiq`                  | `>= 3.5.4`               | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
 | Sinatra                  | `sinatra`                  | `>= 1.4.5`               | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
 | Sucker Punch             | `sucker_punch`             | `>= 2.0`                 | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
+
+### Action Cable
+
+The Action Cable integration traces broadcast messages and channel actions.
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :action_cable, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `action_cable` instrumentation | `'action_cable'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### Action View
 
@@ -808,6 +833,17 @@ The `use :graphql` method accepts the following parameters. Additional options c
 If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas with different service names), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
 
 ```ruby
+# Class-based schema
+class YourSchema < GraphQL::Schema
+  use(
+    GraphQL::Tracing::DataDogTracing,
+    service: 'graphql'
+  )
+end
+```
+
+```ruby
+# .define-style schema
 YourSchema = GraphQL::Schema.define do
   use(
     GraphQL::Tracing::DataDogTracing,
@@ -819,6 +855,15 @@ end
 Or you can modify an already defined schema:
 
 ```ruby
+# Class-based schema
+YourSchema.use(
+    GraphQL::Tracing::DataDogTracing,
+    service: 'graphql'
+)
+```
+
+```ruby
+# .define-style schema
 YourSchema.define do
   use(
     GraphQL::Tracing::DataDogTracing,
@@ -1105,7 +1150,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 |  2.2 - 2.3    |  3.0 - 5.2               |
 |  2.4          |  4.2.8 - 5.2             |
 |  2.5          |  4.2.8 - 6.0             |
-|  2.6          |  5.0 - 6.0               |
+|  2.6 - 2.7    |  5.0 - 6.0               |
 
 ### Rake
 
