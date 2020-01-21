@@ -23,9 +23,10 @@ RSpec.describe 'gRPC integration test' do
         c.service_name = 'awesome sauce'
       end
     end
+    let(:endpoint) { available_endpoint }
     let(:alternate_client) do
       GRPCHelper::TestService.rpc_stub_class.new(
-        '0.0.0.0:50051',
+        endpoint,
         :this_channel_is_insecure,
         interceptors: [configured_interceptor]
       )
@@ -36,7 +37,7 @@ RSpec.describe 'gRPC integration test' do
       span = spans.first
       expect(span.service).to eq 'rspec'
 
-      run_request_reply('0.0.0.0:50051', alternate_client)
+      run_request_reply(endpoint, alternate_client)
       span = configured_interceptor.datadog_pin.tracer.writer.spans.first
       expect(span.service).to eq 'awesome sauce'
     end

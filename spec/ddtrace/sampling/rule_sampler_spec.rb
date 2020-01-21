@@ -23,25 +23,43 @@ RSpec.describe Datadog::Sampling::RuleSampler do
   context '#initialize' do
     subject(:rule_sampler) { described_class.new(rules) }
 
-    it { expect(subject.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
-    it { expect(subject.default_sampler).to be_a(Datadog::AllSampler) }
+    it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
+    it { expect(rule_sampler.default_sampler).to be_a(Datadog::RateByServiceSampler) }
+
+    context 'with rate_limit ENV' do
+      before do
+        allow(Datadog.configuration.sampling).to receive(:rate_limit)
+          .and_return(20.0)
+      end
+
+      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
+    end
+
+    context 'with default_sample_rate ENV' do
+      before do
+        allow(Datadog.configuration.sampling).to receive(:default_rate)
+          .and_return(0.5)
+      end
+
+      it { expect(rule_sampler.default_sampler).to be_a(Datadog::RateSampler) }
+    end
 
     context 'with rate_limit' do
       subject(:rule_sampler) { described_class.new(rules, rate_limit: 1.0) }
 
-      it { expect(subject.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
+      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
     end
 
     context 'with nil rate_limit' do
       subject(:rule_sampler) { described_class.new(rules, rate_limit: nil) }
 
-      it { expect(subject.rate_limiter).to be_a(Datadog::Sampling::UnlimitedLimiter) }
+      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Sampling::UnlimitedLimiter) }
     end
 
     context 'with default_sample_rate' do
       subject(:rule_sampler) { described_class.new(rules, default_sample_rate: 1.0) }
 
-      it { expect(subject.default_sampler).to be_a(Datadog::RateSampler) }
+      it { expect(rule_sampler.default_sampler).to be_a(Datadog::RateSampler) }
     end
   end
 

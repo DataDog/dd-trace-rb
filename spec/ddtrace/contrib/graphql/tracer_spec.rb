@@ -4,7 +4,6 @@ require 'ddtrace/contrib/graphql/test_types'
 require 'ddtrace'
 RSpec.describe 'GraphQL patcher' do
   include ConfigurationHelpers
-  include_context 'GraphQL test schema'
 
   # GraphQL generates tons of warnings.
   # This suppresses those warnings.
@@ -14,14 +13,7 @@ RSpec.describe 'GraphQL patcher' do
     end
   end
 
-  let(:tracer) { get_test_tracer }
-
-  def pop_spans
-    tracer.writer.spans(:keep)
-  end
-
-  let(:all_spans) { pop_spans }
-  let(:root_span) { all_spans.find { |s| s.parent.nil? } }
+  let(:root_span) { spans.find { |s| s.parent.nil? } }
 
   RSpec.shared_examples 'Schema patcher' do
     before(:each) do
@@ -47,7 +39,7 @@ RSpec.describe 'GraphQL patcher' do
         expect(result.to_h['errors']).to be nil
 
         # Expect nine spans
-        expect(all_spans).to have(9).items
+        expect(spans).to have(9).items
 
         # List of valid resource names
         # (If this is too brittle, revist later.)
@@ -69,21 +61,21 @@ RSpec.describe 'GraphQL patcher' do
         #       See https://github.com/rmosolgo/graphql-ruby/pull/2154
 
         # Expect each span to be properly named
-        all_spans.each do |span|
+        spans.each do |span|
           expect(span.service).to eq('graphql-test')
-          expect(valid_resource_names).to include(span.resource.to_s)
+          expect(valid_resource_names).to include(span.resource)
         end
       end
     end
   end
 
-  context 'defined schema' do
-    let(:schema) { defined_schema }
+  context 'class-based schema' do
+    include_context 'GraphQL class-based schema'
     it_should_behave_like 'Schema patcher'
   end
 
-  context 'derived schema' do
-    let(:schema) { derived_schema }
+  context '.define-style schema' do
+    include_context 'GraphQL .define-style schema'
     it_should_behave_like 'Schema patcher'
   end
 end
