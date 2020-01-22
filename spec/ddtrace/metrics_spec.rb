@@ -2,7 +2,9 @@ require 'spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/metrics'
+
 require 'benchmark'
+require 'datadog/statsd'
 
 RSpec.describe Datadog::Metrics do
   include_context 'metrics'
@@ -155,6 +157,21 @@ RSpec.describe Datadog::Metrics do
     end
 
     it { is_expected.to be(statsd_client) }
+
+    context 'with Datadog::Statsd not loaded' do
+      before do
+        const = Datadog::Statsd
+        hide_const('Datadog::Statsd')
+
+        expect(metrics).to receive(:require).with('datadog/statsd') do
+          stub_const('Datadog::Statsd', const)
+        end
+      end
+
+      it 'loads Datadog::Statsd library' do
+        is_expected.to be(statsd_client)
+      end
+    end
   end
 
   describe '#configure' do
