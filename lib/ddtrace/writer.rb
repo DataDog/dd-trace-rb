@@ -4,6 +4,7 @@ require 'ddtrace/ext/net'
 require 'ddtrace/runtime/socket'
 
 require 'ddtrace/transport/http'
+require 'ddtrace/transport/io'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
 
