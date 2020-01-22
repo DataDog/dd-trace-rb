@@ -43,6 +43,36 @@ module Datadog
       def encode(obj)
         JSON.dump(obj)
       end
+
+      # New version of JSON Encoder that is API compliant.
+      module V2
+        extend JSONEncoder
+
+        ENCODED_IDS = [
+          :trace_id,
+          :span_id,
+          :parent_id
+        ].freeze
+
+        module_function
+
+        def encode_traces(traces)
+          trace_hashes = traces.collect do |trace|
+            # Convert each trace to hash
+            trace.map(&:to_hash).tap do |spans|
+              # Convert IDs to hexadecimal
+              spans.each do |span|
+                ENCODED_IDS.each do |id|
+                  span[id] = span[id].to_s(16) if span.key?(id)
+                end
+              end
+            end
+          end
+
+          # Wrap traces & encode them
+          encode(traces: trace_hashes)
+        end
+      end
     end
 
     # Encoder for the Msgpack format
