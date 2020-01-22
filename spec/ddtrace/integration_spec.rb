@@ -131,7 +131,7 @@ RSpec.describe 'Tracer integration tests' do
       it { expect(@rate_limiter_rate).to eq(rate) }
     end
 
-    before(:each) do
+    let!(:trace) do
       tracer.trace('my.op') do |span|
         @sampling_priority = span.context.sampling_priority
         @rule_sample_rate = span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)
@@ -145,12 +145,24 @@ RSpec.describe 'Tracer integration tests' do
     let(:initialize_options) { { sampler: Datadog::PrioritySampler.new(post_sampler: rule_sampler) } }
 
     context 'with default settings' do
-      let(:rule_sampler) { Datadog::Sampling::RuleSampler.new }
+      let(:initialize_options) { {} }
 
       it_behaves_like 'flushed trace'
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
       it_behaves_like 'rule sampling rate metric', nil
       it_behaves_like 'rate limit metric', nil
+
+      context 'with default fallback RateByServiceSampler throttled to 0% sampling rate' do
+        let!(:trace) do
+          # Force configuration before span is traced
+          # DEV: Use MIN because 0.0 is "auto-corrected" to 1.0
+          tracer.sampler.update('service:,env:' => Float::MIN)
+
+          super()
+        end
+
+        it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
+      end
     end
 
     context 'with low default sample rate' do
@@ -340,6 +352,63 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport].client_error).to eq(0)
         expect(stats[:transport].server_error).to eq(0)
         expect(stats[:transport].internal_error).to eq(0)
+      end
+    end
+  end
+
+  describe 'Transport::IO' do
+    include_context 'agent-based test'
+
+    let(:writer) { Datadog::Writer.new(transport: transport, priority_sampler: Datadog::PrioritySampler.new) }
+    let(:transport) { Datadog::Transport::IO.default(out: out) }
+    let(:out) { instance_double(IO) } # Dummy output so we don't pollute STDOUT
+
+    before(:each) do
+      tracer.configure(
+        enabled: true,
+        priority_sampling: true,
+        writer: writer
+      )
+
+      # Verify Transport::IO is configured
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
+      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder::V2)
+
+      # Verify sampling is configured properly
+      expect(tracer.writer.priority_sampler).to_not be nil
+      expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler)
+      expect(tracer.sampler).to be(tracer.writer.priority_sampler)
+
+      # Verify IO is written to
+      allow(out).to receive(:puts)
+
+      # Priority sampler does not receive updates because IO is one-way.
+      expect(tracer.sampler).to_not receive(:update)
+    end
+
+    # Reset the writer
+    after { tracer.configure(writer: Datadog::Writer.new) }
+
+    it do
+      3.times do |i|
+        parent_span = tracer.start_span('parent_span')
+        child_span = tracer.start_span('child_span', child_of: parent_span.context)
+
+        # I want to keep the trace to which `child_span` belongs
+        child_span.context.sampling_priority = i
+
+        child_span.finish
+        parent_span.finish
+
+        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+        stats = tracer.writer.stats
+
+        expect(stats[:traces_flushed]).to eq(1)
+        expect(stats[:transport].client_error).to eq(0)
+        expect(stats[:transport].server_error).to eq(0)
+        expect(stats[:transport].internal_error).to eq(0)
+
+        expect(out).to have_received(:puts)
       end
     end
   end

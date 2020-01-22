@@ -53,7 +53,7 @@ module Datadog
                              # because it breaks its current contract to existing users.
                              Datadog::RateSampler.new.tap { |s| s.sample_rate = default_sample_rate }
                            else
-                             Datadog::AllSampler.new
+                             RateByServiceSampler.new(1.0, env: -> { Datadog.tracer.tags[:env] })
                            end
       end
 

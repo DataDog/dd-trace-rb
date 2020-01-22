@@ -2,6 +2,43 @@
 
 ## [Unreleased]
 
+## [0.32.0] - 2020-01-22
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.32.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.31.1...v0.32.0
+
+### Added
+
+- New transport: Datadog::Transport::IO (#910)
+- Dual License (#893, #921)
+
+### Changed
+
+- Improved annotation of `net/http` spans during exception (#888, #907) (@djmb, @ericmustin)
+- RuleSampler is now the default sampler; no behavior changes by default (#917)
+
+### Refactored
+
+- Improved support for multiple tracer instances (#919)
+- Improvements to test suite (#909, #928, #929)
+
+## [0.31.1] - 2020-01-15
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.31.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...v0.31.1
+
+### Fixed
+
+- Implement SyncWriter#stop method (#914, #915) (@Yurokle)
+- Fix references to Datadog::Tracer.log (#912)
+- Ensure http.status_code tag is always a string (#927)
+
+### Refactored
+
+- Improvements to test suite & CI (#911, #918)
+
 ## [0.31.0] - 2020-01-07
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.31.0
@@ -1042,7 +1079,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...master
+[0.32.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.1...v0.32.0
+[0.31.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...v0.31.1
 [0.31.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.30.1...v0.31.0
 [0.30.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.30.0...v0.30.1
 [0.30.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.29.1...v0.30.0
