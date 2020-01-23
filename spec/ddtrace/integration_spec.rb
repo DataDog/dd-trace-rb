@@ -356,6 +356,63 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  describe 'Transport::IO' do
+    include_context 'agent-based test'
+
+    let(:writer) { Datadog::Writer.new(transport: transport, priority_sampler: Datadog::PrioritySampler.new) }
+    let(:transport) { Datadog::Transport::IO.default(out: out) }
+    let(:out) { instance_double(IO) } # Dummy output so we don't pollute STDOUT
+
+    before(:each) do
+      tracer.configure(
+        enabled: true,
+        priority_sampling: true,
+        writer: writer
+      )
+
+      # Verify Transport::IO is configured
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
+      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder::V2)
+
+      # Verify sampling is configured properly
+      expect(tracer.writer.priority_sampler).to_not be nil
+      expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler)
+      expect(tracer.sampler).to be(tracer.writer.priority_sampler)
+
+      # Verify IO is written to
+      allow(out).to receive(:puts)
+
+      # Priority sampler does not receive updates because IO is one-way.
+      expect(tracer.sampler).to_not receive(:update)
+    end
+
+    # Reset the writer
+    after { tracer.configure(writer: Datadog::Writer.new) }
+
+    it do
+      3.times do |i|
+        parent_span = tracer.start_span('parent_span')
+        child_span = tracer.start_span('child_span', child_of: parent_span.context)
+
+        # I want to keep the trace to which `child_span` belongs
+        child_span.context.sampling_priority = i
+
+        child_span.finish
+        parent_span.finish
+
+        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+        stats = tracer.writer.stats
+
+        expect(stats[:traces_flushed]).to eq(1)
+        expect(stats[:transport].client_error).to eq(0)
+        expect(stats[:transport].server_error).to eq(0)
+        expect(stats[:transport].internal_error).to eq(0)
+
+        expect(out).to have_received(:puts)
+      end
+    end
+  end
+
   describe 'Transport::HTTP' do
     include_context 'agent-based test'
 
