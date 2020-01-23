@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -76,6 +77,8 @@ RSpec.describe 'Mysql2::Client patcher' do
           let(:analytics_enabled_var) { Datadog::Contrib::Mysql2::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Contrib::Mysql2::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
+
+        it_behaves_like 'a peer service span'
       end
 
       context 'when a failed query is made' do

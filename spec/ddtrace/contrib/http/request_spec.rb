@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -63,6 +64,8 @@ RSpec.describe 'net/http requests' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::HTTP::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         before(:each) { response }
       end
+
+      it_behaves_like 'a peer service span'
     end
 
     context 'that returns 404' do
@@ -85,6 +88,8 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
         expect(span.get_tag('error.msg')).to be nil
       end
+
+      it_behaves_like 'a peer service span'
 
       context 'when configured with #after_request hook' do
         before(:each) { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
@@ -148,6 +153,8 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.status).to eq(0)
       end
+
+      it_behaves_like 'a peer service span'
     end
   end
 
@@ -178,6 +185,8 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.status).to eq(0)
       end
+
+      it_behaves_like 'a peer service span'
     end
   end
 
@@ -200,6 +209,8 @@ RSpec.describe 'net/http requests' do
         expect(span.name).to eq('http.request')
         expect(span.service).to eq(service_name)
       end
+
+      it_behaves_like 'a peer service span'
     end
   end
 

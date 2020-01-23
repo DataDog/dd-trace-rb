@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -90,6 +91,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             let(:analytics_enabled_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_ENABLED }
             let(:analytics_sample_rate_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
+
+          it_behaves_like 'a peer service span'
         end
 
         context 'response has internal server error status' do
@@ -187,6 +190,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             it 'has correct service name' do
               expect(span.service).to eq('rest_client')
             end
+
+            it_behaves_like 'a peer service span'
           end
         end
       end

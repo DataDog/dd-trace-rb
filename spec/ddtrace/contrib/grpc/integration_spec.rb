@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'spec_helper'
 require_relative 'support/grpc_helper'
 require 'ddtrace'

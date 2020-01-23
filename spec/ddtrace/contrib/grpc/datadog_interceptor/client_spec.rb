@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -46,10 +47,12 @@ RSpec.describe 'tracing on the client connection' do
       default_client_interceptor.request_response(keywords) {}
       span = tracer.writer.spans.first
       expect(span.service).to eq 'rspec'
+      expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('rspec')
 
       configured_client_interceptor.request_response(keywords) {}
       span = tracer.writer.spans.first
       expect(span.service).to eq 'cepsr'
+      expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('cepsr')
     end
   end
 
@@ -65,6 +68,8 @@ RSpec.describe 'tracing on the client connection' do
       let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
+
+    it_behaves_like 'a peer service span'
   end
 
   describe '#request_response' do

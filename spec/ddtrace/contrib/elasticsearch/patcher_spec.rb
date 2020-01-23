@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
+require 'ddtrace/contrib/integration_examples'
 
 require 'ddtrace'
 require 'elasticsearch-transport'
@@ -69,6 +70,8 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.span_type).to eq('elasticsearch') }
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
+
+      it_behaves_like 'a peer service span'
     end
 
     describe 'health request span' do
@@ -84,6 +87,8 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.span_type).to eq('elasticsearch') }
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
+
+      it_behaves_like 'a peer service span'
     end
   end
 
@@ -132,6 +137,8 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
         expect(span.get_tag('elasticsearch.body'))
           .to eq('{"field":"?","nested_object":{"value":"?"},"nested_array":["?"],"nested_object_array":[{"a":"?"},"?"]}')
       end
+
+      it_behaves_like 'a peer service span'
     end
   end
 end

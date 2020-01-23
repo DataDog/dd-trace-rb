@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'spec_helper'
 
 require 'time'
@@ -97,6 +98,14 @@ RSpec.describe 'Redis mini app test' do
         expect(redis_cmd2_span.service).to eq('redis')
         expect(redis_cmd2_span.parent_id).to eq(process_span.span_id)
         expect(redis_cmd2_span.trace_id).to eq(publish_span.trace_id)
+      end
+
+      it_behaves_like 'a peer service span' do
+        let(:span) { redis_cmd1_span }
+      end
+
+      it_behaves_like 'a peer service span' do
+        let(:span) { redis_cmd2_span }
       end
     end
   end

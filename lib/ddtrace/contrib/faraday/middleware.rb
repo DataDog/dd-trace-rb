@@ -1,5 +1,6 @@
 require 'faraday'
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/analytics'
@@ -34,6 +35,9 @@ module Datadog
           span.resource = resource_name(env)
           span.service = service_name(env)
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
+
+          # Tag as an external peer service
+          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
           # Set analytics sample rate
           if analytics_enabled?

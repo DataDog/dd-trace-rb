@@ -1,5 +1,6 @@
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/ext/integration'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/ethon/ext'
 
@@ -99,6 +100,9 @@ module Datadog
               method = @datadog_method.to_s
             end
             span.resource = method
+
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?

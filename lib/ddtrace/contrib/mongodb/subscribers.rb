@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/mongodb/ext'
 require 'ddtrace/contrib/mongodb/parsers'
+require 'ddtrace/ext/integration'
 
 module Datadog
   module Contrib
@@ -23,6 +24,9 @@ module Datadog
           # build a quantized Query using the Parser module
           query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
           serialized_query = query.to_s
+
+          # Tag as an external peer service
+          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
           # Set analytics sample rate
           if analytics_enabled?

@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/ethon/integration_context'
 
 RSpec.shared_examples_for 'span' do
@@ -37,6 +38,8 @@ RSpec.shared_examples_for 'span' do
   it 'has correct service name' do
     expect(span.service).to eq('ethon')
   end
+
+  it_behaves_like 'a peer service span'
 end
 
 RSpec.shared_examples_for 'instrumented request' do

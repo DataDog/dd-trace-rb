@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_support/notifications/event'
 require 'ddtrace/contrib/racecar/ext'
+require 'ddtrace/ext/integration'
 
 module Datadog
   module Contrib
@@ -36,6 +37,9 @@ module Datadog
           def process(span, event, _id, payload)
             span.service = configuration[:service_name]
             span.resource = payload[:consumer_class]
+
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

@@ -2,6 +2,7 @@ require 'uri'
 require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/contrib/analytics'
@@ -77,6 +78,9 @@ module Datadog
               span.set_tag(Datadog::Ext::NET::TARGET_HOST, @address)
               span.set_tag(Datadog::Ext::NET::TARGET_PORT, @port.to_s)
             end
+
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?

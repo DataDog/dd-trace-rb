@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/aws/ext'
+require 'ddtrace/ext/integration'
 
 module Datadog
   module Contrib
@@ -28,6 +29,9 @@ module Datadog
           span.span_type = Datadog::Ext::AppTypes::WEB
           span.name = Ext::SPAN_COMMAND
           span.resource = context.safely(:resource)
+
+          # Tag as an external peer service
+          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
