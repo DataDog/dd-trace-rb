@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/aws/ext'
+require 'ddtrace/ext/http'
 
 module Datadog
   module Contrib
@@ -28,6 +29,11 @@ module Datadog
           span.span_type = Datadog::Ext::AppTypes::WEB
           span.name = Ext::SPAN_COMMAND
           span.resource = context.safely(:resource)
+
+          # Set error on the span if the Response Status Code is in error range
+          if Datadog::Ext::HTTP::ERROR_RANGE.cover?(context.safely(:status_code))
+            span.set_error(context.safely(:http_response))
+          end
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

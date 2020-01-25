@@ -62,4 +62,17 @@ RSpec.describe 'AWS instrumentation' do
       end
     end
   end
+
+  context 'when the client runs and the API returns an error' do
+    before(:each) do
+      client.stub_responses(:list_buckets, status_code: 500,
+                                           body: 'error',
+                                           headers: {})
+    end
+
+    it 'generates an errored span' do
+      expect { client.list_buckets }.to raise_error
+      expect(span.status).to eq 1
+    end
+  end
 end
