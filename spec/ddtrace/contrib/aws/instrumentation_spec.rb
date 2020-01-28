@@ -44,7 +44,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
-        expect(span.status).to eq 0
+        expect(span).not_to have_error
         expect(span.service).to eq('aws')
         expect(span.span_type).to eq('web')
         expect(span.resource).to eq('s3.list_buckets')
@@ -73,7 +73,7 @@ RSpec.describe 'AWS instrumentation' do
 
     it 'generates an errored span' do
       expect { client.list_buckets }.to raise_error
-      expect(span.status).to eq 1
+      expect(span).to have_error
     end
   end
 end
