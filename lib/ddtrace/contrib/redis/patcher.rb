@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/redis/ext'
+require 'ddtrace/contrib/redis/configuration/resolver'
 
 module Datadog
   module Contrib
@@ -84,10 +85,16 @@ module Datadog
             private
 
             def datadog_configuration
-              Datadog.configuration[:redis, "#{host}:#{port}"] || Datadog.configuration[:redis]
+              @datadog_configuration ||= resolver.resolve
+            end
+
+            def resolver
+              @resolver ||= Datadog::Contrib::Redis::Configuration::Resolver.new(options)
             end
           end
         end
+        # rubocop:enable Metrics/MethodLength
+        # rubocop:enable Metrics/BlockLength
       end
     end
   end
