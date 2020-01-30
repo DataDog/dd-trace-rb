@@ -4,7 +4,6 @@ module Datadog
       module Configuration
         # Converts Symbols, Strings, and Hashes to a normalized connection settings Hash.
         class Resolver
-
           attr_reader :options
           # Redis::Client@options
           def initialize(options)
@@ -12,7 +11,12 @@ module Datadog
           end
 
           def resolve
-              possible_configurations.find { |conf| Datadog.configuration[:redis, conf] } || Datadog.configuration[:redis]
+            possible_configurations.each do |conf|
+              if Datadog.configuration[:redis, conf] != Datadog.configuration[:redis]
+                return Datadog.configuration[:redis, conf]
+              end
+            end
+            Datadog.configuration[:redis]
           end
 
           def possible_configurations

@@ -66,7 +66,7 @@ RSpec.describe 'Redis instrumentation test' do
     before do
       Datadog.configure do |c|
         c.use :redis, tracer: tracer, service_name: default_service_name
-        c.use :redis, describes: { host: test_host, port: test_port}, tracer: tracer, service_name: service_name
+        c.use :redis, describes: { host: test_host, port: test_port }, tracer: tracer, service_name: service_name
       end
     end
 
