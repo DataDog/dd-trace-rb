@@ -20,13 +20,18 @@ RSpec.describe 'Redis configuration resolver' do
 
       resolver = Datadog::Contrib::Redis::Configuration::Resolver.new(redis.options)
 
+      allow(resolver).to receive(:resolved_hosts).with('127.0.0.1').and_return(['127.0.0.1', 'localhost'])
       expect(resolver.possible_configurations).to match_array(
         [
           url,
           { host: '127.0.0.1', port: 6379, db: 0 },
           { host: '127.0.0.1', port: 6379 },
           { host: '127.0.0.1', db: 0 },
-          { host: '127.0.0.1' }
+          { host: '127.0.0.1' },
+          { host: 'localhost', port: 6379, db: 0 },
+          { host: 'localhost', port: 6379 },
+          { host: 'localhost', db: 0 },
+          { host: 'localhost' }
         ]
       )
     end
@@ -37,12 +42,17 @@ RSpec.describe 'Redis configuration resolver' do
 
       resolver = Datadog::Contrib::Redis::Configuration::Resolver.new(redis.options)
 
+      allow(resolver).to receive(:resolved_hosts).with('127.0.0.1').and_return(['127.0.0.1', 'localhost'])
       expect(resolver.possible_configurations).to match_array(
         [
           { host: '127.0.0.1', port: 6379, db: 0 },
           { host: '127.0.0.1', port: 6379 },
           { host: '127.0.0.1', db: 0 },
-          { host: '127.0.0.1' }
+          { host: '127.0.0.1' },
+          { host: 'localhost', port: 6379, db: 0 },
+          { host: 'localhost', port: 6379 },
+          { host: 'localhost', db: 0 },
+          { host: 'localhost' }
         ]
       )
     end
