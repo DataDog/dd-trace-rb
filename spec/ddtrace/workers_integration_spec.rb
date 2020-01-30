@@ -213,6 +213,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
       )
     end
 
+    # TODO tweak sleep interval
     let(:interval) { 10 }
 
     context 'which underruns the timeout' do

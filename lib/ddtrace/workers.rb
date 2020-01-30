@@ -114,11 +114,19 @@ module Datadog
 
           callback_runtime_metrics
 
+          time {
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty?
             @shutdown.wait(@mutex, @back_off) if @run # do not wait when shutting down
           end
+          }
         end
+      end
+
+      def time
+        before = Time.now
+        yield
+        puts Time.now - before
       end
     end
   end
