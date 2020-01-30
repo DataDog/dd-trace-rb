@@ -31,7 +31,8 @@ RSpec.describe 'Redis instrumentation test' do
   describe 'when multiplexed configuration is provided via url' do
     let(:default_service_name) { 'default-service' }
     let(:service_name) { 'multiplex-service' }
-    let(:redis_url) { "redis://#{test_host}:#{test_port}}" }
+    let(:redis_url) { "redis://#{test_host}:#{test_port}/0" }
+    let(:client) { Redis.new(url: redis_url) }
 
     before do
       Datadog.configure do |c|
