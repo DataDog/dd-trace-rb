@@ -19,16 +19,9 @@ RSpec.describe Datadog::Contrib::Configurable do
       end
 
       describe '#reset_configuration!' do
-        subject(:reset) { configurable_object.reset_configuration! }
-
-        context 'when a configuration has been added' do
-          before(:each) { configurable_object.configure(:foo, service_name: 'bar') }
-
-          it do
-            expect { reset }.to change { configurable_object.configurations.keys }
-              .from([:default, :foo])
-              .to([:default])
-          end
+        subject(:reset_configuration!) { configurable_object.reset_configuration! }
+        it do
+          expect { reset_configuration! }.to(change { configurable_object.configuration.object_id })
         end
       end
 
@@ -36,7 +29,7 @@ RSpec.describe Datadog::Contrib::Configurable do
         context 'when no name is provided' do
           subject(:configuration) { configurable_object.configuration }
           it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
-          it { is_expected.to be(configurable_object.configurations[:default]) }
+          it { expect(configuration.service_name).to be nil }
         end
 
         context 'when a name is provided' do
@@ -44,33 +37,14 @@ RSpec.describe Datadog::Contrib::Configurable do
           let(:name) { :foo }
 
           context 'and the configuration exists' do
-            before(:each) { configurable_object.configure(:foo, service_name: 'bar') }
+            before { configurable_object.configure(:foo, service_name: 'bar') }
             it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
-            it { is_expected.to be(configurable_object.configurations[:foo]) }
+            it { expect(configuration.service_name).to eq('bar') }
           end
 
           context 'but the configuration doesn\'t exist' do
             it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
-            it { is_expected.to be(configurable_object.configurations[:default]) }
-          end
-        end
-      end
-
-      describe '#configurations' do
-        subject(:configurations) { configurable_object.configurations }
-
-        context 'when nothing has been explicitly configured' do
-          it { is_expected.to include(default: a_kind_of(Datadog::Contrib::Configuration::Settings)) }
-        end
-
-        context 'when a configuration has been added' do
-          before(:each) { configurable_object.configure(:foo, service_name: 'bar') }
-
-          it do
-            is_expected.to include(
-              default: a_kind_of(Datadog::Contrib::Configuration::Settings),
-              foo: a_kind_of(Datadog::Contrib::Configuration::Settings)
-            )
+            it { expect(configuration.service_name).to be nil }
           end
         end
       end
@@ -81,20 +55,22 @@ RSpec.describe Datadog::Contrib::Configurable do
           let(:name) { :foo }
 
           context 'that matches an existing configuration' do
-            before(:each) { configurable_object.configure(name, service_name: 'baz') }
+            before { configurable_object.configure(name, service_name: 'baz') }
 
-            it do
+            it 'updates the configuration' do
               expect { configure }.to change { configurable_object.configuration(name).service_name }
                 .from('baz')
                 .to('bar')
+            end
+
+            it 'reuses the same configuration object' do
+              expect { configure }.to_not(change { configurable_object.configuration(name).object_id })
             end
           end
 
           context 'that does not match any configuration' do
             it do
-              expect { configure }.to change { configurable_object.configuration(name) }
-                .from(configurable_object.configurations[:default])
-                .to(a_kind_of(Datadog::Contrib::Configuration::Settings))
+              expect { configure }.to(change { configurable_object.configuration(name).object_id })
             end
           end
         end

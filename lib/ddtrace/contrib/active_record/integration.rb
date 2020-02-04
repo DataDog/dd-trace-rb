@@ -36,7 +36,7 @@ module Datadog
         end
 
         def resolver
-          @resolver ||= Configuration::Resolver.new
+          @resolver ||= Configuration::Resolver.new { default_configuration }
         end
       end
     end

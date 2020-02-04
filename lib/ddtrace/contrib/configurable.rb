@@ -16,42 +16,25 @@ module Datadog
         end
 
         def reset_configuration!
-          @configurations = nil
           @resolver = nil
         end
 
-        def configuration(key = :default)
-          configurations[resolve_configuration_key(key)]
+        def configuration(key = nil)
+          resolver.resolve(key)
         end
 
-        def configurations
-          @configurations ||= Hash.new { default_configuration }.tap do |configs|
-            configs[:default] = default_configuration
-          end
-        end
-
+        # Create or update configuration
         def configure(key, options = {}, &block)
-          key = resolver.resolve(key || :default)
-
-          configurations[key].tap do |settings|
+          config = resolver.match?(key) ? resolver.resolve(key) : resolver.add(key)
+          config.tap do |settings|
             settings.configure(options, &block)
-            configurations[key] = settings
           end
         end
 
         protected
 
-        attr_writer :resolver
-
         def resolver
-          @resolver ||= Configuration::Resolver.new
-        end
-
-        def resolve_configuration_key(key = :default)
-          key = :default if key.nil?
-          key = resolver.resolve(key)
-          key = :default unless configurations.key?(key)
-          key
+          @resolver ||= Configuration::Resolver.new { default_configuration }
         end
       end
     end
