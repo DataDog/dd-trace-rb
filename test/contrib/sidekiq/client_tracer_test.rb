@@ -24,7 +24,7 @@ class ClientTracerTest < TracerTestBase
     end
 
     Sidekiq::Testing.server_middleware.clear
-    Sidekiq::Extensions.enable_delay!
+    Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
   end
 
   def test_empty

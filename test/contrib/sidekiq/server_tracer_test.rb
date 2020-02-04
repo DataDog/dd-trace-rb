@@ -38,7 +38,7 @@ class ServerTracerTest < TracerTestBase
       chain.add(Datadog::Contrib::Sidekiq::ServerTracer,
                 tracer: @tracer, enabled: true)
     end
-    Sidekiq::Extensions.enable_delay!
+    Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
   end
 
   def test_empty
