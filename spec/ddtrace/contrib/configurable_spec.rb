@@ -70,7 +70,9 @@ RSpec.describe Datadog::Contrib::Configurable do
 
           context 'that does not match any configuration' do
             it do
-              expect { configure }.to(change { configurable_object.configuration(name).object_id })
+              expect { configure }.to change { configurable_object.configuration(name) }
+                .from(configurable_object.configurations[:default])
+                .to(a_kind_of(Datadog::Contrib::Configuration::Settings))
             end
           end
         end

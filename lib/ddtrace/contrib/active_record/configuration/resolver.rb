@@ -7,35 +7,31 @@ module Datadog
       module Configuration
         # Converts Symbols, Strings, and Hashes to a normalized connection settings Hash.
         class Resolver < Contrib::Configuration::Resolver
-          def initialize(active_record_configurations = nil, &block)
-            super(&block)
-            @active_record_configurations = active_record_configurations
+          def initialize(configurations = nil)
+            @configurations = configurations
+            @well_known_keys = {}
           end
 
           def resolve(key)
-            super(expand_key(key))
-          end
-
-          def add(key, config = nil)
-            super(expand_key(key), config)
-          end
-
-          def expand_key(key)
-            return :default if key == :default
+            return @well_known_keys[key] if @well_known_keys.key?(key)
             normalize(connection_resolver.resolve(key).symbolize_keys)
           end
 
-          def active_record_configurations
-            @active_record_configurations || ::ActiveRecord::Base.configurations
+          def add(key)
+            @well_known_keys[key] = resolve(key)
+          end
+
+          def configurations
+            @configurations || ::ActiveRecord::Base.configurations
           end
 
           def connection_resolver
             @resolver ||= begin
               if defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
-                ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(active_record_configurations)
+                ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(configurations)
               else
                 ::Datadog::Vendor::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(
-                  active_record_configurations
+                  configurations
                 )
               end
             end
