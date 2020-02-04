@@ -74,8 +74,41 @@ module Datadog
         end
       end
 
+      KUBERNETES_SERVICE_HOST = ENV['KUBERNETES_SERVICE_HOST']
+      KUBERNETES_PORT_443_TCP_PORT = ENV['KUBERNETES_PORT_443_TCP_PORT']
+
       def default_hostname
-        ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST, Datadog::Ext::Transport::HTTP::DEFAULT_HOST)
+        hostname_env = ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
+        return hostname_env if hostname_env && !hostname_env.empty?
+
+        begin
+          # DEV: WIP WIP WIP
+          STDERR.puts 'K8S hostname detection started'
+          kube_token = File.read('/var/run/secrets/kubernetes.io/serviceaccount/token')
+
+          timeout = 1
+          res = Net::HTTP.start(KUBERNETES_SERVICE_HOST,
+                                KUBERNETES_PORT_443_TCP_PORT,
+                                open_timeout: timeout,
+                                read_timeout: timeout) do |http|
+            request = Net::HTTP::Get.new '/api/v1/namespaces/default/pods/'
+            request['Authorization'] = "Bearer #{kube_token}"
+
+            http.request(request)
+          end
+
+          kubernetes_host = res.body
+          STDERR.puts 'K8S hostname detection finished:'
+          STDERR.pp kubernetes_host
+
+          return kubernetes_host
+        rescue => e
+          STDERR.puts 'K8S hostname detection failed with error:'
+          STDERR.puts e.message
+          STDERR.puts e.backtrace
+        end
+
+        Datadog::Ext::Transport::HTTP::DEFAULT_HOST
       end
 
       def default_port
