@@ -20,29 +20,35 @@ module Datadog
           @resolver = nil
         end
 
-        def configuration(key = nil)
-          configurations[config_key(key)]
+        # Get matching configuration for key.
+        # If no match, returns default configuration.
+        def configuration(key = :default)
+          configurations[configuration_key(key)]
+        end
+
+        # If the key has matching configuration explicitly defined for it,
+        # then return true. Otherwise return false.
+        def configuration_for?(key)
+          key = resolver.resolve(key) unless key == :default
+          configurations.key?(key)
         end
 
         def configurations
-          @configurations ||= Hash.new { default_configuration }.tap do |configs|
-            configs[:default] = default_configuration
-          end
+          @configurations ||= {
+            default: default_configuration
+          }
         end
 
-        # Create or update configuration
+        # Create or update configuration with provided settings.
         def configure(key, options = {}, &block)
-          resolved_key = if key == :default
-                           :default
-                         else
-                           resolver.add(key)
-                           resolver.resolve(key)
-                         end
+          key ||= :default
 
-          configurations[resolved_key].tap do |settings|
-            settings.configure(options, &block)
-            configurations[resolved_key] = settings
-          end
+          # Get or add the configuration
+          config = configuration_for?(key) ? configuration(key) : add_configuration(key)
+
+          # Apply the settings
+          config.configure(options, &block)
+          config
         end
 
         protected
@@ -51,8 +57,14 @@ module Datadog
           @resolver ||= Configuration::Resolver.new
         end
 
-        def config_key(key)
-          return key if key == :default
+        def add_configuration(key)
+          resolver.add(key)
+          config_key = resolver.resolve(key)
+          configurations[config_key] = default_configuration
+        end
+
+        def configuration_key(key)
+          return :default if key.nil? || key == :default
 
           key = resolver.resolve(key)
           key = :default unless configurations.key?(key)

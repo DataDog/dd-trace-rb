@@ -9,16 +9,10 @@ module Datadog
         class Resolver < Contrib::Configuration::Resolver
           def initialize(configurations = nil)
             @configurations = configurations
-            @well_known_keys = {}
           end
 
           def resolve(key)
-            return @well_known_keys[key] if @well_known_keys.key?(key)
             normalize(connection_resolver.resolve(key).symbolize_keys)
-          end
-
-          def add(key)
-            @well_known_keys[key] = resolve(key)
           end
 
           def configurations
@@ -30,9 +24,7 @@ module Datadog
               if defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
                 ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(configurations)
               else
-                ::Datadog::Vendor::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(
-                  configurations
-                )
+                ::Datadog::Vendor::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(configurations)
               end
             end
           end
