@@ -150,6 +150,7 @@ services:
       - mongodb
       - mysql
       - postgres
+      - presto
       - redis
     env_file: ./.env
     environment:
@@ -161,6 +162,8 @@ services:
       - TEST_MONGODB_HOST=mongodb
       - TEST_MYSQL_HOST=mysql
       - TEST_POSTGRES_HOST=postgres
+      - TEST_PRESTO_HOST=presto
+      - TEST_PRESTO_PORT=8080
       - TEST_REDIS_HOST=redis
     stdin_open: true
     tty: true
@@ -281,6 +284,12 @@ services:
       - "5432"
     ports:
       - "${TEST_POSTGRES_PORT}:5432"
+  presto:
+    image:  prestosql/presto
+    expose:
+      - "8080"
+    ports:
+      - "${TEST_PRESTO_PORT}:8080"
   redis:
     image: redis:3.0
     expose:

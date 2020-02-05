@@ -345,7 +345,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
-      gem 'rack', '< 2.1.0' # Remove when grape bug is fixed: https://github.com/ruby-grape/grape/issues/1966
+      gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
@@ -502,8 +502,9 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
-      gem 'rack', '< 2.1.0' # Remove when grape bug is fixed: https://github.com/ruby-grape/grape/issues/1966
+      gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
@@ -576,7 +577,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
-      gem 'rack', '< 2.1.0' # Remove when grape bug is fixed: https://github.com/ruby-grape/grape/issues/1966
+      gem 'rack'
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
@@ -683,7 +684,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'racecar', '>= 0.3.5'
-      gem 'rack', '< 2.1.0' # Remove when grape bug is fixed: https://github.com/ruby-grape/grape/issues/1966
+      gem 'rack'
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
@@ -789,8 +790,9 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
-      gem 'rack', '< 2.1.0' # Remove when grape bug is fixed: https://github.com/ruby-grape/grape/issues/1966
+      gem 'rack'
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
@@ -898,8 +900,9 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
-      gem 'rack', '< 2.1.0' # Remove when grape bug is fixed: https://github.com/ruby-grape/grape/issues/1966
+      gem 'rack'
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
