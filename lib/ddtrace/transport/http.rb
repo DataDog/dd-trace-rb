@@ -105,7 +105,7 @@ module Datadog
                                 verify_mode: OpenSSL::SSL::VERIFY_NONE,
                                 open_timeout: timeout,
                                 read_timeout: timeout) do |http|
-            request = Net::HTTP::Get.new "/api/v1/#{my_namespace}/default/pods/"
+            request = Net::HTTP::Get.new "/api/v1/namespaces/#{my_namespace}/pods/"
             request['Authorization'] = "Bearer #{kube_token}"
 
             http.request(request)
