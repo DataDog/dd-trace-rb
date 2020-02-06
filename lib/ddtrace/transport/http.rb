@@ -77,15 +77,26 @@ module Datadog
       KUBERNETES_SERVICE_HOST = ENV['KUBERNETES_SERVICE_HOST']
       KUBERNETES_PORT_443_TCP_PORT = ENV['KUBERNETES_PORT_443_TCP_PORT']
 
+      require 'benchmark'
+
+      # DEV: WIP WIP WIP
       # rubocop:disable Metrics/MethodLength
+      # rubocop:disable Metrics/AbcSize
       def default_hostname
         hostname_env = ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
         return hostname_env if hostname_env && !hostname_env.empty?
 
         begin
-          # DEV: WIP WIP WIP
           STDERR.puts 'K8S hostname detection started'
+
+          start_time = Time.now
+
           kube_token = File.read('/var/run/secrets/kubernetes.io/serviceaccount/token')
+          my_namespace = File.read('/var/run/secrets/kubernetes.io/serviceaccount/namespace')
+
+          STDERR.puts "K8S hostname detection file read time: #{Time.now - start_time}s"
+
+          start_time = Time.now
 
           timeout = 1
           res = Net::HTTP.start(KUBERNETES_SERVICE_HOST,
@@ -94,20 +105,23 @@ module Datadog
                                 verify_mode: OpenSSL::SSL::VERIFY_NONE,
                                 open_timeout: timeout,
                                 read_timeout: timeout) do |http|
-            request = Net::HTTP::Get.new '/api/v1/namespaces/default/pods/'
+            request = Net::HTTP::Get.new "/api/v1/#{my_namespace}/default/pods/"
             request['Authorization'] = "Bearer #{kube_token}"
 
             http.request(request)
           end
 
-          STDERR.puts 'K8S hostname detection finished:'
-          STDERR.puts res.body
+          STDERR.puts "K8S hostname detection API call time: #{Time.now - start_time}s"
 
           if res.code.to_i.between?(200, 299)
             body = JSON.parse(res.body)
+            STDERR.puts "K8S hostname detection payload size: #{body.size}"
+
             my_pod = body['items'].find { |x| x['metadata']['name'] == ENV['HOSTNAME'] }
             my_node_name = my_pod['spec']['nodeName']
+
             node_pods = body['items'].select { |x| x['spec']['nodeName'] == my_node_name }
+
             agent_pod = node_pods.find do |x|
               x['spec']['containers'].find do |y|
                 y['ports'] && y['ports'].find do |z|
@@ -115,8 +129,10 @@ module Datadog
                 end
               end
             end
+
             agent_pod_ip = agent_pod['status']['podIP']
-            STDERR.puts "AGENT_POD_ID: #{agent_pod_ip}"
+
+            STDERR.puts "K8S hostname detection started succeeded: #{agent_pod_ip}"
 
             return agent_pod_ip
           end
