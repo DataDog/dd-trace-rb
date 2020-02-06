@@ -114,9 +114,9 @@ module Datadog
           STDERR.puts "K8S hostname detection API call time: #{Time.now - start_time}s"
 
           if res.code.to_i.between?(200, 299)
-            STDERR.puts "K8S hostname detection payload size: #{res.body}"
+            STDERR.puts "K8S hostname detection payload size: #{res.body.size}"
 
-            body = JSON.parse(res.body.size)
+            body = JSON.parse(res.body)
 
             my_pod = body['items'].find { |x| x['metadata']['name'] == ENV['HOSTNAME'] }
             my_node_name = my_pod['spec']['nodeName']
