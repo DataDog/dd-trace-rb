@@ -37,7 +37,7 @@ RSpec.describe 'Redis instrumentation test' do
     before do
       Datadog.configure do |c|
         c.use :redis, tracer: tracer, service_name: default_service_name
-        c.use :redis, describes: redis_url, tracer: tracer, service_name: service_name
+        c.use :redis, describes: { url: redis_url }, tracer: tracer, service_name: service_name
       end
     end
 
@@ -63,6 +63,7 @@ RSpec.describe 'Redis instrumentation test' do
   describe 'when multiplexed configuration is provided via hash' do
     let(:default_service_name) { 'default-service' }
     let(:service_name) { 'multiplex-service' }
+    let(:client) { Redis.new(host: test_host, port: test_port) }
 
     before do
       Datadog.configure do |c|

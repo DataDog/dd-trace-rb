@@ -14,13 +14,7 @@ RSpec.describe 'Redis configuration resolver' do
     let(:options) { { url: 'unix://path/to/file' } }
 
     it do
-      expect(resolver.resolve(options)).to eq({
-        url: 'unix://path/to/file',
-        host: nil,
-        port: nil,
-        db: 0,
-        scheme: 'unix'
-      })
+      expect(resolver.resolve(options)).to eq(url: 'unix://path/to/file')
     end
   end
 
@@ -28,16 +22,12 @@ RSpec.describe 'Redis configuration resolver' do
     let(:options) { { url: 'redis://127.0.0.1:6379/0' } }
 
     it do
-      expect(resolver.resolve(options)).to eq({
-        url: 'redis://127.0.0.1:6379/0',
-        host: '127.0.0.1',
-        port: 6379,
-        db: 0,
-        scheme: 'redis'
-      })
+      expect(resolver.resolve(options)).to eq(host: '127.0.0.1',
+                                              port: 6379,
+                                              db: 0,
+                                              scheme: 'redis')
     end
   end
-
 
   context 'when host, port, db and scheme provided' do
     let(:options) do
@@ -47,17 +37,13 @@ RSpec.describe 'Redis configuration resolver' do
         db: 0,
         scheme: 'redis'
       }
-
     end
 
     it do
-      expect(resolver.resolve(options)).to eq({
-        url: nil,
-        host: '127.0.0.1',
-        port: 6379,
-        db: 0,
-        scheme: 'redis'
-      })
+      expect(resolver.resolve(options)).to eq(host: '127.0.0.1',
+                                              port: 6379,
+                                              db: 0,
+                                              scheme: 'redis')
     end
   end
 
@@ -68,17 +54,13 @@ RSpec.describe 'Redis configuration resolver' do
         port: 6379,
         db: 0
       }
-
     end
 
     it do
-      expect(resolver.resolve(options)).to eq({
-        url: nil,
-        host: '127.0.0.1',
-        port: 6379,
-        db: 0,
-        scheme: 'redis'
-      })
+      expect(resolver.resolve(options)).to eq(host: '127.0.0.1',
+                                              port: 6379,
+                                              db: 0,
+                                              scheme: 'redis')
     end
   end
 
@@ -88,17 +70,13 @@ RSpec.describe 'Redis configuration resolver' do
         host: '127.0.0.1',
         port: 6379
       }
-
     end
 
     it do
-      expect(resolver.resolve(options)).to eq({
-        url: nil,
-        host: '127.0.0.1',
-        port: 6379,
-        db: 0,
-        scheme: 'redis'
-      })
+      expect(resolver.resolve(options)).to eq(host: '127.0.0.1',
+                                              port: 6379,
+                                              db: 0,
+                                              scheme: 'redis')
     end
   end
 end

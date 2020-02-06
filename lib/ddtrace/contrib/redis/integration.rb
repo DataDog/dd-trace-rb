@@ -30,6 +30,10 @@ module Datadog
         def patcher
           Patcher
         end
+
+        def resolver
+          @resolver ||= Configuration::Resolver.new
+        end
       end
     end
   end

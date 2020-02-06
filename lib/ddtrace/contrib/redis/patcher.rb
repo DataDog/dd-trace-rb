@@ -85,11 +85,11 @@ module Datadog
             private
 
             def datadog_configuration
-              @datadog_configuration ||= resolver.resolve
+              @datadog_configuration ||= Datadog.configuration[:redis, resolver.resolve(options)]
             end
 
             def resolver
-              @resolver ||= Datadog::Contrib::Redis::Configuration::Resolver.new(options)
+              @resolver ||= Datadog::Contrib::Redis::Configuration::Resolver.new
             end
           end
         end
