@@ -99,11 +99,26 @@ module Datadog
             http.request(request)
           end
 
-          kubernetes_host = res.body
           STDERR.puts 'K8S hostname detection finished:'
-          STDERR.puts kubernetes_host
+          STDERR.puts res.body
 
-          return res.body if res.code.to_i.between?(200, 299)
+          if res.code.to_i.between?(200, 299)
+            body = JSON.parse(res.body)
+            this = body['items'].find { |x| x['metadata']['name'] == ENV['HOSTNAME'] }
+            node = this['spec']['nodeName']
+            node_pods = body['items'].select { |x| x['spec']['nodeName'] == node }
+            agent_pod = node_pods.find do |x|
+              x['spec']['containers'].find do |y|
+                y['ports'] && y['ports'].find do |z|
+                  z['name'] == 'traceport'
+                end
+              end
+            end
+            agent_pod_ip = agent_pod['status']['podIP']
+            STDERR.puts "AGENT_POD_ID: #{agent_pod_ip}"
+
+            return agent_pod_ip
+          end
         rescue => e
           STDERR.puts 'K8S hostname detection failed with error:'
           STDERR.puts e.message
