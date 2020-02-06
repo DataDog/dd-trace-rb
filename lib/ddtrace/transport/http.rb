@@ -103,7 +103,7 @@ module Datadog
           STDERR.puts 'K8S hostname detection finished:'
           STDERR.puts kubernetes_host
 
-          return res.body if res.code.between?(200, 299)
+          return res.body if res.code.to_i.between?(200, 299)
         rescue => e
           STDERR.puts 'K8S hostname detection failed with error:'
           STDERR.puts e.message
