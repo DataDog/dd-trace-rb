@@ -89,6 +89,8 @@ module Datadog
           timeout = 1
           res = Net::HTTP.start(KUBERNETES_SERVICE_HOST,
                                 KUBERNETES_PORT_443_TCP_PORT,
+                                use_ssl: true,
+                                verify_mode: OpenSSL::SSL::VERIFY_NONE,
                                 open_timeout: timeout,
                                 read_timeout: timeout) do |http|
             request = Net::HTTP::Get.new '/api/v1/namespaces/default/pods/'
@@ -99,9 +101,9 @@ module Datadog
 
           kubernetes_host = res.body
           STDERR.puts 'K8S hostname detection finished:'
-          STDERR.pp kubernetes_host
+          STDERR.puts kubernetes_host
 
-          return kubernetes_host
+          return res.body if res.code.between?(200, 299)
         rescue => e
           STDERR.puts 'K8S hostname detection failed with error:'
           STDERR.puts e.message
