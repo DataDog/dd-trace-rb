@@ -417,14 +417,7 @@ workflows:
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
           requires:
-            - test-2.0
-            - test-2.1
-            - test-2.2
-            - test-2.3
-            - test-2.4
-            - test-2.5
-            - test-2.6
-            - test-2.7
+            - build-2.5 # TODO revert this
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
