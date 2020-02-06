@@ -27,6 +27,10 @@ class ServerTracerTest < TracerTestBase
     def perform(); end
   end
 
+  class DelayableClass
+    def self.do_work; end
+  end
+
   def setup
     super
 
@@ -34,6 +38,7 @@ class ServerTracerTest < TracerTestBase
       chain.add(Datadog::Contrib::Sidekiq::ServerTracer,
                 tracer: @tracer, enabled: true)
     end
+    Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
   end
 
   def test_empty
@@ -93,5 +98,10 @@ class ServerTracerTest < TracerTestBase
     assert_equal('default', custom.get_tag('sidekiq.job.queue'))
     assert_equal(0, custom.status)
     assert_nil(custom.parent)
+  end
+
+  def test_delayed_extensions
+    DelayableClass.delay.do_work
+    assert_equal('ServerTracerTest::DelayableClass.do_work', @writer.spans.first.resource)
   end
 end
