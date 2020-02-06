@@ -77,6 +77,7 @@ module Datadog
       KUBERNETES_SERVICE_HOST = ENV['KUBERNETES_SERVICE_HOST']
       KUBERNETES_PORT_443_TCP_PORT = ENV['KUBERNETES_PORT_443_TCP_PORT']
 
+      # rubocop:disable Metrics/MethodLength
       def default_hostname
         hostname_env = ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
         return hostname_env if hostname_env && !hostname_env.empty?
@@ -104,9 +105,9 @@ module Datadog
 
           if res.code.to_i.between?(200, 299)
             body = JSON.parse(res.body)
-            this = body['items'].find { |x| x['metadata']['name'] == ENV['HOSTNAME'] }
-            node = this['spec']['nodeName']
-            node_pods = body['items'].select { |x| x['spec']['nodeName'] == node }
+            my_pod = body['items'].find { |x| x['metadata']['name'] == ENV['HOSTNAME'] }
+            my_node_name = my_pod['spec']['nodeName']
+            node_pods = body['items'].select { |x| x['spec']['nodeName'] == my_node_name }
             agent_pod = node_pods.find do |x|
               x['spec']['containers'].find do |y|
                 y['ports'] && y['ports'].find do |z|
