@@ -3,55 +3,30 @@ module Datadog
     module Redis
       module Configuration
         # Converts Symbols, Strings, and Hashes to a normalized connection settings Hash.
-        class Resolver
-          attr_reader :options
-          # Redis::Client@options
-          def initialize(options)
-            @options = options
+        class Resolver < Contrib::Configuration::Resolver
+
+          def resolve(key_or_hash)
+            return :default if key_or_hash == :default
+
+            normalize(key_or_hash).tap { |x| puts x.inspect }
           end
 
-          def resolve
-            possible_configurations.each do |conf|
-              if Datadog.configuration[:redis, conf] != Datadog.configuration[:redis]
-                return Datadog.configuration[:redis, conf]
-              end
-            end
-            Datadog.configuration[:redis]
+          def normalize(hash)
+            resolved_configuration = resolve_configuration(hash)
+            {
+              url: resolved_configuration[:url],
+              host: resolved_configuration[:host],
+              port: resolved_configuration[:port],
+              db: resolved_configuration[:db],
+              scheme: resolved_configuration[:scheme]
+            }
           end
 
-          def possible_configurations
-            resolved_config = []
-            if options[:url]
-              resolved_config << options[:url]
-
-              require 'uri'
-              uri = URI(options[:url])
-
-              return resolved_config if uri.scheme == 'unix'
-            end
-
-            resolved_hosts_config = resolved_hosts(options[:host]).map do |resolved_host|
-              [
-                { host: resolved_host, port: options[:port], db: options[:db] },
-                { host: resolved_host, port: options[:port] },
-                { host: resolved_host, db: options[:db] },
-                { host: resolved_host }
-              ]
-            end.flatten
-            resolved_config.concat(resolved_hosts_config)
-          end
-
-          # make sure that the configuration will be matched against hostnames as well
-          def resolved_hosts(host)
-            require 'resolv'
-
-            resolved = [host]
-            resolved += Resolv.getaddresses(host)
-            resolved += Resolv.getnames(host)
-          rescue Resolv::ResolvError
-            # Resolv.getnames('localhost') raises
-            # Resolv::ResolvError (cannot interpret as address: localhost)
-            resolved
+          # The option parsing in Redis::Client is implemented as a instance method
+          # of the client itself. Since it cannot be imported from a library module
+          # the configuration will be resolved within a new redis instance
+          def resolve_configuration(options)
+            ::Redis::Client.new(options).options
           end
         end
       end

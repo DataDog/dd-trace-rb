@@ -4,119 +4,101 @@ require 'redis'
 require 'ddtrace'
 
 RSpec.describe 'Redis configuration resolver' do
-  describe 'possible_configurations' do
-    it 'works with a unix socket' do
-      url = 'unix://file/to/path'
-      redis = Redis::Client.new(url: url)
+  let(:resolver) { Datadog::Contrib::Redis::Configuration::Resolver.new }
 
-      resolver = Datadog::Contrib::Redis::Configuration::Resolver.new(redis.options)
+  context 'when :default magic keyword' do
+    it { expect(resolver.resolve(:default)).to eq(:default) }
+  end
 
-      expect(resolver.possible_configurations).to match_array([url])
-    end
+  context 'when unix socket provided' do
+    let(:options) { { url: 'unix://path/to/file' } }
 
-    it 'works with a connection string' do
-      url = 'redis://127.0.0.1:6379/0'
-      redis = Redis::Client.new(url: url)
-
-      resolver = Datadog::Contrib::Redis::Configuration::Resolver.new(redis.options)
-
-      allow(resolver).to receive(:resolved_hosts).with('127.0.0.1').and_return(['127.0.0.1', 'localhost'])
-      expect(resolver.possible_configurations).to match_array(
-        [
-          url,
-          { host: '127.0.0.1', port: 6379, db: 0 },
-          { host: '127.0.0.1', port: 6379 },
-          { host: '127.0.0.1', db: 0 },
-          { host: '127.0.0.1' },
-          { host: 'localhost', port: 6379, db: 0 },
-          { host: 'localhost', port: 6379 },
-          { host: 'localhost', db: 0 },
-          { host: 'localhost' }
-        ]
-      )
-    end
-
-    it 'works with host, port, db hash' do
-      args = { host: '127.0.0.1', port: 6379, db: 0 }
-      redis = Redis::Client.new(**args)
-
-      resolver = Datadog::Contrib::Redis::Configuration::Resolver.new(redis.options)
-
-      allow(resolver).to receive(:resolved_hosts).with('127.0.0.1').and_return(['127.0.0.1', 'localhost'])
-      expect(resolver.possible_configurations).to match_array(
-        [
-          { host: '127.0.0.1', port: 6379, db: 0 },
-          { host: '127.0.0.1', port: 6379 },
-          { host: '127.0.0.1', db: 0 },
-          { host: '127.0.0.1' },
-          { host: 'localhost', port: 6379, db: 0 },
-          { host: 'localhost', port: 6379 },
-          { host: 'localhost', db: 0 },
-          { host: 'localhost' }
-        ]
-      )
+    it do
+      expect(resolver.resolve(options)).to eq({
+        url: 'unix://path/to/file',
+        host: nil,
+        port: nil,
+        db: 0,
+        scheme: 'unix'
+      })
     end
   end
 
-  describe 'resolve' do
-    let(:tracer) { get_test_tracer }
-    let(:client) { Redis::Client.new(connection_options) }
+  context 'when redis connexion string provided' do
+    let(:options) { { url: 'redis://127.0.0.1:6379/0' } }
 
-    subject(:service_name) { Datadog::Contrib::Redis::Configuration::Resolver.new(client.options).resolve[:service_name] }
+    it do
+      expect(resolver.resolve(options)).to eq({
+        url: 'redis://127.0.0.1:6379/0',
+        host: '127.0.0.1',
+        port: 6379,
+        db: 0,
+        scheme: 'redis'
+      })
+    end
+  end
 
-    around do |example|
-      # Reset before and after each example; don't allow global state to linger.
-      Datadog.registry[:redis].reset_configuration!
-      example.run
-      Datadog.registry[:redis].reset_configuration!
+
+  context 'when host, port, db and scheme provided' do
+    let(:options) do
+      {
+        host: '127.0.0.1',
+        port: 6379,
+        db: 0,
+        scheme: 'redis'
+      }
+
     end
 
-    before do
-      Datadog.configure do |c|
-        c.use :redis, tracer: tracer, service_name: 'wrong-service-name'
-        describes = connection_options[:url] || connection_options
-        c.use :redis, describes: describes, tracer: tracer, service_name: 'good-service-name'
-      end
+    it do
+      expect(resolver.resolve(options)).to eq({
+        url: nil,
+        host: '127.0.0.1',
+        port: 6379,
+        db: 0,
+        scheme: 'redis'
+      })
+    end
+  end
+
+  context 'when host, port and db provided' do
+    let(:options) do
+      {
+        host: '127.0.0.1',
+        port: 6379,
+        db: 0
+      }
+
     end
 
-    context 'when host, port and db provided' do
-      let(:connection_options) { { host: '127.0.0.1', port: 6379, db: 0 } }
+    it do
+      expect(resolver.resolve(options)).to eq({
+        url: nil,
+        host: '127.0.0.1',
+        port: 6379,
+        db: 0,
+        scheme: 'redis'
+      })
+    end
+  end
 
-      it do
-        expect(service_name).to eq('good-service-name')
-      end
+  context 'when host and portprovided' do
+    let(:options) do
+      {
+        host: '127.0.0.1',
+        port: 6379
+      }
+
     end
 
-    context 'when host and port provided' do
-      let(:connection_options) { { host: '127.0.0.1', port: 6379 } }
-
-      it do
-        expect(service_name).to eq('good-service-name')
-      end
-    end
-
-    context 'when host and db provided' do
-      let(:connection_options) { { host: '127.0.0.1', db: 0 } }
-
-      it do
-        expect(service_name).to eq('good-service-name')
-      end
-    end
-
-    context 'when unix connection string provided' do
-      let(:connection_options) { { url: 'unix://file/to/path' } }
-
-      it do
-        expect(service_name).to eq('good-service-name')
-      end
-    end
-
-    context 'when redis connection string provided' do
-      let(:connection_options) { { url: 'redis://localhost:6379/0' } }
-
-      it do
-        expect(service_name).to eq('good-service-name')
-      end
+    it do
+      expect(resolver.resolve(options)).to eq({
+        url: nil,
+        host: '127.0.0.1',
+        port: 6379,
+        db: 0,
+        scheme: 'redis'
+      })
     end
   end
 end
