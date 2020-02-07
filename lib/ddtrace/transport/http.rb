@@ -14,7 +14,6 @@ require 'ddtrace/transport/http/adapters/unix_socket'
 module Datadog
   module Transport
     # Namespace for HTTP transport components
-    # rubocop:disable Metrics/ModuleLength
     module HTTP
       module_function
 
@@ -77,6 +76,7 @@ module Datadog
 
       KUBERNETES_SERVICE_HOST = ENV['KUBERNETES_SERVICE_HOST']
       KUBERNETES_PORT_443_TCP_PORT = ENV['KUBERNETES_PORT_443_TCP_PORT']
+      DD_AGENT_NAME_LABEL = 'datadog-agent'.freeze
 
       def k8s_request(kube_token, url)
         start_time = Time.now
@@ -103,8 +103,6 @@ module Datadog
       end
 
       # DEV: WIP WIP WIP
-      # rubocop:disable Metrics/MethodLength
-      # rubocop:disable Metrics/AbcSize
       def default_hostname
         hostname_env = ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
         return hostname_env if hostname_env && !hostname_env.empty?
@@ -130,22 +128,15 @@ module Datadog
             my_node_name = body['items'][0]['spec']['nodeName']
 
             res = k8s_request(kube_token, "/api/v1/namespaces/#{my_namespace}/pods/?" \
-            "fieldSelector=#{URI.encode_www_form_component("spec.nodeName=#{my_node_name}")}")
+            "fieldSelector=#{URI.encode_www_form_component("spec.nodeName=#{my_node_name}")}&" \
+            "labelSelector=#{URI.encode_www_form_component("name=#{DD_AGENT_NAME_LABEL}")}")
 
             if res.code.to_i.between?(200, 299)
               STDERR.puts "K8S hostname detection payload size: #{res.body.size}"
 
               body = JSON.parse(res.body)
 
-              agent_pod = body['items'].find do |x|
-                x['spec']['containers'].find do |y|
-                  y['ports'] && y['ports'].find do |z|
-                    z['name'] == 'traceport'
-                  end
-                end
-              end
-
-              agent_pod_ip = agent_pod['status']['podIP']
+              agent_pod_ip = body['items'][0]['status']['podIP']
 
               STDERR.puts "K8S hostname detection started succeeded: #{agent_pod_ip}"
 
