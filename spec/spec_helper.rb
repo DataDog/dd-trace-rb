@@ -58,4 +58,32 @@ RSpec.configure do |config|
   config.disable_monkey_patching!
   config.warnings = true
   config.order = :random
+
+  # require 'stackprof'
+  # config.around(:each) do |example|
+  #   puts example.full_description
+  #   path = "/tmp/stackprof-cpu-test-#{URI.encode_www_form_component example.full_description}.dump"
+  #   StackProf.run(raw: true, aggregate: false, mode: :cpu, interval: 10, out: path.to_s) do
+  #     example.run
+  #   end
+  # end
+
+  require 'ruby-prof'
+  config.around(:each) do |example|
+    RubyProf.measure_mode = RubyProf::ALLOCATIONS
+    RubyProf.start
+
+    example.run
+
+    result = RubyProf.stop
+
+    # printer = RubyProf::FlatPrinter.new(result)
+    # printer.print(STDOUT)
+
+    printer = RubyProf::GraphHtmlPrinter.new(result)
+    printer.print(File.open('/tmp/prof.html', 'w'), :min_percent=>0)
+
+    # printer = RubyProf::GraphPrinter.new(result)
+    # printer.print(STDOUT, {})
+  end
 end

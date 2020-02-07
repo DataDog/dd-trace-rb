@@ -182,9 +182,9 @@ module Datadog
     def start_span(name, options = {})
       start_time = options.fetch(:start_time, Time.now.utc)
 
-      tags = options.fetch(:tags, {})
+      tags = options.fetch(:tags, {}) # New object creation
 
-      span_options = options.select do |k, _v|
+      (span_options = options).select! do |k, _v| # New array returned ?
         # Filter options, we want no side effects with unexpected args.
         ALLOWED_SPAN_OPTIONS.include?(k)
       end
@@ -192,11 +192,11 @@ module Datadog
       ctx, parent = guess_context_and_parent(options[:child_of])
       span_options[:context] = ctx unless ctx.nil?
 
-      span = Span.new(self, name, span_options)
+      span = Span.new(self, name, span_options) # New object creation
       if parent.nil?
         # root span
         @sampler.sample!(span)
-        span.set_tag('system.pid', Process.pid)
+        span.set_tag('system.pid'.freeze, Process.pid) # Fixed: New object creation
 
         if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id

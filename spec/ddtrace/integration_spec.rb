@@ -279,6 +279,17 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  describe 'test' do
+    # Sampling priority is enabled by default
+    let(:tracer) { get_test_tracer }
+
+    context 'when #sampling_priority is set on a child span' do
+      it do
+        1000.times{ tracer.start_span('span') {} }
+      end
+    end
+  end
+
   describe 'sampling priority metrics' do
     # Sampling priority is enabled by default
     let(:tracer) { get_test_tracer }
