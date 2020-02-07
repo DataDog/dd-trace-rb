@@ -6,13 +6,9 @@ require 'uri'
 #       library as a separated module and it allows to avoid
 #       instantiating a new Redis::Client for resolving the connection
 module Datadog
-  module Vendor
+  module Contrib
     module Redis
-      # The following module mirrors what has been done for ActiveRecord
-      # connection specification
-      module ConnectionSpecification
-        ##
-        # Builds a ConnectionSpecification from user input.
+      module Vendor
         class Resolver # :nodoc:
           # Connection DEFAULTS for a Redis::Client are unchanged for
           # the integration supported options.

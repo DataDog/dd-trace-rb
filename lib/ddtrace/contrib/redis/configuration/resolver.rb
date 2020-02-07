@@ -1,4 +1,4 @@
-require 'ddtrace/vendor/redis/connection_specification'
+require 'ddtrace/contrib/redis/vendor/resolver'
 
 module Datadog
   module Contrib
@@ -27,7 +27,7 @@ module Datadog
           end
 
           def connection_resolver
-            @connection_resolver ||= ::Datadog::Vendor::Redis::ConnectionSpecification::Resolver.new
+            @connection_resolver ||= ::Datadog::Contrib::Redis::Vendor::Resolver.new
           end
         end
       end
