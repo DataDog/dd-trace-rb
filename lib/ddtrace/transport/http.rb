@@ -14,6 +14,7 @@ require 'ddtrace/transport/http/adapters/unix_socket'
 module Datadog
   module Transport
     # Namespace for HTTP transport components
+    # rubocop:disable Metrics/ModuleLength
     module HTTP
       module_function
 
@@ -77,7 +78,29 @@ module Datadog
       KUBERNETES_SERVICE_HOST = ENV['KUBERNETES_SERVICE_HOST']
       KUBERNETES_PORT_443_TCP_PORT = ENV['KUBERNETES_PORT_443_TCP_PORT']
 
-      require 'benchmark'
+      def k8s_request(kube_token, url)
+        start_time = Time.now
+
+        timeout = 3
+        res = Net::HTTP.start(
+          KUBERNETES_SERVICE_HOST,
+          KUBERNETES_PORT_443_TCP_PORT,
+          use_ssl: true,
+          verify_mode: OpenSSL::SSL::VERIFY_NONE,
+          open_timeout: timeout,
+          read_timeout: timeout
+        ) do |http|
+
+          request = Net::HTTP::Get.new url
+          request['Authorization'] = "Bearer #{kube_token}"
+
+          http.request(request)
+        end
+
+        STDERR.puts "K8S hostname detection API call time for #{url}: #{Time.now - start_time}s"
+
+        res
+      end
 
       # DEV: WIP WIP WIP
       # rubocop:disable Metrics/MethodLength
@@ -96,46 +119,38 @@ module Datadog
 
           STDERR.puts "K8S hostname detection file read time: #{Time.now - start_time}s"
 
-          start_time = Time.now
-
-          timeout = 1
-          res = Net::HTTP.start(KUBERNETES_SERVICE_HOST,
-                                KUBERNETES_PORT_443_TCP_PORT,
-                                use_ssl: true,
-                                verify_mode: OpenSSL::SSL::VERIFY_NONE,
-                                open_timeout: timeout,
-                                read_timeout: timeout) do |http|
-            request = Net::HTTP::Get.new "/api/v1/namespaces/#{my_namespace}/pods/"
-            request['Authorization'] = "Bearer #{kube_token}"
-
-            http.request(request)
-          end
-
-          STDERR.puts "K8S hostname detection API call time: #{Time.now - start_time}s"
+          res = k8s_request(kube_token, "/api/v1/namespaces/#{my_namespace}/pods/?" \
+            "fieldSelector=#{URI.encode_www_form_component("metadata.name=#{ENV['HOSTNAME']}")}")
 
           if res.code.to_i.between?(200, 299)
             STDERR.puts "K8S hostname detection payload size: #{res.body.size}"
 
             body = JSON.parse(res.body)
 
-            my_pod = body['items'].find { |x| x['metadata']['name'] == ENV['HOSTNAME'] }
-            my_node_name = my_pod['spec']['nodeName']
+            my_node_name = body['items'][0]['spec']['nodeName']
 
-            node_pods = body['items'].select { |x| x['spec']['nodeName'] == my_node_name }
+            res = k8s_request(kube_token, "/api/v1/namespaces/#{my_namespace}/pods/?" \
+            "fieldSelector=#{URI.encode_www_form_component("spec.nodeName=#{my_node_name}")}")
 
-            agent_pod = node_pods.find do |x|
-              x['spec']['containers'].find do |y|
-                y['ports'] && y['ports'].find do |z|
-                  z['name'] == 'traceport'
+            if res.code.to_i.between?(200, 299)
+              STDERR.puts "K8S hostname detection payload size: #{res.body.size}"
+
+              body = JSON.parse(res.body)
+
+              agent_pod = body['items'].find do |x|
+                x['spec']['containers'].find do |y|
+                  y['ports'] && y['ports'].find do |z|
+                    z['name'] == 'traceport'
+                  end
                 end
               end
+
+              agent_pod_ip = agent_pod['status']['podIP']
+
+              STDERR.puts "K8S hostname detection started succeeded: #{agent_pod_ip}"
+
+              return agent_pod_ip
             end
-
-            agent_pod_ip = agent_pod['status']['podIP']
-
-            STDERR.puts "K8S hostname detection started succeeded: #{agent_pod_ip}"
-
-            return agent_pod_ip
           end
         rescue => e
           STDERR.puts 'K8S hostname detection failed with error:'
