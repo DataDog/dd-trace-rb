@@ -1,3 +1,5 @@
+require 'ddtrace/vendor/redis/connection_specification'
+
 module Datadog
   module Contrib
     module Redis
@@ -7,29 +9,25 @@ module Datadog
           def resolve(key_or_hash)
             return :default if key_or_hash == :default
 
-            normalize(key_or_hash)
+            normalize(connection_resolver.resolve(key_or_hash))
           end
 
           def normalize(hash)
-            resolved_configuration = resolve_configuration(hash)
-            return { url: resolved_configuration[:url] } if resolved_configuration[:scheme] == 'unix'
+            return { url: hash[:url] } if hash[:scheme] == 'unix'
 
             # Connexion strings are always converted to host, port, db and scheme
             # but the host, port, db and scheme will generate the :url only after
             # establishing a first connexion
             {
-              host: resolved_configuration[:host],
-              port: resolved_configuration[:port],
-              db: resolved_configuration[:db],
-              scheme: resolved_configuration[:scheme]
+              host: hash[:host],
+              port: hash[:port],
+              db: hash[:db],
+              scheme: hash[:scheme]
             }
           end
 
-          # The option parsing in Redis::Client is implemented as a instance method
-          # of the client itself. Since it cannot be imported from a library module
-          # the configuration will be resolved within a new redis instance
-          def resolve_configuration(options)
-            ::Redis::Client.new(options).options
+          def connection_resolver
+            @connection_resolver ||= ::Datadog::Vendor::Redis::ConnectionSpecification::Resolver.new
           end
         end
       end
