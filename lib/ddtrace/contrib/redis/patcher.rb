@@ -76,7 +76,7 @@ module Datadog
                   datadog_configuration[:service_name],
                   app: Ext::APP,
                   app_type: Datadog::Ext::AppTypes::DB,
-                  tracer: Datadog.configuration[:redis][:tracer]
+                  tracer: datadog_configuration[:tracer]
                 )
                 pin.onto(self)
               end
@@ -85,11 +85,7 @@ module Datadog
             private
 
             def datadog_configuration
-              @datadog_configuration ||= Datadog.configuration[:redis, resolver.resolve(options)]
-            end
-
-            def resolver
-              @resolver ||= Datadog::Contrib::Redis::Configuration::Resolver.new
+              Datadog.configuration[:redis, options]
             end
           end
         end
