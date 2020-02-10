@@ -15,12 +15,12 @@ module Datadog
           Gem.loaded_specs['racecar'] && Gem.loaded_specs['racecar'].version
         end
 
-        def self.present?
-          super && defined?(::Racecar)
+        def self.loaded?
+          defined?(::Racecar) && defined?(::ActiveSupport::Notifications)
         end
 
         def self.compatible?
-          super && defined?(::ActiveSupport::Notifications)
+          super && version >= Gem::Version.new('0.3.5')
         end
 
         def default_configuration

@@ -15,12 +15,12 @@ module Datadog
           Gem.loaded_specs['grape'] && Gem.loaded_specs['grape'].version
         end
 
-        def self.present?
-          super && defined?(::Grape)
+        def self.loaded?
+          defined?(::Grape) && defined?(::ActiveSupport::Notifications)
         end
 
         def self.compatible?
-          super && defined?(::ActiveSupport::Notifications)
+          super && version >= Gem::Version.new('1.0')
         end
 
         def default_configuration

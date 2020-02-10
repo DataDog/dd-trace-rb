@@ -15,13 +15,16 @@ module Datadog
           Gem.loaded_specs['rails'] && Gem.loaded_specs['rails'].version
         end
 
-        def self.present?
+        def self.loaded?
           defined?(::Rails)
         end
 
         def self.compatible?
-          return false if ENV['DISABLE_DATADOG_RAILS']
-          super && defined?(::Rails::VERSION) && ::Rails::VERSION::MAJOR.to_i >= 3
+          super && version >= Gem::Version.new('3.0')
+        end
+
+        def self.patchable?
+          super && !ENV.key?('DISABLE_DATADOG_RAILS')
         end
 
         def default_configuration

@@ -19,8 +19,12 @@ module Datadog
           end
         end
 
-        def self.present?
-          super && defined?(::Seahorse::Client::Base)
+        def self.loaded?
+          defined?(::Seahorse::Client::Base)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('2.0')
         end
 
         def default_configuration

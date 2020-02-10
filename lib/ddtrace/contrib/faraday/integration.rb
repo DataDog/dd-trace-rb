@@ -15,8 +15,8 @@ module Datadog
           Gem.loaded_specs['faraday'] && Gem.loaded_specs['faraday'].version
         end
 
-        def self.present?
-          super && defined?(::Faraday)
+        def self.loaded?
+          defined?(::Faraday)
         end
 
         def self.compatible?

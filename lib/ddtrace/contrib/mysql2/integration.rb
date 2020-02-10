@@ -15,8 +15,12 @@ module Datadog
           Gem.loaded_specs['mysql2'] && Gem.loaded_specs['mysql2'].version
         end
 
-        def self.present?
-          super && defined?(::Mysql2)
+        def self.loaded?
+          defined?(::Mysql2)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('0.3.21')
         end
 
         def default_configuration

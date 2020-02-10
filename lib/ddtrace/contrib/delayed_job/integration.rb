@@ -15,8 +15,12 @@ module Datadog
           Gem.loaded_specs['delayed_job'] && Gem.loaded_specs['delayed_job'].version
         end
 
-        def self.present?
-          super && defined?(::Delayed)
+        def self.loaded?
+          defined?(::Delayed)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('4.1')
         end
 
         def default_configuration

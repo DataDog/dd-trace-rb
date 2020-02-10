@@ -15,8 +15,12 @@ module Datadog
           Gem.loaded_specs['presto-client'] && Gem.loaded_specs['presto-client'].version
         end
 
-        def self.present?
-          super && defined?(::Presto::Client::Client)
+        def self.loaded?
+          defined?(::Presto::Client::Client)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('0.5.14')
         end
 
         def default_configuration

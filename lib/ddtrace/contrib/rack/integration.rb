@@ -15,8 +15,12 @@ module Datadog
           Gem.loaded_specs['rack'] && Gem.loaded_specs['rack'].version
         end
 
-        def self.present?
-          super && defined?(::Rack)
+        def self.loaded?
+          defined?(::Rack)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('1.4.7')
         end
 
         def default_configuration

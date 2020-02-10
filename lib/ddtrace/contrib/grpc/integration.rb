@@ -15,8 +15,8 @@ module Datadog
           Gem.loaded_specs['grpc'] && Gem.loaded_specs['grpc'].version
         end
 
-        def self.present?
-          super && defined?(::GRPC)
+        def self.loaded?
+          defined?(::GRPC)
         end
 
         def self.compatible?

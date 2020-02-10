@@ -17,9 +17,10 @@ MESSAGE
   include Rack::Test::Methods
   include_context 'Rails test application'
 
-  before do
-    allow(ENV).to receive(:[]).and_call_original
-    allow(ENV).to receive(:[]).with('DISABLE_DATADOG_RAILS').and_return('1')
+  around do |example|
+    ClimateControl.modify('DISABLE_DATADOG_RAILS' => '1') do
+      example.run
+    end
   end
 
   let(:routes) { { '/' => 'test#index' } }

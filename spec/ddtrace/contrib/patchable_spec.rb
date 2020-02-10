@@ -18,13 +18,13 @@ RSpec.describe Datadog::Contrib::Patchable do
         it { is_expected.to be nil }
       end
 
-      describe '#present?' do
-        subject(:compatible) { patchable_class.present? }
+      describe '#available?' do
+        subject(:available?) { patchable_class.available? }
 
         context 'when version' do
           context 'is defined' do
             let(:version) { double('version') }
-            before(:each) { allow(patchable_class).to receive(:version).and_return(version) }
+            before { allow(patchable_class).to receive(:version).and_return(version) }
             it { is_expected.to be true }
           end
 
@@ -34,18 +34,54 @@ RSpec.describe Datadog::Contrib::Patchable do
         end
       end
 
-      describe '#compatible?' do
-        subject(:compatible) { patchable_class.compatible? }
+      describe '#loaded?' do
+        subject(:loaded?) { patchable_class.loaded? }
+        it { is_expected.to be true }
+      end
 
-        context 'when version' do
-          context 'is defined' do
-            let(:version) { double('version') }
-            before(:each) { allow(patchable_class).to receive(:version).and_return(version) }
-            it { is_expected.to be true }
+      describe '#compatible?' do
+        subject(:compatible?) { patchable_class.compatible? }
+
+        context 'when the Ruby version' do
+          context 'is below the minimum' do
+            before { stub_const('RUBY_VERSION', '1.9.3') }
+            it { is_expected.to be false }
           end
 
-          context 'is not defined' do
-            it { is_expected.to be false }
+          context 'is meets the minimum' do
+            it { is_expected.to be true }
+          end
+        end
+      end
+
+      describe '#patchable?' do
+        subject(:patchable?) { patchable_class.patchable? }
+
+        context 'default' do
+          it { is_expected.to be false }
+        end
+
+        context 'when version is defined' do
+          let(:version) { double('version') }
+          before { allow(patchable_class).to receive(:version).and_return(version) }
+          it { is_expected.to be true }
+        end
+
+        [
+          { available?: true, loaded?: true, compatible?: true, expect: true },
+          { available?: false, loaded?: true, compatible?: true, expect: false },
+          { available?: true, loaded?: false, compatible?: true, expect: false },
+          { available?: true, loaded?: true, compatible?: false, expect: false }
+        ].each do |test_case|
+          # rubocop:disable Metrics/LineLength
+          context "when available? (#{test_case[:available?]}) loaded? (#{test_case[:loaded?]}) compatible? (#{test_case[:compatible?]})" do
+            before do
+              allow(patchable_class). to receive(:available?).and_return(test_case[:available?])
+              allow(patchable_class). to receive(:loaded?).and_return(test_case[:loaded?])
+              allow(patchable_class). to receive(:compatible?).and_return(test_case[:compatible?])
+            end
+
+            it { is_expected.to be test_case[:expect] }
           end
         end
       end
@@ -69,12 +105,12 @@ RSpec.describe Datadog::Contrib::Patchable do
             ]
           end
 
-          context 'is compatible' do
-            before(:each) { allow(patchable_class).to receive(:compatible?).and_return(true) }
+          context 'is patchable' do
+            before { allow(patchable_class).to receive(:patchable?).and_return(true) }
 
             context 'and the patcher is defined' do
               let(:patcher) { double('patcher') }
-              before(:each) { allow(patchable_object).to receive(:patcher).and_return(patcher) }
+              before { allow(patchable_object).to receive(:patcher).and_return(patcher) }
 
               it 'applies the patch' do
                 expect(patcher).to receive(:patch)

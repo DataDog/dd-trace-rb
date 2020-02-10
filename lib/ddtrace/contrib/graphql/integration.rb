@@ -15,14 +15,12 @@ module Datadog
           Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version
         end
 
-        def self.present?
-          super && defined?(::GraphQL)
+        def self.loaded?
+          defined?(::GraphQL) && defined?(::GraphQL::Tracing::DataDogTracing)
         end
 
         def self.compatible?
-          super \
-            && defined?(::GraphQL::Tracing::DataDogTracing) \
-            && version >= Gem::Version.new('1.7.9')
+          super && version >= Gem::Version.new('1.7.9')
         end
 
         def default_configuration
