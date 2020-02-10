@@ -12,14 +12,16 @@ module Datadog
 
         register_as :shoryuken
 
-        class << self
-          def version
-            Gem.loaded_specs['shoryuken'] && Gem.loaded_specs['shoryuken'].version
-          end
+        def self.version
+          Gem.loaded_specs['shoryuken'] && Gem.loaded_specs['shoryuken'].version
+        end
 
-          def present?
-            super && defined?(::Shoryuken)
-          end
+        def self.loaded?
+          defined?(::Shoryuken)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('4.0.2')
         end
 
         def default_configuration

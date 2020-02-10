@@ -15,8 +15,12 @@ module Datadog
           Gem.loaded_specs['concurrent-ruby'] && Gem.loaded_specs['concurrent-ruby'].version
         end
 
-        def self.present?
-          super && defined?(::Concurrent::Future)
+        def self.loaded?
+          defined?(::Concurrent::Future)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('0.9')
         end
 
         def default_configuration

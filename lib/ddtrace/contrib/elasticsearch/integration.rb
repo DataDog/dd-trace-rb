@@ -16,8 +16,8 @@ module Datadog
             && Gem.loaded_specs['elasticsearch-transport'].version
         end
 
-        def self.present?
-          super && defined?(::Elasticsearch::Transport)
+        def self.loaded?
+          defined?(::Elasticsearch::Transport)
         end
 
         def self.compatible?

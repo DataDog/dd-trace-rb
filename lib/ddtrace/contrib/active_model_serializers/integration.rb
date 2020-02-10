@@ -16,14 +16,12 @@ module Datadog
             && Gem.loaded_specs['active_model_serializers'].version
         end
 
-        def self.present?
-          super && defined?(::ActiveModel::Serializer)
+        def self.loaded?
+          defined?(::ActiveModel::Serializer) && defined?(::ActiveSupport::Notifications)
         end
 
         def self.compatible?
-          super \
-            && defined?(::ActiveSupport::Notifications) \
-            && version >= Gem::Version.new('0.9.0')
+          super && version >= Gem::Version.new('0.9.0')
         end
 
         def default_configuration

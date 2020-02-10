@@ -15,8 +15,12 @@ module Datadog
           Gem.loaded_specs['rake'] && Gem.loaded_specs['rake'].version
         end
 
-        def self.present?
-          super && defined?(::Rake)
+        def self.loaded?
+          defined?(::Rake)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('12.0')
         end
 
         def default_configuration
