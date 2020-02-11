@@ -28,9 +28,15 @@ module Datadog
         end
 
         def loaded_constants
-          SERVICES.each_with_object([]) do |service, constants|
+          # Cross-check services against loaded AWS constants
+          # Module#const_get can return a constant from ancestors when there's a miss.
+          # If this conincidentally matches another constant, it will attempt to patch
+          # the wrong constant, resulting in patch failure.
+          available_services = ::Aws.constants & SERVICES.map(&:to_sym)
+
+          available_services.each_with_object([]) do |service, constants|
             next if ::Aws.autoload?(service)
-            constants << ::Aws.const_get(service).const_get(:Client) rescue next
+            constants << ::Aws.const_get(service, false).const_get(:Client, false) rescue next
           end
         end
 
