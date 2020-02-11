@@ -13,8 +13,8 @@ end
 RSpec.describe Datadog::AllSampler do
   subject(:sampler) { described_class.new }
 
-  before(:each) { Datadog::Logger.log.level = Logger::FATAL }
-  after(:each) { Datadog::Logger.log.level = Logger::WARN }
+  before { Datadog::Logger.log.level = Logger::FATAL }
+  after { Datadog::Logger.log.level = Logger::WARN }
 
   describe '#sample!' do
     let(:spans) do
@@ -39,8 +39,8 @@ end
 RSpec.describe Datadog::RateSampler do
   subject(:sampler) { described_class.new(sample_rate) }
 
-  before(:each) { Datadog::Logger.log.level = Logger::FATAL }
-  after(:each) { Datadog::Logger.log.level = Logger::WARN }
+  before { Datadog::Logger.log.level = Logger::FATAL }
+  after { Datadog::Logger.log.level = Logger::WARN }
 
   describe '#initialize' do
     context 'given a sample rate' do
@@ -231,8 +231,8 @@ RSpec.describe Datadog::PrioritySampler do
 
   let(:sample_rate_tag_value) { nil }
 
-  before(:each) { Datadog::Logger.log.level = Logger::FATAL }
-  after(:each) { Datadog::Logger.log.level = Logger::WARN }
+  before { Datadog::Logger.log.level = Logger::FATAL }
+  after { Datadog::Logger.log.level = Logger::WARN }
 
   describe '#sample!' do
     subject(:sample) { sampler.sample!(span) }
@@ -313,54 +313,9 @@ RSpec.describe Datadog::PrioritySampler do
       end
     end
 
-    shared_examples_for 'sampling with agent priority sampling rate tag' do
-      let(:span) { Datadog::Span.new(nil, '', trace_id: 1, context: context) }
-      let(:context) { Datadog::Context.new }
-      let(:service_sample_rate) { rand }
-
-      before do
-        if post_sampler.is_a?(Datadog::RateByServiceSampler)
-          allow(post_sampler).to receive(:sample_rate)
-            .with(span)
-            .and_return(service_sample_rate)
-        else
-          expect(post_sampler).to_not receive(:sample_rate)
-            .with(span)
-        end
-
-        expect(sample).to be true
-      end
-
-      it 'sets the tag if post sampler is a RateByServiceSampler' do
-        if post_sampler.is_a?(Datadog::RateByServiceSampler)
-          expect(span.get_metric(described_class::AGENT_RATE_METRIC_KEY)).to eq(service_sample_rate)
-        else
-          expect(span.get_metric(described_class::AGENT_RATE_METRIC_KEY)).to be nil
-        end
-      end
-    end
-
     context 'when configured with defaults' do
       let(:sampler) { described_class.new }
       it_behaves_like 'priority sampling without scaling'
-
-      describe 'agent priority sampling rate tag' do
-        let(:span) { Datadog::Span.new(nil, '', trace_id: 1, context: context) }
-        let(:context) { Datadog::Context.new }
-        let(:service_sample_rate) { rand }
-
-        before do
-          allow_any_instance_of(Datadog::RateByServiceSampler).to receive(:sample_rate)
-            .with(span)
-            .and_return(service_sample_rate)
-
-          expect(sample).to be true
-        end
-
-        it 'is set from the RateByService sampler' do
-          expect(span.get_metric(described_class::AGENT_RATE_METRIC_KEY)).to eq(service_sample_rate)
-        end
-      end
     end
 
     context 'when configured with a pre-sampler RateSampler < 1.0' do
@@ -379,8 +334,6 @@ RSpec.describe Datadog::PrioritySampler do
           # It must set this tag; otherwise it won't scale up metrics properly.
           let(:sample_rate_tag_value) { sample_rate }
         end
-
-        it_behaves_like 'sampling with agent priority sampling rate tag'
       end
     end
 
@@ -394,7 +347,6 @@ RSpec.describe Datadog::PrioritySampler do
         let(:post_sampler) { Datadog::RateSampler.new(1.0) }
 
         it_behaves_like 'priority sampling without scaling'
-        it_behaves_like 'sampling with agent priority sampling rate tag'
       end
     end
 
@@ -403,7 +355,6 @@ RSpec.describe Datadog::PrioritySampler do
       let(:sample_rate) { 0.5 }
 
       it_behaves_like 'priority sampling without scaling'
-      it_behaves_like 'sampling with agent priority sampling rate tag'
     end
   end
 end
