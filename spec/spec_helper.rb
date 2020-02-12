@@ -68,22 +68,25 @@ RSpec.configure do |config|
   #   end
   # end
 
-  require 'ruby-prof'
-  config.around(:each) do |example|
-    RubyProf.measure_mode = RubyProf::ALLOCATIONS
-    RubyProf.start
+  # require 'ruby-prof'
+  # config.around(:each) do |example|
+  #   RubyProf.measure_mode = RubyProf::ALLOCATIONS
+  #   RubyProf.start
+  #
+  #   example.run
+  #
+  #   result = RubyProf.stop
+  #
+  #   # printer = RubyProf::FlatPrinter.new(result)
+  #   # printer.print(STDOUT)
+  #
+  #   printer = RubyProf::GraphHtmlPrinter.new(result)
+  #   printer.print(File.open('/tmp/prof.html', 'w'), :min_percent=>0)
+  #
+  #   # printer = RubyProf::GraphPrinter.new(result)
+  #   # printer.print(STDOUT, {})
+  # end
 
-    example.run
-
-    result = RubyProf.stop
-
-    # printer = RubyProf::FlatPrinter.new(result)
-    # printer.print(STDOUT)
-
-    printer = RubyProf::GraphHtmlPrinter.new(result)
-    printer.print(File.open('/tmp/prof.html', 'w'), :min_percent=>0)
-
-    # printer = RubyProf::GraphPrinter.new(result)
-    # printer.print(STDOUT, {})
-  end
+  require 'rspec-benchmark'
+  # config.include RSpec::Benchmark::Matchers
 end

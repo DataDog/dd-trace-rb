@@ -279,13 +279,48 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  describe 'profiling' do
+    include RSpec::Benchmark::Matchers
+    let(:name) { 'span' }
+
+    describe 'memory' do
+      it 'objects' do
+        tracer.trace(name) {}
+
+        expect do
+          tracer.trace(name) {}
+        end.to perform_allocation(25).and_retain(25).objects
+      end
+
+      it 'bytes' do
+        tracer.trace(name) {}
+
+        expect do
+          tracer.trace(name) {}
+        end.to perform_allocation(2556).and_retain(2556).bytes
+      end
+    end
+
+    describe 'timing' do
+      it 'ips' do
+        tracer.trace(name) {}
+
+        RSpec::Support.with_failure_notifier(->(err, *) { STDERR.puts err }) do
+          expect do
+            tracer.trace(name) {}
+          end.to perform_at_least(1000000).within(1).warmup(0.15).ips
+        end
+      end
+    end
+  end
+
   describe 'test' do
     # Sampling priority is enabled by default
     let(:tracer) { get_test_tracer }
 
     context 'when #sampling_priority is set on a child span' do
       it do
-        1000.times{ tracer.start_span('span') {} }
+        1000.times { tracer.start_span('span') {} }
       end
     end
   end
