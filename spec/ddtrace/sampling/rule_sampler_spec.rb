@@ -142,6 +142,19 @@ RSpec.describe Datadog::Sampling::RuleSampler do
         expect(span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to be_nil
         expect(span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to be_nil
       end
+
+      context 'when the default sampler is a RateByServiceSampler' do
+        let(:default_sampler) { Datadog::RateByServiceSampler.new }
+        let(:sample_rate) { rand }
+
+        it 'sets the agent rate metric' do
+          expect(default_sampler).to receive(:sample_rate)
+            .with(span)
+            .and_return(sample_rate)
+          sample
+          expect(span.get_metric(described_class::AGENT_RATE_METRIC_KEY)).to eq(sample_rate)
+        end
+      end
     end
   end
 

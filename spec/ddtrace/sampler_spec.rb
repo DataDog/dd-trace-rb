@@ -13,8 +13,8 @@ end
 RSpec.describe Datadog::AllSampler do
   subject(:sampler) { described_class.new }
 
-  before(:each) { Datadog::Logger.log.level = Logger::FATAL }
-  after(:each) { Datadog::Logger.log.level = Logger::WARN }
+  before { Datadog::Logger.log.level = Logger::FATAL }
+  after { Datadog::Logger.log.level = Logger::WARN }
 
   describe '#sample!' do
     let(:spans) do
@@ -39,8 +39,8 @@ end
 RSpec.describe Datadog::RateSampler do
   subject(:sampler) { described_class.new(sample_rate) }
 
-  before(:each) { Datadog::Logger.log.level = Logger::FATAL }
-  after(:each) { Datadog::Logger.log.level = Logger::WARN }
+  before { Datadog::Logger.log.level = Logger::FATAL }
+  after { Datadog::Logger.log.level = Logger::WARN }
 
   describe '#initialize' do
     context 'given a sample rate' do
@@ -231,8 +231,8 @@ RSpec.describe Datadog::PrioritySampler do
 
   let(:sample_rate_tag_value) { nil }
 
-  before(:each) { Datadog::Logger.log.level = Logger::FATAL }
-  after(:each) { Datadog::Logger.log.level = Logger::WARN }
+  before { Datadog::Logger.log.level = Logger::FATAL }
+  after { Datadog::Logger.log.level = Logger::WARN }
 
   describe '#sample!' do
     subject(:sample) { sampler.sample!(span) }
@@ -261,7 +261,7 @@ RSpec.describe Datadog::PrioritySampler do
         end
 
         context 'and USER_KEEP sampling priority' do
-          before(:each) { context.sampling_priority = Datadog::Ext::Priority::USER_KEEP }
+          before { context.sampling_priority = Datadog::Ext::Priority::USER_KEEP }
 
           it do
             expect(sample).to be true
@@ -272,7 +272,7 @@ RSpec.describe Datadog::PrioritySampler do
         end
 
         context 'and AUTO_KEEP sampling priority' do
-          before(:each) { context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP }
+          before { context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP }
 
           it do
             expect(sample).to be true
@@ -283,7 +283,7 @@ RSpec.describe Datadog::PrioritySampler do
         end
 
         context 'and AUTO_REJECT sampling priority' do
-          before(:each) { context.sampling_priority = Datadog::Ext::Priority::AUTO_REJECT }
+          before { context.sampling_priority = Datadog::Ext::Priority::AUTO_REJECT }
 
           it do
             expect(sample).to be true
@@ -294,7 +294,7 @@ RSpec.describe Datadog::PrioritySampler do
         end
 
         context 'and USER_REJECT sampling priority' do
-          before(:each) { context.sampling_priority = Datadog::Ext::Priority::USER_REJECT }
+          before { context.sampling_priority = Datadog::Ext::Priority::USER_REJECT }
 
           it do
             expect(sample).to be true

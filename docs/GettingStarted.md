@@ -1293,6 +1293,33 @@ customer_cache.get(...)
 invoice_cache.get(...)
 ```
 
+**Configuring trace settings per connection**
+
+You can configure trace settings per connection by using the `describes` option:
+
+```ruby
+# Provide a `:describes` option with a connection key.
+# Any of the following keys are acceptable and equivalent to one another.
+# If a block is provided, it yields a Settings object that
+# accepts any of the configuration options listed above.
+
+Datadog.configure do |c|
+  # The default configuration for any redis client
+  c.use :redis, service_name: 'redis-default'
+
+  # The configuration matching a given unix socket
+  c.use :redis, describes: { url: 'unix://path/to/file' }, service_name: 'redis-unix'
+
+  # Connection string
+  c.use :redis, describes: { url: 'redis://127.0.0.1:6379/0' }, service_name: 'redis-connection-string'
+  # Client host, port, db, scheme
+  c.use :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, service_name: 'redis-connection-hash'
+  # Only a subset of the connection hash
+  c.use :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, service_name: 'redis-cache'
+  c.use :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, service_name: 'redis-sidekiq'
+end
+```
+
 ### Resque
 
 The Resque integration uses Resque hooks that wraps the `perform` method.
@@ -1436,6 +1463,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `client_service_name` | Service name used for client-side `sidekiq` instrumentation | `'sidekiq-client'` |
 | `service_name` | Service name used for server-side `sidekiq` instrumentation | `'sidekiq'` |
+| `tag_args` | Enable tagging of job arguments. `true` for on, `false` for off. | `false` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### Sinatra

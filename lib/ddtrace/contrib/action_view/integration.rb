@@ -22,8 +22,8 @@ module Datadog
           end
         end
 
-        def self.present?
-          super && defined?(::ActionView)
+        def self.loaded?
+          defined?(::ActionView)
         end
 
         def self.compatible?

@@ -19,6 +19,10 @@ module Datadog
           Gem::Version.new(RUBY_VERSION)
         end
 
+        def self.loaded?
+          defined?(::Net::HTTP)
+        end
+
         def default_configuration
           Configuration::Settings.new
         end

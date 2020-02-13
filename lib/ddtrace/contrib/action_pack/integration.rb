@@ -15,8 +15,8 @@ module Datadog
           Gem.loaded_specs['actionpack'] && Gem.loaded_specs['actionpack'].version
         end
 
-        def self.present?
-          super && defined?(::ActionPack)
+        def self.loaded?
+          defined?(::ActionPack)
         end
 
         def self.compatible?

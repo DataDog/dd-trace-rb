@@ -15,8 +15,8 @@ module Datadog
           Gem.loaded_specs['sidekiq'] && Gem.loaded_specs['sidekiq'].version
         end
 
-        def self.present?
-          super && defined?(::Sidekiq)
+        def self.loaded?
+          defined?(::Sidekiq)
         end
 
         def self.compatible?

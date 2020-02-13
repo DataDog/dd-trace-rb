@@ -15,12 +15,12 @@ module Datadog
           Gem.loaded_specs['sucker_punch'] && Gem.loaded_specs['sucker_punch'].version
         end
 
-        def self.present?
-          super && defined?(::SuckerPunch)
+        def self.loaded?
+          defined?(::SuckerPunch)
         end
 
         def self.compatible?
-          super && Gem::Version.new(::SuckerPunch::VERSION) >= Gem::Version.new('2.0.0')
+          super && version >= Gem::Version.new('2.0.0')
         end
 
         def default_configuration

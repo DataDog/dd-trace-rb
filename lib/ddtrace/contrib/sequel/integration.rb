@@ -15,8 +15,12 @@ module Datadog
           Gem.loaded_specs['sequel'] && Gem.loaded_specs['sequel'].version
         end
 
-        def self.present?
-          super && defined?(::Sequel)
+        def self.loaded?
+          defined?(::Sequel)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('3.41')
         end
 
         def default_configuration

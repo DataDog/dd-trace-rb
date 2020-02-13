@@ -15,8 +15,8 @@ module Datadog
           Gem.loaded_specs['actioncable'] && Gem.loaded_specs['actioncable'].version
         end
 
-        def self.present?
-          super && defined?(::ActionCable)
+        def self.loaded?
+          defined?(::ActionCable)
         end
 
         def self.compatible?

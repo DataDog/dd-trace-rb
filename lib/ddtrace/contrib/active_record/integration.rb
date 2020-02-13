@@ -19,8 +19,8 @@ module Datadog
           Gem.loaded_specs['activerecord'] && Gem.loaded_specs['activerecord'].version
         end
 
-        def self.present?
-          super && defined?(::ActiveRecord)
+        def self.loaded?
+          defined?(::ActiveRecord)
         end
 
         def self.compatible?

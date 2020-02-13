@@ -16,7 +16,8 @@ module Datadog
         def call(worker, job, queue)
           resource = job_resource(job)
 
-          service = service_from_worker_config(resource) || @sidekiq_service
+          service = worker_config(resource, :service_name) || @sidekiq_service
+          tag_args = worker_config(resource, :tag_args) || configuration[:tag_args]
 
           @tracer.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
             span.resource = resource
@@ -29,6 +30,9 @@ module Datadog
             span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
             span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
             span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Time.now.utc.to_f - job['enqueued_at'].to_f))
+            if tag_args && !job['args'].nil? && !job['args'].empty?
+              span.set_tag(Ext::TAG_JOB_ARGS, job['args'])
+            end
 
             yield
           end
@@ -40,7 +44,7 @@ module Datadog
           Datadog.configuration[:sidekiq]
         end
 
-        def service_from_worker_config(resource)
+        def worker_config(resource, key)
           # Try to get the Ruby class from the resource name.
           worker_klass = begin
             Object.const_get(resource)
@@ -49,7 +53,7 @@ module Datadog
           end
 
           if worker_klass.respond_to?(:datadog_tracer_config)
-            worker_klass.datadog_tracer_config[:service_name]
+            worker_klass.datadog_tracer_config[key]
           end
         end
       end
