@@ -362,10 +362,12 @@ module Datadog
       # but neither are configured. Verify the sampler isn't already a
       # priority sampler too, so we don't wrap one with another.
       if options.key?(:writer)
-        if writer.priority_sampler.nil?
-          deactivate_priority_sampling!(sampler)
-        else
-          activate_priority_sampling!(writer.priority_sampler)
+        if writer.respond_to?(:priority_sampler)
+          if writer.priority_sampler.nil?
+            deactivate_priority_sampling!(sampler)
+          else
+            activate_priority_sampling!(writer.priority_sampler)
+          end
         end
       elsif priority_sampling != false && !@sampler.is_a?(PrioritySampler)
         writer_options[:priority_sampler] = activate_priority_sampling!(@sampler)

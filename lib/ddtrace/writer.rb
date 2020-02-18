@@ -68,9 +68,7 @@ module Datadog
     # stops worker for spans.
     def stop
       return if worker.nil?
-      @worker.stop
-      @worker = nil
-      true
+      @worker.stop.tap { @worker = nil }
     end
 
     # flush spans to the trace-agent, handles spans only
