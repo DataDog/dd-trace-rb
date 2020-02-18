@@ -108,11 +108,26 @@ module Datadog
         end
       end
 
-      def runtime_metrics(options = nil)
-        runtime_metrics = get_option(:tracer).writer.runtime_metrics
-        return runtime_metrics if options.nil?
+      option :runtime_metrics do |o|
+        o.default { Runtime::Metrics.new }
+        o.lazy
 
-        runtime_metrics.configure(options)
+        # Backwards compatibility for configuring runtime metrics e.g. `c.runtime_metrics { ... }`
+        o.helper :runtime_metrics do |options = nil|
+          tracer = get_option(:tracer)
+          runtime_metrics = if tracer.writer.respond_to?(:runtime_metrics)
+                              # Support use of old Writer which stores runtime metrics
+                              tracer.writer.runtime_metrics
+                            else
+                              # Otherwise use instance from this configuration
+                              get_option(:runtime_metrics)
+                            end
+
+          # Configure if options are passed, otherwise return the instance.
+          runtime_metrics.tap do |r|
+            r.configure(options) unless options.nil?
+          end
+        end
       end
     end
   end

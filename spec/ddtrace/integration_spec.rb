@@ -462,6 +462,97 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  describe 'Workers::TraceWriter' do
+    let(:tracer) { Datadog::Tracer.new }
+    let(:writer) { Datadog::Workers::TraceWriter.new(transport: transport) }
+    let(:transport) { Datadog::Transport::HTTP.default { |t| t.adapter :test } }
+
+    before do
+      # Measure number of traces flushed
+      @traces_flushed = 0
+      allow(transport).to receive(:send_traces).and_wrap_original do |m, *args|
+        @traces_flushed += args.first.length
+        m.call(*args)
+      end
+
+      tracer.configure(
+        enabled: true,
+        priority_sampling: true,
+        writer: writer
+      )
+
+      # Verify Workers::AsyncTraceWriter is configured
+      expect(tracer.writer).to be_a_kind_of(Datadog::Workers::TraceWriter)
+    end
+
+    it 'flushes traces successfully' do
+      3.times do
+        tracer.trace('parent_span') do
+          tracer.trace('child_span') do
+            # Do work
+          end
+        end
+      end
+
+      expect(@traces_flushed).to eq 3
+      transport.stats.tap do |stats|
+        expect(stats.success).to be >= 1
+        expect(stats.client_error).to eq 0
+        expect(stats.server_error).to eq 0
+        expect(stats.internal_error).to eq 0
+      end
+    end
+  end
+
+  describe 'Workers::AsyncTraceWriter' do
+    let(:tracer) { Datadog::Tracer.new }
+    let(:writer) do
+      Datadog::Workers::AsyncTraceWriter.new(
+        transport: transport,
+        interval: 0.1 # Shorten interval to make test run faster
+      )
+    end
+    let(:transport) { Datadog::Transport::HTTP.default { |t| t.adapter :test } }
+
+    before do
+      # Measure number of traces flushed
+      @traces_flushed = 0
+      allow(transport).to receive(:send_traces).and_wrap_original do |m, *args|
+        @traces_flushed += args.first.length
+        m.call(*args)
+      end
+
+      tracer.configure(
+        enabled: true,
+        priority_sampling: true,
+        writer: writer
+      )
+
+      # Verify Workers::AsyncTraceWriter is configured
+      expect(tracer.writer).to be_a_kind_of(Datadog::Workers::AsyncTraceWriter)
+    end
+
+    it 'flushes traces successfully' do
+      3.times do
+        tracer.trace('parent_span') do
+          tracer.trace('child_span') do
+            # Do work
+          end
+        end
+      end
+
+      try_wait_until(attempts: 30) { @traces_flushed == 3 }
+
+      expect(@traces_flushed).to eq 3
+      transport.stats.tap do |stats|
+        expect(stats.success).to be >= 1
+        expect(stats.client_error).to eq 0
+        expect(stats.server_error).to eq 0
+        expect(stats.internal_error).to eq 0
+      end
+    end
+  end
+
   describe 'tracer transport' do
     subject(:configure) do
       tracer.configure(
