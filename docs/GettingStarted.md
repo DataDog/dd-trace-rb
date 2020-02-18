@@ -36,7 +36,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Concurrent Ruby](#concurrent-ruby)
      - [Dalli](#dalli)
      - [DelayedJob](#delayedjob)
-     - [Elasticsearch](#elastic-search)
+     - [Elasticsearch](#elasticsearch)
      - [Ethon & Typhoeus](#ethon)
      - [Excon](#excon)
      - [Faraday](#faraday)
@@ -337,7 +337,7 @@ For a list of available integrations, and their configuration options, please re
 | Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
 | Dalli                    | `dalli`                    | `>= 2.7`                 | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
 | DelayedJob               | `delayed_job`              | `>= 4.1`                 | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
-| Elasticsearch           | `elasticsearch`            | `>= 6.0`                 | *[Link](#elastic-search)*           | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
+| Elasticsearch           | `elasticsearch`            | `>= 6.0`                 | *[Link](#elasticsearch)*           | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
 | Ethon                    | `ethon`                    | `>= 0.11.0`              | *[Link](#ethon)*                    | *[Link](https://github.com/typhoeus/ethon)*                                    |
 | Excon                    | `excon`                    | `>= 0.62`                | *[Link](#excon)*                    | *[Link](https://github.com/excon/excon)*                                       |
 | Faraday                  | `faraday`                  | `>= 0.14`                | *[Link](#faraday)*                  | *[Link](https://github.com/lostisland/faraday)*                                |
