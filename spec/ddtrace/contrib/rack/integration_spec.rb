@@ -68,7 +68,7 @@ RSpec.describe 'Rack integration tests' do
       let(:routes) do
         proc do
           map '/success/' do
-            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
+            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
           end
         end
       end
@@ -230,7 +230,7 @@ RSpec.describe 'Rack integration tests' do
       let(:routes) do
         proc do
           map '/failure/' do
-            run(proc { |_env| [400, { 'Content-Type' => 'text/html' }, 'KO'] })
+            run(proc { |_env| [400, { 'Content-Type' => 'text/html' }, ['KO']] })
           end
         end
       end
@@ -262,7 +262,7 @@ RSpec.describe 'Rack integration tests' do
       let(:routes) do
         proc do
           map '/server_error/' do
-            run(proc { |_env| [500, { 'Content-Type' => 'text/html' }, 'KO'] })
+            run(proc { |_env| [500, { 'Content-Type' => 'text/html' }, ['KO']] })
           end
         end
       end
@@ -377,7 +377,7 @@ RSpec.describe 'Rack integration tests' do
                 request_span.set_tag('http.status_code', 201)
                 request_span.set_tag('http.url', '/app/static/')
 
-                [200, { 'Content-Type' => 'text/html' }, 'OK']
+                [200, { 'Content-Type' => 'text/html' }, ['OK']]
               end)
             end
           end
@@ -427,7 +427,7 @@ RSpec.describe 'Rack integration tests' do
                   request_span.status = 1
                   request_span.set_tag('error.stack', 'Handled exception')
 
-                  [500, { 'Content-Type' => 'text/html' }, 'OK']
+                  [500, { 'Content-Type' => 'text/html' }, ['OK']]
                 end)
               end
             end
@@ -462,7 +462,7 @@ RSpec.describe 'Rack integration tests' do
                   request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
                   request_span.set_tag('error.stack', 'Handled exception')
 
-                  [500, { 'Content-Type' => 'text/html' }, 'OK']
+                  [500, { 'Content-Type' => 'text/html' }, ['OK']]
                 end)
               end
             end
@@ -500,14 +500,14 @@ RSpec.describe 'Rack integration tests' do
               app_tracer.trace('leaky-span-2')
               app_tracer.trace('leaky-span-3')
 
-              [200, { 'Content-Type' => 'text/html' }, 'OK']
+              [200, { 'Content-Type' => 'text/html' }, ['OK']]
             end
 
             run(handler)
           end
 
           map '/success/' do
-            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
+            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
           end
         end
       end
@@ -542,7 +542,7 @@ RSpec.describe 'Rack integration tests' do
                 'X-Request-ID' => 'f058ebd6-02f7-4d3f-942e-904344e8cde5',
                 'X-Fake-Response' => 'Don\'t tag me.'
               }
-              [200, response_headers, 'OK']
+              [200, response_headers, ['OK']]
             end)
           end
         end
