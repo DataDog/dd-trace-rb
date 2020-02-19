@@ -349,7 +349,7 @@ For a list of available integrations, and their configuration options, please re
 | Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
 | Presto                   | `presto`                   | `>= 0.5.14`              | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
 | Racecar                  | `racecar`                  | `>= 0.3.5`               | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
-| Rack                     | `rack`                     | `>= 1.4.7`               | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
+| Rack                     | `rack`                     | `>= 1.1.0`               | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
 | Rails                    | `rails`                    | `>= 3.2`                 | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
 | Rake                     | `rake`                     | `>= 12.0`                | *[Link](#rake)*                     | *[Link](https://github.com/ruby/rake)*                                         |
 | Redis                    | `redis`                    | `>= 3.2`                 | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
