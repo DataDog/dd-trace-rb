@@ -7,16 +7,21 @@ module Datadog
       module Resolvers
         # Matches strings against Regexps.
         class RegexpResolver < Datadog::Contrib::Configuration::Resolver
-          def add_key(pattern)
-            patterns << pattern.is_a?(Regexp) ? pattern : /#{Regexp.quote(pattern)}/
+          def resolve(name)
+            # Co-erce to string
+            name = name.to_s
+
+            # Try to find a matching pattern
+            matching_pattern = patterns.find do |pattern|
+              pattern.is_a?(Regexp) ? pattern =~ name : pattern == name
+            end
+
+            # Return match or default
+            matching_pattern || :default
           end
 
-          def resolve(name)
-            return :default if name == :default
-
-            name = name.to_s
-            matching_pattern = patterns.find { |p| p =~ name }
-            matching_pattern || :default
+          def add(pattern)
+            patterns << (pattern.is_a?(Regexp) ? pattern : pattern.to_s)
           end
 
           private
