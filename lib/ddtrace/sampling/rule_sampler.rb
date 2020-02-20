@@ -86,7 +86,10 @@ module Datadog
         end
       end
 
-      def_delegators :@default_sampler, :update
+      def update(*args)
+        return false unless @default_sampler.respond_to?(:update)
+        @default_sampler.update(*args)
+      end
 
       private
 
