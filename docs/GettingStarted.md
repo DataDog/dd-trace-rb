@@ -45,7 +45,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [gRPC](#grpc)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
-     - [Net/HTTP](#nethttp)
+     - [Net/HTTP](#net-http)
      - [Presto](#presto)
      - [Racecar](#racecar)
      - [Rack](#rack)
