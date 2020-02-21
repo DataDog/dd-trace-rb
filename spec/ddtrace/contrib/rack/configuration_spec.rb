@@ -36,7 +36,7 @@ RSpec.describe 'Rack integration configuration' do
         use Datadog::Contrib::Rack::TraceMiddleware
 
         map '/' do
-          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
+          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
         end
       end.to_app
     end
