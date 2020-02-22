@@ -19,7 +19,7 @@ module Datadog
       end
 
       def associate_with_span(span)
-        return if span.nil?
+        return if !enabled? || span.nil?
 
         # Register service as associated with metrics
         register_service(span.service) unless span.service.nil?
@@ -30,7 +30,7 @@ module Datadog
 
       # Associate service with runtime metrics
       def register_service(service)
-        return if service.nil?
+        return if !enabled? || service.nil?
 
         service = service.to_s
 
