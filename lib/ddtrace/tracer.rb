@@ -9,7 +9,6 @@ require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/workers'
 require 'ddtrace/sampler'
-require 'ddtrace/sampling'
 require 'ddtrace/correlation'
 require 'ddtrace/event'
 require 'ddtrace/runtime/metrics'
@@ -38,23 +37,6 @@ module Datadog
       {}
     end
 
-    # Shorthand that calls the `shutdown!` method of a registered worker.
-    # It's useful to ensure that the Trace Buffer is properly flushed before
-    # shutting down the application.
-    #
-    # For instance:
-    #
-    #   tracer.trace('operation_name', service='rake_tasks') do |span|
-    #     span.set_tag('task.name', 'script')
-    #   end
-    #
-    #   tracer.shutdown!
-    #
-    def shutdown!
-      return unless @enabled
-      @writer.stop unless @writer.nil?
-    end
-
     # Return the current active \Context for this traced execution. This method is
     # automatically called when calling Tracer.trace or Tracer.start_span,
     # but it can be used in the application code during manual instrumentation.
@@ -72,10 +54,7 @@ module Datadog
     #   by default.
     def initialize(options = {})
       @enabled = options.fetch(:enabled, true)
-      @writer = options.fetch(:writer, Datadog::Writer.new)
-      @runtime_metrics_worker = options.fetch(:runtime_metrics_worker, Workers::RuntimeMetrics.new)
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
-
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
@@ -87,23 +66,6 @@ module Datadog
 
       @mutex = Mutex.new
       @tags = {}
-
-      # Publish traces to trace writer by default
-      trace_completed.subscribe(:trace_writer) do |trace|
-        @writer.write(trace)
-      end
-
-      # Publish updates to the runtime metrics worker, too.
-      trace_completed.subscribe(:runtime_metrics) do |trace|
-        # Datadog::Writer does its own runtime metrics... only run if its not that kind of writer.
-        if Datadog.configuration.runtime_metrics_enabled && !writer.is_a?(Writer)
-          @runtime_metrics_worker.metrics.associate_with_span(trace.first) unless trace.empty?
-          @runtime_metrics_worker.perform
-        end
-      end
-
-      # Enable priority sampling by default
-      activate_priority_sampling!(@sampler)
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
@@ -126,8 +88,6 @@ module Datadog
 
       @enabled = enabled unless enabled.nil?
       @sampler = sampler unless sampler.nil?
-
-      configure_writer(options)
 
       @context_flush = if options[:partial_flush]
                          Datadog::ContextFlush::Partial.new(options)
@@ -350,7 +310,7 @@ module Datadog
     # Send the trace to the writer to enqueue the spans list in the agent
     # sending queue.
     def write(trace)
-      return if @writer.nil? || !@enabled
+      return if !@enabled
 
       if Datadog::Logger.debug_logging
         Datadog::Logger.log.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
@@ -360,82 +320,6 @@ module Datadog
       end
 
       trace_completed.publish(trace)
-    end
-
-    # TODO: Move this kind of configuration building out of the tracer.
-    #       Tracer should not have this kind of knowledge of writer.
-    # rubocop:disable Metrics/PerceivedComplexity
-    # rubocop:disable Metrics/CyclomaticComplexity
-    # rubocop:disable Metrics/MethodLength
-    def configure_writer(options = {})
-      hostname = options.fetch(:hostname, nil)
-      port = options.fetch(:port, nil)
-      sampler = options.fetch(:sampler, nil)
-      priority_sampling = options.fetch(:priority_sampling, nil)
-      writer = options.fetch(:writer, nil)
-      transport_options = options.fetch(:transport_options, {})
-
-      # Compile writer options
-      writer_options = options.fetch(:writer_options, {})
-      rebuild_writer = !writer_options.empty?
-
-      # Re-build the sampler and writer if priority sampling is enabled,
-      # but neither are configured. Verify the sampler isn't already a
-      # priority sampler too, so we don't wrap one with another.
-      if options.key?(:writer)
-        if writer.respond_to?(:priority_sampler)
-          if writer.priority_sampler.nil?
-            deactivate_priority_sampling!(sampler)
-          else
-            activate_priority_sampling!(writer.priority_sampler)
-          end
-        end
-      elsif priority_sampling != false && !@sampler.is_a?(PrioritySampler)
-        writer_options[:priority_sampler] = activate_priority_sampling!(@sampler)
-        rebuild_writer = true
-      elsif priority_sampling == false
-        deactivate_priority_sampling!(sampler)
-        rebuild_writer = true
-      elsif @sampler.is_a?(PrioritySampler)
-        # Make sure to add sampler to options if transport is rebuilt.
-        writer_options[:priority_sampler] = @sampler
-      end
-
-      # Apply options to transport
-      if transport_options.is_a?(Proc)
-        transport_options = { on_build: transport_options }
-        rebuild_writer = true
-      end
-
-      if hostname || port
-        transport_options[:hostname] = hostname unless hostname.nil?
-        transport_options[:port] = port unless port.nil?
-        rebuild_writer = true
-      end
-
-      writer_options[:transport_options] = transport_options
-
-      if rebuild_writer || writer
-        # Make sure old writer is shut down before throwing away.
-        # Don't want additional threads running...
-        @writer.stop unless writer.nil?
-        @writer = writer || Writer.new(writer_options)
-      end
-    end
-
-    def activate_priority_sampling!(base_sampler = nil)
-      @sampler = if base_sampler.is_a?(PrioritySampler)
-                   base_sampler
-                 else
-                   PrioritySampler.new(
-                     base_sampler: base_sampler,
-                     post_sampler: Sampling::RuleSampler.new
-                   )
-                 end
-    end
-
-    def deactivate_priority_sampling!(base_sampler = nil)
-      @sampler = base_sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
     end
 
     # Triggered whenever a trace is completed
@@ -450,9 +334,6 @@ module Datadog
     end
 
     private \
-      :activate_priority_sampling!,
-      :configure_writer,
-      :deactivate_priority_sampling!,
       :guess_context_and_parent,
       :record_context,
       :write

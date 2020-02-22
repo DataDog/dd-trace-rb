@@ -18,13 +18,17 @@ module Datadog
       end
     end
 
+    def shutdown!
+      configuration.workers.trace_writer.stop
+    end
+
     # Helper methods
     def tracer
       configuration.tracer
     end
 
     def runtime_metrics
-      configuration.runtime_metrics
+      configuration.workers.runtime_metrics
     end
   end
 end

@@ -81,51 +81,101 @@ module Datadog
         end
       end
 
+      settings :workers do
+        option :trace_writer do |o|
+          o.default { Workers::AsyncTraceWriter.new }
+          o.lazy
+
+          o.setter do |worker, old_worker|
+            old_worker.stop unless old_worker.nil?
+            worker
+          end
+
+          o.resetter do |worker|
+            worker.stop
+            Workers::AsyncTraceWriter.new
+          end
+        end
+
+        option :runtime_metrics do |o|
+          o.default { Workers::RuntimeMetrics.new }
+          o.lazy
+
+          o.setter do |worker, old_worker|
+            old_worker.stop unless old_worker.nil?
+            worker
+          end
+
+          o.resetter do |worker|
+            worker.stop
+            Workers::RuntimeMetrics.new
+          end
+        end
+      end
+
       option :tracer do |o|
         o.default { Tracer.new }
         o.lazy
 
-        # On reset, shut down the old tracer,
-        # then instantiate a new one.
-        o.resetter do |tracer|
-          tracer.shutdown!
-          Tracer.new
+        o.setter do |tracer|
+          tracer.tap do
+            # Route traces to trace writer
+            tracer.trace_completed.subscribe(:trace_writer) do |trace|
+              workers.tracer_writer.write(trace)
+            end
+
+            # Route traces to runtime metrics
+            tracer.trace_completed.subscribe(:runtime_metrics) do |trace|
+              workers.runtime_metrics.associate_with_span(trace.first) unless trace.empty?
+            end
+          end
         end
 
         # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
         o.helper :tracer do |options = nil|
           tracer = options && options.key?(:instance) ? set_option(:tracer, options[:instance]) : get_option(:tracer)
 
-          tracer.tap do |t|
+          tracer.tap do
             unless options.nil?
-              t.configure(options)
+              # Dup options to prevent errant mutation
+              options = options.dup
+
+              # Extract writer configuration and rebuild if necessary.
+              # TODO: Move this behavior elsewhere.
+              #       #tracer has used to configure the writer; this exists for backwards compatibility.
+              writer_options = options.fetch(:writer_options, {})
+
+              [:hostname, :port, :transport_options, :transport].each do |writer_option|
+                writer_options[writer_option] = options.delete(writer_option) if options.key?(writer_option)
+              end
+
+              if !writer_options.empty? || options.key?(:writer)
+                writer = options.fetch(:writer) do
+                  Workers::AsyncTraceWriter.new(writer_options)
+                end
+
+                workers.trace_writer = writer
+              end
+              # END writer configuration
+
+              # Reconfigure the tracer
+              tracer.configure(options)
+
+              # Other options
               Datadog::Logger.log = options[:log] if options[:log]
-              t.set_tags(options[:tags]) if options[:tags]
-              t.set_tags(env: options[:env]) if options[:env]
+              tracer.set_tags(options[:tags]) if options[:tags]
+              tracer.set_tags(env: options[:env]) if options[:env]
               Datadog::Logger.debug_logging = options.fetch(:debug, false)
+
+              # Priority sampling
+              priority_sampling = options.fetch(:priority_sampling, nil)
+
+              if priority_sampling != false && !tracer.sampler.is_a?(Sampling::PrioritySampler)
+                Sampling::PrioritiySampling.activate!(tracer: tracer)
+              elsif priority_sampling == false
+                Sampling::PrioritiySampling.deactivate!(tracer: tracer)
+              end
             end
-          end
-        end
-      end
-
-      option :runtime_metrics do |o|
-        o.default { Runtime::Metrics.new }
-        o.lazy
-
-        # Backwards compatibility for configuring runtime metrics e.g. `c.runtime_metrics { ... }`
-        o.helper :runtime_metrics do |options = nil|
-          tracer = get_option(:tracer)
-          runtime_metrics = if tracer.writer.respond_to?(:runtime_metrics)
-                              # Support use of old Writer which stores runtime metrics
-                              tracer.writer.runtime_metrics
-                            else
-                              # Otherwise use instance from this configuration
-                              get_option(:runtime_metrics)
-                            end
-
-          # Configure if options are passed, otherwise return the instance.
-          runtime_metrics.tap do |r|
-            r.configure(options) unless options.nil?
           end
         end
       end

@@ -8,6 +8,7 @@ require 'thread'
 require 'ddtrace/version'
 
 require 'ddtrace/pin'
+require 'ddtrace/sampling'
 require 'ddtrace/tracer'
 require 'ddtrace/error'
 require 'ddtrace/quantization/hash'
@@ -30,7 +31,7 @@ module Datadog
   # Add shutdown hook:
   # Ensures the tracer has an opportunity to flush traces
   # and cleanup before terminating the process.
-  at_exit { Datadog.tracer.shutdown! }
+  at_exit { Datadog.shutdown! }
 end
 
 require 'ddtrace/contrib/action_cable/integration'
