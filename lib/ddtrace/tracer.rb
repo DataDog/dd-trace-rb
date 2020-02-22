@@ -7,9 +7,12 @@ require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
+require 'ddtrace/workers'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
+require 'ddtrace/event'
+require 'ddtrace/runtime/metrics'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -49,7 +52,6 @@ module Datadog
     #
     def shutdown!
       return unless @enabled
-
       @writer.stop unless @writer.nil?
     end
 
@@ -71,6 +73,7 @@ module Datadog
     def initialize(options = {})
       @enabled = options.fetch(:enabled, true)
       @writer = options.fetch(:writer, Datadog::Writer.new)
+      @runtime_metrics_worker = options.fetch(:runtime_metrics_worker, Workers::RuntimeMetrics.new)
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
 
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
@@ -84,6 +87,20 @@ module Datadog
 
       @mutex = Mutex.new
       @tags = {}
+
+      # Publish traces to trace writer by default
+      trace_completed.subscribe(:trace_writer) do |trace|
+        @writer.write(trace)
+      end
+
+      # Publish updates to the runtime metrics worker, too.
+      trace_completed.subscribe(:runtime_metrics) do |trace|
+        # Datadog::Writer does its own runtime metrics... only run if its not that kind of writer.
+        if Datadog.configuration.runtime_metrics_enabled && !writer.is_a?(Writer)
+          @runtime_metrics_worker.metrics.associate_with_span(trace.first) unless trace.empty?
+          @runtime_metrics_worker.perform
+        end
+      end
 
       # Enable priority sampling by default
       activate_priority_sampling!(@sampler)
@@ -288,6 +305,10 @@ module Datadog
       end
     end
 
+    def trace_completed
+      @trace_completed ||= TraceCompleted.new
+    end
+
     # Record the given +context+. For compatibility with previous versions,
     # +context+ can also be a span. It is similar to the +child_of+ argument,
     # method will figure out what to do, submitting a +span+ for recording
@@ -338,7 +359,7 @@ module Datadog
         Datadog::Logger.log.debug(str)
       end
 
-      @writer.write(trace)
+      trace_completed.publish(trace)
     end
 
     # TODO: Move this kind of configuration building out of the tracer.
@@ -415,6 +436,17 @@ module Datadog
 
     def deactivate_priority_sampling!(base_sampler = nil)
       @sampler = base_sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
+    end
+
+    # Triggered whenever a trace is completed
+    class TraceCompleted < Event
+      def initialize
+        super(:trace_completed)
+      end
+
+      def publish(trace)
+        super(trace)
+      end
     end
 
     private \
