@@ -13,9 +13,10 @@ module Datadog
       end
 
       def set(value)
-        (@value = context_exec(value, &definition.setter)).tap do |v|
+        old_value = @value
+        (@value = context_exec(value, old_value, &definition.setter)).tap do |v|
           @is_set = true
-          context_exec(v, &definition.on_set) if definition.on_set
+          context_exec(v, old_value, &definition.on_set) if definition.on_set
         end
       end
 
