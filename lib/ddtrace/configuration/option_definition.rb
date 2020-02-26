@@ -4,7 +4,7 @@ module Datadog
   module Configuration
     # Represents a definition for an integration configuration option
     class OptionDefinition
-      IDENTITY = ->(x) { x }
+      IDENTITY = ->(new_value, _old_value) { new_value }
 
       attr_reader \
         :default,
