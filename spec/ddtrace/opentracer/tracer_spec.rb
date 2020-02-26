@@ -17,7 +17,7 @@ if Datadog::OpenTracer.supported?
         let(:options) { double('options') }
         let(:datadog_tracer) { double('datadog_tracer') }
 
-        before(:each) do
+        before do
           expect(Datadog::Tracer).to receive(:new)
             .with(options)
             .and_return(datadog_tracer)
@@ -36,7 +36,7 @@ if Datadog::OpenTracer.supported?
       subject(:configure) { tracer.configure(options) }
       let(:options) { double('options') }
 
-      before(:each) do
+      before do
         expect(tracer.datadog_tracer).to receive(:configure)
           .with(options)
       end
@@ -79,7 +79,7 @@ if Datadog::OpenTracer.supported?
       let(:carrier) { instance_double(OpenTracing::Carrier) }
 
       shared_context 'by propagator' do
-        before(:each) do
+        before do
           expect(propagator).to receive(:inject)
             .with(span_context, carrier)
         end
@@ -112,7 +112,7 @@ if Datadog::OpenTracer.supported?
 
         context 'unknown' do
           let(:format) { double('unknown format') }
-          it { expect { inject }.to output("Unknown inject format\n").to_stderr }
+          it { expect { inject }.to output(/Unknown inject format/).to_stderr }
         end
       end
     end
@@ -123,7 +123,7 @@ if Datadog::OpenTracer.supported?
       let(:span_context) { instance_double(Datadog::OpenTracer::SpanContext) }
 
       shared_context 'by propagator' do
-        before(:each) do
+        before do
           expect(propagator).to receive(:extract)
             .with(carrier)
             .and_return(span_context)
@@ -157,7 +157,7 @@ if Datadog::OpenTracer.supported?
 
         context 'unknown' do
           let(:format) { double('unknown format') }
-          before(:each) { expect { extract }.to output("Unknown extract format\n").to_stderr }
+          before { expect { extract }.to output(/Unknown extract format/).to_stderr }
           it { is_expected.to be nil }
         end
       end
