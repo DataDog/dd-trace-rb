@@ -19,16 +19,16 @@ module Datadog
         # primarily to support `ActiveJob`.
         def job_resource(job)
           if job['wrapped']
-            job['wrapped']
+            job['wrapped'].to_s
           elsif job['class'] == 'Sidekiq::Extensions::DelayedClass'
-            delay_extension_class(job)
+            delay_extension_class(job).to_s
           else
-            job['class']
+            job['class'].to_s
           end
         rescue => e
           Datadog::Logger.log.debug { "Error retrieving Sidekiq job class name (jid:#{job['jid']}): #{e}" }
 
-          job['class']
+          job['class'].to_s
         end
 
         #
