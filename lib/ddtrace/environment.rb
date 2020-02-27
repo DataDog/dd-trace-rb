@@ -19,5 +19,7 @@ module Datadog
         end
       end
     end
+
+    extend Helpers
   end
 end
