@@ -19,7 +19,7 @@ module Datadog
         end
 
         def self.compatible?
-          super && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('1.9.3')
+          super && Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('1.9.3')
         end
 
         def default_configuration

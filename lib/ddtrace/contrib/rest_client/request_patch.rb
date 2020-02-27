@@ -9,7 +9,7 @@ module Datadog
       # RestClient RequestPatch
       module RequestPatch
         def self.included(base)
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+          if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
             base.class_eval do
               alias_method :execute_without_datadog, :execute
               remove_method :execute
@@ -29,7 +29,7 @@ module Datadog
 
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
-          include InstanceMethodsCompatibility unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
+          include InstanceMethodsCompatibility unless Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0.0')
 
           def execute(&block)
             uri = URI.parse(url)

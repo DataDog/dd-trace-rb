@@ -4,7 +4,7 @@ module Datadog
       # Instrument ActiveController processing
       module ActionControllerPatch
         def self.included(base)
-          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
+          if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0.0')
             base.send(:prepend, ProcessActionPatch)
           else
             base.class_eval do
@@ -25,7 +25,7 @@ module Datadog
         # ActionController patch
         module ProcessActionPatch
           # compatibility module for Ruby versions not supporting #prepend
-          include ProcessActionCompatibilityPatch unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
+          include ProcessActionCompatibilityPatch unless Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0.0')
 
           def process_action(*args)
             # mutable payload with a tracing context that is used in two different

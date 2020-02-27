@@ -6,7 +6,7 @@ module Datadog
       # Identity
       LANG = 'ruby'.freeze
       LANG_INTERPRETER = begin
-        if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.9')
+        if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.9')
           (RUBY_ENGINE + '-' + RUBY_PLATFORM)
         else
           ('ruby-' + RUBY_PLATFORM)

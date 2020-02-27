@@ -1,7 +1,7 @@
-if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('1.9.3')
+if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('1.9.3')
   raise NotImplementedError, 'Ruby versions < 1.9.3 are not supported!'
-elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION.dup) \
+      && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
   if RUBY_PLATFORM != 'java'
     appraise 'rails30-postgres' do
       gem 'test-unit'
@@ -91,8 +91,8 @@ elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
       gem 'timers', '< 4.2'
     end
   end
-elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
+elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION.dup) \
+      && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.1.0')
   if RUBY_PLATFORM != 'java'
     appraise 'rails30-postgres' do
       gem 'test-unit'
@@ -176,8 +176,8 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'timers', '< 4.2'
     end
   end
-elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION.dup) \
+      && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.2.0')
   if RUBY_PLATFORM != 'java'
     appraise 'rails30-postgres' do
       gem 'test-unit'
@@ -282,8 +282,8 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'timers', '< 4.2'
     end
   end
-elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION.dup) \
+      && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.3.0')
   if RUBY_PLATFORM != 'java'
     appraise 'rails30-postgres' do
       gem 'test-unit'
@@ -421,8 +421,8 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sucker_punch'
     end
   end
-elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
+elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION.dup) \
+      && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.4.0')
   if RUBY_PLATFORM != 'java'
     appraise 'rails30-postgres' do
       gem 'test-unit'
@@ -560,7 +560,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sucker_punch'
     end
   end
-elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
+elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION.dup)
   if RUBY_PLATFORM != 'java'
     appraise 'contrib' do
       gem 'active_model_serializers', '>= 0.10.0'

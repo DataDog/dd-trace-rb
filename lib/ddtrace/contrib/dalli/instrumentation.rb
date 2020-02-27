@@ -9,7 +9,7 @@ module Datadog
       # Instruments every interaction with the memcached server
       module Instrumentation
         def self.included(base)
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+          if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
             base.class_eval do
               alias_method :request_without_datadog, :request
               remove_method :request
@@ -29,7 +29,7 @@ module Datadog
 
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
-          include InstanceMethodsCompatibility unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0.0')
+          include InstanceMethodsCompatibility unless Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0.0')
 
           def request(op, *args)
             tracer.trace(Datadog::Contrib::Dalli::Ext::SPAN_COMMAND) do |span|

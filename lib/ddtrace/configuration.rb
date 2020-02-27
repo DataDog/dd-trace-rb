@@ -37,7 +37,7 @@ module Datadog
 
     # TODO: Remove with version 0.27.0
     def raise_ruby_19_deprecation_warning!
-      return unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0')
+      return unless Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0')
 
       require 'ddtrace/patcher'
 

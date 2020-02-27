@@ -247,7 +247,7 @@ RSpec.describe 'net/http requests' do
         it 'adds distributed tracing headers' do
           # The block syntax only works with Ruby < 2.3 and the hash syntax
           # only works with Ruby >= 2.3, so we need to support both.
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+          if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.3.0')
             expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
               distributed_tracing_headers.all? do |(header, value)|
                 req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
@@ -292,7 +292,7 @@ RSpec.describe 'net/http requests' do
         it 'adds distributed tracing headers' do
           # The block syntax only works with Ruby < 2.3 and the hash syntax
           # only works with Ruby >= 2.3, so we need to support both.
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+          if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.3.0')
             expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
               distributed_tracing_headers.all? do |(header, value)|
                 req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s

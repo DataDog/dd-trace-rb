@@ -2,7 +2,7 @@ module Datadog
   module Utils
     # Common database-related utility functions.
     module Time
-      PROCESS_TIME_SUPPORTED = Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
+      PROCESS_TIME_SUPPORTED = Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.1.0')
 
       module_function
 

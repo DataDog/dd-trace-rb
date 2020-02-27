@@ -21,7 +21,7 @@ module Datadog
 
         def self.compatible?
           super \
-            && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.0') \
+            && Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0') \
             && version >= Gem::Version.new('0.10.0')
         end
 

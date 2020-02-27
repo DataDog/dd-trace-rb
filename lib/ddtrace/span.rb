@@ -240,11 +240,11 @@ module Datadog
 
     private
 
-    if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+    if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
       def now_allocations
         0
       end
-    elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+    elsif Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.2.0')
       def now_allocations
         GC.stat.fetch(:total_allocated_object)
       end

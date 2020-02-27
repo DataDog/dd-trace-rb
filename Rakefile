@@ -1,6 +1,6 @@
 require 'bundler/gem_tasks'
 require 'ddtrace/version'
-require 'rubocop/rake_task' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
+require 'rubocop/rake_task' if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.1.0')
 require 'rspec/core/rake_task'
 require 'rake/testtask'
 require 'appraisal'
@@ -161,7 +161,7 @@ Rake::TestTask.new(:benchmark) do |t|
   t.test_files = FileList['test/benchmark_test.rb']
 end
 
-if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
+if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.1.0')
   RuboCop::RakeTask.new(:rubocop) do |t|
     t.options << ['-D', '--force-exclusion']
     t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'spec/**/*.rb', 'Gemfile', 'Rakefile']
@@ -186,10 +186,10 @@ end
 
 desc 'CI task; it runs all tests for current version of Ruby'
 task :ci do
-  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('1.9.3')
+  if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('1.9.3')
     raise NotImplementedError, 'Ruby versions < 1.9.3 are not supported!'
-  elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+  elsif Gem::Version.new('1.9.3') <= Gem::Version.new(RUBY_VERSION.dup) \
+        && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -232,8 +232,8 @@ task :ci do
       sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails32-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
+  elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION.dup) \
+        && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.1.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -279,8 +279,8 @@ task :ci do
       sh 'bundle exec appraisal rails32-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails32-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+  elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION.dup) \
+        && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.2.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -333,8 +333,8 @@ task :ci do
       sh 'bundle exec appraisal rails4-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails4-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION)\
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+  elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION.dup)\
+        && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.3.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -399,8 +399,8 @@ task :ci do
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
+  elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION.dup) \
+        && Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.4.0')
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
@@ -465,7 +465,7 @@ task :ci do
       sh 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       sh 'bundle exec appraisal rails5-postgres rake spec:rails'
     end
-  elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION)
+  elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION.dup)
     # Main library
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'

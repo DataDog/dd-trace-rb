@@ -19,7 +19,7 @@ RSpec.describe Datadog::Configuration do
           end
         end
 
-        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0')
+        if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0')
           context 'is raised' do
             it do
               expect(Datadog::Tracer.log).to receive(:warn)

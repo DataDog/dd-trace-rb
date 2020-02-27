@@ -16,7 +16,7 @@ module Datadog
         register_as :http, auto_patch: true
 
         def self.version
-          Gem::Version.new(RUBY_VERSION)
+          Gem::Version.new(RUBY_VERSION.dup)
         end
 
         def default_configuration

@@ -12,7 +12,7 @@ module Datadog
       # Instrumentation for Net::HTTP
       module Instrumentation
         def self.included(base)
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+          if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
             base.class_eval do
               # Instance methods
               include InstanceMethodsCompatibility

@@ -38,7 +38,7 @@ RSpec.describe 'Rails trace analytics' do
 
     before(:each) do
       # ActionController::Metal is only patched in 2.0+
-      skip 'Not supported for Ruby < 2.0' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+      skip 'Not supported for Ruby < 2.0' if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
     end
 
     shared_examples_for 'a successful dispatch' do
