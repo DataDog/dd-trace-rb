@@ -13,9 +13,11 @@ require 'support/configuration_helpers'
 require 'support/container_helpers'
 require 'support/faux_transport'
 require 'support/faux_writer'
+require 'support/health_metric_helpers'
 require 'support/http_helpers'
 require 'support/log_helpers'
 require 'support/metric_helpers'
+require 'support/network_helpers'
 require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
@@ -35,9 +37,11 @@ WebMock.disable!
 RSpec.configure do |config|
   config.include ConfigurationHelpers
   config.include ContainerHelpers
+  config.include HealthMetricHelpers
   config.include HttpHelpers
   config.include LogHelpers
   config.include MetricHelpers
+  config.include NetworkHelpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
   config.include TracerHelpers

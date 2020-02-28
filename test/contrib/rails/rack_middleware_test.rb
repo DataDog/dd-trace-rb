@@ -58,7 +58,8 @@ class FullStackTest < ActionDispatch::IntegrationTest
 
     assert_equal(render_span.name, 'rails.render_template')
     assert_equal(render_span.span_type, 'template')
-    assert_equal(render_span.resource, 'rails.render_template')
+    assert_equal(render_span.service, Datadog.configuration[:rails][:service_name])
+    assert_equal(render_span.resource, 'tracing/full.html.erb')
     assert_equal(render_span.get_tag('rails.template_name'), 'tracing/full.html.erb')
 
     adapter_name = get_adapter_name
@@ -77,7 +78,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
       assert_equal(instantiation_span.service, Datadog.configuration[:rails][:service_name])
       assert_equal(instantiation_span.resource, 'Article')
       assert_equal(instantiation_span.get_tag('active_record.instantiation.class_name'), 'Article')
-      assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), '0')
+      assert_equal(instantiation_span.get_tag('active_record.instantiation.record_count'), 0)
     end
 
     assert_equal(cache_span.name, 'rails.cache')

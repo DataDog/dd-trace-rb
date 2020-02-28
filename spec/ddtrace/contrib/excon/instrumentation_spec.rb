@@ -94,7 +94,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
     end
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/failure')
       expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('500')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Error 500')
@@ -173,7 +173,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
             headers = datum[:headers]
             expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => span.trace_id.to_s)
             expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => span.span_id.to_s)
-            expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
+            expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY)
           end
         end
 

@@ -2,6 +2,142 @@
 
 ## [Unreleased]
 
+## [0.32.0] - 2020-01-22
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.32.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.31.1...v0.32.0
+
+### Added
+
+- New transport: Datadog::Transport::IO (#910)
+- Dual License (#893, #921)
+
+### Changed
+
+- Improved annotation of `net/http` spans during exception (#888, #907) (@djmb, @ericmustin)
+- RuleSampler is now the default sampler; no behavior changes by default (#917)
+
+### Refactored
+
+- Improved support for multiple tracer instances (#919)
+- Improvements to test suite (#909, #928, #929)
+
+## [0.31.1] - 2020-01-15
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.31.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...v0.31.1
+
+### Fixed
+
+- Implement SyncWriter#stop method (#914, #915) (@Yurokle)
+- Fix references to Datadog::Tracer.log (#912)
+- Ensure http.status_code tag is always a string (#927)
+
+### Refactored
+
+- Improvements to test suite & CI (#911, #918)
+
+## [0.31.0] - 2020-01-07
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.31.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.30.1...v0.31.0
+
+### Added
+
+- Ruby 2.7 support (#805, #896)
+- ActionCable integration (#132, #824) (@renchap, @ericmustin)
+- Faraday 1.0 support (#906)
+- Set resource for Rails template spans (#855, #881) (@djmb)
+- at_exit hook for graceful Tracer shutdown (#884)
+- Environment variables to configure RuleSampler defaults (#892)
+
+### Changed
+
+- Updated partial trace flushing to conform with new back-end requirements (#845)
+- Store numeric tags as metrics (#886)
+- Moved logging from Datadog::Tracer to Datadog::Logger (#880)
+- Changed default RuleSampler rate limit from unlimited to 100/s (#898)
+
+### Fixed
+
+- SyncWriter incompatibility with Transport::HTTP::Client (#903, #904) (@Yurokle)
+
+### Refactored
+
+- Improvements to test suite & CI (#815, #821, #841, #846, #883, #895)
+
+## [0.30.1] - 2019-12-30
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.30.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.30.0...v0.30.1
+
+### Fixed
+
+- NoMethodError when configuring tracer with SyncWriter (#899, #900) (@Yurokle)
+- Spans associated with runtime metrics when disabled (#885)
+
+### Refactored
+
+- Improvements to test suite & CI (#815, #821, #846, #883, #890, #894)
+
+## [0.30.0] - 2019-12-04
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.30.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.29.1...v0.30.0
+
+### Added
+
+- Additional tracer health metrics (#867)
+- Integration patching instrumentation (#871)
+- Rule-based trace sampling (#854)
+
+### Fixed
+
+- Rails template layout name error (#872) (@djmb)
+
+## [0.29.1] - 2019-11-26
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.29.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.29.0...v0.29.1
+
+### Fixed
+
+- Priority sampling not activating by default (#868)
+
+## [0.29.0] - 2019-11-20
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.29.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.28.0...v0.29.0
+
+### Added
+
+- Tracer health metrics (#838, #859)
+
+### Changed
+
+- Default trace buffer size from 100 to 1000 (#865)
+- Rack request start headers to accept more values (#832) (@JamesHarker)
+- Faraday to apply default instrumentation out-of-the-box (#786, #843) (@mdross95)
+
+### Fixed
+
+- Synthetics trace context being ignored (#856)
+
+### Refactored
+
+- Tracer buffer constants (#851)
+
+### Removed
+
+- Some old Ruby 1.9 code (#819, #844)
+
 ## [0.28.0] - 2019-10-01
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.28.0
@@ -34,16 +170,16 @@ Version 0.26.x will receive only critical bugfixes for 1 year following the rele
 
 ### Added
 
- - Support for Ruby 2.5 & 2.6 (#800, #802)
- - Ethon integration (#527, #778) (@al-kudryavtsev)
+- Support for Ruby 2.5 & 2.6 (#800, #802)
+- Ethon integration (#527, #778) (@al-kudryavtsev)
 
 ### Refactored
 
- - Rails integration into smaller integrations per component (#747, #762, #795)
+- Rails integration into smaller integrations per component (#747, #762, #795)
 
 ### Removed
 
- - Support for Ruby 1.9 (#791)
+- Support for Ruby 1.9 (#791)
 
 ## [0.26.0] - 2019-08-06
 
@@ -97,25 +233,25 @@ Version 0.26.x will receive only critical bugfixes for 1 year following the rele
 
 ### Added
 
- - Unix socket support for transport layer (#770)
+- Unix socket support for transport layer (#770)
 
 ### Changed
 
- - Renamed 'ForcedTracing' to 'ManualTracing' (#765)
+- Renamed 'ForcedTracing' to 'ManualTracing' (#765)
 
 ### Fixed
 
- - HTTP headers for distributed tracing sometimes appearing in duplicate (#768)
+- HTTP headers for distributed tracing sometimes appearing in duplicate (#768)
 
 ### Refactored
 
- - Transport layer (#628)
+- Transport layer (#628)
 
 ### Deprecated
 
- - Ruby < 2.0 support (#771)
- - Use of `Datadog::HTTPTransport` (#628)
- - Use of `Datadog::Ext::ForcedTracing` (#765)
+- Ruby < 2.0 support (#771)
+- Use of `Datadog::HTTPTransport` (#628)
+- Use of `Datadog::Ext::ForcedTracing` (#765)
 
 ## [0.24.0] - 2019-05-21
 
@@ -943,7 +1079,14 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.28.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...master
+[0.32.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.1...v0.32.0
+[0.31.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...v0.31.1
+[0.31.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.30.1...v0.31.0
+[0.30.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.30.0...v0.30.1
+[0.30.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.29.1...v0.30.0
+[0.29.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.29.0...v0.29.1
+[0.29.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.25.1...v0.26.0

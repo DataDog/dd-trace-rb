@@ -5,7 +5,7 @@ RSpec.describe Datadog::Workers::AsyncTransport do
     describe 'when raising errors' do
       it 'does not re-raise' do
         buf = StringIO.new
-        Datadog::Tracer.log = Datadog::Logger.new(buf)
+        Datadog::Logger.log = Datadog::Logger.new(buf)
         task = proc { raise StandardError }
         worker = Datadog::Workers::AsyncTransport.new(
           transport: nil,

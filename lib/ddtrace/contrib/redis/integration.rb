@@ -15,12 +15,12 @@ module Datadog
           Gem.loaded_specs['redis'] && Gem.loaded_specs['redis'].version
         end
 
-        def self.present?
-          super && defined?(::Redis)
+        def self.loaded?
+          defined?(::Redis)
         end
 
         def self.compatible?
-          !version.nil? && version >= Gem::Version.new('3.0.0')
+          super && version >= Gem::Version.new('3.2')
         end
 
         def default_configuration
@@ -29,6 +29,10 @@ module Datadog
 
         def patcher
           Patcher
+        end
+
+        def resolver
+          @resolver ||= Configuration::Resolver.new
         end
       end
     end

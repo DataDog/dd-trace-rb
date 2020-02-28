@@ -106,7 +106,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       end
 
       it 'span tags include number of attempts' do
-        expect(span.get_tag('delayed_job.attempts')).to eq('0')
+        expect(span.get_tag('delayed_job.attempts')).to eq(0)
       end
 
       it_behaves_like 'analytics for integration' do
@@ -128,7 +128,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
         let(:job_params) { { priority: priority } }
 
         it 'span tags include job id' do
-          expect(span.get_tag('delayed_job.priority')).to eq(priority.to_s)
+          expect(span.get_tag('delayed_job.priority')).to eq(priority)
         end
       end
     end

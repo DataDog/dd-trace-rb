@@ -11,22 +11,16 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:aws)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:aws) do
-            begin
-              require 'ddtrace/contrib/aws/parsed_context'
-              require 'ddtrace/contrib/aws/instrumentation'
-              require 'ddtrace/contrib/aws/services'
+          require 'ddtrace/contrib/aws/parsed_context'
+          require 'ddtrace/contrib/aws/instrumentation'
+          require 'ddtrace/contrib/aws/services'
 
-              add_plugin(Seahorse::Client::Base, *loaded_constants)
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply AWS integration: #{e}")
-            end
-          end
+          add_plugin(Seahorse::Client::Base, *loaded_constants)
         end
 
         def add_plugin(*targets)
@@ -34,9 +28,15 @@ module Datadog
         end
 
         def loaded_constants
-          SERVICES.each_with_object([]) do |service, constants|
+          # Cross-check services against loaded AWS constants
+          # Module#const_get can return a constant from ancestors when there's a miss.
+          # If this conincidentally matches another constant, it will attempt to patch
+          # the wrong constant, resulting in patch failure.
+          available_services = ::Aws.constants & SERVICES.map(&:to_sym)
+
+          available_services.each_with_object([]) do |service, constants|
             next if ::Aws.autoload?(service)
-            constants << ::Aws.const_get(service).const_get(:Client) rescue next
+            constants << ::Aws.const_get(service, false).const_get(:Client, false) rescue next
           end
         end
 

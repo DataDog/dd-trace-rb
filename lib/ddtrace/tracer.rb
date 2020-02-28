@@ -5,11 +5,10 @@ require 'pathname'
 
 require 'ddtrace/span'
 require 'ddtrace/context'
-require 'ddtrace/context_flush'
-require 'ddtrace/provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
+require 'ddtrace/sampling'
 require 'ddtrace/correlation'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
@@ -20,57 +19,17 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
-    attr_reader :sampler, :tags, :provider
+    attr_reader :sampler, :tags, :provider, :context_flush
     attr_accessor :enabled, :writer
     attr_writer :default_service
 
     ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
     DEFAULT_ON_ERROR = proc { |span, error| span.set_error(error) unless span.nil? }
 
-    # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
-    # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
-    def self.log
-      unless defined? @logger
-        @logger = Datadog::Logger.new(STDOUT)
-        @logger.level = Logger::WARN
-      end
-      @logger
-    end
-
-    # Override the default logger with a custom one.
-    def self.log=(logger)
-      return unless logger
-      return unless logger.respond_to? :methods
-      return unless logger.respond_to? :error
-      if logger.respond_to? :methods
-        unimplemented = Logger.new(STDOUT).methods - logger.methods
-        unless unimplemented.empty?
-          logger.error("logger #{logger} does not implement #{unimplemented}")
-          return
-        end
-      end
-      @logger = logger
-    end
-
-    # Activate the debug mode providing more information related to tracer usage
-    # Default to Warn level unless using custom logger
-    def self.debug_logging=(value)
-      if value
-        log.level = Logger::DEBUG
-      elsif log.is_a?(Datadog::Logger)
-        log.level = Logger::WARN
-      end
-    end
-
-    # Return if the debug mode is activated or not
-    def self.debug_logging
-      log.level == Logger::DEBUG
-    end
-
     def services
       # Only log each deprecation warning once (safeguard against log spam)
       Datadog::Patcher.do_once('Tracer#set_service_info') do
-        Datadog::Tracer.log.warn('services: Usage of Tracer.services has been deprecated')
+        Datadog::Logger.log.warn('services: Usage of Tracer.services has been deprecated')
       end
 
       {}
@@ -89,8 +48,9 @@ module Datadog
     #   tracer.shutdown!
     #
     def shutdown!
-      return if !@enabled || @writer.worker.nil?
-      @writer.worker.stop
+      return unless @enabled
+
+      @writer.stop unless @writer.nil?
     end
 
     # Return the current active \Context for this traced execution. This method is
@@ -116,10 +76,17 @@ module Datadog
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
       @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
-      @context_flush = options[:partial_flush] ? Datadog::ContextFlush.new(options) : nil
+      @context_flush = if options[:partial_flush]
+                         Datadog::ContextFlush::Partial.new(options)
+                       else
+                         Datadog::ContextFlush::Finished.new
+                       end
 
       @mutex = Mutex.new
       @tags = {}
+
+      # Enable priority sampling by default
+      activate_priority_sampling!(@sampler)
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the
@@ -128,6 +95,7 @@ module Datadog
     # * +enabled+: set if the tracer submits or not spans to the trace agent
     # * +hostname+: change the location of the trace agent
     # * +port+: change the port of the trace agent
+    # * +partial_flush+: enable partial trace flushing
     #
     # For instance, if the trace agent runs in a different location, just:
     #
@@ -138,18 +106,17 @@ module Datadog
 
       # Those are rare "power-user" options.
       sampler = options.fetch(:sampler, nil)
-      max_spans_before_partial_flush = options.fetch(:max_spans_before_partial_flush, nil)
-      min_spans_before_partial_flush = options.fetch(:min_spans_before_partial_flush, nil)
-      partial_flush_timeout = options.fetch(:partial_flush_timeout, nil)
 
       @enabled = enabled unless enabled.nil?
       @sampler = sampler unless sampler.nil?
 
       configure_writer(options)
 
-      @context_flush = Datadog::ContextFlush.new(options) unless min_spans_before_partial_flush.nil? &&
-                                                                 max_spans_before_partial_flush.nil? &&
-                                                                 partial_flush_timeout.nil?
+      @context_flush = if options[:partial_flush]
+                         Datadog::ContextFlush::Partial.new(options)
+                       else
+                         Datadog::ContextFlush::Finished.new
+                       end
     end
 
     # Set the information about the given service. A valid example is:
@@ -160,7 +127,7 @@ module Datadog
     def set_service_info(service, app, app_type)
       # Only log each deprecation warning once (safeguard against log spam)
       Datadog::Patcher.do_once('Tracer#set_service_info') do
-        Datadog::Tracer.log.warn(%(
+        Datadog::Logger.log.warn(%(
           set_service_info: Usage of set_service_info has been deprecated,
           service information no longer needs to be reported to the trace agent.
         ))
@@ -175,7 +142,7 @@ module Datadog
       begin
         @default_service = File.basename($PROGRAM_NAME, '.*')
       rescue StandardError => e
-        Datadog::Tracer.log.error("unable to guess default service: #{e}")
+        Datadog::Logger.log.error("unable to guess default service: #{e}")
         @default_service = 'ruby'.freeze
       end
       @default_service
@@ -230,9 +197,10 @@ module Datadog
         # root span
         @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
-        if ctx && ctx.trace_id && ctx.span_id
+
+        if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
-          span.parent_id = ctx.span_id
+          span.parent_id = ctx.span_id unless ctx.span_id.nil?
         end
       else
         # child span
@@ -297,7 +265,7 @@ module Datadog
             span = start_span(name, options)
           # rubocop:disable Lint/UselessAssignment
           rescue StandardError => e
-            Datadog::Tracer.log.debug('Failed to start span: #{e}')
+            Datadog::Logger.log.debug('Failed to start span: #{e}')
           ensure
             return_value = yield(span)
           end
@@ -327,24 +295,20 @@ module Datadog
     def record(context)
       context = context.context if context.is_a?(Datadog::Span)
       return if context.nil?
-      trace, sampled = context.get
 
-      # If context flushing is configured...
-      if @context_flush
-        if sampled
-          if trace.nil? || trace.empty?
-            @context_flush.each_partial_trace(context) do |t|
-              write(t)
-            end
-          else
-            write(trace)
-          end
-        end
-      # Default behavior
-      else
-        ready = !trace.nil? && !trace.empty? && sampled
-        write(trace) if ready
-      end
+      record_context(context)
+    end
+
+    # Consume trace from +context+, according to +@context_flush+
+    # criteria.
+    #
+    # \ContextFlush#consume! can return nil or an empty list if the
+    # trace is not available to flush or if the trace has not been
+    # chosen to be sampled.
+    def record_context(context)
+      trace = @context_flush.consume!(context)
+
+      write(trace) if trace && !trace.empty?
     end
 
     # Return the current active span or +nil+.
@@ -367,11 +331,11 @@ module Datadog
     def write(trace)
       return if @writer.nil? || !@enabled
 
-      if Datadog::Tracer.debug_logging
-        Datadog::Tracer.log.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
+      if Datadog::Logger.debug_logging
+        Datadog::Logger.log.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
         str = String.new('')
         PP.pp(trace, str)
-        Datadog::Tracer.log.debug(str)
+        Datadog::Logger.log.debug(str)
       end
 
       @writer.write(trace)
@@ -440,7 +404,10 @@ module Datadog
       @sampler = if base_sampler.is_a?(PrioritySampler)
                    base_sampler
                  else
-                   PrioritySampler.new(base_sampler: base_sampler)
+                   PrioritySampler.new(
+                     base_sampler: base_sampler,
+                     post_sampler: Sampling::RuleSampler.new
+                   )
                  end
     end
 
@@ -453,6 +420,7 @@ module Datadog
       :configure_writer,
       :deactivate_priority_sampling!,
       :guess_context_and_parent,
+      :record_context,
       :write
   end
 end

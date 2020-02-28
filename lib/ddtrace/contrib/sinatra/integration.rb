@@ -15,8 +15,8 @@ module Datadog
           Gem.loaded_specs['sinatra'] && Gem.loaded_specs['sinatra'].version
         end
 
-        def self.present?
-          super && defined?(::Sinatra)
+        def self.loaded?
+          defined?(::Sinatra)
         end
 
         def self.compatible?

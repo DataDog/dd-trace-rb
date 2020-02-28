@@ -6,14 +6,52 @@ require 'ddtrace/configuration/settings'
 RSpec.describe Datadog::Configuration::Settings do
   subject(:settings) { described_class.new }
 
+  describe '#sampling' do
+    describe '#rate_limit' do
+      subject(:rate_limit) { settings.sampling.rate_limit }
+
+      context 'default' do
+        it { is_expected.to be 100 }
+      end
+
+      context 'when ENV is provided' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(20.0) }
+      end
+    end
+
+    describe '#default_rate' do
+      subject(:default_rate) { settings.sampling.default_rate }
+
+      context 'default' do
+        it { is_expected.to be nil }
+      end
+
+      context 'when ENV is provided' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Sampling::ENV_SAMPLE_RATE => '0.5') do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(0.5) }
+      end
+    end
+  end
+
   describe '#tracer' do
     let(:tracer) { Datadog::Tracer.new }
-    let(:debug_state) { tracer.class.debug_logging }
+    let(:debug_state) { Datadog::Logger.debug_logging }
     let(:custom_log) { Logger.new(STDOUT) }
 
     context 'given some settings' do
       before(:each) do
-        @original_log = tracer.class.log
+        @original_log = Datadog::Logger.log
 
         settings.tracer(
           enabled: false,
@@ -29,14 +67,14 @@ RSpec.describe Datadog::Configuration::Settings do
       end
 
       after(:each) do
-        tracer.class.debug_logging = debug_state
-        tracer.class.log = @original_log
+        Datadog::Logger.debug_logging = debug_state
+        Datadog::Logger.log = @original_log
       end
 
       it 'applies settings correctly' do
         expect(tracer.enabled).to be false
         expect(debug_state).to be false
-        expect(Datadog::Tracer.log).to eq(custom_log)
+        expect(Datadog::Logger.log).to eq(custom_log)
         expect(tracer.writer.transport.current_api.adapter.hostname).to eq('tracer.host.com')
         expect(tracer.writer.transport.current_api.adapter.port).to eq(1234)
         expect(tracer.tags[:env]).to eq(:config_test)

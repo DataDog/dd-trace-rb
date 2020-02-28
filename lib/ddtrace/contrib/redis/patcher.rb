@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/redis/ext'
+require 'ddtrace/contrib/redis/configuration/resolver'
 
 module Datadog
   module Contrib
@@ -10,25 +11,19 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:redis)
+        def target_version
+          Integration.version
         end
 
         # patch applies our patch if needed
         def patch
-          do_once(:redis) do
-            begin
-              # do not require these by default, but only when actually patching
-              require 'redis'
-              require 'ddtrace/ext/app_types'
-              require 'ddtrace/contrib/redis/tags'
-              require 'ddtrace/contrib/redis/quantize'
+          # do not require these by default, but only when actually patching
+          require 'redis'
+          require 'ddtrace/ext/app_types'
+          require 'ddtrace/contrib/redis/tags'
+          require 'ddtrace/contrib/redis/quantize'
 
-              patch_redis_client
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Redis integration: #{e}")
-            end
-          end
+          patch_redis_client
         end
 
         # rubocop:disable Metrics/MethodLength
@@ -78,16 +73,24 @@ module Datadog
             def datadog_pin
               @datadog_pin ||= begin
                 pin = Datadog::Pin.new(
-                  Datadog.configuration[:redis][:service_name],
+                  datadog_configuration[:service_name],
                   app: Ext::APP,
                   app_type: Datadog::Ext::AppTypes::DB,
-                  tracer: Datadog.configuration[:redis][:tracer]
+                  tracer: datadog_configuration[:tracer]
                 )
                 pin.onto(self)
               end
             end
+
+            private
+
+            def datadog_configuration
+              Datadog.configuration[:redis, options]
+            end
           end
         end
+        # rubocop:enable Metrics/MethodLength
+        # rubocop:enable Metrics/BlockLength
       end
     end
   end

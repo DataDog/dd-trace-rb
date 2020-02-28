@@ -3,9 +3,11 @@ require 'ddtrace/configuration/base'
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/runtime'
+require 'ddtrace/ext/sampling'
 
 require 'ddtrace/tracer'
 require 'ddtrace/metrics'
+require 'ddtrace/diagnostics/health'
 
 module Datadog
   module Configuration
@@ -55,8 +57,33 @@ module Datadog
         end
       end
 
+      settings :sampling do
+        option :default_rate do |o|
+          o.default { env_to_float(Ext::Sampling::ENV_SAMPLE_RATE, nil) }
+          o.lazy
+        end
+
+        option :rate_limit do |o|
+          o.default { env_to_float(Ext::Sampling::ENV_RATE_LIMIT, 100) }
+          o.lazy
+        end
+      end
+
+      settings :diagnostics do
+        option :health_metrics do |o|
+          o.default do
+            Datadog::Diagnostics::Health::Metrics.new(
+              enabled: env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false)
+            )
+          end
+
+          o.lazy
+        end
+      end
+
       option :tracer do |o|
-        o.default Tracer.new
+        o.default { Tracer.new }
+        o.lazy
 
         # On reset, shut down the old tracer,
         # then instantiate a new one.
@@ -72,10 +99,10 @@ module Datadog
           tracer.tap do |t|
             unless options.nil?
               t.configure(options)
-              t.class.log = options[:log] if options[:log]
+              Datadog::Logger.log = options[:log] if options[:log]
               t.set_tags(options[:tags]) if options[:tags]
               t.set_tags(env: options[:env]) if options[:env]
-              t.class.debug_logging = options.fetch(:debug, false)
+              Datadog::Logger.debug_logging = options.fetch(:debug, false)
             end
           end
         end

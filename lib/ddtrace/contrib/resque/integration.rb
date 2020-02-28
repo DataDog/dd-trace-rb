@@ -15,8 +15,14 @@ module Datadog
           Gem.loaded_specs['resque'] && Gem.loaded_specs['resque'].version
         end
 
-        def self.present?
-          super && defined?(::Resque)
+        def self.loaded?
+          defined?(::Resque)
+        end
+
+        def self.compatible?
+          super \
+            && version >= Gem::Version.new('1.0') \
+            && version < Gem::Version.new('2.0')
         end
 
         def default_configuration

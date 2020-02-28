@@ -8,6 +8,7 @@ Gem::Specification.new do |spec|
   spec.name                  = 'ddtrace'
   spec.version               = Datadog::VERSION::STRING
   spec.required_ruby_version = ">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}"
+  spec.required_rubygems_version = '>= 2.0.0'
   spec.authors               = ['Datadog, Inc.']
   spec.email                 = ['dev@datadoghq.com']
 
@@ -46,6 +47,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec-collection_matchers', '~> 1.1'
   spec.add_development_dependency 'minitest', '= 5.10.1'
   spec.add_development_dependency 'appraisal', '~> 2.2'
+  spec.add_development_dependency 'bundler', '<= 2.1.2' # Remove when https://github.com/thoughtbot/appraisal/issues/162 is fixed
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'webmock', '~> 2.0'
   spec.add_development_dependency 'builder'
@@ -58,5 +60,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
   spec.add_development_dependency 'pry', '~> 0.10.4'
   spec.add_development_dependency 'pry-stack_explorer', '~> 0.4.9.2'
-  spec.add_development_dependency 'warning' if RUBY_VERSION >= '2.5.0'
+  spec.add_development_dependency 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 end

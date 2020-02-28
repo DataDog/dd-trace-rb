@@ -11,6 +11,10 @@ module Datadog
             @configurations = configurations
           end
 
+          def resolve(key)
+            normalize(connection_resolver.resolve(key).symbolize_keys)
+          end
+
           def configurations
             @configurations || ::ActiveRecord::Base.configurations
           end
@@ -23,11 +27,6 @@ module Datadog
                 ::Datadog::Vendor::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(configurations)
               end
             end
-          end
-
-          def resolve(spec)
-            return :default if spec == :default
-            normalize(connection_resolver.resolve(spec).symbolize_keys)
           end
 
           def normalize(hash)

@@ -14,8 +14,12 @@ module Datadog
           Gem.loaded_specs['rest-client'] && Gem.loaded_specs['rest-client'].version
         end
 
-        def self.present?
-          super && defined?(::RestClient::Request)
+        def self.loaded?
+          defined?(::RestClient::Request)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('1.8')
         end
 
         def default_configuration

@@ -218,7 +218,7 @@ module Datadog
                 if key == :datadog_rack_request_span \
                   && @datadog_span_warning \
                   && @datadog_deprecation_warnings
-                  Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                  Datadog::Logger.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
                   @datadog_span_warning = true
                 end
                 super
@@ -228,7 +228,7 @@ module Datadog
                 if key == :datadog_rack_request_span \
                   && @datadog_span_warning \
                   && @datadog_deprecation_warnings
-                  Datadog::Tracer.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                  Datadog::Logger.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
                   @datadog_span_warning = true
                 end
                 super

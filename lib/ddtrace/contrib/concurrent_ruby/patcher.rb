@@ -9,20 +9,13 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:concurrent_ruby)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:concurrent_ruby) do
-            begin
-              require 'ddtrace/contrib/concurrent_ruby/future_patch'
-
-              patch_future
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Future integration: #{e}")
-            end
-          end
+          require 'ddtrace/contrib/concurrent_ruby/future_patch'
+          patch_future
         end
 
         # Propagate tracing context in Concurrent::Future

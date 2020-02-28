@@ -15,12 +15,12 @@ module Datadog
           Gem.loaded_specs['faraday'] && Gem.loaded_specs['faraday'].version
         end
 
-        def self.present?
-          super && defined?(::Faraday)
+        def self.loaded?
+          defined?(::Faraday)
         end
 
         def self.compatible?
-          super && version < Gem::Version.new('1.0.0')
+          super && version >= Gem::Version.new('0.14.0')
         end
 
         def default_configuration

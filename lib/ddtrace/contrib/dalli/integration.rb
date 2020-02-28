@@ -15,8 +15,8 @@ module Datadog
           Gem.loaded_specs['dalli'] && Gem.loaded_specs['dalli'].version
         end
 
-        def self.present?
-          super && defined?(::Dalli)
+        def self.loaded?
+          defined?(::Dalli)
         end
 
         def self.compatible?

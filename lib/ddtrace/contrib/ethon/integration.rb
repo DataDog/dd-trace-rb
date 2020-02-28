@@ -14,8 +14,12 @@ module Datadog
           Gem.loaded_specs['ethon'] && Gem.loaded_specs['ethon'].version
         end
 
-        def self.present?
-          super && defined?(::Ethon::Easy)
+        def self.loaded?
+          defined?(::Ethon::Easy)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('0.11.0')
         end
 
         def default_configuration

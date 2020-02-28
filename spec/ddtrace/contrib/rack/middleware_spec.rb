@@ -29,7 +29,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
     end
 
     describe 'deprecation warnings' do
-      before(:each) { allow(Datadog::Tracer.log).to receive(:warn) }
+      before(:each) { allow(Datadog::Logger.log).to receive(:warn) }
 
       # Expect this for backwards compatibility
       context 'backwards compatibility' do
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
         end
 
         it do
-          expect(Datadog::Tracer.log).to_not have_received(:warn)
+          expect(Datadog::Logger.log).to_not have_received(:warn)
             .with(/:datadog_rack_request_span/)
         end
       end
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
         end
 
         it do
-          expect(Datadog::Tracer.log).to_not have_received(:warn)
+          expect(Datadog::Logger.log).to_not have_received(:warn)
             .with(/:datadog_rack_request_span/)
         end
       end

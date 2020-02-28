@@ -15,8 +15,12 @@ module Datadog
           Gem.loaded_specs['excon'] && Gem.loaded_specs['excon'].version
         end
 
-        def self.present?
-          super && defined?(::Excon)
+        def self.loaded?
+          defined?(::Excon)
+        end
+
+        def self.compatible?
+          super && version >= Gem::Version.new('0.62')
         end
 
         def default_configuration

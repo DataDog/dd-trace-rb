@@ -59,7 +59,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with target port' do
-            expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+            expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
           end
 
           it 'has tag with target port' do
@@ -161,7 +161,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             end
 
             it 'has tag with target port' do
-              expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq('80')
+              expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
             end
 
             it 'has tag with target port' do

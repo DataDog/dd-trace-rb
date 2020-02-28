@@ -70,6 +70,11 @@ module Datadog
           options[name].get
         end
 
+        def reset_option(name)
+          assert_valid_option!(name)
+          options[name].reset if options.key?(name)
+        end
+
         def option_defined?(name)
           self.class.options.key?(name)
         end

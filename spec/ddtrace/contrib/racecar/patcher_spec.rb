@@ -55,8 +55,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
-          expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
-          expect(span.get_tag('kafka.offset')).to eq(offset.to_s)
+          expect(span.get_tag('kafka.partition')).to eq(partition)
+          expect(span.get_tag('kafka.offset')).to eq(offset)
           expect(span.get_tag('kafka.first_offset')).to be nil
           expect(span).to_not have_error
         end
@@ -83,8 +83,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
-          expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
-          expect(span.get_tag('kafka.offset')).to eq(offset.to_s)
+          expect(span.get_tag('kafka.partition')).to eq(partition)
+          expect(span.get_tag('kafka.offset')).to eq(offset)
           expect(span.get_tag('kafka.first_offset')).to be nil
           expect(span).to have_error
         end
@@ -129,10 +129,10 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
-          expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
+          expect(span.get_tag('kafka.partition')).to eq(partition)
           expect(span.get_tag('kafka.offset')).to be nil
-          expect(span.get_tag('kafka.first_offset')).to eq(offset.to_s)
-          expect(span.get_tag('kafka.message_count')).to eq(message_count.to_s)
+          expect(span.get_tag('kafka.first_offset')).to eq(offset)
+          expect(span.get_tag('kafka.message_count')).to eq(message_count)
           expect(span).to_not have_error
         end
       end
@@ -157,10 +157,10 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
-          expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
+          expect(span.get_tag('kafka.partition')).to eq(partition)
           expect(span.get_tag('kafka.offset')).to be nil
-          expect(span.get_tag('kafka.first_offset')).to eq(offset.to_s)
-          expect(span.get_tag('kafka.message_count')).to eq(message_count.to_s)
+          expect(span.get_tag('kafka.first_offset')).to eq(offset)
+          expect(span.get_tag('kafka.message_count')).to eq(message_count)
           expect(span).to have_error
         end
       end

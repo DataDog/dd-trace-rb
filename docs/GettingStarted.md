@@ -26,6 +26,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Quickstart for OpenTracing](#quickstart-for-opentracing)
  - [Manual instrumentation](#manual-instrumentation)
  - [Integration instrumentation](#integration-instrumentation)
+     - [Action Cable](#action-cable)
      - [Action View](#action-view)
      - [Active Model Serializers](#active-model-serializers)
      - [Action Pack](#action-pack)
@@ -35,7 +36,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Concurrent Ruby](#concurrent-ruby)
      - [Dalli](#dalli)
      - [DelayedJob](#delayedjob)
-     - [Elastic Search](#elastic-search)
+     - [Elasticsearch](#elasticsearch)
      - [Ethon & Typhoeus](#ethon)
      - [Excon](#excon)
      - [Faraday](#faraday)
@@ -44,7 +45,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [gRPC](#grpc)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
-     - [Net/HTTP](#nethttp)
+     - [Net/HTTP](#net-http)
+     - [Presto](#presto)
      - [Racecar](#racecar)
      - [Rack](#rack)
      - [Rails](#rails)
@@ -80,7 +82,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 | Type  | Documentation              | Version | Support type                         | Gem version support |
 | ----- | -------------------------- | -----   | ------------------------------------ | ------------------- |
-| MRI   | https://www.ruby-lang.org/ | 2.6     | Full                                 | Latest              |
+| MRI   | https://www.ruby-lang.org/ | 2.7     | Full                                 | Latest              |
+|       |                            | 2.6     | Full                                 | Latest              |
 |       |                            | 2.5     | Full                                 | Latest              |
 |       |                            | 2.4     | Full                                 | Latest              |
 |       |                            | 2.3     | Full                                 | Latest              |
@@ -324,16 +327,17 @@ For a list of available integrations, and their configuration options, please re
 
 | Name                     | Key                        | Versions Supported       | How to configure                    | Gem source                                                                     |
 | ------------------------ | -------------------------- | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------ |
-| Action View              | `action_view`              | `>= 3.2`          | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
+| Action Cable             | `action_cable`             | `>= 5.0`                 | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
+| Action View              | `action_view`              | `>= 3.2`                 | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
-| Action Pack              | `action_pack`              | `>= 3.2`          | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
-| Active Record            | `active_record`            | `>= 3.2`          | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
-| Active Support           | `active_support`           | `>= 3.2`          | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
+| Action Pack              | `action_pack`              | `>= 3.2`                 | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
+| Active Record            | `active_record`            | `>= 3.2`                 | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
+| Active Support           | `active_support`           | `>= 3.2`                 | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
 | Dalli                    | `dalli`                    | `>= 2.7`                 | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
 | DelayedJob               | `delayed_job`              | `>= 4.1`                 | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
-| Elastic Search           | `elasticsearch`            | `>= 6.0`                 | *[Link](#elastic-search)*           | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
+| Elasticsearch           | `elasticsearch`            | `>= 6.0`                 | *[Link](#elasticsearch)*           | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
 | Ethon                    | `ethon`                    | `>= 0.11.0`              | *[Link](#ethon)*                    | *[Link](https://github.com/typhoeus/ethon)*                                    |
 | Excon                    | `excon`                    | `>= 0.62`                | *[Link](#excon)*                    | *[Link](https://github.com/excon/excon)*                                       |
 | Faraday                  | `faraday`                  | `>= 0.14`                | *[Link](#faraday)*                  | *[Link](https://github.com/lostisland/faraday)*                                |
@@ -343,11 +347,12 @@ For a list of available integrations, and their configuration options, please re
 | MongoDB                  | `mongo`                    | `>= 2.0`                 | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
+| Presto                   | `presto`                   | `>= 0.5.14`              | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
 | Racecar                  | `racecar`                  | `>= 0.3.5`               | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
-| Rack                     | `rack`                     | `>= 1.4.7`               | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
-| Rails                    | `rails`                    | `>= 3.2`         | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
+| Rack                     | `rack`                     | `>= 1.1.0`               | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
+| Rails                    | `rails`                    | `>= 3.2`                 | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
 | Rake                     | `rake`                     | `>= 12.0`                | *[Link](#rake)*                     | *[Link](https://github.com/ruby/rake)*                                         |
-| Redis                    | `redis`                    | `>= 3.2, < 4.0`          | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
+| Redis                    | `redis`                    | `>= 3.2`                 | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Resque                   | `resque`                   | `>= 1.0, < 2.0`          | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
 | Rest Client              | `rest-client`              | `>= 1.8`                 | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
 | Sequel                   | `sequel`                   | `>= 3.41`                | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
@@ -355,6 +360,28 @@ For a list of available integrations, and their configuration options, please re
 | Sidekiq                  | `sidekiq`                  | `>= 3.5.4`               | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
 | Sinatra                  | `sinatra`                  | `>= 1.4.5`               | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
 | Sucker Punch             | `sucker_punch`             | `>= 2.0`                 | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
+
+### Action Cable
+
+The Action Cable integration traces broadcast messages and channel actions.
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :action_cable, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `action_cable` instrumentation | `'action_cable'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### Action View
 
@@ -612,7 +639,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `service_name` | Service name used for `DelayedJob` instrumentation | `'delayed_job'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
-### Elastic Search
+### Elasticsearch
 
 The Elasticsearch integration will trace any call to `perform_request` in the `Client` object:
 
@@ -624,7 +651,7 @@ Datadog.configure do |c|
   c.use :elasticsearch, options
 end
 
-# Perform a query to ElasticSearch
+# Perform a query to Elasticsearch
 client = Elasticsearch::Client.new url: 'http://127.0.0.1:9200'
 response = client.perform_request 'GET', '_cluster/health'
 ```
@@ -808,6 +835,17 @@ The `use :graphql` method accepts the following parameters. Additional options c
 If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas with different service names), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
 
 ```ruby
+# Class-based schema
+class YourSchema < GraphQL::Schema
+  use(
+    GraphQL::Tracing::DataDogTracing,
+    service: 'graphql'
+  )
+end
+```
+
+```ruby
+# .define-style schema
 YourSchema = GraphQL::Schema.define do
   use(
     GraphQL::Tracing::DataDogTracing,
@@ -819,6 +857,15 @@ end
 Or you can modify an already defined schema:
 
 ```ruby
+# Class-based schema
+YourSchema.use(
+    GraphQL::Tracing::DataDogTracing,
+    service: 'graphql'
+)
+```
+
+```ruby
+# .define-style schema
 YourSchema.define do
   use(
     GraphQL::Tracing::DataDogTracing,
@@ -970,6 +1017,39 @@ client = Net::HTTP.new(host, port)
 Datadog.configure(client, options)
 ```
 
+### Presto
+
+The Presto integration traces any SQL command sent through `presto-client` gem.
+
+```ruby
+require 'presto-client'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :presto, options
+end
+
+client = Presto::Client.new(
+  server: "localhost:8880",
+  ssl: {verify: false},
+  catalog: "native",
+  schema: "default",
+  time_zone: "US/Pacific",
+  language: "English",
+  http_debug: true,
+)
+
+client.run("select * from system.nodes")
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `presto` instrumentation | `'presto'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
+
 ### Racecar
 
 The Racecar integration provides tracing for Racecar jobs.
@@ -1105,7 +1185,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 |  2.2 - 2.3    |  3.0 - 5.2               |
 |  2.4          |  4.2.8 - 5.2             |
 |  2.5          |  4.2.8 - 6.0             |
-|  2.6          |  5.0 - 6.0               |
+|  2.6 - 2.7    |  5.0 - 6.0               |
 
 ### Rake
 
@@ -1211,6 +1291,33 @@ Datadog.configure(invoice_cache, service_name: 'invoice-cache')
 customer_cache.get(...)
 # Traced call will belong to `invoice-cache` service
 invoice_cache.get(...)
+```
+
+**Configuring trace settings per connection**
+
+You can configure trace settings per connection by using the `describes` option:
+
+```ruby
+# Provide a `:describes` option with a connection key.
+# Any of the following keys are acceptable and equivalent to one another.
+# If a block is provided, it yields a Settings object that
+# accepts any of the configuration options listed above.
+
+Datadog.configure do |c|
+  # The default configuration for any redis client
+  c.use :redis, service_name: 'redis-default'
+
+  # The configuration matching a given unix socket
+  c.use :redis, describes: { url: 'unix://path/to/file' }, service_name: 'redis-unix'
+
+  # Connection string
+  c.use :redis, describes: { url: 'redis://127.0.0.1:6379/0' }, service_name: 'redis-connection-string'
+  # Client host, port, db, scheme
+  c.use :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, service_name: 'redis-connection-hash'
+  # Only a subset of the connection hash
+  c.use :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, service_name: 'redis-cache'
+  c.use :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, service_name: 'redis-sidekiq'
+end
 ```
 
 ### Resque
@@ -1356,6 +1463,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `client_service_name` | Service name used for client-side `sidekiq` instrumentation | `'sidekiq-client'` |
 | `service_name` | Service name used for server-side `sidekiq` instrumentation | `'sidekiq'` |
+| `tag_args` | Enable tagging of job arguments. `true` for on, `false` for off. | `false` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### Sinatra
@@ -1450,7 +1558,7 @@ Datadog.configure do |c|
   c.tracer log: Logger.new(f)                 # Overriding the default tracer
 end
 
-Datadog::Tracer.log.info { "this is typically called by tracing code" }
+Datadog::Logger.log.info { "this is typically called by tracing code" }
 ```
 
 ### Environment and tags

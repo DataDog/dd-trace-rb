@@ -15,8 +15,8 @@ module Datadog
           Gem.loaded_specs['mongo'] && Gem.loaded_specs['mongo'].version
         end
 
-        def self.present?
-          super && defined?(::Mongo::Monitoring::Global)
+        def self.loaded?
+          defined?(::Mongo::Monitoring::Global)
         end
 
         def self.compatible?

@@ -12,15 +12,58 @@ RSpec.describe Datadog::Runtime::Metrics do
     let(:span) { instance_double(Datadog::Span, service: service) }
     let(:service) { 'parser' }
 
-    before do
-      expect(span).to receive(:set_tag)
-        .with(Datadog::Ext::Runtime::TAG_LANG, Datadog::Runtime::Identity.lang)
+    context 'when enabled' do
+      before do
+        runtime_metrics.enabled = true
 
-      associate_with_span
+        expect(span).to receive(:set_tag)
+          .with(Datadog::Ext::Runtime::TAG_LANG, Datadog::Runtime::Identity.lang)
+
+        associate_with_span
+      end
+
+      it 'registers the span\'s service' do
+        expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
+      end
     end
 
-    it 'registers the span\'s service' do
-      expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
+    context 'when disabled' do
+      before do
+        runtime_metrics.enabled = false
+        expect(span).to_not receive(:set_tag)
+        associate_with_span
+      end
+
+      it 'registers the span\'s service' do
+        expect(runtime_metrics.default_metric_options[:tags]).to_not include("service:#{service}")
+      end
+    end
+  end
+
+  describe '#register_service' do
+    subject(:register_service) { runtime_metrics.register_service(service) }
+    let(:service) { 'parser' }
+
+    context 'when enabled' do
+      before do
+        runtime_metrics.enabled = true
+        register_service
+      end
+
+      it 'registers the span\'s service' do
+        expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
+      end
+    end
+
+    context 'when disabled' do
+      before do
+        runtime_metrics.enabled = false
+        register_service
+      end
+
+      it 'registers the span\'s service' do
+        expect(runtime_metrics.default_metric_options[:tags]).to_not include("service:#{service}")
+      end
     end
   end
 
@@ -60,7 +103,7 @@ RSpec.describe Datadog::Runtime::Metrics do
       end
 
       context 'when an error is thrown' do
-        before(:each) { allow(Datadog::Tracer.log).to receive(:error) }
+        before(:each) { allow(Datadog::Logger.log).to receive(:error) }
 
         it do
           allow(metric).to receive(:available?)
@@ -68,7 +111,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
           flush
 
-          expect(Datadog::Tracer.log).to have_received(:error)
+          expect(Datadog::Logger.log).to have_received(:error)
             .with(/Error while sending runtime metric./)
             .at_least(:once)
         end
@@ -127,19 +170,17 @@ RSpec.describe Datadog::Runtime::Metrics do
 
       context 'when no services have been registered' do
         it do
-          is_expected.to have(1).items
-
+          is_expected.to include(*Datadog::Metrics.default_metric_options[:tags])
           is_expected.to include('language:ruby')
         end
       end
 
       context 'when services have been registered' do
         let(:services) { %w[parser serializer] }
-        before(:each) { services.each { |service| runtime_metrics.register_service(service) } }
+        before { services.each { |service| runtime_metrics.register_service(service) } }
 
         it do
-          is_expected.to have(3).items
-
+          is_expected.to include(*Datadog::Metrics.default_metric_options[:tags])
           is_expected.to include('language:ruby')
           is_expected.to include(*services.collect { |service| "service:#{service}" })
         end

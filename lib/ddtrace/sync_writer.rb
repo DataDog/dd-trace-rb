@@ -6,6 +6,7 @@ module Datadog
   # SyncWriter flushes both services and traces synchronously
   class SyncWriter
     attr_reader \
+      :priority_sampler,
       :runtime_metrics,
       :transport
 
@@ -19,12 +20,14 @@ module Datadog
       @runtime_metrics = options.fetch(:runtime_metrics) do
         Runtime::Metrics.new
       end
+
+      @priority_sampler = options.fetch(:priority_sampler, nil)
     end
 
     def write(trace, services = nil)
       unless services.nil?
         Datadog::Patcher.do_once('SyncWriter#write') do
-          Datadog::Tracer.log.warn(%(
+          Datadog::Logger.log.warn(%(
             write: Writing services has been deprecated and no longer need to be provided.
             write(traces, services) can be updted to write(traces)
           ))
@@ -35,7 +38,13 @@ module Datadog
         proc { flush_trace(trace) }
       )
     rescue => e
-      Tracer.log.debug(e)
+      Logger.log.debug(e)
+    end
+
+    # Added for interface completeness
+    def stop
+      # No cleanup to do for the SyncWriter
+      true
     end
 
     private
@@ -46,8 +55,9 @@ module Datadog
 
     def flush_trace(trace)
       processed_traces = Pipeline.process!([trace])
+      return if processed_traces.empty?
       inject_hostname!(processed_traces.first) if Datadog.configuration.report_hostname
-      transport.send(:traces, processed_traces)
+      transport.send_traces(processed_traces)
     end
 
     def inject_hostname!(trace)

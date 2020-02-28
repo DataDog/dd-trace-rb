@@ -32,7 +32,8 @@ RSpec.describe Datadog::Transport::HTTP::Client do
     let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
 
     before do
-      allow(response).to receive(:ok?).and_return(true)
+      expect(client).to receive(:update_stats_from_response!)
+        .with(response)
 
       expect(api).to receive(:send_traces) do |env|
         expect(env).to be_a_kind_of(Datadog::Transport::HTTP::Env)

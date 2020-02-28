@@ -21,10 +21,14 @@ class ServerTracerTest < TracerTestBase
     include Sidekiq::Worker
 
     def self.datadog_tracer_config
-      { service_name: 'sidekiq-slow' }
+      { service_name: 'sidekiq-slow', tag_args: true }
     end
 
-    def perform(); end
+    def perform(args); end
+  end
+
+  class DelayableClass
+    def self.do_work; end
   end
 
   def setup
@@ -34,6 +38,7 @@ class ServerTracerTest < TracerTestBase
       chain.add(Datadog::Contrib::Sidekiq::ServerTracer,
                 tracer: @tracer, enabled: true)
     end
+    Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
   end
 
   def test_empty
@@ -49,6 +54,7 @@ class ServerTracerTest < TracerTestBase
     refute_nil(span.get_tag('sidekiq.job.delay'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
+    assert_nil(span.get_tag('sidekiq.job.args'))
   end
 
   # rubocop:disable Lint/HandleExceptions
@@ -70,11 +76,12 @@ class ServerTracerTest < TracerTestBase
     assert_equal('job error', span.get_tag(Datadog::Ext::Errors::MSG))
     assert_equal('ServerTracerTest::TestError', span.get_tag(Datadog::Ext::Errors::TYPE))
     assert_nil(span.parent)
+    assert_nil(span.get_tag('sidekiq.job.args'))
   end
 
   def test_custom
     EmptyWorker.perform_async()
-    CustomWorker.perform_async()
+    CustomWorker.perform_async('random_id')
 
     spans = @writer.spans()
     assert_equal(2, spans.length)
@@ -93,5 +100,11 @@ class ServerTracerTest < TracerTestBase
     assert_equal('default', custom.get_tag('sidekiq.job.queue'))
     assert_equal(0, custom.status)
     assert_nil(custom.parent)
+    assert_equal(['random_id'].to_s, custom.get_tag('sidekiq.job.args'))
+  end
+
+  def test_delayed_extensions
+    DelayableClass.delay.do_work
+    assert_equal('ServerTracerTest::DelayableClass.do_work', @writer.spans.first.resource)
   end
 end
