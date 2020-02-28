@@ -20,7 +20,7 @@ module Datadog
             begin
               ::Presto::Client::Client.send(:include, Instrumentation::Client)
             rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Presto integration: #{e}")
+              Datadog::Logger.log.error("Unable to apply Presto integration: #{e}")
             end
           end
         end
