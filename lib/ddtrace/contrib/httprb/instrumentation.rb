@@ -10,8 +10,8 @@ module Datadog
         # Instance methods for configuration
         module InstanceMethods
           def initialize(default_options = {})
-            if default_options[:features] && !default_options[:features][:datadog_wrap]
-              default_options[:features][:datadog_wrap] = {}
+            if default_options[:features] && !default_options[:features][:instrumentation]
+              default_options[:features][:instrumentation] = {instrumenter: ActiveSupport::Notifications.instrumenter}
             end
 
             super(default_options)

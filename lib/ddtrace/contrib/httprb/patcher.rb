@@ -1,6 +1,5 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/httprb/instrumentation'
-require 'ddtrace/contrib/httprb/datadog_wrap'
 
 module Datadog
   module Contrib
@@ -16,11 +15,14 @@ module Datadog
           done?(:httprb)
         end
 
+        def target_version
+          Integration.version
+        end
         # patch applies our patch
         def patch
           do_once(:httprb) do
             begin
-              register_feature!
+              Events.subscribe!
               ::HTTP::Options.send(:include, Instrumentation)
             rescue StandardError => e
               Datadog::Tracer.log.error("Unable to apply httprb integration: #{e}")
@@ -28,9 +30,9 @@ module Datadog
           end
         end
 
-        def register_feature!
-          ::HTTP::Options.register_feature(:datadog_wrap, Datadog::Contrib::Httprb::DatadogWrap)
-        end
+        # def register_feature!
+        #   ::HTTP::Options.register_feature(:datadog_wrap, Datadog::Contrib::Httprb::DatadogWrap)
+        # end
       end
     end
   end
