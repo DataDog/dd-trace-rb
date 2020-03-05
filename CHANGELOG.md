@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+## [0.33.0] - 2020-03-05
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.33.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...v0.33.0
+
+### Added
+
+- Instrumentation for [Presto](https://github.com/treasure-data/presto-client-ruby) (#775, #920, #961) (@ahammel, @ericmustin)
+- Sidekiq job argument tagging (#933) (@mantrala)
+- Support for multiple Redis services (#861, #937, #940) (@mberlanda)
+- Support for Sidekiq w/ Delayed extensions (#798, #942) (@joeyAghion)
+- Setter/reset behavior for configuration options (#957)
+- Priority sampling rate tag (#891)
+
+### Changed
+
+- Enforced minimum version requirements for instrumentation (#944)
+- RubyGems minimum version requirement 2.0.0 (#954) (@Joas1988)
+- Relaxed Rack minimum version to 1.1.0 (#952)
+
+### Fixed
+
+- AWS instrumentation patching when AWS is partially loaded (#938, #945) (@letiesperon, @illdelph)
+- NoMethodError for RuleSampler with priority sampling (#949, #950) (@BabyGroot)
+- Runtime metrics accumulating service names when disabled (#956)
+- Sidekiq instrumentation incompatibility with Rails 6.0.2 (#943, #947) (@pj0tr)
+- Documentation tweaks (#948, #955) (@mstruve, @link04)
+- Various test suite issues (#930, #932, #951, #960)
+
 ## [0.32.0] - 2020-01-22
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.32.0
@@ -1079,7 +1109,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.0...master
+[0.33.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...v0.33.0
 [0.32.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.1...v0.32.0
 [0.31.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...v0.31.1
 [0.31.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.30.1...v0.31.0
