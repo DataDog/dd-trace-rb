@@ -72,6 +72,7 @@ namespace :spec do
     :graphql,
     :grpc,
     :http,
+    :httparty,
     :mongodb,
     :mysql2,
     :presto,
@@ -187,6 +188,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:excon'
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       sh 'bundle exec appraisal contrib-old rake spec:http'
+      sh 'bundle exec appraisal contrib-old rake spec:httparty'
       sh 'bundle exec appraisal contrib-old rake spec:mongodb'
       sh 'bundle exec appraisal contrib-old rake spec:mysql2'
       sh 'bundle exec appraisal contrib-old rake spec:rack'
@@ -239,6 +241,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:excon'
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       sh 'bundle exec appraisal contrib-old rake spec:http'
+      sh 'bundle exec appraisal contrib-old rake spec:httparty'
       sh 'bundle exec appraisal contrib-old rake spec:mongodb'
       sh 'bundle exec appraisal contrib-old rake spec:mysql2'
       sh 'bundle exec appraisal contrib-old rake spec:rack'
@@ -301,6 +304,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httparty'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:racecar'
@@ -369,6 +373,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httparty'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:racecar'
@@ -439,6 +444,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httparty'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:racecar'
@@ -494,6 +500,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httparty'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:racecar'
@@ -559,6 +566,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httparty'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:racecar'
