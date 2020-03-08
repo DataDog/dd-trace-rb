@@ -10,6 +10,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('3.2')
+
         register_as :shoryuken
 
         def self.version
@@ -17,11 +19,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Shoryuken)
+          !defined?(::Shoryuken).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('4.0.2')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

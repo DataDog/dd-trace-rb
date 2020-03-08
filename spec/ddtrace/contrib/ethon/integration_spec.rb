@@ -1,88 +1,68 @@
 require 'spec_helper'
-require 'ddtrace'
-require 'ddtrace/contrib/ethon/easy_patch'
-require 'ddtrace/contrib/ethon/multi_patch'
-require 'typhoeus'
-require 'stringio'
-require 'webrick'
-require 'ddtrace/contrib/ethon/shared_examples'
 
-RSpec.describe Datadog::Contrib::Ethon do
-  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+require 'ddtrace/contrib/ethon/integration'
 
-  context 'with Easy HTTP request' do
-    subject(:request) do
-      easy = Ethon::Easy.new
-      easy.http_request(url, 'GET', params: query, timeout_ms: timeout * 1000)
-      easy.perform
-      # Use Typhoeus response wrapper to simplify tests
-      Typhoeus::Response.new(easy.mirror.options)
+RSpec.describe Datadog::Contrib::Ethon::Integration do
+  extend ConfigurationHelpers
+
+  let(:integration) { described_class.new(:ethon) }
+
+  describe '.version' do
+    subject(:version) { described_class.version }
+
+    context 'when the "ethon" gem is loaded' do
+      include_context 'loaded gems', ethon: described_class::MINIMUM_VERSION
+      it { is_expected.to be_a_kind_of(Gem::Version) }
     end
 
-    it_behaves_like 'instrumented request' do
-      context 'distributed tracing disabled' do
-        let(:configuration_options) { super().merge(distributed_tracing: false) }
+    context 'when "ethon" gem is not loaded' do
+      include_context 'loaded gems', ethon: nil
+      it { is_expected.to be nil }
+    end
+  end
 
-        shared_examples_for 'does not propagate distributed headers' do
-          let(:return_headers) { true }
+  describe '.loaded?' do
+    subject(:loaded?) { described_class.loaded? }
 
-          it 'does not propagate the headers' do
-            response = request
-            headers = JSON.parse(response.body)['headers']
+    context 'when Ethon::Easy is defined' do
+      before { stub_const('Ethon::Easy', Class.new) }
+      it { is_expected.to be true }
+    end
 
-            expect(headers).not_to include('x-datadog-parent-id', 'x-datadog-trace-id')
-          end
-        end
+    context 'when Ethon::Easy is not defined' do
+      before { hide_const('Ethon::Easy') }
+      it { is_expected.to be false }
+    end
+  end
 
-        it_behaves_like 'does not propagate distributed headers'
+  describe '.compatible?' do
+    subject(:compatible?) { described_class.compatible? }
 
-        context 'with sampling priority' do
-          let(:return_headers) { true }
-          let(:sampling_priority) { 0.2 }
+    context 'when "ethon" gem is loaded with a version' do
+      context 'that is less than the minimum' do
+        include_context 'loaded gems', ethon: decrement_gem_version(described_class::MINIMUM_VERSION)
+        it { is_expected.to be false }
+      end
 
-          before do
-            tracer.provider.context.sampling_priority = sampling_priority
-          end
-
-          it_behaves_like 'does not propagate distributed headers'
-
-          it 'does not propagate sampling priority headers' do
-            response = request
-            headers = JSON.parse(response.body)['headers']
-
-            expect(headers).not_to include('x-datadog-sampling-priority')
-          end
-        end
+      context 'that meets the minimum version' do
+        include_context 'loaded gems', ethon: described_class::MINIMUM_VERSION
+        it { is_expected.to be true }
       end
     end
-  end
 
-  context 'with simple Easy & headers override' do
-    subject(:request) do
-      easy = Ethon::Easy.new(url: url)
-      easy.customrequest = 'GET'
-      easy.set_attributes(timeout_ms: timeout * 1000)
-      easy.headers = { key: 'value' }
-      easy.perform
-      # Use Typhoeus response wrapper to simplify tests
-      Typhoeus::Response.new(easy.mirror.options)
-    end
-
-    it_behaves_like 'instrumented request' do
-      let(:method) { 'N/A' }
+    context 'when gem is not loaded' do
+      include_context 'loaded gems', ethon: nil
+      it { is_expected.to be false }
     end
   end
 
-  context 'with single Multi request' do
-    subject(:request) do
-      multi = Ethon::Multi.new
-      easy = Ethon::Easy.new
-      easy.http_request(url, 'GET', params: query, timeout_ms: timeout * 1000)
-      multi.add(easy)
-      multi.perform
-      Typhoeus::Response.new(easy.mirror.options)
-    end
+  describe '#default_configuration' do
+    subject(:default_configuration) { integration.default_configuration }
+    it { is_expected.to be_a_kind_of(Datadog::Contrib::Ethon::Configuration::Settings) }
+  end
 
-    it_behaves_like 'instrumented request'
+  describe '#patcher' do
+    subject(:patcher) { integration.patcher }
+    it { is_expected.to be Datadog::Contrib::Ethon::Patcher }
   end
 end
