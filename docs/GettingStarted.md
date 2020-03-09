@@ -328,37 +328,37 @@ For a list of available integrations, and their configuration options, please re
 | Name                     | Key                        | Versions Supported       | How to configure                    | Gem source                                                                     |
 | ------------------------ | -------------------------- | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------ |
 | Action Cable             | `action_cable`             | `>= 5.0`                 | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
-| Action View              | `action_view`              | `>= 3.2`                 | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
+| Action View              | `action_view`              | `>= 3.0`                 | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
-| Action Pack              | `action_pack`              | `>= 3.2`                 | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
-| Active Record            | `active_record`            | `>= 3.2`                 | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
-| Active Support           | `active_support`           | `>= 3.2`                 | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
+| Action Pack              | `action_pack`              | `>= 3.0`                 | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
+| Active Record            | `active_record`            | `>= 3.0`                 | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
+| Active Support           | `active_support`           | `>= 3.0`                 | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
-| Dalli                    | `dalli`                    | `>= 2.7`                 | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
+| Dalli                    | `dalli`                    | `>= 2.0`                 | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
 | DelayedJob               | `delayed_job`              | `>= 4.1`                 | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
-| Elasticsearch           | `elasticsearch`            | `>= 6.0`                 | *[Link](#elasticsearch)*           | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
-| Ethon                    | `ethon`                    | `>= 0.11.0`              | *[Link](#ethon)*                    | *[Link](https://github.com/typhoeus/ethon)*                                    |
-| Excon                    | `excon`                    | `>= 0.62`                | *[Link](#excon)*                    | *[Link](https://github.com/excon/excon)*                                       |
+| Elasticsearch            | `elasticsearch`            | `>= 1.0`                 | *[Link](#elasticsearch)*            | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
+| Ethon                    | `ethon`                    | `>= 0.11`                | *[Link](#ethon)*                    | *[Link](https://github.com/typhoeus/ethon)*                                    |
+| Excon                    | `excon`                    | `>= 0.50`                | *[Link](#excon)*                    | *[Link](https://github.com/excon/excon)*                                       |
 | Faraday                  | `faraday`                  | `>= 0.14`                | *[Link](#faraday)*                  | *[Link](https://github.com/lostisland/faraday)*                                |
 | Grape                    | `grape`                    | `>= 1.0`                 | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL                  | `graphql`                  | `>= 1.7.9`               | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
-| gRPC                     | `grpc`                     | `>= 1.10`                | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
-| MongoDB                  | `mongo`                    | `>= 2.0`                 | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
+| gRPC                     | `grpc`                     | `>= 1.7`                 | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
+| MongoDB                  | `mongo`                    | `>= 2.1`                 | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
 | Presto                   | `presto`                   | `>= 0.5.14`              | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
 | Racecar                  | `racecar`                  | `>= 0.3.5`               | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
-| Rack                     | `rack`                     | `>= 1.1.0`               | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
-| Rails                    | `rails`                    | `>= 3.2`                 | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
+| Rack                     | `rack`                     | `>= 1.1`                 | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
+| Rails                    | `rails`                    | `>= 3.0`                 | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
 | Rake                     | `rake`                     | `>= 12.0`                | *[Link](#rake)*                     | *[Link](https://github.com/ruby/rake)*                                         |
 | Redis                    | `redis`                    | `>= 3.2`                 | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Resque                   | `resque`                   | `>= 1.0, < 2.0`          | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
 | Rest Client              | `rest-client`              | `>= 1.8`                 | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
 | Sequel                   | `sequel`                   | `>= 3.41`                | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
-| Shoryuken                | `shoryuken`                | `>= 4.0.2`               | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
+| Shoryuken                | `shoryuken`                | `>= 3.2`                 | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
 | Sidekiq                  | `sidekiq`                  | `>= 3.5.4`               | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
-| Sinatra                  | `sinatra`                  | `>= 1.4.5`               | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
+| Sinatra                  | `sinatra`                  | `>= 1.4`                 | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
 | Sucker Punch             | `sucker_punch`             | `>= 2.0`                 | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
 
 ### Action Cable

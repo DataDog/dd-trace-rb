@@ -9,6 +9,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('0.9')
+
         register_as :concurrent_ruby
 
         def self.version
@@ -16,11 +18,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Concurrent::Future)
+          !defined?(::Concurrent::Future).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('0.9')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

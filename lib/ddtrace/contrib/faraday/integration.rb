@@ -9,6 +9,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('0.14.0')
+
         register_as :faraday, auto_patch: true
 
         def self.version
@@ -16,11 +18,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Faraday)
+          !defined?(::Faraday).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('0.14.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

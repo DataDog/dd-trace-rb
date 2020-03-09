@@ -9,6 +9,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('2.0')
+
         register_as :aws, auto_patch: true
 
         def self.version
@@ -20,11 +22,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Seahorse::Client::Base)
+          !defined?(::Seahorse::Client::Base).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('2.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

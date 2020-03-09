@@ -9,6 +9,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('2.1.0')
+
         register_as :mongo, auto_patch: true
 
         def self.version
@@ -16,11 +18,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Mongo::Monitoring::Global)
+          !defined?(::Mongo::Monitoring::Global).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('2.1.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

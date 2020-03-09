@@ -9,6 +9,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('0.9.0')
+
         register_as :active_model_serializers
 
         def self.version
@@ -17,11 +19,12 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::ActiveModel::Serializer) && defined?(::ActiveSupport::Notifications)
+          !defined?(::ActiveModel::Serializer).nil? \
+            && !defined?(::ActiveSupport::Notifications).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('0.9.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration
