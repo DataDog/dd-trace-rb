@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.33.1] - 2020-03-09
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.33.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.33.0...v0.33.1
+
+### Fixed
+
+- NoMethodError when activating instrumentation for non-existent library (#964, #966) (@roccoblues, @brafales)
+
 ## [0.33.0] - 2020-03-05
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.33.0
@@ -1109,7 +1119,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...master
+[0.33.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.0...v0.33.1
 [0.33.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...v0.33.0
 [0.32.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.1...v0.32.0
 [0.31.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...v0.31.1
