@@ -42,7 +42,7 @@ RSpec.describe 'Faraday middleware' do
   end
 
   context 'without explicit middleware configured' do
-    subject!(:response) { client.get('/success') }
+    subject(:response) { client.get('/success') }
     let(:use_middleware) { false }
 
     it 'uses default configuration' do
@@ -59,6 +59,10 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
+    end
+
+    it 'executes without warnings' do
+      expect { response }.to_not output(/WARNING/).to_stderr
     end
   end
 

@@ -381,6 +381,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:ethon'
+      # Contrib specs with old gem versions
+      sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
@@ -451,6 +453,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:ethon'
+      # Contrib specs with old gem versions
+      sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
       # We only test Rails 5+ because older versions require Bundler < 2.0
       sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
@@ -506,6 +510,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:ethon'
+      # Contrib specs with old gem versions
+      sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
       # We only test Rails 5+ because older versions require Bundler < 2.0
       sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
@@ -571,6 +577,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:ethon'
+      # Contrib specs with old gem versions
+      sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
       # We only test Rails 5+ because older versions require Bundler < 2.0
       sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
@@ -635,6 +643,8 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:ethon'
+      # Contrib specs with old gem versions
+      sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
       # We only test Rails 5+ because older versions require Bundler < 2.0
       sh 'bundle exec appraisal rails5-mysql2 rake test:rails'
