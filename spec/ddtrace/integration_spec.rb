@@ -2,6 +2,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/tracer'
+require 'datadog/statsd'
 require 'thread'
 
 RSpec.describe 'Tracer integration tests' do
@@ -619,6 +620,75 @@ RSpec.describe 'Tracer integration tests' do
           expect(spans2[1].name).to eq('thread_test2')
         end
       end
+    end
+  end
+
+  describe 'trace writer runtime metrics configuration' do
+    let(:hostname) { double('example_hostname') }
+    let(:base_namespace) { 'original_example_namespace' }
+    let(:updated_namespace) { 'updated_example_namespace' }
+    let(:statsd_client) { Datadog::Statsd.new(hostname, 8125, tags: [], namespace: base_namespace) }
+    let(:statsd_client_updated) { Datadog::Statsd.new(hostname, 8125, tags: [], namespace: updated_namespace) }
+    let(:transport) { Datadog::Transport::HTTP.default }
+
+    let(:writer_without_runtime) do
+      Datadog::Writer.new(
+        transport: transport,
+        priority_sampler: Datadog::PrioritySampler.new
+      )
+    end
+
+    let(:writer_with_runtime) do
+      Datadog::Writer.new(
+        transport: transport,
+        priority_sampler: Datadog::PrioritySampler.new,
+        runtime_metrics: Datadog::Runtime::Metrics.new(statsd: statsd_client_updated)
+      )
+    end
+
+    after(:each) do
+      statsd_client.close
+      statsd_client_updated.close
+    end
+
+    it 'should propogate runtime metrics configuration to the new writer when rebuilt' do
+      Datadog.configure do |c|
+        c.runtime_metrics_enabled
+        c.runtime_metrics statsd: statsd_client
+        c.tracer host: hostname
+      end
+
+      expect(Datadog.tracer.writer.runtime_metrics.statsd.namespace).to eq(base_namespace)
+    end
+
+    it 'should set runtime metrics configuration regardless of order' do
+      Datadog.configure do |c|
+        c.runtime_metrics_enabled
+        c.tracer host: hostname, writer: writer_without_runtime
+        c.runtime_metrics statsd: statsd_client
+      end
+
+      expect(Datadog.tracer.writer.runtime_metrics.statsd.namespace).to eq(base_namespace)
+    end
+
+    it 'should use new writer runtime metric configuration when available' do
+      Datadog.configure do |c|
+        c.runtime_metrics_enabled
+        c.runtime_metrics statsd: statsd_client
+        c.tracer host: hostname, writer: writer_with_runtime
+      end
+
+      expect(Datadog.tracer.writer.runtime_metrics.statsd.namespace).to eq(updated_namespace)
+    end
+
+    it 'should prioritize default writer runtime metric configuration when any writer is configured' do
+      Datadog.configure do |c|
+        c.runtime_metrics_enabled
+        c.runtime_metrics statsd: statsd_client
+        c.tracer host: hostname, writer: writer_without_runtime
+      end
+
+      expect(Datadog.tracer.writer.runtime_metrics.statsd.namespace).to eq(nil)
     end
   end
 end
