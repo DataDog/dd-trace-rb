@@ -624,7 +624,7 @@ RSpec.describe 'Tracer integration tests' do
   end
 
   describe 'trace writer runtime metrics configuration' do
-    let(:hostname) { double('hostname') }
+    let(:hostname) { double('example_hostname') }
     let(:base_namespace) { 'original_example_namespace' }
     let(:updated_namespace) { 'updated_example_namespace' }
     let(:statsd_client) { Datadog::Statsd.new(hostname, 8125, tags: [], namespace: base_namespace) }
