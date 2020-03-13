@@ -44,6 +44,8 @@ RSpec.describe 'Dalli instrumentation' do
       let(:analytics_sample_rate_var) { Datadog::Contrib::Dalli::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
+    it_behaves_like 'measured span for integration', false
+
     it 'calls instrumentation' do
       expect(all_spans.size).to eq(1)
       expect(span.service).to eq('memcached')

@@ -85,6 +85,9 @@ module Datadog
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
               end
 
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
+
               # catch thrown exceptions
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
 
@@ -126,6 +129,9 @@ module Datadog
 
             # catch thrown exceptions
             begin
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
+
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
             ensure
               span.start_time = start
@@ -155,6 +161,9 @@ module Datadog
               if analytics_enabled?
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
               end
+
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?

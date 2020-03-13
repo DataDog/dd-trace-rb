@@ -42,6 +42,8 @@ RSpec.describe 'AWS instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::Aws::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
+      it_behaves_like 'measured span for integration', false
+
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')

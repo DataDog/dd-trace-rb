@@ -37,6 +37,9 @@ module Datadog
                 Ext::TAG_TEMPLATE_NAME,
                 template_name
               )
+
+              # Measure service stats
+              Contrib::Analytics.set_measured(active_datadog_span)
             end
           end
 

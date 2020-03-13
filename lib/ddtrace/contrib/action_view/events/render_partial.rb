@@ -31,6 +31,9 @@ module Datadog
               span.set_tag(Ext::TAG_TEMPLATE_NAME, template_name)
             end
 
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
             record_exception(span, payload)
           rescue StandardError => e
             Datadog::Logger.log.debug(e.message)

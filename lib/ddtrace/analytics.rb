@@ -11,7 +11,8 @@ module Datadog
 
       def set_measured(span, value = true)
         return if span.nil?
-        value = [true, 1].include?(value) ? 1 : 0
+        # rubocop:disable Style/MultipleComparison
+        value = value == true || value == 1 ? 1 : 0
         span.set_metric(Datadog::Ext::Analytics::TAG_MEASURED, value)
       end
     end
