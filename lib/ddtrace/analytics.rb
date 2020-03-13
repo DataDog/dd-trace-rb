@@ -8,6 +8,12 @@ module Datadog
         return if span.nil? || !sample_rate.is_a?(Numeric)
         span.set_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE, sample_rate)
       end
+
+      def set_measured(span, value = true)
+        return if span.nil?
+        value = [true, 1].include?(value) ? 1 : 0
+        span.set_metric(Datadog::Ext::Analytics::TAG_MEASURED, value)
+      end
     end
 
     # Extension for Datadog::Span

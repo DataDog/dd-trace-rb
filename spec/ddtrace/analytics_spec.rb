@@ -42,6 +42,82 @@ RSpec.describe Datadog::Analytics do
       end
     end
   end
+
+  describe '.set_measured' do
+    subject(:set_measured) { described_class.set_measured(span) }
+    let(:span) { instance_double(Datadog::Span) }
+
+    before do
+      allow(span).to receive(:set_metric) unless span.nil?
+      set_measured
+    end
+
+    context 'given a nil span' do
+      let(:span) { nil }
+      it { expect { set_measured }.to_not raise_error }
+    end
+
+    context 'given only a span' do
+      it do
+        expect(span).to have_received(:set_metric)
+          .with(Datadog::Ext::Analytics::TAG_MEASURED, 1)
+      end
+    end
+
+    context 'given a span and value that is' do
+      subject(:set_measured) { described_class.set_measured(span, value) }
+
+      context 'nil' do
+        let(:value) { nil }
+        it do
+          expect(span).to have_received(:set_metric)
+            .with(Datadog::Ext::Analytics::TAG_MEASURED, 0)
+        end
+      end
+
+      context 'true' do
+        let(:value) { true }
+        it do
+          expect(span).to have_received(:set_metric)
+            .with(Datadog::Ext::Analytics::TAG_MEASURED, 1)
+        end
+      end
+
+      context 'false' do
+        let(:value) { false }
+        it do
+          expect(span).to have_received(:set_metric)
+            .with(Datadog::Ext::Analytics::TAG_MEASURED, 0)
+        end
+      end
+
+      context 'a String' do
+        let(:value) { 'true' }
+        it do
+          expect(span).to have_received(:set_metric)
+            .with(Datadog::Ext::Analytics::TAG_MEASURED, 0)
+        end
+      end
+
+      context 'an Integer' do
+        let(:value) { 1 }
+
+        it do
+          expect(span).to have_received(:set_metric)
+            .with(Datadog::Ext::Analytics::TAG_MEASURED, 1)
+        end
+      end
+
+      context 'a Float' do
+        let(:value) { 1.0 }
+
+        it do
+          expect(span).to have_received(:set_metric)
+            .with(Datadog::Ext::Analytics::TAG_MEASURED, value)
+        end
+      end
+    end
+  end
 end
 
 RSpec.describe Datadog::Analytics::Span do
