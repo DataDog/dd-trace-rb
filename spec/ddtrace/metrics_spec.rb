@@ -613,6 +613,59 @@ RSpec.describe Datadog::Metrics do
   end
 end
 
+RSpec.describe Datadog::Metrics::Options do
+  context 'when included into a class' do
+    subject(:instance) { options_class.new }
+    let(:options_class) { stub_const('OptionsClass', Class.new { include Datadog::Metrics::Options }) }
+
+    describe '#default_metric_options' do
+      subject(:default_metric_options) { instance.default_metric_options }
+
+      it { is_expected.to be_a_kind_of(Hash) }
+      it { expect(default_metric_options.frozen?).to be false }
+
+      describe ':tags' do
+        subject(:default_tags) { default_metric_options[:tags] }
+
+        it { is_expected.to be_a_kind_of(Array) }
+        it { expect(default_tags.frozen?).to be false }
+        it 'includes default tags' do
+          is_expected.to include(
+            "#{Datadog::Ext::Metrics::TAG_LANG}:#{Datadog::Runtime::Identity.lang}",
+            "#{Datadog::Ext::Metrics::TAG_LANG_INTERPRETER}:#{Datadog::Runtime::Identity.lang_interpreter}",
+            "#{Datadog::Ext::Metrics::TAG_LANG_VERSION}:#{Datadog::Runtime::Identity.lang_version}",
+            "#{Datadog::Ext::Metrics::TAG_TRACER_VERSION}:#{Datadog::Runtime::Identity.tracer_version}"
+          )
+        end
+
+        context "when #{Datadog::Ext::Environment::ENV_ENVIRONMENT}" do
+          context 'is not defined' do
+            around do |example|
+              ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => nil) do
+                example.run
+              end
+            end
+
+            it { is_expected.to_not include(/env:/) }
+          end
+
+          context 'is defined' do
+            let(:environment) { 'my-env' }
+
+            around do |example|
+              ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => environment) do
+                example.run
+              end
+            end
+
+            it { is_expected.to include("env:#{environment}") }
+          end
+        end
+      end
+    end
+  end
+end
+
 RSpec.describe Datadog::Metrics::Logging::Adapter do
   subject(:adapter) { described_class.new(logger) }
   let(:logger) { instance_double(Logger) }
