@@ -19,6 +19,36 @@ RSpec.describe Datadog::Tracer do
     end
   end
 
+  describe '#tags' do
+    subject(:tags) { tracer.tags }
+
+    it { is_expected.to be_a_kind_of(Hash) }
+
+    context "when #{Datadog::Ext::Environment::ENV_ENVIRONMENT}" do
+      context 'is not defined' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => nil) do
+            example.run
+          end
+        end
+
+        it { is_expected.to_not include(:env) }
+      end
+
+      context 'is defined' do
+        let(:environment) { 'my-env' }
+
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => environment) do
+            example.run
+          end
+        end
+
+        it { is_expected.to include(env: environment) }
+      end
+    end
+  end
+
   describe '#trace' do
     let(:name) { 'span.name' }
     let(:options) { {} }
