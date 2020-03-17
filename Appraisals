@@ -180,6 +180,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'presto-client', '>=  0.5.14'      
       gem 'ethon'
       gem 'excon'
       gem 'hiredis'
@@ -335,6 +336,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'presto-client', '>=  0.5.14'
       gem 'ethon'
       gem 'excon'
       gem 'faraday'
@@ -580,6 +582,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-test'
@@ -691,6 +694,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'presto-client', '>=  0.5.14'      
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-test'
