@@ -10,7 +10,7 @@ services:
       - mongodb
       - mysql
       - postgres
-      - prestoo
+      - presto
       - redis
     env_file: ./.env
     environment:

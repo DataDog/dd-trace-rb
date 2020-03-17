@@ -84,11 +84,6 @@ RSpec.describe 'Presto::Client instrumentation' do
         expect(span.get_tag('presto.model_version')).to eq(model_version)
         expect(span.get_tag('out.host')).to eq("#{host}:#{port}")
       end
-
-      it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_SAMPLE_RATE }
-      end
     end
 
     shared_examples_for 'a configurable Presto trace' do
@@ -199,12 +194,20 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
     end
 
+    shared_examples_for 'analytics' do
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+    end
+
     describe '#run operation' do
       before(:each) { client.run('SELECT 1') }
 
       it_behaves_like 'a Presto trace'
       it_behaves_like 'a configurable Presto trace'
       it_behaves_like 'a synchronous query trace'
+      it_behaves_like 'analytics'
 
       it 'has a query resource'  do
         expect(span.resource).to eq('SELECT 1')
@@ -259,6 +262,7 @@ RSpec.describe 'Presto::Client instrumentation' do
         it_behaves_like 'a configurable Presto trace'
         it_behaves_like 'a query trace'
         it_behaves_like 'a synchronous query trace'
+        it_behaves_like 'analytics'
       end
 
       context 'given a block parameter' do
@@ -268,6 +272,7 @@ RSpec.describe 'Presto::Client instrumentation' do
         it_behaves_like 'a configurable Presto trace'
         it_behaves_like 'a query trace'
         it_behaves_like 'an asynchronous query trace'
+        it_behaves_like 'analytics'
       end
     end
 
@@ -278,6 +283,7 @@ RSpec.describe 'Presto::Client instrumentation' do
 
       it_behaves_like 'a Presto trace'
       it_behaves_like 'a configurable Presto trace'
+      it_behaves_like 'analytics'
 
       it 'has a kill resource' do
         expect(span.resource).to eq(Datadog::Contrib::Presto::Ext::SPAN_KILL)
@@ -297,6 +303,7 @@ RSpec.describe 'Presto::Client instrumentation' do
 
       it_behaves_like 'a Presto trace'
       it_behaves_like 'a configurable Presto trace'
+      it_behaves_like 'analytics'
 
       it 'has a query resource' do
         expect(span.resource).to eq('SELECT 1')
