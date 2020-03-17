@@ -10,7 +10,6 @@ services:
       - mongodb
       - mysql
       - postgres
-      - presto
       - redis
     env_file: ./.env
     environment:
@@ -21,9 +20,7 @@ services:
       - TEST_MEMCACHED_HOST=memcached
       - TEST_MONGODB_HOST=mongodb
       - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080      
+      - TEST_POSTGRES_HOST=postgres   
       - TEST_REDIS_HOST=redis
     stdin_open: true
     tty: true
