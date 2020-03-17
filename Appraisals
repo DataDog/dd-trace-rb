@@ -75,7 +75,6 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
-      gem 'presto-client', '>=  0.5.14'
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
       gem 'rack-test', '0.7.0'
