@@ -230,7 +230,7 @@ RSpec.describe 'Presto::Client instrumentation' do
         it 'is an error' do
           expect(span).to have_error
           expect(span).to have_error_type('Presto::Client::PrestoQueryError')
-          expect(span).to have_error_message("Column 'banana' cannot be resolved")
+          expect(span).to have_error_message(/Column 'banana' cannot be resolved/)
         end
       end
     end
