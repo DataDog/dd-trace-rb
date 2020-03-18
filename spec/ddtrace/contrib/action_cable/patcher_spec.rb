@@ -69,6 +69,10 @@ RSpec.describe 'ActionCable patcher' do
         let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'measured span for integration', false do
+        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Broadcast::EVENT_NAME) }
+      end
     end
   end
 
@@ -103,6 +107,10 @@ RSpec.describe 'ActionCable patcher' do
         before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::PerformAction::EVENT_NAME) }
         let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+
+      it_behaves_like 'measured span for integration', true do
+        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::PerformAction::EVENT_NAME) }
       end
 
       context 'with a leaking context' do
@@ -146,6 +154,10 @@ RSpec.describe 'ActionCable patcher' do
         before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Transmit::EVENT_NAME) }
         let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+
+      it_behaves_like 'measured span for integration', false do
+        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Transmit::EVENT_NAME) }
       end
     end
   end

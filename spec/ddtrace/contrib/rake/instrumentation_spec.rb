@@ -97,6 +97,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           let(:analytics_enabled_var) { Datadog::Contrib::Rake::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Contrib::Rake::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
+
+        it_behaves_like 'measured span for integration', true do
+          let(:span) { invoke_span }
+        end
       end
 
       describe '\'rake.execute\' span' do

@@ -98,6 +98,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         let(:analytics_enabled_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'measured span for integration', false
     end
 
     # Expects every value (except for keys) to be quantized.

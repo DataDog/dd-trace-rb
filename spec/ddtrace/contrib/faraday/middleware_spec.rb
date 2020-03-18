@@ -85,6 +85,8 @@ RSpec.describe 'Faraday middleware' do
       let(:span) { request_span }
     end
 
+    it_behaves_like 'measured span for integration', false
+
     it do
       expect(request_span).to_not be nil
       expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)

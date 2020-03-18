@@ -15,6 +15,10 @@ module Datadog
       def set_sample_rate(span, sample_rate)
         Datadog::Analytics.set_sample_rate(span, sample_rate)
       end
+
+      def set_measured(span, value = true)
+        Datadog::Analytics.set_measured(span, value)
+      end
     end
   end
 end

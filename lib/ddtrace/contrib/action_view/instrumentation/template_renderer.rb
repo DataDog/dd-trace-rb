@@ -50,6 +50,9 @@ module Datadog
                         layout_name
                       )
                     end
+
+                    # Measure service stats
+                    Contrib::Analytics.set_measured(active_datadog_span)
                   rescue StandardError => e
                     Datadog::Logger.log.debug(e.message)
                   end
@@ -127,6 +130,9 @@ module Datadog
                   layout
                 )
               end
+
+              # Measure service stats
+              Contrib::Analytics.set_measured(active_datadog_span)
             end
 
             private

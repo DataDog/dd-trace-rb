@@ -66,6 +66,10 @@ RSpec.describe 'Sinatra instrumentation' do
           let(:analytics_sample_rate_var) { Datadog::Contrib::Sinatra::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
+        it_behaves_like 'measured span for integration', true do
+          before { is_expected.to be_ok }
+        end
+
         context 'which sets X-Request-Id on the response' do
           let(:app) do
             req_id = request_id
@@ -149,6 +153,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
             expect(span.parent).to be nil
           end
+
+          it_behaves_like 'measured span for integration', true
         end
 
         describe 'the sinatra.render_template child span' do
@@ -160,6 +166,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_tag('sinatra.template_name')).to eq('msg')
             expect(span.parent).to eq(parent_span)
           end
+
+          it_behaves_like 'measured span for integration', true
         end
 
         describe 'the sinatra.render_template grandchild span' do
@@ -171,6 +179,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_tag('sinatra.template_name')).to eq('layout')
             expect(span.parent).to eq(child_span)
           end
+
+          it_behaves_like 'measured span for integration', true
         end
       end
 
@@ -203,6 +213,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
             expect(span.parent).to be nil
           end
+
+          it_behaves_like 'measured span for integration', true
         end
 
         describe 'the sinatra.render_template child span' do
@@ -214,6 +226,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_tag('sinatra.template_name')).to be nil
             expect(span.parent).to eq(parent_span)
           end
+
+          it_behaves_like 'measured span for integration', true
         end
 
         describe 'the sinatra.render_template grandchild span' do
@@ -225,6 +239,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_tag('sinatra.template_name')).to eq('layout')
             expect(span.parent).to eq(child_span)
           end
+
+          it_behaves_like 'measured span for integration', true
         end
       end
 
