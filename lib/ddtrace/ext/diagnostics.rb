@@ -13,6 +13,7 @@ module Datadog
           METRIC_ERROR_CONTEXT_OVERFLOW = 'datadog.tracer.error.context_overflow'.freeze
           METRIC_ERROR_INSTRUMENTATION_PATCH = 'datadog.tracer.error.instrumentation_patch'.freeze
           METRIC_ERROR_SPAN_FINISH = 'datadog.tracer.error.span_finish'.freeze
+          METRIC_ERROR_UNFINISHED_CONTEXT = 'datadog.tracer.error.unfinished_context'.freeze
           METRIC_ERROR_UNFINISHED_SPANS = 'datadog.tracer.error.unfinished_spans'.freeze
           METRIC_INSTRUMENTATION_PATCHED = 'datadog.tracer.instrumentation_patched'.freeze
           METRIC_QUEUE_ACCEPTED = 'datadog.tracer.queue.accepted'.freeze

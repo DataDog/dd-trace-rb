@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
+require 'ddtrace/contrib/tracer_examples'
 
 require 'racecar'
 require 'racecar/cli'
@@ -88,6 +89,18 @@ RSpec.describe 'Racecar patcher' do
           expect(span.get_tag('kafka.first_offset')).to be nil
           expect(span).to have_error
         end
+      end
+    end
+
+    context 'with an unfinished trace' do
+      include_context 'an unfinished trace'
+
+      let(:event_name) { 'Datadog::Contrib::Racecar::Events::Message' }
+
+      it 'traces transmit event' do
+        ActiveSupport::Notifications.instrument('process_message.racecar', payload)
+
+        expect(span.name).to eq('racecar.message')
       end
     end
 
