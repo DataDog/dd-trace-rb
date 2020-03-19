@@ -1,17 +1,22 @@
+require 'ddtrace/ext/environment'
+
 module Datadog
   # Contains behavior for managing correlations with tracing
   # e.g. Retrieve a correlation to the current trace for logging, etc.
   module Correlation
     # Struct representing correlation
-    Identifier = Struct.new(:trace_id, :span_id) do
+    Identifier = Struct.new(:trace_id, :span_id, :env) do
       def initialize(*args)
         super
         self.trace_id = trace_id || 0
         self.span_id = span_id || 0
+        self.env = env || ENV[Datadog::Ext::Environment::ENV_ENVIRONMENT]
       end
 
       def to_s
-        "dd.trace_id=#{trace_id} dd.span_id=#{span_id}"
+        str = "dd.trace_id=#{trace_id} dd.span_id=#{span_id}"
+        str += " dd.env=#{env}" unless env.nil?
+        str
       end
     end.freeze
 

@@ -36,6 +36,32 @@ RSpec.describe Datadog::Correlation do
         expect(correlation_ids.span_id).to eq(span_id)
         expect(correlation_ids.to_s).to eq("dd.trace_id=#{trace_id} dd.span_id=#{span_id}")
       end
+
+      context "when #{Datadog::Ext::Environment::ENV_ENVIRONMENT}" do
+        context 'is not defined' do
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => nil) do
+              example.run
+            end
+          end
+
+          it { expect(correlation_ids.env).to be nil }
+          it { expect(correlation_ids.to_s).to eq("dd.trace_id=#{trace_id} dd.span_id=#{span_id}") }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'my-env' }
+
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => environment) do
+              example.run
+            end
+          end
+
+          it { expect(correlation_ids.env).to eq environment }
+          it { expect(correlation_ids.to_s).to eq("dd.trace_id=#{trace_id} dd.span_id=#{span_id} dd.env=#{environment}") }
+        end
+      end
     end
   end
 end

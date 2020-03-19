@@ -1,4 +1,5 @@
 require 'ddtrace/ext/metrics'
+require 'ddtrace/ext/environment'
 
 require 'set'
 require 'logger'
@@ -151,6 +152,7 @@ module Datadog
         # and defaults are unfrozen for mutation in Statsd.
         DEFAULT.dup.tap do |options|
           options[:tags] = options[:tags].dup
+          options[:tags] << "env:#{ENV[Ext::Environment::ENV_ENVIRONMENT]}" if ENV.key?(Ext::Environment::ENV_ENVIRONMENT)
         end
       end
     end
