@@ -24,6 +24,35 @@ RSpec.describe Datadog::Tracer do
 
     it { is_expected.to be_a_kind_of(Hash) }
 
+    context 'when equivalent String and Symbols are added' do
+      shared_examples 'equivalent tags' do
+        it 'retains the tag only as a String' do
+          is_expected.to include('host')
+          is_expected.to_not include(:host)
+        end
+
+        it 'retains only the last value' do
+          is_expected.to include('host' => 'b')
+        end
+      end
+
+      context 'with #set_tags' do
+        it_behaves_like 'equivalent tags' do
+          before do
+            tracer.set_tags('host' => 'a')
+            tracer.set_tags(host: 'b')
+          end
+        end
+
+        it_behaves_like 'equivalent tags' do
+          before do
+            tracer.set_tags(host: 'a')
+            tracer.set_tags('host' => 'b')
+          end
+        end
+      end
+    end
+
     context "when #{Datadog::Ext::Environment::ENV_ENVIRONMENT}" do
       context 'is not defined' do
         around do |example|

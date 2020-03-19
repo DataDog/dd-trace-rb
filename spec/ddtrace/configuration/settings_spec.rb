@@ -77,8 +77,8 @@ RSpec.describe Datadog::Configuration::Settings do
         expect(Datadog::Logger.log).to eq(custom_log)
         expect(tracer.writer.transport.current_api.adapter.hostname).to eq('tracer.host.com')
         expect(tracer.writer.transport.current_api.adapter.port).to eq(1234)
-        expect(tracer.tags[:env]).to eq(:config_test)
-        expect(tracer.tags[:foo]).to eq(:bar)
+        expect(tracer.tags['env']).to eq(:config_test)
+        expect(tracer.tags['foo']).to eq(:bar)
       end
     end
 

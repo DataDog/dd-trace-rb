@@ -158,7 +158,8 @@ module Datadog
     #
     #   tracer.set_tags('env' => 'prod', 'component' => 'core')
     def set_tags(tags)
-      @tags.update(tags)
+      string_tags = Hash[tags.collect { |k, v| [k.to_s, v] }]
+      @tags.update(string_tags)
     end
 
     # Guess context and parent from child_of entry.
