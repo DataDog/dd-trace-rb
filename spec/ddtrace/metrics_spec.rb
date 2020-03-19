@@ -638,26 +638,16 @@ RSpec.describe Datadog::Metrics::Options do
           )
         end
 
-        context "when #{Datadog::Ext::Environment::ENV_ENVIRONMENT}" do
-          context 'is not defined' do
-            around do |example|
-              ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => nil) do
-                example.run
-              end
-            end
+        context 'when Datadog::Environment.env' do
+          before { allow(Datadog::Environment).to receive(:env).and_return(environment) }
 
+          context 'is not defined' do
+            let(:environment) { nil }
             it { is_expected.to_not include(/env:/) }
           end
 
           context 'is defined' do
             let(:environment) { 'my-env' }
-
-            around do |example|
-              ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => environment) do
-                example.run
-              end
-            end
-
             it { is_expected.to include("env:#{environment}") }
           end
         end

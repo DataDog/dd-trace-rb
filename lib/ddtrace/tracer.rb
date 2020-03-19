@@ -3,8 +3,7 @@ require 'thread'
 require 'logger'
 require 'pathname'
 
-require 'ddtrace/ext/environment'
-
+require 'ddtrace/environment'
 require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/logger'
@@ -85,9 +84,7 @@ module Datadog
                        end
 
       @mutex = Mutex.new
-      @tags = {}.tap do |tags|
-        tags[:env] = ENV[Ext::Environment::ENV_ENVIRONMENT] if ENV.key?(Ext::Environment::ENV_ENVIRONMENT)
-      end
+      @tags = Datadog::Environment.tags
 
       # Enable priority sampling by default
       activate_priority_sampling!(@sampler)

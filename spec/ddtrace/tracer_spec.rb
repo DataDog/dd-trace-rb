@@ -21,8 +21,13 @@ RSpec.describe Datadog::Tracer do
 
   describe '#tags' do
     subject(:tags) { tracer.tags }
+    let(:env_tags) { {} }
 
-    it { is_expected.to be_a_kind_of(Hash) }
+    before { allow(Datadog::Environment).to receive(:tags).and_return(env_tags) }
+
+    context 'by default' do
+      it { is_expected.to be env_tags }
+    end
 
     context 'when equivalent String and Symbols are added' do
       shared_examples 'equivalent tags' do
@@ -50,30 +55,6 @@ RSpec.describe Datadog::Tracer do
             tracer.set_tags('host' => 'b')
           end
         end
-      end
-    end
-
-    context "when #{Datadog::Ext::Environment::ENV_ENVIRONMENT}" do
-      context 'is not defined' do
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => nil) do
-            example.run
-          end
-        end
-
-        it { is_expected.to_not include(:env) }
-      end
-
-      context 'is defined' do
-        let(:environment) { 'my-env' }
-
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => environment) do
-            example.run
-          end
-        end
-
-        it { is_expected.to include(env: environment) }
       end
     end
   end
