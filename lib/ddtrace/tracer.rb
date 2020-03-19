@@ -210,8 +210,8 @@ module Datadog
         # child span
         span.parent = parent # sets service, trace_id, parent_id, sampled
       end
-      tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
       @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
+      tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
       span.start_time = start_time
 
       # this could at some point be optional (start_active_span vs start_manual_span)
