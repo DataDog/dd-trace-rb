@@ -153,6 +153,7 @@ module Datadog
         DEFAULT.dup.tap do |options|
           options[:tags] = options[:tags].dup
           options[:tags] << "env:#{Datadog::Environment.env}" unless Datadog::Environment.env.nil?
+          options[:tags] << "version:#{Datadog::Environment.version}" unless Datadog::Environment.version.nil?
         end
       end
     end
