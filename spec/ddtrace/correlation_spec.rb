@@ -34,6 +34,15 @@ RSpec.describe Datadog::Correlation do
         it { expect(correlation_ids.to_s).to have_attribute("dd.env=#{environment}") }
         it_behaves_like 'an empty correlation identifier'
       end
+
+      context 'after Datadog::Environment::version has changed' do
+        let(:version) { 'my-version' }
+        before { allow(Datadog::Environment).to receive(:version).and_return(version) }
+
+        it { expect(correlation_ids.version).to eq version }
+        it { expect(correlation_ids.to_s).to have_attribute("dd.version=#{version}") }
+        it_behaves_like 'an empty correlation identifier'
+      end
     end
 
     context 'given a Context object' do
@@ -48,12 +57,15 @@ RSpec.describe Datadog::Correlation do
       let(:trace_id) { double('trace id') }
       let(:span_id) { double('span id') }
 
-      it 'returns a Correlation::Identifier matching the Context' do
-        is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
-        expect(correlation_ids.trace_id).to eq(trace_id)
-        expect(correlation_ids.span_id).to eq(span_id)
-        expect(correlation_ids.to_s).to eq("dd.trace_id=#{trace_id} dd.span_id=#{span_id}")
+      shared_examples_for 'a correlation identifier with basic properties' do
+        it { is_expected.to be_a_kind_of(Datadog::Correlation::Identifier) }
+        it { expect(correlation_ids.trace_id).to eq(trace_id) }
+        it { expect(correlation_ids.span_id).to eq(span_id) }
+        it { expect(correlation_ids.to_s).to have_attribute("dd.trace_id=#{trace_id}") }
+        it { expect(correlation_ids.to_s).to have_attribute("dd.span_id=#{span_id}") }
       end
+
+      it_behaves_like 'a correlation identifier with basic properties'
 
       context 'when Datadog::Environment.env' do
         before { allow(Datadog::Environment).to receive(:env).and_return(environment) }
@@ -61,13 +73,31 @@ RSpec.describe Datadog::Correlation do
         context 'is not defined' do
           let(:environment) { nil }
           it { expect(correlation_ids.env).to be nil }
-          it { expect(correlation_ids.to_s).to eq("dd.trace_id=#{trace_id} dd.span_id=#{span_id}") }
+          it_behaves_like 'a correlation identifier with basic properties'
         end
 
         context 'is defined' do
           let(:environment) { 'my-env' }
           it { expect(correlation_ids.env).to eq environment }
-          it { expect(correlation_ids.to_s).to eq("dd.trace_id=#{trace_id} dd.span_id=#{span_id} dd.env=#{environment}") }
+          it { expect(correlation_ids.to_s).to have_attribute("dd.env=#{environment}") }
+          it_behaves_like 'a correlation identifier with basic properties'
+        end
+      end
+
+      context 'when Datadog::Environment.version' do
+        before { allow(Datadog::Environment).to receive(:version).and_return(version) }
+
+        context 'is not defined' do
+          let(:version) { nil }
+          it { expect(correlation_ids.version).to be nil }
+          it_behaves_like 'a correlation identifier with basic properties'
+        end
+
+        context 'is defined' do
+          let(:version) { 'my-version' }
+          it { expect(correlation_ids.version).to eq version }
+          it { expect(correlation_ids.to_s).to have_attribute("dd.version=#{version}") }
+          it_behaves_like 'a correlation identifier with basic properties'
         end
       end
     end
