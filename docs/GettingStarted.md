@@ -1565,11 +1565,18 @@ Datadog::Logger.log.info { "this is typically called by tracing code" }
 
 By default, the trace agent (not this library, but the program running in the background collecting data from various clients) uses the tags set in the agent config file, see our [environments tutorial](https://app.datadoghq.com/apm/docs/tutorials/environments) for details.
 
-These values can be overridden at the tracer level:
+You can configure the application to automatically tag your traces and metrics, using the following environment variables:
+
+ - `DD_ENV`: Your application environment (e.g. `production`, `staging`, etc.)
+ - `DD_VERSION`: Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.)
+ - `DD_TAGS`: Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`)
+    - If `DD_ENV` or `DD_VERSION`, it will override any `env` or `version` tag defined in `DD_TAGS`.
+
+These values can also be overridden at the tracer level:
 
 ```ruby
 Datadog.configure do |c|
-  c.tracer tags: { 'env' => 'prod' }
+  c.tracer env: 'test', tags: { 'team' => 'qa' }
 end
 ```
 
@@ -1863,6 +1870,8 @@ Datadog.tracer.trace('correlation.example') do
   correlation = Datadog.tracer.active_correlation
   correlation.trace_id # => 5963550561812073440
   correlation.span_id # => 2232727802607726424
+  correlation.env # => 'production' (derived from DD_ENV)
+  correlation.version # => '2.5.17' (derived from DD_VERSION)
 end
 
 # When a trace isn't active...
@@ -1871,6 +1880,8 @@ correlation = Datadog.tracer.active_correlation
 correlation = Datadog.tracer.active_correlation
 correlation.trace_id # => 0
 correlation.span_id # => 0
+correlation.trace_id # => nil
+correlation.span_id # => nil
 ```
 
 #### For logging in Rails applications using Lograge (recommended)
@@ -1887,7 +1898,9 @@ config.lograge.custom_options = lambda do |event|
     :dd => {
       # To preserve precision during JSON serialization, use strings for large numbers
       :trace_id => correlation.trace_id.to_s,
-      :span_id => correlation.span_id.to_s
+      :span_id => correlation.span_id.to_s,
+      :env => correlation.env.to_s,
+      :version => correlation.version.to_s
     },
     :ddsource => ["ruby"],
     :params => event.payload[:params].reject { |k| %w(controller action).include? k }
@@ -1906,11 +1919,15 @@ Rails.application.configure do
   config.log_tags = [proc { Datadog.tracer.active_correlation.to_s }]
 end
 
+# Given:
+# DD_ENV = 'production' (The name of the environment your application is running in.)
+# DD_VERSION = '2.5.17' (The version of your application.)
+
 # Web requests will produce:
-# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206] Started GET "/articles" for 172.22.0.1 at 2019-01-16 18:50:57 +0000
-# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206] Processing by ArticlesController#index as */*
-# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206]   Article Load (0.5ms)  SELECT "articles".* FROM "articles"
-# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206] Completed 200 OK in 7ms (Views: 5.5ms | ActiveRecord: 0.5ms)
+# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206 dd.env=production dd.version=2.5.17] Started GET "/articles" for 172.22.0.1 at 2019-01-16 18:50:57 +0000
+# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206 dd.env=production dd.version=2.5.17] Processing by ArticlesController#index as */*
+# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206 dd.env=production dd.version=2.5.17]   Article Load (0.5ms)  SELECT "articles".* FROM "articles"
+# [dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206 dd.env=production dd.version=2.5.17] Completed 200 OK in 7ms (Views: 5.5ms | ActiveRecord: 0.5ms)
 ```
 
 #### For logging in Ruby applications
@@ -1921,14 +1938,21 @@ To properly correlate with Datadog logging, be sure the following is present in 
 
  - `dd.trace_id=<TRACE_ID>`: Where `<TRACE_ID>` is equal to `Datadog.tracer.active_correlation.trace_id` or `0` if no trace is active during logging.
  - `dd.span_id=<SPAN_ID>`: Where `<SPAN_ID>` is equal to `Datadog.tracer.active_correlation.span_id` or `0` if no trace is active during logging.
+ - `dd.env=<ENV>`: Where `<ENV>` is equal to `Datadog.tracer.active_correlation.env` or empty string (no quotes) if no environment name is configured.
+ - `dd.version=<SPAN_ID>`: Where `<SPAN_ID>` is equal to `Datadog.tracer.active_correlation.version` or empty string (no quotes) if no application version is configured.
 
-By default, `Datadog::Correlation::Identifier#to_s` will return `dd.trace_id=<TRACE_ID> dd.span_id=<SPAN_ID>`.
+By default, `Datadog::Correlation::Identifier#to_s` will return `dd.trace_id=<TRACE_ID> dd.span_id=<SPAN_ID> dd.env=<ENV> dd.version=<VERSION>`.
+
+If a trace is not active and the application environment & version is not configured, it will return `dd.trace_id=0 dd.span_id=0 dd.env= dd.version=`.
 
 An example of this in practice:
 
 ```ruby
 require 'ddtrace'
 require 'logger'
+
+ENV['DD_ENV'] = 'production'
+ENV['DD_VERSION'] = '2.5.17'
 
 logger = Logger.new(STDOUT)
 logger.progname = 'my_app'
@@ -1938,11 +1962,11 @@ end
 
 # When no trace is active
 logger.warn('This is an untraced operation.')
-# [2019-01-16 18:38:41 +0000][my_app][WARN][dd.trace_id=0 dd.span_id=0] This is an untraced operation.
+# [2019-01-16 18:38:41 +0000][my_app][WARN][dd.trace_id=0 dd.span_id=0 dd.env=production dd.version=2.5.17] This is an untraced operation.
 
 # When a trace is active
 Datadog.tracer.trace('my.operation') { logger.warn('This is a traced operation.') }
-# [2019-01-16 18:38:41 +0000][my_app][WARN][dd.trace_id=8545847825299552251 dd.span_id=3711755234730770098] This is a traced operation.
+# [2019-01-16 18:38:41 +0000][my_app][WARN][dd.trace_id=8545847825299552251 dd.span_id=3711755234730770098 dd.env=production dd.version=2.5.17] This is a traced operation.
 ```
 
 ### Configuring the transport layer
