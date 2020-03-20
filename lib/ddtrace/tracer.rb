@@ -3,8 +3,7 @@ require 'thread'
 require 'logger'
 require 'pathname'
 
-require 'ddtrace/ext/environment'
-
+require 'ddtrace/environment'
 require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/logger'
@@ -85,9 +84,7 @@ module Datadog
                        end
 
       @mutex = Mutex.new
-      @tags = {}.tap do |tags|
-        tags[:env] = ENV[Ext::Environment::ENV_ENVIRONMENT] if ENV.key?(Ext::Environment::ENV_ENVIRONMENT)
-      end
+      @tags = Datadog::Environment.tags
 
       # Enable priority sampling by default
       activate_priority_sampling!(@sampler)
@@ -158,7 +155,8 @@ module Datadog
     #
     #   tracer.set_tags('env' => 'prod', 'component' => 'core')
     def set_tags(tags)
-      @tags.update(tags)
+      string_tags = Hash[tags.collect { |k, v| [k.to_s, v] }]
+      @tags.update(string_tags)
     end
 
     # Guess context and parent from child_of entry.
@@ -210,8 +208,8 @@ module Datadog
         # child span
         span.parent = parent # sets service, trace_id, parent_id, sampled
       end
-      tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
       @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
+      tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
       span.start_time = start_time
 
       # this could at some point be optional (start_active_span vs start_manual_span)

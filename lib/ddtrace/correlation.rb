@@ -1,4 +1,4 @@
-require 'ddtrace/ext/environment'
+require 'ddtrace/environment'
 
 module Datadog
   # Contains behavior for managing correlations with tracing
@@ -10,7 +10,7 @@ module Datadog
         super
         self.trace_id = trace_id || 0
         self.span_id = span_id || 0
-        self.env = env || ENV[Datadog::Ext::Environment::ENV_ENVIRONMENT]
+        self.env = env || Datadog::Environment.env
       end
 
       def to_s
