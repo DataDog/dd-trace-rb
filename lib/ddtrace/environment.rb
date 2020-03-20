@@ -18,8 +18,13 @@ module Datadog
       end
 
       tags['env'] = env unless env.nil?
+      tags['version'] = version unless version.nil?
 
       tags
+    end
+
+    def self.version
+      ENV[Ext::Environment::ENV_VERSION]
     end
 
     # Defines helper methods for environment

@@ -73,15 +73,30 @@ RSpec.describe Datadog::Environment do
         end
 
         context 'and when ::env' do
+          before { allow(described_class).to receive(:env).and_return(env) }
+
           context 'is set' do
-            before { allow(described_class).to receive(:env).and_return(nil) }
+            let(:env) { nil }
             it { is_expected.to_not include('env') }
           end
 
           context 'is not set' do
-            let(:env_value) { 'env-value' }
-            before { allow(described_class).to receive(:env).and_return(env_value) }
-            it { is_expected.to include('env' => env_value) }
+            let(:env) { 'env-value' }
+            it { is_expected.to include('env' => env) }
+          end
+        end
+
+        context 'and when ::version' do
+          before { allow(described_class).to receive(:version).and_return(version) }
+
+          context 'is set' do
+            let(:version) { nil }
+            it { is_expected.to_not include('version') }
+          end
+
+          context 'is not set' do
+            let(:version) { 'version-value' }
+            it { is_expected.to include('version' => version) }
           end
         end
       end
@@ -94,6 +109,37 @@ RSpec.describe Datadog::Environment do
         before { allow(described_class).to receive(:env).and_return(env_value) }
 
         it { is_expected.to include('env' => env_value) }
+      end
+
+      context 'conflicts with ::version' do
+        let(:env_tags) { "env:#{tag_version_value}" }
+        let(:tag_version_value) { 'tag-version-value' }
+        let(:version_value) { 'version-value' }
+
+        before { allow(described_class).to receive(:version).and_return(version_value) }
+
+        it { is_expected.to include('version' => version_value) }
+      end
+    end
+  end
+
+  describe '::version' do
+    subject(:version) { described_class.version }
+    context "when #{Datadog::Ext::Environment::ENV_VERSION}" do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_VERSION => version) do
+          example.run
+        end
+      end
+
+      context 'is not defined' do
+        let(:version) { nil }
+        it { is_expected.to be nil }
+      end
+
+      context 'is defined' do
+        let(:version) { 'version-value' }
+        it { is_expected.to eq(version) }
       end
     end
   end
