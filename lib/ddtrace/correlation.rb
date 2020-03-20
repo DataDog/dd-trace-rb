@@ -20,13 +20,11 @@ module Datadog
       end
     end.freeze
 
-    NULL_IDENTIFIER = Identifier.new.freeze
-
     module_function
 
     # Produces a CorrelationIdentifier from the Context provided
     def identifier_from_context(context)
-      return NULL_IDENTIFIER if context.nil?
+      return Identifier.new.freeze if context.nil?
       Identifier.new(context.trace_id, context.span_id).freeze
     end
   end

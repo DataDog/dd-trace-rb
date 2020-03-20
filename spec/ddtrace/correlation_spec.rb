@@ -4,17 +4,35 @@ require 'ddtrace/correlation'
 require 'ddtrace/context'
 
 RSpec.describe Datadog::Correlation do
+  # Expect string to contain the attribute, at the beginning/end of the string,
+  # or buffered by a whitespace character to delimit it.
+  def have_attribute(attribute)
+    match(/(?<=\A|\s)#{Regexp.escape(attribute)}(?=\z|\s)/)
+  end
+
   describe '::identifier_from_context' do
     subject(:correlation_ids) { described_class.identifier_from_context(context) }
 
     context 'given nil' do
       let(:context) { nil }
 
-      it 'returns an empty Correlation::Identifier' do
-        is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
-        expect(correlation_ids.trace_id).to be 0
-        expect(correlation_ids.span_id).to be 0
-        expect(correlation_ids.to_s).to eq('dd.trace_id=0 dd.span_id=0')
+      shared_examples_for 'an empty correlation identifier' do
+        it { is_expected.to be_a_kind_of(Datadog::Correlation::Identifier) }
+        it { expect(correlation_ids.trace_id).to be 0 }
+        it { expect(correlation_ids.span_id).to be 0 }
+        it { expect(correlation_ids.to_s).to have_attribute('dd.trace_id=0') }
+        it { expect(correlation_ids.to_s).to have_attribute('dd.span_id=0') }
+      end
+
+      it_behaves_like 'an empty correlation identifier'
+
+      context 'after Datadog::Environment::env has changed' do
+        let(:environment) { 'my-env' }
+        before { allow(Datadog::Environment).to receive(:env).and_return(environment) }
+
+        it { expect(correlation_ids.env).to eq environment }
+        it { expect(correlation_ids.to_s).to have_attribute("dd.env=#{environment}") }
+        it_behaves_like 'an empty correlation identifier'
       end
     end
 
