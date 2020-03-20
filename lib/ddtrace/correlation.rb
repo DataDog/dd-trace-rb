@@ -18,8 +18,8 @@ module Datadog
       def to_s
         str =  "#{Ext::Correlation::ATTR_TRACE_ID}=#{trace_id}"
         str += " #{Ext::Correlation::ATTR_SPAN_ID}=#{span_id}"
-        str += " #{Ext::Correlation::ATTR_ENV}=#{env}" unless env.nil?
-        str += " #{Ext::Correlation::ATTR_VERSION}=#{version}" unless version.nil?
+        str += " #{Ext::Correlation::ATTR_ENV}=#{env}"
+        str += " #{Ext::Correlation::ATTR_VERSION}=#{version}"
         str
       end
     end.freeze
