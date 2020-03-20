@@ -1,3 +1,4 @@
+require 'ddtrace/ext/correlation'
 require 'ddtrace/environment'
 
 module Datadog
@@ -15,9 +16,10 @@ module Datadog
       end
 
       def to_s
-        str = "dd.trace_id=#{trace_id} dd.span_id=#{span_id}"
-        str += " dd.env=#{env}" unless env.nil?
-        str += " dd.version=#{version}" unless version.nil?
+        str =  "#{Ext::Correlation::ATTR_TRACE_ID}=#{trace_id}"
+        str += " #{Ext::Correlation::ATTR_SPAN_ID}=#{span_id}"
+        str += " #{Ext::Correlation::ATTR_ENV}=#{env}" unless env.nil?
+        str += " #{Ext::Correlation::ATTR_VERSION}=#{version}" unless version.nil?
         str
       end
     end.freeze

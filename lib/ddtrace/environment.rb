@@ -17,8 +17,8 @@ module Datadog
         tags[pair.first] = pair.last if pair.length == 2
       end
 
-      tags['env'] = env unless env.nil?
-      tags['version'] = version unless version.nil?
+      tags[Ext::Environment::TAG_ENV] = env unless env.nil?
+      tags[Ext::Environment::TAG_VERSION] = version unless version.nil?
 
       tags
     end

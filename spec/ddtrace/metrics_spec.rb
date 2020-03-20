@@ -643,12 +643,12 @@ RSpec.describe Datadog::Metrics::Options do
 
           context 'is not defined' do
             let(:environment) { nil }
-            it { is_expected.to_not include(/\Aenv:/) }
+            it { is_expected.to_not include(/\A#{Datadog::Ext::Environment::TAG_ENV}:/) }
           end
 
           context 'is defined' do
             let(:environment) { 'my-env' }
-            it { is_expected.to include("env:#{environment}") }
+            it { is_expected.to include("#{Datadog::Ext::Environment::TAG_ENV}:#{environment}") }
           end
         end
 
@@ -657,12 +657,12 @@ RSpec.describe Datadog::Metrics::Options do
 
           context 'is not defined' do
             let(:version) { nil }
-            it { is_expected.to_not include(/\Aversion:/) }
+            it { is_expected.to_not include(/\A#{Datadog::Ext::Environment::TAG_VERSION}:/) }
           end
 
           context 'is defined' do
             let(:version) { 'my-version' }
-            it { is_expected.to include("version:#{version}") }
+            it { is_expected.to include("#{Datadog::Ext::Environment::TAG_VERSION}:#{version}") }
           end
         end
       end
