@@ -4,6 +4,7 @@ require 'thread'
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/priority'
+require 'ddtrace/environment'
 require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
 require 'ddtrace/diagnostics/health'
@@ -172,7 +173,7 @@ module Datadog
       # spans without a service would be dropped, so here we provide a default.
       # This should really never happen with integrations in contrib, as a default
       # service is always set. It's only for custom instrumentation.
-      @service ||= @tracer.default_service unless @tracer.nil?
+      @service ||= (Datadog::Environment.service || (@tracer && @tracer.default_service))
 
       begin
         @context.close_span(self)

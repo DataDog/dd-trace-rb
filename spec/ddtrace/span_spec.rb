@@ -39,6 +39,36 @@ RSpec.describe Datadog::Span do
           .with(1, tags: ["error:#{error_class.name}"])
       end
     end
+
+    context 'when service' do
+      subject(:service) do
+        finish
+        span.service
+      end
+
+      context 'is set' do
+        let(:service_value) { 'span-service' }
+        before { span.service = service_value }
+        it { is_expected.to eq service_value }
+      end
+
+      context 'is only defined in the environment' do
+        let(:env_service) { 'env-service' }
+        before { allow(Datadog::Environment).to receive(:service).and_return(env_service) }
+        it { is_expected.to eq env_service }
+      end
+
+      context 'is not set anywhere' do
+        let(:default_service) { 'default-service' }
+
+        before do
+          allow(Datadog::Environment).to receive(:service).and_return(nil)
+          allow(tracer).to receive(:default_service).and_return(default_service)
+        end
+
+        it { is_expected.to eq default_service }
+      end
+    end
   end
 
   describe '#clear_tag' do

@@ -9,6 +9,11 @@ module Datadog
     end
 
     # TODO: Extract to Datadog::Configuration::Settings
+    def self.service
+      ENV[Ext::Environment::ENV_SERVICE]
+    end
+
+    # TODO: Extract to Datadog::Configuration::Settings
     def self.tags
       tags = {}
 

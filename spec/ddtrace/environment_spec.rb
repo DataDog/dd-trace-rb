@@ -25,6 +25,27 @@ RSpec.describe Datadog::Environment do
     end
   end
 
+  describe '::service' do
+    subject(:service) { described_class.service }
+    context "when #{Datadog::Ext::Environment::ENV_SERVICE}" do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => service) do
+          example.run
+        end
+      end
+
+      context 'is not defined' do
+        let(:service) { nil }
+        it { is_expected.to be nil }
+      end
+
+      context 'is defined' do
+        let(:service) { 'service-value' }
+        it { is_expected.to eq(service) }
+      end
+    end
+  end
+
   describe '::tags' do
     subject(:tags) { described_class.tags }
 
