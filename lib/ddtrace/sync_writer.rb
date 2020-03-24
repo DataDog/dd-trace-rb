@@ -4,6 +4,7 @@ require 'ddtrace/runtime/metrics'
 
 module Datadog
   # SyncWriter flushes both services and traces synchronously
+  # DEV: To be replaced by Datadog::Workers::TraceWriter.
   class SyncWriter
     attr_reader \
       :priority_sampler,
