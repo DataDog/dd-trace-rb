@@ -18,6 +18,41 @@ module Datadog
       #
       # Configuration options
       #
+      option :service do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
+        o.lazy
+      end
+
+      option :env do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
+        o.lazy
+      end
+
+      option :tags do |o|
+        o.default do
+          tags = {}
+
+          # Parse tags from environment
+          env_to_list(Ext::Environment::ENV_TAGS).each do |tag|
+            pair = tag.split(':')
+            tags[pair.first] = pair.last if pair.length == 2
+          end
+
+          # Override tags if defined
+          tags[Ext::Environment::TAG_ENV] = env unless env.nil?
+          tags[Ext::Environment::TAG_VERSION] = version unless version.nil?
+
+          tags
+        end
+
+        o.lazy
+      end
+
+      option :version do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
+        o.lazy
+      end
+
       option :analytics_enabled do |o|
         o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
         o.lazy

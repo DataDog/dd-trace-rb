@@ -16,8 +16,8 @@ RSpec.describe Datadog::Correlation do
     let(:version) { nil }
 
     before do
-      allow(Datadog::Environment).to receive(:env).and_return(environment)
-      allow(Datadog::Environment).to receive(:version).and_return(version)
+      allow(Datadog.configuration).to receive(:env).and_return(environment)
+      allow(Datadog.configuration).to receive(:version).and_return(version)
     end
 
     context 'given nil' do
@@ -74,7 +74,7 @@ RSpec.describe Datadog::Correlation do
 
       it_behaves_like 'a correlation identifier with basic properties'
 
-      context 'when Datadog::Environment.env' do
+      context 'when #env configuration setting' do
         context 'is not defined' do
           let(:environment) { nil }
           it_behaves_like 'a correlation identifier with basic properties'
@@ -86,7 +86,7 @@ RSpec.describe Datadog::Correlation do
         end
       end
 
-      context 'when Datadog::Environment.version' do
+      context 'when #version configuration setting' do
         context 'is not defined' do
           let(:version) { nil }
           it_behaves_like 'a correlation identifier with basic properties'

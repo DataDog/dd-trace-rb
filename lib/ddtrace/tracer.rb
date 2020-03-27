@@ -84,7 +84,7 @@ module Datadog
                        end
 
       @mutex = Mutex.new
-      @tags = Datadog::Environment.tags
+      @tags = options.fetch(:tags, Datadog.configuration.tags)
 
       # Enable priority sampling by default
       activate_priority_sampling!(@sampler)
@@ -156,7 +156,7 @@ module Datadog
     #   tracer.set_tags('env' => 'prod', 'component' => 'core')
     def set_tags(tags)
       string_tags = Hash[tags.collect { |k, v| [k.to_s, v] }]
-      @tags.update(string_tags)
+      @tags = @tags.merge(string_tags)
     end
 
     # Guess context and parent from child_of entry.
