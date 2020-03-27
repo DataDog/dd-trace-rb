@@ -18,54 +18,22 @@ module Datadog
       #
       # Configuration options
       #
-      option :service do |o|
-        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
-        o.lazy
-      end
-
-      option :env do |o|
-        o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
-        o.lazy
-      end
-
-      option :tags do |o|
-        o.default do
-          tags = {}
-
-          # Parse tags from environment
-          env_to_list(Ext::Environment::ENV_TAGS).each do |tag|
-            pair = tag.split(':')
-            tags[pair.first] = pair.last if pair.length == 2
-          end
-
-          # Override tags if defined
-          tags[Ext::Environment::TAG_ENV] = env unless env.nil?
-          tags[Ext::Environment::TAG_VERSION] = version unless version.nil?
-
-          tags
-        end
-
-        o.lazy
-      end
-
-      option :version do |o|
-        o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
-        o.lazy
-      end
-
       option :analytics_enabled do |o|
+        # TODO: Raise deprecation warning
         o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
         o.lazy
       end
 
-      option :report_hostname do |o|
-        o.default { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) }
-        o.lazy
-      end
+      settings :diagnostics do
+        option :health_metrics do |o|
+          o.default do
+            Datadog::Diagnostics::Health::Metrics.new(
+              enabled: env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false)
+            )
+          end
 
-      option :runtime_metrics_enabled do |o|
-        o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
-        o.lazy
+          o.lazy
+        end
       end
 
       settings :distributed_tracing do
@@ -92,6 +60,31 @@ module Datadog
         end
       end
 
+      option :env do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
+        o.lazy
+      end
+
+      option :report_hostname do |o|
+        o.default { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) }
+        o.lazy
+      end
+
+      # Backwards compatibility for configuring runtime metrics e.g. `c.runtime_metrics enabled: true`
+      def runtime_metrics(options = nil)
+        runtime_metrics = get_option(:tracer).writer.runtime_metrics
+        return runtime_metrics if options.nil?
+
+        # TODO: Raise deprecation warning
+        runtime_metrics.configure(options)
+      end
+
+      option :runtime_metrics_enabled do |o|
+        # TODO: Raise deprecation warning
+        o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
+        o.lazy
+      end
+
       settings :sampling do
         option :default_rate do |o|
           o.default { env_to_float(Ext::Sampling::ENV_SAMPLE_RATE, nil) }
@@ -104,16 +97,29 @@ module Datadog
         end
       end
 
-      settings :diagnostics do
-        option :health_metrics do |o|
-          o.default do
-            Datadog::Diagnostics::Health::Metrics.new(
-              enabled: env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false)
-            )
+      option :service do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
+        o.lazy
+      end
+
+      option :tags do |o|
+        o.default do
+          tags = {}
+
+          # Parse tags from environment
+          env_to_list(Ext::Environment::ENV_TAGS).each do |tag|
+            pair = tag.split(':')
+            tags[pair.first] = pair.last if pair.length == 2
           end
 
-          o.lazy
+          # Override tags if defined
+          tags[Ext::Environment::TAG_ENV] = env unless env.nil?
+          tags[Ext::Environment::TAG_VERSION] = version unless version.nil?
+
+          tags
         end
+
+        o.lazy
       end
 
       option :tracer do |o|
@@ -134,20 +140,34 @@ module Datadog
           tracer.tap do |t|
             unless options.nil?
               t.configure(options)
-              Datadog::Logger.log = options[:log] if options[:log]
-              t.set_tags(options[:tags]) if options[:tags]
-              t.set_tags(env: options[:env]) if options[:env]
-              Datadog::Logger.debug_logging = options.fetch(:debug, false)
+
+              if options[:log]
+                # TODO: Raise deprecation warning
+                Datadog::Logger.log = options[:log]
+              end
+
+              if options[:tags]
+                # TODO: Raise deprecation warning
+                t.set_tags(options[:tags])
+              end
+
+              if options[:env]
+                # TODO: Raise deprecation warning
+                t.set_tags(env: options[:env])
+              end
+
+              if options.key?(:debug)
+                # TODO: Raise deprecation warning
+                Datadog::Logger.debug_logging = options[:debug]
+              end
             end
           end
         end
       end
 
-      def runtime_metrics(options = nil)
-        runtime_metrics = get_option(:tracer).writer.runtime_metrics
-        return runtime_metrics if options.nil?
-
-        runtime_metrics.configure(options)
+      option :version do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
+        o.lazy
       end
     end
   end

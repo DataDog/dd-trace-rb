@@ -206,18 +206,56 @@ RSpec.describe Datadog::Configuration::Settings do
   end
 
   describe '#tracer' do
-    let(:tracer) { Datadog::Tracer.new }
-    let(:debug_state) { Datadog::Logger.debug_logging }
-    let(:custom_log) { Logger.new(STDOUT) }
+    context 'given :log' do
+      let(:custom_log) { Logger.new(STDOUT, level: Logger::INFO) }
+
+      before do
+        @original_log = Datadog::Logger.log
+        settings.tracer(log: custom_log)
+      end
+
+      after do
+        Datadog::Logger.log = @original_log
+      end
+
+      it 'uses the logger for logging' do
+        expect(Datadog::Logger.log).to eq(custom_log)
+      end
+    end
+
+    context 'given :debug' do
+      subject(:configure) { settings.tracer(debug: debug) }
+
+      shared_examples_for 'debug toggle' do
+        before { Datadog::Logger.debug_logging = !debug }
+        after { Datadog::Logger.debug_logging = false }
+
+        it do
+          expect { configure }.to change { Datadog::Logger.debug_logging }
+            .from(!debug)
+            .to(debug)
+        end
+      end
+
+      context 'as true' do
+        it_behaves_like 'debug toggle' do
+          let(:debug) { true }
+        end
+      end
+
+      context 'as false' do
+        it_behaves_like 'debug toggle' do
+          let(:debug) { false }
+        end
+      end
+    end
 
     context 'given some settings' do
-      before(:each) do
-        @original_log = Datadog::Logger.log
+      let(:tracer) { Datadog::Tracer.new }
 
+      before do
         settings.tracer(
           enabled: false,
-          debug: !debug_state,
-          log: custom_log,
           hostname: 'tracer.host.com',
           port: 1234,
           env: :config_test,
@@ -227,15 +265,12 @@ RSpec.describe Datadog::Configuration::Settings do
         )
       end
 
-      after(:each) do
-        Datadog::Logger.debug_logging = debug_state
-        Datadog::Logger.log = @original_log
+      after do
+        Datadog::Logger.debug_logging = false
       end
 
       it 'applies settings correctly' do
         expect(tracer.enabled).to be false
-        expect(debug_state).to be false
-        expect(Datadog::Logger.log).to eq(custom_log)
         expect(tracer.writer.transport.current_api.adapter.hostname).to eq('tracer.host.com')
         expect(tracer.writer.transport.current_api.adapter.port).to eq(1234)
         expect(tracer.tags['env']).to eq(:config_test)
