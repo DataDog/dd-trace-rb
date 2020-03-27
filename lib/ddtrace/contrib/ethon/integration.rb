@@ -1,6 +1,6 @@
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/ethon/configuration/settings'
-require 'ddtrace/contrib/configuration/resolvers/regexp_resolver'
+require 'ddtrace/contrib/configuration/resolvers/pattern_resolver'
 require 'ddtrace/contrib/ethon/patcher'
 
 module Datadog
@@ -35,7 +35,7 @@ module Datadog
         end
 
         def resolver
-          @resolver ||= Contrib::Configuration::Resolvers::RegexpResolver.new
+          @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
         end
       end
     end

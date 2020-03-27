@@ -6,7 +6,7 @@ module Datadog
       # Resolves a value to a configuration key
       module Resolvers
         # Matches strings against Regexps.
-        class RegexpResolver < Datadog::Contrib::Configuration::Resolver
+        class PatternResolver < Datadog::Contrib::Configuration::Resolver
           def resolve(name)
             # Try to find a matching pattern
             matching_pattern = patterns.find do |pattern|

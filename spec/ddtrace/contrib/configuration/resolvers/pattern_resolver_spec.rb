@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Configuration::Resolvers::RegexpResolver do
+RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
   subject(:resolver) { described_class.new }
 
   describe '#resolve' do
