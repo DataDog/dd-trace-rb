@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/integration'
+require 'ddtrace/contrib/configuration/resolvers/pattern_resolver'
 require 'ddtrace/contrib/faraday/configuration/settings'
 require 'ddtrace/contrib/faraday/patcher'
 
@@ -31,6 +32,10 @@ module Datadog
 
         def patcher
           Patcher
+        end
+
+        def resolver
+          @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
         end
       end
     end

@@ -2,6 +2,7 @@ require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/ethon/ext'
+require 'ddtrace/contrib/http_annotation_helper'
 
 module Datadog
   module Contrib
@@ -14,7 +15,10 @@ module Datadog
 
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
+          include Datadog::Contrib::HttpAnnotationHelper
+
           def http_request(url, action_name, options = {})
+            load_datadog_configuration_for(url)
             return super unless tracer_enabled?
 
             # It's tricky to get HTTP method from libcurl
@@ -23,14 +27,13 @@ module Datadog
           end
 
           def headers=(headers)
-            return super unless tracer_enabled?
-
             # Store headers to call this method again when span is ready
             @datadog_original_headers = headers
             super
           end
 
           def perform
+            load_datadog_configuration_for(url)
             return super unless tracer_enabled?
             datadog_before_request
             super
@@ -61,17 +64,17 @@ module Datadog
           def reset
             super
           ensure
-            if tracer_enabled?
-              @datadog_span = nil
-              @datadog_method = nil
-              @datadog_original_headers = nil
-            end
+            @datadog_span = nil
+            @datadog_method = nil
+            @datadog_original_headers = nil
+            @datadog_configuration = nil
           end
 
           def datadog_before_request(parent_span: nil)
+            load_datadog_configuration_for(url)
             @datadog_span = datadog_configuration[:tracer].trace(
               Ext::SPAN_REQUEST,
-              service: datadog_configuration[:service_name],
+              service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
               span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
             )
             @datadog_span.parent = parent_span unless parent_span.nil?
@@ -91,9 +94,10 @@ module Datadog
 
           private
 
+          attr_reader :datadog_configuration
+
           def datadog_tag_request
             span = @datadog_span
-            uri = URI.parse(url)
             method = 'N/A'
             if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
               method = @datadog_method.to_s
@@ -103,12 +107,11 @@ module Datadog
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
+            return unless uri
             span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, method)
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
             span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
-          rescue URI::InvalidURIError
-            return
           end
 
           def set_span_error_message(message)
@@ -117,8 +120,14 @@ module Datadog
             @datadog_span.set_tag(Datadog::Ext::Errors::MSG, message)
           end
 
-          def datadog_configuration
-            Datadog.configuration[:ethon]
+          def uri
+            URI.parse(url)
+          # rubocop:disable Lint/HandleExceptions
+          rescue URI::InvalidURIError
+          end
+
+          def load_datadog_configuration_for(host = :default)
+            @datadog_configuration = Datadog.configuration[:ethon, host]
           end
 
           def tracer_enabled?

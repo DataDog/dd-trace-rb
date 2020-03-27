@@ -30,7 +30,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
 
     context 'multi already performing' do
       before do
-        expect(easy).to receive(:url).and_return('http://example.com/test').once
+        expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
 
         # Trigger parent span creation, which will force easy span creation in #add
         multi.instance_eval { datadog_multi_span }
