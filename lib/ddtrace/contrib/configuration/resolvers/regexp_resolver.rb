@@ -8,12 +8,15 @@ module Datadog
         # Matches strings against Regexps.
         class RegexpResolver < Datadog::Contrib::Configuration::Resolver
           def resolve(name)
-            # Co-erce to string
-            name = name.to_s
-
             # Try to find a matching pattern
             matching_pattern = patterns.find do |pattern|
-              pattern.is_a?(Regexp) ? pattern =~ name : pattern == name
+              # Rubocop incorrectly thinks assignment is done here...
+              # rubocop:disable Style/ConditionalAssignment
+              if pattern.is_a?(Proc)
+                pattern === name
+              else
+                pattern === name.to_s # Co-erce to string
+              end
             end
 
             # Return match or default
@@ -21,7 +24,7 @@ module Datadog
           end
 
           def add(pattern)
-            patterns << (pattern.is_a?(Regexp) ? pattern : pattern.to_s)
+            patterns << (pattern.is_a?(Regexp) || pattern.is_a?(Proc) ? pattern : pattern.to_s)
           end
 
           private

@@ -7,24 +7,69 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::RegexpResolver do
   describe '#resolve' do
     subject(:resolve) { resolver.resolve(name) }
 
-    context 'when matching pattern has been added' do
+    context 'when matching Regexp has been added' do
       let(:name) { 'my-name' }
-      before { resolver.add(/name/) }
-      it { is_expected.to eq(/name/) }
+      let(:pattern) { /name/ }
+
+      before { resolver.add(pattern) }
+      it { is_expected.to eq(pattern) }
+
+      context 'then given a name that isn\'t a String but is case equal' do
+        let(:name) { URI('http://localhost') }
+        let(:pattern) { /#{Regexp.escape('http://localhost')}/ }
+
+        it 'coerces the name to a String' do
+          is_expected.to eq(pattern)
+        end
+      end
     end
 
-    context 'when no matching pattern has been added' do
-      let(:name) { 'not_found' }
+    context 'when non-matching Regexp has been added' do
+      let(:name) { 'my-name' }
+      before { resolver.add(/not_found/) }
       it { is_expected.to be :default }
     end
 
-    context 'when a matching string has been added' do
+    context 'when matching Proc has been added' do
       let(:name) { 'my-name' }
-      before { resolver.add(name) }
-      it { is_expected.to eq(name) }
+      let(:pattern_proc) { proc { |n| n == name } }
+      before { resolver.add(pattern_proc) }
+      it { is_expected.to eq(pattern_proc) }
+
+      context 'then given a name that isn\'t a String but is case equal' do
+        let(:name) { URI('http://localhost') }
+        let(:pattern_proc) { proc { |uri| uri.is_a?(URI) } }
+
+        it 'does not coerce the name' do
+          is_expected.to eq(pattern_proc)
+        end
+      end
     end
 
-    context 'when a non-matching string has been added' do
+    context 'when non-matching Proc has been added' do
+      let(:name) { 'my-name' }
+      before { resolver.add(proc { |n| n == 'not_found' }) }
+      it { is_expected.to be :default }
+    end
+
+    context 'when a matching String has been added' do
+      let(:name) { 'my-name' }
+      let(:pattern) { name }
+
+      before { resolver.add(pattern) }
+      it { is_expected.to eq(pattern) }
+
+      context 'then given a name that isn\'t a String but is case equal' do
+        let(:name) { URI('http://localhost') }
+        let(:pattern) { name.to_s }
+
+        it 'coerces the name to a String' do
+          is_expected.to eq(pattern)
+        end
+      end
+    end
+
+    context 'when a non-matching String has been added' do
       let(:name) { 'name' }
       before { resolver.add('my-name') }
       it { is_expected.to be :default }
@@ -36,6 +81,16 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::RegexpResolver do
 
     context 'when given a Regexp' do
       let(:pattern) { /name/ }
+
+      it 'allows any string matching the pattern to resolve' do
+        expect { add }.to change { resolver.resolve('my-name') }
+          .from(:default)
+          .to(pattern)
+      end
+    end
+
+    context 'when given a Proc' do
+      let(:pattern) { proc { |n| n == 'my-name' } }
 
       it 'allows any string matching the pattern to resolve' do
         expect { add }.to change { resolver.resolve('my-name') }
