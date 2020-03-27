@@ -27,10 +27,6 @@ module Datadog
         @setter = meta[:setter] || block || IDENTITY
       end
 
-      def default_value
-        lazy ? @default.call : @default
-      end
-
       # Creates a new Option, bound to the context provided.
       def build(context)
         Option.new(self, context)

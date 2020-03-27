@@ -18,13 +18,16 @@ RSpec.describe Datadog::Configuration::Base do
           let(:name) { :debug }
           let(:block) { proc { option :enabled } }
 
-          it 'adds a settings option' do
-            settings
+          describe 'defines a settings option' do
+            subject(:definition) { base_class.options[name] }
+            before { settings }
 
-            base_class.options[name].tap do |option|
-              expect(option).to be_a_kind_of(Datadog::Configuration::OptionDefinition)
-              expect(option.default_value).to be_a_kind_of(described_class)
-              expect(option.default_value.option_defined?(:enabled)).to be true
+            it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition) }
+
+            describe 'when instantiated' do
+              subject(:option) { Datadog::Configuration::Option.new(definition, self) }
+              it { expect(option.default_value).to be_a_kind_of(described_class) }
+              it { expect(option.default_value.option_defined?(:enabled)).to be true }
             end
           end
         end
@@ -33,6 +36,8 @@ RSpec.describe Datadog::Configuration::Base do
 
     describe 'instance behavior' do
       subject(:base_object) { base_class.new }
+
+      it { is_expected.to be_a_kind_of(Datadog::Environment::Helpers) }
 
       describe '#initialize' do
         subject(:base_object) { base_class.new(options) }

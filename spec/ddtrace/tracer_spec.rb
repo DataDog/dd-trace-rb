@@ -23,7 +23,7 @@ RSpec.describe Datadog::Tracer do
     subject(:tags) { tracer.tags }
     let(:env_tags) { {} }
 
-    before { allow(Datadog::Environment).to receive(:tags).and_return(env_tags) }
+    before { allow(Datadog.configuration).to receive(:tags).and_return(env_tags) }
 
     context 'by default' do
       it { is_expected.to be env_tags }

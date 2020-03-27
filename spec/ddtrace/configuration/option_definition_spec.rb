@@ -126,24 +126,6 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     end
   end
 
-  describe '#default_value' do
-    subject(:result) { definition.default_value }
-    let(:meta) { { default: default } }
-    let(:default) { double('default') }
-
-    context 'when lazy is true' do
-      let(:meta) { super().merge(lazy: true) }
-      let(:default_value) { double('default_value') }
-      before(:each) { expect(default).to receive(:call).and_return(default_value) }
-      it { is_expected.to be default_value }
-    end
-
-    context 'when lazy is false' do
-      let(:meta) { super().merge(lazy: false) }
-      it { is_expected.to be default }
-    end
-  end
-
   describe '#build' do
     subject(:build) { definition.build(context) }
     let(:context) { double('context') }

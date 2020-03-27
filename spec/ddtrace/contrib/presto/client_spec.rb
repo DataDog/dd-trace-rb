@@ -86,13 +86,6 @@ RSpec.describe 'Presto::Client instrumentation' do
         expect(span.get_tag('presto.model_version')).to eq(model_version)
         expect(span.get_tag('out.host')).to eq("#{host}:#{port}")
       end
-
-      it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_SAMPLE_RATE }
-      end
-
-      it_behaves_like 'measured span for integration', false
     end
 
     shared_examples_for 'a configurable Presto trace' do
@@ -208,6 +201,8 @@ RSpec.describe 'Presto::Client instrumentation' do
         let(:analytics_enabled_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'measured span for integration', false
     end
 
     describe '#run operation' do

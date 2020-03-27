@@ -1576,7 +1576,10 @@ These values can also be overridden at the tracer level:
 
 ```ruby
 Datadog.configure do |c|
-  c.tracer env: 'test', tags: { 'team' => 'qa' }
+  c.service = 'billing-api'
+  c.env = 'test'
+  c.tags = { 'team' => 'qa' }
+  c.version = '1.3-alpha'
 end
 ```
 

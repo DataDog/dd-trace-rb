@@ -152,9 +152,12 @@ module Datadog
         # and defaults are unfrozen for mutation in Statsd.
         DEFAULT.dup.tap do |options|
           options[:tags] = options[:tags].dup
-          # rubocop:disable Metrics/LineLength
-          options[:tags] << "#{Datadog::Ext::Environment::TAG_ENV}:#{Datadog::Environment.env}" unless Datadog::Environment.env.nil?
-          options[:tags] << "#{Datadog::Ext::Environment::TAG_VERSION}:#{Datadog::Environment.version}" unless Datadog::Environment.version.nil?
+
+          env = Datadog.configuration.env
+          options[:tags] << "#{Datadog::Ext::Environment::TAG_ENV}:#{env}" unless env.nil?
+
+          version = Datadog.configuration.version
+          options[:tags] << "#{Datadog::Ext::Environment::TAG_VERSION}:#{version}" unless version.nil?
         end
       end
     end

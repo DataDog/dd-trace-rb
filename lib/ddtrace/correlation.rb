@@ -11,8 +11,8 @@ module Datadog
         super
         self.trace_id = trace_id || 0
         self.span_id = span_id || 0
-        self.env = env || Datadog::Environment.env
-        self.version = version || Datadog::Environment.version
+        self.env = env || Datadog.configuration.env
+        self.version = version || Datadog.configuration.version
       end
 
       def to_s

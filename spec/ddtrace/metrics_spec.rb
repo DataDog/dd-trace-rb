@@ -638,8 +638,8 @@ RSpec.describe Datadog::Metrics::Options do
           )
         end
 
-        context 'when Datadog::Environment.env' do
-          before { allow(Datadog::Environment).to receive(:env).and_return(environment) }
+        context 'when #env configuration setting' do
+          before { allow(Datadog.configuration).to receive(:env).and_return(environment) }
 
           context 'is not defined' do
             let(:environment) { nil }
@@ -653,7 +653,7 @@ RSpec.describe Datadog::Metrics::Options do
         end
 
         context 'when Datadog::Environment.version' do
-          before { allow(Datadog::Environment).to receive(:version).and_return(version) }
+          before { allow(Datadog.configuration).to receive(:version).and_return(version) }
 
           context 'is not defined' do
             let(:version) { nil }
