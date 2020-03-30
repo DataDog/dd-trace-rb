@@ -112,20 +112,20 @@ RSpec.describe Datadog::Workers::IntervalLoop do
       end
     end
 
-    describe '#loop_default_interval' do
-      subject(:loop_default_interval) { worker.loop_default_interval }
+    describe '#loop_base_interval' do
+      subject(:loop_base_interval) { worker.loop_base_interval }
 
       context 'default' do
-        it { is_expected.to eq(described_class::DEFAULT_INTERVAL) }
+        it { is_expected.to eq(described_class::BASE_INTERVAL) }
       end
 
       context 'when set' do
         let(:value) { rand }
 
         it do
-          expect { worker.send(:loop_default_interval=, value) }
-            .to change { worker.loop_default_interval }
-            .from(described_class::DEFAULT_INTERVAL)
+          expect { worker.send(:loop_base_interval=, value) }
+            .to change { worker.loop_base_interval }
+            .from(described_class::BASE_INTERVAL)
             .to(value)
         end
       end
@@ -173,16 +173,16 @@ RSpec.describe Datadog::Workers::IntervalLoop do
       subject(:loop_wait_time) { worker.loop_wait_time }
 
       context 'default' do
-        it { is_expected.to eq(described_class::DEFAULT_INTERVAL) }
+        it { is_expected.to eq(described_class::BASE_INTERVAL) }
       end
 
       context 'when set' do
         let(:value) { rand }
 
         it do
-          expect { worker.send(:loop_default_interval=, value) }
-            .to change { worker.loop_default_interval }
-            .from(described_class::DEFAULT_INTERVAL)
+          expect { worker.send(:loop_base_interval=, value) }
+            .to change { worker.loop_base_interval }
+            .from(described_class::BASE_INTERVAL)
             .to(value)
         end
       end
@@ -200,7 +200,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
         it do
           expect { loop_back_off! }
             .to change { worker.loop_wait_time }
-            .from(described_class::DEFAULT_INTERVAL)
+            .from(described_class::BASE_INTERVAL)
             .to(described_class::BACK_OFF_RATIO)
 
           expect { worker.loop_back_off! }
@@ -217,7 +217,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
         it do
           expect { loop_back_off! }
             .to change { worker.loop_wait_time }
-            .from(described_class::DEFAULT_INTERVAL)
+            .from(described_class::BASE_INTERVAL)
             .to(value)
         end
       end

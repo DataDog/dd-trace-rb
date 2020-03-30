@@ -5,7 +5,7 @@ module Datadog
     module IntervalLoop
       BACK_OFF_RATIO = 1.2
       BACK_OFF_MAX = 5
-      DEFAULT_INTERVAL = 1
+      BASE_INTERVAL = 1
 
       def self.included(base)
         base.send(:prepend, PrependedMethods)
@@ -37,8 +37,8 @@ module Datadog
         @run_loop == true
       end
 
-      def loop_default_interval
-        @loop_default_interval ||= DEFAULT_INTERVAL
+      def loop_base_interval
+        @loop_base_interval ||= BASE_INTERVAL
       end
 
       def loop_back_off_ratio
@@ -50,7 +50,7 @@ module Datadog
       end
 
       def loop_wait_time
-        @loop_wait_time ||= loop_default_interval
+        @loop_wait_time ||= loop_base_interval
       end
 
       def loop_back_off?
@@ -66,7 +66,7 @@ module Datadog
       attr_writer \
         :loop_back_off_max,
         :loop_back_off_ratio,
-        :loop_default_interval
+        :loop_base_interval
 
       def mutex
         @mutex ||= Mutex.new
@@ -83,7 +83,7 @@ module Datadog
             yield
 
             # Reset the wait interval
-            loop_back_off!(loop_default_interval)
+            loop_back_off!(loop_base_interval)
           elsif loop_back_off?
             # Back off the wait interval a bit
             loop_back_off!
