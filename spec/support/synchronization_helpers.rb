@@ -1,4 +1,20 @@
+require 'English'
+
 module SynchronizationHelpers
+  def expect_in_fork
+    # Start in fork
+    pid = fork do
+      yield
+    end
+
+    # Wait for fork to finish, retrieve its status.
+    Process.wait(pid)
+    status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
+
+    # Expect fork and assertions to have completed successfully.
+    expect(status && status.success?).to be true
+  end
+
   def try_wait_until(options = {})
     attempts = options.fetch(:attempts, 10)
     backoff = options.fetch(:backoff, 0.1)
