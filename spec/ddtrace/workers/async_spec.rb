@@ -68,13 +68,13 @@ RSpec.describe Datadog::Workers::Async::Thread do
         end
 
         it 'performs the task async' do
-          # expect(worker.result).to eq(perform_result)
+          expect(worker.result).to eq(perform_result)
           expect(worker).to have_attributes(
             result: perform_result,
             error?: false,
             error: nil,
             completed?: true,
-            unstarted?: false,
+            started?: true,
             run_async?: true
           )
         end
@@ -240,17 +240,17 @@ RSpec.describe Datadog::Workers::Async::Thread do
       end
     end
 
-    describe '#unstarted?' do
-      subject(:unstarted?) { worker.unstarted? }
+    describe '#started?' do
+      subject(:started?) { worker.started? }
 
       context 'by default' do
-        it { is_expected.to be true }
+        it { is_expected.to be false }
       end
 
       context 'when started' do
         before { worker.perform }
         after { worker.terminate }
-        it { is_expected.to be false }
+        it { is_expected.to be true }
       end
     end
 

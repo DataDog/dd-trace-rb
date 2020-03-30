@@ -18,7 +18,7 @@ module Datadog
         # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
-            start { self.result = super(*args) } if unstarted?
+            start { self.result = super(*args) } unless started?
           end
         end
 
@@ -46,8 +46,8 @@ module Datadog
           @run_async == true
         end
 
-        def unstarted?
-          worker.nil? || forked?
+        def started?
+          !(worker.nil? || forked?)
         end
 
         def running?
@@ -64,7 +64,7 @@ module Datadog
         end
 
         def failed?
-          !worker.nil? && worker.status == false && error?
+          !worker.nil? && worker.status.nil?
         end
 
         def forked?
@@ -126,9 +126,11 @@ module Datadog
           @worker = ::Thread.new do
             begin
               yield
-            rescue StandardError => e
+            # rubocop:disable Lint/RescueException
+            rescue Exception => e
               @error = e
               Logger.log.debug("Worker thread error. Cause #{e.message} Location: #{e.backtrace.first}")
+              raise
             end
           end
         end
