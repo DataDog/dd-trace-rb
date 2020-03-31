@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [0.34.0] - 2020-03-31
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.34.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...v0.34.0
+
+### Added
+
+- `Datadog::Event` for simple pub-sub messaging (#972)
+- `Datadog::Workers` for trace writing (#969, #973)
+- `_dd.measured` tag to some integrations for more statistics (#974)
+- `env`, `service`, `version`, `tags` configuration for auto-tagging (#977, #980, #982, #983, #985)
+- Multiplexed configuration for Ethon, Excon, Faraday, HTTP inetgrations (#882, #953) (@stormsilver)
+
+### Fixed
+
+- Runtime metrics configuration dropping with new writer (#967, #968) (@ericmustin)
+- Faraday "unexpected middleware" warnings on v0.x (#965, #971)
+- Presto configuration (#975)
+- Test suite issues (#981)
+
 ## [0.33.1] - 2020-03-09
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.33.1
@@ -1119,7 +1140,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...master
+[0.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...v0.34.0
 [0.33.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.0...v0.33.1
 [0.33.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...v0.33.0
 [0.32.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.1...v0.32.0
