@@ -32,14 +32,27 @@ module Datadog
 
           # By default, default service would be guessed from the script
           # being executed, but here we know better, get it from Rails config.
-          config[:tracer].default_service = config[:service_name]
+          # Don't set this if service has been explicitly provided by the user.
+          Datadog.configuration.service ||= config[:service_name]
+
+          # Set the environment to the Rails environment.
+          # Don't set this if env has been explicitly provided by the user.
+          Datadog.configuration.env ||= ::Rails.env if ::Rails.respond_to?(:env)
+
+          # Update the tracer if its not the default tracer.
+          if config[:tracer] != Datadog.configuration.tracer
+            config[:tracer].default_service = config[:service_name]
+
+            env = Datadog.configuration.env || (::Rails.respond_to?(:env) && ::Rails.env)
+            config[:tracer].set_tags('env' => env) if env
+          end
         end
 
         def self.config_with_defaults
           # We set defaults here instead of in the patcher because we need to wait
           # for the Rails application to be fully initialized.
           Datadog.configuration[:rails].tap do |config|
-            config[:service_name] ||= Utils.app_name
+            config[:service_name] ||= (Datadog.configuration.service || Utils.app_name)
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"

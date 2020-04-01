@@ -27,6 +27,18 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#env=' do
+    subject(:set_env) { settings.env = env }
+
+    context 'when given a value' do
+      let(:env) { 'custom-env' }
+      before { set_env }
+
+      it { expect(settings.env).to eq(env) }
+      it { expect(settings.tracer.tags).to include('env' => env) }
+    end
+  end
+
   describe '#service' do
     subject(:service) { settings.service }
     context "when #{Datadog::Ext::Environment::ENV_SERVICE}" do
@@ -45,6 +57,18 @@ RSpec.describe Datadog::Configuration::Settings do
         let(:service) { 'service-value' }
         it { is_expected.to eq(service) }
       end
+    end
+  end
+
+  describe '#service=' do
+    subject(:set_service) { settings.service = service }
+
+    context 'when given a value' do
+      let(:service) { 'custom-service' }
+      before { set_service }
+
+      it { expect(settings.service).to eq(service) }
+      it { expect(settings.tracer.default_service).to eq(service) }
     end
   end
 
@@ -146,6 +170,39 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#tags=' do
+    subject(:set_tags) { settings.tags = tags }
+
+    context 'when given a Hash' do
+      context 'with Symbol keys' do
+        let(:tags) { { :'custom-tag' => 'custom-value' } }
+        before { set_tags }
+
+        it { expect(settings.tags).to eq('custom-tag' => 'custom-value') }
+        it { expect(settings.tracer.tags).to include('custom-tag' => 'custom-value') }
+      end
+
+      context 'with String keys' do
+        let(:tags) { { 'custom-tag' => 'custom-value' } }
+        before { set_tags }
+
+        it { expect(settings.tags).to eq(tags) }
+        it { expect(settings.tracer.tags).to include(tags) }
+      end
+    end
+
+    context 'called consecutively' do
+      subject(:set_tags) do
+        settings.tags = { foo: 'foo', bar: 'bar' }
+        settings.tags = { 'foo' => 'oof', 'baz' => 'baz' }
+      end
+
+      before { set_tags }
+
+      it { expect(settings.tags).to eq('foo' => 'oof', 'bar' => 'bar', 'baz' => 'baz') }
+    end
+  end
+
   describe '#version' do
     subject(:version) { settings.version }
     context "when #{Datadog::Ext::Environment::ENV_VERSION}" do
@@ -164,6 +221,18 @@ RSpec.describe Datadog::Configuration::Settings do
         let(:version) { 'version-value' }
         it { is_expected.to eq(version) }
       end
+    end
+  end
+
+  describe '#version=' do
+    subject(:set_version) { settings.version = version }
+
+    context 'when given a value' do
+      let(:version) { '0.1.0.alpha' }
+      before { set_version }
+
+      it { expect(settings.version).to eq(version) }
+      it { expect(settings.tracer.tags).to include('version' => version) }
     end
   end
 

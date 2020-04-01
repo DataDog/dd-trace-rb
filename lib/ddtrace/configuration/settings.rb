@@ -63,6 +63,7 @@ module Datadog
       option :env do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
         o.lazy
+        o.on_set { |value| get_option(:tracer).set_tags('env' => value) }
       end
 
       option :report_hostname do |o|
@@ -100,6 +101,7 @@ module Datadog
       option :service do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
         o.lazy
+        o.on_set { |value| get_option(:tracer).default_service = value }
       end
 
       option :tags do |o|
@@ -118,6 +120,16 @@ module Datadog
 
           tags
         end
+
+        o.setter do |new_value, old_value|
+          # Coerce keys to strings
+          string_tags = Hash[new_value.collect { |k, v| [k.to_s, v] }]
+
+          # Merge with previous tags
+          (old_value || {}).merge(string_tags)
+        end
+
+        o.on_set { |value| get_option(:tracer).set_tags(value) }
 
         o.lazy
       end
@@ -168,6 +180,7 @@ module Datadog
       option :version do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
         o.lazy
+        o.on_set { |value| get_option(:tracer).set_tags('version' => value) }
       end
     end
   end

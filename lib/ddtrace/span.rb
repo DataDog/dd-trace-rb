@@ -173,7 +173,7 @@ module Datadog
       # spans without a service would be dropped, so here we provide a default.
       # This should really never happen with integrations in contrib, as a default
       # service is always set. It's only for custom instrumentation.
-      @service ||= (Datadog.configuration.service || (@tracer && @tracer.default_service))
+      @service ||= (@tracer && @tracer.default_service)
 
       begin
         @context.close_span(self)
