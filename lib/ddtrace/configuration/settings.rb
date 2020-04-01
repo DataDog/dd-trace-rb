@@ -120,6 +120,16 @@ module Datadog
           tags
         end
 
+        o.setter do |new_value, old_value|
+          # Coerce keys to strings
+          string_tags = Hash[new_value.collect { |k, v| [k.to_s, v] }]
+
+          # Merge with previous tags
+          (old_value || {}).merge(string_tags)
+        end
+
+        o.on_set { |value| get_option(:tracer).set_tags(value) }
+
         o.lazy
       end
 

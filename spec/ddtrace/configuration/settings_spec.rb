@@ -158,6 +158,39 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#tags=' do
+    subject(:set_tags) { settings.tags = tags }
+
+    context 'when given a Hash' do
+      context 'with Symbol keys' do
+        let(:tags) { { :'custom-tag' => 'custom-value' } }
+        before { set_tags }
+
+        it { expect(settings.tags).to eq('custom-tag' => 'custom-value') }
+        it { expect(settings.tracer.tags).to include('custom-tag' => 'custom-value') }
+      end
+
+      context 'with String keys' do
+        let(:tags) { { 'custom-tag' => 'custom-value' } }
+        before { set_tags }
+
+        it { expect(settings.tags).to eq(tags) }
+        it { expect(settings.tracer.tags).to include(tags) }
+      end
+    end
+
+    context 'called consecutively' do
+      subject(:set_tags) do
+        settings.tags = { foo: 'foo', bar: 'bar' }
+        settings.tags = { 'foo' => 'oof', 'baz' => 'baz' }
+      end
+
+      before { set_tags }
+
+      it { expect(settings.tags).to eq('foo' => 'oof', 'bar' => 'bar', 'baz' => 'baz') }
+    end
+  end
+
   describe '#version' do
     subject(:version) { settings.version }
     context "when #{Datadog::Ext::Environment::ENV_VERSION}" do
