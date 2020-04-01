@@ -180,6 +180,7 @@ module Datadog
       option :version do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
         o.lazy
+        o.on_set { |value| get_option(:tracer).set_tags('version' => value) }
       end
     end
   end

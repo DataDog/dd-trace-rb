@@ -224,6 +224,18 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#version=' do
+    subject(:set_version) { settings.version = version }
+
+    context 'when given a value' do
+      let(:version) { '0.1.0.alpha' }
+      before { set_version }
+
+      it { expect(settings.version).to eq(version) }
+      it { expect(settings.tracer.tags).to include('version' => version) }
+    end
+  end
+
   describe '#sampling' do
     describe '#rate_limit' do
       subject(:rate_limit) { settings.sampling.rate_limit }
