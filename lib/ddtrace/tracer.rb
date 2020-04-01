@@ -85,6 +85,7 @@ module Datadog
 
       @mutex = Mutex.new
       @tags = options.fetch(:tags, Datadog.configuration.tags)
+      @default_service = options.fetch(:default_service, Datadog.configuration.service)
 
       # Enable priority sampling by default
       activate_priority_sampling!(@sampler)

@@ -60,6 +60,18 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#service=' do
+    subject(:set_service) { settings.service = service }
+
+    context 'when given a value' do
+      let(:service) { 'custom-service' }
+      before { set_service }
+
+      it { expect(settings.service).to eq(service) }
+      it { expect(settings.tracer.default_service).to eq(service) }
+    end
+  end
+
   describe '#tags' do
     subject(:tags) { settings.tags }
 

@@ -101,6 +101,7 @@ module Datadog
       option :service do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
         o.lazy
+        o.on_set { |value| get_option(:tracer).default_service = value }
       end
 
       option :tags do |o|
