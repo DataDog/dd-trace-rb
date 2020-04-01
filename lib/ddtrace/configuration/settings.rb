@@ -63,6 +63,7 @@ module Datadog
       option :env do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
         o.lazy
+        o.on_set { |value| get_option(:tracer).set_tags('env' => value) }
       end
 
       option :report_hostname do |o|

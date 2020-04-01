@@ -27,6 +27,18 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#env=' do
+    subject(:set_env) { settings.env = env }
+
+    context 'when given a value' do
+      let(:env) { 'custom-env' }
+      before { set_env }
+
+      it { expect(settings.env).to eq(env) }
+      it { expect(settings.tracer.tags).to include('env' => env) }
+    end
+  end
+
   describe '#service' do
     subject(:service) { settings.service }
     context "when #{Datadog::Ext::Environment::ENV_SERVICE}" do
