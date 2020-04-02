@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.34.1] - 2020-04-02
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.34.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...v0.34.1
+
+### Changed
+
+- Rails applications set default `service` and `env` if none are configured. (#990)
+
+### Fixed
+
+- Some configuration settings not applying (#989, #990) (@rahul342)
+
 ## [0.34.0] - 2020-03-31
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.34.0
@@ -1140,7 +1154,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.1...master
+[0.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...v0.34.1
 [0.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...v0.34.0
 [0.33.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.0...v0.33.1
 [0.33.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...v0.33.0
