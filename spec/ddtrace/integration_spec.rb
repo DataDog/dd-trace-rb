@@ -241,6 +241,8 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     context 'when sent TERM' do
+      before { skip unless PlatformHelpers.supports_fork? }
+
       subject(:terminated_process) do
         # Initiate IO pipe
         pipe

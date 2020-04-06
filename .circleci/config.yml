@@ -59,6 +59,9 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
     command: |
+      # JRuby: Ensure files exist when Appraisal generates no output
+      mkdir gemfiles
+      touch gemfiles/_.gemfile.lock
       cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
@@ -270,6 +273,7 @@ jobs:
           destination: gem
 
 job_configuration:
+  # MRI
   - &config-2_0
     <<: *filters_all_branches_and_tags
     ruby_version: '2.0'
@@ -302,11 +306,17 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: '2.7'
     image: marcotc/docker-library:ddtrace_rb_2_7_0
+  # JRuby
+  - &config-jruby-9_2
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'jruby-9.2'
+    image: marcotc/docker-library:ddtrace_rb_jruby_9_2
 
 workflows:
   version: 2
   build-and-test:
     jobs:
+      # MRI
       - orb/checkout:
           <<: *config-2_0
           name: checkout-2.0
@@ -417,6 +427,22 @@ workflows:
           name: test-2.7
           requires:
             - build-2.7
+      # JRuby
+      - orb/checkout:
+          <<: *config-jruby-9_2
+          name: checkout-jruby-9.2
+      - orb/build:
+          <<: *config-jruby-9_2
+          rubocop: false
+          name: build-jruby-9.2
+          requires:
+            - checkout-jruby-9.2
+      - orb/test:
+          <<: *config-jruby-9_2
+          name: test-jruby-9.2
+          requires:
+            - build-jruby-9.2
+      # Release jobs
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
           requires:

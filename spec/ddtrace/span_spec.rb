@@ -236,7 +236,7 @@ RSpec.describe Datadog::Span do
       it 'sets the analytics sample rate' do
         # Both should return the same tag
         expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
-        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be 1.0
+        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
       end
     end
 

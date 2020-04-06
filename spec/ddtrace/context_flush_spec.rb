@@ -68,7 +68,10 @@ RSpec.describe Datadog::ContextFlush::Partial do
 
           before do
             allow(context).to receive(:delete_span_if) do |&block|
-              expect(block).to eq(:finished?.to_proc)
+              # Assert correct block is passed in
+              block.call(spy = spy())
+              expect(spy).to have_received(:finished?)
+
               finished_spans
             end
 

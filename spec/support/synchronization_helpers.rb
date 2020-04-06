@@ -15,6 +15,19 @@ module SynchronizationHelpers
     expect(status && status.success?).to be true
   end
 
+  def expect_in_thread
+    # Start in thread
+    t = Thread.new do
+      yield
+    end
+
+    # Wait for thread to finish, retrieve its return value.
+    status = t.value
+
+    # Expect thread and assertions to have completed successfully.
+    expect(status).to be true
+  end
+
   def try_wait_until(options = {})
     attempts = options.fetch(:attempts, 10)
     backoff = options.fetch(:backoff, 0.1)
@@ -30,7 +43,7 @@ module SynchronizationHelpers
     # threading model is different on Java, we need to wait for a longer time
     # (like: be over 10 seconds to make sure handle the case "a flush just happened
     # a few milliseconds ago")
-    return 300 if RUBY_PLATFORM == 'java'
+    return 300 if PlatformHelpers.jruby?
     30
   end
 

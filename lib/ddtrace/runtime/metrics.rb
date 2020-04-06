@@ -55,6 +55,8 @@ module Datadog
       def gc_metrics
         Hash[
           GC.stat.map do |k, v|
+            next if v.is_a?(Hash) # TODO: JRuby supports additional nested metrics
+
             ["#{Ext::Runtime::Metrics::METRIC_GC_PREFIX}.#{k}", v]
           end
         ]
