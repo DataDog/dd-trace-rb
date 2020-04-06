@@ -5,23 +5,32 @@ require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/ext/sampling'
 
-require 'ddtrace/tracer'
-require 'ddtrace/metrics'
 require 'ddtrace/diagnostics/health'
+require 'ddtrace/logger'
 
 module Datadog
   module Configuration
     # Global configuration settings for the trace library.
+    # rubocop:disable Metrics/ClassLength
     class Settings
       include Base
 
       #
       # Configuration options
       #
+      settings :analytics do
+        option :enabled do |o|
+          o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
+          o.lazy
+        end
+      end
+
       option :analytics_enabled do |o|
-        # TODO: Raise deprecation warning
-        o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
-        o.lazy
+        o.delegate_to { get_option(:analytics).enabled }
+        o.on_set do |value|
+          # TODO: Raise deprecation warning
+          get_option(:analytics).enabled = value
+        end
       end
 
       settings :diagnostics do
@@ -63,7 +72,6 @@ module Datadog
       option :env do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
         o.lazy
-        o.on_set { |value| get_option(:tracer).set_tags('env' => value) }
       end
 
       option :report_hostname do |o|
@@ -71,19 +79,33 @@ module Datadog
         o.lazy
       end
 
+      settings :runtime_metrics do
+        option :enabled do |o|
+          o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
+          o.lazy
+        end
+
+        option :statsd
+      end
+
       # Backwards compatibility for configuring runtime metrics e.g. `c.runtime_metrics enabled: true`
       def runtime_metrics(options = nil)
-        runtime_metrics = get_option(:tracer).writer.runtime_metrics
-        return runtime_metrics if options.nil?
+        settings = get_option(:runtime_metrics)
+        return settings if options.nil?
 
+        # If options were provided (old style) then raise warnings and apply them:
         # TODO: Raise deprecation warning
-        runtime_metrics.configure(options)
+        settings.enabled = options[:enabled] if options.key?(:enabled)
+        settings.statsd = options[:statsd] if options.key?(:statsd)
+        settings
       end
 
       option :runtime_metrics_enabled do |o|
-        # TODO: Raise deprecation warning
-        o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
-        o.lazy
+        o.delegate_to { get_option(:runtime_metrics).enabled }
+        o.on_set do |value|
+          # TODO: Raise deprecation warning
+          get_option(:runtime_metrics).enabled = value
+        end
       end
 
       settings :sampling do
@@ -101,7 +123,6 @@ module Datadog
       option :service do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
         o.lazy
-        o.on_set { |value| get_option(:tracer).default_service = value }
       end
 
       option :tags do |o|
@@ -129,58 +150,79 @@ module Datadog
           (old_value || {}).merge(string_tags)
         end
 
-        o.on_set { |value| get_option(:tracer).set_tags(value) }
-
         o.lazy
       end
 
-      option :tracer do |o|
-        o.default { Tracer.new }
-        o.lazy
+      settings :tracer do
+        option :enabled, default: true
+        option :hostname # TODO: Deprecate
+        option :instance
 
-        # On reset, shut down the old tracer,
-        # then instantiate a new one.
-        o.resetter do |tracer|
-          tracer.shutdown!
-          Tracer.new
+        settings :partial_flush do
+          option :enabled, default: false
+          option :min_spans_threshold
         end
 
-        # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
-        o.helper :tracer do |options = nil|
-          tracer = options && options.key?(:instance) ? set_option(:tracer, options[:instance]) : get_option(:tracer)
+        option :port # TODO: Deprecate
+        option :priority_sampling # TODO: Deprecate
+        option :sampler
+        option :transport_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
+        option :writer # TODO: Deprecate
+        option :writer_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
+      end
 
-          tracer.tap do |t|
-            unless options.nil?
-              t.configure(options)
+      # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
+      def tracer(options = nil)
+        settings = get_option(:tracer)
+        return settings if options.nil?
 
-              if options[:log]
-                # TODO: Raise deprecation warning
-                Datadog::Logger.log = options[:log]
-              end
+        # If options were provided (old style) then raise warnings and apply them:
+        options = options.dup
 
-              if options[:tags]
-                # TODO: Raise deprecation warning
-                t.set_tags(options[:tags])
-              end
-
-              if options[:env]
-                # TODO: Raise deprecation warning
-                t.set_tags(env: options[:env])
-              end
-
-              if options.key?(:debug)
-                # TODO: Raise deprecation warning
-                Datadog::Logger.debug_logging = options[:debug]
-              end
-            end
-          end
+        if options.key?(:log)
+          # TODO: Raise deprecation warning
+          Datadog::Logger.log = options.delete(:log)
         end
+
+        if options.key?(:tags)
+          # TODO: Raise deprecation warning
+          set_option(:tags, options.delete(:tags))
+        end
+
+        if options.key?(:env)
+          # TODO: Raise deprecation warning
+          set_option(:env, options.delete(:env))
+        end
+
+        if options.key?(:debug)
+          # TODO: Raise deprecation warning
+          Datadog::Logger.debug_logging = options.delete(:debug)
+        end
+
+        if options.key?(:partial_flush)
+          # TODO: Raise deprecation warning
+          settings.partial_flush.enabled = options.delete(:partial_flush)
+        end
+
+        if options.key?(:min_spans_before_partial_flush)
+          # TODO: Raise deprecation warning
+          settings.partial_flush.min_spans_threshold = options.delete(:min_spans_before_partial_flush)
+        end
+
+        # Forward remaining options to settings
+        options.each do |key, value|
+          setter = :"#{key}="
+          settings.send(setter, value) if settings.respond_to?(setter)
+        end
+      end
+
+      def tracer=(tracer)
+        get_option(:tracer).instance = tracer
       end
 
       option :version do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
         o.lazy
-        o.on_set { |value| get_option(:tracer).set_tags('version' => value) }
       end
     end
   end

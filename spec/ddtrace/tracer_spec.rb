@@ -26,7 +26,7 @@ RSpec.describe Datadog::Tracer do
     before { allow(Datadog.configuration).to receive(:tags).and_return(env_tags) }
 
     context 'by default' do
-      it { is_expected.to be env_tags }
+      it { is_expected.to eq env_tags }
     end
 
     context 'when equivalent String and Symbols are added' do

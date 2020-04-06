@@ -176,8 +176,8 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly enabled' do
           around do |example|
-            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
-              Datadog.configuration.analytics_enabled = true
+            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
+              Datadog.configuration.analytics.enabled = true
               example.run
             end
           end
@@ -187,8 +187,8 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly disabled' do
           around do |example|
-            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
-              Datadog.configuration.analytics_enabled = false
+            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
+              Datadog.configuration.analytics.enabled = false
               example.run
             end
           end
@@ -220,8 +220,8 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly enabled' do
           around do |example|
-            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
-              Datadog.configuration.analytics_enabled = true
+            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
+              Datadog.configuration.analytics.enabled = true
               example.run
             end
           end
@@ -231,8 +231,8 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly disabled' do
           around do |example|
-            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
-              Datadog.configuration.analytics_enabled = false
+            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
+              Datadog.configuration.analytics.enabled = false
               example.run
             end
           end
