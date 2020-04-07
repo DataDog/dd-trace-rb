@@ -180,7 +180,7 @@ module Datadog
         @tracer.record(self)
       rescue StandardError => e
         Datadog::Logger.log.debug("error recording finished trace: #{e}")
-        Diagnostics::Health.metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
+        Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
       self
     end

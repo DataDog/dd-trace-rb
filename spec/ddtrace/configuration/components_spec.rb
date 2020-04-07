@@ -119,6 +119,15 @@ RSpec.describe Datadog::Configuration::Components do
     end
 
     context 'given some health metrics settings' do
+      let(:statsd) { instance_double('statsd') }
+
+      before do
+        settings.diagnostics.health_metrics.enabled = true
+        settings.diagnostics.health_metrics.statsd = statsd
+      end
+
+      it { expect(components.health_metrics.enabled?).to be true }
+      it { expect(components.health_metrics.statsd).to be statsd }
     end
   end
 end

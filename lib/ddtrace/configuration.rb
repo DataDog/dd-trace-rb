@@ -30,6 +30,7 @@ module Datadog
 
     def_delegators \
       :components,
+      :health_metrics,
       :runtime_metrics,
       :tracer
 
@@ -57,7 +58,10 @@ module Datadog
 
       # Shutdown the old metrics, unless they are still being used.
       # (e.g. custom Statsd instances.)
-      old.runtime_metrics.statsd.close unless old.runtime_metrics.statsd == current.runtime_metrics.statsd
+      old_statsd = [old.runtime_metrics.statsd, old.health_metrics.statsd].uniq
+      new_statsd = [current.runtime_metrics.statsd, current.health_metrics.statsd].uniq
+      unused_statsd = (old_statsd - (old_statsd & new_statsd))
+      unused_statsd.each(&:close)
     end
   end
 end

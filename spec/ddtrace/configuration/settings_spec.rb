@@ -61,11 +61,52 @@ RSpec.describe Datadog::Configuration::Settings do
 
   describe '#diagnostics' do
     describe '#health_metrics' do
-      # TODO
-    end
+      describe '#enabled' do
+        subject(:enabled) { settings.diagnostics.health_metrics.enabled }
 
-    describe '#health_metrics=' do
-      # TODO
+        context "when #{Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED}" do
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+            it { is_expected.to be false }
+          end
+
+          context 'is defined' do
+            let(:environment) { 'true' }
+            it { is_expected.to be true }
+          end
+        end
+      end
+
+      describe '#enabled=' do
+        it 'changes the #enabled setting' do
+          expect { settings.diagnostics.health_metrics.enabled = true }
+            .to change { settings.diagnostics.health_metrics.enabled }
+            .from(false)
+            .to(true)
+        end
+      end
+
+      describe '#statsd' do
+        subject(:statsd) { settings.diagnostics.health_metrics.statsd }
+        it { is_expected.to be nil }
+      end
+
+      describe '#statsd=' do
+        let(:statsd) { double('statsd') }
+
+        it 'changes the #statsd setting' do
+          expect { settings.diagnostics.health_metrics.statsd = statsd }
+            .to change { settings.diagnostics.health_metrics.statsd }
+            .from(nil)
+            .to(statsd)
+        end
+      end
     end
   end
 

@@ -34,14 +34,13 @@ module Datadog
       end
 
       settings :diagnostics do
-        option :health_metrics do |o|
-          o.default do
-            Datadog::Diagnostics::Health::Metrics.new(
-              enabled: env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false)
-            )
+        settings :health_metrics do
+          option :enabled do |o|
+            o.default { env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false) }
+            o.lazy
           end
 
-          o.lazy
+          option :statsd
         end
       end
 

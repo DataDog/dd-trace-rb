@@ -62,14 +62,45 @@ RSpec.describe Datadog::Configuration do
         let(:new_statsd) { instance_double(Datadog::Statsd) }
 
         before do
-          expect(old_statsd).to receive(:close)
+          expect(old_statsd).to receive(:close).once
 
-          test_class.configure { |c| c.runtime_metrics.statsd = old_statsd }
-          test_class.configure { |c| c.runtime_metrics.statsd = new_statsd }
+          test_class.configure do |c|
+            c.runtime_metrics.statsd = old_statsd
+            c.diagnostics.health_metrics.statsd = old_statsd
+          end
+
+          test_class.configure do |c|
+            c.runtime_metrics.statsd = new_statsd
+            c.diagnostics.health_metrics.statsd = new_statsd
+          end
         end
 
         it 'replaces the old Statsd and closes it' do
           expect(test_class.runtime_metrics.statsd).to be new_statsd
+          expect(test_class.health_metrics.statsd).to be new_statsd
+        end
+      end
+
+      context 'when replacing one of the metrics' do
+        let(:old_statsd) { instance_double(Datadog::Statsd) }
+        let(:new_statsd) { instance_double(Datadog::Statsd) }
+
+        before do
+          expect(old_statsd).to_not receive(:close)
+
+          test_class.configure do |c|
+            c.runtime_metrics.statsd = old_statsd
+            c.diagnostics.health_metrics.statsd = old_statsd
+          end
+
+          test_class.configure do |c|
+            c.runtime_metrics.statsd = new_statsd
+          end
+        end
+
+        it 'replaces the old Statsd and closes it' do
+          expect(test_class.runtime_metrics.statsd).to be new_statsd
+          expect(test_class.health_metrics.statsd).to be old_statsd
         end
       end
 
@@ -79,8 +110,15 @@ RSpec.describe Datadog::Configuration do
         before do
           expect(statsd).to_not receive(:close)
 
-          test_class.configure { |c| c.runtime_metrics.statsd = statsd }
-          test_class.configure { |c| c.runtime_metrics.statsd = statsd }
+          test_class.configure do |c|
+            c.runtime_metrics.statsd = statsd
+            c.diagnostics.health_metrics.statsd = statsd
+          end
+
+          test_class.configure do |c|
+            c.runtime_metrics.statsd = statsd
+            c.diagnostics.health_metrics.statsd = statsd
+          end
         end
 
         it 'replaces the old Statsd and closes it' do
@@ -94,7 +132,11 @@ RSpec.describe Datadog::Configuration do
         before do
           expect(statsd).to_not receive(:close)
 
-          test_class.configure { |c| c.runtime_metrics.statsd = statsd }
+          test_class.configure do |c|
+            c.runtime_metrics.statsd = statsd
+            c.diagnostics.health_metrics.statsd = statsd
+          end
+
           test_class.configure { |_c| }
         end
 

@@ -11,9 +11,13 @@ module Datadog
 
         # Runtime metrics
         build_runtime_metrics(settings)
+
+        # Health metrics
+        @health_metrics = build_health_metrics(settings)
       end
 
       attr_reader \
+        :health_metrics,
         :tracer
 
       def runtime_metrics
@@ -76,6 +80,14 @@ module Datadog
         #       within the tracer/writer. Build a new runtime metrics instance when
         #       runtime metrics are extracted from tracer/writer.
         runtime_metrics.configure(options)
+      end
+
+      def build_health_metrics(settings)
+        settings = settings.diagnostics.health_metrics
+        options = { enabled: settings.enabled }
+        options[:statsd] = settings.statsd unless settings.statsd.nil?
+
+        Datadog::Diagnostics::Health::Metrics.new(options)
       end
     end
   end

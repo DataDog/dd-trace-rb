@@ -96,16 +96,16 @@ module Datadog
 
     def measure_pop(traces)
       # Accepted
-      Diagnostics::Health.metrics.queue_accepted(@buffer_accepted)
-      Diagnostics::Health.metrics.queue_accepted_lengths(@buffer_accepted_lengths)
+      Datadog.health_metrics.queue_accepted(@buffer_accepted)
+      Datadog.health_metrics.queue_accepted_lengths(@buffer_accepted_lengths)
 
       # Dropped
-      Diagnostics::Health.metrics.queue_dropped(@buffer_dropped)
+      Datadog.health_metrics.queue_dropped(@buffer_dropped)
 
       # Queue gauges
-      Diagnostics::Health.metrics.queue_max_length(@max_size)
-      Diagnostics::Health.metrics.queue_spans(@buffer_spans)
-      Diagnostics::Health.metrics.queue_length(traces.length)
+      Datadog.health_metrics.queue_max_length(@max_size)
+      Datadog.health_metrics.queue_spans(@buffer_spans)
+      Datadog.health_metrics.queue_length(traces.length)
 
       # Reset aggregated metrics
       @buffer_accepted = 0
