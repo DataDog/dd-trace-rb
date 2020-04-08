@@ -187,19 +187,21 @@ class ContextTest < Minitest::Test
   def test_log_unfinished_spans
     tracer = get_test_tracer
 
-    default_log = Datadog::Logger.log
-    default_level = Datadog::Logger.log.level
+    default_log = Datadog.logger
+    default_level = default_log.level
 
     buf = StringIO.new
 
-    Datadog::Logger.log = Datadog::Logger.new(buf)
-    Datadog::Logger.log.level = ::Logger::DEBUG
+    Datadog.configure do |c|
+      c.logger = Datadog::Logger.new(buf)
+      c.diagnostics.debug = true
+    end
 
-    assert_equal(true, Datadog::Logger.log.debug?)
-    assert_equal(true, Datadog::Logger.log.info?)
-    assert_equal(true, Datadog::Logger.log.warn?)
-    assert_equal(true, Datadog::Logger.log.error?)
-    assert_equal(true, Datadog::Logger.log.fatal?)
+    assert_equal(true, Datadog.logger.debug?)
+    assert_equal(true, Datadog.logger.info?)
+    assert_equal(true, Datadog.logger.warn?)
+    assert_equal(true, Datadog.logger.error?)
+    assert_equal(true, Datadog.logger.fatal?)
 
     root = Datadog::Span.new(tracer, 'parent')
     child1 = Datadog::Span.new(tracer, 'child_1', trace_id: root.trace_id, parent_id: root.span_id)
@@ -211,7 +213,7 @@ class ContextTest < Minitest::Test
     ctx.add_span(child1)
     ctx.add_span(child2)
 
-    root.finish()
+    root.finish
     lines = buf.string.lines
 
     assert_operator(3, :<=, lines.length, 'there should be at least 3 log messages') if lines.respond_to? :length
@@ -239,8 +241,11 @@ class ContextTest < Minitest::Test
       i += 1
     end
 
-    Datadog::Logger.log = default_log
-    Datadog::Logger.log.level = default_level
+    Datadog.configure do |c|
+      c.logger = default_log
+      c.logger.level = default_level
+      c.diagnostics.debug = false
+    end
   end
 
   def test_thread_safe

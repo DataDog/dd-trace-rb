@@ -1,12 +1,10 @@
+require 'logger'
 require 'ddtrace/configuration/base'
 
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/ext/sampling'
-
-require 'ddtrace/diagnostics/health'
-require 'ddtrace/logger'
 
 module Datadog
   module Configuration
@@ -34,6 +32,8 @@ module Datadog
       end
 
       settings :diagnostics do
+        option :debug, default: false
+
         settings :health_metrics do
           option :enabled do |o|
             o.default { env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false) }
@@ -71,6 +71,19 @@ module Datadog
       option :env do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
         o.lazy
+      end
+
+      settings :logger do
+        option :instance do |o|
+          o.setter { |value, old_value| value.is_a?(::Logger) ? value : old_value }
+          o.on_set { |value| set_option(:level, value.level) unless value.nil? }
+        end
+
+        option :level, default: ::Logger::WARN
+      end
+
+      def logger=(logger)
+        get_option(:logger).instance = logger
       end
 
       option :report_hostname do |o|
@@ -180,7 +193,7 @@ module Datadog
 
         if options.key?(:log)
           # TODO: Raise deprecation warning
-          Datadog::Logger.log = options.delete(:log)
+          get_option(:logger).instance = options.delete(:log)
         end
 
         if options.key?(:tags)
@@ -195,7 +208,7 @@ module Datadog
 
         if options.key?(:debug)
           # TODO: Raise deprecation warning
-          Datadog::Logger.debug_logging = options.delete(:debug)
+          get_option(:diagnostics).debug = options.delete(:debug)
         end
 
         if options.key?(:partial_flush)

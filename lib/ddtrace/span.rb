@@ -104,7 +104,7 @@ module Datadog
         @meta[key] = value.to_s
       end
     rescue StandardError => e
-      Datadog::Logger.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+      Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
 
     # This method removes a tag for the given key.
@@ -127,7 +127,7 @@ module Datadog
       value = Float(value)
       @metrics[key] = value
     rescue StandardError => e
-      Datadog::Logger.log.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
+      Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
     end
 
     # This method removes a metric for the given key. It acts like {#remove_tag}.
@@ -179,7 +179,7 @@ module Datadog
         @context.close_span(self)
         @tracer.record(self)
       rescue StandardError => e
-        Datadog::Logger.log.debug("error recording finished trace: #{e}")
+        Datadog.logger.debug("error recording finished trace: #{e}")
         Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
       self

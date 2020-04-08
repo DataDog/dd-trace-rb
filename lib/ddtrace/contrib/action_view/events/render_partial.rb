@@ -36,7 +36,7 @@ module Datadog
 
             record_exception(span, payload)
           rescue StandardError => e
-            Datadog::Logger.log.debug(e.message)
+            Datadog.logger.debug(e.message)
           end
         end
       end

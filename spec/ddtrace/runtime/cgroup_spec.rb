@@ -14,7 +14,7 @@ RSpec.describe Datadog::Runtime::Cgroup do
           .with('/proc/self/cgroup')
           .and_return(false)
 
-        expect(Datadog::Logger.log).to_not receive(:error)
+        expect(Datadog.logger).to_not receive(:error)
       end
 
       it do
@@ -34,7 +34,7 @@ RSpec.describe Datadog::Runtime::Cgroup do
             .with('/proc/self/cgroup')
             .and_raise(error)
 
-          expect(Datadog::Logger.log).to receive(:error) do |msg|
+          expect(Datadog.logger).to receive(:error) do |msg|
             expect(msg).to match(/Error while parsing cgroup./)
           end
         end

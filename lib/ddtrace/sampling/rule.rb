@@ -28,7 +28,7 @@ module Datadog
       def match?(span)
         @matcher.match?(span)
       rescue => e
-        Datadog::Logger.log.error("Matcher failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog.logger.error("Matcher failed. Cause: #{e.message} Source: #{e.backtrace.first}")
         nil
       end
 

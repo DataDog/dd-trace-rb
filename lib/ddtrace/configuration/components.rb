@@ -1,3 +1,5 @@
+require 'ddtrace/diagnostics/health'
+require 'ddtrace/logger'
 require 'ddtrace/tracer'
 
 module Datadog
@@ -6,6 +8,9 @@ module Datadog
     # rubocop:disable Metrics/LineLength
     class Components
       def initialize(settings)
+        # Logger
+        @logger = build_logger(settings)
+
         # Tracer
         @tracer = build_tracer(settings)
 
@@ -18,6 +23,7 @@ module Datadog
 
       attr_reader \
         :health_metrics,
+        :logger,
         :tracer
 
       def runtime_metrics
@@ -25,6 +31,13 @@ module Datadog
       end
 
       private
+
+      def build_logger(settings)
+        logger = settings.logger.instance || Datadog::Logger.new(STDOUT)
+        logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
+
+        logger
+      end
 
       def build_tracer(settings)
         # If a custom tracer has been provided, use it instead.

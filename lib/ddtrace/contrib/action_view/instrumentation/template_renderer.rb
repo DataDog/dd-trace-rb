@@ -54,7 +54,7 @@ module Datadog
                     # Measure service stats
                     Contrib::Analytics.set_measured(active_datadog_span)
                   rescue StandardError => e
-                    Datadog::Logger.log.debug(e.message)
+                    Datadog.logger.debug(e.message)
                   end
 
                   # execute the original function anyway
@@ -103,7 +103,7 @@ module Datadog
 
                 datadog_render_template(template, layout_name)
               rescue StandardError => e
-                Datadog::Logger.log.debug(e.message)
+                Datadog.logger.debug(e.message)
               end
 
               # execute the original function anyway

@@ -60,6 +60,20 @@ RSpec.describe Datadog::Configuration::Settings do
   end
 
   describe '#diagnostics' do
+    describe '#debug' do
+      subject(:debug) { settings.diagnostics.debug }
+      it { is_expected.to be false }
+    end
+
+    describe '#debug=' do
+      it 'updates the #debug setting' do
+        expect { settings.diagnostics.debug = true }
+          .to change { settings.diagnostics.debug }
+          .from(false)
+          .to(true)
+      end
+    end
+
     describe '#health_metrics' do
       describe '#enabled' do
         subject(:enabled) { settings.diagnostics.health_metrics.enabled }
@@ -206,6 +220,50 @@ RSpec.describe Datadog::Configuration::Settings do
       let(:env) { 'custom-env' }
       before { set_env }
       it { expect(settings.env).to eq(env) }
+    end
+  end
+
+  describe '#logger' do
+    describe '#instance' do
+      subject(:instance) { settings.logger.instance }
+      it { is_expected.to be nil }
+    end
+
+    describe '#instance=' do
+      let(:logger) { Datadog::Logger.new(STDOUT) }
+
+      it 'updates the #instance setting' do
+        expect { settings.logger.instance = logger }
+          .to change { settings.logger.instance }
+          .from(nil)
+          .to(logger)
+      end
+    end
+
+    describe '#level' do
+      subject(:level) { settings.logger.level }
+      it { is_expected.to be ::Logger::WARN }
+    end
+
+    describe 'level=' do
+      let(:level) { ::Logger::INFO }
+
+      it 'changes the #statsd setting' do
+        expect { settings.logger.level = level }
+          .to change { settings.logger.level }
+          .from(::Logger::WARN)
+          .to(level)
+      end
+    end
+  end
+
+  describe '#logger=' do
+    let(:logger) { Datadog::Logger.new(STDOUT) }
+
+    it 'sets the logger instance' do
+      expect { settings.logger = logger }.to change { settings.logger.instance }
+        .from(nil)
+        .to(logger)
     end
   end
 
@@ -540,29 +598,11 @@ RSpec.describe Datadog::Configuration::Settings do
   describe '#tracer' do
     context 'old style' do
       context 'given :debug' do
-        subject(:configure) { settings.tracer(debug: debug) }
-
-        shared_examples_for 'debug toggle' do
-          before { Datadog::Logger.debug_logging = !debug }
-          after { Datadog::Logger.debug_logging = false }
-
-          it do
-            expect { configure }.to change { Datadog::Logger.debug_logging }
-              .from(!debug)
-              .to(debug)
-          end
-        end
-
-        context 'as true' do
-          it_behaves_like 'debug toggle' do
-            let(:debug) { true }
-          end
-        end
-
-        context 'as false' do
-          it_behaves_like 'debug toggle' do
-            let(:debug) { false }
-          end
+        it 'updates the new #debug setting' do
+          expect { settings.tracer(debug: true) }
+            .to change { settings.diagnostics.debug }
+            .from(false)
+            .to(true)
         end
       end
 
@@ -580,17 +620,11 @@ RSpec.describe Datadog::Configuration::Settings do
       context 'given :log' do
         let(:custom_log) { Logger.new(STDOUT, level: Logger::INFO) }
 
-        before do
-          @original_log = Datadog::Logger.log
-          settings.tracer(log: custom_log)
-        end
-
-        after do
-          Datadog::Logger.log = @original_log
-        end
-
-        it 'uses the logger for logging' do
-          expect(Datadog::Logger.log).to eq(custom_log)
+        it 'updates the new #instance setting' do
+          expect { settings.tracer(log: custom_log) }
+            .to change { settings.logger.instance }
+            .from(nil)
+            .to(custom_log)
         end
       end
 
@@ -646,10 +680,6 @@ RSpec.describe Datadog::Configuration::Settings do
             writer_options: { buffer_size: 1234 },
             instance: tracer
           )
-        end
-
-        after do
-          Datadog::Logger.debug_logging = false
         end
 
         it 'applies settings correctly' do
@@ -860,11 +890,10 @@ RSpec.describe Datadog::Configuration::Settings do
   end
 
   describe '#tracer=' do
-    subject(:set_tracer) { settings.tracer = tracer }
     let(:tracer) { instance_double(Datadog::Tracer) }
 
     it 'sets the tracer instance' do
-      expect { set_tracer }.to change { settings.tracer.instance }
+      expect { settings.tracer = tracer }.to change { settings.tracer.instance }
         .from(nil)
         .to(tracer)
     end

@@ -1563,6 +1563,9 @@ Datadog.configure do |c|
 
   # OR for advanced use cases, you can specify your own tracer:
   c.tracer.instance = Datadog::Tracer.new
+
+  # To enable debug mode:
+  c.diagnostics.debug = true
 end
 ```
 
@@ -1581,15 +1584,17 @@ By default, all logs are processed by the default Ruby logger. When using Rails,
 
 Datadog client log messages are marked with `[ddtrace]` so you should be able to isolate them from other messages.
 
-Additionally, it is possible to override the default logger and replace it by a custom one. This is done using the `log` attribute of the tracer.
+Additionally, it is possible to override the default logger and replace it by a custom one. This is done using the `log` setting.
 
 ```ruby
-f = File.new("my-custom.log", "w+")           # Log messages should go there
-Datadog::Logger.log = Logger.new(f)
-Datadog::Logger.log.info { "this is typically called by tracing code" }
-```
+f = File.new("my-custom.log", "w+") # Log messages should go there
+Datadog.configure do |c|
+  c.logger = Logger.new(f) # Overriding the default logger
+  c.logger.level = ::Logger::INFO
+end
 
-Additionally, you may activate debug logging with `Datadog::Logger.debug_logging = true`.
+Datadog.logger.info { "this is typically called by tracing code" }
+```
 
 ### Environment and tags
 

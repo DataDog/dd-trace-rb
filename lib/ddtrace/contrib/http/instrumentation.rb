@@ -58,7 +58,7 @@ module Datadog
                 # Add additional request specific tags to the span.
                 annotate_span_with_request!(span, req, request_options)
               rescue StandardError => e
-                Datadog::Logger.log.error("error preparing span for http request: #{e}")
+                Datadog.logger.error("error preparing span for http request: #{e}")
               ensure
                 response = super(req, body, &block)
               end

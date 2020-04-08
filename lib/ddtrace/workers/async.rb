@@ -121,7 +121,7 @@ module Datadog
           @run_async = true
           @pid = Process.pid
           @error = nil
-          Logger.log.debug("Starting thread in the process: #{Process.pid}")
+          Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
 
           @worker = ::Thread.new do
             begin
@@ -129,7 +129,7 @@ module Datadog
             # rubocop:disable Lint/RescueException
             rescue Exception => e
               @error = e
-              Logger.log.debug("Worker thread error. Cause #{e.message} Location: #{e.backtrace.first}")
+              Datadog.logger.debug("Worker thread error. Cause #{e.message} Location: #{e.backtrace.first}")
               raise
             end
           end
