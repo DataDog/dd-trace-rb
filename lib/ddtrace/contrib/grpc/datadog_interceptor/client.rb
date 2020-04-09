@@ -40,7 +40,7 @@ module Datadog
             Datadog::GRPCPropagator
               .inject!(span.context, metadata)
           rescue StandardError => e
-            Datadog::Logger.log.debug("GRPC client trace failed: #{e}")
+            Datadog.logger.debug("GRPC client trace failed: #{e}")
           end
 
           def format_resource(proto_method)

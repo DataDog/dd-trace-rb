@@ -31,6 +31,7 @@ module Datadog
     def_delegators \
       :components,
       :health_metrics,
+      :logger,
       :runtime_metrics,
       :tracer
 
@@ -45,13 +46,13 @@ module Datadog
       new_components = Components.new(configuration)
 
       # Teardown old components if they exist
-      teardown_components!(@components, new_components) if instance_variable_defined?(:@components)
+      teardown_old_components!(@components, new_components) if instance_variable_defined?(:@components)
 
       # Activate new components
       @components = new_components
     end
 
-    def teardown_components!(old, current)
+    def teardown_old_components!(old, current)
       # Shutdown the old tracer, unless it's still being used.
       # (e.g. a custom tracer instance passed in.)
       old.tracer.shutdown! unless old.tracer == current.tracer

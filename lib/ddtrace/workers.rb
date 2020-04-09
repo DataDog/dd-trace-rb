@@ -58,7 +58,7 @@ module Datadog
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
           # a fatal exception
-          Datadog::Logger.log.error(
+          Datadog.logger.error(
             "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{e.backtrace.first}"
           )
         end
@@ -67,7 +67,7 @@ module Datadog
       def callback_runtime_metrics
         @runtime_metrics_task.call unless @runtime_metrics_task.nil?
       rescue StandardError => e
-        Datadog::Logger.log.error(
+        Datadog.logger.error(
           "Error during runtime metrics flush. Cause: #{e} Location: #{e.backtrace.first}"
         )
       end
@@ -77,7 +77,7 @@ module Datadog
         @mutex.synchronize do
           return if @run
           @run = true
-          Logger.log.debug("Starting thread in the process: #{Process.pid}")
+          Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
           @worker = Thread.new { perform }
         end
       end

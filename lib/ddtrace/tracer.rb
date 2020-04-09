@@ -30,7 +30,7 @@ module Datadog
     def services
       # Only log each deprecation warning once (safeguard against log spam)
       Datadog::Patcher.do_once('Tracer#set_service_info') do
-        Datadog::Logger.log.warn('services: Usage of Tracer.services has been deprecated')
+        Datadog.logger.warn('services: Usage of Tracer.services has been deprecated')
       end
 
       {}
@@ -132,7 +132,7 @@ module Datadog
     def set_service_info(service, app, app_type)
       # Only log each deprecation warning once (safeguard against log spam)
       Datadog::Patcher.do_once('Tracer#set_service_info') do
-        Datadog::Logger.log.warn(%(
+        Datadog.logger.warn(%(
           set_service_info: Usage of set_service_info has been deprecated,
           service information no longer needs to be reported to the trace agent.
         ))
@@ -147,7 +147,7 @@ module Datadog
       begin
         @default_service = File.basename($PROGRAM_NAME, '.*')
       rescue StandardError => e
-        Datadog::Logger.log.error("unable to guess default service: #{e}")
+        Datadog.logger.error("unable to guess default service: #{e}")
         @default_service = 'ruby'.freeze
       end
       @default_service
@@ -271,7 +271,7 @@ module Datadog
             span = start_span(name, options)
           # rubocop:disable Lint/UselessAssignment
           rescue StandardError => e
-            Datadog::Logger.log.debug('Failed to start span: #{e}')
+            Datadog.logger.debug('Failed to start span: #{e}')
           ensure
             return_value = yield(span)
           end
@@ -337,11 +337,11 @@ module Datadog
     def write(trace)
       return if @writer.nil? || !@enabled
 
-      if Datadog::Logger.debug_logging
-        Datadog::Logger.log.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
+      if Datadog.configuration.diagnostics.debug
+        Datadog.logger.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
         str = String.new('')
         PP.pp(trace, str)
-        Datadog::Logger.log.debug(str)
+        Datadog.logger.debug(str)
       end
 
       @writer.write(trace)

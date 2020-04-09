@@ -18,7 +18,7 @@ module Datadog
                 rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
                 rack_request_span.resource = span.resource if rack_request_span
               rescue StandardError => e
-                Datadog::Logger.log.error("Error preparing span for ActionCable::Connection: #{e}")
+                Datadog.logger.error("Error preparing span for ActionCable::Connection: #{e}")
               end
 
               super

@@ -28,7 +28,7 @@ module Datadog
     def write(trace, services = nil)
       unless services.nil?
         Datadog::Patcher.do_once('SyncWriter#write') do
-          Datadog::Logger.log.warn(%(
+          Datadog.logger.warn(%(
             write: Writing services has been deprecated and no longer need to be provided.
             write(traces, services) can be updted to write(traces)
           ))
@@ -39,7 +39,7 @@ module Datadog
         proc { flush_trace(trace) }
       )
     rescue => e
-      Logger.log.debug(e)
+      Datadog.logger.debug(e)
     end
 
     # Added for interface completeness

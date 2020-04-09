@@ -47,7 +47,7 @@ module Datadog
             desc += ", Compatible? #{self.class.compatible?}"
             desc += ", Patchable? #{self.class.patchable?}"
 
-            Datadog::Logger.log.warn("Unable to patch #{self.class.name} (#{desc})")
+            Datadog.logger.warn("Unable to patch #{self.class.name} (#{desc})")
             return
           end
 
