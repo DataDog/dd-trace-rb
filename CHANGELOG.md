@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.34.2] - 2020-04-09
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.34.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.34.1...v0.34.2
+
+### Changed
+
+- Revert Rails applications setting default `env` if none are configured. (#1000) (@errriclee)
+
 ## [0.34.1] - 2020-04-02
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.34.1
@@ -28,7 +38,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...v0.34.0
 - `Datadog::Workers` for trace writing (#969, #973)
 - `_dd.measured` tag to some integrations for more statistics (#974)
 - `env`, `service`, `version`, `tags` configuration for auto-tagging (#977, #980, #982, #983, #985)
-- Multiplexed configuration for Ethon, Excon, Faraday, HTTP inetgrations (#882, #953) (@stormsilver)
+- Multiplexed configuration for Ethon, Excon, Faraday, HTTP integrations (#882, #953) (@stormsilver)
 
 ### Fixed
 
@@ -1154,8 +1164,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.1...master
-[0.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...v0.34.1
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.2...master
+[0.34.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.1...v0.34.2
+[0.34.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...v0.34.1
 [0.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...v0.34.0
 [0.33.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.0...v0.33.1
 [0.33.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...v0.33.0
