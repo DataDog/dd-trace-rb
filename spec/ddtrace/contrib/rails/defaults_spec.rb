@@ -49,42 +49,4 @@ RSpec.describe 'Rails defaults' do
       end
     end
   end
-
-  context 'when Datadog.configuration.env' do
-    before do
-      skip('Rails#env is not defined.') unless Rails.respond_to?(:env)
-      Datadog.configuration.env = default_env
-      app
-    end
-
-    after { Datadog.configuration.env = nil }
-
-    context 'is not configured' do
-      let(:default_env) { nil }
-
-      describe 'Datadog.configuration.env' do
-        subject(:global_default_env) { Datadog.configuration.env }
-        it { expect(global_default_env).to eq Rails.env }
-      end
-
-      describe 'Tracer#tags' do
-        subject(:tracer_tags) { Datadog.configuration[:rails].tracer.tags }
-        it { expect(tracer_tags).to include('env' => Rails.env) }
-      end
-    end
-
-    context 'is configured' do
-      let(:default_env) { 'default-env' }
-
-      describe 'Datadog.configuration.env' do
-        subject(:global_default_env) { Datadog.configuration.env }
-        it { expect(global_default_env).to eq default_env }
-      end
-
-      describe 'Tracer#tags' do
-        subject(:tracer_tags) { Datadog.configuration[:rails].tracer.tags }
-        it { expect(tracer_tags).to include('env' => default_env) }
-      end
-    end
-  end
 end
