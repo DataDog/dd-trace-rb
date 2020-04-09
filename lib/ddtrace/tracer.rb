@@ -398,14 +398,6 @@ module Datadog
 
       writer_options[:transport_options] = transport_options
 
-      # ensure any configuration to runtime_metrics statsd client is
-      # passed on when writer gets rebuilt
-      unless writer_options.key?(:runtime_metrics)
-        if @writer && !@writer.runtime_metrics.nil?
-          writer_options[:runtime_metrics] = @writer.runtime_metrics
-        end
-      end
-
       if rebuild_writer || writer
         # Make sure old writer is shut down before throwing away.
         # Don't want additional threads running...

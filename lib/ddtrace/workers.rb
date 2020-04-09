@@ -28,7 +28,6 @@ module Datadog
 
         # Callbacks
         @trace_task = options[:on_trace]
-        @runtime_metrics_task = options[:on_runtime_metrics]
 
         # Intervals
         interval = options.fetch(:interval, DEFAULT_FLUSH_INTERVAL)
@@ -62,14 +61,6 @@ module Datadog
             "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{e.backtrace.first}"
           )
         end
-      end
-
-      def callback_runtime_metrics
-        @runtime_metrics_task.call unless @runtime_metrics_task.nil?
-      rescue StandardError => e
-        Datadog.logger.error(
-          "Error during runtime metrics flush. Cause: #{e} Location: #{e.backtrace.first}"
-        )
       end
 
       # Start the timer execution.
@@ -114,8 +105,6 @@ module Datadog
       def perform
         loop do
           @back_off = flush_data ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
-
-          callback_runtime_metrics
 
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty?

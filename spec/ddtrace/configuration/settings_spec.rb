@@ -362,6 +362,22 @@ RSpec.describe Datadog::Configuration::Settings do
       end
     end
 
+    describe '#opts' do
+      subject(:opts) { settings.runtime_metrics.opts }
+      it { is_expected.to eq({}) }
+    end
+
+    describe '#opts=' do
+      let(:opts) { double('opts') }
+
+      it 'changes the #opts setting' do
+        expect { settings.runtime_metrics.opts = opts }
+          .to change { settings.runtime_metrics.opts }
+          .from({})
+          .to(opts)
+      end
+    end
+
     describe '#statsd' do
       subject(:statsd) { settings.runtime_metrics.statsd }
       it { is_expected.to be nil }

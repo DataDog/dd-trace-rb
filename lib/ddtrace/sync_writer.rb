@@ -8,18 +8,12 @@ module Datadog
   class SyncWriter
     attr_reader \
       :priority_sampler,
-      :runtime_metrics,
       :transport
 
     def initialize(options = {})
       @transport = options.fetch(:transport) do
         transport_options = options.fetch(:transport_options, {})
         Transport::HTTP.default(transport_options)
-      end
-
-      # Runtime metrics
-      @runtime_metrics = options.fetch(:runtime_metrics) do
-        Runtime::Metrics.new
       end
 
       @priority_sampler = options.fetch(:priority_sampler, nil)

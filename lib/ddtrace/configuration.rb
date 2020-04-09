@@ -19,8 +19,13 @@ module Datadog
       if target.is_a?(Settings)
         yield(target) if block_given?
 
-        # Rebuild immutable components from settings
-        rebuild_components!(target)
+        # Build immutable components from settings
+        @components ||= nil
+        @components = if @components
+                        Components.replace!(@components, target)
+                      else
+                        Components.new(target)
+                      end
 
         target
       else
@@ -35,34 +40,14 @@ module Datadog
       :runtime_metrics,
       :tracer
 
+    def shutdown!
+      components.teardown! if @components
+    end
+
     protected
 
     def components
       @components ||= Components.new(configuration)
-    end
-
-    def rebuild_components!(configuration)
-      # Build new components
-      new_components = Components.new(configuration)
-
-      # Teardown old components if they exist
-      teardown_old_components!(@components, new_components) if instance_variable_defined?(:@components)
-
-      # Activate new components
-      @components = new_components
-    end
-
-    def teardown_old_components!(old, current)
-      # Shutdown the old tracer, unless it's still being used.
-      # (e.g. a custom tracer instance passed in.)
-      old.tracer.shutdown! unless old.tracer == current.tracer
-
-      # Shutdown the old metrics, unless they are still being used.
-      # (e.g. custom Statsd instances.)
-      old_statsd = [old.runtime_metrics.statsd, old.health_metrics.statsd].uniq
-      new_statsd = [current.runtime_metrics.statsd, current.health_metrics.statsd].uniq
-      unused_statsd = (old_statsd - (old_statsd & new_statsd))
-      unused_statsd.each(&:close)
     end
   end
 end

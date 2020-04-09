@@ -13,7 +13,6 @@ module Datadog
   class Writer
     attr_reader \
       :priority_sampler,
-      :runtime_metrics,
       :transport,
       :worker
 
@@ -34,11 +33,6 @@ module Datadog
         Transport::HTTP.default(transport_options)
       end
 
-      # Runtime metrics
-      @runtime_metrics = options.fetch(:runtime_metrics) do
-        Runtime::Metrics.new
-      end
-
       # handles the thread creation after an eventual fork
       @mutex_after_fork = Mutex.new
       @pid = nil
@@ -53,12 +47,10 @@ module Datadog
     def start
       @pid = Process.pid
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
-      @runtime_metrics_handler = -> { send_runtime_metrics }
       @worker = Datadog::Workers::AsyncTransport.new(
         transport: @transport,
         buffer_size: @buff_size,
         on_trace: @trace_handler,
-        on_runtime_metrics: @runtime_metrics_handler,
         interval: @flush_interval
       )
 
@@ -96,12 +88,6 @@ module Datadog
       !response.server_error?
     end
 
-    def send_runtime_metrics
-      return unless Datadog.configuration.runtime_metrics_enabled
-
-      runtime_metrics.flush
-    end
-
     # enqueue the trace for submission to the API
     def write(trace, services = nil)
       unless services.nil?
@@ -129,9 +115,11 @@ module Datadog
         end
       end
 
+      # TODO: Remove this, and have the tracer pump traces directly to runtime metrics
+      #       instead of working through the trace writer.
       # Associate root span with runtime metrics
-      if Datadog.configuration.runtime_metrics_enabled && !trace.empty?
-        runtime_metrics.associate_with_span(trace.first)
+      if Datadog.configuration.runtime_metrics.enabled && !trace.empty?
+        Datadog.runtime_metrics.associate_with_span(trace.first)
       end
 
       @worker.enqueue_trace(trace)
