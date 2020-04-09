@@ -35,16 +35,9 @@ module Datadog
           # Don't set this if service has been explicitly provided by the user.
           Datadog.configuration.service ||= config[:service_name]
 
-          # Set the environment to the Rails environment.
-          # Don't set this if env has been explicitly provided by the user.
-          Datadog.configuration.env ||= ::Rails.env if ::Rails.respond_to?(:env)
-
           # Update the tracer if its not the default tracer.
           if config[:tracer] != Datadog.configuration.tracer
             config[:tracer].default_service = config[:service_name]
-
-            env = Datadog.configuration.env || (::Rails.respond_to?(:env) && ::Rails.env)
-            config[:tracer].set_tags('env' => env) if env
           end
         end
 
