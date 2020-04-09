@@ -100,7 +100,7 @@ module Datadog
           # If overflow has already occurred, don't send this metric.
           # Prevents metrics spam if buffer repeatedly overflows for the same trace.
           unless @overflow
-            Diagnostics::Health.metrics.error_context_overflow(1, tags: ["max_length:#{@max_length}"])
+            Datadog.health_metrics.error_context_overflow(1, tags: ["max_length:#{@max_length}"])
             @overflow = true
           end
 
@@ -131,7 +131,7 @@ module Datadog
 
           @trace.reject(&:finished?).group_by(&:name).each do |unfinished_span_name, unfinished_spans|
             Datadog::Logger.log.debug("unfinished span: #{unfinished_spans.first}") if Datadog::Logger.debug_logging
-            Diagnostics::Health.metrics.error_unfinished_spans(
+            Datadog.health_metrics.error_unfinished_spans(
               unfinished_spans.length,
               tags: ["name:#{unfinished_span_name}"]
             )

@@ -52,20 +52,9 @@ RSpec.describe Datadog::Span do
         it { is_expected.to eq service_value }
       end
 
-      context 'is only defined in the configuration' do
-        let(:env_service) { 'env-service' }
-        before { allow(Datadog.configuration).to receive(:service).and_return(env_service) }
-        it { is_expected.to eq env_service }
-      end
-
-      context 'is not set anywhere' do
+      context 'is not set' do
         let(:default_service) { 'default-service' }
-
-        before do
-          allow(Datadog.configuration).to receive(:service).and_return(nil)
-          allow(tracer).to receive(:default_service).and_return(default_service)
-        end
-
+        before { allow(tracer).to receive(:default_service).and_return(default_service) }
         it { is_expected.to eq default_service }
       end
     end

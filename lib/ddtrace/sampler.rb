@@ -176,7 +176,7 @@ module Datadog
       update_all(rate_by_service)
 
       # Emit metric for service cache size
-      Diagnostics::Health.metrics.sampling_service_cache_length(length)
+      Datadog.health_metrics.sampling_service_cache_length(length)
     end
 
     private

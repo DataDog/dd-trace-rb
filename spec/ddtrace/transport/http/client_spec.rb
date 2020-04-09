@@ -41,7 +41,7 @@ RSpec.describe Datadog::Transport::HTTP::Client do
     let(:response_class) { stub_const('TestResponse', Class.new { include Datadog::Transport::HTTP::Response }) }
     let(:response) { instance_double(response_class, code: double('status code')) }
 
-    before { allow(Datadog::Diagnostics::Health.metrics).to receive(:send_metrics) }
+    before { allow(Datadog.health_metrics).to receive(:send_metrics) }
 
     context 'given a block' do
       let(:handler) { double }
