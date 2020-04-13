@@ -6,6 +6,8 @@ require 'ddtrace'
 require 'elasticsearch-transport'
 
 RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
+  include_context 'completed traces'
+
   let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').to_i }
   let(:server) { "http://#{host}:#{port}" }

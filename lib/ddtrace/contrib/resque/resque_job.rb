@@ -36,7 +36,7 @@ module Datadog
         end
 
         def shutdown_tracer_when_forked!
-          tracer.shutdown! if forked?
+          Datadog.shutdown! if forked?
         end
 
         private

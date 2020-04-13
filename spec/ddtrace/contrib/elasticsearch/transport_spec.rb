@@ -7,6 +7,8 @@ require 'faraday'
 require 'ddtrace'
 
 RSpec.describe 'Elasticsearch::Transport::Client tracing' do
+  include_context 'completed traces'
+
   before do
     WebMock.enable!
     WebMock.disable_net_connect!

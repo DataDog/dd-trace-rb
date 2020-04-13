@@ -7,6 +7,16 @@ require 'ddtrace/configuration/settings'
 RSpec.describe Datadog::Configuration::Settings do
   subject(:settings) { described_class.new }
 
+  # Make sure environment is pristine
+  around do |example|
+    ClimateControl.modify(
+      Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST => nil,
+      Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => nil
+    ) do
+      example.run
+    end
+  end
+
   describe '#analytics' do
     describe '#enabled' do
       subject(:enabled) { settings.analytics.enabled }
@@ -552,6 +562,14 @@ RSpec.describe Datadog::Configuration::Settings do
           .from({})
           .to(opts)
       end
+
+      context 'when modified' do
+        it 'does not modify the default by reference' do
+          settings.runtime_metrics.opts[:foo] = :bar
+          expect(settings.runtime_metrics.opts).to_not be_empty
+          expect(settings.runtime_metrics.options[:opts].default_value).to be_empty
+        end
+      end
     end
 
     describe '#statsd' do
@@ -594,24 +612,6 @@ RSpec.describe Datadog::Configuration::Settings do
   end
 
   describe '#sampling' do
-    describe '#rate_limit' do
-      subject(:rate_limit) { settings.sampling.rate_limit }
-
-      context 'default' do
-        it { is_expected.to eq(100) }
-      end
-
-      context 'when ENV is provided' do
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(20.0) }
-      end
-    end
-
     describe '#default_rate' do
       subject(:default_rate) { settings.sampling.default_rate }
 
@@ -627,6 +627,76 @@ RSpec.describe Datadog::Configuration::Settings do
         end
 
         it { is_expected.to eq(0.5) }
+      end
+    end
+
+    describe '#default_rate=' do
+      let(:default_rate) { 0.5 }
+
+      it 'updates the #default_rate setting' do
+        expect { settings.sampling.default_rate = default_rate }
+          .to change { settings.sampling.default_rate }
+          .from(nil)
+          .to(default_rate)
+      end
+    end
+
+    describe '#priority_sampling' do
+      subject(:priority_sampling) { settings.sampling.priority_sampling }
+      it { is_expected.to be true }
+    end
+
+    describe '#priority_sampling=' do
+      it 'updates the #priority_sampling setting' do
+        expect { settings.sampling.priority_sampling = false }
+          .to change { settings.sampling.priority_sampling }
+          .from(true)
+          .to(false)
+      end
+    end
+
+    describe '#rate_limit' do
+      subject(:rate_limit) { settings.sampling.rate_limit }
+
+      context 'default' do
+        it { is_expected.to be 100 }
+      end
+
+      context 'when ENV is provided' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(20.0) }
+      end
+    end
+
+    describe '#rate_limit=' do
+      let(:rate_limit) { 20.0 }
+
+      it 'updates the #rate_limit setting' do
+        expect { settings.sampling.rate_limit = rate_limit }
+          .to change { settings.sampling.rate_limit }
+          .from(100)
+          .to(rate_limit)
+      end
+    end
+
+    describe '#sampler' do
+      subject(:sampler) { settings.sampling.sampler }
+      it { is_expected.to be nil }
+    end
+
+    describe '#sampler=' do
+      let(:sampler) { instance_double(Datadog::Sampler) }
+
+      it 'updates the #sampler setting' do
+        expect { settings.sampling.sampler = sampler }
+          .to change { settings.sampling.sampler }
+          .from(nil)
+          .to(sampler)
       end
     end
   end
@@ -880,6 +950,146 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#trace_writer' do
+    describe '#hostname' do
+      subject(:hostname) { settings.trace_writer.hostname }
+
+      context "when #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+          it { is_expected.to be nil }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'my-host' }
+          it { is_expected.to eq(environment) }
+        end
+      end
+    end
+
+    describe '#hostname=' do
+      let(:hostname) { 'my-agent' }
+
+      it 'updates the #hostname setting' do
+        expect { settings.trace_writer.hostname = hostname }
+          .to change { settings.trace_writer.hostname }
+          .from(nil)
+          .to(hostname)
+      end
+    end
+
+    describe '#instance' do
+      subject(:instance) { settings.trace_writer.instance }
+      it { is_expected.to be nil }
+    end
+
+    describe '#instance=' do
+      let(:writer) { instance_double(Datadog::Writer) }
+
+      it 'updates the #instance setting' do
+        expect { settings.trace_writer.instance = writer }
+          .to change { settings.trace_writer.instance }
+          .from(nil)
+          .to(writer)
+      end
+    end
+
+    describe '#opts' do
+      subject(:opts) { settings.trace_writer.opts }
+      it { is_expected.to eq({}) }
+    end
+
+    describe '#opts=' do
+      let(:opts) { { custom_key: :custom_value } }
+
+      it 'updates the #opts setting' do
+        expect { settings.trace_writer.opts = opts }
+          .to change { settings.trace_writer.opts }
+          .from({})
+          .to(opts)
+      end
+    end
+
+    describe '#port' do
+      subject(:port) { settings.trace_writer.port }
+
+      context "when #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+          it { is_expected.to be nil }
+        end
+
+        context 'is defined' do
+          let(:environment) { '1234' }
+          it { is_expected.to eq(1234) }
+        end
+      end
+    end
+
+    describe '#port=' do
+      let(:port) { 1234 }
+
+      it 'updates the #port setting' do
+        expect { settings.trace_writer.port = port }
+          .to change { settings.trace_writer.port }
+          .from(nil)
+          .to(port)
+      end
+    end
+
+    describe '#transport' do
+      subject(:transport) { settings.trace_writer.transport }
+      it { is_expected.to be nil }
+    end
+
+    describe '#transport=' do
+      let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+
+      it 'updates the #transport setting' do
+        expect { settings.trace_writer.transport = transport }
+          .to change { settings.trace_writer.transport }
+          .from(nil)
+          .to(transport)
+      end
+    end
+
+    describe '#transport_options' do
+      subject(:transport_options) { settings.trace_writer.transport_options }
+      it { is_expected.to eq({}) }
+
+      context 'when modified' do
+        it 'does not modify the default by reference' do
+          settings.trace_writer.transport_options[:foo] = :bar
+          expect(settings.trace_writer.transport_options).to_not be_empty
+          expect(settings.trace_writer.options[:transport_options].default_value).to be_empty
+        end
+      end
+    end
+
+    describe '#transport_options=' do
+      let(:options) { { hostname: 'my-agent' } }
+
+      it 'updates the #transport_options setting' do
+        expect { settings.trace_writer.transport_options = options }
+          .to change { settings.trace_writer.transport_options }
+          .from({})
+          .to(options)
+      end
+    end
+  end
+
   describe '#tracer' do
     context 'old style' do
       context 'given :debug' do
@@ -891,6 +1101,15 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
+      context 'given :enabled' do
+        it 'updates the new #enabled setting' do
+          expect { settings.tracer(enabled: false) }
+            .to change { settings.tracer.enabled }
+            .from(true)
+            .to(false)
+        end
+      end
+
       context 'given :env' do
         let(:env) { 'my-env' }
 
@@ -899,6 +1118,17 @@ RSpec.describe Datadog::Configuration::Settings do
             .to change { settings.env }
             .from(nil)
             .to(env)
+        end
+      end
+
+      context 'given :hostname' do
+        let(:hostname) { 'my-host' }
+
+        it 'updates the new #hostname setting' do
+          expect { settings.tracer(hostname: hostname) }
+            .to change { settings.trace_writer.hostname }
+            .from(nil)
+            .to(hostname)
         end
       end
 
@@ -933,6 +1163,17 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
+      context 'given :port' do
+        let(:port) { 1234 }
+
+        it 'updates the new #port setting' do
+          expect { settings.tracer(port: port) }
+            .to change { settings.trace_writer.port }
+            .from(nil)
+            .to(port)
+        end
+      end
+
       context 'given :tags' do
         let(:tags) { { 'custom-tag' => 'custom-value' } }
 
@@ -944,44 +1185,31 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
+      context 'given :writer' do
+        let(:writer) { instance_double(Datadog::Writer) }
+
+        it 'updates the new #instance setting' do
+          expect { settings.tracer(writer: writer) }
+            .to change { settings.trace_writer.instance }
+            .from(nil)
+            .to(writer)
+        end
+      end
+
       context 'given :writer_options' do
         before { settings.tracer(writer_options: { buffer_size: 1234 }) }
 
         it 'updates the new #writer_options setting' do
-          expect(settings.tracer.writer_options).to eq(buffer_size: 1234)
+          expect(settings.trace_writer.opts).to eq(buffer_size: 1234)
         end
       end
 
-      context 'given some settings' do
-        let(:tracer) { Datadog::Tracer.new }
+      context 'given :transport_options' do
+        before { settings.tracer(transport_options: { custom_key: :custom_value }) }
 
-        before do
-          settings.tracer(
-            enabled: false,
-            hostname: 'tracer.host.com',
-            port: 1234,
-            env: :config_test,
-            tags: { foo: :bar },
-            writer_options: { buffer_size: 1234 },
-            instance: tracer
-          )
+        it 'updates the new #transport_options setting' do
+          expect(settings.trace_writer.transport_options).to eq(custom_key: :custom_value)
         end
-
-        it 'applies settings correctly' do
-          expect(settings.tracer.enabled).to be false
-          expect(settings.tracer.hostname).to eq('tracer.host.com')
-          expect(settings.tracer.port).to eq(1234)
-          expect(settings.env).to eq(:config_test)
-          expect(settings.tags['foo']).to eq(:bar)
-        end
-      end
-
-      it 'acts on the tracer option' do
-        previous_state = settings.tracer.enabled
-        settings.tracer(enabled: !previous_state)
-        expect(settings.tracer.enabled).to eq(!previous_state)
-        settings.tracer(enabled: previous_state)
-        expect(settings.tracer.enabled).to eq(previous_state)
       end
     end
 
@@ -1026,23 +1254,6 @@ RSpec.describe Datadog::Configuration::Settings do
       end
     end
 
-    describe '#hostname' do
-      subject(:hostname) { settings.tracer.hostname }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#hostname=' do
-      let(:hostname) { 'my-agent' }
-
-      it 'updates the #hostname setting' do
-        expect { settings.tracer.hostname = hostname }
-          .to change { settings.tracer.hostname }
-          .from(nil)
-          .to(hostname)
-      end
-    end
-
     describe '#instance' do
       subject(:instance) { settings.tracer.instance }
 
@@ -1057,6 +1268,30 @@ RSpec.describe Datadog::Configuration::Settings do
           .to change { settings.tracer.instance }
           .from(nil)
           .to(tracer)
+      end
+    end
+
+    describe '#opts' do
+      subject(:opts) { settings.tracer.opts }
+      it { is_expected.to eq({}) }
+
+      context 'when modified' do
+        it 'does not modify the default by reference' do
+          settings.tracer.opts[:foo] = :bar
+          expect(settings.tracer.opts).to_not be_empty
+          expect(settings.tracer.options[:opts].default_value).to be_empty
+        end
+      end
+    end
+
+    describe '#opts=' do
+      let(:opts) { { custom_key: :custom_value } }
+
+      it 'updates the #opts setting' do
+        expect { settings.tracer.opts = opts }
+          .to change { settings.tracer.opts }
+          .from({})
+          .to(opts)
       end
     end
 
@@ -1091,122 +1326,6 @@ RSpec.describe Datadog::Configuration::Settings do
             .from(nil)
             .to(value)
         end
-      end
-    end
-
-    describe '#port' do
-      subject(:port) { settings.tracer.port }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#port=' do
-      let(:port) { 1234 }
-
-      it 'updates the #port setting' do
-        expect { settings.tracer.port = port }
-          .to change { settings.tracer.port }
-          .from(nil)
-          .to(port)
-      end
-    end
-
-    describe '#priority_sampling' do
-      subject(:priority_sampling) { settings.tracer.priority_sampling }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#priority_sampling=' do
-      it 'updates the #priority_sampling setting' do
-        expect { settings.tracer.priority_sampling = true }
-          .to change { settings.tracer.priority_sampling }
-          .from(nil)
-          .to(true)
-      end
-    end
-
-    describe '#sampler' do
-      subject(:sampler) { settings.tracer.sampler }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#sampler=' do
-      let(:sampler) { instance_double(Datadog::PrioritySampler) }
-
-      it 'updates the #sampler setting' do
-        expect { settings.tracer.sampler = sampler }
-          .to change { settings.tracer.sampler }
-          .from(nil)
-          .to(sampler)
-      end
-    end
-
-    describe '#transport_options' do
-      subject(:transport_options) { settings.tracer.transport_options }
-
-      it { is_expected.to eq({}) }
-
-      context 'when modified' do
-        it 'does not modify the default by reference' do
-          settings.tracer.transport_options[:foo] = :bar
-          expect(settings.tracer.transport_options).to_not be_empty
-          expect(settings.tracer.options[:transport_options].default_value).to be_empty
-        end
-      end
-    end
-
-    describe '#transport_options=' do
-      let(:options) { { hostname: 'my-agent' } }
-
-      it 'updates the #transport_options setting' do
-        expect { settings.tracer.transport_options = options }
-          .to change { settings.tracer.transport_options }
-          .from({})
-          .to(options)
-      end
-    end
-
-    describe '#writer' do
-      subject(:writer) { settings.tracer.writer }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#writer=' do
-      let(:writer) { instance_double(Datadog::Writer) }
-
-      it 'updates the #writer setting' do
-        expect { settings.tracer.writer = writer }
-          .to change { settings.tracer.writer }
-          .from(nil)
-          .to(writer)
-      end
-    end
-
-    describe '#writer_options' do
-      subject(:writer_options) { settings.tracer.writer_options }
-
-      it { is_expected.to eq({}) }
-
-      context 'when modified' do
-        it 'does not modify the default by reference' do
-          settings.tracer.writer_options[:foo] = :bar
-          expect(settings.tracer.writer_options).to_not be_empty
-          expect(settings.tracer.options[:writer_options].default_value).to be_empty
-        end
-      end
-    end
-
-    describe '#writer_options=' do
-      let(:options) { { priority_sampling: true } }
-
-      it 'updates the #writer_options setting' do
-        expect { settings.tracer.writer_options = options }
-          .to change { settings.tracer.writer_options }
-          .from({})
-          .to(options)
       end
     end
   end

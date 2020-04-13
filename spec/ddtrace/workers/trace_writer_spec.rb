@@ -235,8 +235,9 @@ end
 
 RSpec.describe Datadog::Workers::AsyncTraceWriter do
   subject(:writer) { described_class.new(options) }
-
   let(:options) { {} }
+
+  after { writer.stop(true, 5) }
 
   it { expect(writer).to be_a_kind_of(Datadog::Workers::Queue) }
   it { expect(writer).to be_a_kind_of(Datadog::Workers::Polling) }
@@ -423,6 +424,12 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
         allow(writer).to receive(:join)
           .with(described_class::SHUTDOWN_TIMEOUT)
           .and_return(true)
+      end
+
+      after do
+        # Undo any stubs around #stop
+        allow(writer.buffer).to receive(:close).and_call_original
+        allow(writer).to receive(:join).and_call_original
       end
     end
 

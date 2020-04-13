@@ -17,11 +17,16 @@ class ConcurrentTest < Minitest::Test
       # and the instant the root span is done.
       sleep delay
     end
-    @tracer.writer.trace0_spans
+    @writer.trace0_spans
   end
 
   def test_parallel_tasks
     @tracer = get_test_tracer
+    @writer = FauxWriter.new
+
+    @tracer.trace_completed.subscribe(:test) do |trace|
+      @writer.write(trace)
+    end
 
     semaphore = Mutex.new
     threads = []

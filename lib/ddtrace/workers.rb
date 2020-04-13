@@ -78,22 +78,27 @@ module Datadog
       end
 
       # Closes all available queues and waits for the trace buffer to flush
-      def stop
+      def stop(force_stop = false, timeout = SHUTDOWN_TIMEOUT)
         @mutex.synchronize do
           return unless @run
 
           @trace_buffer.close
           @run = false
-          @shutdown.signal
+
+          if force_stop
+            @worker.terminate
+          else
+            @shutdown.signal
+          end
         end
 
-        join
+        join(timeout)
         true
       end
 
       # Block until executor shutdown is complete or until timeout seconds have passed.
-      def join
-        @worker.join(SHUTDOWN_TIMEOUT)
+      def join(timeout = SHUTDOWN_TIMEOUT)
+        @worker.join(timeout)
       end
 
       # Enqueue an item in the trace internal buffer. This operation is thread-safe

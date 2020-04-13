@@ -11,6 +11,11 @@ require 'ddtrace/pipeline'
 
 RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:hostname) { 'http://127.0.0.1' }
+  let(:port) { 1234 }
+  let(:flush_interval) { 0.1 }
+  let(:buffer_size) { 10 }
+
+  let(:tracer) { Datadog::Tracer.new }
   let(:writer) do
     Datadog::Writer.new.tap do |w|
       # write some stuff to trigger a #start
@@ -35,24 +40,20 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:transport) { SpyTransport.new }
   let(:stats) { writer.stats }
   let(:dump) { transport.dump }
-  let(:port) { 1234 }
-  let(:flush_interval) { 0.1 }
-  let(:buffer_size) { 10 }
 
-  let(:tracer) do
-    Datadog::Tracer.new.tap do |t|
-      t.configure(enabled: true, hostname: hostname, port: port)
-      t.writer = writer
-    end
-  end
-
-  after { tracer.shutdown! }
+  after { writer.stop(true, 5) }
 
   def wait_for_flush(num = 1, period = 0.1)
     (20 * flush_interval).to_i.times do
       break if block_given? ? yield : writer.stats[:traces_flushed] >= num
 
       sleep(period)
+    end
+  end
+
+  before do
+    tracer.trace_completed.subscribe(:test) do |trace|
+      writer.write(trace)
     end
   end
 

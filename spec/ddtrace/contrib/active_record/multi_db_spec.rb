@@ -12,6 +12,8 @@ else
 end
 
 RSpec.describe 'ActiveRecord multi-database implementation' do
+  include_context 'completed traces'
+
   let(:configuration_options) { { service_name: default_db_service_name } }
   let(:application_record) do
     stub_const('ApplicationRecord', Class.new(ActiveRecord::Base) do
@@ -78,6 +80,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
   subject(:count) do
     gadget_class.count
     widget_class.count
+    trace_writer.spans
   end
 
   before do

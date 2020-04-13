@@ -47,7 +47,7 @@ module Datadog
         def self.flush(worker, &block)
           yield worker
 
-          tracer.shutdown! if tracer && tracer.enabled
+          Datadog.shutdown! if tracer && tracer.enabled
         end
 
         def self.configuration

@@ -275,50 +275,50 @@ RSpec.describe Datadog::Configuration do
         end
       end
 
-      context 'when the tracer' do
+      context 'when the trace writer' do
         context 'is replaced' do
-          let(:old_tracer) { Datadog::Tracer.new }
-          let(:new_tracer) { Datadog::Tracer.new }
+          let(:old_trace_writer) { Datadog::Writer.new }
+          let(:new_trace_writer) { Datadog::Writer.new }
 
           before do
-            expect(old_tracer).to receive(:shutdown!)
+            expect(old_trace_writer).to receive(:stop)
 
-            test_class.configure { |c| c.tracer = old_tracer }
-            test_class.configure { |c| c.tracer = new_tracer }
+            test_class.configure { |c| c.trace_writer.instance = old_trace_writer }
+            test_class.configure { |c| c.trace_writer.instance = new_trace_writer }
           end
 
-          it 'replaces the old tracer and shuts it down' do
-            expect(test_class.tracer).to be new_tracer
+          it 'replaces the old trace writer and shuts it down' do
+            expect(test_class.trace_writer).to be new_trace_writer
           end
         end
 
         context 'is reused' do
-          let(:tracer) { Datadog::Tracer.new }
+          let(:trace_writer) { Datadog::Writer.new }
 
           before do
-            expect(tracer).to_not receive(:shutdown!)
+            expect(trace_writer).to_not receive(:stop)
 
-            test_class.configure { |c| c.tracer = tracer }
-            test_class.configure { |c| c.tracer = tracer }
+            test_class.configure { |c| c.trace_writer.instance = trace_writer }
+            test_class.configure { |c| c.trace_writer.instance = trace_writer }
           end
 
-          it 'reuses the same tracer' do
-            expect(test_class.tracer).to be tracer
+          it 'reuses the same trace writer' do
+            expect(test_class.trace_writer).to be trace_writer
           end
         end
 
         context 'is not changed' do
-          let(:tracer) { Datadog::Tracer.new }
+          let(:trace_writer) { Datadog::Writer.new }
 
           before do
-            expect(tracer).to_not receive(:shutdown!)
+            expect(trace_writer).to_not receive(:stop)
 
-            test_class.configure { |c| c.tracer = tracer }
+            test_class.configure { |c| c.trace_writer.instance = trace_writer }
             test_class.configure { |_c| }
           end
 
-          it 'reuses the same tracer' do
-            expect(test_class.tracer).to be tracer
+          it 'reuses the same trace writer' do
+            expect(test_class.trace_writer).to be trace_writer
           end
         end
       end

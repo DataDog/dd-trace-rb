@@ -8,6 +8,8 @@ require 'ddtrace'
 require 'ddtrace/contrib/rake/patcher'
 
 RSpec.describe Datadog::Contrib::Rake::Instrumentation do
+  include_context 'completed traces'
+
   let(:configuration_options) { { enabled: true } }
   let(:task_name) { :test_rake_instrumentation }
   let(:task_body) { proc { |task, args| spy.call(task, args) } }
@@ -63,7 +65,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
     before do
       ::Rake.application.instance_variable_set(:@top_level_tasks, [task_name.to_s])
-      expect(tracer).to receive(:shutdown!).with(no_args).once.and_call_original
+      expect(::Datadog).to receive(:shutdown!).with(no_args).once.and_call_original
     end
 
     let(:invoke_span) { spans.find { |s| s.name == Datadog::Contrib::Rake::Ext::SPAN_INVOKE } }

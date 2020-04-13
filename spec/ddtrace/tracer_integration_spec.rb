@@ -6,13 +6,7 @@ require 'ddtrace/runtime/identity'
 require 'ddtrace/propagation/http_propagator'
 
 RSpec.describe Datadog::Tracer do
-  subject(:tracer) { described_class.new(writer: FauxWriter.new) }
-
-  let(:spans) { tracer.writer.spans(:keep) }
-
-  after do
-    tracer.shutdown! # Ensure no state gets left behind
-  end
+  include_context 'completed traces'
 
   def sampling_priority_metric(span)
     span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)
@@ -82,40 +76,9 @@ RSpec.describe Datadog::Tracer do
         # should be the first span on the other end of the distributed trace.
         it { expect(@child_root_span).to be child_span }
 
-        it 'does not set runtime metrics language tag' do
+        it 'does not set language tag' do
           expect(lang_tag(parent_span)).to be nil
           expect(lang_tag(child_span)).to be nil
-        end
-      end
-
-      context 'when runtime metrics' do
-        before do
-          allow(Datadog.configuration.runtime_metrics).to receive(:enabled)
-            .and_return(enabled)
-
-          allow(Datadog.runtime_metrics).to receive(:associate_with_span)
-
-          trace
-        end
-
-        context 'are enabled' do
-          let(:enabled) { true }
-
-          it 'associates the span with the runtime' do
-            expect(Datadog.runtime_metrics).to have_received(:associate_with_span)
-              .with(parent_span)
-
-            expect(Datadog.runtime_metrics).to have_received(:associate_with_span)
-              .with(child_span)
-          end
-        end
-
-        context 'disabled' do
-          let(:enabled) { false }
-
-          it 'does not associate the span with the runtime' do
-            expect(Datadog.runtime_metrics).to_not have_received(:associate_with_span)
-          end
         end
       end
     end

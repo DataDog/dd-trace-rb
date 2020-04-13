@@ -44,6 +44,25 @@ module Datadog
       true
     end
 
+    def flush_completed
+      @flush_completed ||= FlushCompleted.new
+    end
+
+    # Flush completed event for worker
+    class FlushCompleted < Event
+      def initialize
+        super(:flush_completed)
+      end
+
+      # NOTE: Ignore Rubocop rule. This definition allows for
+      #       description of and constraints on arguments.
+      # rubocop:disable Lint/UselessMethodDefinition
+      def publish(response)
+        super(response)
+      end
+      # rubocop:enable Lint/UselessMethodDefinition
+    end
+
     private
 
     def flush_trace(trace)

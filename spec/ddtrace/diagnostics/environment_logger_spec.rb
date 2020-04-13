@@ -47,7 +47,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
           'lang_version' => match(/[23]\./),
           'os_name' => include('x86_64'),
           'partial_flushing_enabled' => false,
-          'priority_sampling_enabled' => false,
+          'priority_sampling_enabled' => true,
           'runtime_metrics_enabled' => false,
           'version' => Datadog::VERSION::STRING,
           'vm' => be_a(String)
@@ -140,7 +140,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
           lang_version: match(/[23]\./),
           os_name: include('x86_64'),
           partial_flushing_enabled: false,
-          priority_sampling_enabled: false,
+          priority_sampling_enabled: true,
           runtime_metrics_enabled: false,
           sample_rate: nil,
           sampling_rules: nil,
@@ -210,7 +210,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       end
 
       context 'with priority sampling enabled' do
-        before { Datadog.configure { |c| c.tracer.priority_sampling = true } }
+        before { Datadog.configure { |c| c.sampling.priority_sampling = true } }
 
         it { is_expected.to include priority_sampling_enabled: true }
       end
@@ -231,11 +231,11 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       context 'with unix socket transport' do
         before do
           Datadog.configure do |c|
-            c.tracer.transport_options = ->(t) { t.adapter :unix, '/tmp/trace.sock' }
+            c.trace_writer.transport_options = { on_build: ->(t) { t.adapter :unix, '/tmp/trace.sock' } }
           end
         end
 
-        after { Datadog.configure { |c| c.tracer.transport_options = {} } }
+        after { Datadog.configure { |c| c.trace_writer.transport_options = {} } }
 
         it { is_expected.to include agent_url: include('unix') }
         it { is_expected.to include agent_url: include('/tmp/trace.sock') }

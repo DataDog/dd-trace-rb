@@ -1,8 +1,8 @@
 require 'ddtrace/tracer'
 require 'ddtrace/span'
 require 'support/faux_writer'
+require 'support/trace_buffer'
 
-# rubocop:disable Metrics/ModuleLength
 module TracerHelpers
   # Return a test tracer instance with a faux writer.
   def tracer
@@ -10,97 +10,30 @@ module TracerHelpers
   end
 
   def new_tracer(options = {})
-    writer = FauxWriter.new(
+    Datadog::Tracer.new(options)
+  end
+
+  def writer
+    @writer ||= new_writer
+  end
+
+  def new_writer(options = {})
+    defaults = {
       transport: Datadog::Transport::HTTP.default do |t|
         t.adapter :test
       end
-    )
+    }
 
-    options = { writer: writer }.merge(options)
-    Datadog::Tracer.new(options).tap do |tracer|
-      # TODO: Let's try to get rid of this override, which has too much
-      #       knowledge about the internal workings of the tracer.
-      #       It is done to prevent the activation of priority sampling
-      #       from wiping out the configured test writer, by replacing it.
-      tracer.define_singleton_method(:configure) do |opts = {}|
-        super(opts)
-
-        # Re-configure the tracer with a new test writer
-        # since priority sampling will wipe out the old test writer.
-        unless @writer.is_a?(FauxWriter)
-          @writer = if @sampler.is_a?(Datadog::PrioritySampler)
-                      FauxWriter.new(
-                        priority_sampler: @sampler,
-                        transport: Datadog::Transport::HTTP.default do |t|
-                          t.adapter :test
-                        end
-                      )
-                    else
-                      FauxWriter.new(
-                        transport: Datadog::Transport::HTTP.default do |t|
-                          t.adapter :test
-                        end
-                      )
-                    end
-
-          statsd = opts.fetch(:statsd, nil)
-          @writer.runtime_metrics.statsd = statsd unless statsd.nil?
-        end
-      end
-    end
+    FauxWriter.new(defaults.merge(options))
   end
 
   # TODO: Replace references to `get_test_tracer` with `tracer`.
   # TODO: Use `new_tracer` instead if custom options are provided.
   alias get_test_tracer new_tracer
-
-  # Return a test tracer instance with a faux writer.
-  def get_test_tracer_with_old_transport(options = {})
-    options = { writer: FauxWriter.new }.merge(options)
-    Datadog::Tracer.new(options).tap do |tracer|
-      # TODO: Let's try to get rid of this override, which has too much
-      #       knowledge about the internal workings of the tracer.
-      #       It is done to prevent the activation of priority sampling
-      #       from wiping out the configured test writer, by replacing it.
-      tracer.define_singleton_method(:configure) do |opts = {}|
-        super(opts)
-
-        # Re-configure the tracer with a new test writer
-        # since priority sampling will wipe out the old test writer.
-        unless @writer.is_a?(FauxWriter)
-          @writer = if @sampler.is_a?(Datadog::PrioritySampler)
-                      FauxWriter.new(priority_sampler: @sampler)
-                    else
-                      FauxWriter.new
-                    end
-
-          hostname = opts.fetch(:hostname, nil)
-          port = opts.fetch(:port, nil)
-
-          @writer.transport.hostname = hostname unless hostname.nil?
-          @writer.transport.port = port unless port.nil?
-
-          statsd = opts.fetch(:statsd, nil)
-          unless statsd.nil?
-            @writer.statsd = statsd
-            @writer.transport.statsd = statsd
-          end
-        end
-      end
-    end
-  end
-
-  def get_test_writer(options = {})
-    options = {
-      transport: Datadog::Transport::HTTP.default do |t|
-        t.adapter :test
-      end
-    }.merge(options)
-
-    FauxWriter.new(options)
-  end
+  alias get_test_writer new_writer
 
   # Return some test traces
+  # TODO: Should this use an actual instance of Tracer to generate?
   def get_test_traces(n)
     traces = []
 
@@ -120,18 +53,8 @@ module TracerHelpers
     traces
   end
 
-  # Return some test services
-  def get_test_services
-    { 'rest-api' => { 'app' => 'rails', 'app_type' => 'web' },
-      'master' => { 'app' => 'postgres', 'app_type' => 'db' } }
-  end
-
-  def writer
-    tracer.writer
-  end
-
   def spans
-    @spans ||= writer.spans
+    @spans ||= fetch_spans
   end
 
   # Returns the only span in the current tracer writer.
@@ -146,21 +69,44 @@ module TracerHelpers
     end
   end
 
+  def fetch_spans
+    writer.spans
+  end
+
   def clear_spans!
-    writer.spans(:clear)
+    writer.clear!
 
     @spans = nil
     @span = nil
   end
 
-  def tracer_shutdown!
-    if defined?(@use_real_tracer) && @use_real_tracer
-      Datadog.tracer.shutdown!
-    else
-      return unless defined?(@tracer) && @tracer
+  shared_context 'completed traces' do
+    let(:trace_writer) { nil }
+    let(:traces) { TestTraceBuffer.new }
 
-      @tracer.shutdown!
-      @tracer = nil
+    before do
+      tracer.trace_completed.subscribe(:test) do |trace|
+        traces << trace unless traces.nil?
+        trace_writer.write(trace) unless trace_writer.nil?
+      end
     end
+
+    let(:spans) { traces.spans }
+    let(:span) { spans.first }
+  end
+
+  shared_context 'trace components' do
+    let(:global_settings) do
+      Datadog::Configuration::Settings.new.tap do |settings|
+        settings.tracer.instance = tracer
+        settings.trace_writer.instance = trace_writer
+      end
+    end
+
+    let(:tracer) { new_tracer }
+    let(:trace_writer) { FauxWriter.new }
+
+    let(:spans) { trace_writer.spans }
+    let(:span) { spans.first }
   end
 end

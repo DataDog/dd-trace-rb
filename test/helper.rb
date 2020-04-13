@@ -24,11 +24,6 @@ module Datadog
     attr_accessor :trace_handler, :service_handler, :worker
   end
 
-  class Tracer
-    remove_method :writer
-    attr_accessor :writer
-  end
-
   module Workers
     class AsyncTransport
       attr_accessor :transport

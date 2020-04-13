@@ -151,20 +151,6 @@ RSpec.configure do |config|
       end
     end
   end
-
-  # Closes the global testing tracer.
-  #
-  # Execute this after the test has finished
-  # teardown and mock verifications.
-  #
-  # Changing this to `config.after(:each)` would
-  # put this code inside the test scope, interfering
-  # with the test execution.
-  config.around do |example|
-    example.run.tap do
-      tracer_shutdown!
-    end
-  end
 end
 
 # Stores the caller thread backtrace,

@@ -7,6 +7,8 @@ require 'ddtrace'
 require 'ddtrace/contrib/excon/middleware'
 
 RSpec.describe Datadog::Contrib::Excon::Middleware do
+  include_context 'trace components'
+
   let(:connection_options) { { mock: true } }
   let(:connection) do
     Excon.new('http://example.com', connection_options).tap do
@@ -165,7 +167,6 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     subject(:response) { connection.get(path: '/success') }
 
     let(:configuration_options) { super().merge(split_by_domain: true) }
-
     after { Datadog.configuration[:excon][:split_by_domain] = false }
 
     it do
@@ -225,7 +226,6 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   context 'when distributed tracing is disabled' do
     let(:configuration_options) { super().merge(distributed_tracing: false) }
-
     after { Datadog.configuration[:excon][:distributed_tracing] = true }
 
     subject!(:response) do

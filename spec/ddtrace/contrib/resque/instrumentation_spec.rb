@@ -6,6 +6,7 @@ require 'ddtrace'
 
 RSpec.describe 'Resque instrumentation' do
   include_context 'Resque job'
+  include_context 'completed traces'
 
   let(:url) { "redis://#{host}:#{port}" }
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
@@ -133,8 +134,8 @@ RSpec.describe 'Resque instrumentation' do
           expect(tracer.active_span.parent_id).to eq(0)
         end
 
-        # On completion of the fork, `Datadog.tracer.shutdown!` will be invoked.
-        expect(tracer).to receive(:shutdown!)
+        # On completion of the fork, `Datadog.shutdown!` will be invoked.
+        expect(::Datadog).to receive(:shutdown!)
 
         tracer.trace('main.process') do
           perform_job(job_class)

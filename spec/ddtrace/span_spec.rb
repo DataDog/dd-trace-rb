@@ -652,18 +652,63 @@ RSpec.describe Datadog::Span do
   describe '#set_error' do
     subject(:set_error) { span.set_error(error) }
 
-    let(:error) { RuntimeError.new('oops') }
-    let(:backtrace) { %w[method1 method2 method3] }
+    let(:error) { instance_double(StandardError) }
+    let(:datadog_error) do
+      instance_double(
+        Datadog::Error,
+        type: type,
+        message: message,
+        backtrace: backtrace
+      )
+    end
 
-    before { error.set_backtrace(backtrace) }
+    let(:type) { 'CustomError' }
+    let(:message) { 'Whoops!' }
+    let(:backtrace) { "line 1\nline 2" }
 
-    it do
-      subject
+    before do
+      allow(Datadog::Error).to receive(:build_from)
+        .with(error)
+        .and_return(datadog_error)
+    end
+
+    it 'sets the error status and tags' do
+      set_error
 
       expect(span).to have_error
-      expect(span).to have_error_message('oops')
-      expect(span).to have_error_type('RuntimeError')
-      expect(span).to have_error_stack(backtrace.join($RS))
+      expect(span).to have_error_message(message)
+      expect(span).to have_error_type(type)
+      expect(span).to have_error_stack(backtrace)
+    end
+
+    context 'when the type is empty' do
+      let(:type) { '' }
+
+      it 'doesn\'t set the type tag' do
+        expect { set_error }
+          .to_not change { span.get_tag(Datadog::Ext::Errors::TYPE) }
+          .from(nil)
+      end
+    end
+
+    context 'when the message is empty' do
+      let(:message) { '' }
+
+      it 'doesn\'t set the message tag' do
+        expect { set_error }
+          .to_not change { span.get_tag(Datadog::Ext::Errors::MSG) }
+          .from(nil)
+      end
+    end
+
+    context 'when the backtrace is empty' do
+      let(:backtrace) { '' }
+
+      it 'doesn\'t set the stack tag' do
+        expect { set_error }
+          .to_not change { span.get_tag(Datadog::Ext::Errors::STACK) }
+          .from(nil)
+      end
     end
   end
 

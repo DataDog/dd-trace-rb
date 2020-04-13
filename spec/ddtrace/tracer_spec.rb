@@ -3,11 +3,24 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::Tracer do
-  let(:writer) { FauxWriter.new }
+  include_context 'completed traces'
 
-  subject(:tracer) { described_class.new(writer: writer) }
+  # NOTE: Ignore Rubocop rule; described_class changes to match
+  #       describe blocks. Describing subclasses will resolve wrong class.
+  # rubocop:disable RSpec/DescribedClass
+  subject(:tracer) { Datadog::Tracer.new }
+  # rubocop:enable RSpec/DescribedClass
 
-  after { tracer.shutdown! }
+  describe '::new' do
+    subject(:tracer) { described_class.new(options) }
+    let(:options) { {} }
+
+    context 'given :context_provider' do
+      subject(:options) { { context_provider: context_provider } }
+      let(:context_provider) { instance_double(Datadog::DefaultContextProvider) }
+      it { expect(tracer.provider).to be(context_provider) }
+    end
+  end
 
   shared_context 'parent span' do
     let(:trace_id) { SecureRandom.uuid }
@@ -52,44 +65,30 @@ RSpec.describe Datadog::Tracer do
     end
   end
 
+  describe '#default_service' do
+    context 'when none is set' do
+      it 'obtains it from the script name' do
+        expect(tracer.default_service).to eq('rspec')
+      end
+    end
+  end
+
+  describe '#default_service=' do
+    let(:service) { 'my-default-service' }
+
+    it 'changes the default service' do
+      expect { tracer.default_service = service }
+        .to change { tracer.default_service }
+        .from('rspec')
+        .to(service)
+    end
+  end
+
   describe '#tags' do
     subject(:tags) { tracer.tags }
 
-    let(:env_tags) { {} }
-
-    before { allow(Datadog.configuration).to receive(:tags).and_return(env_tags) }
-
     context 'by default' do
-      it { is_expected.to eq env_tags }
-    end
-
-    context 'when equivalent String and Symbols are added' do
-      shared_examples 'equivalent tags' do
-        it 'retains the tag only as a String' do
-          is_expected.to include('host')
-          is_expected.to_not include(:host)
-        end
-
-        it 'retains only the last value' do
-          is_expected.to include('host' => 'b')
-        end
-      end
-
-      context 'with #set_tags' do
-        it_behaves_like 'equivalent tags' do
-          before do
-            tracer.set_tags('host' => 'a')
-            tracer.set_tags(host: 'b')
-          end
-        end
-
-        it_behaves_like 'equivalent tags' do
-          before do
-            tracer.set_tags(host: 'a')
-            tracer.set_tags('host' => 'b')
-          end
-        end
-      end
+      it { is_expected.to eq({}) }
     end
   end
 
@@ -132,21 +131,132 @@ RSpec.describe Datadog::Tracer do
       end
     end
 
-    context 'when :child_of' do
-      context 'is not given' do
-        it 'applies a runtime ID tag' do
-          expect(start_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
-        end
+    context 'given arguments' do
+      include_context 'completed traces'
+
+      subject(:trace) do
+        tracer.start_span(
+          'op',
+          service: 'special-service',
+          resource: 'extra-resource',
+          span_type: 'my-type',
+          start_time: yesterday,
+          tags: { 'tag1' => 'value1', 'tag2' => 'value2' }
+        ).finish
       end
 
-      context 'is given' do
-        include_context 'parent span'
+      let(:yesterday) { Time.now.utc - 24 * 60 * 60 }
 
-        let(:options) { super().merge(child_of: parent_span) }
+      before { tracer.set_tags('env' => 'test', 'temp' => 'cool') }
 
-        it 'does not apply a runtime ID tag' do
-          expect(start_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to be nil
+      it do
+        trace
+
+        expect(spans).to have(1).item
+        span = spans[0]
+        expect(span.service).to eq('special-service')
+        expect(span.resource).to eq('extra-resource')
+        expect(span.span_type).to eq('my-type')
+        expect(span.start_time).to eq(yesterday)
+        expect(span.get_tag('env')).to eq('test')
+        expect(span.get_tag('temp')).to eq('cool')
+        expect(span.get_tag('tag1')).to eq('value1')
+        expect(span.get_tag('tag2')).to eq('value2')
+        expect(span.get_metric('system.pid')).to be_a_kind_of(Numeric)
+      end
+    end
+
+    context 'given :child_of with Datadog::Span' do
+      include_context 'completed traces'
+
+      it do
+        root = tracer.start_span('a')
+        root.finish
+
+        first_trace = traces.spans!
+        expect(first_trace).to have(1).item
+        a = first_trace[0]
+
+        tracer.trace('b') do
+          span = tracer.start_span('c', child_of: root)
+          span.finish
         end
+
+        second_trace = traces.spans!
+        expect(second_trace).to have(2).items
+        b, c = second_trace
+
+        expect(a.trace_id).to_not eq(b.trace_id) # Error: a and b do not belong to the same trace
+        expect(b.trace_id).to_not eq(c.trace_id) # Error: b and c do not belong to the same trace
+        expect(a.trace_id).to eq(c.trace_id) # Error: a and c belong to the same trace
+        expect(a.span_id).to eq(c.parent_id) # Error: a is the parent of c
+      end
+    end
+
+    context 'given :child_of with Datadog::Context' do
+      include_context 'completed traces'
+
+      let(:mutex) { Mutex.new }
+
+      it do
+        @thread_span = nil
+        @thread_ctx = nil
+
+        mutex.lock
+        thread = Thread.new do
+          @thread_span = tracer.start_span('a')
+          @thread_ctx = @thread_span.context
+          mutex.lock
+          mutex.unlock
+        end
+
+        try_wait_until { @thread_ctx && @thread_span }
+
+        expect(tracer.call_context).to_not be @thread_ctx
+
+        tracer.trace('b') do
+          span = tracer.start_span('c', child_of: @thread_ctx)
+          span.finish
+        end
+
+        @thread_span.finish
+        mutex.unlock
+        thread.join
+
+        @thread_span = nil
+        @thread_ctx = nil
+
+        expect(spans).to have(3).items
+        a, b, c = spans
+        expect(a.trace_id).to_not eq(b.trace_id) # Error: a and b do not belong to the same trace
+        expect(b.trace_id).to_not eq(c.trace_id) # Error: b and c do not belong to the same trace
+        expect(a.trace_id).to eq(c.trace_id) # Error: a and c belong to the same trace
+        expect(a.span_id).to eq(c.parent_id) # Error: a is the parent of c
+      end
+    end
+
+    context 'when concurrent with another trace' do
+      include_context 'completed traces'
+
+      subject(:trace) do
+        main = tracer.trace('main_call')
+        detached = tracer.start_span('detached_trace')
+        detached.finish
+        main.finish
+      end
+
+      it do
+        trace
+
+        expect(spans).to have(2).items
+        d, m = spans
+
+        expect(m.name).to eq('main_call')
+        expect(d.name).to eq('detached_trace')
+        expect(m.trace_id).to_not eq(d.trace_id) # Error: trace IDs should be different
+        expect(m.span_id).to_not eq(d.parent_id) # Error: m should not be the parent of d
+        expect(m.parent_id).to eq(0) # Error: m should be a root span
+        expect(d.parent_id).to eq(0) # Error: d should be a root span
       end
     end
   end
@@ -169,6 +279,22 @@ RSpec.describe Datadog::Tracer do
         end
 
         it { expect(trace).to eq(result) }
+
+        it 'publishes the trace' do
+          expect(tracer.trace_completed).to receive(:publish) do |trace|
+            # Trace should be an array
+            expect(trace).to be_a_kind_of(Array)
+            expect(trace).to have(1).item
+
+            # First item should be a span
+            span = trace.first
+            expect(span).to be_a_kind_of(Datadog::Span)
+            expect(span.name).to eq name
+            expect(span.to_hash[:duration]).to > 0
+          end
+
+          trace
+        end
 
         it 'tracks the number of allocations made in the span' do
           skip 'Test unstable; improve stability before re-enabling.'
@@ -290,7 +416,7 @@ RSpec.describe Datadog::Tracer do
         end
       end
 
-      context 'when the block raises an error' do
+      context 'when the block raises a StandardError' do
         let(:block) { proc { raise error } }
         let(:error) { error_class.new }
         let(:error_class) { Class.new(StandardError) }
@@ -332,32 +458,171 @@ RSpec.describe Datadog::Tracer do
           end
         end
       end
+
+      context 'when the block raises an Exception' do
+        let(:block) { proc { raise error } }
+        let(:error) { error_class.new }
+        let(:error_class) { Class.new(Exception) }
+
+        context 'and the on_error option' do
+          context 'is not provided' do
+            it do
+              expect_any_instance_of(Datadog::Span).to receive(:set_error)
+                .with(error)
+              expect { trace }.to raise_error(error)
+            end
+          end
+
+          context 'is a block' do
+            it 'yields to the error block and raises the error' do
+              expect_any_instance_of(Datadog::Span).to_not receive(:set_error)
+              expect do
+                expect do |b|
+                  tracer.trace(name, on_error: b.to_proc, &block)
+                end.to yield_with_args(
+                  a_kind_of(Datadog::Span),
+                  error
+                )
+              end.to raise_error(error)
+            end
+          end
+        end
+      end
+    end
+
+    context 'given a block with arguments' do
+      include_context 'completed traces'
+
+      subject(:trace) do
+        tracer.trace(
+          'op',
+          service: 'special-service',
+          resource: 'extra-resource',
+          span_type: 'my-type',
+          tags: { 'tag1' => 'value1', 'tag2' => 'value2' }
+        ) do
+        end
+      end
+
+      before { tracer.set_tags('env' => 'test', 'temp' => 'cool') }
+
+      it do
+        trace
+
+        expect(spans).to have(1).item
+        span = spans[0]
+        expect(span.service).to eq('special-service')
+        expect(span.resource).to eq('extra-resource')
+        expect(span.span_type).to eq('my-type')
+
+        expect(span.get_tag('env')).to eq('test')
+        expect(span.get_tag('temp')).to eq('cool')
+        expect(span.get_tag('tag1')).to eq('value1')
+        expect(span.get_tag('tag2')).to eq('value2')
+        expect(span.get_metric('system.pid')).to be_a_kind_of(Numeric)
+      end
     end
 
     context 'without a block' do
       subject(:trace) { tracer.trace(name, options) }
 
-      context 'with child_of: option' do
-        let!(:root_span) { tracer.start_span 'root' }
-        let(:options) { { child_of: root_span } }
+      it { is_expected.to be_a_kind_of(Datadog::Span) }
+      it { expect(trace.name).to eq(name) }
+      it { expect(trace.end_time).to be nil }
+    end
 
-        it 'creates span with root span parent' do
-          tracer.trace 'another' do |_another_span|
-            expect(trace.parent).to eq root_span
-          end
+    context 'when disabled' do
+      include_context 'completed traces'
+
+      before { tracer.enabled = false }
+
+      it 'does not publish traces' do
+        tracer.trace('something').finish
+        expect(spans).to be_empty
+      end
+    end
+
+    context 'when resource is nil' do
+      include_context 'completed traces'
+
+      subject(:trace) do
+        tracer.trace('resource_set_to_nil', resource: nil) do |s|
+          # Testing passing of nil resource, some parts of the code
+          # rely on explicitly saying resource should be nil (pitfall: refactor
+          # and merge hash, then forget to pass resource: nil, this has side
+          # effects on Rack, while a rack unit test should trap this, it's unclear
+          # then, so this test is here to catch the problem early on).
+          expect(s.resource).to be nil
+        end
+
+        tracer.trace('resource_set_to_default') do |s|
         end
       end
 
-      context 'without child_of: option' do
-        let(:options) { {} }
+      it do
+        trace
 
-        it 'creates span with current context' do
-          tracer.trace 'root' do |_root_span|
-            tracer.trace 'another' do |another_span|
-              expect(trace.parent).to eq another_span
-            end
-          end
+        expect(spans).to have(2).items
+        resource_set_to_default, resource_set_to_nil = spans
+
+        expect(resource_set_to_nil.resource).to be nil
+        expect(resource_set_to_nil.name).to eq('resource_set_to_nil')
+
+        expect(resource_set_to_default.resource).to eq('resource_set_to_default')
+        expect(resource_set_to_default.name).to eq('resource_set_to_default')
+      end
+    end
+
+    context 'when span is a child' do
+      subject(:trace) do
+        tracer.trace('something')
+        tracer.trace('something_else')
+      end
+
+      it { expect(trace.get_tag('system.pid')).to be nil }
+    end
+
+    context 'that has children' do
+      include_context 'completed traces'
+
+      subject(:trace) do
+        tracer.trace('a', service: 'parent') do
+          tracer.trace('b') { |s| s.set_tag('a', 'a') }
+          tracer.trace('c', service: 'other') { |s| s.set_tag('b', 'b') }
         end
+      end
+
+      it 'has the correct relationships' do
+        trace
+        expect(spans).to have(3).items
+
+        a, b, c = spans
+
+        expect(a.name).to eq('a')
+        expect(b.name).to eq('b')
+        expect(c.name).to eq('c')
+        expect(a.trace_id).to eq(b.trace_id)
+        expect(a.trace_id).to eq(c.trace_id)
+        expect(a.span_id).to eq(b.parent_id)
+        expect(a.span_id).to eq(c.parent_id)
+
+        expect(a.service).to eq('parent')
+        expect(b.service).to eq('parent')
+        expect(c.service).to eq('other')
+      end
+    end
+
+    context 'that has a child that finishes after the parent' do
+      it 'doesn\'t associate a 2nd trace with the previous child span' do
+        t1 = tracer.trace('t1')
+        t1_child = tracer.trace('t1_child')
+        expect(t1_child.parent).to eq(t1)
+
+        t1.finish
+        t1_child.finish
+
+        t2 = tracer.trace('t2')
+        expect(t2.parent).to be nil
       end
     end
   end
@@ -528,10 +793,56 @@ RSpec.describe Datadog::Tracer do
     end
   end
 
+  describe '#set_tags' do
+    subject(:set_tags) { tracer.set_tags(tags) }
+
+    context 'set before a trace' do
+      before { tracer.set_tags('env' => 'test', 'component' => 'core') }
+
+      it 'sets the tags on the trace' do
+        span = tracer.trace('something')
+        expect(span.get_tag('env')).to eq('test')
+        expect(span.get_tag('component')).to eq('core')
+      end
+    end
+
+    context 'when equivalent String and Symbols are added' do
+      shared_examples 'equivalent tags' do
+        subject(:tags) { tracer.tags }
+
+        it 'retains the tag only as a String' do
+          is_expected.to include('host')
+          is_expected.to_not include(:host)
+        end
+
+        it 'retains only the last value' do
+          is_expected.to include('host' => 'b')
+        end
+      end
+
+      it_behaves_like 'equivalent tags' do
+        before do
+          tracer.set_tags('host' => 'a')
+          tracer.set_tags(host: 'b')
+        end
+      end
+
+      it_behaves_like 'equivalent tags' do
+        before do
+          tracer.set_tags(host: 'a')
+          tracer.set_tags('host' => 'b')
+        end
+      end
+    end
+  end
+
   describe '#record' do
     subject(:record) { tracer.record(context) }
-
     let(:context) { instance_double(Datadog::Context) }
+
+    before do
+      allow(tracer.trace_completed).to receive(:publish)
+    end
 
     context 'with trace' do
       let(:trace) { [Datadog::Span.new(tracer, 'dummy')] }
@@ -543,19 +854,44 @@ RSpec.describe Datadog::Tracer do
         subject
       end
 
-      it { expect(writer.spans).to eq(trace) }
+      it do
+        expect(tracer.trace_completed)
+          .to have_received(:publish)
+          .with(trace)
+      end
     end
 
     context 'with empty trace' do
       let(:trace) { [] }
 
-      it { expect(writer.spans).to be_empty }
+      it do
+        expect(tracer.trace_completed)
+          .to_not have_received(:publish)
+      end
     end
 
     context 'with nil trace' do
       let(:trace) { nil }
 
-      it { expect(writer.spans).to be_empty }
+      it do
+        expect(tracer.trace_completed)
+          .to_not have_received(:publish)
+      end
+    end
+  end
+
+  describe '#trace_completed' do
+    subject(:trace_completed) { tracer.trace_completed }
+    it { is_expected.to be_a_kind_of(described_class::TraceCompleted) }
+  end
+
+  # TODO: Re-enable. Shared context "completed traces" didn't like this.
+  describe described_class::TraceCompleted do
+    let(:event) { described_class.new }
+
+    describe '#name' do
+      subject(:name) { event.name }
+      it { is_expected.to be :trace_completed }
     end
   end
 end

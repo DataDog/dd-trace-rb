@@ -13,7 +13,6 @@ module Datadog
   # Processor that sends traces and metadata to the agent
   class Writer
     attr_reader \
-      :priority_sampler,
       :transport,
       :worker
 
@@ -21,13 +20,7 @@ module Datadog
       # writer and transport parameters
       @buff_size = options.fetch(:buffer_size, Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE)
       @flush_interval = options.fetch(:flush_interval, Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL)
-      transport_options = options.fetch(:transport_options, {})
-
-      # priority sampling
-      if options[:priority_sampler]
-        @priority_sampler = options[:priority_sampler]
-        transport_options[:api_version] ||= Transport::HTTP::API::V4
-      end
+      transport_options = options.fetch(:transport_options, {}).dup
 
       # transport and buffers
       @transport = options.fetch(:transport) do
@@ -83,19 +76,23 @@ module Datadog
     # no internal work will be performed.
     #
     # It is not possible to restart a stopped writer instance.
-    def stop
-      @mutex_after_fork.synchronize { stop_worker }
+    def stop(force_stop = false, timeout = nil)
+      @mutex_after_fork.synchronize { stop_worker(force_stop, timeout) }
     end
 
-    def stop_worker
+    def stop_worker(force_stop = false, timeout = nil)
       @stopped = true
 
       return if @worker.nil?
 
-      @worker.stop
-      @worker = nil
+      result = if timeout
+                 @worker.stop(force_stop, timeout)
+               else
+                 @worker.stop(force_stop)
+               end
 
-      true
+      @worker = nil
+      result
     end
 
     private :start_worker, :stop_worker
@@ -115,10 +112,9 @@ module Datadog
         @traces_flushed += response.trace_count
       end
 
-      # Update priority sampler
-      update_priority_sampler(responses.last)
-
       record_environment_information!(responses)
+
+      flush_completed.publish(responses)
 
       # Return if server error occurred.
       !responses.find(&:server_error?)
@@ -145,13 +141,6 @@ module Datadog
       # will be initialized again (but only once for each process).
       start if @worker.nil? || @pid != Process.pid
 
-      # TODO: Remove this, and have the tracer pump traces directly to runtime metrics
-      #       instead of working through the trace writer.
-      # Associate root span with runtime metrics
-      if Datadog.configuration.runtime_metrics.enabled && !trace.empty?
-        Datadog.runtime_metrics.associate_with_span(trace.first)
-      end
-
       worker_local = @worker
 
       if worker_local
@@ -169,6 +158,25 @@ module Datadog
       }
     end
 
+    def flush_completed
+      @flush_completed ||= FlushCompleted.new
+    end
+
+    # Flush completed event for worker
+    class FlushCompleted < Event
+      def initialize
+        super(:flush_completed)
+      end
+
+      # NOTE: Ignore Rubocop rule. This definition allows for
+      #       description of and constraints on arguments.
+      # rubocop:disable Lint/UselessMethodDefinition
+      def publish(response)
+        super(response)
+      end
+      # rubocop:enable Lint/UselessMethodDefinition
+    end
+
     private
 
     def inject_hostname!(traces)
@@ -178,12 +186,6 @@ module Datadog
         hostname = Datadog::Runtime::Socket.hostname
         trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
       end
-    end
-
-    def update_priority_sampler(response)
-      return unless response && !response.internal_error? && priority_sampler && response.service_rates
-
-      priority_sampler.update(response.service_rates)
     end
 
     def record_environment_information!(responses)

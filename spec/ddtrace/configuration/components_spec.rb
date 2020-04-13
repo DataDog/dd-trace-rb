@@ -9,11 +9,39 @@ RSpec.describe Datadog::Configuration::Components do
   let(:settings) { Datadog::Configuration::Settings.new }
 
   describe '::new' do
-    let(:settings) { instance_double(Datadog::Configuration::Settings) }
+    let(:runtime_metrics_enabled) { false }
+    let(:priority_sampling) { true }
+
     let(:logger) { instance_double(Datadog::Logger) }
-    let(:tracer) { instance_double(Datadog::Tracer) }
+    let(:trace_writer) { instance_double(Datadog::Writer) } # TODO: Replace with Workers::AsyncTraceWriter
+    let(:tracer) { instance_double(Datadog::Tracer, trace_completed: trace_completed) }
     let(:runtime_metrics) { instance_double(Datadog::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics) }
+
+    let(:trace_completed) { instance_double(Datadog::Tracer::TraceCompleted) }
+
+    def verify_trace_writer_subscription(name, &block)
+      expect(name).to be :trace_writer
+
+      # Ensure subscription writes to the trace writer
+      trace = double('trace')
+      expect(trace_writer).to receive(:write).with(trace)
+      yield(trace)
+      @trace_completed_subscriptions[:trace_writer] ||= 0
+      @trace_completed_subscriptions[:trace_writer] += 1
+    end
+
+    def verify_runtime_metrics_subscription(name, &block)
+      expect(name).to be :runtime_metrics
+
+      # Ensure subscription writes to the runtime metrics worker
+      trace = [double('span')]
+      expect(runtime_metrics).to receive(:associate_with_span).with(trace.first)
+      expect(runtime_metrics).to receive(:perform)
+      yield(trace)
+      @trace_completed_subscriptions[:runtime_metrics] ||= 0
+      @trace_completed_subscriptions[:runtime_metrics] += 1
+    end
 
     before do
       expect(described_class).to receive(:build_logger)
@@ -24,6 +52,10 @@ RSpec.describe Datadog::Configuration::Components do
         .with(settings)
         .and_return(tracer)
 
+      expect(described_class).to receive(:build_trace_writer)
+        .with(settings)
+        .and_return(trace_writer)
+
       expect(described_class).to receive(:build_runtime_metrics_worker)
         .with(settings)
         .and_return(runtime_metrics)
@@ -31,13 +63,101 @@ RSpec.describe Datadog::Configuration::Components do
       expect(described_class).to receive(:build_health_metrics)
         .with(settings)
         .and_return(health_metrics)
+
+      @trace_completed_subscriptions = {}
+
+      allow(trace_completed).to receive(:subscribe) do |name, &block|
+        case name
+        when :trace_writer
+          verify_trace_writer_subscription(name, &block)
+        when :runtime_metrics
+          verify_runtime_metrics_subscription(name, &block)
+        else
+          raise ArgumentError, 'Unexpected subscription'
+        end
+      end
+
+      expect(settings.runtime_metrics).to receive(:enabled)
+        .and_return(runtime_metrics_enabled)
+
+      expect(settings.sampling).to receive(:priority_sampling)
+        .and_return(priority_sampling)
+
+      allow(Datadog::Sampling::PrioritySampling).to receive(:activate!)
+      allow(Datadog::Sampling::PrioritySampling).to receive(:deactivate!)
     end
 
-    it do
-      expect(components.logger).to be logger
-      expect(components.tracer).to be tracer
-      expect(components.runtime_metrics).to be runtime_metrics
-      expect(components.health_metrics).to be health_metrics
+    shared_examples_for 'new components' do
+      it { expect(components.logger).to be logger }
+      it { expect(components.trace_writer).to be trace_writer }
+      it { expect(components.tracer).to be tracer }
+      it { expect(components.runtime_metrics).to be runtime_metrics }
+      it { expect(components.health_metrics).to be health_metrics }
+
+      it 'subscribes the tracer writer to the tracer' do
+        components
+        expect(@trace_completed_subscriptions).to include(trace_writer: 1)
+      end
+    end
+
+    context 'when runtime metrics' do
+      context 'are enabled' do
+        let(:runtime_metrics_enabled) { true }
+
+        it_behaves_like 'new components' do
+          it 'subscribes the runtime metrics worker to the tracer' do
+            components
+            expect(@trace_completed_subscriptions).to include(runtime_metrics: 1)
+          end
+        end
+      end
+
+      context 'are disabled' do
+        let(:runtime_metrics_enabled) { false }
+
+        it_behaves_like 'new components' do
+          it 'does not subscribe the runtime metrics worker to the tracer' do
+            components
+            expect(@trace_completed_subscriptions).to_not include(:runtime_metrics)
+          end
+        end
+      end
+    end
+
+    context 'when priority sampling' do
+      context 'is enabled' do
+        let(:priority_sampling) { true }
+
+        before do
+          expect(Datadog::Sampling::PrioritySampling)
+            .to receive(:activate!)
+            .with(tracer: tracer, trace_writer: trace_writer)
+
+          expect(Datadog::Sampling::PrioritySampling)
+            .to_not receive(:deactivate!)
+        end
+
+        it_behaves_like 'new components'
+      end
+
+      context 'is disabled' do
+        let(:priority_sampling) { false }
+
+        before do
+          expect(Datadog::Sampling::PrioritySampling)
+            .to_not receive(:activate!)
+
+          expect(Datadog::Sampling::PrioritySampling)
+            .to receive(:deactivate!)
+            .with(
+              tracer: tracer,
+              trace_writer: trace_writer,
+              sampler: settings.sampling.sampler
+            )
+        end
+
+        it_behaves_like 'new components'
+      end
     end
   end
 
@@ -293,6 +413,157 @@ RSpec.describe Datadog::Configuration::Components do
     end
   end
 
+  describe '::build_trace_writer' do
+    subject(:build_trace_writer) { described_class.build_trace_writer(settings) }
+
+    context 'given a Datadog::Writer instance' do
+      let(:instance) { instance_double(Datadog::Writer) }
+
+      before do
+        expect(settings.trace_writer).to receive(:instance)
+          .and_return(instance)
+      end
+
+      it 'uses the trace writer instance' do
+        expect(Datadog::Writer).to_not receive(:new)
+        is_expected.to be(instance)
+      end
+    end
+
+    context 'given a Datadog::Workers::TraceWriter instance' do
+      let(:instance) { instance_double(Datadog::Workers::TraceWriter) }
+
+      before do
+        expect(settings.trace_writer).to receive(:instance)
+          .and_return(instance)
+      end
+
+      it 'uses the trace writer instance' do
+        expect(Datadog::Writer).to_not receive(:new)
+        is_expected.to be(instance)
+      end
+    end
+
+    context 'given a Datadog::Workers::AsyncTraceWriter instance' do
+      let(:instance) { instance_double(Datadog::Workers::AsyncTraceWriter) }
+
+      before do
+        expect(settings.trace_writer).to receive(:instance)
+          .and_return(instance)
+      end
+
+      it 'uses the trace writer instance' do
+        expect(Datadog::Writer).to_not receive(:new)
+        is_expected.to be(instance)
+      end
+    end
+
+    context 'given settings' do
+      # Make sure the ENV isn't being passed through unintentionally
+      around do |example|
+        ClimateControl.modify(
+          Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST => nil,
+          Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => nil
+        ) do
+          example.run
+        end
+      end
+
+      shared_examples_for 'new trace writer' do
+        let(:trace_writer) { instance_double(Datadog::Writer) }
+        let(:default_options) do
+          {
+            transport_options: settings.trace_writer.transport_options
+          }
+        end
+        let(:options) { {} }
+
+        before do
+          expect(Datadog::Writer).to receive(:new)
+            .with(default_options.merge(options))
+            .and_return(trace_writer)
+        end
+
+        it { is_expected.to be(trace_writer) }
+      end
+
+      context 'by default' do
+        it_behaves_like 'new trace writer'
+      end
+
+      context 'with :hostname' do
+        let(:hostname) { double('hostname') }
+
+        before do
+          allow(settings.trace_writer)
+            .to receive(:hostname)
+            .and_return(hostname)
+        end
+
+        it_behaves_like 'new trace writer' do
+          let(:options) { { transport_options: { hostname: hostname } } }
+        end
+      end
+
+      context 'with :port' do
+        let(:port) { double('port') }
+
+        before do
+          allow(settings.trace_writer)
+            .to receive(:port)
+            .and_return(port)
+        end
+
+        it_behaves_like 'new trace writer' do
+          let(:options) { { transport_options: { port: port } } }
+        end
+      end
+
+      context 'with :transport_options' do
+        let(:transport_options) { { custom_option: :custom_value } }
+
+        before do
+          allow(settings.trace_writer)
+            .to receive(:transport_options)
+            .and_return(transport_options)
+        end
+
+        it_behaves_like 'new trace writer' do
+          let(:configure_options) { { transport_options: transport_options } }
+        end
+
+        context 'and :transport' do
+          let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+
+          before do
+            allow(settings.trace_writer)
+              .to receive(:transport)
+              .and_return(transport)
+          end
+
+          it_behaves_like 'new trace writer' do
+            # Ignores the transport options in favor of the transport
+            let(:default_options) { { transport: transport } }
+          end
+        end
+      end
+
+      context 'with :opts' do
+        let(:opts) { { custom_option: :custom_value } }
+
+        before do
+          allow(settings.trace_writer)
+            .to receive(:opts)
+            .and_return(opts)
+        end
+
+        it_behaves_like 'new trace writer' do
+          let(:options) { { custom_option: :custom_value } }
+        end
+      end
+    end
+  end
+
   describe '::build_tracer' do
     subject(:build_tracer) { described_class.build_tracer(settings) }
 
@@ -304,7 +575,7 @@ RSpec.describe Datadog::Configuration::Components do
           .and_return(instance)
       end
 
-      it 'uses the logger instance' do
+      it 'uses the tracer instance' do
         expect(Datadog::Tracer).to_not receive(:new)
         is_expected.to be(instance)
       end
@@ -323,22 +594,10 @@ RSpec.describe Datadog::Configuration::Components do
         end
         let(:options) { {} }
 
-        let(:default_configure_options) do
-          {
-            partial_flush: settings.tracer.partial_flush.enabled,
-            transport_options: settings.tracer.transport_options,
-            writer_options: settings.tracer.writer_options
-          }
-        end
-        let(:configure_options) { {} }
-
         before do
           expect(Datadog::Tracer).to receive(:new)
             .with(default_options.merge(options))
             .and_return(tracer)
-
-          expect(tracer).to receive(:configure)
-            .with(default_configure_options.merge(configure_options))
         end
 
         it { is_expected.to be(tracer) }
@@ -376,17 +635,17 @@ RSpec.describe Datadog::Configuration::Components do
         end
       end
 
-      context 'with :hostname' do
-        let(:hostname) { double('hostname') }
+      context 'with :opts' do
+        let(:opts) { { custom_option: :custom_value } }
 
         before do
           allow(settings.tracer)
-            .to receive(:hostname)
-            .and_return(hostname)
+            .to receive(:opts)
+            .and_return(opts)
         end
 
         it_behaves_like 'new tracer' do
-          let(:configure_options) { { hostname: hostname } }
+          let(:options) { { custom_option: :custom_value } }
         end
       end
 
@@ -415,35 +674,7 @@ RSpec.describe Datadog::Configuration::Components do
         end
 
         it_behaves_like 'new tracer' do
-          let(:configure_options) { { min_spans_before_partial_flush: min_spans_threshold } }
-        end
-      end
-
-      context 'with :port' do
-        let(:port) { double('port') }
-
-        before do
-          allow(settings.tracer)
-            .to receive(:port)
-            .and_return(port)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { port: port } }
-        end
-      end
-
-      context 'with :priority_sampling' do
-        let(:priority_sampling) { double('priority_sampling') }
-
-        before do
-          allow(settings.tracer)
-            .to receive(:priority_sampling)
-            .and_return(priority_sampling)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { priority_sampling: priority_sampling } }
+          let(:options) { { min_spans_before_partial_flush: min_spans_threshold } }
         end
       end
 
@@ -451,13 +682,13 @@ RSpec.describe Datadog::Configuration::Components do
         let(:sampler) { instance_double(Datadog::Sampler) }
 
         before do
-          allow(settings.tracer)
+          allow(settings.sampling)
             .to receive(:sampler)
             .and_return(sampler)
         end
 
         it_behaves_like 'new tracer' do
-          let(:configure_options) { { sampler: sampler } }
+          let(:options) { { sampler: sampler } }
         end
       end
 
@@ -522,20 +753,6 @@ RSpec.describe Datadog::Configuration::Components do
         end
       end
 
-      context 'with :transport_options' do
-        let(:transport_options) { { custom_option: :custom_value } }
-
-        before do
-          allow(settings.tracer)
-            .to receive(:transport_options)
-            .and_return(transport_options)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { transport_options: transport_options } }
-        end
-      end
-
       context 'with :version' do
         let(:version) { double('version') }
 
@@ -549,61 +766,6 @@ RSpec.describe Datadog::Configuration::Components do
           let(:options) { { tags: { 'version' => version } } }
         end
       end
-
-      context 'with :writer' do
-        let(:writer) { instance_double(Datadog::Writer) }
-
-        before do
-          allow(settings.tracer)
-            .to receive(:writer)
-            .and_return(writer)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:default_configure_options) do
-            {
-              partial_flush: settings.tracer.partial_flush.enabled,
-              transport_options: settings.tracer.transport_options,
-              writer: writer
-            }
-          end
-        end
-      end
-
-      context 'with :writer_options' do
-        let(:writer_options) { { custom_option: :custom_value } }
-
-        before do
-          allow(settings.tracer)
-            .to receive(:writer_options)
-            .and_return(writer_options)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { writer_options: writer_options } }
-        end
-
-        context 'and :writer' do
-          let(:writer) { double('writer') }
-
-          before do
-            allow(settings.tracer)
-              .to receive(:writer)
-              .and_return(writer)
-          end
-
-          it_behaves_like 'new tracer' do
-            # Ignores the writer options in favor of the writer
-            let(:default_configure_options) do
-              {
-                partial_flush: settings.tracer.partial_flush.enabled,
-                transport_options: settings.tracer.transport_options,
-                writer: writer
-              }
-            end
-          end
-        end
-      end
     end
   end
 
@@ -614,7 +776,12 @@ RSpec.describe Datadog::Configuration::Components do
       let(:replacement) { nil }
 
       it 'shuts down all components' do
-        expect(components.tracer).to receive(:shutdown!)
+        if components.trace_writer.respond_to?(:enabled=)
+          expect(components.trace_writer).to receive(:enabled=)
+            .with(false)
+        end
+
+        expect(components.trace_writer).to receive(:stop)
         expect(components.runtime_metrics).to receive(:enabled=)
           .with(false)
         expect(components.runtime_metrics).to receive(:stop)
@@ -629,14 +796,14 @@ RSpec.describe Datadog::Configuration::Components do
     context 'given a replacement' do
       shared_context 'replacement' do
         let(:replacement) { instance_double(described_class) }
-        let(:tracer) { instance_double(Datadog::Tracer) }
+        let(:trace_writer) { instance_double(Datadog::Writer) }
         let(:runtime_metrics_worker) { instance_double(Datadog::Workers::RuntimeMetrics, metrics: runtime_metrics) }
         let(:runtime_metrics) { instance_double(Datadog::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics, statsd: statsd) }
         let(:statsd) { instance_double(::Datadog::Statsd) }
 
         before do
-          allow(replacement).to receive(:tracer).and_return(tracer)
+          allow(replacement).to receive(:trace_writer).and_return(trace_writer)
           allow(replacement).to receive(:runtime_metrics).and_return(runtime_metrics_worker)
           allow(replacement).to receive(:health_metrics).and_return(health_metrics)
         end
@@ -646,7 +813,12 @@ RSpec.describe Datadog::Configuration::Components do
         include_context 'replacement'
 
         it 'shuts down all components' do
-          expect(components.tracer).to receive(:shutdown!)
+          if components.trace_writer.respond_to?(:enabled=)
+            expect(components.trace_writer).to receive(:enabled=)
+              .with(false)
+          end
+
+          expect(components.trace_writer).to receive(:stop)
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
@@ -665,7 +837,7 @@ RSpec.describe Datadog::Configuration::Components do
           end
 
           it 'shuts down all components' do
-            expect(components.tracer).to receive(:shutdown!)
+            expect(components.trace_writer).to receive(:stop)
             expect(components.runtime_metrics).to receive(:enabled=)
               .with(false)
             expect(components.runtime_metrics).to receive(:stop)
@@ -677,13 +849,15 @@ RSpec.describe Datadog::Configuration::Components do
         end
       end
 
-      context 'when the tracer is re-used' do
+      context 'when the trace writer is re-used' do
         include_context 'replacement' do
-          let(:tracer) { components.tracer }
+          let(:trace_writer) { components.trace_writer }
         end
 
-        it 'shuts down all components but the tracer' do
-          expect(components.tracer).to_not receive(:shutdown!)
+        it 'shuts down all components but the trace writer' do
+          expect(components.trace_writer).to_not receive(:enabled=) if components.trace_writer.respond_to?(:enabled=)
+
+          expect(components.trace_writer).to_not receive(:stop)
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
@@ -700,8 +874,13 @@ RSpec.describe Datadog::Configuration::Components do
           let(:runtime_metrics_worker) { components.runtime_metrics }
         end
 
-        it 'shuts down all components but the tracer' do
-          expect(components.tracer).to receive(:shutdown!)
+        it 'shuts down all components but Statsd' do
+          if components.trace_writer.respond_to?(:enabled=)
+            expect(components.trace_writer).to receive(:enabled=)
+              .with(false)
+          end
+
+          expect(components.trace_writer).to receive(:stop)
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
@@ -719,8 +898,13 @@ RSpec.describe Datadog::Configuration::Components do
           let(:health_metrics) { components.health_metrics }
         end
 
-        it 'shuts down all components but the tracer' do
-          expect(components.tracer).to receive(:shutdown!)
+        it 'shuts down all components but Statsd' do
+          if components.trace_writer.respond_to?(:enabled=)
+            expect(components.trace_writer).to receive(:enabled=)
+              .with(false)
+          end
+
+          expect(components.trace_writer).to receive(:stop)
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)

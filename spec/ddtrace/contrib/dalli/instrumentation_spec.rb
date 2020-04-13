@@ -7,11 +7,15 @@ require 'ddtrace'
 require 'ddtrace/contrib/dalli/patcher'
 
 RSpec.describe 'Dalli instrumentation' do
+  include_context 'completed traces'
+
   let(:test_host) { ENV.fetch('TEST_MEMCACHED_HOST', '127.0.0.1') }
   let(:test_port) { ENV.fetch('TEST_MEMCACHED_PORT', '11211') }
 
   let(:client) { ::Dalli::Client.new("#{test_host}:#{test_port}") }
   let(:configuration_options) { {} }
+
+  let(:span) { spans.first }
 
   # Enable the test tracer
   before do
@@ -30,7 +34,7 @@ RSpec.describe 'Dalli instrumentation' do
   describe 'when a client calls #set' do
     before do
       client.set('abc', 123)
-      try_wait_until { fetch_spans.any? }
+      try_wait_until { spans.any? }
     end
 
     it_behaves_like 'analytics for integration' do
@@ -66,7 +70,7 @@ RSpec.describe 'Dalli instrumentation' do
     context 'and #set is called' do
       before do
         client.set('abc', 123)
-        try_wait_until { fetch_spans.any? }
+        try_wait_until { spans.any? }
       end
 
       it 'calls instrumentation' do

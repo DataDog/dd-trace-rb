@@ -226,6 +226,14 @@ RSpec/LeadingSubject:
 RSpec/ImplicitSubject:
   Enabled: false
 
+# Enforces empty line after subject declaration.
+RSpec/EmptyLineAfterSubject:
+  Enabled: false
+
+# Enforces empty line after last let declaration.
+RSpec/EmptyLineAfterFinalLet:
+  Enabled: false
+
 # TODO: Disabling until we categorize which file are safe to do so.
 Style/FrozenStringLiteralComment:
   Enabled: false

@@ -6,6 +6,8 @@ require 'ddtrace'
 require_relative 'app'
 
 RSpec.describe 'ActiveRecord instrumentation' do
+  include_context 'completed traces'
+
   let(:configuration_options) { {} }
 
   before do

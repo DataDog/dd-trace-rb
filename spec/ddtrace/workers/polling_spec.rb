@@ -11,10 +11,10 @@ RSpec.describe Datadog::Workers::Polling do
       Class.new(Datadog::Worker) { include Datadog::Workers::Polling }
     end
 
+    after { worker.stop(true, 5) }
+
     describe '#perform' do
       subject(:perform) { worker.perform }
-
-      after { worker.stop(true, 5) }
 
       let(:worker) { worker_class.new(&task) }
       let(:task) { proc { |*args| worker_spy.perform(*args) } }
@@ -58,6 +58,11 @@ RSpec.describe Datadog::Workers::Polling do
           allow(worker).to receive(:join)
             .with(described_class::SHUTDOWN_TIMEOUT)
             .and_return(true)
+        end
+
+        after do
+          # Undo any stubs around #stop
+          allow(worker).to receive(:join).and_call_original
         end
       end
 

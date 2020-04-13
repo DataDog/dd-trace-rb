@@ -4,6 +4,7 @@ require 'ddtrace/contrib/graphql/test_types'
 require 'ddtrace'
 RSpec.describe 'GraphQL patcher' do
   include ConfigurationHelpers
+  include_context 'trace components'
 
   # GraphQL generates tons of warnings.
   # This suppresses those warnings.
@@ -18,7 +19,7 @@ RSpec.describe 'GraphQL patcher' do
   RSpec.shared_examples 'Schema patcher' do
     before do
       remove_patch!(:graphql)
-      Datadog.configure do |c|
+      Datadog.configure(global_settings) do |c|
         c.use :graphql,
               service_name: 'graphql-test',
               schemas: [schema]

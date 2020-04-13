@@ -7,6 +7,8 @@ require 'faraday'
 require 'ddtrace/ext/distributed'
 
 RSpec.describe 'Faraday middleware' do
+  include_context 'trace components'
+
   let(:client) do
     ::Faraday.new('http://example.com') do |builder|
       builder.use(:ddtrace, middleware_options) if use_middleware

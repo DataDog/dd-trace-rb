@@ -6,6 +6,7 @@
 require 'ddtrace/version'
 
 require 'ddtrace/pin'
+require 'ddtrace/sampling'
 require 'ddtrace/tracer'
 require 'ddtrace/error'
 require 'ddtrace/quantization/hash'

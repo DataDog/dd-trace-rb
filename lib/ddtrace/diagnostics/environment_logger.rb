@@ -106,7 +106,7 @@ module Datadog
       # @return [String] target agent URL for trace flushing
       def agent_url
         # Retrieve the effect agent URL, regardless of how it was configured
-        transport = Datadog.tracer.writer.transport
+        transport = Datadog.trace_writer.transport
         adapter = transport.client.api.adapter
         adapter.url
       end
@@ -133,7 +133,7 @@ module Datadog
 
       # @return [Numeric, nil] tracer sample rate configured
       def sample_rate
-        sampler = Datadog.configuration.tracer.sampler
+        sampler = Datadog.configuration.sampling.sampler
         return nil unless sampler
 
         sampler.sample_rate(nil) rescue nil
@@ -146,7 +146,7 @@ module Datadog
       #
       # @return [Hash, nil] sample rules configured
       def sampling_rules
-        sampler = Datadog.configuration.tracer.sampler
+        sampler = Datadog.configuration.sampling.sampler
         return nil unless sampler.is_a?(Datadog::PrioritySampler) &&
                           sampler.priority_sampler.is_a?(Datadog::Sampling::RuleSampler)
 
@@ -206,7 +206,7 @@ module Datadog
 
       # @return [Boolean, nil] priority sampling enabled in configuration
       def priority_sampling_enabled
-        !!Datadog.configuration.tracer.priority_sampling
+        !!Datadog.configuration.sampling.priority_sampling
       end
 
       # @return [Boolean, nil] health metrics enabled in configuration

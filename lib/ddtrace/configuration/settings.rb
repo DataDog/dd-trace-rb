@@ -3,8 +3,11 @@ require 'ddtrace/configuration/base'
 
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/ext/environment'
+require 'ddtrace/ext/net'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/ext/sampling'
+require 'ddtrace/ext/transport'
 
 module Datadog
   module Configuration
@@ -149,10 +152,14 @@ module Datadog
           o.lazy
         end
 
+        option :priority_sampling, default: true
+
         option :rate_limit do |o|
           o.default { env_to_float(Ext::Sampling::ENV_RATE_LIMIT, 100) }
           o.lazy
         end
+
+        option :sampler
       end
 
       option :service do |o|
@@ -220,28 +227,47 @@ module Datadog
         end
       end
 
+      settings :trace_writer do
+        option :hostname do |o|
+          # Don't set a default: a non-TCP protocol might be configured.
+          o.default { ENV.fetch(Ext::Transport::HTTP::ENV_DEFAULT_HOST, nil) }
+          o.lazy
+        end
+
+        option :instance
+        option :opts, default: ->(_i) { {} }, lazy: true
+
+        option :port do |o|
+          o.default do
+            # Don't set a default: a non-TCP protocol might be configured.
+            port = ENV.fetch(Ext::Transport::HTTP::ENV_DEFAULT_PORT, nil)
+            port.to_i unless port.nil?
+          end
+
+          o.lazy
+        end
+
+        option :transport
+        option :transport_options, default: ->(_i) { {} }, lazy: true
+      end
+
       settings :tracer do
         option :enabled do |o|
           o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED, true) }
           o.lazy
         end
-        option :hostname # TODO: Deprecate
         option :instance
+        option :opts, default: ->(_i) { {} }, lazy: true
 
         settings :partial_flush do
           option :enabled, default: false
           option :min_spans_threshold
         end
-
-        option :port # TODO: Deprecate
-        option :priority_sampling # TODO: Deprecate
-        option :sampler
-        option :transport_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
-        option :writer # TODO: Deprecate
-        option :writer_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
       end
 
       # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
+      # rubocop:disable Metrics/MethodLength
+      # rubocop:disable Metrics/AbcSize
       def tracer(options = nil)
         settings = get_option(:tracer)
         return settings if options.nil?
@@ -249,14 +275,9 @@ module Datadog
         # If options were provided (old style) then raise warnings and apply them:
         options = options.dup
 
-        if options.key?(:log)
+        if options.key?(:debug)
           # TODO: Raise deprecation warning
-          get_option(:logger).instance = options.delete(:log)
-        end
-
-        if options.key?(:tags)
-          # TODO: Raise deprecation warning
-          set_option(:tags, options.delete(:tags))
+          get_option(:diagnostics).debug = options.delete(:debug)
         end
 
         if options.key?(:env)
@@ -264,9 +285,19 @@ module Datadog
           set_option(:env, options.delete(:env))
         end
 
-        if options.key?(:debug)
+        if options.key?(:hostname)
           # TODO: Raise deprecation warning
-          get_option(:diagnostics).debug = options.delete(:debug)
+          get_option(:trace_writer).hostname = options.delete(:hostname)
+        end
+
+        if options.key?(:log)
+          # TODO: Raise deprecation warning
+          get_option(:logger).instance = options.delete(:log)
+        end
+
+        if options.key?(:min_spans_before_partial_flush)
+          # TODO: Raise deprecation warning
+          settings.partial_flush.min_spans_threshold = options.delete(:min_spans_before_partial_flush)
         end
 
         if options.key?(:partial_flush)
@@ -274,9 +305,29 @@ module Datadog
           settings.partial_flush.enabled = options.delete(:partial_flush)
         end
 
-        if options.key?(:min_spans_before_partial_flush)
+        if options.key?(:port)
           # TODO: Raise deprecation warning
-          settings.partial_flush.min_spans_threshold = options.delete(:min_spans_before_partial_flush)
+          get_option(:trace_writer).port = options.delete(:port)
+        end
+
+        if options.key?(:tags)
+          # TODO: Raise deprecation warning
+          set_option(:tags, options.delete(:tags))
+        end
+
+        if options.key?(:writer)
+          # TODO: Raise deprecation warning
+          get_option(:trace_writer).instance = options.delete(:writer)
+        end
+
+        if options.key?(:writer_options)
+          # TODO: Raise deprecation warning
+          get_option(:trace_writer).opts = options.delete(:writer_options)
+        end
+
+        if options.key?(:transport_options)
+          # TODO: Raise deprecation warning
+          get_option(:trace_writer).transport_options = options.delete(:transport_options)
         end
 
         # Forward remaining options to settings
@@ -285,6 +336,8 @@ module Datadog
           settings.send(setter, value) if settings.respond_to?(setter)
         end
       end
+      # rubocop:enable Metrics/MethodLength
+      # rubocop:enable Metrics/AbcSize
 
       def tracer=(tracer)
         get_option(:tracer).instance = tracer

@@ -5,6 +5,8 @@ require 'ddtrace'
 require 'spec/support/thread_helpers'
 
 RSpec.describe 'ConcurrentRuby integration tests' do
+  include_context 'completed traces'
+
   # DEV We save an unmodified copy of Concurrent::Future.
   let!(:unmodified_future) { ::Concurrent::Future.dup }
   let(:configuration_options) { {} }
@@ -50,11 +52,11 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     end
 
     it 'writes inner span to tracer' do
-      expect(spans).to include(inner_span)
+      expect(trace_writer.spans).to include(inner_span)
     end
 
     it 'writes outer span to tracer' do
-      expect(spans).to include(outer_span)
+      expect(trace_writer.spans).to include(outer_span)
     end
   end
 
@@ -75,7 +77,6 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     it_behaves_like 'deferred execution'
 
     it 'inner span should not have parent' do
-      deferred_execution
       expect(inner_span.parent).to be_nil
     end
   end
