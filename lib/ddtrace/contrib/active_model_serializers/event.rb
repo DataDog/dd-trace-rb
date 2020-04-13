@@ -36,6 +36,9 @@ module Datadog
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
             end
 
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
             # Set the resource name and serializer name
             res = resource(payload[:serializer])
             span.resource = res

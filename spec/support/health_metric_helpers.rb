@@ -40,7 +40,7 @@ module HealthMetricHelpers
   shared_context 'health metrics' do
     include_context 'metrics'
 
-    let(:health_metrics) { Datadog::Diagnostics::Health.metrics }
+    let(:health_metrics) { Datadog.health_metrics }
     before { METRICS.each { |metric, _attrs| allow(health_metrics).to receive(metric) } }
 
     def have_received_lazy_health_metric(metric, *expected_args)

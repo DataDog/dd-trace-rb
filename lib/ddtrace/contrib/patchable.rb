@@ -25,7 +25,7 @@ module Datadog
 
         # Is the loaded code compatible with this integration? (e.g. minimum version met?)
         def compatible?
-          Gem::Version.new(RUBY_VERSION) >= Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION)
+          available? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION)
         end
 
         # Can the patch for this integration be applied?
@@ -47,7 +47,7 @@ module Datadog
             desc += ", Compatible? #{self.class.compatible?}"
             desc += ", Patchable? #{self.class.patchable?}"
 
-            Datadog::Logger.log.warn("Unable to patch #{self.class.name} (#{desc})")
+            Datadog.logger.warn("Unable to patch #{self.class.name} (#{desc})")
             return
           end
 

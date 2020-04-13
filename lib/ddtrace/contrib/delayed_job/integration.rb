@@ -9,6 +9,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('4.1')
+
         register_as :delayed_job
 
         def self.version
@@ -16,11 +18,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Delayed)
+          !defined?(::Delayed).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('4.1')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

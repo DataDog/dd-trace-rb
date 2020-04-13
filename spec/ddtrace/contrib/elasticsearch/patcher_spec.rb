@@ -120,6 +120,8 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
         let(:analytics_sample_rate_var) { Datadog::Contrib::Elasticsearch::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
+      it_behaves_like 'measured span for integration', false
+
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
       it { expect(span.span_type).to eq('elasticsearch') }

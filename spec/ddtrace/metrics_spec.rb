@@ -16,7 +16,7 @@ RSpec.describe Datadog::Metrics do
 
   shared_examples_for 'missing value arg' do
     it 'logs an error without raising' do
-      expect(Datadog::Logger.log).to receive(:error)
+      expect(Datadog.logger).to receive(:error)
       expect { subject }.to_not raise_error
     end
   end
@@ -289,7 +289,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:count).and_raise(StandardError)
-          expect(Datadog::Logger.log).to receive(:error)
+          expect(Datadog.logger).to receive(:error)
         end
 
         it { expect { count }.to_not raise_error }
@@ -360,7 +360,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:distribution).and_raise(StandardError)
-          expect(Datadog::Logger.log).to receive(:error)
+          expect(Datadog.logger).to receive(:error)
         end
 
         it { expect { distribution }.to_not raise_error }
@@ -431,7 +431,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:gauge).and_raise(StandardError)
-          expect(Datadog::Logger.log).to receive(:error)
+          expect(Datadog.logger).to receive(:error)
         end
 
         it { expect { gauge }.to_not raise_error }
@@ -502,7 +502,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:increment).and_raise(StandardError)
-          expect(Datadog::Logger.log).to receive(:error)
+          expect(Datadog.logger).to receive(:error)
         end
 
         it { expect { increment }.to_not raise_error }
@@ -570,7 +570,7 @@ RSpec.describe Datadog::Metrics do
       context 'which raises an error' do
         before(:each) do
           expect(statsd).to receive(:distribution).and_raise(StandardError)
-          expect(Datadog::Logger.log).to receive(:error)
+          expect(Datadog.logger).to receive(:error)
         end
 
         it { expect { time }.to_not raise_error }
@@ -608,6 +608,63 @@ RSpec.describe Datadog::Metrics do
 
         expect(metrics).to have_received(:increment)
           .with(inc_name, inc_options)
+      end
+    end
+  end
+end
+
+RSpec.describe Datadog::Metrics::Options do
+  context 'when included into a class' do
+    subject(:instance) { options_class.new }
+    let(:options_class) { stub_const('OptionsClass', Class.new { include Datadog::Metrics::Options }) }
+
+    describe '#default_metric_options' do
+      subject(:default_metric_options) { instance.default_metric_options }
+
+      it { is_expected.to be_a_kind_of(Hash) }
+      it { expect(default_metric_options.frozen?).to be false }
+
+      describe ':tags' do
+        subject(:default_tags) { default_metric_options[:tags] }
+
+        it { is_expected.to be_a_kind_of(Array) }
+        it { expect(default_tags.frozen?).to be false }
+        it 'includes default tags' do
+          is_expected.to include(
+            "#{Datadog::Ext::Metrics::TAG_LANG}:#{Datadog::Runtime::Identity.lang}",
+            "#{Datadog::Ext::Metrics::TAG_LANG_INTERPRETER}:#{Datadog::Runtime::Identity.lang_interpreter}",
+            "#{Datadog::Ext::Metrics::TAG_LANG_VERSION}:#{Datadog::Runtime::Identity.lang_version}",
+            "#{Datadog::Ext::Metrics::TAG_TRACER_VERSION}:#{Datadog::Runtime::Identity.tracer_version}"
+          )
+        end
+
+        context 'when #env configuration setting' do
+          before { allow(Datadog.configuration).to receive(:env).and_return(environment) }
+
+          context 'is not defined' do
+            let(:environment) { nil }
+            it { is_expected.to_not include(/\A#{Datadog::Ext::Environment::TAG_ENV}:/) }
+          end
+
+          context 'is defined' do
+            let(:environment) { 'my-env' }
+            it { is_expected.to include("#{Datadog::Ext::Environment::TAG_ENV}:#{environment}") }
+          end
+        end
+
+        context 'when Datadog::Environment.version' do
+          before { allow(Datadog.configuration).to receive(:version).and_return(version) }
+
+          context 'is not defined' do
+            let(:version) { nil }
+            it { is_expected.to_not include(/\A#{Datadog::Ext::Environment::TAG_VERSION}:/) }
+          end
+
+          context 'is defined' do
+            let(:version) { 'my-version' }
+            it { is_expected.to include("#{Datadog::Ext::Environment::TAG_VERSION}:#{version}") }
+          end
+        end
       end
     end
   end

@@ -20,7 +20,7 @@ module Datadog
         end
 
         # Send health metrics
-        Diagnostics::Health.metrics.send_metrics(
+        Datadog.health_metrics.send_metrics(
           metrics_for_response(response).values
         )
       end
@@ -37,7 +37,7 @@ module Datadog
         stats.consecutive_errors += 1
 
         # Send health metrics
-        Diagnostics::Health.metrics.send_metrics(
+        Datadog.health_metrics.send_metrics(
           metrics_for_exception(exception).values
         )
       end

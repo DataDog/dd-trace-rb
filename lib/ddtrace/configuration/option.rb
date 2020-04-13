@@ -26,7 +26,7 @@ module Datadog
         elsif definition.delegate_to
           context_eval(&definition.delegate_to)
         else
-          set(definition.default_value)
+          set(default_value)
         end
       end
 
@@ -40,6 +40,14 @@ module Datadog
                    @is_set = false
                    nil
                  end
+      end
+
+      def default_value
+        if definition.lazy
+          context_eval(&definition.default)
+        else
+          definition.default
+        end
       end
 
       private

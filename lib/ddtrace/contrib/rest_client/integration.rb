@@ -8,6 +8,9 @@ module Datadog
       # Description of RestClient integration
       class Integration
         include Contrib::Integration
+
+        MINIMUM_VERSION = Gem::Version.new('1.8')
+
         register_as :rest_client
 
         def self.version
@@ -15,11 +18,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::RestClient::Request)
+          !defined?(::RestClient::Request).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('1.8')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

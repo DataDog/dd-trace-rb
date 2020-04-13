@@ -42,7 +42,7 @@ RSpec.describe 'Faraday middleware' do
   end
 
   context 'without explicit middleware configured' do
-    subject!(:response) { client.get('/success') }
+    subject(:response) { client.get('/success') }
     let(:use_middleware) { false }
 
     it 'uses default configuration' do
@@ -59,6 +59,10 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
+    end
+
+    it 'executes without warnings' do
+      expect { response }.to_not output(/WARNING/).to_stderr
     end
   end
 
@@ -80,6 +84,8 @@ RSpec.describe 'Faraday middleware' do
       let(:analytics_sample_rate_var) { Datadog::Contrib::Faraday::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       let(:span) { request_span }
     end
+
+    it_behaves_like 'measured span for integration', false
 
     it do
       expect(request_span).to_not be nil
@@ -150,14 +156,31 @@ RSpec.describe 'Faraday middleware' do
   end
 
   context 'when split by domain' do
-    subject!(:response) { client.get('/success') }
+    subject(:response) { client.get('/success') }
 
-    let(:middleware_options) { { split_by_domain: true } }
+    let(:configuration_options) { super().merge(split_by_domain: true) }
 
     it do
+      response
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.service).to eq('example.com')
       expect(request_span.resource).to eq('GET')
+    end
+
+    context 'and the host matches a specific configuration' do
+      before do
+        Datadog.configure do |c|
+          c.use :faraday, describe: /example\.com/ do |faraday|
+            faraday.service_name = 'bar'
+            faraday.split_by_domain = false
+          end
+        end
+      end
+
+      it 'uses the configured service name over the domain name' do
+        response
+        expect(request_span.service).to eq('bar')
+      end
     end
   end
 

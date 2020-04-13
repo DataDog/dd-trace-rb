@@ -27,6 +27,10 @@ module Datadog
   require 'ddtrace/contrib/extensions'
   extend Contrib::Extensions
 
+  # Load and extend OpenTelemetry compatibility by default
+  require 'ddtrace/opentelemetry/extensions'
+  extend OpenTelemetry::Extensions
+
   # Add shutdown hook:
   # Ensures the tracer has an opportunity to flush traces
   # and cleanup before terminating the process.

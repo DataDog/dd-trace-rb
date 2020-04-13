@@ -1,8 +1,8 @@
 module Datadog
   module VERSION
     MAJOR = 0
-    MINOR = 32
-    PATCH = 0
+    MINOR = 34
+    PATCH = 2
     PRE = nil
 
     STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')

@@ -42,6 +42,9 @@ module Datadog
                   # want to record it.
                   span.set_tag(Ext::TAG_TEMPLATE_NAME, data) if data.is_a? Symbol
 
+                  # Measure service stats
+                  Contrib::Analytics.set_measured(span)
+
                   output = super
                 end
               else
@@ -68,7 +71,7 @@ module Datadog
             span = Sinatra::Env.datadog_span(env)
 
             unless span
-              Datadog::Logger.log.error('missing request span in :after hook')
+              Datadog.logger.error('missing request span in :after hook')
               return
             end
 

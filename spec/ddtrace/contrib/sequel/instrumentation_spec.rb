@@ -61,6 +61,8 @@ RSpec.describe 'Sequel instrumentation' do
         let(:analytics_enabled_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'measured span for integration', false
     end
 
     describe 'when queried through a Sequel::Dataset' do
@@ -131,6 +133,10 @@ RSpec.describe 'Sequel instrumentation' do
         let(:span) { spans[2..5].sample }
         let(:analytics_enabled_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+
+      it_behaves_like 'measured span for integration', false do
+        let(:span) { spans[2..5].sample }
       end
     end
   end

@@ -56,7 +56,7 @@ RSpec.shared_examples_for 'instrumented request' do
         tracer.writer.spans.select { |span| span.name == 'ethon.request' }.first
       end
 
-      context 'response is successfull' do
+      context 'response is successful' do
         before { request }
 
         it_behaves_like 'span'

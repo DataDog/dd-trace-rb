@@ -49,6 +49,11 @@ RSpec.describe 'Rack integration configuration' do
     let(:analytics_sample_rate_var) { Datadog::Contrib::Rack::Ext::ENV_ANALYTICS_SAMPLE_RATE }
   end
 
+  it_behaves_like 'measured span for integration', true do
+    include_context 'an incoming HTTP request'
+    before { is_expected.to be_ok }
+  end
+
   describe 'request queueing' do
     shared_context 'queue header' do
       let(:queue_value) { "t=#{queue_time}" }

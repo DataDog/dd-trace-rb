@@ -53,6 +53,8 @@ RSpec.describe 'Resque instrumentation' do
         let(:analytics_enabled_var) { Datadog::Contrib::Resque::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::Resque::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'measured span for integration', true
     end
 
     context 'that fails' do

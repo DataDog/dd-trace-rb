@@ -103,7 +103,7 @@ RSpec.describe Datadog::Runtime::Metrics do
       end
 
       context 'when an error is thrown' do
-        before(:each) { allow(Datadog::Logger.log).to receive(:error) }
+        before(:each) { allow(Datadog.logger).to receive(:error) }
 
         it do
           allow(metric).to receive(:available?)
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
           flush
 
-          expect(Datadog::Logger.log).to have_received(:error)
+          expect(Datadog.logger).to have_received(:error)
             .with(/Error while sending runtime metric./)
             .at_least(:once)
         end

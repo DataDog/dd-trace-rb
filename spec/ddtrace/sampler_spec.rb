@@ -13,8 +13,8 @@ end
 RSpec.describe Datadog::AllSampler do
   subject(:sampler) { described_class.new }
 
-  before { Datadog::Logger.log.level = Logger::FATAL }
-  after { Datadog::Logger.log.level = Logger::WARN }
+  before { Datadog.logger.level = Logger::FATAL }
+  after { Datadog.logger.level = Logger::WARN }
 
   describe '#sample!' do
     let(:spans) do
@@ -39,8 +39,8 @@ end
 RSpec.describe Datadog::RateSampler do
   subject(:sampler) { described_class.new(sample_rate) }
 
-  before { Datadog::Logger.log.level = Logger::FATAL }
-  after { Datadog::Logger.log.level = Logger::WARN }
+  before { Datadog.logger.level = Logger::FATAL }
+  after { Datadog.logger.level = Logger::WARN }
 
   describe '#initialize' do
     context 'given a sample rate' do
@@ -231,8 +231,8 @@ RSpec.describe Datadog::PrioritySampler do
 
   let(:sample_rate_tag_value) { nil }
 
-  before { Datadog::Logger.log.level = Logger::FATAL }
-  after { Datadog::Logger.log.level = Logger::WARN }
+  before { Datadog.logger.level = Logger::FATAL }
+  after { Datadog.logger.level = Logger::WARN }
 
   describe '#sample!' do
     subject(:sample) { sampler.sample!(span) }

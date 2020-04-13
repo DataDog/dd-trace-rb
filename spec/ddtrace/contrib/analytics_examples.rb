@@ -176,8 +176,8 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly enabled' do
           around do |example|
-            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
-              Datadog.configuration.analytics_enabled = true
+            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
+              Datadog.configuration.analytics.enabled = true
               example.run
             end
           end
@@ -187,8 +187,8 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly disabled' do
           around do |example|
-            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
-              Datadog.configuration.analytics_enabled = false
+            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
+              Datadog.configuration.analytics.enabled = false
               example.run
             end
           end
@@ -220,8 +220,8 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly enabled' do
           around do |example|
-            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
-              Datadog.configuration.analytics_enabled = true
+            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
+              Datadog.configuration.analytics.enabled = true
               example.run
             end
           end
@@ -231,8 +231,8 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly disabled' do
           around do |example|
-            Datadog.configuration.analytics_enabled = Datadog.configuration.analytics_enabled.tap do
-              Datadog.configuration.analytics_enabled = false
+            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
+              Datadog.configuration.analytics.enabled = false
               example.run
             end
           end
@@ -240,6 +240,18 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
           it_behaves_like 'sample rate value'
         end
       end
+    end
+  end
+end
+
+RSpec.shared_examples_for 'measured span for integration' do |expect_active = true|
+  if expect_active
+    it "sets #{Datadog::Ext::Analytics::TAG_MEASURED} on the span" do
+      expect(span.get_metric(Datadog::Ext::Analytics::TAG_MEASURED)).to be 1.0
+    end
+  else
+    it "does not set #{Datadog::Ext::Analytics::TAG_MEASURED} on the span" do
+      expect(span.get_metric(Datadog::Ext::Analytics::TAG_MEASURED)).to be nil
     end
   end
 end

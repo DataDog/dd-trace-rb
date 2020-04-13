@@ -71,6 +71,12 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
       before { call }
     end
 
+    it_behaves_like 'measured span for integration', true do
+      include_context 'Shoryuken::Worker'
+      let(:body) { {} }
+      before { call }
+    end
+
     context 'with a body' do
       context 'that is a Hash' do
         context 'that contains \'job_class\'' do

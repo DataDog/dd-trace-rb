@@ -9,6 +9,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('1.0.0')
+
         register_as :elasticsearch, auto_patch: true
 
         def self.version
@@ -17,11 +19,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Elasticsearch::Transport)
+          !defined?(::Elasticsearch::Transport).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('1.0.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration
