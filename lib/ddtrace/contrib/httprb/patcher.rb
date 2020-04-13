@@ -22,17 +22,12 @@ module Datadog
         def patch
           do_once(:httprb) do
             begin
-              Events.subscribe!
-              ::HTTP::Options.send(:include, Instrumentation)
+              ::HTTP::Client.send(:include, Instrumentation)
             rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply httprb integration: #{e}")
+              Datadog::Logger.log.error("Unable to apply httprb integration: #{e}")
             end
           end
         end
-
-        # def register_feature!
-        #   ::HTTP::Options.register_feature(:datadog_wrap, Datadog::Contrib::Httprb::DatadogWrap)
-        # end
       end
     end
   end

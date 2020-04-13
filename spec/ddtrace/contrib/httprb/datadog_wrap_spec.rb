@@ -1,12 +1,12 @@
 require 'spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace'
-require 'ddtrace/contrib/httprb/datadog_wrap'
+require 'ddtrace/contrib/httprb/instrumentation'
 require 'http'
 require 'webrick'
 require 'json'
 
-RSpec.describe Datadog::Contrib::Httprb::DatadogWrap do
+RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
   before(:all) do
     @log_buffer = StringIO.new # set to $stderr to debug
     log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
