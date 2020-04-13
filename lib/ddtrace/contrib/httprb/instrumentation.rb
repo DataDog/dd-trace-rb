@@ -25,7 +25,6 @@ module Datadog
               begin
                 span.service = pin.service
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
-                span.resource = req.method
 
                 if pin.tracer.enabled && !should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(span.context, req)
@@ -33,10 +32,8 @@ module Datadog
 
                 # Add additional request specific tags to the span.
                 annotate_span_with_request!(span, req)
-              end
-
               rescue StandardError => e
-                logger.error("error preparing span for http.rb request: #{e}")
+                logger.error("error preparing span for http.rb request: #{e}, Soure: #{e.backtrace}")
               ensure
                 res = super(req, options)
               end
@@ -46,7 +43,7 @@ module Datadog
 
               res
             end
-          end            
+          end
 
           private
 
@@ -78,14 +75,18 @@ module Datadog
 
             case response.code.to_i
             when 400...599
-              span.set_error(response)
+              begin
+                message = JSON.parse(response.body)['message']
+              rescue
+                message = 'Error'
+              end
+              span.set_error(["Error #{response.code}", message])
             end
           end
 
           def annotate_span_with_error!(span, error)
             span.set_error(error)
           end
-
 
           def datadog_pin
             @datadog_pin ||= begin
@@ -94,11 +95,11 @@ module Datadog
 
               Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
             end
-          end            
+          end
 
           def tracer
             datadog_configuration[:tracer]
-          end            
+          end
 
           def datadog_configuration
             Datadog.configuration[:httprb]
@@ -117,8 +118,8 @@ module Datadog
           end
 
           def logger
-            Datadog::Logger.log
-          end 
+            Datadog.logger
+          end
 
           def should_skip_distributed_tracing?(pin)
             if pin.config && pin.config.key?(:distributed_tracing)

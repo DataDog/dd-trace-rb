@@ -15,7 +15,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
     server = WEBrick::HTTPServer.new(Port: 0, Logger: log, AccessLog: access_log)
     server.mount_proc '/' do |req, res|
       body = JSON.parse(req.body)
-      res.status = (body['status']).to_i
+      res.status = body['code'].to_i
 
       req.each do |header_name|
         # for some reason these are formatted as 1 length arrays
@@ -51,12 +51,13 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
   end
 
   describe 'instrumented request' do
+    let(:code) { 200 }
     let(:host) { 'localhost' }
-    let(:status) { 200 }
+    let(:message) { 'OK' }
     let(:path) { '/sample/path' }
     let(:port) { @port }
     let(:url) { "http://#{host}:#{@port}#{path}" }
-    let(:body) { { 'hello' => 'world', 'status' => status } }
+    let(:body) { { 'message' => message, 'code' => code } }
     let(:headers) { { accept: 'application/json' } }
     let(:response) { HTTP.post(url, body: body.to_json, headers: headers) }
 
@@ -80,7 +81,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           end
 
           it 'has tag with target port' do
-            expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(port.to_s)
+            expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(port)
           end
 
           it 'has tag with target method' do
@@ -92,7 +93,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(code.to_s)
           end
 
           it 'is http type' do
@@ -114,32 +115,35 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
         end
 
         context 'response has internal server error status' do
-          let(:status) { 500 }
+          let(:code) { 500 }
+          let(:message) { 'Internal Server Error' }
+
           before { response }
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(code.to_s)
           end
 
           it 'has error set' do
-            expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
+            expect(span).to have_error
+          end
+
+          it 'has error type set' do
+            expect(span).to have_error_type('Error 500')
           end
 
           it 'has error message' do
-            expect(span.get_tag(Datadog::Ext::Errors::MSG)).not_to be_nil
-          end
-
-          it 'has error set' do
             expect(span).to have_error_message('Internal Server Error')
           end
         end
 
         context 'response has not found status' do
-          let(:status) { 404 }
+          let(:code) { 404 }
+          let(:message) { 'Not Found' }
           before { response }
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(code.to_s)
           end
 
           it 'has no error set' do

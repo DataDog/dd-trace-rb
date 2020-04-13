@@ -697,6 +697,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'graphql'
       gem 'grpc'
       gem 'hiredis'
+      gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'presto-client', '>=  0.5.14'      

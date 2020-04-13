@@ -18,13 +18,14 @@ module Datadog
         def target_version
           Integration.version
         end
+
         # patch applies our patch
         def patch
           do_once(:httprb) do
             begin
               ::HTTP::Client.send(:include, Instrumentation)
             rescue StandardError => e
-              Datadog::Logger.log.error("Unable to apply httprb integration: #{e}")
+              Datadog::Logger.error("Unable to apply httprb integration: #{e}")
             end
           end
         end

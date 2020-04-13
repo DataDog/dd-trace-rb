@@ -402,6 +402,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httprb'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
@@ -687,6 +688,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       # sh 'bundle exec appraisal contrib rake spec:grpc' # Pending 2.7 support: https://github.com/grpc/grpc/issues/21514
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httprb'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
