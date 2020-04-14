@@ -1498,6 +1498,8 @@ The Sinatra integration traces requests and template rendering.
 
 To start using the tracing client, make sure you import `ddtrace` and `use :sinatra` after either `sinatra` or `sinatra/base`, and before you define your application/routes:
 
+#### Classic application
+
 ```ruby
 require 'sinatra'
 require 'ddtrace'
@@ -1511,7 +1513,43 @@ get '/' do
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+#### Modular application
+
+```ruby
+require 'sinatra/base'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :sinatra, options
+end
+
+class NestedApp < Sinatra::Base
+  register Datadog::Contrib::Sinatra::Tracer
+
+  get '/nested' do
+    'Hello from nested app!'
+  end
+end
+
+class App < Sinatra::Base
+  # use Datadog::Contrib::Rack::TraceMiddleware # If Rack instrumentation is enabled
+  register Datadog::Contrib::Sinatra::Tracer
+
+  use NestedApp
+
+  get '/' do
+    'Hello world!'
+  end
+end
+```
+
+Ensure you register `Datadog::Contrib::Sinatra::Tracer` as a middleware before you mount your nested applications.
+
+If Rack instrumentation is also enabled, mount `Datadog::Contrib::Rack::TraceMiddleware` before registering `Datadog::Contrib::Sinatra::Tracer`.
+
+#### Instrumentation options
+
+`options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
