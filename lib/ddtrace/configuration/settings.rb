@@ -158,6 +158,19 @@ module Datadog
           # Coerce keys to strings
           string_tags = Hash[new_value.collect { |k, v| [k.to_s, v] }]
 
+          # Cross-populate tag values with other settings
+          if env.nil? && string_tags.key?(Ext::Environment::TAG_ENV)
+            self.env = string_tags[Ext::Environment::TAG_ENV]
+          end
+
+          if version.nil? && string_tags.key?(Ext::Environment::TAG_VERSION)
+            self.version = string_tags[Ext::Environment::TAG_VERSION]
+          end
+
+          if service.nil? && string_tags.key?(Ext::Environment::TAG_SERVICE)
+            self.service = string_tags[Ext::Environment::TAG_SERVICE]
+          end
+
           # Merge with previous tags
           (old_value || {}).merge(string_tags)
         end
