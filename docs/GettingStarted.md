@@ -1977,12 +1977,12 @@ To properly correlate with Datadog logging, be sure the following is present in 
 
  - `dd.trace_id=<TRACE_ID>`: Where `<TRACE_ID>` is equal to `Datadog.tracer.active_correlation.trace_id` or `0` if no trace is active during logging.
  - `dd.span_id=<SPAN_ID>`: Where `<SPAN_ID>` is equal to `Datadog.tracer.active_correlation.span_id` or `0` if no trace is active during logging.
- - `dd.env=<ENV>`: Where `<ENV>` is equal to `Datadog.tracer.active_correlation.env` or empty string (no quotes) if no environment name is configured.
- - `dd.version=<SPAN_ID>`: Where `<SPAN_ID>` is equal to `Datadog.tracer.active_correlation.version` or empty string (no quotes) if no application version is configured.
+ - `dd.env=<ENV>`: Where `<ENV>` is equal to `Datadog.tracer.active_correlation.env`. If no environment name is configured, `dd.env=` will not appear in correlation ID.
+ - `dd.version=<SPAN_ID>`: Where `<SPAN_ID>` is equal to `Datadog.tracer.active_correlation.version`. If no application version is configured, `dd.version=` will not appear in correlation ID.
 
 By default, `Datadog::Correlation::Identifier#to_s` will return `dd.trace_id=<TRACE_ID> dd.span_id=<SPAN_ID> dd.env=<ENV> dd.version=<VERSION>`.
 
-If a trace is not active and the application environment & version is not configured, it will return `dd.trace_id=0 dd.span_id=0 dd.env= dd.version=`.
+If a trace is not active, and the application environment and version are not configured, it will return `dd.trace_id=0 dd.span_id=0`.
 
 An example of this in practice:
 
