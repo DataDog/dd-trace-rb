@@ -916,7 +916,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'excon'
       gem 'grape'
       gem 'graphql'
-      # gem 'grpc' # Pending 2.7 support: https://github.com/grpc/grpc/issues/21514
+      gem 'grpc'
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
