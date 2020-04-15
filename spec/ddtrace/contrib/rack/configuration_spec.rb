@@ -36,7 +36,7 @@ RSpec.describe 'Rack integration configuration' do
         use Datadog::Contrib::Rack::TraceMiddleware
 
         map '/' do
-          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
+          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
         end
       end.to_app
     end
@@ -47,6 +47,11 @@ RSpec.describe 'Rack integration configuration' do
     before { is_expected.to be_ok }
     let(:analytics_enabled_var) { Datadog::Contrib::Rack::Ext::ENV_ANALYTICS_ENABLED }
     let(:analytics_sample_rate_var) { Datadog::Contrib::Rack::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+  end
+
+  it_behaves_like 'measured span for integration', true do
+    include_context 'an incoming HTTP request'
+    before { is_expected.to be_ok }
   end
 
   describe 'request queueing' do

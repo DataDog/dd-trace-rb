@@ -46,6 +46,7 @@ class ClientTracerTest < TracerTestBase
     assert_equal('default', child_span.get_tag('sidekiq.job.queue'))
     assert_equal(0, child_span.status)
     assert_equal(parent_span, child_span.parent)
+    assert_nil(child_span.get_metric('_dd.measured'))
   end
 
   def test_empty_parentless
@@ -60,6 +61,7 @@ class ClientTracerTest < TracerTestBase
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
+    assert_nil(span.get_metric('_dd.measured'))
   end
 
   def test_delayed_extensions

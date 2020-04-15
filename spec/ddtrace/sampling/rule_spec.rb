@@ -37,7 +37,7 @@ RSpec.describe Datadog::Sampling::Rule do
       before do
         allow(matcher).to receive(:match?).and_raise(error)
 
-        expect(Datadog::Logger.log).to receive(:error)
+        expect(Datadog.logger).to receive(:error)
           .with(a_string_including("Matcher failed. Cause: #{error}"))
       end
 

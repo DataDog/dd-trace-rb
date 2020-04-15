@@ -27,6 +27,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span.resource, 'TracingController#index')
     assert_equal(span.get_tag('rails.route.action'), 'index')
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
+    assert_equal(span.get_metric('_dd.measured'), 1.0)
   end
 
   test 'template tracing does not break the code' do
@@ -57,6 +58,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_includes(span.get_tag('rails.template_name'), 'tracing/index.html')
     assert_equal(span.get_tag('rails.layout'), 'layouts/application') if Rails.version >= '3.2.22.5'
     assert_includes(span.get_tag('rails.layout'), 'layouts/application')
+    assert_equal(span.get_metric('_dd.measured'), 1.0)
   end
 
   test 'template rendering is properly without explicit layout' do
@@ -76,6 +78,7 @@ class TracingControllerTest < ActionController::TestCase
       assert_includes(span.resource, 'tracing/index.html')
       assert_equal(span.get_tag('rails.template_name'), 'tracing/index.html.erb') if Rails.version >= '3.2.22.5'
       assert_includes(span.get_tag('rails.template_name'), 'tracing/index.html')
+      assert_equal(span.get_metric('_dd.measured'), 1.0)
     ensure
       TracingController.class_eval { layout 'application' }
     end
@@ -95,6 +98,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.get_tag('rails.template_name'), 'tracing/_body.html.erb') if Rails.version >= '3.2.22.5'
     assert_includes(span_partial.get_tag('rails.template_name'), 'tracing/_body.html')
     assert_equal(span_partial.parent, span_template)
+    assert_equal(span_partial.get_metric('_dd.measured'), 1.0)
   end
 
   test 'template nested partial rendering is properly traced' do

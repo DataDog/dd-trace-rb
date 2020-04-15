@@ -55,6 +55,7 @@ class ServerTracerTest < TracerTestBase
     assert_equal(0, span.status)
     assert_nil(span.parent)
     assert_nil(span.get_tag('sidekiq.job.args'))
+    assert_equal(span.get_metric('_dd.measured'), 1.0)
   end
 
   # rubocop:disable Lint/HandleExceptions
@@ -77,6 +78,7 @@ class ServerTracerTest < TracerTestBase
     assert_equal('ServerTracerTest::TestError', span.get_tag(Datadog::Ext::Errors::TYPE))
     assert_nil(span.parent)
     assert_nil(span.get_tag('sidekiq.job.args'))
+    assert_equal(span.get_metric('_dd.measured'), 1.0)
   end
 
   def test_custom
@@ -94,6 +96,7 @@ class ServerTracerTest < TracerTestBase
     refute_nil(empty.get_tag('sidekiq.job.delay'))
     assert_equal(0, empty.status)
     assert_nil(empty.parent)
+    assert_equal(empty.get_metric('_dd.measured'), 1.0)
 
     assert_equal('sidekiq-slow', custom.service)
     assert_equal('ServerTracerTest::CustomWorker', custom.resource)
@@ -101,6 +104,7 @@ class ServerTracerTest < TracerTestBase
     assert_equal(0, custom.status)
     assert_nil(custom.parent)
     assert_equal(['random_id'].to_s, custom.get_tag('sidekiq.job.args'))
+    assert_equal(custom.get_metric('_dd.measured'), 1.0)
   end
 
   def test_delayed_extensions

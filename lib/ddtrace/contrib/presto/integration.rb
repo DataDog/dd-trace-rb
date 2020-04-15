@@ -9,6 +9,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('0.5.14')
+
         register_as :presto
 
         def self.version
@@ -16,11 +18,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Presto::Client::Client)
+          !defined?(::Presto::Client::Client).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('0.5.14')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

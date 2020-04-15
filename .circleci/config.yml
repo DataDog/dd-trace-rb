@@ -15,6 +15,8 @@ test_containers:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+  - &container_presto
+    image: prestosql/presto
   - &container_mysql
     image: mysql:5.6
     environment:
@@ -57,6 +59,9 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
     command: |
+      # JRuby: Ensure files exist when Appraisal generates no output
+      mkdir gemfiles
+      touch gemfiles/_.gemfile.lock
       cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
@@ -156,6 +161,7 @@ orbs:
               - BUNDLE_GEMFILE: /app/Gemfile
               - TEST_DATADOG_INTEGRATION: 1
           - *container_postgres
+          - *container_presto
           - *container_mysql
           - *container_elasticsearch
           - *container_redis
@@ -235,6 +241,7 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install AWS CLI
           command: |
             apt-get -y -qq update
             apt-get -y -qq install awscli
@@ -262,6 +269,7 @@ jobs:
             fi
       - checkout
       - run:
+          name: Install AWS CLI
           command: |
             apt-get -y -qq update
             apt-get -y -qq install awscli
@@ -279,8 +287,35 @@ jobs:
       - store_artifacts:
           path: pkg/
           destination: gem
+  "deploy to test environment":
+    <<: *job_defaults
+    docker:
+      - <<: *container_base
+        image: marcotc/docker-library:ddtrace_rb_2_5_6
+        environment:
+          - INDEX_FILE: index.txt
+    steps:
+      - checkout
+      - run:
+          name: Install AWS CLI
+          command: |
+            apt-get -y -qq update
+            apt-get -y -qq install awscli
+            echo 'export AWS_ACCESS_KEY_ID=$TEST_ENV_AWS_ACCESS_KEY_ID' >> $BASH_ENV
+            echo 'export AWS_SECRET_ACCESS_KEY=$TEST_ENV_AWS_SECRET_ACCESS_KEY' >> $BASH_ENV
+            source $BASH_ENV
+      - run:
+          name: Generate index.txt file
+          command: |
+            echo $CIRCLE_BRANCH >> $INDEX_FILE
+            echo $CIRCLE_SHA1 >> $INDEX_FILE
+            echo $CIRCLE_USERNAME >> $INDEX_FILE
+      - run:
+          name: Upload to S3
+          command: aws s3 cp $INDEX_FILE s3://datadog-reliability-env/ruby/$INDEX_FILE
 
 job_configuration:
+  # MRI
   - &config-2_0
     <<: *filters_all_branches_and_tags
     ruby_version: '2.0'
@@ -313,6 +348,11 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: '2.7'
     image: marcotc/docker-library:ddtrace_rb_2_7_0
+  # JRuby
+  - &config-jruby-9_2
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'jruby-9.2'
+    image: marcotc/docker-library:ddtrace_rb_jruby_9_2
 
 workflows:
   version: 2
@@ -323,6 +363,7 @@ workflows:
           name: lint
           requires:
             - build-2.6
+      # MRI
       - orb/checkout:
           <<: *config-2_0
           name: checkout-2.0
@@ -432,6 +473,37 @@ workflows:
           name: test-2.7
           requires:
             - build-2.7
+      # JRuby
+      - orb/checkout:
+          <<: *config-jruby-9_2
+          name: checkout-jruby-9.2
+      - orb/build:
+          <<: *config-jruby-9_2
+          rubocop: false
+          name: build-jruby-9.2
+          requires:
+            - checkout-jruby-9.2
+      - orb/test:
+          <<: *config-jruby-9_2
+          name: test-jruby-9.2
+          requires:
+            - build-jruby-9.2
+      # Release jobs
+      - "deploy to test environment":
+          filters:
+            branches:
+              only: master
+          requires:
+            - lint
+            - test-2.0
+            - test-2.1
+            - test-2.2
+            - test-2.3
+            - test-2.4
+            - test-2.5
+            - test-2.6
+            - test-2.7
+            - test-jruby-9.2
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
           requires:
@@ -444,6 +516,7 @@ workflows:
             - test-2.5
             - test-2.6
             - test-2.7
+            - test-jruby-9.2
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
@@ -456,3 +529,4 @@ workflows:
             - test-2.5
             - test-2.6
             - test-2.7
+            - test-jruby-9.2

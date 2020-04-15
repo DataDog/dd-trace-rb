@@ -180,6 +180,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'presto-client', '>=  0.5.14'      
       gem 'ethon'
       gem 'excon'
       gem 'hiredis'
@@ -291,33 +292,33 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     appraise 'rails5-mysql2' do
-      gem 'rails', '~> 5.2.1', '!= 5.2.4.1'
+      gem 'rails', '~> 5.2.1', '!= 5.2.4.1', '!= 5.2.4.2'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails5-postgres' do
-      gem 'rails', '~> 5.2.1', '!= 5.2.4.1'
+      gem 'rails', '~> 5.2.1', '!= 5.2.4.1', '!= 5.2.4.2'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails5-postgres-redis' do
-      gem 'rails', '~> 5.2.1', '!= 5.2.4.1'
+      gem 'rails', '~> 5.2.1', '!= 5.2.4.1', '!= 5.2.4.2'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails5-postgres-redis-activesupport' do
-      gem 'rails', '~> 5.2.1', '!= 5.2.4.1'
+      gem 'rails', '~> 5.2.1', '!= 5.2.4.1', '!= 5.2.4.2'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails5-postgres-sidekiq' do
-      gem 'rails', '~> 5.2.1', '!= 5.2.4.1'
+      gem 'rails', '~> 5.2.1', '!= 5.2.4.1', '!= 5.2.4.2'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sidekiq'
       gem 'activejob'
@@ -335,6 +336,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'presto-client', '>=  0.5.14'
       gem 'ethon'
       gem 'excon'
       gem 'faraday'
@@ -518,6 +520,10 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sucker_punch'
       gem 'typhoeus'
     end
+
+    appraise 'contrib-old' do
+      gem 'faraday', '0.17'
+    end
   end
 elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
@@ -576,6 +582,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-test'
@@ -590,6 +597,10 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'typhoeus'
+    end
+
+    appraise 'contrib-old' do
+      gem 'faraday', '0.17'
     end
   end
 elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -683,6 +694,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'presto-client', '>=  0.5.14'      
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-test'
@@ -697,6 +709,10 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
       gem 'typhoeus'
+    end
+
+    appraise 'contrib-old' do
+      gem 'faraday', '0.17'
     end
   end
 elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -806,6 +822,10 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sucker_punch'
       gem 'typhoeus'
     end
+
+    appraise 'contrib-old' do
+      gem 'faraday', '0.17'
+    end
   end
 elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
   if RUBY_PLATFORM != 'java'
@@ -896,7 +916,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'excon'
       gem 'grape'
       gem 'graphql'
-      # gem 'grpc' # Pending 2.7 support: https://github.com/grpc/grpc/issues/21514
+      gem 'grpc'
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
@@ -915,6 +935,10 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
       gem 'typhoeus'
+    end
+
+    appraise 'contrib-old' do
+      gem 'faraday', '0.17'
     end
   end
 end

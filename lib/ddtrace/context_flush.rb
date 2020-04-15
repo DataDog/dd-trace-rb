@@ -58,7 +58,7 @@ module Datadog
         if trace[0]
           context.annotate_for_flush!(trace[0])
         else
-          Datadog::Logger.log.debug('Tried to retrieve trace from context, but got nothing. ' \
+          Datadog.logger.debug('Tried to retrieve trace from context, but got nothing. ' \
             "Is there another consumer for this context? #{context.trace_id}")
         end
 

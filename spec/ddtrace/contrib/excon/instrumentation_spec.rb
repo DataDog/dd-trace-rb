@@ -85,6 +85,8 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       let(:span) { request_span }
     end
 
+    it_behaves_like 'measured span for integration', false
+
     it do
       expect(request_span).to_not be nil
       expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::SERVICE_NAME)
@@ -152,14 +154,31 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
   end
 
   context 'when split by domain' do
-    subject!(:response) { connection.get(path: '/success') }
+    subject(:response) { connection.get(path: '/success') }
     let(:configuration_options) { super().merge(split_by_domain: true) }
     after(:each) { Datadog.configuration[:excon][:split_by_domain] = false }
 
     it do
+      response
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.service).to eq('example.com')
       expect(request_span.resource).to eq('GET')
+    end
+
+    context 'and the host matches a specific configuration' do
+      before do
+        Datadog.configure do |c|
+          c.use :excon, describe: /example\.com/ do |faraday|
+            faraday.service_name = 'bar'
+            faraday.split_by_domain = false
+          end
+        end
+      end
+
+      it 'uses the configured service name over the domain name' do
+        response
+        expect(request_span.service).to eq('bar')
+      end
     end
   end
 

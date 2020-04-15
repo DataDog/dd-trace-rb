@@ -2,6 +2,7 @@ require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/faraday/ext'
 require 'ddtrace/contrib/faraday/connection'
+require 'ddtrace/contrib/faraday/rack_builder'
 
 module Datadog
   module Contrib
@@ -39,7 +40,11 @@ module Datadog
         end
 
         def add_default_middleware!
-          ::Faraday::Connection.send(:prepend, Connection)
+          if target_version >= Gem::Version.new('1.0.0')
+            ::Faraday::Connection.send(:prepend, Connection)
+          else
+            ::Faraday::RackBuilder.send(:prepend, RackBuilder)
+          end
         end
 
         def get_option(option)
@@ -66,7 +71,7 @@ module Datadog
 
           def log_deprecation_warning(method_name)
             do_once(method_name) do
-              Datadog::Logger.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
+              Datadog.logger.warn("#{method_name}:#{DEPRECATION_WARNING}")
             end
           end
         end

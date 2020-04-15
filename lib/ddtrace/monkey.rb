@@ -48,7 +48,7 @@ module Datadog
     end
 
     def log_deprecation_warning(method)
-      Datadog::Logger.log.warn("#{method}:#{DEPRECATION_WARNING}")
+      Datadog.logger.warn("#{method}:#{DEPRECATION_WARNING}")
     end
 
     class << self

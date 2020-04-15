@@ -43,7 +43,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
     before do
       expect(::Ethon::Curl).to receive(:easy_perform).and_return(0)
-      expect(easy).to receive(:url).and_return('http://example.com/test').once
+      expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
       # Note: suppress call to #complete to isolate #perform functionality
       expect(easy).to receive(:complete)
     end
@@ -51,6 +51,33 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     it 'creates a span' do
       subject
       expect(easy.instance_eval { @datadog_span }).to be_instance_of(Datadog::Span)
+    end
+
+    context 'when split by domain' do
+      let(:configuration_options) { super().merge(split_by_domain: true) }
+
+      it do
+        subject
+        expect(span.name).to eq(Datadog::Contrib::Ethon::Ext::SPAN_REQUEST)
+        expect(span.service).to eq('example.com')
+        expect(span.resource).to eq('N/A')
+      end
+
+      context 'and the host matches a specific configuration' do
+        before do
+          Datadog.configure do |c|
+            c.use :ethon, describe: /example\.com/ do |ethon|
+              ethon.service_name = 'baz'
+              ethon.split_by_domain = false
+            end
+          end
+        end
+
+        it 'uses the configured service name over the domain name' do
+          subject
+          expect(span.service).to eq('baz')
+        end
+      end
     end
 
     it_behaves_like 'span' do
@@ -67,6 +94,10 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       let(:analytics_enabled_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
+
+    it_behaves_like 'measured span for integration', false do
+      before { subject }
+    end
   end
 
   describe '#complete' do
@@ -76,7 +107,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     let(:span) { tracer.writer.spans.first }
 
     before do
-      expect(easy).to receive(:url).and_return('http://example.com/test').once
+      expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
       allow(easy).to receive(:mirror).and_return(double('Fake mirror', options: { response_code: 200 }))
       easy.datadog_before_request
     end
@@ -180,7 +211,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
     context 'with span initialized' do
       before do
-        expect(easy).to receive(:url).and_return('http://example.com/test').once
+        expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
         easy.datadog_before_request
       end
 

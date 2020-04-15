@@ -86,7 +86,10 @@ module Datadog
         end
       end
 
-      def_delegators :@default_sampler, :update
+      def update(*args)
+        return false unless @default_sampler.respond_to?(:update)
+        @default_sampler.update(*args)
+      end
 
       private
 
@@ -106,7 +109,7 @@ module Datadog
           set_limiter_metrics(span, rate_limiter.effective_rate)
         end
       rescue StandardError => e
-        Datadog::Logger.log.error("Rule sampling failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog.logger.error("Rule sampling failed. Cause: #{e.message} Source: #{e.backtrace.first}")
         yield(span)
       end
 

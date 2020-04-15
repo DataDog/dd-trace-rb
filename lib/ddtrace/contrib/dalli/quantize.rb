@@ -13,7 +13,7 @@ module Datadog
           command = Utils.utf8_encode(command, binary: true, placeholder: placeholder)
           Utils.truncate(command, Ext::QUANTIZE_MAX_CMD_LENGTH)
         rescue => e
-          Logger.log.debug("Error sanitizing Dalli operation: #{e}")
+          Datadog.logger.debug("Error sanitizing Dalli operation: #{e}")
           placeholder
         end
       end

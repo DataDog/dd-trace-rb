@@ -21,6 +21,11 @@ RSpec.describe 'Rails cache' do
 
     before { cache.write(key, 50) }
 
+    it_behaves_like 'measured span for integration', false do
+      before { read }
+      let(:span) { spans.first }
+    end
+
     it do
       expect(read).to eq(50)
 
@@ -38,6 +43,10 @@ RSpec.describe 'Rails cache' do
 
   context '#write' do
     subject(:write) { cache.write(key, 50) }
+
+    it_behaves_like 'measured span for integration', false do
+      before { write }
+    end
 
     it do
       write
@@ -72,6 +81,8 @@ RSpec.describe 'Rails cache' do
   context '#delete' do
     subject!(:delete) { cache.delete(key) }
 
+    it_behaves_like 'measured span for integration', false
+
     it do
       expect(span.name).to eq('rails.cache')
       expect(span.span_type).to eq('cache')
@@ -83,6 +94,14 @@ RSpec.describe 'Rails cache' do
   end
 
   context '#fetch' do
+    subject(:fetch) { cache.fetch(key) { 'default' } }
+
+    it_behaves_like 'measured span for integration', false do
+      before { fetch }
+      # Choose either GET or SET span
+      let(:span) { spans.sample }
+    end
+
     context 'with exception' do
       subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
 

@@ -9,6 +9,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('12.0')
+
         register_as :rake
 
         def self.version
@@ -16,11 +18,11 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Rake)
+          !defined?(::Rake).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('12.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

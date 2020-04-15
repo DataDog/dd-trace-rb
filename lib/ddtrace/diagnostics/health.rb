@@ -26,12 +26,6 @@ module Datadog
         gauge :queue_spans, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_SPANS
         gauge :sampling_service_cache_length, Ext::Diagnostics::Health::Metrics::METRIC_SAMPLING_SERVICE_CACHE_LENGTH
       end
-
-      module_function
-
-      def metrics
-        Datadog.configuration.diagnostics.health_metrics
-      end
     end
   end
 end

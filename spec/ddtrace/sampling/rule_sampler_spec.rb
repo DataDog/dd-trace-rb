@@ -163,4 +163,44 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
     it { expect { subject }.to raise_error(StandardError, 'RuleSampler cannot be evaluated without side-effects') }
   end
+
+  describe '#update' do
+    subject(:update) { rule_sampler.update(rates) }
+    let(:rates) { { 'service:my-service,env:test' => rand } }
+
+    context 'when configured with a default sampler' do
+      context 'that responds to #update' do
+        let(:default_sampler) { sampler_class.new }
+        let(:sampler_class) do
+          stub_const('TestSampler', Class.new(Datadog::Sampler) do
+            def update(rates)
+              rates
+            end
+          end)
+        end
+
+        before do
+          allow(default_sampler).to receive(:update)
+          update
+        end
+
+        it 'forwards to the default sampler' do
+          expect(default_sampler).to have_received(:update)
+            .with(rates)
+        end
+      end
+
+      context 'that does not respond to #update' do
+        let(:default_sampler) { sampler_class.new }
+        let(:sampler_class) do
+          stub_const('TestSampler', Class.new(Datadog::Sampler))
+        end
+
+        it 'does not forward to the default sampler' do
+          expect { update }.to_not raise_error
+          is_expected.to be false
+        end
+      end
+    end
+  end
 end

@@ -97,7 +97,7 @@ module Datadog
                   quantized_url = Datadog::Contrib::Elasticsearch::Quantize.format_url(url)
                   span.resource = "#{method} #{quantized_url}"
                 rescue StandardError => e
-                  Datadog::Logger.log.error(e.message)
+                  Datadog.logger.error(e.message)
                 ensure
                   # the call is still executed
                   response = perform_request_without_datadog(*args)

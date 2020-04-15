@@ -1,4 +1,6 @@
 require 'ddtrace/contrib/integration'
+
+require 'ddtrace/contrib/rails/ext'
 require 'ddtrace/contrib/rails/configuration/settings'
 require 'ddtrace/contrib/rails/patcher'
 
@@ -9,6 +11,8 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('3.0')
+
         register_as :rails, auto_patch: false
 
         def self.version
@@ -16,15 +20,15 @@ module Datadog
         end
 
         def self.loaded?
-          defined?(::Rails)
+          !defined?(::Rails).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('3.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def self.patchable?
-          super && !ENV.key?('DISABLE_DATADOG_RAILS')
+          super && !ENV.key?(Ext::ENV_DISABLE)
         end
 
         def default_configuration

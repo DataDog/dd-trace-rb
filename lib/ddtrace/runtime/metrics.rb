@@ -19,7 +19,7 @@ module Datadog
       end
 
       def associate_with_span(span)
-        return if span.nil?
+        return if !enabled? || span.nil?
 
         # Register service as associated with metrics
         register_service(span.service) unless span.service.nil?
@@ -30,7 +30,7 @@ module Datadog
 
       # Associate service with runtime metrics
       def register_service(service)
-        return if service.nil?
+        return if !enabled? || service.nil?
 
         service = service.to_s
 
@@ -55,6 +55,8 @@ module Datadog
       def gc_metrics
         Hash[
           GC.stat.map do |k, v|
+            next if v.is_a?(Hash) # TODO: JRuby supports additional nested metrics
+
             ["#{Ext::Runtime::Metrics::METRIC_GC_PREFIX}.#{k}", v]
           end
         ]
@@ -63,7 +65,7 @@ module Datadog
       def try_flush
         yield
       rescue StandardError => e
-        Datadog::Logger.log.error("Error while sending runtime metric. Cause: #{e.message}")
+        Datadog.logger.error("Error while sending runtime metric. Cause: #{e.message}")
       end
 
       def default_metric_options
