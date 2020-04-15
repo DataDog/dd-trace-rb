@@ -771,7 +771,7 @@ Datadog.configure do |c|
   end
 end
 
-# Configure Faraday tracing behavior for single connection
+# In case you want to override the global configuration for a certain client instance
 connection = Faraday.new('https://example.com') do |builder|
   builder.use(:ddtrace, options)
   builder.adapter Faraday.default_adapter
