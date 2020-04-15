@@ -41,7 +41,7 @@ module Datadog
           begin
             block.call(*args)
           rescue StandardError => e
-            Datadog::Logger.log.debug("Error while handling '#{key}' for '#{name}' event: #{e.message}")
+            Datadog.logger.debug("Error while handling '#{key}' for '#{name}' event: #{e.message}")
           end
         end
 

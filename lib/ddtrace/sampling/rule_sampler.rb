@@ -109,7 +109,7 @@ module Datadog
           set_limiter_metrics(span, rate_limiter.effective_rate)
         end
       rescue StandardError => e
-        Datadog::Logger.log.error("Rule sampling failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog.logger.error("Rule sampling failed. Cause: #{e.message} Source: #{e.backtrace.first}")
         yield(span)
       end
 

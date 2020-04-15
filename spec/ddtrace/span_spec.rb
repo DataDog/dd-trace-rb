@@ -22,7 +22,7 @@ RSpec.describe Datadog::Span do
       end
 
       before do
-        allow(Datadog::Logger.log).to receive(:debug)
+        allow(Datadog.logger).to receive(:debug)
         allow(context).to receive(:close_span)
           .with(span)
           .and_raise(error)
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Span do
       end
 
       it 'logs a debug message' do
-        expect(Datadog::Logger.log).to have_received(:debug)
+        expect(Datadog.logger).to have_received(:debug)
           .with(a_record_finish_error(error))
       end
 
@@ -52,20 +52,9 @@ RSpec.describe Datadog::Span do
         it { is_expected.to eq service_value }
       end
 
-      context 'is only defined in the configuration' do
-        let(:env_service) { 'env-service' }
-        before { allow(Datadog.configuration).to receive(:service).and_return(env_service) }
-        it { is_expected.to eq env_service }
-      end
-
-      context 'is not set anywhere' do
+      context 'is not set' do
         let(:default_service) { 'default-service' }
-
-        before do
-          allow(Datadog.configuration).to receive(:service).and_return(nil)
-          allow(tracer).to receive(:default_service).and_return(default_service)
-        end
-
+        before { allow(tracer).to receive(:default_service).and_return(default_service) }
         it { is_expected.to eq default_service }
       end
     end

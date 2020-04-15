@@ -1555,20 +1555,28 @@ To change the default behavior of the Datadog tracer, you can provide custom opt
 # config/initializers/datadog-tracer.rb
 
 Datadog.configure do |c|
-  c.tracer option_name: option_value, ...
+  c.tracer.enabled = true
+  c.tracer.hostname = 'my-agent'
+  c.tracer.port = 8126
+  c.tracer.partial_flush.enabled = false
+  c.tracer.sampler = Datadog::AllSampler.new
+
+  # OR for advanced use cases, you can specify your own tracer:
+  c.tracer.instance = Datadog::Tracer.new
+
+  # To enable debug mode:
+  c.diagnostics.debug = true
 end
 ```
 
 Available options are:
 
- - `enabled`: defines if the `tracer` is enabled or not. If set to `false` the code could be still instrumented because of other settings, but no spans are sent to the local trace agent.
- - `debug`: set to true to enable debug logging.
+ - `enabled`: defines if the `tracer` is enabled or not. If set to `false` instrumentation will still run, but no spans are sent to the trace agent.
  - `hostname`: set the hostname of the trace agent.
+ - `instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
+ - `partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
  - `port`: set the port the trace agent is listening on.
- - `env`: set the environment. Rails users may set it to `Rails.env` to use their application settings.
- - `tags`: set global tags that should be applied to all spans. Defaults to an empty hash
- - `log`: defines a custom logger.
- - `partial_flush`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
+ - `sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
 
 #### Custom logging
 
@@ -1576,15 +1584,16 @@ By default, all logs are processed by the default Ruby logger. When using Rails,
 
 Datadog client log messages are marked with `[ddtrace]` so you should be able to isolate them from other messages.
 
-Additionally, it is possible to override the default logger and replace it by a custom one. This is done using the `log` attribute of the tracer.
+Additionally, it is possible to override the default logger and replace it by a custom one. This is done using the `log` setting.
 
 ```ruby
-f = File.new("my-custom.log", "w+")           # Log messages should go there
+f = File.new("my-custom.log", "w+") # Log messages should go there
 Datadog.configure do |c|
-  c.tracer log: Logger.new(f)                 # Overriding the default tracer
+  c.logger = Logger.new(f) # Overriding the default logger
+  c.logger.level = ::Logger::INFO
 end
 
-Datadog::Logger.log.info { "this is typically called by tracing code" }
+Datadog.logger.info { "this is typically called by tracing code" }
 ```
 
 ### Environment and tags
@@ -1622,8 +1631,9 @@ Ultimately, tags can be set per span, but `env` should typically be the same for
 ```ruby
 # Sample rate is between 0 (nothing sampled) to 1 (everything sampled).
 sampler = Datadog::RateSampler.new(0.5) # sample 50% of the traces
+
 Datadog.configure do |c|
-  c.tracer sampler: sampler
+  c.tracer.sampler = sampler
 end
 ```
 
@@ -2010,7 +2020,7 @@ The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default t
 
 ```ruby
 Datadog.configure do |c|
-  c.tracer transport_options: proc do |t|
+  c.tracer.transport_options = proc { |t|
     # Hostname, port, and additional options. :timeout is in seconds.
     t.adapter :net_http, '127.0.0.1', 8126, { timeout: 1 }
   }
@@ -2025,7 +2035,7 @@ To use, first configure your trace agent to listen by Unix socket, then configur
 
 ```ruby
 Datadog.configure do |c|
-  c.tracer transport_options: proc { |t|
+  c.tracer.transport_options = proc { |t|
     # Provide filepath to trace agent Unix socket
     t.adapter :unix, '/tmp/ddagent/trace.sock'
   }
@@ -2038,7 +2048,7 @@ The `Test` adapter is a no-op transport that can optionally buffer requests. For
 
 ```ruby
 Datadog.configure do |c|
-  c.tracer transport_options: proc { |t|
+  c.tracer.transport_options = proc { |t|
     # Set transport to no-op mode. Does not retain traces.
     t.adapter :test
 
@@ -2055,7 +2065,7 @@ Custom adapters can be configured with:
 
 ```ruby
 Datadog.configure do |c|
-  c.tracer transport_options: proc { |t|
+  c.tracer.transport_options = proc { |t|
     # Initialize and pass an instance of the adapter
     custom_adapter = CustomAdapter.new
     t.adapter custom_adapter
@@ -2086,12 +2096,12 @@ require 'ddtrace'
 Datadog.configure do |c|
   # To enable runtime metrics collection, set `true`. Defaults to `false`
   # You can also set DD_RUNTIME_METRICS_ENABLED=true to configure this.
-  c.runtime_metrics_enabled = true
+  c.runtime_metrics.enabled = true
 
   # Optionally, you can configure the Statsd instance used for sending runtime metrics.
   # Statsd is automatically configured with default settings if `dogstatsd-ruby` is available.
   # You can configure with host and port of Datadog agent; defaults to 'localhost:8125'.
-  c.runtime_metrics statsd: Datadog::Statsd.new
+  c.runtime_metrics.statsd = Datadog::Statsd.new
 end
 ```
 

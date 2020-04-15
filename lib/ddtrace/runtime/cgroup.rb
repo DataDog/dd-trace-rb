@@ -27,7 +27,7 @@ module Datadog
               end
             end
           rescue StandardError => e
-            Datadog::Logger.log.error("Error while parsing cgroup. Cause: #{e.message} Location: #{e.backtrace.first}")
+            Datadog.logger.error("Error while parsing cgroup. Cause: #{e.message} Location: #{e.backtrace.first}")
           end
         end
       end

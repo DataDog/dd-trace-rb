@@ -70,7 +70,7 @@ RSpec.describe Datadog::Context do
 
         let(:options) { { max_length: max_length } }
         let(:max_length) { 1 }
-        before { allow(Datadog::Logger.log).to receive(:debug) }
+        before { allow(Datadog.logger).to receive(:debug) }
 
         RSpec::Matchers.define :a_context_overflow_error do
           match { |actual| actual.include?('context full') }
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Context do
 
           it 'sends overflow metric' do
             expect(overflow_span).to have_received(:context=).with(nil)
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
             expect(health_metrics).to have_received(:error_context_overflow)
               .with(1, tags: ["max_length:#{max_length}"])
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Context do
           end
 
           it 'sends overflow metric only once' do
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
               .twice
             expect(health_metrics).to have_received(:error_context_overflow)
@@ -121,7 +121,7 @@ RSpec.describe Datadog::Context do
           end
 
           it 'sends overflow metric once per reset' do
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
               .twice
             expect(health_metrics).to have_received(:error_context_overflow)
@@ -183,19 +183,19 @@ RSpec.describe Datadog::Context do
           match { |actual| actual.include?('unfinished span:') }
         end
 
-        context 'when tracer debug logging is on' do
+        context 'when debug mode is on' do
           before do
-            allow(Datadog::Logger).to receive(:debug_logging).and_return(true)
-            allow(Datadog::Logger.log).to receive(:debug)
+            allow(Datadog.configuration.diagnostics).to receive(:debug).and_return(true)
+            allow(Datadog.logger).to receive(:debug)
             context.add_span(unfinished_span)
             close_span
           end
 
           it 'logs debug messages' do
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(an_unfinished_spans_error('root.span', 1))
 
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(an_unfinished_span_error).once
           end
         end

@@ -46,7 +46,7 @@ module Datadog
 
             Thread.current[KEY_RUN] = true
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def endpoint_run(name, start, finish, id, payload)
@@ -99,7 +99,7 @@ module Datadog
               span.finish(finish)
             end
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def endpoint_start_render(*)
@@ -115,7 +115,7 @@ module Datadog
 
             Thread.current[KEY_RENDER] = true
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def endpoint_render(name, start, finish, id, payload)
@@ -138,7 +138,7 @@ module Datadog
               span.finish(finish)
             end
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def endpoint_run_filters(name, start, finish, id, payload)
@@ -173,7 +173,7 @@ module Datadog
               span.finish(finish)
             end
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           private

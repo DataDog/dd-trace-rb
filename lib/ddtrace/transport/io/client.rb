@@ -37,9 +37,9 @@ module Datadog
 
           # Log error
           if stats.consecutive_errors > 0
-            Datadog::Logger.log.debug(message)
+            Datadog.logger.debug(message)
           else
-            Datadog::Logger.log.error(message)
+            Datadog.logger.error(message)
           end
 
           # Update statistics

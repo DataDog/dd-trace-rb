@@ -122,13 +122,13 @@ RSpec.describe Datadog::Event do
 
         before do
           allow(subscriptions[:first]).to receive(:call).and_raise(error)
-          allow(Datadog::Logger.log).to receive(:debug)
+          allow(Datadog.logger).to receive(:debug)
         end
 
         it 'logs an error and continues to the next' do
           publish
 
-          expect(Datadog::Logger.log).to have_received(:debug).with(/Error while handling 'first'/).once
+          expect(Datadog.logger).to have_received(:debug).with(/Error while handling 'first'/).once
           expect(subscriptions[:second]).to have_received(:call).with(*args)
         end
       end

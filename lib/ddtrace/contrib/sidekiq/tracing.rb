@@ -26,7 +26,7 @@ module Datadog
             job['class'].to_s
           end
         rescue => e
-          Datadog::Logger.log.debug { "Error retrieving Sidekiq job class name (jid:#{job['jid']}): #{e}" }
+          Datadog.logger.debug { "Error retrieving Sidekiq job class name (jid:#{job['jid']}): #{e}" }
 
           job['class'].to_s
         end
