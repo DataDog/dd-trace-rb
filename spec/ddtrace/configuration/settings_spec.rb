@@ -544,6 +544,18 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
+      context 'defines :env with missing #env' do
+        let(:env_tags) { "env:#{tag_env_value}" }
+        let(:tag_env_value) { 'tag-env-value' }
+
+        it 'populates #env from the tag' do
+          expect { tags }
+            .to change { settings.env }
+            .from(nil)
+            .to(tag_env_value)
+        end
+      end
+
       context 'conflicts with #env' do
         let(:env_tags) { "env:#{tag_env_value}" }
         let(:tag_env_value) { 'tag-env-value' }
@@ -554,6 +566,18 @@ RSpec.describe Datadog::Configuration::Settings do
         it { is_expected.to include('env' => env_value) }
       end
 
+      context 'defines :service with missing #service' do
+        let(:env_tags) { "service:#{tag_service_value}" }
+        let(:tag_service_value) { 'tag-service-value' }
+
+        it 'populates #service from the tag' do
+          expect { tags }
+            .to change { settings.service }
+            .from(nil)
+            .to(tag_service_value)
+        end
+      end
+
       context 'conflicts with #version' do
         let(:env_tags) { "env:#{tag_version_value}" }
         let(:tag_version_value) { 'tag-version-value' }
@@ -562,6 +586,18 @@ RSpec.describe Datadog::Configuration::Settings do
         before { allow(settings).to receive(:version).and_return(version_value) }
 
         it { is_expected.to include('version' => version_value) }
+      end
+
+      context 'defines :version with missing #version' do
+        let(:env_tags) { "version:#{tag_version_value}" }
+        let(:tag_version_value) { 'tag-version-value' }
+
+        it 'populates #version from the tag' do
+          expect { tags }
+            .to change { settings.version }
+            .from(nil)
+            .to(tag_version_value)
+        end
       end
     end
   end
