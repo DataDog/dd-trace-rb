@@ -113,10 +113,6 @@ orbs:
           image:
             description: Docker image location
             type: string
-          rubocop:
-            description: Run Rubocop on this version of Ruby
-            type: boolean
-            default: true
         docker:
           - <<: *container_base
             image: <<parameters.image>>
@@ -135,10 +131,6 @@ orbs:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
           - *step_bundle_install
-          - when:
-              condition: <<parameters.rubocop>>
-              steps:
-                - *step_rubocop
           - *step_appraisal_install
           - *step_compute_bundle_checksum
           - save_cache:
@@ -215,6 +207,28 @@ orbs:
           - run:
               name: Run Benchmark without ddtracer
               command: rm -f lib/ddtrace.rb && bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
+      lint:
+        <<: *job_defaults
+        parameters:
+          ruby_version:
+            description: Ruby version
+            type: string
+          image:
+            description: Docker image location
+            type: string
+        docker:
+          - <<: *container_base
+            image: <<parameters.image>>
+            environment:
+              - BUNDLE_GEMFILE: /app/Gemfile
+        steps:
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+          - *step_rubocop
     commands:
     executors:
 
@@ -344,13 +358,17 @@ workflows:
   version: 2
   build-and-test:
     jobs:
+      - orb/lint:
+          <<: *config-2_6
+          name: lint
+          requires:
+            - build-2.6
       # MRI
       - orb/checkout:
           <<: *config-2_0
           name: checkout-2.0
       - orb/build:
           <<: *config-2_0
-          rubocop: false
           name: build-2.0
           requires:
             - checkout-2.0
@@ -461,7 +479,6 @@ workflows:
           name: checkout-jruby-9.2
       - orb/build:
           <<: *config-jruby-9_2
-          rubocop: false
           name: build-jruby-9.2
           requires:
             - checkout-jruby-9.2
@@ -476,6 +493,7 @@ workflows:
             branches:
               only: master
           requires:
+            - lint
             - test-2.0
             - test-2.1
             - test-2.2
@@ -488,6 +506,7 @@ workflows:
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
           requires:
+            - lint
             - test-2.0
             - test-2.1
             - test-2.2
@@ -500,6 +519,7 @@ workflows:
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
+            - lint
             - test-2.0
             - test-2.1
             - test-2.2
