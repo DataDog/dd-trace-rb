@@ -479,7 +479,6 @@ workflows:
           name: checkout-jruby-9.2
       - orb/build:
           <<: *config-jruby-9_2
-          rubocop: false
           name: build-jruby-9.2
           requires:
             - checkout-jruby-9.2
