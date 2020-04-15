@@ -208,40 +208,6 @@ RSpec.describe Datadog::Writer do
           end
         end
       end
-
-      describe '#send_runtime_metrics' do
-        subject(:send_runtime_metrics) { writer.send_runtime_metrics }
-
-        context 'when runtime metrics are' do
-          context 'enabled' do
-            around do |example|
-              Datadog.configuration.runtime_metrics_enabled = Datadog.configuration.runtime_metrics_enabled.tap do
-                Datadog.configuration.runtime_metrics_enabled = true
-                example.run
-              end
-            end
-
-            it do
-              expect(writer.runtime_metrics).to receive(:flush)
-              send_runtime_metrics
-            end
-          end
-
-          context 'disabled' do
-            around do |example|
-              Datadog.configuration.runtime_metrics_enabled = Datadog.configuration.runtime_metrics_enabled.tap do
-                Datadog.configuration.runtime_metrics_enabled = false
-                example.run
-              end
-            end
-
-            it do
-              expect(writer.runtime_metrics).to_not receive(:flush)
-              send_runtime_metrics
-            end
-          end
-        end
-      end
     end
   end
 end

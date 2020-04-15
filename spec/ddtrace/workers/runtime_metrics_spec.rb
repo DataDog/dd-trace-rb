@@ -26,26 +26,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
     context 'when :enabled is not given' do
       before { options.delete(:enabled) }
-
-      context "and #{Datadog::Ext::Runtime::Metrics::ENV_ENABLED} is not set" do
-        before do
-          expect(Datadog::Environment).to receive(:env_to_bool)
-            .with(Datadog::Ext::Runtime::Metrics::ENV_ENABLED, false)
-            .and_return(false)
-        end
-
-        it { expect(worker.enabled?).to be false }
-      end
-
-      context "and #{Datadog::Ext::Runtime::Metrics::ENV_ENABLED} is set" do
-        before do
-          expect(Datadog::Environment).to receive(:env_to_bool)
-            .with(Datadog::Ext::Runtime::Metrics::ENV_ENABLED, false)
-            .and_return(true)
-        end
-
-        it { expect(worker.enabled?).to be true }
-      end
+      it { expect(worker.enabled?).to be false }
     end
   end
 
@@ -91,7 +72,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
             .from(false)
             .to(true)
 
-          expect(worker).to have_received(:perform)
+          expect(worker).to_not have_received(:perform)
           expect(worker).to_not have_received(:stop)
         end
       end
@@ -153,7 +134,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
             .to(false)
 
           expect(worker).to_not have_received(:perform)
-          expect(worker).to have_received(:stop)
+          expect(worker).to_not have_received(:stop)
         end
       end
 
@@ -167,7 +148,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
             .to(false)
 
           expect(worker).to_not have_received(:perform)
-          expect(worker).to have_received(:stop)
+          expect(worker).to_not have_received(:stop)
         end
       end
     end

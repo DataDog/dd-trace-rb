@@ -97,6 +97,7 @@ module Datadog
           o.lazy
         end
 
+        option :opts, default: ->(_i) { {} }, lazy: true
         option :statsd
       end
 
