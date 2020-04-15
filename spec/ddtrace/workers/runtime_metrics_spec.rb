@@ -211,6 +211,8 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     end
 
     describe 'forking' do
+      before { skip unless PlatformHelpers.supports_fork? }
+
       context 'when the process forks' do
         before { allow(metrics).to receive(:flush) }
         after { worker.stop }

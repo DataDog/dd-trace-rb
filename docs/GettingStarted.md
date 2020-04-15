@@ -92,7 +92,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.0     | Full                                 | Latest              |
 |       |                            | 1.9.3   | Maintenance (until August 6th, 2020) | < 0.27.0            |
 |       |                            | 1.9.1   | Maintenance (until August 6th, 2020) | < 0.27.0            |
-| JRuby | http://jruby.org/          | 9.1.5   | Alpha                                | Latest              |
+| JRuby | http://jruby.org/          | 9.2.0.0 | Alpha                                | Latest              |
 
 **Supported web servers**:
 

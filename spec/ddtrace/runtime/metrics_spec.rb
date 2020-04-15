@@ -152,8 +152,10 @@ RSpec.describe Datadog::Runtime::Metrics do
   describe '#gc_metrics' do
     subject(:gc_metrics) { runtime_metrics.gc_metrics }
 
+    let(:nested_gc_keys) { PlatformHelpers.jruby? ? 2 : 0 }
+
     it 'has a metric for each value in GC.stat' do
-      is_expected.to have(GC.stat.keys.count).items
+      is_expected.to have(GC.stat.keys.count - nested_gc_keys).items
 
       gc_metrics.each do |metric, value|
         expect(metric).to start_with(Datadog::Ext::Runtime::Metrics::METRIC_GC_PREFIX)
