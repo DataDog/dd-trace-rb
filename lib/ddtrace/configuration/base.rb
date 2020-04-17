@@ -45,7 +45,7 @@ module Datadog
       # Instance methods for configuration
       module InstanceMethods
         def initialize(options = {})
-          configure(options)
+          configure(options) unless options.empty?
         end
 
         def configure(opts = {})
