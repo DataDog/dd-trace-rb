@@ -34,9 +34,13 @@ module Datadog
         true
       end
 
+      def associate_with_span(*args)
+        # Start the worker
+        metrics.associate_with_span(*args).tap { perform }
+      end
+
       def_delegators \
         :metrics,
-        :associate_with_span,
         :register_service
     end
   end
