@@ -43,6 +43,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Grape](#grape)
      - [GraphQL](#graphql)
      - [gRPC](#grpc)
+     - [Http.rb](#http.rb)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#net-http)
@@ -344,6 +345,7 @@ For a list of available integrations, and their configuration options, please re
 | Grape                    | `grape`                    | `>= 1.0`                 | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL                  | `graphql`                  | `>= 1.7.9`               | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | gRPC                     | `grpc`                     | `>= 1.7`                 | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
+| Http.rb                  | `httprb`                   | `>= 3.0`                 | *[Link](#http.rb)*                   | *[Link](https://github.com/httprb/http)*                                       |
 | MongoDB                  | `mongo`                    | `>= 2.1`                 | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
@@ -945,6 +947,28 @@ alternate_client = Demo::Echo::Service.rpc_stub_class.new(
 ```
 
 The integration will ensure that the `configured_interceptor` establishes a unique tracing setup for that client instance.
+
+### Http.rb
+
+The Http.rb integration will trace any HTTP call using the Http.rb gem.
+
+```ruby
+require 'http'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :httprb, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
+| `service_name` | Service name for `rest_client` instrumentation. | `'rest_client'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### MongoDB
 
@@ -1787,6 +1811,7 @@ For more details on how to activate distributed tracing for integrations, see th
 - [Rack](#rack)
 - [Rails](#rails)
 - [Sinatra](#sinatra)
+- [Http.rb](#http.rb)
 
 **Using the HTTP propagator**
 

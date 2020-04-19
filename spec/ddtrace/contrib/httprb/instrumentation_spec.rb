@@ -163,6 +163,31 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           end
         end
 
+        context 'distributed tracing disabled' do
+          let(:configuration_options) { super().merge(distributed_tracing: false) }
+          let(:http_response) { response }
+
+          it 'does not propagate the parent id header' do
+            expect(http_response.headers['x-datadog-parent-id']).to_not eq(span.span_id.to_s)
+          end
+
+          it 'does not propograte the trace id header' do
+            expect(http_response.headers['x-datadog-trace-id']).to_not eq(span.trace_id.to_s)
+          end
+
+          context 'with sampling priority' do
+            let(:sampling_priority) { 0.2 }
+
+            before do
+              tracer.provider.context.sampling_priority = sampling_priority
+            end
+
+            it 'does not propagate sampling priority' do
+              expect(response.headers['x-datadog-sampling-priority']).to_not eq(sampling_priority.to_s)
+            end
+          end
+        end
+
         context 'with sampling priority' do
           let(:sampling_priority) { 0.2 }
 
