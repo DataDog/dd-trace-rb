@@ -18,7 +18,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
       res.status = body['code'].to_i
 
       req.each do |header_name|
-        # for some reason these are formatted as 1 length arrays
+        # webrick formats header values as 1 length arrays
         header_in_array = req.header[header_name]
         if header_in_array.is_a?(Array)
           res.header[header_name] = header_in_array.join('')
