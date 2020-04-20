@@ -385,6 +385,8 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
   end
 
   describe '#stop' do
+    before { skip if PlatformHelpers.jruby? } # DEV: Temporarily disabled due to flakiness
+
     subject(:stop) { writer.stop }
 
     shared_context 'shuts down the worker' do
