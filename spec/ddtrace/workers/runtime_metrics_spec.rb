@@ -154,20 +154,25 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     end
   end
 
-  describe 'forwarded methods' do
-    describe '#associate_with_span' do
-      subject(:associate_with_span) { worker.associate_with_span(span) }
-      let(:span) { instance_double(Datadog::Span) }
+  describe '#associate_with_span' do
+    subject(:associate_with_span) { worker.associate_with_span(span) }
+    let(:span) { instance_double(Datadog::Span) }
 
-      before { allow(worker.metrics).to receive(:associate_with_span) }
-
-      it 'forwards to #metrics' do
-        associate_with_span
-        expect(worker.metrics).to have_received(:associate_with_span)
-          .with(span)
-      end
+    before do
+      allow(worker.metrics).to receive(:associate_with_span)
+      allow(worker).to receive(:perform)
     end
 
+    it 'forwards to #metrics' do
+      associate_with_span
+
+      expect(worker.metrics).to have_received(:associate_with_span)
+        .with(span)
+      expect(worker).to have_received(:perform)
+    end
+  end
+
+  describe 'forwarded methods' do
     describe '#register_service' do
       subject(:register_service) { worker.register_service(service) }
       let(:service) { double('service') }
