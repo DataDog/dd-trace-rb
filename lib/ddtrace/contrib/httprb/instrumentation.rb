@@ -4,6 +4,7 @@ require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/propagation/http_propagator'
+require 'ddtrace/contrib/http_annotation_helper'
 
 module Datadog
   module Contrib
@@ -16,22 +17,29 @@ module Datadog
 
         # Instance methods for configuration
         module InstanceMethods
+          include Datadog::Contrib::HttpAnnotationHelper
+
           def perform(req, options)
-            pin = datadog_pin
+            host, = host_and_port(req)
+            request_options = datadog_configuration(host)
+            pin = datadog_pin(request_options)
 
             return super(req, options) unless pin && pin.tracer
 
             pin.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
               begin
-                span.service = pin.service
+                request_options[:service_name] = pin.service_name
+                span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
+
+                puts('is', pin)
 
                 if pin.tracer.enabled && !should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(span.context, req)
                 end
 
                 # Add additional request specific tags to the span.
-                annotate_span_with_request!(span, req)
+                annotate_span_with_request!(span, req, request_options)
               rescue StandardError => e
                 logger.error("error preparing span for http.rb request: #{e}, Soure: #{e.backtrace}")
               ensure
@@ -47,13 +55,13 @@ module Datadog
 
           private
 
-          def annotate_span_with_request!(span, req)
+          def annotate_span_with_request!(span, req, req_options)
             if req.verb && req.verb.is_a?(String) || req.verb.is_a?(Symbol)
               http_method = req.verb.to_s.upcase
               span.resource = http_method
               span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
             else
-              logger.debug("span #{Ext::SPAN_REQUEST} missing request verb, no resource set")
+              logger.debug("service #{req_options[:service_name]} span #{Ext::SPAN_REQUEST} missing request verb, no resource set")
             end
 
             if req.uri
@@ -62,10 +70,10 @@ module Datadog
               span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
               span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
             else
-              logger.debug("service #{datadog_configuration[:service_name]} span #{Ext::SPAN_REQUEST} missing uri")
+              logger.debug("service #{req_options[:service_name]} span #{Ext::SPAN_REQUEST} missing uri")
             end
 
-            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+            set_analytics_sample_rate(span, req_options)
           end
 
           def annotate_span_with_response!(span, response)
@@ -88,33 +96,45 @@ module Datadog
             span.set_error(error)
           end
 
-          def datadog_pin
-            @datadog_pin ||= begin
-              service = datadog_configuration[:service_name]
-              tracer = Datadog.configuration[:httprb][:tracer]
+          def datadog_pin(config = Datadog.configuration[:httprb])
+            service = config[:service_name]
+            tracer = config[:tracer]
 
+
+            @datadog_pin ||= begin
               Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
             end
+
+
+            if @datadog_pin.service_name == default_datadog_pin.service_name && @datadog_pin.service_name != service
+              @datadog_pin.service = service
+            end
+            if @datadog_pin.tracer == default_datadog_pin.tracer && @datadog_pin.tracer != tracer
+              @datadog_pin.tracer = tracer
+            end
+
+            @datadog_pin
           end
 
-          def tracer
-            datadog_configuration[:tracer]
+          def default_datadog_pin
+            config = Datadog.configuration[:httprb]
+            service = config[:service_name]
+            tracer = config[:tracer]
+            @default_datadog_pin ||= begin
+              Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
+            end
+          end          
+
+          def datadog_configuration(host = :default)
+            Datadog.configuration[:httprb, host]
           end
 
-          def datadog_configuration
-            Datadog.configuration[:httprb]
+          def analytics_enabled?(request_options)
+            Contrib::Analytics.enabled?(request_options[:analytics_enabled])
           end
 
-          def tracer_enabled?
-            datadog_configuration[:tracer].enabled
-          end
-
-          def analytics_enabled?
-            Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
-          end
-
-          def analytics_sample_rate
-            datadog_configuration[:analytics_sample_rate]
+          def analytics_sample_rate(request_options)
+            request_options[:analytics_sample_rate]
           end
 
           def logger
@@ -126,7 +146,17 @@ module Datadog
               return !pin.config[:distributed_tracing]
             end
 
-            !datadog_configuration[:distributed_tracing]
+          end
+
+          def host_and_port(request)
+            if request.respond_to?(:uri) && request.uri
+              [request.uri.host, request.uri.port]
+            end
+          end
+
+          def set_analytics_sample_rate(span, request_options)
+            return unless analytics_enabled?(request_options)
+            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate(request_options))
           end
         end
       end

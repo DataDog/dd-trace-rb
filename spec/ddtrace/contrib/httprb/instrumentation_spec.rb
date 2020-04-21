@@ -199,6 +199,34 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
             expect(response.headers['x-datadog-sampling-priority']).to eq(sampling_priority.to_s)
           end
         end
+
+        context 'when split by domain' do
+          let(:configuration_options) { super().merge(split_by_domain: true) }
+          let(:http_response) { response }
+
+          it do
+            http_response
+            expect(span.name).to eq(Datadog::Contrib::Httprb::Ext::SPAN_REQUEST)
+            expect(span.service).to eq(host)
+            expect(span.resource).to eq('POST')
+          end
+
+          context 'and the host matches a specific configuration' do
+            before do
+              Datadog.configure do |c|
+                c.use :httprb, describe: /localhost/ do |httprb|
+                  httprb.service_name = 'bar'
+                  httprb.split_by_domain = false
+                end
+              end
+            end
+
+            it 'uses the configured service name over the domain name' do
+              http_response
+              expect(span.service).to eq('bar')
+            end
+          end
+        end
       end
     end
 
