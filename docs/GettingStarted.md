@@ -43,7 +43,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Grape](#grape)
      - [GraphQL](#graphql)
      - [gRPC](#grpc)
-     - [Http.rb](#http.rb)
+     - [http.rb](#http.rb)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#net-http)
@@ -1818,7 +1818,7 @@ For more details on how to activate distributed tracing for integrations, see th
 - [Rack](#rack)
 - [Rails](#rails)
 - [Sinatra](#sinatra)
-- [Http.rb](#http.rb)
+- [http.rb](#http.rb)
 
 **Using the HTTP propagator**
 
