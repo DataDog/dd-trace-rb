@@ -3,7 +3,7 @@ require 'ddtrace/diagnostics/health'
 require 'ddtrace/runtime/object_space'
 
 module Datadog
-  # Trace buffer that stores objects. The buffer has a maximum size and when
+  # Buffer that stores objects. The buffer has a maximum size and when
   # the buffer is full, a random object is discarded. This class is thread-safe.
   class Buffer
     def initialize(max_size)
