@@ -3,16 +3,89 @@ require 'ddtrace/diagnostics/health'
 require 'ddtrace/runtime/object_space'
 
 module Datadog
-  # Trace buffer that stores application traces. The buffer has a maximum size and when
-  # the buffer is full, a random trace is discarded. This class is thread-safe and is used
-  # automatically by the ``Tracer`` instance when a ``Span`` is finished.
-  class TraceBuffer
+  # Trace buffer that stores objects. The buffer has a maximum size and when
+  # the buffer is full, a random object is discarded. This class is thread-safe.
+  class Buffer
     def initialize(max_size)
       @max_size = max_size
 
-      @mutex = Mutex.new()
-      @traces = []
+      @mutex = Mutex.new
+      @items = []
       @closed = false
+    end
+
+    # Add a new ``item`` in the local queue. This method doesn't block the execution
+    # even if the buffer is full. In that case, a random item is discarded.
+    def push(item)
+      @mutex.synchronize do
+        return if @closed
+        full? ? replace!(item) : add!(item)
+        item
+      end
+    end
+
+    # Return the current number of stored items.
+    def length
+      @mutex.synchronize do
+        return @items.length
+      end
+    end
+
+    # Return if the buffer is empty.
+    def empty?
+      @mutex.synchronize do
+        return @items.empty?
+      end
+    end
+
+    # Stored items are returned and the local buffer is reset.
+    def pop
+      @mutex.synchronize do
+        drain!
+      end
+    end
+
+    def close
+      @mutex.synchronize do
+        @closed = true
+      end
+    end
+
+    protected
+
+    def full?
+      @max_size > 0 && @items.length >= @max_size
+    end
+
+    def add!(item)
+      @items << item
+    end
+
+    def replace!(item)
+      # Choose random item to be replaced
+      replace_index = rand(@items.length)
+
+      # Replace random item
+      discarded_item = @items[replace_index]
+      @items[replace_index] = item
+
+      # Return discarded item
+      discarded_item
+    end
+
+    def drain!
+      items = @items
+      @items = []
+      items
+    end
+  end
+
+  # Trace buffer that stores application traces. The buffer has a maximum size and when
+  # the buffer is full, a random trace is discarded. This class is thread-safe and is used
+  # automatically by the ``Tracer`` instance when a ``Span`` is finished.
+  class TraceBuffer < Buffer
+    def initialize(max_size)
+      super
 
       # Initialize metric values
       @buffer_accepted = 0
@@ -21,56 +94,30 @@ module Datadog
       @buffer_spans = 0
     end
 
-    # Add a new ``trace`` in the local queue. This method doesn't block the execution
-    # even if the buffer is full. In that case, a random trace is discarded.
-    def push(trace)
-      @mutex.synchronize do
-        return if @closed
-        len = @traces.length
-        if len < @max_size || @max_size <= 0
-          @traces << trace
-        else
-          # we should replace a random trace with the new one
-          replace_index = rand(len)
-          replaced_trace = @traces[replace_index]
-          @traces[replace_index] = trace
-          measure_drop(replaced_trace)
-        end
+    protected
 
-        measure_accept(trace)
-      end
+    def add!(trace)
+      super
+
+      # Emit health metrics
+      measure_accept(trace)
     end
 
-    # Return the current number of stored traces.
-    def length
-      @mutex.synchronize do
-        return @traces.length
-      end
-    end
+    def replace!(trace)
+      discarded_trace = super
 
-    # Return if the buffer is empty.
-    def empty?
-      @mutex.synchronize do
-        return @traces.empty?
-      end
+      # Emit health metrics
+      measure_accept(trace)
+      measure_drop(discarded_trace)
+
+      discarded_trace
     end
 
     # Stored traces are returned and the local buffer is reset.
-    def pop
-      @mutex.synchronize do
-        traces = @traces
-        @traces = []
-
-        measure_pop(traces)
-
-        return traces
-      end
-    end
-
-    def close
-      @mutex.synchronize do
-        @closed = true
-      end
+    def drain!
+      traces = super
+      measure_pop(traces)
+      traces
     end
 
     # Aggregate metrics:
