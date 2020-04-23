@@ -1532,7 +1532,6 @@ class NestedApp < Sinatra::Base
 end
 
 class App < Sinatra::Base
-  # use Datadog::Contrib::Rack::TraceMiddleware # If Rack instrumentation is enabled
   register Datadog::Contrib::Sinatra::Tracer
 
   use NestedApp
@@ -1544,8 +1543,6 @@ end
 ```
 
 Ensure you register `Datadog::Contrib::Sinatra::Tracer` as a middleware before you mount your nested applications.
-
-If Rack instrumentation is also enabled, mount `Datadog::Contrib::Rack::TraceMiddleware` before registering `Datadog::Contrib::Sinatra::Tracer`.
 
 #### Instrumentation options
 
