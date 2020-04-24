@@ -2,6 +2,7 @@ require 'json'
 require 'msgpack'
 
 module Datadog
+  # Chunks list of elements into batches
   module Chunker
     module_function
 

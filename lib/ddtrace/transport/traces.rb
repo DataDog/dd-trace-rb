@@ -84,6 +84,7 @@ module Datadog
         end
       end
 
+      # Encodes traces using {Datadog::Encoding::Encoder} instances.
       module Encoder
         module_function
 

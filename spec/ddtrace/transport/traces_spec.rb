@@ -82,7 +82,7 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
       let(:max_size) { 3 }
 
       it do
-        is_expected.to eq([["1,22", 2], ["333", 1]])
+        is_expected.to eq([['1,22', 2], ['333', 1]])
       end
     end
 

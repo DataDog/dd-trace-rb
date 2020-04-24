@@ -6,11 +6,11 @@ require 'ddtrace/chunker'
 RSpec.describe Datadog::Chunker do
   context '.chunk_by_size' do
     subject(:encode) { described_class.chunk_by_size(list, max_chunk_size) }
-    let(:list) { ['1', '22', '333'] }
+    let(:list) { %w[1 22 333] }
     let(:max_chunk_size) { 3 }
 
     it do
-      expect(subject.to_a).to eq([['1', '22'], ['333']])
+      expect(subject.to_a).to eq([%w[1 22], ['333']])
     end
 
     context 'with single element that is too large' do

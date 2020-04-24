@@ -4,7 +4,7 @@ require 'spec/support/language_helpers'
 require 'ddtrace/encoding'
 
 RSpec.describe Datadog::Encoding do
-  let(:obj) { [{ "foo" => 'bar' }] }
+  let(:obj) { [{ 'foo' => 'bar' }] }
 
   context 'Msgpack encoding' do
     let(:encoder) { Datadog::Encoding::MsgpackEncoder }
@@ -108,7 +108,7 @@ RSpec.describe Datadog::Encoding::JSONEncoder::V2 do
         traces.each do |trace|
           trace.each do |span|
             allow(span).to receive(:to_hash)
-                             .and_wrap_original do |m, *_args|
+              .and_wrap_original do |m, *_args|
               m.call.tap { |h| h.delete(missing_id) }
             end
           end
