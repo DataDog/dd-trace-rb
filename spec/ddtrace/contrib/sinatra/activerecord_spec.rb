@@ -17,14 +17,14 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
   let(:span) { spans.first }
   let(:spans) { tracer.writer.spans }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :sinatra, options
       c.use :active_record, options
     end
   end
 
-  after(:each) { Datadog.registry[:sinatra].reset_configuration! }
+  after { Datadog.registry[:sinatra].reset_configuration! }
 
   shared_context 'ActiveRecord database' do
     let(:application_record_class) do
@@ -49,7 +49,7 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
       end
     end
 
-    before(:each) { migrate_db }
+    before { migrate_db }
   end
 
   describe 'request which runs a query' do
@@ -75,8 +75,8 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
       end
     end
 
-    let(:sinatra_span) { spans.find { |s| s.name == 'sinatra.request' } }
-    let(:sqlite_span) { spans.find { |s| s.parent_id != 0 } }
+    let(:route_span) { spans.find { |s| s.name == Datadog::Contrib::Sinatra::Ext::SPAN_ROUTE } }
+    let(:sqlite_span) { spans.find { |s| s.resource == 'SELECT 42' } }
 
     let(:adapter_name) { Datadog::Contrib::ActiveRecord::Utils.adapter_name }
     let(:database_name) { Datadog::Contrib::ActiveRecord::Utils.database_name }
@@ -95,17 +95,10 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
       expect(sqlite_span.get_tag('out.host')).to eq(adapter_host.to_s) unless adapter_host.nil?
       expect(sqlite_span.get_tag('out.port')).to eq(adapter_port.to_s) unless adapter_port.nil?
       expect(sqlite_span.span_type).to eq(Datadog::Ext::SQL::TYPE)
-      expect(sqlite_span.status).to eq(0)
-      expect(sqlite_span.parent).to eq(sinatra_span)
+      expect(sqlite_span).to_not have_error
+      expect(sqlite_span.parent).to eq(route_span)
 
-      expect(sinatra_span.name).to eq(Datadog::Contrib::Sinatra::Ext::SPAN_REQUEST)
-      expect(sinatra_span.service).to eq('sinatra')
-      expect(sinatra_span.resource).to eq('POST /')
-      expect(sinatra_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
-      expect(sinatra_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-      expect(sinatra_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
-      expect(sinatra_span.status).to eq(0)
-      expect(sinatra_span.parent).to be nil
+      expect(route_span).to_not have_error
     end
   end
 end
