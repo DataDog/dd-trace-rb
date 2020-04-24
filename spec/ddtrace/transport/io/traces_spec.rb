@@ -10,7 +10,7 @@ RSpec.describe Datadog::Transport::IO::Client do
   describe '#send_traces' do
     context 'given traces' do
       subject(:send_traces) { client.send_traces(traces) }
-      let(:traces) { instance_double(Array) }
+      let(:traces) { instance_double(Array, count: 123) }
       let(:encoded_traces) { double('encoded traces') }
       let(:result) { double('IO result') }
 
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Transport::IO::Client do
 
     context 'given traces and a block' do
       subject(:send_traces) { client.send_traces(traces) { |out, data| target.write(out, data) } }
-      let(:traces) { instance_double(Array) }
+      let(:traces) { instance_double(Array, count: 123) }
       let(:encoded_traces) { double('encoded traces') }
       let(:result) { double('IO result') }
       let(:target) { double('target') }

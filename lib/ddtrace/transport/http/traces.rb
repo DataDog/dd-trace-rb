@@ -107,7 +107,7 @@ module Datadog
 
             def call(env, &block)
               # Add trace count header
-              env.headers[HEADER_TRACE_COUNT] = env.request.trace_count.to_s
+              env.headers[HEADER_TRACE_COUNT] = env.request.parcel.trace_count.to_s
 
               # Encode body & type
               env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
@@ -117,7 +117,7 @@ module Datadog
               http_response = super(env, &block)
 
               # Process the response
-              response_options = { trace_count: env.request.trace_count }.tap do |options|
+              response_options = { trace_count: env.request.parcel.trace_count }.tap do |options|
                 # Parse service rates, if configured to do so.
                 if service_rates? && !http_response.payload.to_s.empty?
                   body = JSON.parse(http_response.payload)

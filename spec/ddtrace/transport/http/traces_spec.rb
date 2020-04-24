@@ -142,7 +142,7 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
   describe '#call' do
     subject(:call) { endpoint.call(env, &block) }
     let(:env) { Datadog::Transport::HTTP::Env.new(request) }
-    let(:request) { Datadog::Transport::Traces::Request.new(data, trace_count, 'text/plain') }
+    let(:request) { Datadog::Transport::Traces::Request.new(data, trace_count) }
     let(:data) { double('trace_once') }
     let(:trace_count) { 123 }
 

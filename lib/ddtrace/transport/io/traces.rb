@@ -17,7 +17,7 @@ module Datadog
         module Client
           def send_traces(traces)
             # Build a request
-            req = Transport::Traces::Request.new(traces)
+            req = Transport::Traces::Request.new(traces, traces.count)
 
             send_request(req) do |out, request|
               # Encode trace data

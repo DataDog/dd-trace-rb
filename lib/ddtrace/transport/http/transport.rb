@@ -19,11 +19,7 @@ module Datadog
         def send_traces(traces)
           encoder = current_api.encoder
           encoder.encode_traces(traces) do |encoded_traces, trace_count|
-            request = Datadog::Transport::Traces::Request.new(
-              encoded_traces,
-              trace_count,
-              encoder.content_type
-            )
+            request = Datadog::Transport::Traces::Request.new(encoded_traces, trace_count)
 
             client.send_payload(request).tap do |response|
               if downgrade?(response)

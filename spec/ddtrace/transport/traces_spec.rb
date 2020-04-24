@@ -3,8 +3,9 @@ require 'spec_helper'
 require 'ddtrace/transport/traces'
 
 RSpec.describe Datadog::Transport::Traces::Parcel do
-  subject(:parcel) { described_class.new(data) }
+  subject(:parcel) { described_class.new(data, trace_count) }
   let(:data) { instance_double(Array) }
+  let(:trace_count) { 123 }
 
   it { is_expected.to be_a_kind_of(Datadog::Transport::Parcel) }
 
@@ -20,23 +21,23 @@ RSpec.describe Datadog::Transport::Traces::Parcel do
 
     it { is_expected.to be length }
   end
+
+  describe '#trace_count' do
+    subject { parcel.trace_count }
+    it { is_expected.to eq(trace_count) }
+  end
 end
 
 RSpec.describe Datadog::Transport::Traces::Request do
-  subject(:request) { described_class.new(data, trace_count, content_type) }
+  subject(:request) { described_class.new(data, trace_count) }
   let(:data) { double }
   let(:trace_count) { 1 }
-  let(:content_type) { 'text/plain' }
 
   it { is_expected.to be_a_kind_of(Datadog::Transport::Request) }
 
   describe '#initialize' do
     it do
-      is_expected.to have_attributes(
-        parcel: kind_of(Datadog::Transport::Traces::Parcel),
-        trace_count: trace_count,
-        content_type: content_type
-      )
+      is_expected.to have_attributes(parcel: kind_of(Datadog::Transport::Traces::Parcel))
     end
   end
 end
