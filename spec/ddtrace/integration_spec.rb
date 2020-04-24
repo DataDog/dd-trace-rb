@@ -497,7 +497,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Transport)
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port
           end
@@ -523,7 +523,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Transport)
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
             expect(transport.current_api_id).to be api_version
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port

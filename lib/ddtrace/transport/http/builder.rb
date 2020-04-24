@@ -74,7 +74,8 @@ module Datadog
         def to_transport
           raise NoDefaultApiError if @default_api.nil?
 
-          HTTP::Transport.new(to_api_instances, @default_api)
+          # DEV: Should not be specific to traces
+          Transport::Traces::Transport.new(to_api_instances, @default_api)
         end
 
         def to_api_instances

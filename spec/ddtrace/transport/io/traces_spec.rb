@@ -15,7 +15,7 @@ RSpec.describe Datadog::Transport::IO::Client do
       let(:result) { double('IO result') }
 
       before do
-        expect(client.encoder).to receive(:encode_traces)
+        expect(client.encoder).to receive(:encode)
           .with(traces)
           .and_return(encoded_traces)
 
@@ -41,7 +41,7 @@ RSpec.describe Datadog::Transport::IO::Client do
       let(:target) { double('target') }
 
       before do
-        expect(client.encoder).to receive(:encode_traces)
+        expect(client.encoder).to receive(:encode)
           .with(traces)
           .and_return(encoded_traces)
 

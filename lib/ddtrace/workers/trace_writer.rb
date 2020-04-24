@@ -125,8 +125,8 @@ module Datadog
       # NOTE: #perform is wrapped by other modules:
       #       Polling --> Async --> IntervalLoop --> AsyncTraceWriter --> TraceWriter
       def perform(traces)
-        super(traces).tap do |response|
-          loop_back_off! if response.server_error?
+        super(traces).tap do |responses|
+          loop_back_off! if responses.find(&:server_error?)
         end
       end
 

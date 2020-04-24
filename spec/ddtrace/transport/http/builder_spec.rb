@@ -271,7 +271,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
       end
 
       it 'returns an HTTP::Transport' do
-        expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Transport)
+        expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
         expect(transport.current_api.spec).to eq(spec)
         expect(transport.apis).to include(v2: kind_of(Datadog::Transport::HTTP::API::Instance))
       end
