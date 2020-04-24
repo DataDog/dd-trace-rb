@@ -2,7 +2,6 @@ require 'ddtrace/transport/http/adapters/registry'
 require 'ddtrace/transport/http/api/map'
 require 'ddtrace/transport/http/api/instance'
 require 'ddtrace/transport/http/client'
-require 'ddtrace/transport/http/transport'
 
 module Datadog
   module Transport
