@@ -22,8 +22,7 @@ module Datadog
           Sinatra::Env.set_middleware_start_time(env)
 
           # Run application stack
-          status, headers, response_body = @app.call(env)
-          [status, headers, response_body]
+          response = @app.call(env)
         ensure
           # Augment current Sinatra middleware span if we are the top-most Sinatra app on the Rack stack.
           span = Sinatra::Env.datadog_span(env)
@@ -32,7 +31,7 @@ module Datadog
               span.set_tag(name, value) if span.get_tag(name).nil?
             end
 
-            if headers
+            if response && (headers = response[1])
               Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
                 span.set_tag(name, value) if span.get_tag(name).nil?
               end

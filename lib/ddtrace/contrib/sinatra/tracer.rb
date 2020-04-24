@@ -40,10 +40,16 @@ module Datadog
 
           app.after do
             configuration = Datadog.configuration[:sinatra]
-            return unless configuration[:tracer].enabled
-            return if Sinatra::Env.middleware_traced?(env)
+            next unless configuration[:tracer].enabled
 
-            span = Sinatra::Tracer.fetch_middleware_span!(env, configuration)
+            # Ensures we only create a span for the top-most Sinatra middleware.
+            #
+            # If we traced all Sinatra middleware apps, we would have a chain
+            # of nested spans that were not responsible for handling this request,
+            # adding little value to users.
+            next if Sinatra::Env.middleware_traced?(env)
+
+            span = Sinatra::Env.datadog_span(env) || Sinatra::Tracer.create_middleware_span(env, configuration)
 
             route = if defined?(@datadog_route)
                       @datadog_route
@@ -69,17 +75,8 @@ module Datadog
           end
         end
 
-        # Retrieves of initializes the top-most middleware Sinatra span.
-        # This allows us to only create spans for Sinatra middlewares that
-        # have a matching route.
-        #
-        # If we traced all Sinatra middleware apps, we would have a chain
-        # of nested spans that were not responsible for handling this request,
-        # adding little value to users.
-        def self.fetch_middleware_span!(env, configuration)
-          span = Sinatra::Env.datadog_span(env)
-          return span if span
-
+        # Initializes a span for the top-most Sinatra middleware.
+        def self.create_middleware_span(env, configuration)
           tracer = configuration[:tracer]
           span = tracer.trace(
             Ext::SPAN_REQUEST,
@@ -123,7 +120,7 @@ module Datadog
             # For initialization of Sinatra middleware span in order
             # guarantee that the Ext::SPAN_ROUTE span being created below
             # has the middleware span as its parent.
-            Sinatra::Tracer.fetch_middleware_span!(env, configuration)
+            Sinatra::Tracer.create_middleware_span(env, configuration) unless Sinatra::Env.datadog_span(env)
 
             tracer.trace(
               Ext::SPAN_ROUTE,
