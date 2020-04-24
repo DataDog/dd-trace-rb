@@ -12,7 +12,7 @@ module Datadog
 
         # Only log each deprecation warning once (safeguard against log spam)
         unless @deprecation_warning_shown
-          Datadog::Logger.log.warn(
+          Datadog.logger.warn(
             'forced tracing: Datadog::Ext::ForcedTracing has been renamed to Datadog::Ext::ManualTracing'
           )
           @deprecation_warning_shown = true

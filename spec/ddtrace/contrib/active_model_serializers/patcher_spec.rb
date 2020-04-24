@@ -73,6 +73,13 @@ RSpec.describe 'ActiveModelSerializers patcher' do
           end
         end
 
+        it_behaves_like 'measured span for integration', true do
+          let(:span) do
+            render
+            active_model_serializers_span
+          end
+        end
+
         it 'is expected to send a span' do
           render
 

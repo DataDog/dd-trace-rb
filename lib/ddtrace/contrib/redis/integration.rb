@@ -9,18 +9,20 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('3.2')
+
         register_as :redis, auto_patch: true
 
         def self.version
           Gem.loaded_specs['redis'] && Gem.loaded_specs['redis'].version
         end
 
-        def self.present?
-          super && defined?(::Redis)
+        def self.loaded?
+          !defined?(::Redis).nil?
         end
 
         def self.compatible?
-          !version.nil? && version >= Gem::Version.new('3.0.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration
@@ -29,6 +31,10 @@ module Datadog
 
         def patcher
           Patcher
+        end
+
+        def resolver
+          @resolver ||= Configuration::Resolver.new
         end
       end
     end

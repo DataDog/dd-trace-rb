@@ -9,14 +9,20 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('1.1.0')
+
         register_as :rack, auto_patch: false
 
         def self.version
           Gem.loaded_specs['rack'] && Gem.loaded_specs['rack'].version
         end
 
-        def self.present?
-          super && defined?(::Rack)
+        def self.loaded?
+          !defined?(::Rack).nil?
+        end
+
+        def self.compatible?
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

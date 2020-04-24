@@ -46,7 +46,7 @@ module Datadog
 
             Thread.current[KEY_RUN] = true
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def endpoint_run(name, start, finish, id, payload)
@@ -85,6 +85,9 @@ module Datadog
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
               end
 
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
+
               # catch thrown exceptions
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
 
@@ -96,7 +99,7 @@ module Datadog
               span.finish(finish)
             end
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def endpoint_start_render(*)
@@ -112,7 +115,7 @@ module Datadog
 
             Thread.current[KEY_RENDER] = true
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def endpoint_render(name, start, finish, id, payload)
@@ -126,13 +129,16 @@ module Datadog
 
             # catch thrown exceptions
             begin
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
+
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
             ensure
               span.start_time = start
               span.finish(finish)
             end
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def endpoint_run_filters(name, start, finish, id, payload)
@@ -156,6 +162,9 @@ module Datadog
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
               end
 
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
+
               # catch thrown exceptions
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
               span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
@@ -164,7 +173,7 @@ module Datadog
               span.finish(finish)
             end
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           private

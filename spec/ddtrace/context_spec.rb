@@ -70,7 +70,7 @@ RSpec.describe Datadog::Context do
 
         let(:options) { { max_length: max_length } }
         let(:max_length) { 1 }
-        before { allow(Datadog::Logger.log).to receive(:debug) }
+        before { allow(Datadog.logger).to receive(:debug) }
 
         RSpec::Matchers.define :a_context_overflow_error do
           match { |actual| actual.include?('context full') }
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Context do
 
           it 'sends overflow metric' do
             expect(overflow_span).to have_received(:context=).with(nil)
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
             expect(health_metrics).to have_received(:error_context_overflow)
               .with(1, tags: ["max_length:#{max_length}"])
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Context do
           end
 
           it 'sends overflow metric only once' do
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
               .twice
             expect(health_metrics).to have_received(:error_context_overflow)
@@ -121,7 +121,7 @@ RSpec.describe Datadog::Context do
           end
 
           it 'sends overflow metric once per reset' do
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
               .twice
             expect(health_metrics).to have_received(:error_context_overflow)
@@ -183,19 +183,19 @@ RSpec.describe Datadog::Context do
           match { |actual| actual.include?('unfinished span:') }
         end
 
-        context 'when tracer debug logging is on' do
+        context 'when debug mode is on' do
           before do
-            allow(Datadog::Logger).to receive(:debug_logging).and_return(true)
-            allow(Datadog::Logger.log).to receive(:debug)
+            allow(Datadog.configuration.diagnostics).to receive(:debug).and_return(true)
+            allow(Datadog.logger).to receive(:debug)
             context.add_span(unfinished_span)
             close_span
           end
 
           it 'logs debug messages' do
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(an_unfinished_spans_error('root.span', 1))
 
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(an_unfinished_span_error).once
           end
         end
@@ -228,6 +228,49 @@ RSpec.describe Datadog::Context do
             expect(health_metrics).to have_received(:error_unfinished_spans)
               .with(2, tags: ['name:unfinished.span.two']).once
           end
+        end
+      end
+    end
+  end
+
+  describe '#get' do
+    subject(:get) { context.get }
+
+    context 'with no trace' do
+      it { is_expected.to eq([nil, false]) }
+    end
+
+    context 'with a trace' do
+      let(:span) { Datadog::Span.new(nil, 'dummy') }
+      let(:trace) { [span] }
+      let(:sampled) { double('sampled flag') }
+
+      before do
+        span.sampled = sampled
+        context.add_span(span)
+
+        allow(context).to receive(:annotate_for_flush!)
+      end
+
+      context 'unfinished' do
+        it { is_expected.to eq([nil, sampled]) }
+
+        it 'does not configure unfinished root span' do
+          subject
+          expect(context).to_not have_received(:annotate_for_flush!)
+        end
+      end
+
+      context 'finished' do
+        before do
+          context.close_span(span)
+        end
+
+        it { is_expected.to eq([trace, sampled]) }
+
+        it 'configures root span' do
+          subject
+          expect(context).to have_received(:annotate_for_flush!)
         end
       end
     end
@@ -285,6 +328,66 @@ RSpec.describe Datadog::Context do
     context 'with synthetics' do
       before(:each) { context.origin = 'synthetics' }
       it { expect(context.origin).to eq('synthetics') }
+    end
+  end
+
+  describe '#delete_span_if' do
+    subject(:annotate_for_flush!) { context.delete_span_if(&block) }
+
+    let(:remaining_span) { Datadog::Span.new(tracer, 'remaining', context: context).tap(&:finish) }
+    let(:deleted_span) { Datadog::Span.new(tracer, 'deleted', context: context).tap(&:finish) }
+    let(:block) { proc { |s| s == deleted_span } }
+
+    before do
+      context.add_span(remaining_span)
+      context.add_span(deleted_span)
+    end
+
+    it 'returns deleted spans' do
+      is_expected.to contain_exactly(deleted_span)
+    end
+
+    it 'keeps spans not deleted' do
+      expect { subject }.to change { context.finished_span_count }.from(2).to(1)
+
+      expect(context.get[0]).to contain_exactly(remaining_span)
+    end
+
+    it 'detaches context from delete span' do
+      expect { subject }.to change { deleted_span.context }.from(context).to(nil)
+    end
+  end
+
+  describe '#annotate_for_flush!' do
+    subject(:annotate_for_flush!) { context.annotate_for_flush!(root_span) }
+    let(:root_span) { Datadog::Span.new(nil, 'dummy') }
+
+    let(:options) { { origin: origin, sampled: sampled, sampling_priority: sampling_priority } }
+
+    let(:origin) { nil }
+    let(:sampled) { nil }
+    let(:sampling_priority) { nil }
+
+    before do
+      context.add_span(root_span)
+
+      subject
+    end
+
+    context 'with origin' do
+      let(:origin) { 'origin_1' }
+      it do
+        expect(root_span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq(origin)
+      end
+    end
+
+    context 'with sampling priority' do
+      let(:sampled) { true }
+      let(:sampling_priority) { 1 }
+
+      it do
+        expect(root_span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority)
+      end
     end
   end
 end

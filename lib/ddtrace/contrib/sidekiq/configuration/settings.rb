@@ -17,6 +17,11 @@ module Datadog
             o.lazy
           end
 
+          option :tag_args do |o|
+            o.default { env_to_bool(Ext::ENV_TAG_JOB_ARGS, false) }
+            o.lazy
+          end
+
           option :service_name, default: Ext::SERVICE_NAME
           option :client_service_name, default: Ext::CLIENT_SERVICE_NAME
         end

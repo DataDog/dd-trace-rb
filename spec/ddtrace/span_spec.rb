@@ -22,7 +22,7 @@ RSpec.describe Datadog::Span do
       end
 
       before do
-        allow(Datadog::Logger.log).to receive(:debug)
+        allow(Datadog.logger).to receive(:debug)
         allow(context).to receive(:close_span)
           .with(span)
           .and_raise(error)
@@ -30,13 +30,32 @@ RSpec.describe Datadog::Span do
       end
 
       it 'logs a debug message' do
-        expect(Datadog::Logger.log).to have_received(:debug)
+        expect(Datadog.logger).to have_received(:debug)
           .with(a_record_finish_error(error))
       end
 
       it 'sends a span finish error metric' do
         expect(health_metrics).to have_received(:error_span_finish)
           .with(1, tags: ["error:#{error_class.name}"])
+      end
+    end
+
+    context 'when service' do
+      subject(:service) do
+        finish
+        span.service
+      end
+
+      context 'is set' do
+        let(:service_value) { 'span-service' }
+        before { span.service = service_value }
+        it { is_expected.to eq service_value }
+      end
+
+      context 'is not set' do
+        let(:default_service) { 'default-service' }
+        before { allow(tracer).to receive(:default_service).and_return(default_service) }
+        it { is_expected.to eq default_service }
       end
     end
   end
@@ -108,9 +127,16 @@ RSpec.describe Datadog::Span do
       end
     end
 
-    context 'given a numeric tag' do
+    context 'given http.status_code' do
       let(:key) { 'http.status_code' }
       let(:value) { 200 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given a numeric tag' do
+      let(:key) { 'system.pid' }
+      let(:value) { 123 }
 
       context 'which is an integer' do
         context 'that exceeds the upper limit' do
@@ -199,7 +225,7 @@ RSpec.describe Datadog::Span do
       it 'sets the analytics sample rate' do
         # Both should return the same tag
         expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
-        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be 1.0
+        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
       end
     end
 

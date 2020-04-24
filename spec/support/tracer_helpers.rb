@@ -10,43 +10,41 @@ module TracerHelpers
   end
 
   def new_tracer(options = {})
-    @tracer ||= begin
-      writer = FauxWriter.new(
-        transport: Datadog::Transport::HTTP.default do |t|
-          t.adapter :test
-        end
-      )
+    writer = FauxWriter.new(
+      transport: Datadog::Transport::HTTP.default do |t|
+        t.adapter :test
+      end
+    )
 
-      options = { writer: writer }.merge(options)
-      Datadog::Tracer.new(options).tap do |tracer|
-        # TODO: Let's try to get rid of this override, which has too much
-        #       knowledge about the internal workings of the tracer.
-        #       It is done to prevent the activation of priority sampling
-        #       from wiping out the configured test writer, by replacing it.
-        tracer.define_singleton_method(:configure) do |opts = {}|
-          super(opts)
+    options = { writer: writer }.merge(options)
+    Datadog::Tracer.new(options).tap do |tracer|
+      # TODO: Let's try to get rid of this override, which has too much
+      #       knowledge about the internal workings of the tracer.
+      #       It is done to prevent the activation of priority sampling
+      #       from wiping out the configured test writer, by replacing it.
+      tracer.define_singleton_method(:configure) do |opts = {}|
+        super(opts)
 
-          # Re-configure the tracer with a new test writer
-          # since priority sampling will wipe out the old test writer.
-          unless @writer.is_a?(FauxWriter)
-            @writer = if @sampler.is_a?(Datadog::PrioritySampler)
-                        FauxWriter.new(
-                          priority_sampler: @sampler,
-                          transport: Datadog::Transport::HTTP.default do |t|
-                            t.adapter :test
-                          end
-                        )
-                      else
-                        FauxWriter.new(
-                          transport: Datadog::Transport::HTTP.default do |t|
-                            t.adapter :test
-                          end
-                        )
-                      end
+        # Re-configure the tracer with a new test writer
+        # since priority sampling will wipe out the old test writer.
+        unless @writer.is_a?(FauxWriter)
+          @writer = if @sampler.is_a?(Datadog::PrioritySampler)
+                      FauxWriter.new(
+                        priority_sampler: @sampler,
+                        transport: Datadog::Transport::HTTP.default do |t|
+                          t.adapter :test
+                        end
+                      )
+                    else
+                      FauxWriter.new(
+                        transport: Datadog::Transport::HTTP.default do |t|
+                          t.adapter :test
+                        end
+                      )
+                    end
 
-            statsd = opts.fetch(:statsd, nil)
-            @writer.runtime_metrics.statsd = statsd unless statsd.nil?
-          end
+          statsd = opts.fetch(:statsd, nil)
+          @writer.runtime_metrics.statsd = statsd unless statsd.nil?
         end
       end
     end

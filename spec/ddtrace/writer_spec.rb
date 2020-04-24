@@ -240,35 +240,42 @@ RSpec.describe Datadog::Writer do
         end
       end
 
-      describe '#send_runtime_metrics' do
-        subject(:send_runtime_metrics) { writer.send_runtime_metrics }
+      describe '#write' do
+        subject(:write) { writer.write(trace, services) }
+        let(:trace) { instance_double(Array) }
+        let(:services) { nil }
 
-        context 'when runtime metrics are' do
-          context 'enabled' do
-            around do |example|
-              Datadog.configuration.runtime_metrics_enabled = Datadog.configuration.runtime_metrics_enabled.tap do
-                Datadog.configuration.runtime_metrics_enabled = true
-                example.run
-              end
-            end
+        before do
+          allow_any_instance_of(Datadog::Workers::AsyncTransport)
+            .to receive(:start)
 
-            it do
-              expect(writer.runtime_metrics).to receive(:flush)
-              send_runtime_metrics
-            end
+          expect_any_instance_of(Datadog::Workers::AsyncTransport)
+            .to receive(:enqueue_trace)
+            .with(trace)
+        end
+
+        context 'when runtime metrics are enabled' do
+          before do
+            allow(Datadog.configuration.runtime_metrics)
+              .to receive(:enabled)
+              .and_return(true)
           end
 
-          context 'disabled' do
-            around do |example|
-              Datadog.configuration.runtime_metrics_enabled = Datadog.configuration.runtime_metrics_enabled.tap do
-                Datadog.configuration.runtime_metrics_enabled = false
-                example.run
-              end
+          context 'and the trace is not empty' do
+            let(:root_span) { instance_double(Datadog::Span) }
+
+            before do
+              allow(trace).to receive(:empty?).and_return(false)
+              allow(trace).to receive(:first).and_return(root_span)
+              allow(Datadog.runtime_metrics).to receive(:associate_with_span)
             end
 
-            it do
-              expect(writer.runtime_metrics).to_not receive(:flush)
-              send_runtime_metrics
+            it 'associates the root span with runtime_metrics' do
+              write
+
+              expect(Datadog.runtime_metrics)
+                .to have_received(:associate_with_span)
+                .with(root_span)
             end
           end
         end

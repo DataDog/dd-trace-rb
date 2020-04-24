@@ -85,13 +85,15 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       let(:span) { request_span }
     end
 
+    it_behaves_like 'measured span for integration', false
+
     it do
       expect(request_span).to_not be nil
       expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(200)
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
@@ -109,7 +111,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.resource).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/failure')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(500)
+      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('500')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
@@ -152,14 +154,31 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
   end
 
   context 'when split by domain' do
-    subject!(:response) { connection.get(path: '/success') }
+    subject(:response) { connection.get(path: '/success') }
     let(:configuration_options) { super().merge(split_by_domain: true) }
     after(:each) { Datadog.configuration[:excon][:split_by_domain] = false }
 
     it do
+      response
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.service).to eq('example.com')
       expect(request_span.resource).to eq('GET')
+    end
+
+    context 'and the host matches a specific configuration' do
+      before do
+        Datadog.configure do |c|
+          c.use :excon, describe: /example\.com/ do |faraday|
+            faraday.service_name = 'bar'
+            faraday.split_by_domain = false
+          end
+        end
+      end
+
+      it 'uses the configured service name over the domain name' do
+        response
+        expect(request_span.service).to eq('bar')
+      end
     end
   end
 

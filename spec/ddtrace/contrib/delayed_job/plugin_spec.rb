@@ -114,6 +114,8 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
         let(:analytics_sample_rate_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
+      it_behaves_like 'measured span for integration', true
+
       context 'when queue name is set' do
         let(:queue_name) { 'queue_name' }
         let(:job_params) { { queue: queue_name } }

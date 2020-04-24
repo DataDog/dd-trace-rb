@@ -42,6 +42,8 @@ RSpec.describe 'AWS instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::Aws::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
+      it_behaves_like 'measured span for integration', false
+
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
@@ -54,7 +56,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('path')).to eq('/')
         expect(span.get_tag('host')).to eq('s3.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('GET')
-        expect(span.get_tag('http.status_code')).to eq(200)
+        expect(span.get_tag('http.status_code')).to eq('200')
       end
 
       it 'returns the correct response' do

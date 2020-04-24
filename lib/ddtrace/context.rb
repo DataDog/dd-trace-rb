@@ -1,6 +1,9 @@
 require 'thread'
 require 'ddtrace/diagnostics/health'
 
+require 'ddtrace/context_flush'
+require 'ddtrace/context_provider'
+
 module Datadog
   # \Context is used to keep track of a hierarchy of spans for the current
   # execution flow. During each logical execution, the same \Context is
@@ -92,12 +95,12 @@ module Datadog
         if @max_length > 0 && @trace.length >= @max_length
           # Detach the span from any context, it's being dropped and ignored.
           span.context = nil
-          Datadog::Logger.log.debug("context full, ignoring span #{span.name}")
+          Datadog.logger.debug("context full, ignoring span #{span.name}")
 
           # If overflow has already occurred, don't send this metric.
           # Prevents metrics spam if buffer repeatedly overflows for the same trace.
           unless @overflow
-            Diagnostics::Health.metrics.error_context_overflow(1, tags: ["max_length:#{@max_length}"])
+            Datadog.health_metrics.error_context_overflow(1, tags: ["max_length:#{@max_length}"])
             @overflow = true
           end
 
@@ -121,14 +124,14 @@ module Datadog
         set_current_span(span.parent)
         return if span.tracer.nil?
         if span.parent.nil? && !all_spans_finished?
-          if Datadog::Logger.debug_logging
+          if Datadog.configuration.diagnostics.debug
             opened_spans = @trace.length - @finished_spans
-            Datadog::Logger.log.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
+            Datadog.logger.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
           end
 
           @trace.reject(&:finished?).group_by(&:name).each do |unfinished_span_name, unfinished_spans|
-            Datadog::Logger.log.debug("unfinished span: #{unfinished_spans.first}") if Datadog::Logger.debug_logging
-            Diagnostics::Health.metrics.error_unfinished_spans(
+            Datadog.logger.debug("unfinished span: #{unfinished_spans.first}") if Datadog.configuration.diagnostics.debug
+            Datadog.health_metrics.error_unfinished_spans(
               unfinished_spans.length,
               tags: ["name:#{unfinished_span_name}"]
             )
@@ -145,6 +148,13 @@ module Datadog
       end
     end
 
+    # @@return [Numeric] numbers of finished spans
+    def finished_span_count
+      @mutex.synchronize do
+        @finished_spans
+      end
+    end
+
     # Returns true if the context is sampled, that is, if it should be kept
     # and sent to the trace agent.
     def sampled?
@@ -154,25 +164,64 @@ module Datadog
     end
 
     # Returns both the trace list generated in the current context and
-    # if the context is sampled or not. It returns nil, nil if the ``Context`` is
-    # not finished. If a trace is returned, the \Context will be reset so that it
+    # if the context is sampled or not.
+    #
+    # It returns +[nil,@sampled]+ if the \Context is
+    # not finished.
+    #
+    # If a trace is returned, the \Context will be reset so that it
     # can be re-used immediately.
     #
     # This operation is thread-safe.
+    #
+    # @return [Array<Array<Span>, Boolean>] finished trace and sampled flag
     def get
       @mutex.synchronize do
         trace = @trace
         sampled = @sampled
 
-        attach_sampling_priority if sampled && @sampling_priority
-        attach_origin if @origin
-
         # still return sampled attribute, even if context is not finished
         return nil, sampled unless all_spans_finished?
+
+        # Root span is finished at this point, we can configure it
+        annotate_for_flush!(@current_root_span)
 
         reset
         [trace, sampled]
       end
+    end
+
+    # Delete any span matching the condition. This is thread safe.
+    #
+    # @return [Array<Span>] deleted spans
+    def delete_span_if
+      @mutex.synchronize do
+        [].tap do |deleted_spans|
+          @trace.delete_if do |span|
+            finished = span.finished?
+
+            next unless yield span
+
+            deleted_spans << span
+
+            # We need to detach the span from the context, else, some code
+            # finishing it afterwards would mess up with the number of
+            # finished_spans and possibly cause other side effects.
+            span.context = nil
+            # Acknowledge there's one span less to finish, if needed.
+            # It's very important to keep this balanced.
+            @finished_spans -= 1 if finished
+
+            true
+          end
+        end
+      end
+    end
+
+    # Set tags to root span required for flush
+    def annotate_for_flush!(span)
+      attach_sampling_priority(span) if @sampled && @sampling_priority
+      attach_origin(span) if @origin
     end
 
     # Return a string representation of the context.
@@ -215,15 +264,15 @@ module Datadog
       @finished_spans > 0 && @trace.length == @finished_spans
     end
 
-    def attach_sampling_priority
-      @current_root_span.set_metric(
+    def attach_sampling_priority(span)
+      span.set_metric(
         Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
         @sampling_priority
       )
     end
 
-    def attach_origin
-      @current_root_span.set_tag(
+    def attach_origin(span)
+      span.set_tag(
         Ext::DistributedTracing::ORIGIN_KEY,
         @origin
       )
@@ -251,50 +300,6 @@ module Datadog
           yield span
         end
       end
-    end
-
-    # Delete any span matching the condition. This is thread safe.
-    def delete_span_if
-      @mutex.synchronize do
-        @trace.delete_if do |span|
-          finished = span.finished?
-          delete_span = yield span
-          if delete_span
-            # We need to detach the span from the context, else, some code
-            # finishing it afterwards would mess up with the number of
-            # finished_spans and possibly cause other side effects.
-            span.context = nil
-            # Acknowledge there's one span less to finish, if needed.
-            # It's very important to keep this balanced.
-            @finished_spans -= 1 if finished
-          end
-          delete_span
-        end
-      end
-    end
-  end
-
-  # ThreadLocalContext can be used as a tracer global reference to create
-  # a different \Context for each thread. In synchronous tracer, this
-  # is required to prevent multiple threads sharing the same \Context
-  # in different executions.
-  class ThreadLocalContext
-    # ThreadLocalContext can be used as a tracer global reference to create
-    # a different \Context for each thread. In synchronous tracer, this
-    # is required to prevent multiple threads sharing the same \Context
-    # in different executions.
-    def initialize
-      self.local = Datadog::Context.new
-    end
-
-    # Override the thread-local context with a new context.
-    def local=(ctx)
-      Thread.current[:datadog_context] = ctx
-    end
-
-    # Return the thread-local context.
-    def local
-      Thread.current[:datadog_context] ||= Datadog::Context.new
     end
   end
 end

@@ -21,7 +21,7 @@ module Datadog
 
               datadog_render_partial(template)
             rescue StandardError => e
-              Datadog::Logger.log.debug(e.message)
+              Datadog.logger.debug(e.message)
             end
 
             # execute the original function anyway
@@ -37,6 +37,9 @@ module Datadog
                 Ext::TAG_TEMPLATE_NAME,
                 template_name
               )
+
+              # Measure service stats
+              Contrib::Analytics.set_measured(active_datadog_span)
             end
           end
 

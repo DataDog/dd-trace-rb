@@ -3,6 +3,7 @@ require 'ddtrace/ext/app_types'
 
 require 'ddtrace/contrib/active_record/integration'
 require 'ddtrace/contrib/active_support/integration'
+require 'ddtrace/contrib/action_cable/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/grape/endpoint'
@@ -23,6 +24,7 @@ module Datadog
           config = config_with_defaults
 
           activate_rack!(config)
+          activate_action_cable!(config)
           activate_active_support!(config)
           activate_action_pack!(config)
           activate_action_view!(config)
@@ -30,14 +32,20 @@ module Datadog
 
           # By default, default service would be guessed from the script
           # being executed, but here we know better, get it from Rails config.
-          config[:tracer].default_service = config[:service_name]
+          # Don't set this if service has been explicitly provided by the user.
+          Datadog.configuration.service ||= config[:service_name]
+
+          # Update the tracer if its not the default tracer.
+          if config[:tracer] != Datadog.configuration.tracer
+            config[:tracer].default_service = config[:service_name]
+          end
         end
 
         def self.config_with_defaults
           # We set defaults here instead of in the patcher because we need to wait
           # for the Rails application to be fully initialized.
           Datadog.configuration[:rails].tap do |config|
-            config[:service_name] ||= Utils.app_name
+            config[:service_name] ||= (Datadog.configuration.service || Utils.app_name)
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"
@@ -61,6 +69,16 @@ module Datadog
           Datadog.configuration.use(
             :active_support,
             cache_service: config[:cache_service],
+            tracer: config[:tracer]
+          )
+        end
+
+        def self.activate_action_cable!(config)
+          return unless defined?(::ActionCable)
+
+          Datadog.configuration.use(
+            :action_cable,
+            service_name: "#{config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}",
             tracer: config[:tracer]
           )
         end

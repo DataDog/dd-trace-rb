@@ -7,6 +7,10 @@ class ClientTracerTest < TracerTestBase
     def perform(); end
   end
 
+  class DelayableClass
+    def self.do_work; end
+  end
+
   def setup
     super
 
@@ -20,6 +24,7 @@ class ClientTracerTest < TracerTestBase
     end
 
     Sidekiq::Testing.server_middleware.clear
+    Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
   end
 
   def test_empty
@@ -41,6 +46,7 @@ class ClientTracerTest < TracerTestBase
     assert_equal('default', child_span.get_tag('sidekiq.job.queue'))
     assert_equal(0, child_span.status)
     assert_equal(parent_span, child_span.parent)
+    assert_nil(child_span.get_metric('_dd.measured'))
   end
 
   def test_empty_parentless
@@ -55,5 +61,11 @@ class ClientTracerTest < TracerTestBase
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
     assert_equal(0, span.status)
     assert_nil(span.parent)
+    assert_nil(span.get_metric('_dd.measured'))
+  end
+
+  def test_delayed_extensions
+    DelayableClass.delay.do_work
+    assert_equal('ClientTracerTest::DelayableClass.do_work', @writer.spans.first.resource)
   end
 end

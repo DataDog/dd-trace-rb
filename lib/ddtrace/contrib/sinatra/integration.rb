@@ -9,18 +9,20 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('1.4')
+
         register_as :sinatra
 
         def self.version
           Gem.loaded_specs['sinatra'] && Gem.loaded_specs['sinatra'].version
         end
 
-        def self.present?
-          super && defined?(::Sinatra)
+        def self.loaded?
+          !defined?(::Sinatra).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('1.4.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

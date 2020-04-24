@@ -9,18 +9,20 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('1.7.0')
+
         register_as :grpc, auto_patch: true
 
         def self.version
           Gem.loaded_specs['grpc'] && Gem.loaded_specs['grpc'].version
         end
 
-        def self.present?
-          super && defined?(::GRPC)
+        def self.loaded?
+          !defined?(::GRPC).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('0.10.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

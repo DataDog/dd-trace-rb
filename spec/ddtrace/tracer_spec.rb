@@ -6,6 +6,98 @@ RSpec.describe Datadog::Tracer do
   let(:writer) { FauxWriter.new }
   subject(:tracer) { described_class.new(writer: writer) }
 
+  describe '#configure' do
+    subject!(:configure) { tracer.configure(options) }
+    let(:options) { {} }
+
+    it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Finished) }
+
+    context 'with partial flushing' do
+      let(:options) { { partial_flush: true } }
+
+      it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Partial) }
+    end
+  end
+
+  describe '#tags' do
+    subject(:tags) { tracer.tags }
+    let(:env_tags) { {} }
+
+    before { allow(Datadog.configuration).to receive(:tags).and_return(env_tags) }
+
+    context 'by default' do
+      it { is_expected.to eq env_tags }
+    end
+
+    context 'when equivalent String and Symbols are added' do
+      shared_examples 'equivalent tags' do
+        it 'retains the tag only as a String' do
+          is_expected.to include('host')
+          is_expected.to_not include(:host)
+        end
+
+        it 'retains only the last value' do
+          is_expected.to include('host' => 'b')
+        end
+      end
+
+      context 'with #set_tags' do
+        it_behaves_like 'equivalent tags' do
+          before do
+            tracer.set_tags('host' => 'a')
+            tracer.set_tags(host: 'b')
+          end
+        end
+
+        it_behaves_like 'equivalent tags' do
+          before do
+            tracer.set_tags(host: 'a')
+            tracer.set_tags('host' => 'b')
+          end
+        end
+      end
+    end
+  end
+
+  describe '#start_span' do
+    subject(:start_span) { tracer.start_span(name, options) }
+    let(:span) { start_span }
+    let(:name) { 'span.name' }
+    let(:options) { {} }
+
+    it { is_expected.to be_a_kind_of(Datadog::Span) }
+
+    context 'when :tags are given' do
+      let(:options) { super().merge(tags: tags) }
+      let(:tags) { { tag_name => tag_value } }
+      let(:tag_name) { 'my-tag' }
+      let(:tag_value) { 'my-value' }
+
+      it { expect(span.get_tag(tag_name)).to eq(tag_value) }
+
+      context 'and default tags are set on the tracer' do
+        let(:default_tags) { { default_tag_name => default_tag_value } }
+        let(:default_tag_name) { 'default_tag' }
+        let(:default_tag_value) { 'default_value' }
+
+        before { tracer.set_tags(default_tags) }
+
+        it 'includes both :tags and default tags' do
+          expect(span.get_tag(default_tag_name)).to eq(default_tag_value)
+          expect(span.get_tag(tag_name)).to eq(tag_value)
+        end
+
+        context 'which conflicts with :tags' do
+          let(:tag_name) { default_tag_name }
+
+          it 'uses the tag from :tags' do
+            expect(span.get_tag(tag_name)).to eq(tag_value)
+          end
+        end
+      end
+    end
+  end
+
   describe '#trace' do
     let(:name) { 'span.name' }
     let(:options) { {} }
@@ -152,6 +244,37 @@ RSpec.describe Datadog::Tracer do
     it 'generates a single deprecation warnings' do
       expect(log_buffer.length).to be > 1
       expect(log_buffer).to contain_line_with('Usage of set_service_info has been deprecated')
+    end
+  end
+
+  describe '#record' do
+    subject(:record) { tracer.record(context) }
+
+    let(:context) { instance_double(Datadog::Context) }
+
+    context 'with trace' do
+      let(:trace) { [Datadog::Span.new(tracer, 'dummy')] }
+
+      before do
+        expect_any_instance_of(Datadog::ContextFlush::Finished)
+          .to receive(:consume!).with(context).and_return(trace)
+
+        subject
+      end
+
+      it { expect(writer.spans).to eq(trace) }
+    end
+
+    context 'with empty trace' do
+      let(:trace) { [] }
+
+      it { expect(writer.spans).to be_empty }
+    end
+
+    context 'with nil trace' do
+      let(:trace) { nil }
+
+      it { expect(writer.spans).to be_empty }
     end
   end
 end

@@ -19,6 +19,7 @@ class TracedAPITest < BaseAPITest
     assert_equal(render.resource, 'grape.endpoint_render')
     assert_equal(render.status, 0)
     assert_equal(render.parent, run)
+    assert_equal(render.get_metric('_dd.measured'), 1.0)
 
     assert_equal(run.name, 'grape.endpoint_run')
     assert_equal(run.span_type, 'web')
@@ -26,6 +27,7 @@ class TracedAPITest < BaseAPITest
     assert_equal(run.resource, 'TestingAPI#success')
     assert_equal(run.status, 0)
     assert_nil(run.parent)
+    assert_equal(run.get_metric('_dd.measured'), 1.0)
   end
 
   def test_traced_api_exception
@@ -48,6 +50,7 @@ class TracedAPITest < BaseAPITest
     assert_equal(render.get_tag('error.msg'), 'Ouch!')
     assert_includes(render.get_tag('error.stack'), '<class:TestingAPI>')
     assert_equal(render.parent, run)
+    assert_equal(render.get_metric('_dd.measured'), 1.0)
 
     assert_equal(run.name, 'grape.endpoint_run')
     assert_equal(run.span_type, 'web')
@@ -58,6 +61,7 @@ class TracedAPITest < BaseAPITest
     assert_equal(run.get_tag('error.msg'), 'Ouch!')
     assert_includes(run.get_tag('error.stack'), '<class:TestingAPI>')
     assert_nil(run.parent)
+    assert_equal(run.get_metric('_dd.measured'), 1.0)
   end
 
   def test_traced_api_before_after_filters
@@ -78,6 +82,7 @@ class TracedAPITest < BaseAPITest
     assert_equal(before.status, 0)
     assert_equal(before.parent, run)
     assert(before.to_hash[:duration] > 0.01)
+    assert_equal(before.get_metric('_dd.measured'), 1.0)
 
     assert_equal(render.name, 'grape.endpoint_render')
     assert_equal(render.span_type, 'template')
@@ -93,6 +98,7 @@ class TracedAPITest < BaseAPITest
     assert_equal(after.status, 0)
     assert_equal(after.parent, run)
     assert(after.to_hash[:duration] > 0.01)
+    assert_equal(after.get_metric('_dd.measured'), 1.0)
 
     assert_equal('grape.endpoint_run', run.name)
     assert_equal('web', run.span_type)

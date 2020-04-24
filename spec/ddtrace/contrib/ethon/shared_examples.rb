@@ -18,7 +18,7 @@ RSpec.shared_examples_for 'span' do
   end
 
   it 'has tag with status code' do
-    expected_status = status ? status.to_f : nil
+    expected_status = status ? status.to_s : nil
     expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(expected_status)
   end
 
@@ -56,7 +56,7 @@ RSpec.shared_examples_for 'instrumented request' do
         tracer.writer.spans.select { |span| span.name == 'ethon.request' }.first
       end
 
-      context 'response is successfull' do
+      context 'response is successful' do
         before { request }
 
         it_behaves_like 'span'
@@ -68,7 +68,7 @@ RSpec.shared_examples_for 'instrumented request' do
         before { request }
 
         it 'has tag with status code' do
-          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_f)
+          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
         end
 
         it 'has error set' do
@@ -88,7 +88,7 @@ RSpec.shared_examples_for 'instrumented request' do
         before { request }
 
         it 'has tag with status code' do
-          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_f)
+          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
         end
 
         it 'has no error set' do

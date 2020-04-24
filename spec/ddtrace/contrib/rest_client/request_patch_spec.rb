@@ -71,7 +71,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
           end
 
           it 'is http type' do
@@ -90,6 +90,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             let(:analytics_enabled_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_ENABLED }
             let(:analytics_sample_rate_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
+
+          it_behaves_like 'measured span for integration', false
         end
 
         context 'response has internal server error status' do
@@ -100,7 +102,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
           end
 
           it 'has error set' do
@@ -122,7 +124,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
+            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
           end
 
           it 'error is not set' do

@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/rails/rails_helper'
+require 'ddtrace/contrib/analytics_examples'
 
 RSpec.describe 'Rails database' do
   include_context 'Rails test application'
@@ -50,6 +51,10 @@ RSpec.describe 'Rails database' do
       before { skip unless Datadog::Contrib::ActiveRecord::Events::Instantiation.supported? }
 
       subject! { Article.all.entries }
+
+      it_behaves_like 'measured span for integration', true do
+        let(:span) { spans.find { |s| s.name == 'active_record.instantiation' } }
+      end
 
       it do
         expect(spans).to have(2).items

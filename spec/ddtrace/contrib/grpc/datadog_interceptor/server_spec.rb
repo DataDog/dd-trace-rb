@@ -36,6 +36,8 @@ RSpec.describe 'tracing on the server connection' do
       let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
+
+    it_behaves_like 'measured span for integration', true
   end
 
   describe '#request_response' do

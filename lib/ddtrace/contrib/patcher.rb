@@ -28,17 +28,17 @@ module Datadog
             begin
               super.tap do
                 # Emit a metric
-                Diagnostics::Health.metrics.instrumentation_patched(1, tags: default_tags)
+                Datadog.health_metrics.instrumentation_patched(1, tags: default_tags)
               end
             rescue StandardError => e
               # Log the error
-              Datadog::Logger.log.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
+              Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
 
               # Emit a metric
               tags = default_tags
               tags << "error:#{e.class.name}"
 
-              Diagnostics::Health.metrics.error_instrumentation_patch(1, tags: tags)
+              Datadog.health_metrics.error_instrumentation_patch(1, tags: tags)
             end
           end
         end

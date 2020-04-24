@@ -72,7 +72,7 @@ module Datadog
         # TODO: Datadog::Debug::HealthMetrics.increment('tracer.encoder.trace.encode')
         if encoded.size > max_size
           # This single trace is too large, we can't flush it
-          Datadog::Logger.log.debug { "Dropping trace. Payload too large: '#{trace.map(&:to_hash)}'" }
+          Datadog.logger.debug { "Dropping trace. Payload too large: '#{trace.map(&:to_hash)}'" }
           return nil
         end
 
@@ -108,6 +108,36 @@ module Datadog
 
       def join(encoded_traces)
         "[#{encoded_traces.join(',')}]"
+      end
+
+      # New version of JSON Encoder that is API compliant.
+      module V2
+        extend JSONEncoder
+
+        ENCODED_IDS = [
+          :trace_id,
+          :span_id,
+          :parent_id
+        ].freeze
+
+        module_function
+
+        def encode_traces(traces)
+          trace_hashes = traces.collect do |trace|
+            # Convert each trace to hash
+            trace.map(&:to_hash).tap do |spans|
+              # Convert IDs to hexadecimal
+              spans.each do |span|
+                ENCODED_IDS.each do |id|
+                  span[id] = span[id].to_s(16) if span.key?(id)
+                end
+              end
+            end
+          end
+
+          # Wrap traces & encode them
+          encode(traces: trace_hashes)
+        end
       end
     end
 

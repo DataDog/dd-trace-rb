@@ -36,7 +36,7 @@ RSpec.describe 'Rack integration configuration' do
         use Datadog::Contrib::Rack::TraceMiddleware
 
         map '/' do
-          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
+          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
         end
       end.to_app
     end
@@ -47,6 +47,11 @@ RSpec.describe 'Rack integration configuration' do
     before { is_expected.to be_ok }
     let(:analytics_enabled_var) { Datadog::Contrib::Rack::Ext::ENV_ANALYTICS_ENABLED }
     let(:analytics_sample_rate_var) { Datadog::Contrib::Rack::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+  end
+
+  it_behaves_like 'measured span for integration', true do
+    include_context 'an incoming HTTP request'
+    before { is_expected.to be_ok }
   end
 
   describe 'request queueing' do
@@ -84,7 +89,7 @@ RSpec.describe 'Rack integration configuration' do
         expect(rack_span.service).to eq(Datadog.configuration[:rack][:service_name])
         expect(rack_span.resource).to eq('GET 200')
         expect(rack_span.get_tag('http.method')).to eq('GET')
-        expect(rack_span.get_tag('http.status_code')).to eq(200)
+        expect(rack_span.get_tag('http.status_code')).to eq('200')
         expect(rack_span.get_tag('http.url')).to eq('/')
         expect(rack_span.status).to eq(0)
 
@@ -103,7 +108,7 @@ RSpec.describe 'Rack integration configuration' do
         expect(span.service).to eq(Datadog.configuration[:rack][:service_name])
         expect(span.resource).to eq('GET 200')
         expect(span.get_tag('http.method')).to eq('GET')
-        expect(span.get_tag('http.status_code')).to eq(200)
+        expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('http.url')).to eq('/')
         expect(span.status).to eq(0)
 
