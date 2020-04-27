@@ -110,9 +110,9 @@ module Datadog
 
         def send_traces(traces)
           encoder = current_api.encoder
-
           chunker = Datadog::Transport::Traces::Chunker.new(encoder)
-          chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
+
+          responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
             request = Datadog::Transport::Traces::Request.new(encoded_traces, trace_count)
 
             client.send_payload(request).tap do |response|
@@ -122,6 +122,10 @@ module Datadog
               end
             end
           end.force
+
+          Datadog.health_metrics.transport_chunked(responses.size, tags: ["max_size:#{chunker.max_size}"])
+
+          responses
         end
 
         def stats

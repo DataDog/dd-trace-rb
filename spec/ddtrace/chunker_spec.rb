@@ -5,8 +5,6 @@ require 'ddtrace/chunker'
 
 RSpec.describe Datadog::Chunker do
   context '.chunk_by_size' do
-    include_context 'health metrics'
-
     subject(:encode) { described_class.chunk_by_size(list, max_chunk_size) }
     let(:list) { %w[1 22 333] }
     let(:max_chunk_size) { 3 }
@@ -20,8 +18,6 @@ RSpec.describe Datadog::Chunker do
 
       it 'returns single element exceeding maximum' do
         expect(subject.to_a).to eq([['55555']])
-
-        expect(health_metrics).to have_received(:transport_chunked).with(1, tags: ['max_size:3'])
       end
     end
 

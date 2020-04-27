@@ -21,10 +21,7 @@ module Datadog
         size = elem.size
         chunk_agg += size
         if chunk_agg > max_chunk_size
-          # Can't fit element in current chunk
-          Datadog.health_metrics.transport_chunked(1, tags: ["max_size:#{max_chunk_size}"])
-
-          # Start a new chunk
+          # Can't fit element in current chunk, start a new one.
           chunk_agg = size
           true
         else

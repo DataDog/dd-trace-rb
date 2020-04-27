@@ -137,6 +137,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
   describe '#send_traces' do
     include_context 'APIs with fallbacks'
+    include_context 'health metrics'
 
     subject(:send_traces) { transport.send_traces(traces) }
 
@@ -146,18 +147,19 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
     let(:encoded_traces) { double }
     let(:trace_count) { 1 }
+    let(:chunks) { [[encoded_traces, trace_count]] }
 
     let(:request) { instance_double(Datadog::Transport::Traces::Request) }
     let(:client_v2) { instance_double(Datadog::Transport::HTTP::Client) }
     let(:client_v1) { instance_double(Datadog::Transport::HTTP::Client) }
 
-    let(:chunker) { instance_double(Datadog::Transport::Traces::Chunker) }
+    let(:chunker) { instance_double(Datadog::Transport::Traces::Chunker, max_size: 1) }
 
     before do
       allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v1).and_return(chunker)
       allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v2).and_return(chunker)
 
-      allow(chunker).to receive(:encode_in_chunks).and_return([[encoded_traces, trace_count]].lazy)
+      allow(chunker).to receive(:encode_in_chunks).and_return(chunks.lazy)
 
       allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v1).and_return(client_v1)
       allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v2).and_return(client_v2)
@@ -173,6 +175,18 @@ RSpec.describe Datadog::Transport::Traces::Transport do
       it 'sends to only the current API once' do
         is_expected.to eq(responses)
         expect(client_v2).to have_received(:send_payload).with(request).once
+
+        expect(health_metrics).to have_received(:transport_chunked).with(1, tags: ['max_size:1'])
+      end
+
+      context 'with many chunks' do
+        let(:chunks) { [[], []] }
+        let(:responses) { [response, response] }
+
+        it do
+          is_expected.to eq(responses)
+          expect(health_metrics).to have_received(:transport_chunked).with(2, tags: ['max_size:1'])
+        end
       end
     end
 
@@ -187,6 +201,8 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
         expect(client_v2).to have_received(:send_payload).with(request).once
         expect(client_v1).to have_received(:send_payload).with(request).once
+
+        expect(health_metrics).to have_received(:transport_chunked).with(1, tags: ['max_size:1'])
       end
     end
 
@@ -201,6 +217,8 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
         expect(client_v2).to have_received(:send_payload).with(request).once
         expect(client_v1).to have_received(:send_payload).with(request).once
+
+        expect(health_metrics).to have_received(:transport_chunked).with(1, tags: ['max_size:1'])
       end
     end
   end
