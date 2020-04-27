@@ -111,8 +111,8 @@ module Datadog
         def send_traces(traces)
           encoder = current_api.encoder
 
-          chuncker = Datadog::Transport::Traces::Chunker.new(encoder)
-          chuncker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
+          chunker = Datadog::Transport::Traces::Chunker.new(encoder)
+          chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
             request = Datadog::Transport::Traces::Request.new(encoded_traces, trace_count)
 
             client.send_payload(request).tap do |response|
