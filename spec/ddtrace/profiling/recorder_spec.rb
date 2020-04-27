@@ -65,26 +65,32 @@ RSpec.describe Datadog::Profiling::Recorder do
 
   describe '#pop' do
     include_context 'test buffer'
-    subject(:pop) { recorder.pop(event_class) }
+    subject(:pop) { recorder.pop }
 
-    before { allow(buffer).to receive(:pop) }
+    before { allow(buffer).to receive(:pop).and_return(events) }
 
-    context 'given an event class' do
+    context 'when the Recorder has a registered event class' do
+      let(:event_classes) { [event_class] }
       let(:event_class) { Class.new(Datadog::Profiling::Event) }
 
-      context 'when event class has not been registered' do
-        it do
-          expect { pop }.to raise_error(described_class::UnknownEventError)
+      context 'whose buffer returns events' do
+        let(:events) { [event_class.new, event_class.new] }
+        it { is_expected.to be_a_kind_of(Array) }
+        it { is_expected.to have(1).items }
+        it { is_expected.to include(kind_of(described_class::Flush)) }
+
+        it 'has a flush with the events' do
+          expect(pop.first).to have_attributes(
+            event_class: event_class,
+            events: events
+          )
         end
       end
 
-      context 'when a matching event has been pushed' do
-        let(:event_classes) { [event_class] }
-
-        it do
-          pop
-          expect(buffer).to have_received(:pop)
-        end
+      context 'whose buffer returns no events' do
+        let(:events) { [] }
+        it { is_expected.to be_a_kind_of(Array) }
+        it { is_expected.to be_empty }
       end
     end
   end
