@@ -19,10 +19,15 @@ module Datadog
         @buffers[event.class].push(event)
       end
 
-      def pop(event_class)
-        raise UnknownEventError, event_class unless @buffers.key?(event_class)
-        @buffers[event_class].pop
+      def pop
+        @buffers.collect do |event_class, buffer|
+          events = buffer.pop
+          next if events.empty?
+          Flush.new(event_class, events)
+        end.compact
       end
+
+      Flush = Struct.new(:event_class, :events).freeze
 
       # Error when event of an unknown type is used with the Recorder
       class UnknownEventError < StandardError
