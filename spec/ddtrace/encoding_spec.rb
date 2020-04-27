@@ -32,7 +32,7 @@ RSpec.describe Datadog::Encoding do
     end
   end
 
-  context 'Msgpack encoding' do
+  context 'JSON encoding' do
     let(:encoder) { Datadog::Encoding::JSONEncoder }
     subject(:deserialized) { JSON.parse(encoded) }
 
