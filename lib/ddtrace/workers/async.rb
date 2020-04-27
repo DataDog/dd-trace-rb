@@ -18,7 +18,7 @@ module Datadog
         # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
-            start { self.result = super(*args) } unless started?
+            start_async { self.result = super(*args) } unless started?
           end
         end
 
@@ -101,7 +101,7 @@ module Datadog
           @worker ||= nil
         end
 
-        def start(&block)
+        def start_async(&block)
           mutex.synchronize do
             return if running?
             if forked?
