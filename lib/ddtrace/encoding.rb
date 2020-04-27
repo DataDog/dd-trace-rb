@@ -62,7 +62,7 @@ module Datadog
         packer = MessagePack::Packer.new
         packer.write_array_header(encoded_data.size)
 
-        (packer.to_a + encoded_data).join
+        (packer.buffer.to_a + encoded_data).join
       end
     end
   end
