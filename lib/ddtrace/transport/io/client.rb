@@ -50,8 +50,8 @@ module Datadog
 
         protected
 
-        def encode_data(encoder, request)
-          request.parcel.encode_with(encoder)
+        def encode_request(encoder, request)
+          encoder.encode(request.parcel.data)
         end
 
         def write_data(out, data)
@@ -62,13 +62,13 @@ module Datadog
 
         def send_default_request(out, request)
           # Encode data
-          data = encode_data(encoder, request)
+          data = encode_data(encoder, request.parcel.data)
 
           # Write to IO
           result = write_data(out, data)
 
           # Generate a response
-          IO::Response.new(result)
+          IO::Response.new(result, request.parcel.trace_count)
         end
       end
     end

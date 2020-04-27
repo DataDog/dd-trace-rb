@@ -56,11 +56,11 @@ module Datadog
         # Encodes a list of traces in chunks.
         # Before serializing, all traces are normalized. Trace nesting is not changed.
         #
-        # @param traces [Array<Trace>] list of traces
-        # @return [Enumerator[Array[Bytes,Integer]]] list of encoded chunks: each containing a byte array and
+        # @param traces [Enumerable<Trace>] list of traces
+        # @return [Enumerable[Array[Bytes,Integer]]] list of encoded chunks: each containing a byte array and
         #   number of traces
         def encode_in_chunks(traces)
-          encoded_traces = traces.map { |t| encode_one(t) }.compact
+          encoded_traces = traces.map { |t| encode_one(t) }.reject(&:nil?)
 
           Datadog::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
             [encoder.join(chunk), chunk.size]
@@ -112,16 +112,16 @@ module Datadog
           encoder = current_api.encoder
 
           chuncker = Datadog::Transport::Traces::Chunker.new(encoder)
-          chuncker.encode_in_chunks(traces).map do |encoded_traces, trace_count|
+          chuncker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
             request = Datadog::Transport::Traces::Request.new(encoded_traces, trace_count)
 
             client.send_payload(request).tap do |response|
               if downgrade?(response)
                 downgrade!
-                return send_traces(traces)
+                return send_traces(traces.lazy)
               end
             end
-          end
+          end.force
         end
 
         def stats

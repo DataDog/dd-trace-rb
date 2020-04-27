@@ -19,9 +19,9 @@ module Datadog
             # Build a request
             req = Transport::Traces::Request.new(traces, traces.count)
 
-            send_request(req) do |out, request|
+            [send_request(req) do |out, request|
               # Encode trace data
-              data = encode_data(encoder, request)
+              data = encode_data(encoder, request.parcel.data)
 
               # Write to IO
               result = if block_given?
@@ -31,13 +31,48 @@ module Datadog
                        end
 
               # Generate response
-              Traces::Response.new(result)
+              Traces::Response.new(result, 1)
+            end]
+          end
+        end
+
+        # Encoder for IO-specific trace encoding
+        # API compliant when used with {JSONEncoder}.
+        module Encoder
+          ENCODED_IDS = [
+            :trace_id,
+            :span_id,
+            :parent_id
+          ].freeze
+
+          # Encodes a list of traces
+          def encode_data(encoder, traces)
+            trace_hashes = traces.map do |trace|
+              encode_trace(trace)
+            end
+
+            # Wrap traces & encode them
+            encoder.encode(traces: trace_hashes)
+          end
+
+          private
+
+          def encode_trace(trace)
+            # Convert each trace to hash
+            trace.map(&:to_hash).tap do |spans|
+              # Convert IDs to hexadecimal
+              spans.each do |span|
+                ENCODED_IDS.each do |id|
+                  span[id] = span[id].to_s(16) if span.key?(id)
+                end
+              end
             end
           end
         end
 
         # Add traces behavior to transport components
         IO::Client.send(:include, Traces::Client)
+        IO::Client.send(:include, Traces::Encoder)
       end
     end
   end

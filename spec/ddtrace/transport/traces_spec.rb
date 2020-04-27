@@ -65,32 +65,42 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
   context '#encode_in_chunks' do
     subject(:encode_in_chunks) { chunker.encode_in_chunks(traces) }
 
-    let(:traces) { get_test_traces(3) }
+    context 'with traces' do
+      let(:traces) { get_test_traces(3) }
 
-    before do
-      allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[0]).and_return('1')
-      allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[1]).and_return('22')
-      allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[2]).and_return('333')
-      allow(encoder).to receive(:join) { |arr| arr.join(',') }
-    end
-
-    it do
-      is_expected.to eq([['1,22,333', 3]])
-    end
-
-    context 'with batching required' do
-      let(:max_size) { 3 }
+      before do
+        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[0]).and_return('1')
+        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[1]).and_return('22')
+        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[2]).and_return('333')
+        allow(encoder).to receive(:join) { |arr| arr.join(',') }
+      end
 
       it do
-        is_expected.to eq([['1,22', 2], ['333', 1]])
+        is_expected.to eq([['1,22,333', 3]])
+      end
+
+      context 'with batching required' do
+        let(:max_size) { 3 }
+
+        it do
+          is_expected.to eq([['1,22', 2], ['333', 1]])
+        end
+      end
+
+      context 'with individual traces too large' do
+        let(:max_size) { 1 }
+
+        it 'drops all traces except the smallest' do
+          is_expected.to eq([['1', 1]])
+        end
       end
     end
 
-    context 'with individual traces too large' do
-      let(:max_size) { 1 }
+    context 'with a lazy enumerator' do
+      let(:traces) { [].lazy }
 
-      it 'drops all traces except the smallest' do
-        is_expected.to eq([['1', 1]])
+      it 'does not force enumerator expansion' do
+        expect(subject).to be_a(Enumerator::Lazy)
       end
     end
   end
@@ -144,7 +154,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
       allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v1).and_return(chunker)
       allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v2).and_return(chunker)
 
-      allow(chunker).to receive(:encode_in_chunks).and_return([[encoded_traces, trace_count]])
+      allow(chunker).to receive(:encode_in_chunks).and_return([[encoded_traces, trace_count]].lazy)
 
       allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v1).and_return(client_v1)
       allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v2).and_return(client_v2)

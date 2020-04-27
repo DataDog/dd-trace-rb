@@ -9,7 +9,7 @@ RSpec.describe 'Datadog::Transport::HTTP integration tests' do
   describe 'HTTP#default' do
     subject(:transport) { Datadog::Transport::HTTP.default(&client_options) }
     let(:client_options) { proc { |_client| } }
-    it { is_expected.to be_a(Datadog::Transport::HTTP::Transport) }
+    it { is_expected.to be_a(Datadog::Transport::Traces::Transport) }
 
     describe '#send_traces' do
       subject(:responses) { transport.send_traces(traces) }

@@ -20,5 +20,13 @@ RSpec.describe Datadog::Chunker do
         expect(subject.to_a).to eq([['55555']])
       end
     end
+
+    context 'with a lazy enumerator' do
+      let(:list) { [].lazy }
+
+      it 'does not force enumerator expansion' do
+        expect(subject).to be_a(Enumerator::Lazy)
+      end
+    end
   end
 end

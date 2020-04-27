@@ -14,7 +14,7 @@ module Datadog
     #
     # @param list [Enumerable] list of elements
     # @param max_chunk_size [Numeric] maximum acceptable chunk size
-    # @return [Enumerator] lazy list of chunks
+    # @return [Enumerable] lazy list of chunks
     def chunk_by_size(list, max_chunk_size)
       chunk_agg = 0
       list.slice_before do |elem|

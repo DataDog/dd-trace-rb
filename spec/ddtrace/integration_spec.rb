@@ -375,7 +375,7 @@ RSpec.describe 'Tracer integration tests' do
 
       # Verify Transport::IO is configured
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
-      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder::V2)
+      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder)
 
       # Verify sampling is configured properly
       expect(tracer.writer.priority_sampler).to_not be nil
@@ -430,7 +430,7 @@ RSpec.describe 'Tracer integration tests' do
       )
 
       # Verify Transport::HTTP is configured
-      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::HTTP::Transport)
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
 
       # Verify sampling is configured properly
       expect(tracer.writer.priority_sampler).to_not be nil
