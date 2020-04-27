@@ -19,6 +19,8 @@ module Datadog
         count :queue_accepted_lengths, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED_LENGTHS
         count :queue_dropped, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_DROPPED
         count :traces_filtered, Ext::Diagnostics::Health::Metrics::METRIC_TRACES_FILTERED
+        count :transport_trace_too_large, Ext::Diagnostics::Health::Metrics::METRIC_TRANSPORT_TRACE_TOO_LARGE
+        count :transport_chunked, Ext::Diagnostics::Health::Metrics::METRIC_TRANSPORT_CHUNKED
         count :writer_cpu_time, Ext::Diagnostics::Health::Metrics::METRIC_WRITER_CPU_TIME
 
         gauge :queue_length, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_LENGTH

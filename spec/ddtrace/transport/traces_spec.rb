@@ -88,10 +88,13 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
       end
 
       context 'with individual traces too large' do
+        include_context 'health metrics'
+
         let(:max_size) { 1 }
 
         it 'drops all traces except the smallest' do
           is_expected.to eq([['1', 1]])
+          expect(health_metrics).to have_received(:transport_trace_too_large).with(1, tags: ['max_size:1']).twice
         end
       end
     end

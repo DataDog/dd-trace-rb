@@ -22,7 +22,7 @@ module Datadog
         chunk_agg += size
         if chunk_agg > max_chunk_size
           # Can't fit element in current chunk
-          # TODO Datadog::Debug::HealthMetrics.increment('tracer.chunker.chunked')
+          Datadog.health_metrics.transport_chunked(1, tags: ["max_size:#{max_chunk_size}"])
 
           # Start a new chunk
           chunk_agg = size

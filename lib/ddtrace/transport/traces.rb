@@ -75,7 +75,7 @@ module Datadog
           if encoded.size > max_size
             # This single trace is too large, we can't flush it
             Datadog.logger.debug { "Dropping trace. Payload too large: '#{trace.map(&:to_hash)}'" }
-            # TODO: Datadog::Debug::HealthMetrics.increment('tracer.encoder.trace.encode')
+            Datadog.health_metrics.transport_trace_too_large(1, tags: ["max_size:#{max_size}"])
 
             return nil
           end
