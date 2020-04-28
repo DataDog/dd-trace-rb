@@ -94,7 +94,7 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
 
         it 'drops all traces except the smallest' do
           is_expected.to eq([['1', 1]])
-          expect(health_metrics).to have_received(:transport_trace_too_large).with(1, tags: ['max_size:1']).twice
+          expect(health_metrics).to have_received(:transport_trace_too_large).with(1).twice
         end
       end
     end
@@ -176,7 +176,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
         is_expected.to eq(responses)
         expect(client_v2).to have_received(:send_payload).with(request).once
 
-        expect(health_metrics).to have_received(:transport_chunked).with(1, tags: ['max_size:1'])
+        expect(health_metrics).to have_received(:transport_chunked).with(1)
       end
 
       context 'with many chunks' do
@@ -185,7 +185,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
         it do
           is_expected.to eq(responses)
-          expect(health_metrics).to have_received(:transport_chunked).with(2, tags: ['max_size:1'])
+          expect(health_metrics).to have_received(:transport_chunked).with(2)
         end
       end
     end
@@ -202,7 +202,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
         expect(client_v2).to have_received(:send_payload).with(request).once
         expect(client_v1).to have_received(:send_payload).with(request).once
 
-        expect(health_metrics).to have_received(:transport_chunked).with(1, tags: ['max_size:1'])
+        expect(health_metrics).to have_received(:transport_chunked).with(1)
       end
     end
 
@@ -218,7 +218,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
         expect(client_v2).to have_received(:send_payload).with(request).once
         expect(client_v1).to have_received(:send_payload).with(request).once
 
-        expect(health_metrics).to have_received(:transport_chunked).with(1, tags: ['max_size:1'])
+        expect(health_metrics).to have_received(:transport_chunked).with(1)
       end
     end
   end
