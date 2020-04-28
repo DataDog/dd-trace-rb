@@ -118,7 +118,7 @@ module Datadog
             client.send_payload(request).tap do |response|
               if downgrade?(response)
                 downgrade!
-                return send_traces(traces.lazy)
+                return send_traces(traces)
               end
             end
           end.force
