@@ -10,18 +10,17 @@ module Datadog
       module Traces
         # Response from HTTP transport for traces
         class Response < IO::Response
-          include Transport::Traces::Response
         end
 
         # Extensions for HTTP client
         module Client
           def send_traces(traces)
             # Build a request
-            req = Transport::Traces::Request.new(traces, traces.count)
+            req = Transport::Request.new(Parcel.new(traces))
 
             [send_request(req) do |out, request|
               # Encode trace data
-              data = encode_data(encoder, request.parcel.data)
+              data = encode_data(encoder, request)
 
               # Write to IO
               result = if block_given?
@@ -31,7 +30,7 @@ module Datadog
                        end
 
               # Generate response
-              Traces::Response.new(result, 1)
+              Traces::Response.new(result)
             end]
           end
         end
@@ -46,7 +45,7 @@ module Datadog
           ].freeze
 
           # Encodes a list of traces
-          def encode_data(encoder, traces)
+          def encode_traces(encoder, traces)
             trace_hashes = traces.map do |trace|
               encode_trace(trace)
             end
@@ -70,9 +69,22 @@ module Datadog
           end
         end
 
+        # Transfer object for list of traces
+        class Parcel
+          include Transport::Parcel
+          include Encoder
+
+          def count
+            data.length
+          end
+
+          def encode_with(encoder)
+            encode_traces(encoder, data)
+          end
+        end
+
         # Add traces behavior to transport components
         IO::Client.send(:include, Traces::Client)
-        IO::Client.send(:include, Traces::Encoder)
       end
     end
   end

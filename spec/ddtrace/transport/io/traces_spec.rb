@@ -10,13 +10,13 @@ RSpec.describe Datadog::Transport::IO::Client do
   describe '#send_traces' do
     context 'given traces' do
       subject(:send_traces) { client.send_traces(traces) }
-      let(:traces) { instance_double(Array, count: 123) }
+      let(:traces) { instance_double(Array) }
       let(:encoded_traces) { double('encoded traces') }
       let(:result) { double('IO result') }
 
       before do
-        expect(client).to receive(:encode_data)
-          .with(encoder, traces)
+        expect_any_instance_of(Datadog::Transport::IO::Traces::Parcel).to receive(:encode_with)
+          .with(encoder)
           .and_return(encoded_traces)
 
         expect(client.out).to receive(:puts)
@@ -35,13 +35,13 @@ RSpec.describe Datadog::Transport::IO::Client do
 
     context 'given traces and a block' do
       subject(:send_traces) { client.send_traces(traces) { |out, data| target.write(out, data) } }
-      let(:traces) { instance_double(Array, count: 123) }
+      let(:traces) { instance_double(Array) }
       let(:encoded_traces) { double('encoded traces') }
       let(:result) { double('IO result') }
       let(:target) { double('target') }
 
       before do
-        expect(client).to receive(:encode_data)
+        expect_any_instance_of(Datadog::Transport::IO::Traces::Parcel).to receive(:encode_traces)
           .with(encoder, traces)
           .and_return(encoded_traces)
 
@@ -59,7 +59,9 @@ RSpec.describe Datadog::Transport::IO::Client do
       end
     end
   end
+end
 
+RSpec.describe Datadog::Transport::IO::Traces::Encoder do
   describe '#encode_data' do
     def compare_arrays(left = [], right = [])
       left.zip(right).each { |tuple| yield(*tuple) }
@@ -68,8 +70,8 @@ RSpec.describe Datadog::Transport::IO::Client do
     let(:trace_encoder) { Class.new { include Datadog::Transport::IO::Traces::Encoder }.new }
     let(:encoder) { Datadog::Encoding::JSONEncoder }
 
-    describe '::encode_traces' do
-      subject(:encode_traces) { trace_encoder.encode_data(encoder, traces) }
+    describe '.encode_traces' do
+      subject(:encode_traces) { trace_encoder.encode_traces(encoder, traces) }
       let(:traces) { get_test_traces(2) }
 
       it { is_expected.to be_a_kind_of(String) }

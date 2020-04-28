@@ -11,7 +11,7 @@ module Datadog
         attr_reader \
           :result
 
-        def initialize(result, trace_count)
+        def initialize(result, trace_count = 1)
           @result = result
           @trace_count = trace_count
         end

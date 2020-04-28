@@ -5,8 +5,8 @@ require 'ddtrace/chunker'
 module Datadog
   module Transport
     module Traces
-      # Data transfer object for trace data
-      class Parcel
+      # Data transfer object for encoded traces
+      class EncodedParcel
         include Transport::Parcel
 
         attr_reader :trace_count
@@ -18,13 +18,6 @@ module Datadog
 
         def count
           data.length
-        end
-      end
-
-      # Traces request
-      class Request < Transport::Request
-        def initialize(data, trace_count)
-          super(Parcel.new(data, trace_count))
         end
       end
 
@@ -113,7 +106,7 @@ module Datadog
           chunker = Datadog::Transport::Traces::Chunker.new(encoder)
 
           responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
-            request = Datadog::Transport::Traces::Request.new(encoded_traces, trace_count)
+            request = Datadog::Transport::Request.new(EncodedParcel.new(encoded_traces, trace_count))
 
             client.send_payload(request).tap do |response|
               if downgrade?(response)

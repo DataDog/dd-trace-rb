@@ -23,14 +23,14 @@ RSpec.describe Datadog::Transport::IO::Client do
       subject(:send_request) { client.send_request(request) }
 
       let(:request) { instance_double(Datadog::Transport::Request, parcel: parcel) }
-      let(:parcel) { instance_double(Datadog::Transport::Traces::Parcel, data: data, trace_count: 1) }
+      let(:parcel) { instance_double(Datadog::Transport::IO::Traces::Parcel, data: data) }
       let(:data) { 'Hello, world!' }
       let(:encoded_data) { double('encoded data') }
       let(:result) { double('IO result') }
 
       before do
-        expect(client).to receive(:encode_data)
-          .with(encoder, data)
+        expect(parcel).to receive(:encode_with)
+          .with(encoder)
           .and_return(encoded_data)
 
         expect(client.out).to receive(:puts)
