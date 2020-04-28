@@ -287,32 +287,6 @@ jobs:
       - store_artifacts:
           path: pkg/
           destination: gem
-  "deploy to test environment":
-    <<: *job_defaults
-    docker:
-      - <<: *container_base
-        image: marcotc/docker-library:ddtrace_rb_2_5_6
-        environment:
-          - INDEX_FILE: index.txt
-    steps:
-      - checkout
-      - run:
-          name: Install AWS CLI
-          command: |
-            apt-get -y -qq update
-            apt-get -y -qq install awscli
-            echo 'export AWS_ACCESS_KEY_ID=$TEST_ENV_AWS_ACCESS_KEY_ID' >> $BASH_ENV
-            echo 'export AWS_SECRET_ACCESS_KEY=$TEST_ENV_AWS_SECRET_ACCESS_KEY' >> $BASH_ENV
-            source $BASH_ENV
-      - run:
-          name: Generate index.txt file
-          command: |
-            echo $CIRCLE_BRANCH >> $INDEX_FILE
-            echo $CIRCLE_SHA1 >> $INDEX_FILE
-            echo $CIRCLE_USERNAME >> $INDEX_FILE
-      - run:
-          name: Upload to S3
-          command: aws s3 cp $INDEX_FILE s3://datadog-reliability-env/ruby/$INDEX_FILE
 
 job_configuration:
   # MRI
@@ -488,21 +462,6 @@ workflows:
           requires:
             - build-jruby-9.2
       # Release jobs
-      - "deploy to test environment":
-          filters:
-            branches:
-              only: master
-          requires:
-            - lint
-            - test-2.0
-            - test-2.1
-            - test-2.2
-            - test-2.3
-            - test-2.4
-            - test-2.5
-            - test-2.6
-            - test-2.7
-            - test-jruby-9.2
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
           requires:
