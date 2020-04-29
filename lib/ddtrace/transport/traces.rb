@@ -101,6 +101,7 @@ module Datadog
         def initialize(apis, default_api)
           @apis = apis
           @default_api = default_api
+          @warn_downgrade = false
 
           change_api!(default_api)
         end
@@ -122,6 +123,23 @@ module Datadog
 
           Datadog.health_metrics.transport_chunked(responses.size)
 
+          if @warn_downgrade # Ensure we only log this message for the last downgrade operation
+            Datadog.logger.info(
+              'You application is performing unnecessary requests in order to find the correct agent API version. ' \
+              'It is recommended to set the default API version to the desired version during configuration: ' \
+              "#{@current_api_id} for this application. " \
+              "Here's an example on how to achieve this: \n" \
+              "Datadog.configure do |c|\n" \
+              "  c.tracer.transport_options = proc do |t|\n" \
+              "    t.default_api_version '#{@current_api_id}'\n" \
+              "  end\n" \
+              "end\n" \
+              "If you to suppress this message, set the environment variable: DD_SUPPRESS_API_DOWNGRADE_WARNING='true'"
+            )
+
+            @warn_downgrade = false
+          end
+
           responses
         end
 
@@ -142,7 +160,10 @@ module Datadog
 
         def downgrade!
           downgrade_api_id = apis.fallbacks[@current_api_id]
+
           raise NoDowngradeAvailableError, @current_api_id if downgrade_api_id.nil?
+
+          @warn_downgrade = true unless ENV['DD_SUPPRESS_API_DOWNGRADE_WARNING'] == 'true'
           change_api!(downgrade_api_id)
         end
 

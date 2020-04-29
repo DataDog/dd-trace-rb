@@ -2085,6 +2085,18 @@ Datadog.configure do |c|
 end
 ```
 
+#### Using an older API version as default
+
+The latest supported agent API version is used by default. If you are running an old version of the agent and receiving warnings about API downgrade, you can configure an older version of the API as your default:
+
+```ruby
+Datadog.configure do |c|
+  c.tracer.transport_options = proc { |t|
+    t.default_api_version Datadog::Transport::HTTP::API::V2
+  }
+end
+```
+
 #### Using the transport test adapter
 
 The `Test` adapter is a no-op transport that can optionally buffer requests. For use in test suites or other non-production environments.
