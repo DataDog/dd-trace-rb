@@ -53,12 +53,21 @@ module Datadog
         @loop_wait_time ||= loop_base_interval
       end
 
+      def loop_wait_time=(value)
+        @loop_wait_time = value
+      end
+
+      def reset_loop_wait_time
+        self.loop_wait_time = loop_base_interval
+      end
+
+      # Should the loop "back off" when there's no work?
       def loop_back_off?
         false
       end
 
-      def loop_back_off!(amount = nil)
-        @loop_wait_time = amount || [loop_wait_time * BACK_OFF_RATIO, BACK_OFF_MAX].min
+      def loop_back_off!
+        self.loop_wait_time = [loop_wait_time * BACK_OFF_RATIO, BACK_OFF_MAX].min
       end
 
       protected
@@ -79,12 +88,14 @@ module Datadog
 
         loop do
           if work_pending?
+            # There's work to do...
             # Run the task
             yield
 
             # Reset the wait interval
-            loop_back_off!(loop_base_interval)
+            reset_loop_wait_time if loop_back_off?
           elsif loop_back_off?
+            # There's no work to do...
             # Back off the wait interval a bit
             loop_back_off!
           end

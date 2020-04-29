@@ -175,15 +175,29 @@ RSpec.describe Datadog::Workers::IntervalLoop do
       context 'default' do
         it { is_expected.to eq(described_class::BASE_INTERVAL) }
       end
+    end
 
-      context 'when set' do
+    describe '#loop_wait_time=' do
+      let(:value) { rand }
+
+      it do
+        expect { worker.loop_wait_time = value }
+          .to change { worker.loop_wait_time }
+          .from(described_class::BASE_INTERVAL)
+          .to(value)
+      end
+    end
+
+    describe '#reset_loop_wait_time' do
+      context 'when the loop time has been changed' do
         let(:value) { rand }
+        before { worker.loop_wait_time = value }
 
         it do
-          expect { worker.send(:loop_base_interval=, value) }
-            .to change { worker.loop_base_interval }
-            .from(described_class::BASE_INTERVAL)
-            .to(value)
+          expect { worker.reset_loop_wait_time }
+            .to change { worker.loop_wait_time }
+            .from(value)
+            .to(described_class::BASE_INTERVAL)
         end
       end
     end
@@ -194,32 +208,17 @@ RSpec.describe Datadog::Workers::IntervalLoop do
     end
 
     describe '#loop_back_off!' do
-      subject(:loop_back_off!) { worker.loop_back_off! }
+      it do
+        expect { worker.loop_back_off! }
+          .to change { worker.loop_wait_time }
+          .from(described_class::BASE_INTERVAL)
+          .to(described_class::BACK_OFF_RATIO)
 
-      context 'given no arguments' do
-        it do
-          expect { loop_back_off! }
-            .to change { worker.loop_wait_time }
-            .from(described_class::BASE_INTERVAL)
-            .to(described_class::BACK_OFF_RATIO)
-
-          expect { worker.loop_back_off! }
-            .to change { worker.loop_wait_time }
-            .from(described_class::BACK_OFF_RATIO)
-            .to(described_class::BACK_OFF_RATIO * described_class::BACK_OFF_RATIO)
-        end
-      end
-
-      context 'given an amount to back off' do
-        subject(:loop_back_off!) { worker.loop_back_off!(value) }
-        let(:value) { rand }
-
-        it do
-          expect { loop_back_off! }
-            .to change { worker.loop_wait_time }
-            .from(described_class::BASE_INTERVAL)
-            .to(value)
-        end
+        # Call again to see back-off increase
+        expect { worker.loop_back_off! }
+          .to change { worker.loop_wait_time }
+          .from(described_class::BACK_OFF_RATIO)
+          .to(described_class::BACK_OFF_RATIO * described_class::BACK_OFF_RATIO)
       end
     end
   end
