@@ -42,13 +42,17 @@ class SpyTransport < Datadog::Transport::HTTP::Client
   end
 
   def send_traces(data)
-    data = @helper_encoder.encode_traces(data)
+    encoded_data = data.map do |trace|
+      @helper_encoder.join([Datadog::Transport::Traces::Encoder.encode_trace(@helper_encoder, trace)])
+    end
 
     @helper_mutex.synchronize do
-      code = @helper_error_mode ? 500 : 200
-      @helper_sent[code][:traces] = [] unless @helper_sent[code].key?(:traces)
-      @helper_sent[code][:traces] << data
-      return build_trace_response(code)
+      encoded_data.map do |encoded|
+        code = @helper_error_mode ? 500 : 200
+        @helper_sent[code][:traces] = [] unless @helper_sent[code].key?(:traces)
+        @helper_sent[code][:traces] << encoded
+        build_trace_response(code)
+      end
     end
   end
 
@@ -60,7 +64,7 @@ class SpyTransport < Datadog::Transport::HTTP::Client
     Datadog::Transport::HTTP::Traces::Response.new(
       Datadog::Transport::HTTP::Adapters::Net::Response.new(
         Net::HTTPResponse.new(1.0, code, code.to_s)
-      )
+      ), trace_count: 1
     )
   end
 end

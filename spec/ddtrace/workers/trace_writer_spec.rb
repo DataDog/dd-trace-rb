@@ -631,7 +631,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
             expect_in_fork do
               traces.each do |trace|
-                expect(writer.write(trace)).to be_a_kind_of(Datadog::Transport::HTTP::Response)
+                expect(writer.write(trace)).to all(be_a(Datadog::Transport::HTTP::Response))
               end
 
               expect(writer).to have_received(:after_fork).once

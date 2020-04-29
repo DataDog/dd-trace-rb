@@ -27,6 +27,9 @@ module HealthMetricHelpers
       type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_ACCEPTED_LENGTHS
     },
     queue_dropped: { type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_DROPPED },
+    transport_trace_too_large: { type: :count,
+                                 name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_TRANSPORT_TRACE_TOO_LARGE },
+    transport_chunked: { type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_TRANSPORT_CHUNKED },
     traces_filtered: { type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_TRACES_FILTERED },
     writer_cpu_time: { type: :count, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_WRITER_CPU_TIME },
     queue_length: { type: :gauge, name: Datadog::Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_LENGTH },

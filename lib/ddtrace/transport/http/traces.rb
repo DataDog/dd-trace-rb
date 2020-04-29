@@ -12,19 +12,18 @@ module Datadog
         # Response from HTTP transport for traces
         class Response
           include HTTP::Response
-          include Transport::Traces::Response
+          include Datadog::Transport::Traces::Response
 
           def initialize(http_response, options = {})
             super(http_response)
             @service_rates = options.fetch(:service_rates, nil)
+            @trace_count = options.fetch(:trace_count, 0)
           end
         end
 
         # Extensions for HTTP client
         module Client
-          def send_traces(traces)
-            request = Transport::Traces::Request.new(traces)
-
+          def send_payload(request)
             send_request(request) do |api, env|
               api.send_traces(env)
             end
@@ -43,6 +42,10 @@ module Datadog
             def send_traces(env, &block)
               raise NoTraceEndpointDefinedError, self if traces.nil?
               traces.call(env, &block)
+            end
+
+            def encoder
+              traces.encoder
             end
 
             # Raised when traces sent but no traces endpoint is defined
@@ -104,17 +107,17 @@ module Datadog
 
             def call(env, &block)
               # Add trace count header
-              env.headers[HEADER_TRACE_COUNT] = env.request.parcel.count.to_s
+              env.headers[HEADER_TRACE_COUNT] = env.request.parcel.trace_count.to_s
 
               # Encode body & type
               env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
-              env.body = env.request.parcel.encode_with(encoder)
+              env.body = env.request.parcel.data
 
               # Query for response
               http_response = super(env, &block)
 
               # Process the response
-              response_options = {}.tap do |options|
+              response_options = { trace_count: env.request.parcel.trace_count }.tap do |options|
                 # Parse service rates, if configured to do so.
                 if service_rates? && !http_response.payload.to_s.empty?
                   body = JSON.parse(http_response.payload)

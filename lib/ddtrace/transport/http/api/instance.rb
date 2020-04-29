@@ -15,6 +15,10 @@ module Datadog
             @headers = options.fetch(:headers, {})
           end
 
+          def encoder
+            spec.encoder
+          end
+
           def call(env)
             # Add headers to request env, unless empty.
             env.headers.merge!(headers) unless headers.empty?

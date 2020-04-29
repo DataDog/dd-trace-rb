@@ -255,23 +255,25 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
     end
   end
 
-  describe '#to_client' do
-    subject(:client) { builder.to_client }
+  describe '#to_transport' do
+    subject(:transport) { builder.to_transport }
 
     context 'when no default API has been defined' do
-      it { expect { client }.to raise_error(described_class::NoDefaultApiError) }
+      it { expect { transport }.to raise_error(described_class::NoDefaultApiError) }
     end
 
     context 'when APIs and an adapter are defined' do
+      let(:spec) { instance_double(Datadog::Transport::HTTP::API::Spec) }
+
       before do
         builder.adapter(double('adapter'))
-        builder.api(:v2, instance_double(Datadog::Transport::HTTP::API::Spec))
+        builder.api(:v2, spec)
       end
 
-      it 'returns an HTTP::Client' do
-        expect(client).to be_a_kind_of(Datadog::Transport::HTTP::Client)
-        expect(client.current_api_id).to eq(:v2)
-        expect(client.apis).to include(v2: kind_of(Datadog::Transport::HTTP::API::Instance))
+      it 'returns an HTTP::Transport' do
+        expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
+        expect(transport.current_api.spec).to eq(spec)
+        expect(transport.apis).to include(v2: kind_of(Datadog::Transport::HTTP::API::Instance))
       end
     end
   end
