@@ -28,6 +28,19 @@ RSpec.describe Datadog::Transport::Traces::EncodedParcel do
   end
 end
 
+RSpec.describe Datadog::Transport::Traces::Request do
+  subject(:request) { described_class.new(parcel) }
+  let(:parcel) { double }
+
+  it { is_expected.to be_a_kind_of(Datadog::Transport::Request) }
+
+  describe '#initialize' do
+    it do
+      is_expected.to have_attributes(parcel: parcel)
+    end
+  end
+end
+
 RSpec.describe Datadog::Transport::Traces::Response do
   context 'when implemented by a class' do
     subject(:response) { response_class.new }
@@ -135,7 +148,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     let(:trace_count) { 1 }
     let(:chunks) { [[encoded_traces, trace_count]] }
 
-    let(:request) { instance_double(Datadog::Transport::Request) }
+    let(:request) { instance_double(Datadog::Transport::Traces::Request) }
     let(:client_v2) { instance_double(Datadog::Transport::HTTP::Client) }
     let(:client_v1) { instance_double(Datadog::Transport::HTTP::Client) }
 
@@ -152,7 +165,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
       allow(client_v1).to receive(:send_payload).with(request).and_return(response)
       allow(client_v2).to receive(:send_payload).with(request).and_return(response)
 
-      allow(Datadog::Transport::Request).to receive(:new).and_return(request)
+      allow(Datadog::Transport::Traces::Request).to receive(:new).and_return(request)
     end
 
     context 'which returns an OK response' do

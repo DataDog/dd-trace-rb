@@ -27,7 +27,7 @@ RSpec.describe Datadog::Transport::HTTP::Client do
 
   describe '#send_payload' do
     subject(:send_payload) { client.send_payload(request) }
-    let(:request) { instance_double(Datadog::Transport::Request) }
+    let(:request) { instance_double(Datadog::Transport::Traces::Request) }
     let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
 
     before do
@@ -142,7 +142,7 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
   describe '#call' do
     subject(:call) { endpoint.call(env, &block) }
     let(:env) { Datadog::Transport::HTTP::Env.new(request) }
-    let(:request) { Datadog::Transport::Request.new(parcel) }
+    let(:request) { Datadog::Transport::Traces::Request.new(parcel) }
     let(:parcel) { double(Datadog::Transport::Traces::EncodedParcel, data: data, trace_count: trace_count) }
     let(:data) { double('trace_once') }
     let(:trace_count) { 123 }

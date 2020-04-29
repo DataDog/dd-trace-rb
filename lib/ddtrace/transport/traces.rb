@@ -21,6 +21,10 @@ module Datadog
         end
       end
 
+      # Traces request
+      class Request < Transport::Request
+      end
+
       # Traces response
       module Response
         attr_reader :service_rates, :trace_count
@@ -106,7 +110,7 @@ module Datadog
           chunker = Datadog::Transport::Traces::Chunker.new(encoder)
 
           responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
-            request = Datadog::Transport::Request.new(EncodedParcel.new(encoded_traces, trace_count))
+            request = Request.new(EncodedParcel.new(encoded_traces, trace_count))
 
             client.send_payload(request).tap do |response|
               if downgrade?(response)
