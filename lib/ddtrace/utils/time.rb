@@ -9,6 +9,13 @@ module Datadog
       def get_time
         PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : ::Time.now.to_f
       end
+
+      def measure
+        before = get_time
+        yield
+        after = get_time
+        after - before
+      end
     end
   end
 end
