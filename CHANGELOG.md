@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+## [0.35.0] - 2020-04-29
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.35.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.34.2...v0.35.0
+
+### Added
+
+- Chunk large trace payloads before flushing (#818, #840)
+- Support for Sinatra modular apps (#486, #913, #1015) (@jpaulgs, @tomasv, @ZimbiX)
+- active_job support for Resque (#991) (@stefanahman, @psycholein)
+- JRuby 9.2 to CI test matrix (#995)
+- `TraceWriter` and `AsyncTraceWriter` workers (#986)
+- Runtime metrics worker (#988)
+
+### Changed
+
+- Populate env, service, and version from tags (#1008)
+- Extract components from configuration (#996)
+- Extract logger to components (#997)
+- Extract runtime metrics worker from `Writer` (#1004)
+- Improvements to Faraday documentation (#1005)
+
+### Fixed
+
+- Runtime metrics not starting after #write (#1010)
+
+### Refactored
+
+- Improvements to test suite (#842, #1006, #1009)
+
 ## [0.34.2] - 2020-04-09
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.34.2
@@ -1164,7 +1195,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.2...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.0...master
+[0.35.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.2...v0.35.0
 [0.34.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.1...v0.34.2
 [0.34.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...v0.34.1
 [0.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...v0.34.0
