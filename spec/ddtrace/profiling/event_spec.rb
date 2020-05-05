@@ -8,7 +8,7 @@ RSpec.describe Datadog::Profiling::Event do
   describe '::new' do
     it do
       is_expected.to have_attributes(
-        timestamp: kind_of(Integer)
+        timestamp: kind_of(Float)
       )
     end
   end
