@@ -38,13 +38,14 @@ RSpec.describe Datadog::Profiling::Recorder do
 
   describe '#push' do
     include_context 'test buffer'
-    subject(:push) { recorder.push(event) }
+
+    let(:event_class) { Class.new(Datadog::Profiling::Event) }
 
     before { allow(buffer).to receive(:push) }
 
     context 'given an event' do
+      subject(:push) { recorder.push(event) }
       let(:event) { event_class.new }
-      let(:event_class) { Class.new(Datadog::Profiling::Event) }
 
       context 'whose class has not been registered' do
         it do
@@ -58,6 +59,26 @@ RSpec.describe Datadog::Profiling::Recorder do
         it do
           push
           expect(buffer).to have_received(:push).with(event)
+        end
+      end
+    end
+
+    context 'given an Array of events' do
+      subject(:push) { recorder.push(events) }
+      let(:events) { Array.new(2) { event_class.new } }
+
+      context 'whose class has not been registered' do
+        it do
+          expect { push }.to raise_error(described_class::UnknownEventError)
+        end
+      end
+
+      context 'whose class has been registered' do
+        let(:event_classes) { [event_class] }
+
+        it do
+          push
+          expect(buffer).to have_received(:push).with(events)
         end
       end
     end
