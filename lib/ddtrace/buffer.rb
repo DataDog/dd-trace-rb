@@ -24,6 +24,21 @@ module Datadog
       end
     end
 
+    def concat(items)
+      @mutex.synchronize do
+        return if @closed
+
+        # Segment items into underflow and overflow
+        underflow, overflow = overflow_segments(items)
+
+        # Concatenate items do not exceed capacity.
+        add_all!(underflow) unless underflow.nil?
+
+        # Iteratively replace items, to ensure pseudo-random replacement.
+        overflow.each { |item| replace!(item) } unless overflow.nil?
+      end
+    end
+
     # Return the current number of stored items.
     def length
       @mutex.synchronize do
@@ -53,8 +68,41 @@ module Datadog
 
     protected
 
+    # Segment items into two distinct segments: underflow and overflow.
+    # Underflow are items that will fit into buffer.
+    # Overflow are items that will exceed capacity, after underflow is added.
+    # Returns each array, and nil if there is no underflow/overflow.
+    def overflow_segments(items)
+      underflow = nil
+      overflow = nil
+
+      overflow_size = @max_size > 0 ? (@items.length + items.length) - @max_size : 0
+
+      if overflow_size > 0
+        # Items will overflow
+        if overflow_size < items.length
+          # Partial overflow
+          underflow_end_index = items.length - overflow_size - 1
+          underflow = items[0..underflow_end_index]
+          overflow = items[(underflow_end_index + 1)..-1]
+        else
+          # Total overflow
+          overflow = items
+        end
+      else
+        # Items do not exceed capacity.
+        underflow = items
+      end
+
+      [underflow, overflow]
+    end
+
     def full?
       @max_size > 0 && @items.length >= @max_size
+    end
+
+    def add_all!(items)
+      @items.concat(items)
     end
 
     def add!(item)
@@ -101,6 +149,13 @@ module Datadog
 
       # Emit health metrics
       measure_accept(trace)
+    end
+
+    def add_all!(traces)
+      super
+
+      # Emit health metrics
+      traces.each { |trace| measure_accept(trace) }
     end
 
     def replace!(trace)
