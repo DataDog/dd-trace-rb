@@ -82,6 +82,73 @@ RSpec.describe Datadog::Buffer do
     end
   end
 
+  describe '#concat' do
+    let(:output) { buffer.pop }
+
+    context 'given no limit' do
+      let(:items) { get_test_items(4) }
+      let(:max_size) { 0 }
+
+      it 'retains all items' do
+        buffer.concat(items)
+        expect(output.length).to eq(4)
+      end
+    end
+
+    context 'given a max size' do
+      let(:items) { get_test_items(max_size + 1) }
+      let(:max_size) { 3 }
+
+      it 'does not exceed it' do
+        buffer.concat(items)
+
+        expect(output.length).to eq(max_size)
+        expect(output).to include(items.last)
+      end
+    end
+
+    context 'when closed' do
+      let(:max_size) { 0 }
+      let(:items) { get_test_items(6) }
+
+      let(:output) { buffer.pop }
+
+      it 'retains items up to close' do
+        buffer.concat(items[0..3])
+        buffer.close
+        buffer.concat(items[4..5])
+
+        expect(output.length).to eq(4)
+        expect(output).to_not include(*items.last(2))
+      end
+    end
+
+    context 'thread safety' do
+      subject(:concat) { threads.each(&:join) }
+
+      let(:max_size) { 500 }
+      let(:thread_count) { 100 }
+      let(:threads) do
+        buffer
+
+        Array.new(thread_count) do |i|
+          Thread.new do
+            sleep(rand / 1000)
+            buffer.concat([i])
+          end
+        end
+      end
+
+      let(:output) { buffer.pop }
+
+      it 'does not have collisions' do
+        concat
+        expect(output).to_not be nil
+        expect(output.sort).to eq((0..thread_count - 1).map { |i| i })
+      end
+    end
+  end
+
   describe '#length' do
     subject(:length) { buffer.length }
 
@@ -120,6 +187,120 @@ RSpec.describe Datadog::Buffer do
       expect(pop.length).to eq(items.length)
       expect(pop).to include(*items)
       expect(buffer.empty?).to be true
+    end
+  end
+
+  describe 'performance' do
+    require 'benchmark'
+    let(:n) { 10_000 }
+    let(:test_item_count) { 20 }
+
+    before { skip('Performance test does not run in CI.') }
+
+    context 'no max_size' do
+      it do
+        Benchmark.bmbm do |x|
+          x.report('No max #push') do
+            n.times do
+              buffer = described_class.new(max_size)
+              items = get_test_items(test_item_count)
+
+              items.each { |item| buffer.push(item) }
+            end
+          end
+
+          x.report('No max #concat') do
+            n.times do
+              buffer = described_class.new(max_size)
+              items = get_test_items(test_item_count)
+
+              buffer.concat(items)
+            end
+          end
+        end
+      end
+    end
+
+    context 'max size' do
+      let(:max_size) { 20 }
+
+      context 'no overflow' do
+        let(:test_item_count) { max_size }
+
+        it do
+          Benchmark.bmbm do |x|
+            x.report('Max no overflow #push') do
+              n.times do
+                buffer = described_class.new(max_size)
+                items = get_test_items(test_item_count)
+
+                items.each { |item| buffer.push(item) }
+              end
+            end
+
+            x.report('Max no overflow #concat') do
+              n.times do
+                buffer = described_class.new(max_size)
+                items = get_test_items(test_item_count)
+
+                buffer.concat(items)
+              end
+            end
+          end
+        end
+      end
+
+      context 'partial overflow' do
+        let(:test_item_count) { max_size + super() }
+
+        it do
+          Benchmark.bmbm do |x|
+            x.report('Max partial overflow #push') do
+              n.times do
+                buffer = described_class.new(max_size)
+                items = get_test_items(test_item_count)
+
+                items.each { |item| buffer.push(item) }
+              end
+            end
+
+            x.report('Max partial overflow #concat') do
+              n.times do
+                buffer = described_class.new(max_size)
+                items = get_test_items(test_item_count)
+
+                buffer.concat(items)
+              end
+            end
+          end
+        end
+      end
+
+      context 'total overflow' do
+        it do
+          Benchmark.bmbm do |x|
+            x.report('Max total overflow #push') do
+              n.times do
+                buffer = described_class.new(max_size)
+                buffer.instance_variable_set(:@items, get_test_items(max_size))
+                items = get_test_items(test_item_count)
+
+                items.each { |item| buffer.push(item) }
+              end
+            end
+
+            x.report('Max total overflow #concat') do
+              n.times do
+                buffer = described_class.new(max_size)
+                buffer.instance_variable_set(:@items, get_test_items(max_size))
+                items = get_test_items(test_item_count)
+
+                buffer.concat(items)
+              end
+            end
+          end
+        end
+      end
     end
   end
 end
