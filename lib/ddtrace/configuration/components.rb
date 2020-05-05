@@ -135,13 +135,13 @@ module Datadog
         old_statsd = [
           runtime_metrics.metrics.statsd,
           health_metrics.statsd
-        ].uniq
+        ].compact.uniq
 
         new_statsd =  if replacement
                         [
                           replacement.runtime_metrics.metrics.statsd,
                           replacement.health_metrics.statsd
-                        ].uniq
+                        ].compact.uniq
                       else
                         []
                       end
