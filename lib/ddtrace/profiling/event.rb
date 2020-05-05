@@ -5,8 +5,8 @@ module Datadog
       attr_reader \
         :timestamp
 
-      def initialize
-        @timestamp = Time.now.utc.to_i
+      def initialize(timestamp = nil)
+        @timestamp = timestamp || Time.now.utc.to_f
       end
     end
   end
