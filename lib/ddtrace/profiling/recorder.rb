@@ -14,9 +14,10 @@ module Datadog
         end
       end
 
-      def push(event)
-        raise UnknownEventError, event.class unless @buffers.key?(event.class)
-        @buffers[event.class].push(event)
+      def push(events)
+        event_class = events.is_a?(Array) ? events.first.class : events.class
+        raise UnknownEventError, event_class unless @buffers.key?(event_class)
+        @buffers[event_class].push(events)
       end
 
       def pop
