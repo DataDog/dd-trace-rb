@@ -673,6 +673,25 @@ RSpec.describe Datadog::Configuration::Components do
 
           teardown!
         end
+
+        context 'and Statsd is not initialized' do
+          before do
+            allow(components.runtime_metrics.metrics)
+              .to receive(:statsd)
+              .and_return(nil)
+          end
+
+          it 'shuts down all components' do
+            expect(components.tracer).to receive(:shutdown!)
+            expect(components.runtime_metrics).to receive(:enabled=)
+              .with(false)
+            expect(components.runtime_metrics).to receive(:stop)
+              .with(true)
+            expect(components.health_metrics.statsd).to receive(:close)
+
+            teardown!
+          end
+        end
       end
 
       context 'when the tracer is re-used' do
