@@ -1,5 +1,5 @@
 require 'helper'
-require 'ddtrace/tracer'
+require 'ddtrace'
 
 class ConcurrentTest < Minitest::Test
   def traced_task
