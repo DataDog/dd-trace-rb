@@ -62,6 +62,16 @@ RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cac
   && rm -rf /tmp/dockerize-linux-amd64.tar.gz \
   && dockerize --version
 
+# Install Protobuf compiler
+RUN export PROTOC_URL=$(curl -s https://api.github.com/repos/protocolbuffers/protobuf/releases/latest | grep browser_download_url | cut -d '"' -f 4 | grep -e 'protoc-[.0-9]*-linux-x86_64\.zip' | sort -r | head -n 1) \
+  && echo Protoc URL: $PROTOC_URL \
+  && curl --silent --show-error --location --fail --retry 3 --output /tmp/protoc.zip "${PROTOC_URL}" \
+  && ls -lha /tmp/protoc.zip \
+  && unzip /tmp/protoc.zip -d /tmp/protoc \
+  && mv /tmp/protoc/bin/* /usr/bin \
+  && rm -rf /tmp/protoc /tmp/protoc.zip \
+  && protoc --version
+
 # Install RubyGems
 RUN gem update --system 2.7.9
 RUN gem install bundler -v '1.17.3'
