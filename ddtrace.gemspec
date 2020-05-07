@@ -39,4 +39,7 @@ Gem::Specification.new do |spec|
     # msgpack 1.4 fails for Ruby 2.0 and 2.1: https://github.com/msgpack/msgpack-ruby/issues/205
     spec.add_dependency 'msgpack', '< 1.4'
   end
+
+  # TODO: Remove this as a fixed dependency (should be optional)
+  spec.add_dependency 'google-protobuf'
 end
