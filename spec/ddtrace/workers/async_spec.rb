@@ -262,7 +262,11 @@ RSpec.describe Datadog::Workers::Async::Thread do
       end
 
       context 'when started' do
-        before { worker.perform }
+        before do
+          worker.perform
+          try_wait_until { worker.running? }
+        end
+
         after { worker.terminate }
         it { is_expected.to be true }
       end
@@ -278,7 +282,11 @@ RSpec.describe Datadog::Workers::Async::Thread do
       context 'when running' do
         let(:task) { proc { sleep(1) } }
 
-        before { worker.perform }
+        before do
+          worker.perform
+          try_wait_until { worker.running? }
+        end
+
         after { worker.terminate }
 
         it do
