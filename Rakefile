@@ -100,10 +100,11 @@ namespace :spec do
     :resque,
     :rest_client,
     :sequel,
+    :shoryuken,
     :sidekiq,
     :sinatra,
     :sucker_punch,
-    :shoryuken
+    :suite
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
@@ -217,6 +218,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:sidekiq'
       sh 'bundle exec appraisal contrib-old rake spec:sinatra'
       sh 'bundle exec appraisal contrib-old rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib-old rake spec:suite'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
@@ -272,6 +274,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:sidekiq'
       sh 'bundle exec appraisal contrib-old rake spec:sinatra'
       sh 'bundle exec appraisal contrib-old rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib-old rake spec:suite'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
@@ -340,6 +343,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
@@ -412,6 +416,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -489,6 +494,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -551,6 +557,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -623,6 +630,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -694,6 +702,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
