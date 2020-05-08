@@ -19,8 +19,10 @@ RSpec.describe 'Rails trace analytics' do
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
     Datadog.registry[:rails].reset_configuration!
+    Datadog.registry[:action_pack].reset_configuration!
     example.run
     Datadog.registry[:rails].reset_configuration!
+    Datadog.registry[:action_pack].reset_configuration!
   end
 
   let(:span) { spans.first }
