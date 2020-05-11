@@ -7,7 +7,10 @@ class TracingControllerTest < ActionController::TestCase
   setup do
     @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer
-    Datadog.configuration[:rails][:tracer] = @tracer
+
+    Datadog.configure do |c|
+      c.use :rails, tracer: @tracer
+    end
   end
 
   teardown do
