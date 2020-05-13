@@ -125,6 +125,8 @@ module Datadog
       # NOTE: #perform is wrapped by other modules:
       #       Polling --> Async --> IntervalLoop --> AsyncTraceWriter --> TraceWriter
       def perform(traces)
+        record_metrics
+
         super(traces).tap do |responses|
           loop_back_off! if responses.find(&:server_error?)
         end
@@ -193,6 +195,22 @@ module Datadog
 
         # Queue the trace if running asynchronously, otherwise short-circuit and write it directly.
         async? ? enqueue(trace) : write_traces([trace])
+      end
+
+      private
+
+      def record_metrics
+        if Utils::Time::THREAD_CPU_TIME_SUPPORTED
+          Datadog.health_metrics.writer_cpu_time { thread_cpu_time_diff }
+        end
+      end
+
+      # Difference in seconds of CPU time since last measurement
+      def thread_cpu_time_diff
+        new_time = Utils::Time.get_thread_cpu_time
+        diff = new_time - (@last_thread_cpu_time || 0)
+        @last_thread_cpu_time = new_time
+        diff
       end
     end
   end

@@ -162,6 +162,36 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         expect(transport.helper_sent[200][:traces].to_s).to_not match(/discard/)
       end
     end
+
+    context 'health metrics' do
+      include_context 'health metrics'
+
+      let(:writer_cpu_time) { double }
+
+      before do
+        allow(writer.worker).to receive(:thread_cpu_time_diff).and_return(writer_cpu_time)
+      end
+
+      after do
+        if Datadog::Utils::Time::THREAD_CPU_TIME_SUPPORTED
+          # TODO: There could be leaky background worker threads (created by other tests) that
+          # TODO: might be sending metrics to `Datadog.health_metrics`.
+          # TODO: We do our best here to assert that metric we expect was recorded.
+          # TODO: Ideally we should clean up threads created on every unit test.
+          actual = []
+          expect(health_metrics).to have_received(:writer_cpu_time) { |&block| actual << block.call }.at_least(:once)
+          expect(actual).to include(writer_cpu_time)
+        else
+          expect(health_metrics).to_not have_received(:writer_cpu_time)
+        end
+
+        writer.stop
+      end
+
+      it 'records health metrics' do
+        wait_for_flush
+      end
+    end
   end
 
   describe 'when setting service info' do
