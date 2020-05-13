@@ -85,6 +85,7 @@ module Datadog
               Datadog.configuration[:active_support][:tracer] = value
               Datadog.configuration[:action_pack][:tracer] = value
               Datadog.configuration[:action_view][:tracer] = value
+              Datadog.configuration[:rack][:tracer] = value
             end
           end
         end
