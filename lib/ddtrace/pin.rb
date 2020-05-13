@@ -12,26 +12,34 @@ module Datadog
       obj.datadog_pin
     end
 
-    attr_reader :service_name
     attr_accessor :app
-    attr_accessor :tags
     attr_accessor :app_type
-    attr_accessor :name
-    attr_accessor :tracer
     attr_accessor :config
+    attr_accessor :name
+    attr_accessor :service_name
+    attr_accessor :tags
+    attr_writer :tracer
+    attr_accessor :writer
+
+    alias service= service_name=
+    alias service service_name
 
     def initialize(service_name, options = {})
       @app = options[:app]
-      @tags = options[:tags]
       @app_type = options[:app_type]
-      @name = nil # this would rarely be overriden as it's really span-specific
-      @tracer = options[:tracer] || Datadog.tracer
       @config = options[:config]
-      self.service_name = service_name
+      @name = nil # this would rarely be overriden as it's really span-specific
+      @service_name = service_name
+      @tags = options[:tags]
+      @tracer = options[:tracer]
+    end
+
+    def tracer
+      @tracer || Datadog.tracer
     end
 
     def enabled?
-      return @tracer.enabled if @tracer
+      return tracer.enabled if tracer
       false
     end
 
@@ -55,13 +63,6 @@ module Datadog
 
       obj.datadog_pin = self
     end
-
-    def service_name=(name)
-      @service_name = name
-    end
-
-    alias service= service_name=
-    alias service service_name
 
     def to_s
       "Pin(service:#{service},app:#{app},app_type:#{app_type},name:#{name})"
