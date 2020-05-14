@@ -151,7 +151,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         before do
           expect(collector)
             .to receive(:collect_thread_event)
-            .with(thread, kind_of(Float))
+            .with(thread, kind_of(Integer))
             .and_return(nil)
         end
 
@@ -167,7 +167,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         before do
           expect(collector)
             .to receive(:collect_thread_event)
-            .with(thread, kind_of(Float))
+            .with(thread, kind_of(Integer))
             .and_return(event)
         end
 
