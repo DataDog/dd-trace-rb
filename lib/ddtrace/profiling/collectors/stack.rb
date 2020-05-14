@@ -68,7 +68,7 @@ module Datadog
 
           # Compute wall time interval
           current_wall_time = Datadog::Utils::Time.get_time
-          wall_time_interval_ns = (current_wall_time - last_wall_time) * 1e9
+          wall_time_interval_ns = ((current_wall_time - last_wall_time).round(9) * 1e9).to_i
           @last_wall_time = current_wall_time
 
           # Collect backtraces from each thread
