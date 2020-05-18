@@ -41,7 +41,10 @@ RSpec.describe Datadog::Profiling::Recorder do
 
     let(:event_class) { Class.new(Datadog::Profiling::Event) }
 
-    before { allow(buffer).to receive(:push) }
+    before do
+      allow(buffer).to receive(:push)
+      allow(buffer).to receive(:concat)
+    end
 
     context 'given an event' do
       subject(:push) { recorder.push(event) }
@@ -78,7 +81,7 @@ RSpec.describe Datadog::Profiling::Recorder do
 
         it do
           push
-          expect(buffer).to have_received(:push).with(events)
+          expect(buffer).to have_received(:concat).with(events)
         end
       end
     end
