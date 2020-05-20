@@ -3,6 +3,7 @@ stages:
   - deploy
 
 variables:
+  REGISTRY: 486234852809.dkr.ecr.us-east-1.amazonaws.com
   INDEX_FILE: index.txt
 
 .common: &common
@@ -17,7 +18,10 @@ build:
 copy_to_s3:
   <<: *common
   stage: deploy
-  image: ruby@sha256:32f9fe6d424f6f76eb88c0542dafe672ce68aec27da5ddff73bdf11a309fa773
+#  image:
+#    name: amazon/aws-cli
+#    entrypoint: [""]
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
       when: on_success
