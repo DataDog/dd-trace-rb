@@ -18,9 +18,6 @@ build:
 copy_to_s3:
   <<: *common
   stage: deploy
-#  image:
-#    name: amazon/aws-cli
-#    entrypoint: [""]
   image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
