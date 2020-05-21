@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [0.35.2] - 2020-05-08
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.35.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.35.1...v0.35.2
+
+### Fixed
+
+- Internal tracer HTTP requests generating traces (#1030, #1033) (@gingerlime)
+- `Datadog.configure` forcing all options to eager load (#1032, #1034) (@kelvin-acosta)
+
+## [0.35.1] - 2020-05-05
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.35.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.35.0...v0.35.1
+
+### Fixed
+
+- Components#teardown! NoMethodError (#1021, #1023) (@bzf)
+
 ## [0.35.0] - 2020-04-29
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.35.0
@@ -1195,7 +1216,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.2...master
+[0.35.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.1...v0.35.2
+[0.35.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.0...v0.35.1
 [0.35.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.2...v0.35.0
 [0.34.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.1...v0.34.2
 [0.34.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...v0.34.1

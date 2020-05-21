@@ -5,25 +5,18 @@ require 'contrib/rails/test_helper'
 # rubocop:disable Metrics/ClassLength
 class FullStackTest < ActionDispatch::IntegrationTest
   setup do
-    # store original tracers
-    @rails_tracer = Datadog.configuration[:rails][:tracer]
-    @rack_tracer = Rails.application.app.instance_variable_get :@tracer
-
-    # replace the Rails and the Rack tracer with a dummy one;
-    # this prevents the overhead to reinitialize the Rails application
-    # and the Rack stack
+    @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer
-    Datadog.configuration[:rails].reset!
-    Datadog.configuration[:rails][:tracer] = @tracer
-    Datadog.configuration[:rails][:database_service] = get_adapter_name
-    Datadog::Contrib::Rails::Framework.setup
+
+    Datadog.configure do |c|
+      c.use :rails, tracer: @tracer
+    end
   end
 
   teardown do
-    # restore original tracers
-    Datadog.configuration[:rails][:tracer] = @rails_tracer
-    Rails.application.app.instance_variable_set(:@tracer, @rack_tracer)
+    Datadog.configuration[:rails][:tracer] = @original_tracer
   end
+
   test 'a full request is properly traced' do
     # make the request and assert the proper span
     get '/full'
@@ -65,7 +58,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     adapter_name = get_adapter_name
     assert_equal(database_span.name, "#{adapter_name}.query")
     assert_equal(database_span.span_type, 'sql')
-    assert_equal(database_span.service, adapter_name)
+    assert_equal(database_span.service, "#{Datadog.configuration[:rails][:service_name]}-#{adapter_name}")
     assert_equal(adapter_name, database_span.get_tag('active_record.db.vendor'))
     assert_nil(database_span.get_tag('active_record.db.cached'))
     assert_includes(database_span.resource, 'SELECT')
