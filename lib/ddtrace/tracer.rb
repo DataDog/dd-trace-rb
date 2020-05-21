@@ -11,6 +11,7 @@ require 'ddtrace/writer'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
+require 'ddtrace/ext/system'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -186,23 +187,24 @@ module Datadog
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
-      start_time = options.fetch(:start_time, Time.now.utc)
+      start_time = options[:start_time] || Time.now
 
-      tags = options.fetch(:tags, {})
+      tags = options[:tags] || Utils::EMPTY_HASH
 
-      span_options = options.select do |k, _v|
+      ctx, parent = guess_context_and_parent(options[:child_of])
+
+      # Prepare +options+ to be forwarded to +Span.new+
+      options.select! do |k, _v|
         # Filter options, we want no side effects with unexpected args.
         ALLOWED_SPAN_OPTIONS.include?(k)
       end
+      options[:context] = ctx unless ctx.nil?
 
-      ctx, parent = guess_context_and_parent(options[:child_of])
-      span_options[:context] = ctx unless ctx.nil?
-
-      span = Span.new(self, name, span_options)
+      span = Span.new(self, name, options)
       if parent.nil?
         # root span
         @sampler.sample!(span)
-        span.set_tag('system.pid', Process.pid)
+        span.set_tag(Ext::System::PID, Process.pid)
 
         if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
@@ -266,6 +268,9 @@ module Datadog
         span = nil
         return_value = nil
 
+        # Record this option as #start_span can modify the options hash
+        on_error = options[:on_error]
+
         begin
           begin
             span = start_span(name, options)
@@ -282,7 +287,7 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
+          (on_error || DEFAULT_ON_ERROR).call(span, e)
           raise e
         ensure
           span.finish unless span.nil?

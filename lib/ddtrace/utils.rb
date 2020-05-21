@@ -3,6 +3,11 @@ require 'ddtrace/utils/database'
 module Datadog
   # Utils contains low-level utilities, typically to provide pseudo-random trace IDs.
   module Utils
+    # Empty immutable hash to be used.
+    # Useful to avoid allocations when the hash won't be modified:
+    # e.g. methods with empty +options={}+ as default.
+    EMPTY_HASH = {}.freeze
+
     STRING_PLACEHOLDER = ''.encode(::Encoding::UTF_8).freeze
     # We use a custom random number generator because we want no interference
     # with the default one. Using the default prng, we could break code that

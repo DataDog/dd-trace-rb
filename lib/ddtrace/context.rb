@@ -234,7 +234,7 @@ module Datadog
 
     private
 
-    def reset(options = {})
+    def reset(options = Utils::EMPTY_HASH)
       @trace = []
       @parent_trace_id = options.fetch(:trace_id, nil)
       @parent_span_id = options.fetch(:span_id, nil)
