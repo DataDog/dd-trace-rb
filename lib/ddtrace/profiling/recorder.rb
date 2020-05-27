@@ -1,4 +1,5 @@
 require 'ddtrace/profiling/buffer'
+require 'ddtrace/profiling/flush'
 
 module Datadog
   module Profiling
@@ -35,8 +36,6 @@ module Datadog
           Flush.new(event_class, events)
         end.compact
       end
-
-      Flush = Struct.new(:event_class, :events).freeze
 
       # Error when event of an unknown type is used with the Recorder
       class UnknownEventError < StandardError
