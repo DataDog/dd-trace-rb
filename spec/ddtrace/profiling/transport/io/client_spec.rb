@@ -13,9 +13,9 @@ RSpec.describe Datadog::Profiling::Transport::IO::Client do
   let(:out) { instance_double(IO) }
   let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
 
-  describe '#send_events' do
+  describe '#send_flushes' do
     context 'given events' do
-      subject(:send_events) { client.send_events(events) }
+      subject(:send_flushes) { client.send_flushes(events) }
       let(:events) { instance_double(Array) }
       let(:encoded_events) { double('encoded events') }
       let(:result) { double('IO result') }
@@ -35,12 +35,12 @@ RSpec.describe Datadog::Profiling::Transport::IO::Client do
 
       it do
         is_expected.to be_a_kind_of(Datadog::Profiling::Transport::IO::Response)
-        expect(send_events.result).to eq(result)
+        expect(send_flushes.result).to eq(result)
       end
     end
 
     context 'given events and a block' do
-      subject(:send_events) { client.send_events(events) { |out, data| target.write(out, data) } }
+      subject(:send_flushes) { client.send_flushes(events) { |out, data| target.write(out, data) } }
       let(:events) { instance_double(Array) }
       let(:encoded_events) { double('encoded events') }
       let(:result) { double('IO result') }
@@ -61,7 +61,7 @@ RSpec.describe Datadog::Profiling::Transport::IO::Client do
 
       it do
         is_expected.to be_a_kind_of(Datadog::Profiling::Transport::IO::Response)
-        expect(send_events.result).to eq(result)
+        expect(send_flushes.result).to eq(result)
       end
     end
   end
