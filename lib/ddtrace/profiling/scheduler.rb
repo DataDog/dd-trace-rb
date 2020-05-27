@@ -63,22 +63,18 @@ module Datadog
       def flush_events
         # Get events from recorder
         flushes = recorder.pop
-        num_events = 0
+        num_events = flushes.inject(0) { |sum, flush| sum + flush.events.length }
 
-        flushes.each do |flush|
-          next if flush.events.empty?
-
-          # Send events to each exporter
+        # Send events to each exporter
+        if num_events > 0
           exporters.each do |exporter|
             begin
-              exporter.export(flush.events)
+              exporter.export(flushes)
             rescue StandardError => e
               error_details = "Cause: #{e} Location: #{e.backtrace.first}"
-              Datadog.logger.error("Unable to export #{flush.events.length} profiling events. #{error_details}")
+              Datadog.logger.error("Unable to export #{num_events} profiling events. #{error_details}")
             end
           end
-
-          num_events += flush.events.length
         end
 
         num_events

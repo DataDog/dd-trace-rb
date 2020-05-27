@@ -89,6 +89,17 @@ RSpec.describe Datadog::Profiling::Pprof::MessageSet do
     end
   end
 
+  describe '#length' do
+    subject(:length) { message_set.length }
+    it { is_expected.to eq 0 }
+
+    context 'when messages have been added' do
+      let(:n) { 3 }
+      before { n.times { message_set.fetch(rand) { rand } } }
+      it { is_expected.to eq(n) }
+    end
+  end
+
   describe '#messages' do
     subject(:messages) { message_set.messages }
 
