@@ -50,10 +50,6 @@ module Datadog
           false
         end
 
-        def last_wall_time
-          @last_wall_time ||= Datadog::Utils::Time.get_time
-        end
-
         def collect_and_wait
           run_time = Datadog::Utils::Time.measure do
             collect_events
@@ -68,6 +64,12 @@ module Datadog
 
           # Compute wall time interval
           current_wall_time = Datadog::Utils::Time.get_time
+          last_wall_time = if instance_variable_defined?(:@last_wall_time)
+                             @last_wall_time
+                           else
+                             current_wall_time
+                           end
+
           wall_time_interval_ns = ((current_wall_time - last_wall_time).round(9) * 1e9).to_i
           @last_wall_time = current_wall_time
 

@@ -4,8 +4,7 @@ require 'ddtrace/profiling/events/stack'
 require 'ddtrace/profiling/pprof/builder'
 
 RSpec.describe Datadog::Profiling::Pprof::Builder do
-  subject(:builder) { described_class.new(events) }
-  let(:events) { double('events') }
+  subject(:builder) { described_class.new }
 
   let(:id_sequence) { Datadog::Utils::Sequence.new(1) }
 
@@ -17,32 +16,37 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
     builder.string_table.fetch(string)
   end
 
-  describe '#to_profile' do
-    subject(:to_profile) { builder.to_profile }
-    it { expect { to_profile }.to raise_error(NotImplementedError) }
+  describe '#initialize' do
+    it do
+      is_expected.to have_attributes(
+        functions: kind_of(Datadog::Profiling::Pprof::MessageSet),
+        locations: kind_of(Datadog::Profiling::Pprof::MessageSet),
+        mappings: kind_of(Datadog::Profiling::Pprof::MessageSet),
+        sample_types: kind_of(Datadog::Profiling::Pprof::MessageSet),
+        samples: [],
+        string_table: kind_of(Datadog::Profiling::Pprof::StringTable)
+      )
+    end
   end
 
   describe '#build_profile' do
-    subject(:build_profile) { builder.build_profile(events) }
-    let(:events) { double('events') }
-    it { expect { build_profile }.to raise_error(NotImplementedError) }
-  end
+    subject(:build_profile) { builder.build_profile }
 
-  describe '#group_events' do
-    subject(:group_events) { builder.group_events(events) }
-    let(:events) { Array.new(2) { double('event') } }
-    it { expect { group_events }.to raise_error(NotImplementedError) }
-  end
+    before do
+      expect(Perftools::Profiles::Profile)
+        .to receive(:new)
+        .with(
+          sample_type: builder.sample_types.messages,
+          sample: builder.samples,
+          mapping: builder.mappings.messages,
+          location: builder.locations.messages,
+          function: builder.functions.messages,
+          string_table: builder.string_table.strings
+        )
+        .and_call_original
+    end
 
-  describe '#event_group_key' do
-    subject(:event_group_key) { builder.event_group_key(event) }
-    let(:event) { double('event') }
-    it { expect { event_group_key }.to raise_error(NotImplementedError) }
-  end
-
-  describe '#build_sample_types' do
-    subject(:build_sample_types) { builder.build_sample_types }
-    it { expect { build_sample_types }.to raise_error(NotImplementedError) }
+    it { is_expected.to be_kind_of(Perftools::Profiles::Profile) }
   end
 
   describe '#build_value_type' do
@@ -58,19 +62,6 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
         unit: string_id_for(unit)
       )
     end
-  end
-
-  describe '#build_sample' do
-    subject(:build_sample) { builder.build_sample(event, values) }
-    let(:event) { double('event') }
-    let(:values) { double('values') }
-    it { expect { build_sample }.to raise_error(NotImplementedError) }
-  end
-
-  describe '#build_sample_values' do
-    subject(:build_sample_values) { builder.build_sample_values(event) }
-    let(:event) { double('event') }
-    it { expect { build_sample_values }.to raise_error(NotImplementedError) }
   end
 
   describe '#build_locations' do
@@ -189,27 +180,6 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
         name: string_id_for(function_name),
         filename: string_id_for(filename)
       )
-    end
-  end
-
-  describe '#build_mappings' do
-    subject(:build_mappings) { builder.build_mappings }
-
-    it do
-      is_expected.to be_a_kind_of(Array)
-      is_expected.to have(1).items
-    end
-
-    describe 'mapping' do
-      subject(:mapping) { build_mappings.first }
-
-      it do
-        is_expected.to be_a_kind_of(Perftools::Profiles::Mapping)
-        is_expected.to have_attributes(
-          id: 1,
-          filename: string_id_for($PROGRAM_NAME)
-        )
-      end
     end
   end
 end
