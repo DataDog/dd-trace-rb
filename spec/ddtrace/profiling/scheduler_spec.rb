@@ -148,12 +148,12 @@ RSpec.describe Datadog::Profiling::Scheduler do
       let(:flushes) do
         [
           instance_double(
-            Datadog::Profiling::Recorder::Flush,
+            Datadog::Profiling::Flush,
             event_class: double('event class'),
             events: Array.new(2) { double('event') }
           ),
           instance_double(
-            Datadog::Profiling::Recorder::Flush,
+            Datadog::Profiling::Flush,
             event_class: double('event class'),
             events: Array.new(2) { double('event') }
           )
@@ -167,11 +167,9 @@ RSpec.describe Datadog::Profiling::Scheduler do
           is_expected.to eq(total_num_events)
 
           exporters.each do |exporter|
-            flushes.each do |flush|
-              expect(exporter)
-                .to have_received(:export)
-                .with(flush.events)
-            end
+            expect(exporter)
+              .to have_received(:export)
+              .with(flushes)
           end
         end
       end
@@ -183,18 +181,16 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
           expect(Datadog.logger).to receive(:error)
             .with(/Unable to export \d+ profiling events/)
-            .exactly(flushes.length).times
+            .exactly(1).time
         end
 
         it 'returns the number of events flushed' do
           is_expected.to eq(total_num_events)
 
           exporters.each do |exporter|
-            flushes.each do |flush|
-              expect(exporter)
-                .to have_received(:export)
-                .with(flush.events)
-            end
+            expect(exporter)
+              .to have_received(:export)
+              .with(flushes)
           end
         end
       end

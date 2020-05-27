@@ -6,8 +6,8 @@ module Datadog
     module Transport
       # Profiling request
       class Request < Datadog::Transport::Request
-        def initialize(events)
-          super(Parcel.new(events))
+        def initialize(flushes)
+          super(Parcel.new(flushes))
         end
       end
     end
