@@ -54,6 +54,7 @@ module Datadog
       elsif str.encoding == ::Encoding::UTF_8
         str
       else
+        puts 'investigate this path'
         str.encode(::Encoding::UTF_8)
       end
     rescue => e
