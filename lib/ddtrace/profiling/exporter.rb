@@ -18,8 +18,8 @@ module Datadog
         end
       end
 
-      def export(events)
-        transport.send_events(events)
+      def export(flushes)
+        transport.send_flushes(flushes)
       end
     end
   end

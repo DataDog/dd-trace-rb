@@ -5,19 +5,29 @@ require 'ddtrace/profiling/events/stack'
 
 RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
   describe '::encode' do
-    subject(:encode) { described_class.encode(events) }
+    subject(:encode) { described_class.encode(flushes) }
 
-    let(:builder) { instance_double(Datadog::Profiling::Pprof::Builder) }
+    let(:flushes) { [flush] }
+    let(:flush) { instance_double(Datadog::Profiling::Flush, event_class: event_class, events: events) }
+    let(:event_class) { double('event class') }
+    let(:events) { double('events') }
+
+    let(:template) { instance_double(Datadog::Profiling::Pprof::Template) }
     let(:profile) { instance_double(Perftools::Profiles::Profile) }
-    let(:encoded_profile) { double('encoded profile') }
+    let(:encoded_profile) { instance_double(String) }
+    let(:encoded_data) { instance_double(String) }
 
     before do
-      expect(Datadog::Profiling::Pprof::Builder)
-        .to receive(:new)
-        .with(events)
-        .and_return(builder)
+      expect(Datadog::Profiling::Pprof::Template)
+        .to receive(:for_event_classes)
+        .with([event_class])
+        .and_return(template)
 
-      expect(builder)
+      expect(template)
+        .to receive(:add_events!)
+        .with(flush.event_class, flush.events)
+
+      expect(template)
         .to receive(:to_profile)
         .and_return(profile)
 
@@ -25,22 +35,13 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
         .to receive(:encode)
         .with(profile)
         .and_return(encoded_profile)
+
+      expect(encoded_profile)
+        .to receive(:force_encoding)
+        .with('UTF-8')
+        .and_return(encoded_data)
     end
 
-    context 'given StackSample events' do
-      # Inherit and build, because the encoder type checks the events passed.
-      # It's expensive to build a StackSample manually, and verifying doubles don't pass.
-      def build_stack_sample
-        @stack_sample_class ||= Class.new(Datadog::Profiling::Events::StackSample) do
-          def initialize; end
-        end
-
-        @stack_sample_class.new
-      end
-
-      let(:events) { Array.new(2) { build_stack_sample } }
-
-      it { is_expected.to be encoded_profile }
-    end
+    it { is_expected.to be encoded_data }
   end
 end
