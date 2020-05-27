@@ -7,9 +7,9 @@ module Datadog
       module IO
         # Profiling extensions for IO client
         module Client
-          def send_events(events)
+          def send_flushes(flushes)
             # Build a request
-            req = Profiling::Transport::Request.new(events)
+            req = Profiling::Transport::Request.new(flushes)
 
             send_request(req) do |out, request|
               # Encode trace data

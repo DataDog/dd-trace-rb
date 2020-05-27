@@ -101,7 +101,7 @@ RSpec.describe Datadog::Profiling::Recorder do
         let(:events) { [event_class.new, event_class.new] }
         it { is_expected.to be_a_kind_of(Array) }
         it { is_expected.to have(1).items }
-        it { is_expected.to include(kind_of(described_class::Flush)) }
+        it { is_expected.to include(kind_of(Datadog::Profiling::Flush)) }
 
         it 'has a flush with the events' do
           expect(pop.first).to have_attributes(
