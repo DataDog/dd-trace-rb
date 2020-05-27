@@ -1,111 +1,50 @@
+require 'ddtrace/profiling/flush'
 require 'ddtrace/profiling/pprof/message_set'
-require 'ddtrace/profiling/pprof/pprof_pb'
 require 'ddtrace/profiling/pprof/string_table'
+
+require 'ddtrace/profiling/pprof/pprof_pb'
 
 module Datadog
   module Profiling
     module Pprof
-      # Generic profile building behavior
+      # Accumulates profile data and produces a Perftools::Profiles::Profile
       class Builder
         DESC_FRAME_OMITTED = 'frame omitted'.freeze
         DESC_FRAMES_OMITTED = 'frames omitted'.freeze
-        VALUE_TYPE_WALL = 'wall'.freeze
-        VALUE_UNIT_NANOSECONDS = 'nanoseconds'.freeze
 
         attr_reader \
-          :events,
           :functions,
           :locations,
+          :mappings,
           :sample_types,
           :samples,
           :string_table
 
-        def initialize(events)
-          @events = events
-          @profile = nil
-          @sample_types = []
+        def initialize
+          @functions = MessageSet.new(1)
+          @locations = MessageSet.new(1)
+          @mappings = MessageSet.new(1)
+          @sample_types = MessageSet.new
           @samples = []
-          @mappings = []
-          @locations = MessageSet.new
-          @functions = MessageSet.new
           @string_table = StringTable.new
         end
 
-        def to_profile
-          @profile ||= build_profile(@events)
-        end
-
-        def build_profile(events)
-          @sample_types = build_sample_types
-          @samples = group_events(events) do |event, values|
-            build_sample(event, values)
-          end
-          @mappings = build_mappings
-
+        def build_profile
           Perftools::Profiles::Profile.new(
-            sample_type: @sample_types,
+            sample_type: @sample_types.messages,
             sample: @samples,
-            mapping: @mappings,
+            mapping: @mappings.messages,
             location: @locations.messages,
             function: @functions.messages,
             string_table: @string_table.strings
           )
         end
 
-        def group_events(events)
-          # Event grouping in format:
-          # [key, (event, [values, ...])]
-          event_groups = {}
-
-          events.each do |event|
-            key = event_group_key(event) || rand
-            values = build_sample_values(event)
-
-            unless key.nil?
-              if event_groups.key?(key)
-                # Update values for group
-                group_values = event_groups[key][1]
-                group_values.each_with_index do |group_value, i|
-                  group_values[i] = group_value + values[i]
-                end
-              else
-                # Add new group
-                event_groups[key] = [event, values]
-              end
-            end
-          end
-
-          event_groups.collect do |_group_key, group|
-            yield(
-              # Event
-              group[0],
-              # Values
-              group[1]
-            )
-          end
-        end
-
-        def event_group_key(event)
-          raise NotImplementedError
-        end
-
-        def build_sample_types
-          raise NotImplementedError
-        end
-
         def build_value_type(type, unit)
           Perftools::Profiles::ValueType.new(
-            type: string_table.fetch(type),
-            unit: string_table.fetch(unit)
+            type: @string_table.fetch(type),
+            unit: @string_table.fetch(unit)
           )
-        end
-
-        def build_sample(event, values)
-          raise NotImplementedError
-        end
-
-        def build_sample_values(event)
-          raise NotImplementedError
         end
 
         def build_locations(backtrace_locations, length)
@@ -165,15 +104,6 @@ module Datadog
             name: @string_table.fetch(function_name),
             filename: @string_table.fetch(filename)
           )
-        end
-
-        def build_mappings
-          [
-            Perftools::Profiles::Mapping.new(
-              id: 1,
-              filename: @string_table.fetch($PROGRAM_NAME)
-            )
-          ]
         end
       end
     end
