@@ -3,8 +3,12 @@ if !PlatformHelpers.jruby? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new
   require 'memory_profiler'
 end
 
+require 'ddtrace'
+
 RSpec.describe "Gem loading" do
-  subject { `ruby -e #{Shellwords.escape(load_path + program + flush_output)}` }
+  def subject
+    `ruby -e #{Shellwords.escape(load_path + program + flush_output)}`
+  end
 
   let(:program) do
     <<-RUBY
@@ -27,10 +31,6 @@ RSpec.describe "Gem loading" do
   end
 
   context 'timing' do
-    def subject
-      `ruby -e #{Shellwords.escape(load_path + program + flush_output)}`
-    end
-
     let(:program) do
       <<-RUBY
       require 'benchmark'
@@ -45,17 +45,18 @@ RSpec.describe "Gem loading" do
       # 0.15059919990599155
       # 0.1599752666739126
 
-      i = 10
+      i = 30
       total = i.times.reduce(0) { |acc, _| acc + subject.to_f }
-      puts total
-      puts total / i
+      # puts total
+      puts total.to_f / i
     end
   end
 
   context 'memory' do
-    let(:memory_before) { subject.split[0].to_i }
-    let(:memory_after) { subject.split[-1].to_i }
-    let(:memory_diff) { memory_after - memory_before }
+    def memory_diff
+      output = subject.split
+      output[1].to_i - output[0].to_i
+    end
 
     let(:program) do
       <<-RUBY
@@ -66,7 +67,9 @@ RSpec.describe "Gem loading" do
     end
 
     it do
-      puts "ddtrace memory footprint: #{memory_diff} KiB"
+      i = 40
+      total = i.times.reduce(0) { |acc, _| acc + memory_diff }
+      puts "ddtrace memory footprint: #{total.to_f / i} KiB"
     end
   end
 
@@ -77,6 +80,7 @@ RSpec.describe "Gem loading" do
       <<-RUBY
       require 'memory_profiler'
       report = MemoryProfiler.report(ignore_files: /\.rbenv/) do
+      # report = MemoryProfiler.report do
         require 'ddtrace'
       end
       report.pretty_print
@@ -89,7 +93,7 @@ RSpec.describe "Gem loading" do
         skip("'benchmark/memory' not supported")
       end
 
-      require 'rubygems'
+      # require 'rubygems'
 
       # Total allocated: 7751400 bytes (60499 objects)
       # Total retained:  1193126 bytes (9355 objects)
@@ -177,7 +181,7 @@ RSpec.describe "Gem loading" do
       # prettyprint
       # rubygems
 
-      require 'prettyprint'
+      # require 'prettyprint'
 
       puts subject
     end

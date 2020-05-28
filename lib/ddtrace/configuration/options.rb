@@ -21,12 +21,20 @@ module Datadog
         end
 
         protected
-
-        def option(name, meta = {}, &block)
+        H = {}.freeze
+        def option(name, meta = H, &block)
           builder = OptionDefinition::Builder.new(name, meta, &block)
           options[name] = builder.to_definition.tap do
             # Resolve and define helper functions
-            helpers = default_helpers(name).merge(builder.helpers)
+            # puts "default_helpers(name): #{default_helpers(name).size}"
+            # puts "builder.helpers: #{builder.helpers.size}"
+
+
+            helpers = default_helpers(name)
+            helpers = helpers.merge(builder.helpers) unless builder.helpers.empty?
+
+            # helpers = default_helpers(name).merge(builder.helpers)
+
             define_helpers(helpers)
           end
         end
@@ -34,13 +42,7 @@ module Datadog
         private
 
         CACHE = {}
-
-        def changeme
-          get_option(option_name)
-        end
-
         def default_helpers(name)
-          puts CACHE.size
           CACHE[name] ||= begin
                             option_name = name.to_sym
 
@@ -48,12 +50,25 @@ module Datadog
                               option_name => proc do
                                 get_option(option_name)
                               end,
-                              "#{option_name}=".to_sym => proc do |value|
+                              "#{name}=" => proc do |value|
                                 set_option(option_name, value)
                               end
                             }
                           end
         end
+
+        # def default_helpers(name)
+        #   option_name = name.to_sym
+        #
+        #   {
+        #     option_name.to_sym => proc do
+        #       get_option(option_name)
+        #     end,
+        #     "#{option_name}=".to_sym => proc do |value|
+        #       set_option(option_name, value)
+        #     end
+        #   }
+        # end
 
 
         # Total allocated: 6468727 bytes (47044 objects)
