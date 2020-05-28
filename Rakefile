@@ -11,13 +11,18 @@ Dir.glob('tasks/*.rake').each { |r| import r }
 desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
-  task all: [:main,
+  task all: [:main, :benchmark,
              :rails, :railsredis, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,opentelemetry}/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:benchmark) do |t, args|
+    t.pattern = 'spec/ddtrace/benchmark/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -188,6 +193,8 @@ task :ci do
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -243,6 +250,8 @@ task :ci do
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -305,6 +314,8 @@ task :ci do
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -378,6 +389,8 @@ task :ci do
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -454,6 +467,8 @@ task :ci do
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
     sh 'bundle exec rake spec:opentelemetry'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Benchmarks
@@ -517,6 +532,8 @@ task :ci do
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
     sh 'bundle exec rake spec:opentelemetry'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Benchmarks
@@ -590,6 +607,8 @@ task :ci do
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
     sh 'bundle exec rake spec:opentelemetry'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Benchmarks
@@ -662,6 +681,8 @@ task :ci do
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
     sh 'bundle exec rake spec:opentelemetry'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Benchmarks
