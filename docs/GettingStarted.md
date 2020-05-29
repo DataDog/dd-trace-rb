@@ -1307,6 +1307,13 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 You can also set *per-instance* configuration as it follows:
 
 ```ruby
+require 'redis'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :redis # Enabling integration instrumentation is still required
+end
+
 customer_cache = Redis.new
 invoice_cache = Redis.new
 

@@ -29,7 +29,7 @@ module Datadog
             get_option(:service_name),
             app: Ext::APP,
             app_type: Datadog::Ext::AppTypes::WORKER,
-            tracer: get_option(:tracer)
+            tracer: -> { get_option(:tracer) }
           ).onto(::SuckerPunch)
         end
 

@@ -60,13 +60,6 @@ RSpec.describe 'Dalli instrumentation' do
           after(:each) { pin.service_name = original_service_name }
           it { expect(Datadog.configuration[:dalli][:service_name]).to eq(service_name) }
         end
-
-        # Make sure 'tracer' passes through to underlying configuration
-        describe 'tracer=' do
-          before(:each) { pin.tracer = new_tracer }
-          let(:new_tracer) { double('tracer') }
-          it { expect(Datadog.configuration[:dalli][:tracer]).to eq(new_tracer) }
-        end
       end
     end
 

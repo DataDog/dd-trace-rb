@@ -8,14 +8,14 @@ module Datadog
     module SuckerPunch
       class PatcherTest < Minitest::Test
         def setup
+          @tracer = get_test_tracer
+
           Datadog.configure do |c|
-            c.use :sucker_punch
+            c.use :sucker_punch, tracer: @tracer
           end
 
           ::SuckerPunch::Queue.clear
           ::SuckerPunch::RUNNING.make_true
-
-          @tracer = enable_test_tracer!
         end
 
         def test_two_spans_per_job
@@ -85,10 +85,6 @@ module Datadog
 
         def all_spans
           tracer.writer.spans(:keep)
-        end
-
-        def enable_test_tracer!
-          get_test_tracer.tap { |tracer| pin.tracer = tracer }
         end
 
         def pin

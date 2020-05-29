@@ -15,11 +15,10 @@ RSpec.describe 'Redis mini app test' do
   end
 
   before(:each) do
-    # Patch redis (don't bother configuring tracer)
-    Datadog.configure { |c| c.use :redis }
+    Datadog.configure { |c| c.use :redis, tracer: tracer }
 
-    # Configure client instance with tracer
-    Datadog.configure(client, tracer: tracer)
+    # Configure client instance with custom options
+    Datadog.configure(client, service_name: 'test-service')
   end
 
   let(:client) do
@@ -89,12 +88,12 @@ RSpec.describe 'Redis mini app test' do
     describe '"command spans"' do
       it do
         expect(redis_cmd1_span.name).to eq('redis.command')
-        expect(redis_cmd1_span.service).to eq('redis')
+        expect(redis_cmd1_span.service).to eq('test-service')
         expect(redis_cmd1_span.parent_id).to eq(process_span.span_id)
         expect(redis_cmd1_span.trace_id).to eq(publish_span.trace_id)
 
         expect(redis_cmd2_span.name).to eq('redis.command')
-        expect(redis_cmd2_span.service).to eq('redis')
+        expect(redis_cmd2_span.service).to eq('test-service')
         expect(redis_cmd2_span.parent_id).to eq(process_span.span_id)
         expect(redis_cmd2_span.trace_id).to eq(publish_span.trace_id)
       end

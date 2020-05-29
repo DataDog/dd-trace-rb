@@ -34,7 +34,7 @@ module Datadog
             get_option(:service_name),
             app: Ext::APP,
             app_type: Datadog::Ext::AppTypes::WEB,
-            tracer: get_option(:tracer)
+            tracer: -> { get_option(:tracer) }
           )
           pin.onto(::Grape)
         end

@@ -76,7 +76,7 @@ module Datadog
                   datadog_configuration[:service_name],
                   app: Ext::APP,
                   app_type: Datadog::Ext::AppTypes::DB,
-                  tracer: datadog_configuration[:tracer]
+                  tracer: -> { datadog_configuration[:tracer] }
                 )
                 pin.onto(self)
               end
