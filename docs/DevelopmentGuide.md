@@ -193,3 +193,15 @@ Datadog.configure do |c|
   }
 end
 ```
+
+### Performance
+
+Writing idiomatic Ruby code should always be your first stylistic priority, but having performance considerations
+guiding your decisions is also important when writing a tracer library that is often part of an application's critical path.
+
+Here are a few performance learnings we've collected while writing `ddtrace`:
+* Freeze string literals. If not frozen, a new string is created every time the statement is evaluated.
+* Prefer `Hash[:key] || default` over `Hash#fetch`. The former is faster for both miss or hit key lookups and prevents the allocation of `default` when not needed.
+* Use mutable array operations when possible (e.g. `map!`, `select!`), as this prevents the creation of a new array.
+* If you need an empty array as a placeholder (e.g. `def foo(opt = {})`) and you won't mutate it, use `Datadog::Utils::EMPTY_HASH`. This avoids the allocation of a new hash.
+ 
