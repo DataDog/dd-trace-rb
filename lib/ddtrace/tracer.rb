@@ -10,6 +10,7 @@ require 'ddtrace/writer'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
+require 'ddtrace/ext/system'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -176,31 +177,39 @@ module Datadog
 
     # Return a span that will trace an operation called \name. This method allows
     # parenting passing \child_of as an option. If it's missing, the newly created span is a
-    # root span. Available options are:
+    # root span.
     #
-    # * +service+: the service name for this span
-    # * +resource+: the resource this span refers, or \name if it's missing
-    # * +span_type+: the type of the span (such as \http, \db and so on)
-    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
-    # * +start_time+: when the span actually starts (defaults to \now)
-    # * +tags+: extra tags which should be added to the span.
+    # @param name [String] Operation name
+    # @param options [Hash] options hash, can be mutated
+    # @option options [String] :service the service name for this span
+    # @option options [String] :resource the resource this span refers, or \name if it's missing
+    # @option options [String] :span_type the type of the span (such as \http, \db and so on)
+    # @option options [Context,Span] :child_of a \Span or a \Context instance representing the parent for this span.
+    # @option options [Time] :start_time when the span actually starts (defaults to \now)
+    # @option options [Hash<String,String>] :tags extra tags which should be added to the span.
     def start_span(name, options = {})
+      # DEV `hash[:key] || default` is a faster alternative to `#fetch`, but
+      # DEV still using as little memory as `#fetch(:key){default}`.
       start_time = options[:start_time]
-      tags = options.fetch(:tags, {})
+      tags = options[:tags] || Utils::EMPTY_HASH
 
-      span_options = options.select do |k, _v|
+      ctx, parent = guess_context_and_parent(options[:child_of])
+
+      # Prepare +options+ to be forwarded to +Span.new+
+      # Mutating the provided +options+ using +select!+ allows us to save on
+      # allocating a new hash and having to copy the contents of the original
+      # hash.
+      options.select! do |k, _v|
         # Filter options, we want no side effects with unexpected args.
         ALLOWED_SPAN_OPTIONS.include?(k)
       end
+      options[:context] = ctx unless ctx.nil?
 
-      ctx, parent = guess_context_and_parent(options[:child_of])
-      span_options[:context] = ctx unless ctx.nil?
-
-      span = Span.new(self, name, span_options)
+      span = Span.new(self, name, options)
       if parent.nil?
         # root span
         @sampler.sample!(span)
-        span.set_tag('system.pid', Process.pid)
+        span.set_tag(Ext::System::PID, Process.pid)
 
         if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
@@ -267,6 +276,9 @@ module Datadog
         span = nil
         return_value = nil
 
+        # Record this option as #start_span can modify the options hash
+        on_error = options[:on_error]
+
         begin
           begin
             span = start_span(name, options)
@@ -288,7 +300,7 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
+          (on_error || DEFAULT_ON_ERROR).call(span, e)
           raise e
         ensure
           span.finish unless span.nil?
