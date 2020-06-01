@@ -17,8 +17,8 @@ RSpec.describe "Gem loading" do
   end
 
   let(:load_path) do
+    # Ensure we load the working directory version of 'ddtrace'
     <<-RUBY
-      # Ensure we load the working directory version of 'ddtrace' 
       lib = File.expand_path('../lib', __FILE__)
       $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
     RUBY
@@ -60,8 +60,8 @@ RSpec.describe "Gem loading" do
     def subject
       output = super()
 
-      measurements = output.split
-      measurements[1].to_i - measurements[0].to_i
+      before, after = output.split
+      after.to_i - before.to_i
     end
 
     it { puts "ddtrace gem memory footprint: #{report_average} KiB" }
@@ -73,10 +73,17 @@ RSpec.describe "Gem loading" do
     let(:program) do
       <<-'RUBY'
       require 'memory_profiler'
-      # report = MemoryProfiler.report(ignore_files: /\.rbenv/) do
-      report = MemoryProfiler.report do
+
+      # Exclude Ruby internals and gems from the report.
+      # The memory consumed by them will still be captured
+      # through 'require' statements and method calls present in ddtrace,
+      # but their internals won't pollute the report output.
+      ignore_files = %r{(.*/gems/[^/]*/lib/|/lib/ruby/\d)}
+
+      report = MemoryProfiler.report(ignore_files: ignore_files) do
         require 'ddtrace'
       end
+
       report.pretty_print
       RUBY
     end
