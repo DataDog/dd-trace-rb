@@ -290,6 +290,7 @@ def finish(name, id, payload)
   end
 end
 ```
+
 ### Enriching traces from nested methods
 
 You can tag additional information to the current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil.
@@ -308,6 +309,19 @@ You can also get the root span of the current active trace using the `active_roo
 
 current_root_span = Datadog.tracer.active_root_span
 current_root_span.set_tag('my_tag', 'my_value') unless current_root_span.nil?
+```
+
+### Tracing across ruby threads
+
+By default, active span is not propagated to a thread. When new ruby thread is started it creates new context for tracing spans. First span in thread will be then recorded as new root span and not connected with the current span of the parent thread.
+
+To propagate current span inside of a thread, `Datadog.tracer.provider.context` can be assigned inside of thread to context from the thread parent:
+
+```ruby 
+Thread.new(Datadog.tracer.provider.context) do |tracer_context|
+  Datadog.tracer.provider.context = tracer_context
+  # ...
+end
 ```
 
 ## Integration instrumentation
