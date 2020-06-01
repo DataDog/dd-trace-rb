@@ -72,6 +72,3 @@ require 'ddtrace/contrib/sidekiq/integration'
 require 'ddtrace/contrib/sinatra/integration'
 require 'ddtrace/contrib/sucker_punch/integration'
 require 'ddtrace/monkey'
-
-
-GOOD = 'GOOD'
