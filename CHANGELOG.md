@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [0.36.0] - 2020-05-27
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.36.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.35.2...v0.36.0
+
+### Changed
+
+- Prevent trace components from being re-initialized multiple times during setup (#1037)
+
+### Fixed
+
+- Allow Rails patching if Railties are loaded (#993, #1054) (@mustela, @bheemreddy181, @vramaiah)
+- Pin delegates to default tracer unless configured (#1041)
+
+### Refactored
+
+- Improvements to test suite (#1027, #1031, #1045, #1046, #1047)
+
 ## [0.35.2] - 2020-05-08
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.35.2
@@ -1216,7 +1235,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.2...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.36.0...master
+[0.36.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.2...v0.36.0
 [0.35.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.1...v0.35.2
 [0.35.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.0...v0.35.1
 [0.35.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.2...v0.35.0

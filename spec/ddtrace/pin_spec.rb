@@ -13,25 +13,56 @@ RSpec.describe Datadog::Pin do
     before(:each) { pin }
 
     context 'when given some options' do
-      let(:options) { { app: 'anapp' } }
+      let(:options) do
+        {
+          app: double('app'),
+          app_type: double('app_type'),
+          config: double('config'),
+          name: double('name'),
+          tags: double('tags'),
+          tracer: double('tracer'),
+          writer: double('writer')
+        }
+      end
 
       it do
-        expect(pin.service).to eq(service_name)
-        expect(pin.app).to eq(options[:app])
+        is_expected.to have_attributes(
+          app: options[:app],
+          app_type: options[:app_type],
+          config: options[:config],
+          name: nil,
+          service_name: service_name,
+          tags: options[:tags],
+          tracer: options[:tracer],
+          writer: nil
+        )
       end
     end
+  end
 
-    context 'when given sufficient info' do
-      let(:options) { { app: 'test-app', app_type: 'test-type', tracer: tracer } }
-      let(:tracer) { get_test_tracer }
+  describe '#tracer' do
+    subject(:tracer) { pin.tracer }
+
+    context 'when a tracer has been provided' do
+      let(:options) { super().merge(tracer: tracer_option) }
+      let(:tracer_option) { get_test_tracer }
+      it { is_expected.to be tracer_option }
     end
 
-    context 'when given insufficient info' do
-      let(:options) { { app_type: 'test-type', tracer: tracer } }
-      let(:tracer) { get_test_tracer }
+    context 'when no tracer has been provided' do
+      it { is_expected.to be Datadog.tracer }
 
-      it 'does not sets the service info' do
-        expect(tracer.services).to be_empty
+      context 'and the default tracer mutates' do
+        let(:new_tracer) { get_test_tracer }
+
+        it 'gets the current tracer' do
+          old_tracer = Datadog.tracer
+
+          expect { allow(Datadog).to receive(:tracer).and_return(new_tracer) }
+            .to change { pin.tracer }
+            .from(old_tracer)
+            .to(new_tracer)
+        end
       end
     end
   end
