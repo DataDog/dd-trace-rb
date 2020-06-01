@@ -5,7 +5,7 @@ if !PlatformHelpers.jruby? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new
   require 'memory_profiler'
 end
 
-RSpec.describe "Gem loading" do
+RSpec.describe 'Gem loading' do
   def subject
     `ruby -e #{Shellwords.escape(load_path + program + flush_output)}`
   end

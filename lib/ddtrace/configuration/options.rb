@@ -21,6 +21,7 @@ module Datadog
         end
 
         protected
+
         H = {}.freeze
         def option(name, meta = H, &block)
           builder = OptionDefinition::Builder.new(name, meta, &block)
@@ -28,7 +29,6 @@ module Datadog
             # Resolve and define helper functions
             # puts "default_helpers(name): #{default_helpers(name).size}"
             # puts "builder.helpers: #{builder.helpers.size}"
-
 
             helpers = default_helpers(name)
             helpers = helpers.merge(builder.helpers) unless builder.helpers.empty?
@@ -39,23 +39,43 @@ module Datadog
           end
         end
 
+        # def self.extended(base)
+        #   base.instance_variable_set(:@cache, Hash.new do |hash, name|
+        #     option_name = name.to_sym
+        #
+        #     hash[name] = {
+        #       option_name => proc do
+        #         get_option(option_name)
+        #       end,
+        #       "#{name}=".to_sym => proc do |value|
+        #         set_option(option_name, value)
+        #       end
+        #     }
+        #   end)
+        # end
+
         private
 
-        CACHE = {}
-        def default_helpers(name)
-          CACHE[name] ||= begin
-                            option_name = name.to_sym
+        # def cache
+        #   @cache ||= Hash.new do |hash, name|
+        #     option_name = name.to_sym
+        #
+        #     hash[name] = {
+        #       option_name => proc do
+        #         get_option(option_name)
+        #       end,
+        #       "#{name}=".to_sym => proc do |value|
+        #         set_option(option_name, value)
+        #       end
+        #     }
+        #   end
+        # end
+        #
+        # attr_reader
 
-                            {
-                              option_name => proc do
-                                get_option(option_name)
-                              end,
-                              "#{name}=".to_sym => proc do |value|
-                                set_option(option_name, value)
-                              end
-                            }
-                          end
-        end
+        # def default_helpers(name)
+        #   @cache[name]
+        # end
 
         # def default_helpers(name)
         #   option_name = name.to_sym
@@ -69,7 +89,6 @@ module Datadog
         #     end
         #   }
         # end
-
 
         # Total allocated: 6468727 bytes (47044 objects)
         # Total retained:  918106 bytes (7192 objects)
@@ -87,18 +106,18 @@ module Datadog
         #    6504051  dd-trace-rb/lib
         #      21712  other
         #
-        # def default_helpers(name)
-        #   option_name = name.to_sym
-        #
-        #   {
-        #     option_name.to_sym => proc do
-        #       get_option(option_name)
-        #     end,
-        #     "#{option_name}=".to_sym => proc do |value|
-        #       set_option(option_name, value)
-        #     end
-        #   }
-        # end
+        def default_helpers(name)
+          option_name = name.to_sym
+
+          {
+            option_name.to_sym => proc do
+              get_option(option_name)
+            end,
+            "#{option_name}=".to_sym => proc do |value|
+              set_option(option_name, value)
+            end
+          }
+        end
 
         def define_helpers(helpers)
           helpers.each do |name, block|
