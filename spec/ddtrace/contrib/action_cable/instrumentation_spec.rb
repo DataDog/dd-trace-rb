@@ -16,10 +16,8 @@ RSpec.describe 'ActionCable Rack override' do
   include Rack::Test::Methods
   include_context 'Rails test application'
 
-  let(:tracer) { get_test_tracer }
   let(:spans) { tracer.writer.spans(:keep) }
-
-  let(:options) { { tracer: tracer } }
+  let(:options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -44,10 +42,15 @@ RSpec.describe 'ActionCable Rack override' do
 
   context 'on ActionCable connection request' do
     subject! { get '/cable' }
+    let(:rack_span) { spans.find { |span| span.name == 'rack.request' } }
+    let(:action_cable_span) { spans.find { |span| span.name == 'action_cable.on_open' } }
+
+    it { expect(spans).to have(2).items }
+    it { expect(rack_span).to_not be nil }
+    it { expect(action_cable_span).to_not be nil }
 
     it 'overrides parent Rack resource' do
-      expect(span.name).to eq('rack.request')
-      expect(span.resource).to eq('ActionCable::Connection::Base#on_open')
+      expect(rack_span.resource).to eq('ActionCable::Connection::Base#on_open')
     end
   end
 end

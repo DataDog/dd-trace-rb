@@ -30,7 +30,7 @@ MESSAGE
 
   before do
     Datadog.configure { |c| c.use :redis }
-    Datadog.configure(client_from_driver(driver), tracer_options)
+    Datadog.configure(client_from_driver(driver), tracer: tracer)
   end
 
   let(:driver) do

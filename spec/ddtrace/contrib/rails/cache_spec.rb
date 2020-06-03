@@ -2,6 +2,7 @@ require 'securerandom'
 require 'ddtrace/contrib/rails/ext'
 
 require 'ddtrace/contrib/rails/rails_helper'
+require 'ddtrace/contrib/analytics_examples'
 
 RSpec.describe 'Rails cache' do
   include_context 'Rails test application'

@@ -1,8 +1,9 @@
 require 'ddtrace/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails ActionController' do
-  let(:tracer) { get_test_tracer }
-  let(:rails_options) { { tracer: tracer } }
+  include_context 'global test tracer'
+
+  let(:rails_options) { {} }
 
   before do
     Datadog.configure do |c|

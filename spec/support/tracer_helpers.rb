@@ -4,6 +4,11 @@ require 'support/faux_writer'
 
 # rubocop:disable Metrics/ModuleLength
 module TracerHelpers
+  shared_context 'global test tracer' do
+    before { Datadog.configure { |c| c.tracer.instance = tracer } }
+    after { Datadog.configure { |c| c.tracer.instance = nil } }
+  end
+
   # Return a test tracer instance with a faux writer.
   def tracer
     @tracer ||= new_tracer

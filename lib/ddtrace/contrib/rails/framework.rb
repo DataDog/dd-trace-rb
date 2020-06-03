@@ -64,7 +64,6 @@ module Datadog
         def self.activate_rack!(datadog_config, rails_config)
           datadog_config.use(
             :rack,
-            tracer: rails_config[:tracer],
             application: ::Rails.application,
             service_name: rails_config[:service_name],
             middleware_names: rails_config[:middleware_names],
@@ -77,8 +76,7 @@ module Datadog
 
           datadog_config.use(
             :active_support,
-            cache_service: rails_config[:cache_service],
-            tracer: rails_config[:tracer]
+            cache_service: rails_config[:cache_service]
           )
         end
 
@@ -87,8 +85,7 @@ module Datadog
 
           datadog_config.use(
             :action_cable,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}",
-            tracer: rails_config[:tracer]
+            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}"
           )
         end
 
@@ -101,8 +98,7 @@ module Datadog
 
           datadog_config.use(
             :action_pack,
-            service_name: rails_config[:service_name],
-            tracer: rails_config[:tracer]
+            service_name: rails_config[:service_name]
           )
         end
 
@@ -111,8 +107,7 @@ module Datadog
 
           datadog_config.use(
             :action_view,
-            service_name: rails_config[:service_name],
-            tracer: rails_config[:tracer]
+            service_name: rails_config[:service_name]
           )
         end
 
@@ -121,8 +116,7 @@ module Datadog
 
           datadog_config.use(
             :active_record,
-            service_name: rails_config[:database_service],
-            tracer: rails_config[:tracer]
+            service_name: rails_config[:database_service]
           )
         end
       end

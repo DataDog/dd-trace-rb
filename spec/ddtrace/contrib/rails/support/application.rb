@@ -2,11 +2,10 @@ require 'ddtrace/contrib/rails/support/base'
 
 RSpec.shared_context 'Rails test application' do
   include_context 'Rails base application'
+  include_context 'global test tracer'
 
   before do
     Datadog.configuration[:rails].reset_options!
-    Datadog.configuration[:rails][:tracer] = tracer
-
     reset_rails_configuration!
   end
 
@@ -67,7 +66,7 @@ RSpec.shared_context 'Rails test application' do
     logger.error 'A Rails app for this version is not found!'
   end
 
-  let(:tracer_options) { { tracer: tracer } }
+  let(:tracer_options) { {} }
 
   let(:app_name) { Datadog::Contrib::Rails::Utils.app_name }
 

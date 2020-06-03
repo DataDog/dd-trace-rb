@@ -5,16 +5,16 @@ require 'contrib/rails/test_helper'
 # rubocop:disable Metrics/ClassLength
 class FullStackTest < ActionDispatch::IntegrationTest
   setup do
-    @original_tracer = Datadog.configuration[:rails][:tracer]
     @tracer = get_test_tracer
 
     Datadog.configure do |c|
-      c.use :rails, tracer: @tracer
+      c.tracer.instance = @tracer
+      c.use :rails
     end
   end
 
   teardown do
-    Datadog.configuration[:rails][:tracer] = @original_tracer
+    Datadog.configure { |c| c.tracer.instance = nil }
   end
 
   test 'a full request is properly traced' do
