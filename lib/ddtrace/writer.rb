@@ -43,9 +43,17 @@ module Datadog
       @worker = nil
     end
 
-    # spawns a worker for spans; they share the same transport which is thread-safe
     def start
-      @pid = Process.pid
+      @mutex_after_fork.synchronize do
+        pid = Process.pid
+        return if @worker && pid == @pid
+        @pid = pid
+        start_worker
+      end
+    end
+
+    # spawns a worker for spans; they share the same transport which is thread-safe
+    def start_worker
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
       @worker = Datadog::Workers::AsyncTransport.new(
         transport: @transport,
@@ -57,13 +65,18 @@ module Datadog
       @worker.start
     end
 
-    # stops worker for spans.
     def stop
-      return if worker.nil?
+      @mutex_after_fork.synchronize { stop_worker }
+    end
+
+    def stop_worker
+      return if @worker.nil?
       @worker.stop
       @worker = nil
       true
     end
+
+    private :start_worker, :stop_worker
 
     # flush spans to the trace-agent, handles spans only
     def send_spans(traces, transport)
@@ -106,13 +119,7 @@ module Datadog
       #
       # This check ensures that if a process doesn't own the current +Writer+, async workers
       # will be initialized again (but only once for each process).
-      pid = Process.pid
-      if pid != @pid # avoid using Mutex when pids are equal
-        @mutex_after_fork.synchronize do
-          # we should start threads because the worker doesn't own this
-          start if pid != @pid
-        end
-      end
+      start if @worker.nil? || @pid != Process.pid
 
       # TODO: Remove this, and have the tracer pump traces directly to runtime metrics
       #       instead of working through the trace writer.
