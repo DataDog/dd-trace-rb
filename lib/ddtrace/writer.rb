@@ -49,6 +49,7 @@ module Datadog
         return if @worker && pid == @pid
         @pid = pid
         start_worker
+        true
       end
     end
 
@@ -128,7 +129,13 @@ module Datadog
         Datadog.runtime_metrics.associate_with_span(trace.first)
       end
 
-      @worker.enqueue_trace(trace)
+      worker_local = @worker
+
+      if worker_local
+        worker_local.enqueue_trace(trace)
+      else
+        Datadog.logger.debug('Writer either failed to start or was stopped before #write could complete')
+      end
     end
 
     # stats returns a dictionary of stats about the writer.
