@@ -344,6 +344,7 @@ For a list of available integrations, and their configuration options, please re
 | Grape                    | `grape`                    | `>= 1.0`                 | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL                  | `graphql`                  | `>= 1.7.9`               | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | gRPC                     | `grpc`                     | `>= 1.7`                 | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
+| Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | *[Link](#kafka)*
 | MongoDB                  | `mongo`                    | `>= 2.1`                 | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
@@ -945,6 +946,29 @@ alternate_client = Demo::Echo::Service.rpc_stub_class.new(
 ```
 
 The integration will ensure that the `configured_interceptor` establishes a unique tracing setup for that client instance.
+
+### Kafka
+
+The Kafka integration provides tracing of the `ruby-kafka` gem:
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :kafka, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `kafka` instrumentation | `'kafka'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
+
 
 ### MongoDB
 

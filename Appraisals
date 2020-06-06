@@ -353,6 +353,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'redis', '< 4.0'
       gem 'rest-client'
       gem 'resque', '< 2.0'
+      gem 'ruby-kafka', '>= 0.7.10'
       gem 'sequel'
       gem 'shoryuken'
       gem 'sidekiq'
