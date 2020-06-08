@@ -11,7 +11,7 @@ module Datadog
       end
 
       def call(trace)
-        deleted = Set.new.compare_by_identity
+        deleted = Set.new
 
         trace.delete_if do |span|
           if deleted.include?(span.parent)
