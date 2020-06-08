@@ -11,27 +11,24 @@ module Datadog
       end
 
       def call(trace)
-        black_list = trace.select(&method(:drop_it?))
+        deleted = Set.new.compare_by_identity
 
-        clean_trace(black_list, trace) while black_list.any?
-
-        trace
+        trace.delete_if do |span|
+          if deleted.include?(span.parent)
+            deleted << span
+            true
+          else
+            drop = drop_it?(span)
+            deleted << span if drop
+            drop
+          end
+        end
       end
 
       private
 
       def drop_it?(span)
         @criteria.call(span) rescue false
-      end
-
-      def clean_trace(black_list, trace)
-        current = black_list.shift
-
-        trace.delete(current)
-
-        trace.each do |span|
-          black_list << span if span.parent == current
-        end
       end
     end
   end
