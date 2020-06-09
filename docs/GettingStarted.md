@@ -1809,7 +1809,7 @@ Service C:
 
 **Activating distributed tracing for integrations**
 
-Many integrations included in `ddtrace` support distributed tracing. Distributed tracing is enabled by default, but can be activated via configuration settings.
+Many integrations included in `ddtrace` support distributed tracing. Distributed tracing is enabled by default in Agent v7 and most versions of Agent v6. If needed, you can activate distributed tracing with configuration settings.
 
 - If your application receives requests from services with distributed tracing activated, you must activate distributed tracing on the integrations that handle these requests (e.g. Rails)
 - If your application send requests to services with distributed tracing activated, you must activate distributed tracing on the integrations that send these requests (e.g. Faraday)
