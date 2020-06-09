@@ -36,6 +36,8 @@ module Datadog
           end
         end
 
+        # Processes patching errors. This default implementation logs the error and reports relevant metrics.
+        # @param e [Exception]
         def on_patch_error(e)
           # Log the error
           Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
