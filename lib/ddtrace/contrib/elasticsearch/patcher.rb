@@ -37,14 +37,13 @@ module Datadog
             end
 
             def initialize(*args, &block)
-              tracer = Datadog.configuration[:elasticsearch][:tracer]
               service = Datadog.configuration[:elasticsearch][:service_name]
 
               pin = Datadog::Pin.new(
                 service,
                 app: Datadog::Contrib::Elasticsearch::Ext::APP,
                 app_type: Datadog::Ext::AppTypes::DB,
-                tracer: tracer
+                tracer: -> { Datadog.configuration[:elasticsearch][:tracer] }
               )
               pin.onto(self)
               initialize_without_datadog(*args, &block)

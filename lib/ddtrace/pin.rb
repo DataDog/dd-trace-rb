@@ -18,13 +18,15 @@ module Datadog
     attr_accessor :name
     attr_accessor :service_name
     attr_accessor :tags
-    attr_writer :tracer
+    attr_reader :tracer
     attr_accessor :writer
 
     alias service= service_name=
     alias service service_name
 
     def initialize(service_name, options = {})
+      deprecation_warning unless options[:tracer].is_a?(Proc) || options[:tracer].nil?
+
       @app = options[:app]
       @app_type = options[:app_type]
       @config = options[:config]
@@ -35,7 +37,7 @@ module Datadog
     end
 
     def tracer
-      @tracer || Datadog.tracer
+      @tracer.is_a?(Proc) ? @tracer.call : (@tracer || Datadog.tracer)
     end
 
     def enabled?
@@ -66,6 +68,27 @@ module Datadog
 
     def to_s
       "Pin(service:#{service},app:#{app},app_type:#{app_type},name:#{name})"
+    end
+
+    private
+
+    DEPRECATION_WARNING = %(
+      Explicitly providing a tracer instance is DEPRECATED.
+      It's recommended to not provide an explicit tracer instance
+      and let Datadog::Pin resolve the correct tracer internally.
+      ).freeze
+
+    def deprecation_warning
+      log_deprecation_warning('Datadog::Pin.new')
+    end
+
+    include Datadog::Patcher
+
+    def log_deprecation_warning(method_name)
+      # Only log each deprecation warning once (safeguard against log spam)
+      do_once(method_name) do
+        Datadog.logger.warn("#{method_name}:#{DEPRECATION_WARNING}")
+      end
     end
   end
 

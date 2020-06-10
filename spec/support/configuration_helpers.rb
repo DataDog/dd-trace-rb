@@ -49,4 +49,13 @@ module ConfigurationHelpers
         .instance_variable_set('@patched', false)
     end
   end
+
+  def self.included(config)
+    config.before(:each) do
+      allow_any_instance_of(Datadog::Pin)
+        .to receive(:deprecation_warning)
+        .and_raise('DEPRECATED: Tracer cannot be eagerly cached.' \
+      'A warning will be emitted in production for such cases.')
+    end
+  end
 end

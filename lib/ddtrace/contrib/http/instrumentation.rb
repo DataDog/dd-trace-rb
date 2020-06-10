@@ -111,9 +111,12 @@ module Datadog
             service = config[:service_name]
             tracer = config[:tracer]
 
-            @datadog_pin ||= begin
-              Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
-            end
+            @datadog_pin ||= Datadog::Pin.new(
+              service,
+              app: Ext::APP,
+              app_type: Datadog::Ext::AppTypes::WEB,
+              tracer: -> { config[:tracer] }
+            )
 
             # this shockingly poor code exists to solve the case where someone
             # calls datadog_pin on this object before running a request, which
@@ -136,10 +139,12 @@ module Datadog
           def default_datadog_pin
             config = Datadog.configuration[:http]
             service = config[:service_name]
-            tracer = config[:tracer]
-            @default_datadog_pin ||= begin
-              Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
-            end
+            @default_datadog_pin ||= Datadog::Pin.new(
+              service,
+              app: Ext::APP,
+              app_type: Datadog::Ext::AppTypes::WEB,
+              tracer: -> { config[:tracer] }
+            )
           end
 
           private

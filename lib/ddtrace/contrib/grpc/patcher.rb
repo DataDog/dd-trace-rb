@@ -29,7 +29,7 @@ module Datadog
             get_option(:service_name),
             app: Ext::APP,
             app_type: Datadog::Ext::AppTypes::WEB,
-            tracer: get_option(:tracer)
+            tracer: -> { get_option(:tracer) }
           ).onto(::GRPC)
         end
 
@@ -51,10 +51,6 @@ module Datadog
             Use of Datadog::Pin with GRPC is DEPRECATED.
             Upgrade to the configuration API using the migration guide here:
             https://github.com/DataDog/dd-trace-rb/releases/tag/v0.11.0).freeze
-
-          def tracer=(tracer)
-            Datadog.configuration[:grpc][:tracer] = tracer
-          end
 
           def service_name=(service_name)
             Datadog.configuration[:grpc][:service_name] = service_name

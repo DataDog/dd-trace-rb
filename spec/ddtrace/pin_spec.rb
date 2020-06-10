@@ -20,7 +20,6 @@ RSpec.describe Datadog::Pin do
           config: double('config'),
           name: double('name'),
           tags: double('tags'),
-          tracer: double('tracer'),
           writer: double('writer')
         }
       end
@@ -33,7 +32,6 @@ RSpec.describe Datadog::Pin do
           name: nil,
           service_name: service_name,
           tags: options[:tags],
-          tracer: options[:tracer],
           writer: nil
         )
       end
@@ -46,7 +44,15 @@ RSpec.describe Datadog::Pin do
     context 'when a tracer has been provided' do
       let(:options) { super().merge(tracer: tracer_option) }
       let(:tracer_option) { get_test_tracer }
-      it { is_expected.to be tracer_option }
+
+      before do
+        allow_any_instance_of(Datadog::Pin).to receive(:deprecation_warning).and_call_original
+      end
+
+      it 'expect a deprecation warning' do
+        expect(Datadog.logger).to receive(:warn).with(include('DEPRECATED'))
+        subject
+      end
     end
 
     context 'when no tracer has been provided' do
@@ -139,7 +145,6 @@ RSpec.describe Datadog::Pin do
     it { is_expected.to be true }
 
     context 'when the tracer is disabled' do
-      let(:options) { { tracer: Datadog::Tracer.new(writer: FauxWriter.new) } }
       before(:each) { pin.tracer.enabled = false }
       it { is_expected.to be false }
     end

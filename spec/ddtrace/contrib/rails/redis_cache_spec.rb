@@ -29,8 +29,8 @@ MESSAGE
   before { app }
 
   before do
-    Datadog.configure { |c| c.use :redis }
-    Datadog.configure(client_from_driver(driver), tracer_options)
+    Datadog.configure { |c| c.use :redis, tracer: tracer }
+    Datadog.configure(client_from_driver(driver))
   end
 
   let(:driver) do
