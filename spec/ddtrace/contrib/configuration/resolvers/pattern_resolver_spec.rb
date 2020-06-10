@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
