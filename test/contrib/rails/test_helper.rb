@@ -103,3 +103,49 @@ end
 def app_name
   Datadog::Contrib::Rails::Utils.app_name
 end
+
+module RailsTest
+  include TestTracerHelper
+
+  # Because we Rails initialization has irreversible side effects, we manually
+  # reconfigure the test suite before running each test.
+  def before_each
+    if !@initialized && !rails_initialized?
+      Datadog.configure do |c|
+        c.use :rails
+        c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+      end
+
+      initialize_rails!
+
+      @initialized = true
+    end
+
+    clear_spans!
+
+    if defined?(integration_session) && integration_session
+      integration_session.instance_variable_set(:@app, Rails.application)
+    end
+  end
+
+  def spans
+    @spans ||= fetch_spans.reject { |x| x.resource == 'BEGIN' }
+  end
+
+  # For Rails >= 4
+  def before_setup
+    before_each
+    super
+  end
+
+  # For Rails < 4
+  def setup
+    before_each
+    super
+  end
+
+  # For Rails < 4
+  def run(*_)
+    with_stubbed_tracer { super }
+  end
+end

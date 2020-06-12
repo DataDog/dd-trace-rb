@@ -7,11 +7,14 @@ module Datadog
   module Contrib
     module SuckerPunch
       class PatcherTest < Minitest::Test
-        def setup
-          @tracer = get_test_tracer
+        include TestTracerHelper
+        def integration_name
+          :sucker_punch
+        end
 
+        def configure
           Datadog.configure do |c|
-            c.use :sucker_punch, tracer: @tracer
+            c.use :sucker_punch
           end
 
           ::SuckerPunch::Queue.clear
@@ -22,15 +25,15 @@ module Datadog
           # One span when pushing to the queue
           # One span for the job execution itself
           ::DummyWorker.perform_async
-          try_wait_until { all_spans.length == 2 }
-          assert_equal(2, all_spans.length)
+          try_wait_until { fetch_spans.length == 2 }
+          assert_equal(2, spans.length)
         end
 
         def test_successful_job
           ::DummyWorker.perform_async
-          try_wait_until { all_spans.length == 2 }
+          try_wait_until { fetch_spans.length == 2 }
 
-          span = all_spans.find { |s| s.resource[/PROCESS/] }
+          span = spans.find { |s| s.resource[/PROCESS/] }
           assert_equal('sucker_punch', span.service)
           assert_equal('sucker_punch.perform', span.name)
           assert_equal('PROCESS DummyWorker', span.resource)
@@ -41,9 +44,9 @@ module Datadog
 
         def test_failed_job
           ::DummyWorker.perform_async(:fail)
-          try_wait_until { all_spans.length == 2 }
+          try_wait_until { fetch_spans.length == 2 }
 
-          span = all_spans.find { |s| s.resource[/PROCESS/] }
+          span = spans.find { |s| s.resource[/PROCESS/] }
           assert_equal('sucker_punch', span.service)
           assert_equal('sucker_punch.perform', span.name)
           assert_equal('PROCESS DummyWorker', span.resource)
@@ -56,9 +59,9 @@ module Datadog
 
         def test_async_enqueueing
           ::DummyWorker.perform_async
-          try_wait_until { all_spans.any? }
+          try_wait_until { fetch_spans.any? }
 
-          span = all_spans.find { |s| s.resource[/ENQUEUE/] }
+          span = spans.find { |s| s.resource[/ENQUEUE/] }
           assert_equal('sucker_punch', span.service)
           assert_equal('sucker_punch.perform_async', span.name)
           assert_equal('ENQUEUE DummyWorker', span.resource)
@@ -68,9 +71,9 @@ module Datadog
 
         def test_delayed_enqueueing
           ::DummyWorker.perform_in(0)
-          try_wait_until { all_spans.any? }
+          try_wait_until { fetch_spans.any? }
 
-          span = all_spans.find { |s| s.resource[/ENQUEUE/] }
+          span = spans.find { |s| s.resource[/ENQUEUE/] }
           assert_equal('sucker_punch', span.service)
           assert_equal('sucker_punch.perform_in', span.name)
           assert_equal('ENQUEUE DummyWorker', span.resource)
@@ -80,12 +83,6 @@ module Datadog
         end
 
         private
-
-        attr_reader :tracer
-
-        def all_spans
-          tracer.writer.spans(:keep)
-        end
 
         def pin
           ::SuckerPunch.datadog_pin

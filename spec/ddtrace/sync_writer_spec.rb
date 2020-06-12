@@ -26,12 +26,8 @@ RSpec.describe Datadog::SyncWriter do
       end
 
       context 'enabled' do
-        around do |example|
-          Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-            Datadog.configuration.report_hostname = true
-            example.run
-          end
-        end
+        before { Datadog.configuration.report_hostname = true }
+        after { Datadog.configuration.reset! }
 
         it do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|
@@ -47,12 +43,8 @@ RSpec.describe Datadog::SyncWriter do
       end
 
       context 'disabled' do
-        around do |example|
-          Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-            Datadog.configuration.report_hostname = false
-            example.run
-          end
-        end
+        before { Datadog.configuration.report_hostname = false }
+        after { Datadog.configuration.reset! }
 
         it do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|

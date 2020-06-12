@@ -71,7 +71,7 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
       context 'given a request from' do
         let(:request) { @request }
 
-        before do
+        subject do
           # Capture the HTTP request directly from the transport,
           # to make sure we have legitimate example.
           expect(::Net::HTTP::Post).to receive(:new).and_wrap_original do |m, *args|
@@ -84,10 +84,15 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
 
           # Send a request, and make sure we captured it.
           transport.send_traces(get_test_traces(1))
+
           expect(@request).to be_a_kind_of(::Net::HTTP::Post)
+
+          super()
         end
 
         context 'a Datadog Net::HTTP transport' do
+          before { expect(::Net::HTTP).to receive(:start) }
+
           let(:transport) { Datadog::Transport::HTTP.default }
           it { is_expected.to be true }
         end

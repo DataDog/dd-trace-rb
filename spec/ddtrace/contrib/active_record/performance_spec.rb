@@ -5,9 +5,7 @@ require 'active_record'
 require 'sqlite3'
 
 RSpec.describe 'ActiveRecord tracing performance' do
-  let(:tracer) { get_test_tracer }
-  let(:options) { { tracer: tracer } }
-  let(:spans) { tracer.writer.spans }
+  let(:options) { {} }
 
   before(:each) do
     skip('Performance test does not run in CI.')
@@ -42,7 +40,7 @@ RSpec.describe 'ActiveRecord tracing performance' do
         measure(10)
 
         # Discard warm-up spans
-        tracer.writer.spans
+        clear_spans!
       end
 
       it 'produces a measurement' do

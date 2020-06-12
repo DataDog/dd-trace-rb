@@ -201,12 +201,8 @@ RSpec.describe Datadog::Writer do
           end
 
           context 'enabled' do
-            around do |example|
-              Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-                Datadog.configuration.report_hostname = true
-                example.run
-              end
-            end
+            before { Datadog.configuration.report_hostname = true }
+            after { Datadog.configuration.reset! }
 
             it do
               expect(transport).to receive(:send_traces) do |traces|
@@ -220,12 +216,8 @@ RSpec.describe Datadog::Writer do
           end
 
           context 'disabled' do
-            around do |example|
-              Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-                Datadog.configuration.report_hostname = false
-                example.run
-              end
-            end
+            before { Datadog.configuration.report_hostname = false }
+            after { Datadog.configuration.reset! }
 
             it do
               expect(writer.transport).to receive(:send_traces) do |traces|

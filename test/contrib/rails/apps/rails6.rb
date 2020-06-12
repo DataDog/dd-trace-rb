@@ -12,7 +12,14 @@ module Rails6
     # Enabling `cache_template_loading` forces ActionView to cache templates on first load,
     # and disables any attempt of refresh from the file system.
     config.action_view.cache_template_loading = true
+    config.hosts.clear
   end
 end
 
-Rails6::Application.test_config()
+def initialize_rails!
+  Rails6::Application.test_config()
+end
+
+def rails_initialized?
+  Rails.application.initialized?
+end

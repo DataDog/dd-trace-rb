@@ -153,6 +153,13 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
     end
   end
 
+  shared_context 'analytics setting' do |analytics_enabled|
+    let(:analytics_enabled) { defined?(super) ? super() : analytics_enabled }
+
+    before { Datadog.configuration.analytics.enabled = analytics_enabled }
+    after { Datadog.configuration.reset! }
+  end
+
   context 'when configured by configuration options' do
     context 'and explicitly enabled' do
       let(:configuration_options) { super().merge(analytics_enabled: true) }
@@ -175,24 +182,12 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
         end
 
         context 'is explicitly enabled' do
-          around do |example|
-            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
-              Datadog.configuration.analytics.enabled = true
-              example.run
-            end
-          end
-
+          include_context 'analytics setting', true
           it_behaves_like 'sample rate value'
         end
 
         context 'is explicitly disabled' do
-          around do |example|
-            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
-              Datadog.configuration.analytics.enabled = false
-              example.run
-            end
-          end
-
+          include_context 'analytics setting', false
           it_behaves_like 'sample rate value'
         end
       end
@@ -219,24 +214,12 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
         end
 
         context 'is explicitly enabled' do
-          around do |example|
-            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
-              Datadog.configuration.analytics.enabled = true
-              example.run
-            end
-          end
-
+          include_context 'analytics setting', true
           it_behaves_like 'sample rate value'
         end
 
         context 'is explicitly disabled' do
-          around do |example|
-            Datadog.configuration.analytics.enabled = Datadog.configuration.analytics.enabled.tap do
-              Datadog.configuration.analytics.enabled = false
-              example.run
-            end
-          end
-
+          include_context 'analytics setting', false
           it_behaves_like 'sample rate value'
         end
       end

@@ -6,13 +6,11 @@ require 'ddtrace'
 require 'ddtrace/contrib/sequel/patcher'
 
 RSpec.describe 'Sequel configuration' do
-  let(:tracer) { get_test_tracer }
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
-
   before(:each) do
     skip unless Datadog::Contrib::Sequel::Integration.compatible?
   end
+
+  let(:span) { spans.first }
 
   describe 'for a SQLite database' do
     let(:sequel) do
@@ -33,7 +31,7 @@ RSpec.describe 'Sequel configuration' do
       context 'only with defaults' do
         # Expect it to be the normalized adapter name.
         it do
-          Datadog.configure { |c| c.use :sequel, tracer: tracer }
+          Datadog.configure { |c| c.use :sequel }
           perform_query!
           expect(span.service).to eq('sqlite')
         end
@@ -43,7 +41,7 @@ RSpec.describe 'Sequel configuration' do
         let(:service_name) { 'my-sequel' }
 
         it do
-          Datadog.configure { |c| c.use :sequel, tracer: tracer, service_name: service_name }
+          Datadog.configure { |c| c.use :sequel, service_name: service_name }
           perform_query!
           expect(span.service).to eq(service_name)
         end
@@ -53,7 +51,7 @@ RSpec.describe 'Sequel configuration' do
         let(:service_name) { 'custom-sequel' }
 
         it do
-          Datadog.configure { |c| c.use :sequel, tracer: tracer }
+          Datadog.configure { |c| c.use :sequel }
           Datadog.configure(sequel, service_name: service_name)
           perform_query!
           expect(span.service).to eq(service_name)
@@ -66,7 +64,7 @@ RSpec.describe 'Sequel configuration' do
         #       no way to unpatch it once its happened in other tests.
         it do
           sequel
-          Datadog.configure { |c| c.use :sequel, tracer: tracer }
+          Datadog.configure { |c| c.use :sequel }
           perform_query!
           expect(span.service).to eq('sqlite')
         end

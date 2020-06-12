@@ -35,8 +35,7 @@ class ServerTracerTest < TracerTestBase
     super
 
     Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Contrib::Sidekiq::ServerTracer,
-                tracer: @tracer, enabled: true)
+      chain.add(Datadog::Contrib::Sidekiq::ServerTracer, enabled: true)
     end
     Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
   end
@@ -44,10 +43,9 @@ class ServerTracerTest < TracerTestBase
   def test_empty
     EmptyWorker.perform_async()
 
-    spans = @writer.spans()
-    assert_equal(1, spans.length)
+    assert_equal(2, spans.length)
 
-    span = spans[0]
+    span, _push = spans
     assert_equal('sidekiq', span.service)
     assert_equal('ServerTracerTest::EmptyWorker', span.resource)
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
@@ -65,10 +63,9 @@ class ServerTracerTest < TracerTestBase
     rescue TestError
     end
 
-    spans = @writer.spans()
-    assert_equal(1, spans.length)
+    assert_equal(2, spans.length)
 
-    span = spans[0]
+    span, _push = spans
     assert_equal('sidekiq', span.service)
     assert_equal('ServerTracerTest::ErrorWorker', span.resource)
     assert_equal('default', span.get_tag('sidekiq.job.queue'))
@@ -85,10 +82,9 @@ class ServerTracerTest < TracerTestBase
     EmptyWorker.perform_async()
     CustomWorker.perform_async('random_id')
 
-    spans = @writer.spans()
-    assert_equal(2, spans.length)
+    assert_equal(4, spans.length)
 
-    custom, empty = spans
+    custom, empty, _push, _push = spans
 
     assert_equal('sidekiq', empty.service)
     assert_equal('ServerTracerTest::EmptyWorker', empty.resource)
@@ -109,6 +105,6 @@ class ServerTracerTest < TracerTestBase
 
   def test_delayed_extensions
     DelayableClass.delay.do_work
-    assert_equal('ServerTracerTest::DelayableClass.do_work', @writer.spans.first.resource)
+    assert_equal('ServerTracerTest::DelayableClass.do_work', spans.first.resource)
   end
 end
