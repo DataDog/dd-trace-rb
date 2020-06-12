@@ -8,6 +8,10 @@ module Datadog
       def initialize(data)
         @data = data
       end
+
+      def encode_with(encoder)
+        raise NotImplementedError
+      end
     end
   end
 end
