@@ -55,8 +55,7 @@ RSpec.describe 'profiling integration test' do
     end
     let(:exporter) do
       Datadog::Profiling::Exporter.new(
-        Datadog::Transport::IO.default(
-          encoder: Datadog::Profiling::Encoding::Profile::Protobuf,
+        Datadog::Profiling::Transport::IO.default(
           out: out
         )
       )
