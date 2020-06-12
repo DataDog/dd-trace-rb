@@ -1,20 +1,17 @@
 require 'spec_helper'
 
 require 'ddtrace/profiling/exporter'
+require 'ddtrace/profiling/transport/io'
 
 RSpec.describe Datadog::Profiling::Exporter do
   subject(:exporter) { described_class.new(transport) }
-  let(:transport) { double('transport') }
+  let(:transport) { Datadog::Profiling::Transport::IO.default }
 
   describe '::new' do
     context 'given an IO transport' do
-      let(:transport) { Datadog::Transport::IO::Client.new(out, encoder) }
-      let(:out) { instance_double(IO) }
-      let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
-
-      it 'extends the transport with profiling behavior' do
+      it 'uses the transport' do
         is_expected.to have_attributes(
-          transport: a_kind_of(Datadog::Profiling::Transport::IO::Client)
+          transport: transport
         )
       end
     end
@@ -26,6 +23,26 @@ RSpec.describe Datadog::Profiling::Exporter do
       it 'raises an error' do
         expect { exporter }.to raise_error(ArgumentError)
       end
+    end
+  end
+
+  describe '#export' do
+    subject(:export) { exporter.export(flushes) }
+    let(:flushes) { [] }
+    let(:result) { double('result') }
+
+    before do
+      allow(transport)
+        .to receive(:send_flushes)
+        .and_return(result)
+    end
+
+    it do
+      is_expected.to be result
+
+      expect(transport)
+        .to have_received(:send_flushes)
+        .with(flushes)
     end
   end
 end
