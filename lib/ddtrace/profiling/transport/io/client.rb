@@ -1,3 +1,4 @@
+require 'ddtrace/transport/io/client'
 require 'ddtrace/profiling/transport/request'
 require 'ddtrace/profiling/transport/io/response'
 
@@ -6,25 +7,15 @@ module Datadog
     module Transport
       module IO
         # Profiling extensions for IO client
-        module Client
+        class Client < Datadog::Transport::IO::Client
           def send_flushes(flushes)
             # Build a request
-            req = Profiling::Transport::Request.new(flushes)
+            request = Profiling::Transport::Request.new(flushes)
+            send_request(request)
+          end
 
-            send_request(req) do |out, request|
-              # Encode trace data
-              data = encode_data(encoder, request)
-
-              # Write to IO
-              result = if block_given?
-                         yield(out, data)
-                       else
-                         write_data(out, data)
-                       end
-
-              # Generate response
-              Profiling::Transport::IO::Response.new(result)
-            end
+          def build_response(_request, _data, result)
+            Profiling::Transport::IO::Response.new(result)
           end
         end
       end
