@@ -132,20 +132,19 @@ module RailsTest
     @spans ||= fetch_spans.reject { |x| x.resource == 'BEGIN' }
   end
 
-  # For Rails >= 4
-  def before_setup
-    before_each
-    super
-  end
+  if Rails::VERSION::MAJOR >= 4
+    def before_setup
+      before_each
+      super
+    end
+  else
+    def setup
+      before_each
+      super
+    end
 
-  # For Rails < 4
-  def setup
-    before_each
-    super
-  end
-
-  # For Rails < 4
-  def run(*_)
-    with_stubbed_tracer { super }
+    def run(*_)
+      with_stubbed_tracer { super }
+    end
   end
 end
