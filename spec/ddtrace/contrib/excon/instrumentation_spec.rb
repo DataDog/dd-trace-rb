@@ -2,6 +2,7 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'excon'
+require 'ipaddr' # Required by Excon when processing errors
 require 'ddtrace'
 require 'ddtrace/contrib/excon/middleware'
 
