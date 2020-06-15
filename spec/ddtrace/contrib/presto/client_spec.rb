@@ -63,6 +63,8 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
     end
 
+    after { Datadog.configuration.tracer.reset! }
+
     it 'does not produce spans' do
       client.run('SELECT 1')
       expect(spans).to be_empty
