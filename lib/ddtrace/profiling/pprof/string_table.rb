@@ -7,7 +7,7 @@ module Datadog
       class StringTable
         def initialize
           @sequence = Utils::Sequence.new
-          @ids = { '' => @sequence.next }
+          @ids = { ''.freeze => @sequence.next }
         end
 
         def fetch(string)
