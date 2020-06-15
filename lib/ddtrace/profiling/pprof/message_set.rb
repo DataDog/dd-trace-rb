@@ -17,9 +17,11 @@ module Datadog
         # If they match an existing message, it will return the
         # matching object. If it doesn't match, it will yield to
         # the block with the next ID & args given.
-        def fetch(*args)
+        def fetch(*args, &block)
           key = @key_block ? @key_block.call(*args) : args.hash
-          @items[key] ||= yield(@sequence.next, *args)
+          # TODO: Ruby 2.0 doesn't like yielding here... switch when 2.0 is dropped.
+          # rubocop:disable Performance/RedundantBlockCall
+          @items[key] ||= block.call(@sequence.next, *args)
         end
 
         def length
