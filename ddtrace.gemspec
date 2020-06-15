@@ -41,5 +41,7 @@ Gem::Specification.new do |spec|
   end
 
   # TODO: Remove this as a fixed dependency (should be optional)
-  spec.add_dependency 'google-protobuf'
+  # NOTE: Exclude 3.7.x because the required_ruby_version mismatches
+  #       actual Ruby support. It would break Ruby < 2.3.
+  spec.add_runtime_dependency 'google-protobuf', '~> 3.0', '!= 3.7.0', '!= 3.7.1'
 end
