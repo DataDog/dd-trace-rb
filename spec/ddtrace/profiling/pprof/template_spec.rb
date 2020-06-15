@@ -17,7 +17,7 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
         before do
           expect(described_class)
             .to receive(:new)
-            .with([described_class::DEFAULT_MAPPINGS.first].to_h)
+            .with(Hash[[described_class::DEFAULT_MAPPINGS.first]])
             .and_return(template)
         end
 
