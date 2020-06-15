@@ -19,11 +19,11 @@ RSpec.describe Datadog::Contrib::Configuration::Settings do
     it { expect(settings[:tracer]).to be Datadog.tracer }
 
     context 'setting the tracer value' do
-      subject { settings.tracer = double }
+      subject(:set) { settings.tracer = double }
 
       it 'outputs a deprecation warning' do
         expect(Datadog.logger).to receive(:warn).with(include('DEPRECATED'))
-        subject
+        set
       end
     end
   end
