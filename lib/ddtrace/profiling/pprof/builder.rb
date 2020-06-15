@@ -67,7 +67,7 @@ module Datadog
           if omitted > 0
             desc = omitted == 1 ? DESC_FRAME_OMITTED : DESC_FRAMES_OMITTED
             locations << @locations.fetch(
-              '',
+              ''.freeze,
               0,
               "#{omitted} #{desc}",
               &method(:build_location)
