@@ -15,7 +15,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN set -ex; \
         apt-get update; \
         mkdir -p /usr/share/man/man1; \
-        apt-get install -y --no-install-recommends \
+        apt-get install --force-yes --no-install-recommends \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
@@ -63,7 +63,7 @@ RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cac
   && dockerize --version
 
 # Install Protobuf compiler
-RUN export PROTOC_URL=$(curl -s https://api.github.com/repos/protocolbuffers/protobuf/releases/latest | grep browser_download_url | cut -d '"' -f 4 | grep -e 'protoc-[.0-9]*-linux-x86_64\.zip' | sort -r | head -n 1) \
+RUN export PROTOC_URL="https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip" \
   && echo Protoc URL: $PROTOC_URL \
   && curl --silent --show-error --location --fail --retry 3 --output /tmp/protoc.zip "${PROTOC_URL}" \
   && ls -lha /tmp/protoc.zip \
