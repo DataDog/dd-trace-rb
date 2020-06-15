@@ -303,4 +303,39 @@ RSpec.describe Datadog::Span do
                     Datadog::Ext::ManualTracing::TAG_DROP,
                     Datadog::Ext::Priority::USER_REJECT)
   end
+
+  describe '#set_tags' do
+    subject(:set_tags) { span.set_tags(tags) }
+
+    context 'with empty hash' do
+      let(:tags) { {} }
+
+      it 'does not change tags' do
+        expect(span).to_not receive(:set_tag)
+        expect { set_tags }.to_not change { span.instance_variable_get(:@meta) }.from({})
+      end
+    end
+
+    context 'with multiple tags' do
+      let(:tags) { { 'user.id' => 123, 'user.domain' => 'datadog.com' } }
+
+      it 'sets the tags from hash keys' do
+        expect { set_tags }.to change { tags.map { |k, _| span.get_tag(k) } }.from([nil, nil]).to([123, 'datadog.com'])
+      end
+    end
+
+    context 'with nested hashes' do
+      let(:tags) do
+        {
+          'user' => {
+            'id' => 123
+          }
+        }
+      end
+
+      it 'does not support it - it sets stringified nested hash as value' do
+        expect { set_tags }.to change { span.get_tag('user') }.from(nil).to('{"id"=>123}')
+      end
+    end
+  end
 end

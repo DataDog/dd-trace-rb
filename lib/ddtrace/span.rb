@@ -107,6 +107,16 @@ module Datadog
       Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
     end
 
+    # Sets tags from given hash, for each key in hash it sets the tag with that key
+    # and associated value from the hash. It is shortcut for `set_tag`. Keys and values
+    # of the hash must be strings. Note that nested hashes are not supported.
+    # A valid example is:
+    #
+    #   span.set_tags({ "http.method" => "GET", "user.id" => "234" })
+    def set_tags(tags)
+      tags.each { |k, v| set_tag(k, v) }
+    end
+
     # This method removes a tag for the given key.
     def clear_tag(key)
       @meta.delete(key)
