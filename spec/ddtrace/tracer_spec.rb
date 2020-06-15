@@ -184,6 +184,33 @@ RSpec.describe Datadog::Tracer do
         end
       end
     end
+
+    context 'without a block' do
+      subject(:trace) { tracer.trace(name, options) }
+
+      context 'with child_of: option' do
+        let!(:root_span) { tracer.start_span 'root' }
+        let(:options) { { child_of: root_span } }
+
+        it 'creates span with root span parent' do
+          tracer.trace 'another' do |_another_span|
+            expect(trace.parent).to eq root_span
+          end
+        end
+      end
+
+      context 'without child_of: option' do
+        let(:options) { { } }
+
+        it 'creates span with current context' do
+          tracer.trace 'root' do |_root_span|
+            tracer.trace 'another' do |another_span|
+              expect(trace.parent).to eq another_span
+            end
+          end
+        end
+      end
+    end
   end
 
   describe '#active_root_span' do
