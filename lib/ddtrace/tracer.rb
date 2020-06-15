@@ -51,11 +51,8 @@ module Datadog
     #
     def shutdown!
       return unless @enabled
-      @mutex.synchronize do
-        return unless @enabled
 
-        @writer.stop unless @writer.nil?
-      end
+      @writer.stop unless @writer.nil?
     end
 
     # Return the current active \Context for this traced execution. This method is
