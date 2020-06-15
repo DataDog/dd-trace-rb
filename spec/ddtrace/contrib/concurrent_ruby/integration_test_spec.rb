@@ -16,7 +16,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
   let(:configuration_options) { {} }
 
-  subject do
+  subject(:deferred_execution) do
     outer_span = tracer.trace('outer_span')
     future = Concurrent::Future.new do
       tracer.trace('inner_span') {}
@@ -31,7 +31,9 @@ RSpec.describe 'ConcurrentRuby integration tests' do
   let(:inner_span) { spans.find { |s| s.name == 'inner_span' } }
 
   shared_examples_for 'deferred execution' do
-    before { subject }
+    before do
+      deferred_execution
+    end
 
     it 'creates outer span with nil parent' do
       expect(outer_span.parent).to be_nil
@@ -63,7 +65,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     it_should_behave_like 'deferred execution'
 
     it 'inner span should not have parent' do
-      subject
+      deferred_execution
       expect(inner_span.parent).to be_nil
     end
   end
@@ -78,7 +80,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     it_should_behave_like 'deferred execution'
 
     it 'inner span parent should be included in outer span' do
-      subject
+      deferred_execution
       expect(inner_span.parent).to eq(outer_span)
     end
   end
