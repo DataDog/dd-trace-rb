@@ -2,6 +2,7 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'excon'
+require 'ipaddr' # Missed by Excon 0.74.0, can be removed when https://github.com/excon/excon/pull/719 is shipped
 require 'ddtrace'
 require 'ddtrace/contrib/excon/middleware'
 
