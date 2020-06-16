@@ -313,14 +313,16 @@ current_root_span.set_tag('my_tag', 'my_value') unless current_root_span.nil?
 
 ### Tracing across ruby threads
 
-By default, active span is not propagated to a thread. When new ruby thread is started it creates new context for tracing spans. First span in thread will be then recorded as new root span and not connected with the current span of the parent thread.
+`Datadog.tracer` keeps track of spans using a thread-local context. When new ruby thread is started, default behaviour is that `Datadog.tracer` creates new context for the new thread. As consequence, the first span started inside of this new thread would be considered as a new root span.
 
-To propagate current span inside of a thread, `Datadog.tracer.provider.context` can be assigned inside of thread to context from the thread parent:
+If you wish to connect spans from inside of the thread to the span in which the thread was started, wrap the code inside of the thread to a trace and pass the outside span as `child_of` option.
 
 ```ruby 
-Thread.new(Datadog.tracer.provider.context) do |tracer_context|
-  Datadog.tracer.provider.context = tracer_context
-  # ...
+parent_span = Datadog.tracer.active_span
+Thread.new do
+  Datadog.tracer.trace("thread", child_of: parent_span) do |thread_span|
+    # ...
+  end
 end
 ```
 
