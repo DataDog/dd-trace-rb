@@ -315,7 +315,7 @@ current_root_span.set_tag('my_tag', 'my_value') unless current_root_span.nil?
 
 `Datadog.tracer` keeps track of spans using a thread-local context. When new ruby thread is started, default behaviour is that `Datadog.tracer` creates new context for the new thread. As a consequence, the first span started inside of this new thread would be by default root span of the thread-local context.
 
-You can connect spans from inside of a thread to the span in which the thread was started by creating a root span in the thread and setting its `parent` to the span from outside of the thread. You can also use `child_of` option of `Datadog.tracer.trace` and `Datadog.tracer.start_span` methods.
+To connect the thread span as a child of the span in which the thread was started, start a new span inside of the thread and set its `parent` to the active span from outside of the thread. You can also use `child_of` option of `Datadog.tracer.trace` and `Datadog.tracer.start_span` methods.
 
 ```ruby 
 parent_span = Datadog.tracer.active_span
