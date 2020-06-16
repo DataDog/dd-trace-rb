@@ -79,7 +79,7 @@ class UtilsTest < Minitest::Test
       time_bomb.encode(Encoding::UTF_8)
     end
 
-    assert_equal(Datadog::Utils::STRING_PLACEHOLDER, Datadog::Utils.utf8_encode(time_bomb))
+    assert_equal(Datadog::Utils::EMPTY_STRING, Datadog::Utils.utf8_encode(time_bomb))
 
     # we can also set a custom placeholder
     assert_equal('?', Datadog::Utils.utf8_encode(time_bomb, placeholder: '?'))

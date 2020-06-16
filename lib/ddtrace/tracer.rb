@@ -1,4 +1,3 @@
-require 'pp'
 require 'thread'
 require 'logger'
 require 'pathname'

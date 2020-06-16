@@ -135,6 +135,23 @@ RSpec.describe Datadog::Tracer do
           # objects, so this is what works across the board.
           expect(second.allocations).to eq(first.allocations + 1)
         end
+
+        context 'with diagnostics debug enabled' do
+          before do
+            Datadog.configure do |c|
+              c.diagnostics.debug = true
+            end
+
+            allow(writer).to receive(:write)
+          end
+
+          it do
+            expect(Datadog.logger).to receive(:debug).with(including('Writing 1 span'))
+            expect(Datadog.logger).to receive(:debug).with(including('Name: span.name'))
+
+            subject
+          end
+        end
       end
 
       context 'when starting a span fails' do

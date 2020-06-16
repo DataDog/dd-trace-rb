@@ -26,7 +26,8 @@ module Datadog
           builder = OptionDefinition::Builder.new(name, meta, &block)
           options[name] = builder.to_definition.tap do
             # Resolve and define helper functions
-            helpers = default_helpers(name).merge(builder.helpers)
+            helpers = default_helpers(name)
+            helpers = helpers.merge(builder.helpers) unless builder.helpers.empty?
             define_helpers(helpers)
           end
         end
