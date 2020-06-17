@@ -51,6 +51,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'appraisal', '~> 2.2'
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'webmock', '~> 2.0'
+  spec.add_development_dependency 'builder'
   if RUBY_PLATFORM != 'java'
     spec.add_development_dependency 'sqlite3', '~> 1.3.6'
   else
