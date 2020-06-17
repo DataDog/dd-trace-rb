@@ -954,6 +954,8 @@ The Kafka integration provides tracing of the `ruby-kafka` gem:
 You can enable it through `Datadog.configure`:
 
 ```ruby
+require 'active_support/notifications' # required to enable 'ruby-kafka' instrumentation
+require 'kafka'
 require 'ddtrace'
 
 Datadog.configure do |c|
