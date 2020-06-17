@@ -26,6 +26,9 @@ module Datadog
             config.server_middleware do |chain|
               chain.add(Sidekiq::ServerTracer)
             end
+            config.client_middleware do |chain|
+              chain.add(Sidekiq::ClientTracer)
+            end
           end
         end
       end
