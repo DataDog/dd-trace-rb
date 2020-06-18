@@ -2,8 +2,6 @@ require 'ddtrace/profiling/flush'
 require 'ddtrace/profiling/pprof/message_set'
 require 'ddtrace/profiling/pprof/string_table'
 
-require 'ddtrace/profiling/pprof/pprof_pb'
-
 module Datadog
   module Profiling
     module Pprof
