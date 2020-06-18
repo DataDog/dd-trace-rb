@@ -111,11 +111,24 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
   describe '#to_profile' do
     subject(:to_profile) { template.to_profile }
     it { is_expected.to be_kind_of(Perftools::Profiles::Profile) }
+  end
 
-    context 'called twice' do
-      it 'returns the same Profile instance' do
-        is_expected.to eq(template.to_profile)
-      end
+  describe '#to_encoded_profile' do
+    subject(:to_encoded_profile) { template.to_encoded_profile }
+    let(:profile) { instance_double(Perftools::Profiles::Profile) }
+    let(:encoded_string) { instance_double(String) }
+
+    before do
+      expect(template.builder)
+        .to receive(:build_profile)
+        .and_return(profile)
+
+      expect(template.builder)
+        .to receive(:encode_profile)
+        .with(profile)
+        .and_return(encoded_string)
     end
+
+    it { is_expected.to be(encoded_string) }
   end
 end
