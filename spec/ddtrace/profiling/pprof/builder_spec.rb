@@ -1,9 +1,14 @@
 require 'spec_helper'
 
+require 'ddtrace/profiling'
 require 'ddtrace/profiling/events/stack'
 require 'ddtrace/profiling/pprof/builder'
 
 RSpec.describe Datadog::Profiling::Pprof::Builder do
+  before do
+    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+  end
+
   subject(:builder) { described_class.new }
 
   let(:id_sequence) { Datadog::Utils::Sequence.new(1) }
