@@ -1,9 +1,14 @@
 require 'spec_helper'
 
+require 'ddtrace/profiling'
 require 'ddtrace/profiling/events/stack'
 require 'ddtrace/profiling/pprof/stack_sample'
 
 RSpec.describe Datadog::Profiling::Pprof::StackSample do
+  before do
+    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+  end
+
   subject(:converter) { described_class.new(builder, sample_type_mappings) }
   let(:builder) { Datadog::Profiling::Pprof::Builder.new }
   let(:sample_type_mappings) do
