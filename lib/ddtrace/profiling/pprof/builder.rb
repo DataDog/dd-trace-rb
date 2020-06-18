@@ -9,6 +9,7 @@ module Datadog
     module Pprof
       # Accumulates profile data and produces a Perftools::Profiles::Profile
       class Builder
+        DEFAULT_ENCODING = 'UTF-8'.freeze
         DESC_FRAME_OMITTED = 'frame omitted'.freeze
         DESC_FRAMES_OMITTED = 'frames omitted'.freeze
 
@@ -27,6 +28,10 @@ module Datadog
           @sample_types = MessageSet.new
           @samples = []
           @string_table = StringTable.new
+        end
+
+        def encode_profile(profile)
+          Perftools::Profiles::Profile.encode(profile).force_encoding(DEFAULT_ENCODING)
         end
 
         def build_profile
@@ -102,6 +107,13 @@ module Datadog
           Perftools::Profiles::Function.new(
             id: id,
             name: @string_table.fetch(function_name),
+            filename: @string_table.fetch(filename)
+          )
+        end
+
+        def build_mapping(id, filename)
+          Perftools::Profiles::Mapping.new(
+            id: id,
             filename: @string_table.fetch(filename)
           )
         end
