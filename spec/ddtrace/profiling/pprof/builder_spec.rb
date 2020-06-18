@@ -29,6 +29,27 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
     end
   end
 
+  describe '#encode_profile' do
+    subject(:build_profile) { builder.encode_profile(profile) }
+    let(:profile) { instance_double(Perftools::Profiles::Profile) }
+    let(:encoded_profile) { instance_double(String) }
+    let(:encoded_string) { instance_double(String) }
+
+    before do
+      expect(Perftools::Profiles::Profile)
+        .to receive(:encode)
+        .with(profile)
+        .and_return(encoded_profile)
+
+      expect(encoded_profile)
+        .to receive(:force_encoding)
+        .with('UTF-8')
+        .and_return(encoded_string)
+    end
+
+    it { is_expected.to be(encoded_string) }
+  end
+
   describe '#build_profile' do
     subject(:build_profile) { builder.build_profile }
 
@@ -178,6 +199,20 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
       is_expected.to have_attributes(
         id: id,
         name: string_id_for(function_name),
+        filename: string_id_for(filename)
+      )
+    end
+  end
+
+  describe '#build_mapping' do
+    subject(:build_mapping) { builder.build_mapping(id, filename) }
+    let(:id) { id_sequence.next }
+    let(:filename) { double('filename') }
+
+    it do
+      is_expected.to be_a_kind_of(Perftools::Profiles::Mapping)
+      is_expected.to have_attributes(
+        id: id,
         filename: string_id_for(filename)
       )
     end

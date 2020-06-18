@@ -2,7 +2,6 @@ require 'set'
 
 require 'ddtrace/profiling/flush'
 require 'ddtrace/profiling/pprof/template'
-require 'ddtrace/profiling/pprof/pprof_pb'
 
 module Datadog
   module Profiling
@@ -25,8 +24,7 @@ module Datadog
             flushes.each { |flush| template.add_events!(flush.event_class, flush.events) }
 
             # Build the profile and encode it
-            profile = template.to_profile
-            Perftools::Profiles::Profile.encode(profile).force_encoding(DEFAULT_ENCODING)
+            template.to_encoded_profile
           end
         end
       end
