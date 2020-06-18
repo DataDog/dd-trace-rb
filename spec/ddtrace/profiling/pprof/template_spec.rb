@@ -1,8 +1,13 @@
 require 'spec_helper'
 
+require 'ddtrace/profiling'
 require 'ddtrace/profiling/pprof/template'
 
 RSpec.describe Datadog::Profiling::Pprof::Template do
+  before do
+    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+  end
+
   subject(:template) { described_class.new(mappings) }
   let(:mappings) { described_class::DEFAULT_MAPPINGS }
 
