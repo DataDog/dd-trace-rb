@@ -15,7 +15,6 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
     let(:template) { instance_double(Datadog::Profiling::Pprof::Template) }
     let(:profile) { instance_double(Perftools::Profiles::Profile) }
     let(:encoded_profile) { instance_double(String) }
-    let(:encoded_data) { instance_double(String) }
 
     before do
       expect(Datadog::Profiling::Pprof::Template)
@@ -26,22 +25,14 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
       expect(template)
         .to receive(:add_events!)
         .with(flush.event_class, flush.events)
+        .ordered
 
       expect(template)
-        .to receive(:to_profile)
-        .and_return(profile)
-
-      expect(Perftools::Profiles::Profile)
-        .to receive(:encode)
-        .with(profile)
+        .to receive(:to_encoded_profile)
         .and_return(encoded_profile)
-
-      expect(encoded_profile)
-        .to receive(:force_encoding)
-        .with('UTF-8')
-        .and_return(encoded_data)
+        .ordered
     end
 
-    it { is_expected.to be encoded_data }
+    it { is_expected.to be encoded_profile }
   end
 end
