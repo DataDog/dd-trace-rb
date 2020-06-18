@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace'
+require 'ddtrace/profiling'
 require 'ddtrace/profiling/pprof/template'
 require 'ddtrace/profiling/collectors/stack'
 require 'ddtrace/profiling/recorder'
@@ -9,6 +10,10 @@ require 'ddtrace/profiling/exporter'
 require 'ddtrace/profiling/encoding/profile'
 
 RSpec.describe 'profiling integration test' do
+  before do
+    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+  end
+
   shared_context 'StackSample events' do
     let(:stack_one) { Thread.current.backtrace_locations.first(3) }
     let(:stack_two) { Thread.current.backtrace_locations.first(3) }

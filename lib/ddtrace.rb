@@ -18,6 +18,7 @@ require 'ddtrace/patcher'
 require 'ddtrace/augmentation'
 require 'ddtrace/metrics'
 require 'ddtrace/auto_instrument_base'
+require 'ddtrace/profiling'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
