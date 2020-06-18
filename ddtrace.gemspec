@@ -40,8 +40,18 @@ Gem::Specification.new do |spec|
     spec.add_dependency 'msgpack', '< 1.4'
   end
 
-  # TODO: Remove this as a fixed dependency (should be optional)
-  # NOTE: Exclude 3.7.x because the required_ruby_version mismatches
-  #       actual Ruby support. It would break Ruby < 2.3.
-  spec.add_runtime_dependency 'google-protobuf', '~> 3.0', '!= 3.7.0', '!= 3.7.1'
+  if RUBY_PLATFORM != 'java'
+    # NOTE: Exclude 3.7.x because the required_ruby_version mismatches
+    #       actual Ruby support. It would break Ruby < 2.3.
+    google_protobuf_versions = [
+      '~> 3.0',
+      '!= 3.7.0.rc.2',
+      '!= 3.7.0.rc.3',
+      '!= 3.7.0',
+      '!= 3.7.1',
+      '!= 3.8.0.rc.1'
+    ]
+
+    spec.add_development_dependency 'google-protobuf', *google_protobuf_versions
+  end
 end

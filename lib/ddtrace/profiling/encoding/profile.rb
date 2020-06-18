@@ -9,8 +9,6 @@ module Datadog
       module Profile
         # Encodes events to pprof
         module Protobuf
-          DEFAULT_ENCODING = 'UTF-8'.freeze
-
           module_function
 
           def encode(flushes)
