@@ -15,7 +15,23 @@ module Datadog
           registry = options.fetch(:registry, Datadog.registry)
           auto_patch = options.fetch(:auto_patch, false)
 
-          registry.add(name, new(name, options), auto_patch)
+          registry.add(name, new(name, options), nil, auto_patch)
+        end
+
+        def register_as_lazy(name, options = {})
+          registry = options.fetch(:registry, Datadog.registry)
+          auto_patch = options.fetch(:auto_patch, false)
+          location = options.fetch(:location, "ddtrace/contrib/#{name}/integration") # TODO move the constant elsewhere?
+          integration_class = options.fetch(
+            :class,
+            "Datadog::Contrib::#{name.to_s.split('_').collect(&:capitalize).join}::Integration", # TODO move elsewhere?
+          )
+
+          registry.add(name, nil, lambda do
+            require location
+
+            const_get(integration_class).new(name)
+          end, auto_patch)
         end
       end
 

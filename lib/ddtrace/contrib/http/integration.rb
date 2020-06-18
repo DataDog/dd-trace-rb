@@ -18,7 +18,7 @@ module Datadog
 
         MINIMUM_VERSION = Datadog::VERSION::MINIMUM_RUBY_VERSION
 
-        register_as :http, auto_patch: true
+        # register_as :http, auto_patch: true
 
         def self.version
           Gem::Version.new(RUBY_VERSION)

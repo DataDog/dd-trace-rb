@@ -4,16 +4,16 @@ module Datadog
     class Registry
       include Enumerable
 
-      Entry = Struct.new(:name, :klass, :auto_patch)
+      Entry = Struct.new(:name, :klass, :loader, :auto_patch)
 
       def initialize
         @data = {}
         @mutex = Mutex.new
       end
 
-      def add(name, klass, auto_patch = false)
+      def add(name, klass, loader, auto_patch = false)
         @mutex.synchronize do
-          @data[name] = Entry.new(name, klass, auto_patch).freeze
+          @data[name] = Entry.new(name, klass, loader, auto_patch)
         end
       end
 
@@ -26,7 +26,12 @@ module Datadog
       def [](name)
         @mutex.synchronize do
           entry = @data[name]
-          entry.klass if entry
+          return unless entry
+          if entry.klass
+            entry.klass
+          else
+            entry.klass = entry.loader.call
+          end
         end
       end
 
