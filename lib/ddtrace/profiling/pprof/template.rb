@@ -2,8 +2,6 @@ require 'ddtrace/profiling/pprof/message_set'
 require 'ddtrace/profiling/pprof/builder'
 
 require 'ddtrace/profiling/events/stack'
-
-require 'ddtrace/profiling/pprof/pprof_pb'
 require 'ddtrace/profiling/pprof/stack_sample'
 
 module Datadog
@@ -37,12 +35,7 @@ module Datadog
           @sample_type_mappings = Hash.new { |_h, type| raise UnknownSampleTypeMappingError, type }
 
           # Add default mapping
-          builder.mappings.fetch($PROGRAM_NAME) do |id, prog_name|
-            Perftools::Profiles::Mapping.new(
-              id: id,
-              filename: builder.string_table.fetch(prog_name)
-            )
-          end
+          builder.mappings.fetch($PROGRAM_NAME, &builder.method(:build_mapping))
 
           # Combine all sample types from each converter class
           types = mappings.values.each_with_object({}) do |converter_class, t|
@@ -81,7 +74,11 @@ module Datadog
         end
 
         def to_profile
-          @profile ||= builder.build_profile
+          builder.build_profile
+        end
+
+        def to_encoded_profile
+          builder.encode_profile(to_profile)
         end
 
         # Error when an unknown event type is given to be converted
