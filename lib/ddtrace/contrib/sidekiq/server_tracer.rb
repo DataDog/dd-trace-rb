@@ -31,6 +31,7 @@ module Datadog
 
             span.set_tag(Ext::TAG_JOB_ID, job['jid'])
             span.set_tag(Ext::TAG_JOB_RETRY, job['retry'])
+            span.set_tag(Ext::TAG_JOB_RETRY_COUNT, job['retry_count'])
             span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
             span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
             span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Time.now.utc.to_f - job['enqueued_at'].to_f))

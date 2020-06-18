@@ -15,6 +15,7 @@ module Datadog
         TAG_JOB_ID = 'sidekiq.job.id'.freeze
         TAG_JOB_QUEUE = 'sidekiq.job.queue'.freeze
         TAG_JOB_RETRY = 'sidekiq.job.retry'.freeze
+        TAG_JOB_RETRY_COUNT = 'sidekiq.job.retry_count'.freeze
         TAG_JOB_WRAPPER = 'sidekiq.job.wrapper'.freeze
         TAG_JOB_ARGS = 'sidekiq.job.args'.freeze
       end
