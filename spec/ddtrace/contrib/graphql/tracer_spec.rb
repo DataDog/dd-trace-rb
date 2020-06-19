@@ -15,16 +15,8 @@ RSpec.describe 'GraphQL patcher' do
 
   let(:root_span) { spans.find { |s| s.parent.nil? } }
 
-  RSpec.shared_examples 'Schema patcher' do
-    before(:each) do
-      remove_patch!(:graphql)
-      Datadog.configure do |c|
-        c.use :graphql,
-              service_name: 'graphql-test',
-              tracer: tracer,
-              schemas: [schema]
-      end
-    end
+  shared_examples 'Schema patcher' do
+    let(:service) { 'graphql-test' }
 
     describe 'query trace' do
       subject(:result) { schema.execute(query, variables: {}, context: {}, operation_name: nil) }
@@ -62,20 +54,55 @@ RSpec.describe 'GraphQL patcher' do
 
         # Expect each span to be properly named
         spans.each do |span|
-          expect(span.service).to eq('graphql-test')
+          expect(span.service).to eq(service)
           expect(valid_resource_names).to include(span.resource)
         end
       end
     end
   end
 
+  RSpec.shared_examples 'auto configuration' do
+    before do
+      Datadog.configure do |c|
+        c.use :graphql,
+              service_name: service,
+              tracer: tracer,
+              schemas: [schema]
+      end
+    end
+
+    after { remove_patch!(:graphql) }
+  end
+
+  RSpec.shared_examples 'manual configuration' do
+    let(:manual_configuration) { true }
+  end
+
   context 'class-based schema' do
     include_context 'GraphQL class-based schema'
-    it_should_behave_like 'Schema patcher'
+
+    context 'with auto configuration' do
+      include_context 'auto configuration'
+      it_should_behave_like 'Schema patcher'
+    end
+
+    context 'with manual configuration' do
+      include_context 'manual configuration'
+      it_should_behave_like 'Schema patcher'
+    end
   end
 
   context '.define-style schema' do
     include_context 'GraphQL .define-style schema'
-    it_should_behave_like 'Schema patcher'
+
+    context 'with auto configuration' do
+      include_context 'auto configuration'
+      it_should_behave_like 'Schema patcher'
+    end
+
+    context 'with manual configuration' do
+      include_context 'manual configuration'
+      it_should_behave_like 'Schema patcher'
+    end
   end
 end

@@ -20,9 +20,15 @@ end
 RSpec.shared_context 'GraphQL class-based schema' do
   include_context 'GraphQL base schema types'
 
+  let(:manual_configuration) { (super() if defined?(super)) || false }
+
   let(:schema) do
     qt = query_type
+    manual_configuration = self.manual_configuration
+    service = self.service
+    tracer = self.tracer
     Class.new(::GraphQL::Schema) do
+      use(GraphQL::Tracing::DataDogTracing, service: service, tracer: tracer) if manual_configuration
       query(qt)
     end
   end
@@ -58,10 +64,16 @@ end
 RSpec.shared_context 'GraphQL .define-style schema' do
   include_context 'GraphQL base schema types'
 
+  let(:manual_configuration) { (super() if defined?(super)) || false }
+
   let(:schema) do
     qt = query_type
+    manual_configuration = self.manual_configuration
+    service = self.service
+    tracer = self.tracer
 
     ::GraphQL::Schema.define do
+      use(GraphQL::Tracing::DataDogTracing, service: service, tracer: tracer) if manual_configuration
       query(qt)
     end
   end
