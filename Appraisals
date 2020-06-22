@@ -342,7 +342,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'faraday'
       gem 'grape'
       gem 'graphql', '< 1.9.4'
-      gem 'grpc', '~> 1.21.0' # Last version to support Ruby < 2.3
+      gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
       gem 'hiredis'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby

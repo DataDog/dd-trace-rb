@@ -14,7 +14,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         enabled?: false,
         fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
         ignore_thread: nil,
-        last_wall_time: kind_of(Float),
         loop_base_interval: described_class::MIN_INTERVAL,
         max_frames: described_class::DEFAULT_MAX_FRAMES,
         max_time_usage_pct: described_class::DEFAULT_MAX_TIME_USAGE_PCT,
@@ -151,7 +150,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         before do
           expect(collector)
             .to receive(:collect_thread_event)
-            .with(thread, kind_of(Float))
+            .with(thread, kind_of(Integer))
             .and_return(nil)
         end
 
@@ -167,7 +166,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         before do
           expect(collector)
             .to receive(:collect_thread_event)
-            .with(thread, kind_of(Float))
+            .with(thread, kind_of(Integer))
             .and_return(event)
         end
 
