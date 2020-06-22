@@ -18,8 +18,7 @@ class ClientTracerTest < TracerTestBase
       config.client_middleware.clear
 
       config.client_middleware do |chain|
-        chain.add(Datadog::Contrib::Sidekiq::ClientTracer,
-                  tracer: @tracer, enabled: true)
+        chain.add(Datadog::Contrib::Sidekiq::ClientTracer, enabled: true)
       end
     end
 
@@ -28,11 +27,10 @@ class ClientTracerTest < TracerTestBase
   end
 
   def test_empty
-    @tracer.trace('parent.span', service: 'parent-service') do
+    tracer.trace('parent.span', service: 'parent-service') do
       EmptyWorker.perform_async
     end
 
-    spans = @writer.spans
     assert_equal(2, spans.length)
 
     parent_span, child_span = spans
@@ -52,7 +50,6 @@ class ClientTracerTest < TracerTestBase
   def test_empty_parentless
     EmptyWorker.perform_async
 
-    spans = @writer.spans
     assert_equal(1, spans.length)
 
     span = spans.first
@@ -66,6 +63,6 @@ class ClientTracerTest < TracerTestBase
 
   def test_delayed_extensions
     DelayableClass.delay.do_work
-    assert_equal('ClientTracerTest::DelayableClass.do_work', @writer.spans.first.resource)
+    assert_equal('ClientTracerTest::DelayableClass.do_work', spans.first.resource)
   end
 end

@@ -10,18 +10,17 @@ class TracerTest < TracerTestBase
   def test_configuration_defaults
     # it should configure the tracer with reasonable defaults
     Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Contrib::Sidekiq::ServerTracer, tracer: @tracer)
+      chain.add(Datadog::Contrib::Sidekiq::ServerTracer)
     end
     EmptyWorker.perform_async()
   end
 
   def test_configuration_custom
     # it should configure the tracer with users' settings
-    @tracer.configure(enabled: false)
+    Datadog.tracer.configure(enabled: false)
     Sidekiq::Testing.server_middleware do |chain|
       chain.add(
         Datadog::Contrib::Sidekiq::ServerTracer,
-        tracer: @tracer,
         service_name: 'my-sidekiq'
       )
     end

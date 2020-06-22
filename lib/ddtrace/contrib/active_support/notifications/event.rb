@@ -18,6 +18,8 @@ module Datadog
           # Redefines some class behaviors for a Subscriber to make
           # it a bit simpler for an Event.
           module ClassMethods
+            DEFAULT_TRACER = -> { Datadog.tracer }
+
             def subscribe!
               super
             end
@@ -52,7 +54,7 @@ module Datadog
             end
 
             def tracer
-              Datadog.tracer
+              DEFAULT_TRACER
             end
           end
         end

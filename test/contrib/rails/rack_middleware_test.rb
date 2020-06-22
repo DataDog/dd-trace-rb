@@ -1,29 +1,17 @@
 require 'helper'
+require 'minitest/around/unit'
 
 require 'contrib/rails/test_helper'
+require 'ddtrace'
 
 # rubocop:disable Metrics/ClassLength
 class FullStackTest < ActionDispatch::IntegrationTest
-  setup do
-    @original_tracer = Datadog.configuration[:rails][:tracer]
-    @tracer = get_test_tracer
-
-    Datadog.configure do |c|
-      c.use :rails, tracer: @tracer
-    end
-  end
-
-  teardown do
-    Datadog.configuration[:rails][:tracer] = @original_tracer
-  end
+  include RailsTest
 
   test 'a full request is properly traced' do
     # make the request and assert the proper span
     get '/full'
     assert_response :success
-
-    # get spans
-    spans = @tracer.writer.spans
 
     # spans are sorted alphabetically, and ... controller names start
     # either by m or p (MySQL or PostGreSQL) so the database span is always
@@ -88,7 +76,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_response :error
 
     # get spans
-    spans = @tracer.writer.spans()
     assert_operator(spans.length, :>=, 2, 'there should be at least 2 spans')
     request_span, controller_span = spans
 
@@ -116,7 +103,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # assert_response 520
 
     # get spans
-    spans = @tracer.writer.spans()
     assert_operator(spans.length, :>=, 2, 'there should be at least 2 spans')
     request_span, controller_span = spans
 
@@ -142,7 +128,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_response :error
 
     # get spans
-    spans = @tracer.writer.spans()
     assert_operator(spans.length, :>=, 2, 'there should be at least 2 spans')
     request_span, controller_span = spans
 
@@ -181,7 +166,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_response :error
 
     # Check spans
-    spans = @tracer.writer.spans
     assert_equal(2, spans.length)
 
     rack_span = spans.first
@@ -202,7 +186,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_response 404
 
     # get spans
-    spans = @tracer.writer.spans()
     assert_operator(spans.length, :>=, 1, 'there should be at least 1 span')
     request_span = spans[0]
 

@@ -54,10 +54,4 @@ class BaseAPITest < MiniTest::Test
   def app
     TestingAPI
   end
-
-  def setup
-    # use a dummy tracer
-    @tracer = get_test_tracer()
-    Datadog.configuration[:grape][:tracer] = @tracer
-  end
 end
