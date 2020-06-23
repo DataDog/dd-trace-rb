@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+require 'ddtrace/tasks/exec'
+require 'ddtrace/tasks/help'
+
+command = ARGV.shift
+
+case command
+when 'exec'
+  Datadog::Tasks::Exec.new(ARGV).run
+when 'help', '--help'
+  Datadog::Tasks::Help.new.run
+else
+  puts "Command '#{command}' is not valid for ddtrace."
+  Datadog::Tasks::Help.new.run
+end
