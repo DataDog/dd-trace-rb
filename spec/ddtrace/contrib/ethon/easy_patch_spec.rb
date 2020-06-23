@@ -1,11 +1,12 @@
+require 'ddtrace/contrib/support/spec_helper'
+
 require 'ethon'
 require 'ddtrace/contrib/ethon/easy_patch'
 require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/analytics_examples'
 
 RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -104,8 +105,6 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     # Note: perform calls complete
     subject { easy.complete }
 
-    let(:span) { tracer.writer.spans.first }
-
     before do
       expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
       allow(easy).to receive(:mirror).and_return(double('Fake mirror', options: { response_code: 200 }))
@@ -113,7 +112,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     end
 
     it 'creates a span' do
-      expect { subject }.to change { tracer.writer.spans.first }.to be_instance_of(Datadog::Span)
+      expect { subject }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
     end
 
     it 'cleans up span stored on easy' do

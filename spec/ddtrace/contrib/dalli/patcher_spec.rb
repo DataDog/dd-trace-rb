@@ -7,8 +7,7 @@ require 'ddtrace/contrib/dalli/patcher'
 RSpec.describe 'Dalli instrumentation' do
   include_context 'tracer logging'
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   # Enable the test tracer
   before(:each) do

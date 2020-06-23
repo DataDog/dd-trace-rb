@@ -1,8 +1,7 @@
 require 'ddtrace/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails ActionController' do
-  let(:tracer) { get_test_tracer }
-  let(:rails_options) { { tracer: tracer } }
+  let(:rails_options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -13,10 +12,6 @@ RSpec.describe 'Rails ActionController' do
       # We aren't initializing a full Rails application here, so the patch doesn't auto-apply.
       c.use :action_pack
     end
-  end
-
-  def all_spans
-    tracer.writer.spans(:keep)
   end
 
   let(:controller) do
@@ -39,8 +34,8 @@ RSpec.describe 'Rails ActionController' do
         expect { result }.to_not raise_error
         expect(result).to be_a_kind_of(Array)
         expect(result).to have(3).items
-        expect(all_spans).to have(1).items
-        expect(all_spans.first.name).to eq('rails.action_controller')
+        expect(spans).to have(1).items
+        expect(spans.first.name).to eq('rails.action_controller')
       end
     end
 
@@ -68,8 +63,8 @@ RSpec.describe 'Rails ActionController' do
               expect { result }.to_not raise_error
               expect(result).to be_a_kind_of(Array)
               expect(result).to include(200, headers, body)
-              expect(all_spans).to have(1).items
-              expect(all_spans.first.name).to eq('rails.action_controller')
+              expect(spans).to have(1).items
+              expect(spans.first.name).to eq('rails.action_controller')
             end
           end
 
@@ -94,8 +89,8 @@ RSpec.describe 'Rails ActionController' do
               expect { result }.to_not raise_error
               expect(result).to be_a_kind_of(Array)
               expect(result).to have(3).items
-              expect(all_spans).to have(1).items
-              expect(all_spans.first.name).to eq('rails.action_controller')
+              expect(spans).to have(1).items
+              expect(spans.first.name).to eq('rails.action_controller')
             end
           end
         end

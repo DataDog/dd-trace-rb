@@ -8,10 +8,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/rake/patcher'
 
 RSpec.describe Datadog::Contrib::Rake::Instrumentation do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer, enabled: true } }
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
+  let(:configuration_options) { { enabled: true } }
 
   before(:each) do
     skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Integration.compatible?

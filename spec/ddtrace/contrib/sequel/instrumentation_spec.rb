@@ -7,15 +7,12 @@ require 'ddtrace'
 require 'ddtrace/contrib/sequel/integration'
 
 RSpec.describe 'Sequel instrumentation' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
   let(:sequel) do
     Sequel.sqlite(':memory:').tap do |s|
-      Datadog.configure(s, tracer: tracer)
+      Datadog.configure(s)
     end
   end
-
-  let(:spans) { tracer.writer.spans }
 
   before(:each) do
     skip('Sequel not compatible.') unless Datadog::Contrib::Sequel::Integration.compatible?

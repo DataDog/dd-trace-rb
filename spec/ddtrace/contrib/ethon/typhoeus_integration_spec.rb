@@ -1,3 +1,5 @@
+require 'ddtrace/contrib/support/spec_helper'
+
 require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/ethon/integration_context'
 
@@ -37,11 +39,10 @@ RSpec.describe Datadog::Contrib::Ethon do
     end
 
     it 'creates 3 spans' do
-      expect { request }.to change { tracer.writer.spans.count }.to 3
+      expect { request }.to change { fetch_spans.count }.to 3
     end
 
     describe 'created spans' do
-      subject(:spans) { tracer.writer.spans }
       let(:span_get) { spans.select { |span| span.get_tag(Datadog::Ext::HTTP::METHOD) == 'GET' }.first }
       let(:span_post) { spans.select { |span| span.get_tag(Datadog::Ext::HTTP::METHOD) == 'POST' }.first }
       let(:span_parent) { spans.select { |span| span.name == 'ethon.multi.request' }.first }
