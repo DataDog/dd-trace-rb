@@ -200,7 +200,7 @@ RSpec.describe Datadog::Tracer do
       end
 
       context 'without child_of: option' do
-        let(:options) { { } }
+        let(:options) { {} }
 
         it 'creates span with current context' do
           tracer.trace 'root' do |_root_span|

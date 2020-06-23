@@ -255,7 +255,8 @@ module Datadog
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or \name if it's missing
     # * +span_type+: the type of the span (such as \http, \db and so on)
-    # * +child_of+: a \Span or a \Context instance representing the parent for this span. If not set, defaults to Tracer.call_context
+    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
+    #   If not set, defaults to Tracer.call_context
     # * +tags+: extra tags which should be added to the span.
     def trace(name, options = {})
       options[:child_of] ||= call_context
