@@ -10,8 +10,8 @@ module Datadog
       class StackSample < Converter
         SAMPLE_TYPES = {
           wall_time_ns: [
-            Ext::Profiling::Pprof::VALUE_TYPE_WALL,
-            Ext::Profiling::Pprof::VALUE_UNIT_NANOSECONDS
+            Datadog::Ext::Profiling::Pprof::VALUE_TYPE_WALL,
+            Datadog::Ext::Profiling::Pprof::VALUE_UNIT_NANOSECONDS
           ]
         }.freeze
 
@@ -63,7 +63,7 @@ module Datadog
         def build_sample_labels(stack_sample)
           [
             Perftools::Profiles::Label.new(
-              key: builder.string_table.fetch(Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
+              key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
               str: builder.string_table.fetch(stack_sample.thread_id.to_s)
             )
           ]
