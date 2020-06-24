@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/profiling/spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/profiling'
@@ -32,7 +33,7 @@ RSpec.describe 'profiling integration test' do
       expect(stack_one).to_not eq(stack_two)
     end
 
-    def build_stack_sample(locations = nil, thread_id = nil, wall_time_ns = nil)
+    def build_stack_sample(locations = nil, thread_id = nil, cpu_time_ns = nil, wall_time_ns = nil)
       locations ||= Thread.current.backtrace_locations
 
       Datadog::Profiling::Events::StackSample.new(
@@ -40,12 +41,13 @@ RSpec.describe 'profiling integration test' do
         locations,
         locations.length,
         thread_id || rand(1e9),
+        cpu_time_ns || rand(1e9),
         wall_time_ns || rand(1e9)
       )
     end
   end
 
-  describe 'using all components' do
+  shared_examples_for 'end-to-end profiling' do
     let(:recorder) do
       Datadog::Profiling::Recorder.new(
         [Datadog::Profiling::Events::StackSample],
@@ -79,6 +81,24 @@ RSpec.describe 'profiling integration test' do
       expect(out).to receive(:puts)
       collector.collect_events
       scheduler.flush_events
+    end
+  end
+
+  describe 'profiling' do
+    context 'without CPU profiling' do
+      it_behaves_like 'end-to-end profiling' do
+        before { expect(Thread.instance_methods).to_not include(:cpu_time) }
+      end
+    end
+
+    if Datadog::Profiling.native_cpu_time_supported?
+      context 'with CPU profiling' do
+        include_context 'with profiling extensions'
+
+        it_behaves_like 'end-to-end profiling' do
+          before { expect(Thread.instance_methods).to include(:cpu_time) }
+        end
+      end
     end
   end
 
@@ -149,9 +169,14 @@ RSpec.describe 'profiling integration test' do
 
         it do
           is_expected.to be_kind_of(Google::Protobuf::RepeatedField)
-          is_expected.to have(1).items
+          is_expected.to have(2).items
 
-          expect(sample_type.first).to have_attributes(
+          expect(sample_type[0]).to have_attributes(
+            type: string_id_for(Datadog::Ext::Profiling::Pprof::VALUE_TYPE_CPU),
+            unit: string_id_for(Datadog::Ext::Profiling::Pprof::VALUE_UNIT_NANOSECONDS)
+          )
+
+          expect(sample_type[1]).to have_attributes(
             type: string_id_for(Datadog::Ext::Profiling::Pprof::VALUE_TYPE_WALL),
             unit: string_id_for(Datadog::Ext::Profiling::Pprof::VALUE_UNIT_NANOSECONDS)
           )
@@ -171,7 +196,7 @@ RSpec.describe 'profiling integration test' do
 
             expect(sample[i].to_h).to eq(
               location_id: stack_sample.frames.collect { |f| stack_frame_to_location_id(f) },
-              value: [stack_sample.wall_time_interval_ns],
+              value: [stack_sample.cpu_time_interval_ns, stack_sample.wall_time_interval_ns],
               label: [{
                 key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
                 str: string_id_for(stack_sample.thread_id.to_s),
@@ -184,7 +209,10 @@ RSpec.describe 'profiling integration test' do
           # Last one is grouped
           expect(sample.last.to_h).to eq(
             location_id: stack_samples.last.frames.collect { |f| stack_frame_to_location_id(f) },
-            value: [stack_samples[3].wall_time_interval_ns + stack_samples[4].wall_time_interval_ns],
+            value: [
+              stack_samples[3].cpu_time_interval_ns + stack_samples[4].cpu_time_interval_ns,
+              stack_samples[3].wall_time_interval_ns + stack_samples[4].wall_time_interval_ns
+            ],
             label: [{
               key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
               str: string_id_for(stack_samples.last.thread_id.to_s),
@@ -267,7 +295,7 @@ RSpec.describe 'profiling integration test' do
 
         it 'is well formed' do
           is_expected.to be_kind_of(Google::Protobuf::RepeatedField)
-          is_expected.to have(12).items
+          is_expected.to have(13).items
           expect(string_table.first).to eq('')
         end
       end
