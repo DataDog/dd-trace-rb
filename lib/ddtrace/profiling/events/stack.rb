@@ -27,6 +27,7 @@ module Datadog
       # Describes a stack sample
       class StackSample < Stack
         attr_reader \
+          :cpu_time_interval_ns,
           :wall_time_interval_ns
 
         def initialize(
@@ -34,6 +35,7 @@ module Datadog
           frames,
           total_frame_count,
           thread_id,
+          cpu_time_interval_ns,
           wall_time_interval_ns
         )
           super(
@@ -43,6 +45,7 @@ module Datadog
             thread_id
           )
 
+          @cpu_time_interval_ns = cpu_time_interval_ns
           @wall_time_interval_ns = wall_time_interval_ns
         end
       end
