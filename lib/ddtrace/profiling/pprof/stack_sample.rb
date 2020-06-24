@@ -9,6 +9,10 @@ module Datadog
       # Builds a profile from a StackSample
       class StackSample < Converter
         SAMPLE_TYPES = {
+          cpu_time_ns: [
+            Datadog::Ext::Profiling::Pprof::VALUE_TYPE_CPU,
+            Datadog::Ext::Profiling::Pprof::VALUE_UNIT_NANOSECONDS
+          ],
           wall_time_ns: [
             Datadog::Ext::Profiling::Pprof::VALUE_TYPE_WALL,
             Datadog::Ext::Profiling::Pprof::VALUE_UNIT_NANOSECONDS
@@ -55,8 +59,10 @@ module Datadog
         end
 
         def build_sample_values(stack_sample)
+          no_value = Datadog::Ext::Profiling::Pprof::SAMPLE_VALUE_NO_VALUE
           values = super(stack_sample)
-          values[sample_value_index(:wall_time_ns)] = stack_sample.wall_time_interval_ns
+          values[sample_value_index(:cpu_time_ns)] = stack_sample.cpu_time_interval_ns || no_value
+          values[sample_value_index(:wall_time_ns)] = stack_sample.wall_time_interval_ns || no_value
           values
         end
 

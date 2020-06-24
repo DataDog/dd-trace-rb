@@ -21,7 +21,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
   let(:stack_samples) { Array.new(2) { build_stack_sample } }
 
-  def build_stack_sample(locations = nil, thread_id = nil, wall_time_ns = nil)
+  def build_stack_sample(locations = nil, thread_id = nil, cpu_time_ns = nil, wall_time_ns = nil)
     locations ||= Thread.current.backtrace_locations
 
     Datadog::Profiling::Events::StackSample.new(
@@ -29,6 +29,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       locations,
       locations.length,
       thread_id || rand(1e9),
+      cpu_time_ns || rand(1e9),
       wall_time_ns || rand(1e9)
     )
   end
@@ -42,7 +43,20 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
     it do
       is_expected.to be_kind_of(Hash)
-      is_expected.to have(1).items
+      is_expected.to have(2).items
+    end
+
+    describe 'contains :cpu_time_ns' do
+      subject(:cpu_time_type) { sample_value_types[:cpu_time_ns] }
+
+      it do
+        is_expected.to eq(
+          [
+            Datadog::Ext::Profiling::Pprof::VALUE_TYPE_CPU,
+            Datadog::Ext::Profiling::Pprof::VALUE_UNIT_NANOSECONDS
+          ]
+        )
+      end
     end
 
     describe 'contains :wall_time_ns' do
@@ -111,6 +125,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length,
               thread_id,
+              rand(1e9),
               rand(1e9)
             )
           end
@@ -121,6 +136,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length + 1,
               thread_id,
+              rand(1e9),
               rand(1e9)
             )
           end
@@ -158,8 +174,18 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           is_expected.to have(2).items
           is_expected.to include(kind_of(Perftools::Profiles::Sample))
 
-          expect(build_samples[0].value).to eq([first.wall_time_interval_ns])
-          expect(build_samples[1].value).to eq([second.wall_time_interval_ns])
+          expect(build_samples[0].value).to eq(
+            [
+              first.cpu_time_interval_ns,
+              first.wall_time_interval_ns
+            ]
+          )
+          expect(build_samples[1].value).to eq(
+            [
+              second.cpu_time_interval_ns,
+              second.wall_time_interval_ns
+            ]
+          )
         end
       end
 
@@ -174,7 +200,13 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           is_expected.to have(1).item
           is_expected.to include(kind_of(Perftools::Profiles::Sample))
 
-          expect(build_samples[0].value).to eq([first.wall_time_interval_ns + second.wall_time_interval_ns])
+          expect(build_samples[0].value)
+            .to eq(
+              [
+                first.cpu_time_interval_ns + second.cpu_time_interval_ns,
+                first.wall_time_interval_ns + second.wall_time_interval_ns
+              ]
+            )
         end
       end
 
@@ -196,6 +228,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length,
               thread_id,
+              rand(1e9),
               rand(1e9)
             )
           end
@@ -206,6 +239,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length + 1,
               thread_id,
+              rand(1e9),
               rand(1e9)
             )
           end
@@ -266,7 +300,14 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
   describe '#build_sample_values' do
     subject(:build_sample_values) { converter.build_sample_values(stack_sample) }
     let(:stack_sample) { build_stack_sample }
-    it { is_expected.to eq([stack_sample.wall_time_interval_ns]) }
+    it do
+      is_expected.to eq(
+        [
+          stack_sample.cpu_time_interval_ns,
+          stack_sample.wall_time_interval_ns
+        ]
+      )
+    end
   end
 
   describe '#build_sample_labels' do
