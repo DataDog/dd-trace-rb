@@ -81,7 +81,14 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
         it 'has all the expected sample types' do
           is_expected.to eq(
             [
-              { type: string_id_for('wall'), unit: string_id_for('nanoseconds') }
+              {
+                type: string_id_for(Datadog::Ext::Profiling::Pprof::VALUE_TYPE_CPU),
+                unit: string_id_for(Datadog::Ext::Profiling::Pprof::VALUE_UNIT_NANOSECONDS)
+              },
+              {
+                type: string_id_for(Datadog::Ext::Profiling::Pprof::VALUE_TYPE_WALL),
+                unit: string_id_for(Datadog::Ext::Profiling::Pprof::VALUE_UNIT_NANOSECONDS)
+              }
             ]
           )
         end
