@@ -10,6 +10,12 @@ module Datadog
       module Traces
         # Response from HTTP transport for traces
         class Response < IO::Response
+          include Transport::Traces::Response
+
+          def initialize(result, trace_count = 1)
+            super(result)
+            @trace_count = trace_count
+          end
         end
 
         # Extensions for HTTP client
