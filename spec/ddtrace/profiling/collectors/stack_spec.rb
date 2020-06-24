@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/profiling/spec_helper'
 
 require 'ddtrace/profiling/collectors/stack'
 require 'ddtrace/profiling/recorder'
@@ -194,16 +195,58 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       let(:backtrace) { Array.new(backtrace_size) { instance_double(Thread::Backtrace::Location) } }
       let(:backtrace_size) { collector.max_frames }
 
-      it 'builds an event' do
-        is_expected.to be_a_kind_of(Datadog::Profiling::Events::StackSample)
+      context 'and CPU timing is unavailable' do
+        it 'builds an event without CPU time' do
+          is_expected.to be_a_kind_of(Datadog::Profiling::Events::StackSample)
 
-        is_expected.to have_attributes(
-          timestamp: kind_of(Float),
-          frames: backtrace,
-          total_frame_count: backtrace.length,
-          thread_id: thread.object_id,
-          wall_time_interval_ns: wall_time_interval_ns
-        )
+          is_expected.to have_attributes(
+            timestamp: kind_of(Float),
+            frames: backtrace,
+            total_frame_count: backtrace.length,
+            thread_id: thread.object_id,
+            cpu_time_interval_ns: nil,
+            wall_time_interval_ns: wall_time_interval_ns
+          )
+        end
+      end
+
+      if Datadog::Profiling.native_cpu_time_supported?
+        context 'and CPU timing is available' do
+          let(:current_cpu_time) { last_cpu_time + cpu_interval }
+          let(:last_cpu_time) { rand(1e4) }
+          let(:cpu_interval) { 1000 }
+
+          include_context 'with profiling extensions'
+
+          before do
+            allow(thread)
+              .to receive(:cpu_time)
+              .with(:nanosecond)
+              .and_return(current_cpu_time)
+
+            allow(thread)
+              .to receive(:[])
+              .with(described_class::THREAD_LAST_CPU_TIME_KEY)
+              .and_return(last_cpu_time)
+
+            expect(thread)
+              .to receive(:[]=)
+              .with(described_class::THREAD_LAST_CPU_TIME_KEY, current_cpu_time)
+          end
+
+          it 'builds an event with CPU time' do
+            is_expected.to be_a_kind_of(Datadog::Profiling::Events::StackSample)
+
+            is_expected.to have_attributes(
+              timestamp: kind_of(Float),
+              frames: backtrace,
+              total_frame_count: backtrace.length,
+              thread_id: thread.object_id,
+              cpu_time_interval_ns: cpu_interval,
+              wall_time_interval_ns: wall_time_interval_ns
+            )
+          end
+        end
       end
 
       context 'but is over the maximum length' do
@@ -229,6 +272,75 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           collect_events.frames.tap do |frames|
             expect(frames).to be_a_kind_of(Array)
             expect(frames.length).to eq(backtrace.length)
+          end
+        end
+      end
+    end
+  end
+
+  describe '#get_cpu_time_interval!' do
+    subject(:get_cpu_time_interval!) { collector.get_cpu_time_interval!(thread) }
+    let(:thread) { instance_double(Thread) }
+
+    context 'when CPU timing is not supported' do
+      it { is_expected.to be nil }
+    end
+
+    if Datadog::Profiling.native_cpu_time_supported?
+      context 'when CPU timing is supported' do
+        include_context 'with profiling extensions'
+
+        context 'but yields nil' do
+          before do
+            allow(thread)
+              .to receive(:cpu_time)
+              .and_return(nil)
+          end
+
+          it { is_expected.to be nil }
+        end
+
+        context 'and returns time' do
+          let(:current_cpu_time) { last_cpu_time + cpu_interval }
+          let(:last_cpu_time) { rand(1e4) }
+          let(:cpu_interval) { 1000 }
+
+          before do
+            allow(thread)
+              .to receive(:cpu_time)
+              .with(:nanosecond)
+              .and_return(current_cpu_time)
+
+            expect(thread)
+              .to receive(:[]=)
+              .with(described_class::THREAD_LAST_CPU_TIME_KEY, current_cpu_time)
+          end
+
+          context 'and the thread CPU time has not been retrieved before' do
+            before do
+              allow(thread)
+                .to receive(:[])
+                .with(described_class::THREAD_LAST_CPU_TIME_KEY)
+                .and_return(nil)
+            end
+
+            let(:current_cpu_time) { rand(1e4) }
+            it { is_expected.to eq 0 }
+          end
+
+          context 'and the thread CPU time has been retrieved before' do
+            let(:current_cpu_time) { last_cpu_time + cpu_interval }
+            let(:last_cpu_time) { rand(1e4) }
+            let(:cpu_interval) { 1000 }
+
+            before do
+              allow(thread)
+                .to receive(:[])
+                .with(described_class::THREAD_LAST_CPU_TIME_KEY)
+                .and_return(last_cpu_time)
+            end
+
+            it { is_expected.to eq(cpu_interval) }
           end
         end
       end
