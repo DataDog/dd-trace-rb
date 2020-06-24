@@ -88,6 +88,7 @@ RSpec.describe Datadog::Contrib::Extensions do
           it do
             expect { result }.to_not raise_error
             expect(settings.integrations_pending_activation).to include(integration)
+            expect(settings.instrumented_integrations).to include(integration_name => integration)
           end
         end
 

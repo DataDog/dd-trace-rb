@@ -102,6 +102,15 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
       expect(post.http_response).to be(http_response)
     end
   end
+
+  describe '#url' do
+    subject(:url) { adapter.url }
+
+    let(:hostname) { 'local.test' }
+    let(:port) { '345' }
+    let(:timeout) { 7 }
+    it { is_expected.to eq('http://local.test:345?timeout=7') }
+  end
 end
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::Net::Response do

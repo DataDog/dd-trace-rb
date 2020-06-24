@@ -1586,6 +1586,7 @@ Available options are:
  - `partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
  - `port`: set the port the trace agent is listening on.
  - `sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
+ - `diagnostics.startup_logs.enabled`: Startup configuration and diagnostic log. Defaults to `true`. Can be configured through the `DD_TRACE_STARTUP_LOGS` environment variable.
 
 #### Custom logging
 
