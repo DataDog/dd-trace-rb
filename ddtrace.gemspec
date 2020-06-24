@@ -36,6 +36,7 @@ Gem::Specification.new do |spec|
 
   # Optional extensions
   spec.add_development_dependency 'dogstatsd-ruby', '>= 3.3.0'
+  spec.add_development_dependency 'ffi', '~> 1.0'
   spec.add_development_dependency 'opentracing', '>= 0.4.1'
 
   if RUBY_PLATFORM != 'java'
