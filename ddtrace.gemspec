@@ -39,6 +39,9 @@ Gem::Specification.new do |spec|
     spec.add_dependency 'msgpack', '< 1.4'
   end
 
+  # Optional extensions
+  spec.add_development_dependency 'ffi', '~> 1.0'
+
   if RUBY_PLATFORM != 'java'
     # NOTE: Exclude 3.7.x because the required_ruby_version mismatches
     #       actual Ruby support. It would break Ruby < 2.3.
