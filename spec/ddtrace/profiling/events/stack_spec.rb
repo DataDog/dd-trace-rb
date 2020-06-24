@@ -37,6 +37,7 @@ RSpec.describe Datadog::Profiling::Events::StackSample do
         frames,
         total_frame_count,
         thread_id,
+        cpu_time_interval_ns,
         wall_time_interval_ns
       )
     end
@@ -45,6 +46,7 @@ RSpec.describe Datadog::Profiling::Events::StackSample do
     let(:frames) { double('frames') }
     let(:total_frame_count) { double('total_frame_count') }
     let(:thread_id) { double('thread_id') }
+    let(:cpu_time_interval_ns) { double('cpu_time_interval_ns') }
     let(:wall_time_interval_ns) { double('wall_time_interval_ns') }
 
     it do
@@ -53,6 +55,7 @@ RSpec.describe Datadog::Profiling::Events::StackSample do
         frames: frames,
         total_frame_count: total_frame_count,
         thread_id: thread_id,
+        cpu_time_interval_ns: cpu_time_interval_ns,
         wall_time_interval_ns: wall_time_interval_ns
       )
     end
