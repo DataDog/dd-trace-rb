@@ -16,6 +16,7 @@ module Datadog
         end
 
         # Instance methods for configuration
+        # rubocop:disable Metrics/ModuleLength
         module InstanceMethods
           include Datadog::Contrib::HttpAnnotationHelper
 
@@ -99,7 +100,12 @@ module Datadog
             tracer = config[:tracer]
 
             @datadog_pin ||= begin
-              Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
+              Datadog::Pin.new(
+                service,
+                app: Ext::APP,
+                app_type: Datadog::Ext::AppTypes::WEB,
+                tracer: -> { config[:tracer] }
+              )
             end
 
             if @datadog_pin.service_name == default_datadog_pin.service_name && @datadog_pin.service_name != service
@@ -115,9 +121,14 @@ module Datadog
           def default_datadog_pin
             config = Datadog.configuration[:httprb]
             service = config[:service_name]
-            tracer = config[:tracer]
+
             @default_datadog_pin ||= begin
-              Datadog::Pin.new(service, app: Ext::APP, app_type: Datadog::Ext::AppTypes::WEB, tracer: tracer)
+              Datadog::Pin.new(
+                service,
+                app: Ext::APP,
+                app_type: Datadog::Ext::AppTypes::WEB,
+                tracer: -> { config[:tracer] }
+              )
             end
           end
 

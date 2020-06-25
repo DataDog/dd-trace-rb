@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace'
 require 'ddtrace/contrib/httprb/instrumentation'
@@ -34,8 +34,8 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
   end
   after(:all) { @server.shutdown }
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  # let(:tracer) { get_test_tracer }
+  let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
 
     shared_examples_for 'instrumented request' do
       it 'creates a span' do
-        expect { response }.to change { tracer.writer.spans.first }.to be_instance_of(Datadog::Span)
+        expect { response }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
       end
 
       it 'returns response' do
@@ -71,7 +71,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
       end
 
       describe 'created span' do
-        subject(:span) { tracer.writer.spans.first }
+        subject(:span) { fetch_spans.first }
 
         context 'response is successfull' do
           before { response }
