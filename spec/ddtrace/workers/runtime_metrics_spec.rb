@@ -26,26 +26,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
     context 'when :enabled is not given' do
       before { options.delete(:enabled) }
-
-      context "and #{Datadog::Ext::Runtime::Metrics::ENV_ENABLED} is not set" do
-        before do
-          expect(Datadog::Environment).to receive(:env_to_bool)
-            .with(Datadog::Ext::Runtime::Metrics::ENV_ENABLED, false)
-            .and_return(false)
-        end
-
-        it { expect(worker.enabled?).to be false }
-      end
-
-      context "and #{Datadog::Ext::Runtime::Metrics::ENV_ENABLED} is set" do
-        before do
-          expect(Datadog::Environment).to receive(:env_to_bool)
-            .with(Datadog::Ext::Runtime::Metrics::ENV_ENABLED, false)
-            .and_return(true)
-        end
-
-        it { expect(worker.enabled?).to be true }
-      end
+      it { expect(worker.enabled?).to be false }
     end
   end
 
@@ -91,7 +72,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
             .from(false)
             .to(true)
 
-          expect(worker).to have_received(:perform)
+          expect(worker).to_not have_received(:perform)
           expect(worker).to_not have_received(:stop)
         end
       end
@@ -153,7 +134,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
             .to(false)
 
           expect(worker).to_not have_received(:perform)
-          expect(worker).to have_received(:stop)
+          expect(worker).to_not have_received(:stop)
         end
       end
 
@@ -167,26 +148,31 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
             .to(false)
 
           expect(worker).to_not have_received(:perform)
-          expect(worker).to have_received(:stop)
+          expect(worker).to_not have_received(:stop)
         end
       end
     end
   end
 
-  describe 'forwarded methods' do
-    describe '#associate_with_span' do
-      subject(:associate_with_span) { worker.associate_with_span(span) }
-      let(:span) { instance_double(Datadog::Span) }
+  describe '#associate_with_span' do
+    subject(:associate_with_span) { worker.associate_with_span(span) }
+    let(:span) { instance_double(Datadog::Span) }
 
-      before { allow(worker.metrics).to receive(:associate_with_span) }
-
-      it 'forwards to #metrics' do
-        associate_with_span
-        expect(worker.metrics).to have_received(:associate_with_span)
-          .with(span)
-      end
+    before do
+      allow(worker.metrics).to receive(:associate_with_span)
+      allow(worker).to receive(:perform)
     end
 
+    it 'forwards to #metrics' do
+      associate_with_span
+
+      expect(worker.metrics).to have_received(:associate_with_span)
+        .with(span)
+      expect(worker).to have_received(:perform)
+    end
+  end
+
+  describe 'forwarded methods' do
     describe '#register_service' do
       subject(:register_service) { worker.register_service(service) }
       let(:service) { double('service') }
@@ -211,6 +197,8 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     end
 
     describe 'forking' do
+      before { skip unless PlatformHelpers.supports_fork? }
+
       context 'when the process forks' do
         before { allow(metrics).to receive(:flush) }
         after { worker.stop }

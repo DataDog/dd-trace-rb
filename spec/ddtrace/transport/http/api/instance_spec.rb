@@ -5,7 +5,8 @@ require 'ddtrace/transport/http/api/instance'
 RSpec.describe Datadog::Transport::HTTP::API::Instance do
   subject(:instance) { described_class.new(spec, adapter, options) }
 
-  let(:spec) { double(Datadog::Transport::HTTP::API::Spec) }
+  let(:spec) { double(Datadog::Transport::HTTP::API::Spec, encoder: encoder) }
+  let(:encoder) { double }
   let(:adapter) { spy('adapter') }
   let(:options) { {} }
 
@@ -65,5 +66,11 @@ RSpec.describe Datadog::Transport::HTTP::API::Instance do
         it { expect(adapter).to have_received(:call).with(env) }
       end
     end
+  end
+
+  describe '#encoder' do
+    subject { instance.encoder }
+
+    it { is_expected.to eq(encoder) }
   end
 end

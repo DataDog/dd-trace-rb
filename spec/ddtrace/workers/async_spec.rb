@@ -262,7 +262,11 @@ RSpec.describe Datadog::Workers::Async::Thread do
       end
 
       context 'when started' do
-        before { worker.perform }
+        before do
+          worker.perform
+          try_wait_until { worker.running? }
+        end
+
         after { worker.terminate }
         it { is_expected.to be true }
       end
@@ -278,7 +282,11 @@ RSpec.describe Datadog::Workers::Async::Thread do
       context 'when running' do
         let(:task) { proc { sleep(1) } }
 
-        before { worker.perform }
+        before do
+          worker.perform
+          try_wait_until { worker.running? }
+        end
+
         after { worker.terminate }
 
         it do
@@ -333,6 +341,8 @@ RSpec.describe Datadog::Workers::Async::Thread do
     end
 
     describe '#forked?' do
+      before { skip unless PlatformHelpers.supports_fork? }
+
       subject(:forked?) { worker.forked? }
 
       context 'by default' do
@@ -370,6 +380,8 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     describe 'integration tests' do
       describe 'forking' do
+        before { skip unless PlatformHelpers.supports_fork? }
+
         context 'when the process forks' do
           context 'with FORK_POLICY_STOP fork policy' do
             before { worker.fork_policy = described_class::FORK_POLICY_STOP }

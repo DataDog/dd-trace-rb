@@ -32,6 +32,26 @@ module Datadog
         def header_to_rack_header(name)
           "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
         end
+
+        # Was a Sinatra already traced in this request?
+        # We don't want to create spans for intermediate Sinatra
+        # middlewares that don't match the request at hand.
+        def middleware_traced?(env)
+          env[Ext::RACK_ENV_MIDDLEWARE_TRACED]
+        end
+
+        def set_middleware_traced(env, bool)
+          env[Ext::RACK_ENV_MIDDLEWARE_TRACED] = bool
+        end
+
+        # The start time of the top-most Sinatra middleware.
+        def middleware_start_time(env)
+          env[Ext::RACK_ENV_MIDDLEWARE_START_TIME]
+        end
+
+        def set_middleware_start_time(env, time = Time.now.utc)
+          env[Ext::RACK_ENV_MIDDLEWARE_START_TIME] = time
+        end
       end
     end
   end

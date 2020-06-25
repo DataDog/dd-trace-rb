@@ -8,11 +8,6 @@ RSpec.describe Datadog::SyncWriter do
   let(:transport) { Datadog::Transport::HTTP.default { |t| t.adapter :test, buffer } }
   let(:buffer) { [] }
 
-  describe '#runtime_metrics' do
-    subject(:runtime_metrics) { sync_writer.runtime_metrics }
-    it { is_expected.to be_a_kind_of(Datadog::Runtime::Metrics) }
-  end
-
   describe '#write' do
     subject(:write) { sync_writer.write(trace, services) }
     let(:trace) { get_test_traces(1).first }
@@ -31,12 +26,8 @@ RSpec.describe Datadog::SyncWriter do
       end
 
       context 'enabled' do
-        around do |example|
-          Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-            Datadog.configuration.report_hostname = true
-            example.run
-          end
-        end
+        before { Datadog.configuration.report_hostname = true }
+        after { Datadog.configuration.reset! }
 
         it do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|
@@ -52,12 +43,8 @@ RSpec.describe Datadog::SyncWriter do
       end
 
       context 'disabled' do
-        around do |example|
-          Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-            Datadog.configuration.report_hostname = false
-            example.run
-          end
-        end
+        before { Datadog.configuration.report_hostname = false }
+        after { Datadog.configuration.reset! }
 
         it do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|

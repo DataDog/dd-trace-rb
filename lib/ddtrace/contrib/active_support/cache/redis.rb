@@ -14,7 +14,7 @@ module Datadog
             # We need to do a per-method monkey patching as some of them might
             # be redefined, and some of them not. The latest version of redis-activesupport
             # redefines write but leaves untouched read and delete:
-            # https://github.com/redis-store/redis-activesupport/blob/master/lib/active_support/cache/redis_store.rb
+            # https://github.com/redis-store/redis-activesupport/blob/v4.1.5/lib/active_support/cache/redis_store.rb
             #
             # For Rails >= 5.2 w/o redis-activesupport...
             # ActiveSupport includes a Redis cache store internally, and does not require these overrides.

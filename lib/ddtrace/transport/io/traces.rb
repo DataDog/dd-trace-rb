@@ -10,16 +10,15 @@ module Datadog
       module Traces
         # Response from HTTP transport for traces
         class Response < IO::Response
-          include Transport::Traces::Response
         end
 
         # Extensions for HTTP client
         module Client
           def send_traces(traces)
             # Build a request
-            req = Transport::Traces::Request.new(traces)
+            req = Transport::Traces::Request.new(Parcel.new(traces))
 
-            send_request(req) do |out, request|
+            [send_request(req) do |out, request|
               # Encode trace data
               data = encode_data(encoder, request)
 
@@ -32,7 +31,55 @@ module Datadog
 
               # Generate response
               Traces::Response.new(result)
+            end]
+          end
+        end
+
+        # Encoder for IO-specific trace encoding
+        # API compliant when used with {JSONEncoder}.
+        module Encoder
+          ENCODED_IDS = [
+            :trace_id,
+            :span_id,
+            :parent_id
+          ].freeze
+
+          # Encodes a list of traces
+          def encode_traces(encoder, traces)
+            trace_hashes = traces.map do |trace|
+              encode_trace(trace)
             end
+
+            # Wrap traces & encode them
+            encoder.encode(traces: trace_hashes)
+          end
+
+          private
+
+          def encode_trace(trace)
+            # Convert each trace to hash
+            trace.map(&:to_hash).tap do |spans|
+              # Convert IDs to hexadecimal
+              spans.each do |span|
+                ENCODED_IDS.each do |id|
+                  span[id] = span[id].to_s(16) if span.key?(id)
+                end
+              end
+            end
+          end
+        end
+
+        # Transfer object for list of traces
+        class Parcel
+          include Transport::Parcel
+          include Encoder
+
+          def count
+            data.length
+          end
+
+          def encode_with(encoder)
+            encode_traces(encoder, data)
           end
         end
 

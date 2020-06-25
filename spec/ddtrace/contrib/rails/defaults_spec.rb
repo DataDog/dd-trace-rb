@@ -5,11 +5,11 @@ RSpec.describe 'Rails defaults' do
 
   context 'when Datadog.configuration.service' do
     before do
-      Datadog.configuration.service = default_service
+      Datadog.configure { |c| c.service = default_service }
       app
     end
 
-    after { Datadog.configuration.service = nil }
+    after { Datadog.configure { |c| c.service = nil } }
 
     context 'is not configured' do
       let(:default_service) { nil }

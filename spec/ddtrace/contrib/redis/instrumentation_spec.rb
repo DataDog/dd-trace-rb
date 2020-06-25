@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'redis'
 require 'hiredis'
@@ -9,13 +9,7 @@ RSpec.describe 'Redis instrumentation test' do
   let(:test_port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
   let(:client) { Redis.new(host: test_host, port: test_port) }
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
-
-  def all_spans
-    tracer.writer.spans(:keep)
-  end
-  let(:span) { all_spans.first }
+  let(:configuration_options) { {} }
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
@@ -36,19 +30,19 @@ RSpec.describe 'Redis instrumentation test' do
 
     before do
       Datadog.configure do |c|
-        c.use :redis, tracer: tracer, service_name: default_service_name
-        c.use :redis, describes: { url: redis_url }, tracer: tracer, service_name: service_name
+        c.use :redis, service_name: default_service_name
+        c.use :redis, describes: { url: redis_url }, service_name: service_name
       end
     end
 
     context 'and #set is called' do
       before do
         client.set('abc', 123)
-        try_wait_until { all_spans.any? }
+        try_wait_until { fetch_spans.any? }
       end
 
       it 'calls instrumentation' do
-        expect(all_spans.size).to eq(1)
+        expect(spans.size).to eq(1)
         expect(span.service).to eq(service_name)
         expect(span.name).to eq('redis.command')
         expect(span.span_type).to eq('redis')
@@ -67,19 +61,19 @@ RSpec.describe 'Redis instrumentation test' do
 
     before do
       Datadog.configure do |c|
-        c.use :redis, tracer: tracer, service_name: default_service_name
-        c.use :redis, describes: { host: test_host, port: test_port }, tracer: tracer, service_name: service_name
+        c.use :redis, service_name: default_service_name
+        c.use :redis, describes: { host: test_host, port: test_port }, service_name: service_name
       end
     end
 
     context 'and #set is called' do
       before do
         client.set('abc', 123)
-        try_wait_until { all_spans.any? }
+        try_wait_until { fetch_spans.any? }
       end
 
       it 'calls instrumentation' do
-        expect(all_spans.size).to eq(1)
+        expect(spans.size).to eq(1)
         expect(span.service).to eq(service_name)
         expect(span.name).to eq('redis.command')
         expect(span.span_type).to eq('redis')

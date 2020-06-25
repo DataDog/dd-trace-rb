@@ -5,7 +5,22 @@ require 'ddtrace'
 require 'ddtrace/runtime/metrics'
 
 RSpec.describe Datadog::Runtime::Metrics do
-  subject(:runtime_metrics) { described_class.new }
+  subject(:runtime_metrics) { described_class.new(options) }
+  let(:options) { {} }
+
+  describe '::new' do
+    context 'given :services' do
+      let(:options) { super().merge(services: services) }
+      let(:services) { ['service-a', 'service-b'] }
+
+      it do
+        expect(runtime_metrics.send(:service_tags)).to include(
+          "#{Datadog::Ext::Runtime::Metrics::TAG_SERVICE}:service-a",
+          "#{Datadog::Ext::Runtime::Metrics::TAG_SERVICE}:service-b"
+        )
+      end
+    end
+  end
 
   describe '#associate_with_span' do
     subject(:associate_with_span) { runtime_metrics.associate_with_span(span) }
@@ -152,8 +167,10 @@ RSpec.describe Datadog::Runtime::Metrics do
   describe '#gc_metrics' do
     subject(:gc_metrics) { runtime_metrics.gc_metrics }
 
+    let(:nested_gc_keys) { PlatformHelpers.jruby? ? 2 : 0 }
+
     it 'has a metric for each value in GC.stat' do
-      is_expected.to have(GC.stat.keys.count).items
+      is_expected.to have(GC.stat.keys.count - nested_gc_keys).items
 
       gc_metrics.each do |metric, value|
         expect(metric).to start_with(Datadog::Ext::Runtime::Metrics::METRIC_GC_PREFIX)

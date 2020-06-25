@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require_relative 'delayed_job_active_record'
 

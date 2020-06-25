@@ -11,13 +11,18 @@ Dir.glob('tasks/*.rake').each { |r| import r }
 desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
-  task all: [:main,
+  task all: [:main, :benchmark,
              :rails, :railsredis, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra]
 
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,opentelemetry}/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:benchmark) do |t, args|
+    t.pattern = 'spec/ddtrace/benchmark/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -101,10 +106,11 @@ namespace :spec do
     :resque,
     :rest_client,
     :sequel,
+    :shoryuken,
     :sidekiq,
     :sinatra,
     :sucker_punch,
-    :shoryuken
+    :suite
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
@@ -188,6 +194,8 @@ task :ci do
     sh 'bundle exec rake test:main'
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -219,6 +227,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:sidekiq'
       sh 'bundle exec appraisal contrib-old rake spec:sinatra'
       sh 'bundle exec appraisal contrib-old rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib-old rake spec:suite'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
@@ -243,6 +252,8 @@ task :ci do
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -275,6 +286,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:sidekiq'
       sh 'bundle exec appraisal contrib-old rake spec:sinatra'
       sh 'bundle exec appraisal contrib-old rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib-old rake spec:suite'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
@@ -305,6 +317,8 @@ task :ci do
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -344,6 +358,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Rails minitests
       sh 'bundle exec appraisal rails30-postgres rake test:rails'
       sh 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
@@ -378,6 +393,8 @@ task :ci do
     sh 'bundle exec rake spec:main'
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -417,6 +434,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -454,6 +472,8 @@ task :ci do
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
     sh 'bundle exec rake spec:opentelemetry'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Benchmarks
@@ -495,6 +515,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -517,6 +538,8 @@ task :ci do
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
     sh 'bundle exec rake spec:opentelemetry'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Benchmarks
@@ -558,6 +581,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -590,6 +614,8 @@ task :ci do
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
     sh 'bundle exec rake spec:opentelemetry'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Benchmarks
@@ -631,6 +657,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -662,6 +689,8 @@ task :ci do
     sh 'bundle exec rake spec:contrib'
     sh 'bundle exec rake spec:opentracer'
     sh 'bundle exec rake spec:opentelemetry'
+    # Benchmarks
+    sh 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Benchmarks
@@ -686,7 +715,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:faraday'
       sh 'bundle exec appraisal contrib rake spec:grape'
       sh 'bundle exec appraisal contrib rake spec:graphql'
-      # sh 'bundle exec appraisal contrib rake spec:grpc' # Pending 2.7 support: https://github.com/grpc/grpc/issues/21514
+      sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
       sh 'bundle exec appraisal contrib rake spec:httprb'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
@@ -703,6 +732,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
+      sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests

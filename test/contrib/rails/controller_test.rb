@@ -1,24 +1,17 @@
 require 'helper'
+require 'minitest/around/unit'
 
 require 'contrib/rails/test_helper'
+require 'ddtrace'
 
 # rubocop:disable Metrics/ClassLength
 class TracingControllerTest < ActionController::TestCase
-  setup do
-    @original_tracer = Datadog.configuration[:rails][:tracer]
-    @tracer = get_test_tracer
-    Datadog.configuration[:rails][:tracer] = @tracer
-  end
-
-  teardown do
-    Datadog.configuration[:rails][:tracer] = @original_tracer
-  end
+  include RailsTest
 
   test 'request is properly traced' do
     # make the request and assert the proper span
     get :index
     assert_response :success
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
 
     span = spans[0]
@@ -48,7 +41,6 @@ class TracingControllerTest < ActionController::TestCase
     # render the template and assert the proper span
     get :index
     assert_response :success
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
     span = spans[1]
     assert_equal(span.name, 'rails.render_template')
@@ -69,7 +61,6 @@ class TracingControllerTest < ActionController::TestCase
       # render the template and assert the proper span
       get :index
       assert_response :success
-      spans = @tracer.writer.spans()
       assert_equal(spans.length, 2)
       span = spans[1]
       assert_equal(span.name, 'rails.render_template')
@@ -88,7 +79,6 @@ class TracingControllerTest < ActionController::TestCase
     # render the template and assert the proper span
     get :partial
     assert_response :success
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
 
     _, span_partial, span_template = spans
@@ -107,10 +97,9 @@ class TracingControllerTest < ActionController::TestCase
     assert_response :success
 
     # Verify all spans have closed
-    assert_equal(true, @tracer.call_context.trace.all?(&:finished?))
+    assert_equal(true, tracer.call_context.trace.all?(&:finished?))
 
     # Verify correct number of spans
-    spans = @tracer.writer.spans
     assert_equal(spans.length, 4)
 
     _, span_inner_partial, span_outer_partial, span_template = spans
@@ -140,8 +129,6 @@ class TracingControllerTest < ActionController::TestCase
     # render the endpoint
     get :full
     assert_response :success
-    spans = @tracer.writer.spans
-
     # rubocop:disable Style/IdenticalConditionalBranches
     if Datadog::Contrib::ActiveRecord::Events::Instantiation.supported?
       assert_equal(spans.length, 5)
@@ -198,7 +185,6 @@ class TracingControllerTest < ActionController::TestCase
       err = true
     end
     assert_equal(true, err, 'should have raised an error')
-    spans = @tracer.writer.spans()
     assert_equal(1, spans.length)
     span = spans[0]
     assert_equal('rails.action_controller', span.name)
@@ -216,7 +202,6 @@ class TracingControllerTest < ActionController::TestCase
       err = true
     end
     assert_equal(true, err, 'should have raised an error')
-    spans = @tracer.writer.spans
     assert_equal(1, spans.length)
     span = spans[0]
     assert_equal('rails.action_controller', span.name)
@@ -234,7 +219,6 @@ class TracingControllerTest < ActionController::TestCase
   test 'http error code should be trapped and reported as such, even with no exception' do
     get :soft_error
 
-    spans = @tracer.writer.spans()
     if Rails::VERSION::MAJOR.to_i >= 5
       assert_equal(1, spans.length)
     else
@@ -252,7 +236,6 @@ class TracingControllerTest < ActionController::TestCase
   test 'custom resource names can be set' do
     get :custom_resource
     assert_response :success
-    spans = @tracer.writer.spans
     assert_equal(spans.length, 1)
 
     spans.first.tap do |span|
@@ -263,7 +246,6 @@ class TracingControllerTest < ActionController::TestCase
   test 'custom tags can be set' do
     get :custom_tag
     assert_response :success
-    spans = @tracer.writer.spans
     assert_equal(spans.length, 1)
 
     spans.first.tap do |span|
@@ -272,14 +254,13 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'combining rails and custom tracing is supported' do
-    @tracer.trace('a-parent') do
+    tracer.trace('a-parent') do
       get :index
       assert_response :success
-      @tracer.trace('a-brother') do
+      tracer.trace('a-brother') do
       end
     end
 
-    spans = @tracer.writer.spans()
     assert_equal(4, spans.length)
 
     brother_span, parent_span, controller_span, = spans

@@ -29,8 +29,8 @@ MESSAGE
   before { app }
 
   before do
-    Datadog.configuration.use(:redis)
-    Datadog.configure(client_from_driver(driver), tracer_options)
+    Datadog.configure { |c| c.use :redis }
+    Datadog.configure(client_from_driver(driver))
   end
 
   let(:driver) do
@@ -102,7 +102,7 @@ MESSAGE
 
         # check that the value is really updated, and persistent
         expect(cache.read(key)).to eq(51)
-        clear_spans
+        clear_spans!
 
         # if value exists, fetch returns it and does no update
         expect(cache.fetch(key) { 7 }).to eq(51)
@@ -136,7 +136,7 @@ MESSAGE
     end
   end
 
-  context '#write' do
+  context '#delete' do
     subject!(:write) { cache.delete(key) }
 
     it do

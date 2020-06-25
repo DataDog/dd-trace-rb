@@ -80,7 +80,7 @@ module Datadog
         end
 
         def options_hash
-          options.each_with_object({}) do |(key, _), hash|
+          self.class.options.merge(options).each_with_object({}) do |(key, _), hash|
             hash[key] = get_option(key)
           end
         end

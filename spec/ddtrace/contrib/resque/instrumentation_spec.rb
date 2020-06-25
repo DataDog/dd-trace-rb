@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require_relative 'job'
 
@@ -7,15 +7,11 @@ require 'ddtrace'
 RSpec.describe 'Resque instrumentation' do
   include_context 'Resque job'
 
-  let(:tracer) { get_test_tracer }
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
-
   let(:url) { "redis://#{host}:#{port}" }
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379) }
 
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before(:each) do
     # Setup Resque to use Redis
@@ -37,7 +33,7 @@ RSpec.describe 'Resque instrumentation' do
 
   shared_examples 'job execution tracing' do
     context 'that succeeds' do
-      before(:each) { perform_job(job_class) }
+      before(:each) { perform_job(job_class, job_args) }
 
       it 'is traced' do
         expect(spans).to have(1).items
@@ -55,6 +51,18 @@ RSpec.describe 'Resque instrumentation' do
       end
 
       it_behaves_like 'measured span for integration', true
+
+      context 'when the job looks like Active Job' do
+        let(:job_args) do
+          { 'job_class' => 'UnderlyingTestJob' }
+        end
+
+        it 'sets the resource to underlying job class' do
+          expect(spans).to have(1).items
+          expect(Resque::Failure.count).to be(0)
+          expect(span.resource).to eq('UnderlyingTestJob')
+        end
+      end
     end
 
     context 'that fails' do
@@ -116,7 +124,7 @@ RSpec.describe 'Resque instrumentation' do
         end
 
         # On completion of the fork, `Datadog.tracer.shutdown!` will be invoked.
-        expect(tracer.writer).to receive(:stop)
+        expect(tracer).to receive(:shutdown!)
 
         tracer.trace('main.process') do
           perform_job(job_class)

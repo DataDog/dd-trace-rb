@@ -46,17 +46,24 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'rspec-collection_matchers', '~> 1.1'
   spec.add_development_dependency 'minitest', '= 5.10.1'
+  spec.add_development_dependency 'minitest-around', '0.5.0'
+  spec.add_development_dependency 'minitest-stub_any_instance', '1.0.2'
   spec.add_development_dependency 'appraisal', '~> 2.2'
-  spec.add_development_dependency 'bundler', '<= 2.1.2' # Remove when https://github.com/thoughtbot/appraisal/issues/162 is fixed
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'webmock', '~> 2.0'
   spec.add_development_dependency 'builder'
-  spec.add_development_dependency 'ruby-prof'
-  spec.add_development_dependency 'sqlite3', '~> 1.3.6'
+  if RUBY_PLATFORM != 'java'
+    spec.add_development_dependency 'sqlite3', '~> 1.3.6'
+  else
+    spec.add_development_dependency 'jdbc-sqlite3', '~> 3'
+  end
   spec.add_development_dependency 'climate_control', '~> 0.2.0'
 
   # locking transitive dependency of webmock
   spec.add_development_dependency 'addressable', '~> 2.4.0'
+  spec.add_development_dependency 'benchmark-ips', '~> 2.8'
+  spec.add_development_dependency 'benchmark-memory', '~> 0.1'
+  spec.add_development_dependency 'memory_profiler', '~> 0.9'
   spec.add_development_dependency 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
   spec.add_development_dependency 'pry', '~> 0.10.4'
   spec.add_development_dependency 'pry-stack_explorer', '~> 0.4.9.2'

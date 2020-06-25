@@ -314,7 +314,7 @@ module Datadog
     def record_context(context)
       trace = @context_flush.consume!(context)
 
-      write(trace) if trace && !trace.empty?
+      write(trace) if @enabled && trace && !trace.empty?
     end
 
     # Return the current active span or +nil+.
@@ -335,7 +335,7 @@ module Datadog
     # Send the trace to the writer to enqueue the spans list in the agent
     # sending queue.
     def write(trace)
-      return if @writer.nil? || !@enabled
+      return if @writer.nil?
 
       if Datadog.configuration.diagnostics.debug
         Datadog.logger.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
@@ -397,14 +397,6 @@ module Datadog
       end
 
       writer_options[:transport_options] = transport_options
-
-      # ensure any configuration to runtime_metrics statsd client is
-      # passed on when writer gets rebuilt
-      unless writer_options.key?(:runtime_metrics)
-        if @writer && !@writer.runtime_metrics.nil?
-          writer_options[:runtime_metrics] = @writer.runtime_metrics
-        end
-      end
 
       if rebuild_writer || writer
         # Make sure old writer is shut down before throwing away.

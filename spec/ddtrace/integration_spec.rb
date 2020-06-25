@@ -241,6 +241,8 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     context 'when sent TERM' do
+      before { skip unless PlatformHelpers.supports_fork? }
+
       subject(:terminated_process) do
         # Initiate IO pipe
         pipe
@@ -295,7 +297,7 @@ RSpec.describe 'Tracer integration tests' do
           end.finish
         end.finish
 
-        try_wait_until { tracer.writer.spans(:keep).any? }
+        try_wait_until { tracer.writer.spans.any? }
       end
 
       it do
@@ -321,7 +323,7 @@ RSpec.describe 'Tracer integration tests' do
           parent_span.context.origin = 'synthetics'
         end.finish
 
-        try_wait_until { tracer.writer.spans(:keep).any? }
+        try_wait_until { tracer.writer.spans.any? }
       end
 
       it { is_expected.to eq('synthetics') }
@@ -373,7 +375,7 @@ RSpec.describe 'Tracer integration tests' do
 
       # Verify Transport::IO is configured
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
-      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder::V2)
+      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder)
 
       # Verify sampling is configured properly
       expect(tracer.writer.priority_sampler).to_not be nil
@@ -428,7 +430,7 @@ RSpec.describe 'Tracer integration tests' do
       )
 
       # Verify Transport::HTTP is configured
-      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
 
       # Verify sampling is configured properly
       expect(tracer.writer.priority_sampler).to_not be nil
@@ -495,7 +497,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port
           end
@@ -521,7 +523,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
             expect(transport.current_api_id).to be api_version
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port
@@ -618,61 +620,6 @@ RSpec.describe 'Tracer integration tests' do
           spans2 = tracer2.writer.spans
           expect(spans2[0].name).to eq('test2')
           expect(spans2[1].name).to eq('thread_test2')
-        end
-      end
-    end
-  end
-
-  describe 'writer runtime metrics configuration' do
-    let(:hostname) { double('example_hostname') }
-    let(:statsd) { Datadog::Statsd.new(hostname, 8125) }
-
-    after { statsd.close }
-
-    context 'when tracer and runtime metrics are configured' do
-      context 'without a writer' do
-        before do
-          Datadog.configure do |c|
-            c.runtime_metrics statsd: statsd
-            c.tracer host: hostname
-          end
-        end
-
-        it { expect(Datadog.runtime_metrics.statsd).to be(statsd) }
-      end
-
-      context 'with a writer' do
-        let(:writer_runtime_metrics) { Datadog::Runtime::Metrics.new }
-        let(:writer) do
-          Datadog::Writer.new(
-            transport: Datadog::Transport::HTTP.default,
-            priority_sampler: Datadog::PrioritySampler.new,
-            runtime_metrics: Datadog::Runtime::Metrics.new
-          )
-        end
-
-        after { writer_runtime_metrics.statsd.close }
-
-        context '(writer first then runtime metrics)' do
-          before do
-            Datadog.configure do |c|
-              c.tracer host: hostname, writer: writer
-              c.runtime_metrics statsd: statsd
-            end
-          end
-
-          it { expect(Datadog.runtime_metrics.statsd).to be(statsd) }
-        end
-
-        context '(runtime metrics first then writer)' do
-          before do
-            Datadog.configure do |c|
-              c.runtime_metrics statsd: statsd
-              c.tracer host: hostname, writer: writer
-            end
-          end
-
-          it { expect(Datadog.runtime_metrics.statsd).to be(statsd) }
         end
       end
     end

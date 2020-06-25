@@ -9,7 +9,7 @@ RSpec.describe Datadog::Writer do
   describe 'instance' do
     subject(:writer) { described_class.new(options) }
     let(:options) { { transport: transport } }
-    let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+    let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
 
     describe 'behavior' do
       describe '#initialize' do
@@ -48,11 +48,12 @@ RSpec.describe Datadog::Writer do
         subject(:send_spans) { writer.send_spans(traces, writer.transport) }
         let(:traces) { get_test_traces(1) }
         let(:transport_stats) { instance_double(Datadog::Transport::Statistics) }
+        let(:responses) { [response] }
 
         before do
           allow(transport).to receive(:send_traces)
             .with(traces)
-            .and_return(response)
+            .and_return(responses)
 
           allow(transport).to receive(:stats).and_return(transport_stats)
         end
@@ -94,7 +95,7 @@ RSpec.describe Datadog::Writer do
         end
 
         context 'which returns a response that is' do
-          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
+          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
 
           context 'successful' do
             before do
@@ -158,9 +159,39 @@ RSpec.describe Datadog::Writer do
           end
         end
 
+        context 'with multiple responses' do
+          let(:response1) do
+            instance_double(Datadog::Transport::HTTP::Traces::Response,
+                            internal_error?: false,
+                            server_error?: false,
+                            trace_count: 10)
+          end
+          let(:response2) do
+            instance_double(Datadog::Transport::HTTP::Traces::Response,
+                            internal_error?: false,
+                            server_error?: false,
+                            trace_count: 20)
+          end
+
+          let(:responses) { [response1, response2] }
+
+          context 'and at least one being server error' do
+            let(:response2) do
+              instance_double(Datadog::Transport::HTTP::Traces::Response,
+                              internal_error?: false,
+                              server_error?: true)
+            end
+
+            it do
+              is_expected.to be_falsey
+              expect(writer.stats[:traces_flushed]).to eq(10)
+            end
+          end
+        end
+
         context 'with report hostname' do
           let(:hostname) { 'my-host' }
-          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
+          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
 
           before do
             allow(Datadog::Runtime::Socket).to receive(:hostname).and_return(hostname)
@@ -170,18 +201,14 @@ RSpec.describe Datadog::Writer do
           end
 
           context 'enabled' do
-            around do |example|
-              Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-                Datadog.configuration.report_hostname = true
-                example.run
-              end
-            end
+            before { Datadog.configuration.report_hostname = true }
+            after { Datadog.configuration.reset! }
 
             it do
               expect(transport).to receive(:send_traces) do |traces|
                 root_span = traces.first.first
                 expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to eq(hostname)
-                response
+                [response]
               end
 
               send_spans
@@ -189,18 +216,14 @@ RSpec.describe Datadog::Writer do
           end
 
           context 'disabled' do
-            around do |example|
-              Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-                Datadog.configuration.report_hostname = false
-                example.run
-              end
-            end
+            before { Datadog.configuration.report_hostname = false }
+            after { Datadog.configuration.reset! }
 
             it do
               expect(writer.transport).to receive(:send_traces) do |traces|
                 root_span = traces.first.first
                 expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to be nil
-                response
+                [response]
               end
 
               send_spans
@@ -209,35 +232,42 @@ RSpec.describe Datadog::Writer do
         end
       end
 
-      describe '#send_runtime_metrics' do
-        subject(:send_runtime_metrics) { writer.send_runtime_metrics }
+      describe '#write' do
+        subject(:write) { writer.write(trace, services) }
+        let(:trace) { instance_double(Array) }
+        let(:services) { nil }
 
-        context 'when runtime metrics are' do
-          context 'enabled' do
-            around do |example|
-              Datadog.configuration.runtime_metrics_enabled = Datadog.configuration.runtime_metrics_enabled.tap do
-                Datadog.configuration.runtime_metrics_enabled = true
-                example.run
-              end
-            end
+        before do
+          allow_any_instance_of(Datadog::Workers::AsyncTransport)
+            .to receive(:start)
 
-            it do
-              expect(writer.runtime_metrics).to receive(:flush)
-              send_runtime_metrics
-            end
+          expect_any_instance_of(Datadog::Workers::AsyncTransport)
+            .to receive(:enqueue_trace)
+            .with(trace)
+        end
+
+        context 'when runtime metrics are enabled' do
+          before do
+            allow(Datadog.configuration.runtime_metrics)
+              .to receive(:enabled)
+              .and_return(true)
           end
 
-          context 'disabled' do
-            around do |example|
-              Datadog.configuration.runtime_metrics_enabled = Datadog.configuration.runtime_metrics_enabled.tap do
-                Datadog.configuration.runtime_metrics_enabled = false
-                example.run
-              end
+          context 'and the trace is not empty' do
+            let(:root_span) { instance_double(Datadog::Span) }
+
+            before do
+              allow(trace).to receive(:empty?).and_return(false)
+              allow(trace).to receive(:first).and_return(root_span)
+              allow(Datadog.runtime_metrics).to receive(:associate_with_span)
             end
 
-            it do
-              expect(writer.runtime_metrics).to_not receive(:flush)
-              send_runtime_metrics
+            it 'associates the root span with runtime_metrics' do
+              write
+
+              expect(Datadog.runtime_metrics)
+                .to have_received(:associate_with_span)
+                .with(root_span)
             end
           end
         end

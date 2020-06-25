@@ -1,6 +1,5 @@
 require 'forwardable'
 
-require 'ddtrace/environment'
 require 'ddtrace/runtime/metrics'
 
 require 'ddtrace/worker'
@@ -27,10 +26,7 @@ module Datadog
         self.back_off_ratio = options[:back_off_ratio] if options.key?(:back_off_ratio)
         self.back_off_max = options[:back_off_max] if options.key?(:back_off_max)
 
-        self.enabled = options.fetch(
-          :enabled,
-          Datadog::Environment.env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false)
-        )
+        self.enabled = options.fetch(:enabled, false)
       end
 
       def perform
@@ -38,20 +34,13 @@ module Datadog
         true
       end
 
-      def enabled=(value)
-        old_state = enabled?
-        super
-        new_state = enabled?
-
-        # Auto-start/stop worker if state changed.
-        if old_state != new_state
-          new_state ? perform : stop
-        end
+      def associate_with_span(*args)
+        # Start the worker
+        metrics.associate_with_span(*args).tap { perform }
       end
 
       def_delegators \
         :metrics,
-        :associate_with_span,
         :register_service
     end
   end

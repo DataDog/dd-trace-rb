@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'grpc'
@@ -6,10 +6,7 @@ require 'ddtrace'
 
 RSpec.describe 'tracing on the client connection' do
   subject(:client) { Datadog::Contrib::GRPC::DatadogInterceptor::Client.new }
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer, service_name: 'rspec' } }
-
-  let(:span) { tracer.writer.spans.first }
+  let(:configuration_options) { { service_name: 'rspec' } }
 
   before do
     Datadog.configure do |c|
@@ -44,11 +41,13 @@ RSpec.describe 'tracing on the client connection' do
 
     it 'replaces default service name' do
       default_client_interceptor.request_response(keywords) {}
-      span = tracer.writer.spans.first
+      span = fetch_spans.first
       expect(span.service).to eq 'rspec'
 
+      clear_spans!
+
       configured_client_interceptor.request_response(keywords) {}
-      span = tracer.writer.spans.first
+      span = fetch_spans.first
       expect(span.service).to eq 'cepsr'
     end
   end

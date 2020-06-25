@@ -1,24 +1,17 @@
 require 'helper'
+require 'minitest/around/unit'
 
 require 'contrib/rails/test_helper'
+require 'ddtrace'
 
 # rubocop:disable Metrics/ClassLength
 class TracingControllerTest < ActionController::TestCase
-  setup do
-    @original_tracer = Datadog.configuration[:rails][:tracer]
-    @tracer = get_test_tracer
-    Datadog.configuration[:rails][:tracer] = @tracer
-  end
-
-  teardown do
-    Datadog.configuration[:rails][:tracer] = @original_tracer
-  end
+  include RailsTest
 
   test 'error in the controller must be traced' do
     assert_raises ZeroDivisionError do
       get :error
     end
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 1)
 
     span = spans[0]
@@ -37,7 +30,6 @@ class TracingControllerTest < ActionController::TestCase
       get :not_found
     end
 
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 1)
 
     span = spans[0]
@@ -61,7 +53,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_raises ::ActionView::MissingTemplate do
       get :missing_template
     end
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
 
     span_request, span_template = spans
@@ -100,7 +91,6 @@ class TracingControllerTest < ActionController::TestCase
                   'Missing partial tracing/ouch.html'
                 end
 
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
     span_request, span_partial, span_template = spans
 
@@ -136,7 +126,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_raises ::ActionView::Template::Error do
       get :error_template
     end
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
 
     span_request, span_template = spans
@@ -173,7 +162,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_raises ::ActionView::Template::Error do
       get :error_partial
     end
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
 
     span_request, span_partial, span_template = spans

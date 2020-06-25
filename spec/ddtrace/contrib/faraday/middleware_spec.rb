@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
@@ -6,8 +6,6 @@ require 'faraday'
 require 'ddtrace/ext/distributed'
 
 RSpec.describe 'Faraday middleware' do
-  let(:tracer) { get_test_tracer }
-
   let(:client) do
     ::Faraday.new('http://example.com') do |builder|
       builder.use(:ddtrace, middleware_options) if use_middleware
@@ -22,10 +20,10 @@ RSpec.describe 'Faraday middleware' do
 
   let(:use_middleware) { true }
   let(:middleware_options) { {} }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   let(:request_span) do
-    tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::Faraday::Ext::SPAN_REQUEST }
+    spans.find { |span| span.name == Datadog::Contrib::Faraday::Ext::SPAN_REQUEST }
   end
 
   before(:each) do

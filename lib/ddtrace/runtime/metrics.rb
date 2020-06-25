@@ -14,8 +14,9 @@ module Datadog
         super
 
         # Initialize service list
-        @services = Set.new
+        @services = Set.new(options.fetch(:services, []))
         @service_tags = nil
+        compile_service_tags!
       end
 
       def associate_with_span(span)
@@ -55,6 +56,8 @@ module Datadog
       def gc_metrics
         Hash[
           GC.stat.map do |k, v|
+            next if v.is_a?(Hash) # TODO: JRuby supports additional nested metrics
+
             ["#{Ext::Runtime::Metrics::METRIC_GC_PREFIX}.#{k}", v]
           end
         ]

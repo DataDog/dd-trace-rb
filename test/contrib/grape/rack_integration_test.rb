@@ -8,7 +8,6 @@ class TracedRackAPITest < BaseRackAPITest
     assert last_response.ok?
     assert_equal('OK', last_response.body)
 
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
     render = spans[0]
     run = spans[1]
@@ -43,7 +42,6 @@ class TracedRackAPITest < BaseRackAPITest
       get '/api/hard_failure'
     end
 
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
     render = spans[0]
     run = spans[1]
@@ -78,7 +76,6 @@ class TracedRackAPITest < BaseRackAPITest
     # it should not impact the Rack integration that must work as usual
     get '/api/not_existing'
 
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 1)
     rack = spans[0]
 

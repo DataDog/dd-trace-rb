@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/rails/integration'
 
@@ -10,13 +10,13 @@ RSpec.describe Datadog::Contrib::Rails::Integration do
   describe '.version' do
     subject(:version) { described_class.version }
 
-    context 'when the "rails" gem is loaded' do
-      include_context 'loaded gems', rails: described_class::MINIMUM_VERSION
+    context 'when the "railties" gem is loaded' do
+      include_context 'loaded gems', railties: described_class::MINIMUM_VERSION
       it { is_expected.to be_a_kind_of(Gem::Version) }
     end
 
-    context 'when "rails" gem is not loaded' do
-      include_context 'loaded gems', rails: nil
+    context 'when the "railties" gem is not loaded' do
+      include_context 'loaded gems', railties: nil
       it { is_expected.to be nil }
     end
   end
@@ -38,20 +38,20 @@ RSpec.describe Datadog::Contrib::Rails::Integration do
   describe '.compatible?' do
     subject(:compatible?) { described_class.compatible? }
 
-    context 'when "rails" gem is loaded with a version' do
+    context 'when "railties" gem is loaded with a version' do
       context 'that is less than the minimum' do
-        include_context 'loaded gems', rails: decrement_gem_version(described_class::MINIMUM_VERSION)
+        include_context 'loaded gems', railties: decrement_gem_version(described_class::MINIMUM_VERSION)
         it { is_expected.to be false }
       end
 
       context 'that meets the minimum version' do
-        include_context 'loaded gems', rails: described_class::MINIMUM_VERSION
+        include_context 'loaded gems', railties: described_class::MINIMUM_VERSION
         it { is_expected.to be true }
       end
     end
 
-    context 'when gem is not loaded' do
-      include_context 'loaded gems', rails: nil
+    context 'when "railties" gem and "railties" gem are not loaded' do
+      include_context 'loaded gems', railties: nil
       it { is_expected.to be false }
     end
   end

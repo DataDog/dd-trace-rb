@@ -6,7 +6,10 @@ require 'support/faux_transport'
 class FauxWriter < Datadog::Writer
   def initialize(options = {})
     options[:transport] ||= FauxTransport.new
-    super
+    options[:call_original] ||= true
+    @options = options
+
+    super if options[:call_original]
     @mutex = Mutex.new
 
     # easy access to registered components
@@ -15,7 +18,7 @@ class FauxWriter < Datadog::Writer
 
   def write(trace)
     @mutex.synchronize do
-      super(trace)
+      super(trace) if @options[:call_original]
       @spans << trace
     end
   end

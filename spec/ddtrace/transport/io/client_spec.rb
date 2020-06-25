@@ -23,7 +23,7 @@ RSpec.describe Datadog::Transport::IO::Client do
       subject(:send_request) { client.send_request(request) }
 
       let(:request) { instance_double(Datadog::Transport::Request, parcel: parcel) }
-      let(:parcel) { instance_double(Datadog::Transport::Parcel, data: data) }
+      let(:parcel) { instance_double(Datadog::Transport::IO::Traces::Parcel, data: data) }
       let(:data) { 'Hello, world!' }
       let(:encoded_data) { double('encoded data') }
       let(:result) { double('IO result') }

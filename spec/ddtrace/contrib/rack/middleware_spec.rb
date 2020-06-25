@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'rack'
 require 'ddtrace'
@@ -8,8 +8,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
   subject(:middleware) { described_class.new(app) }
   let(:app) { instance_double(Rack::Builder) }
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|

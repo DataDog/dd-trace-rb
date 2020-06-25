@@ -13,7 +13,6 @@ module Datadog
   class Writer
     attr_reader \
       :priority_sampler,
-      :runtime_metrics,
       :transport,
       :worker
 
@@ -34,11 +33,6 @@ module Datadog
         Transport::HTTP.default(transport_options)
       end
 
-      # Runtime metrics
-      @runtime_metrics = options.fetch(:runtime_metrics) do
-        Runtime::Metrics.new
-      end
-
       # handles the thread creation after an eventual fork
       @mutex_after_fork = Mutex.new
       @pid = nil
@@ -53,12 +47,10 @@ module Datadog
     def start
       @pid = Process.pid
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
-      @runtime_metrics_handler = -> { send_runtime_metrics }
       @worker = Datadog::Workers::AsyncTransport.new(
         transport: @transport,
         buffer_size: @buff_size,
         on_trace: @trace_handler,
-        on_runtime_metrics: @runtime_metrics_handler,
         interval: @flush_interval
       )
 
@@ -80,26 +72,19 @@ module Datadog
       # Inject hostname if configured to do so
       inject_hostname!(traces) if Datadog.configuration.report_hostname
 
-      # Send traces an get a response.
-      response = transport.send_traces(traces)
+      # Send traces and get responses
+      responses = transport.send_traces(traces)
 
-      unless response.internal_error?
-        @traces_flushed += traces.length unless response.server_error?
-
-        # Update priority sampler
-        unless priority_sampler.nil? || response.service_rates.nil?
-          priority_sampler.update(response.service_rates)
-        end
+      # Tally up successful flushes
+      responses.reject { |x| x.internal_error? || x.server_error? }.each do |response|
+        @traces_flushed += response.trace_count
       end
 
+      # Update priority sampler
+      update_priority_sampler(responses.last)
+
       # Return if server error occurred.
-      !response.server_error?
-    end
-
-    def send_runtime_metrics
-      return unless Datadog.configuration.runtime_metrics_enabled
-
-      runtime_metrics.flush
+      !responses.find(&:server_error?)
     end
 
     # enqueue the trace for submission to the API
@@ -129,9 +114,11 @@ module Datadog
         end
       end
 
+      # TODO: Remove this, and have the tracer pump traces directly to runtime metrics
+      #       instead of working through the trace writer.
       # Associate root span with runtime metrics
-      if Datadog.configuration.runtime_metrics_enabled && !trace.empty?
-        runtime_metrics.associate_with_span(trace.first)
+      if Datadog.configuration.runtime_metrics.enabled && !trace.empty?
+        Datadog.runtime_metrics.associate_with_span(trace.first)
       end
 
       @worker.enqueue_trace(trace)
@@ -156,6 +143,12 @@ module Datadog
           trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
         end
       end
+    end
+
+    def update_priority_sampler(response)
+      return unless response && !response.internal_error? && priority_sampler && response.service_rates
+
+      priority_sampler.update(response.service_rates)
     end
   end
 end
