@@ -128,6 +128,19 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             expect(span).to_not have_error_message
           end
         end
+
+        context 'with fatal error' do
+          let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
+
+          before do
+            # Raise error at first line of #datadog_trace_request
+            expect(tracer).to receive(:trace).and_raise(fatal_error)
+          end
+
+          it 'reraises exception' do
+            expect { request }.to raise_error(fatal_error)
+          end
+        end
       end
     end
 

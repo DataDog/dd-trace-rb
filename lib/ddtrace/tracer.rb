@@ -269,11 +269,10 @@ module Datadog
         begin
           begin
             span = start_span(name, options)
-          # rubocop:disable Lint/UselessAssignment
           rescue StandardError => e
-            Datadog.logger.debug('Failed to start span: #{e}')
+            Datadog.logger.debug("Failed to start span: #{e}")
           ensure
-            return_value = yield(span)
+            return_value = yield(span) if span
           end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
