@@ -272,7 +272,7 @@ module Datadog
           rescue StandardError => e
             Datadog.logger.debug("Failed to start span: #{e}")
           ensure
-            return_value = yield(span) if span
+            return_value = yield(span) if span || e.is_a?(StandardError)
           end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,

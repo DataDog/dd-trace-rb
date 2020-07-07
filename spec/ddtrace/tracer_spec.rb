@@ -161,7 +161,7 @@ RSpec.describe Datadog::Tracer do
             allow(tracer).to receive(:start_span).and_raise(fatal_error)
           end
 
-          it 'reraises exception' do
+          it 'does not yield to block and reraises exception' do
             expect do |b|
               expect do
                 tracer.trace(name, &b)
