@@ -257,6 +257,8 @@ RSpec.describe Datadog::Workers::Async::Thread do
     describe '#running?' do
       subject(:running?) { worker.running? }
 
+      before { allow(worker_spy).to(receive(:perform)) { sleep 5 } }
+
       context 'by default' do
         it { is_expected.to be false }
       end
