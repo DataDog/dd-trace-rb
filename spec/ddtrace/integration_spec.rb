@@ -2,6 +2,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/tracer'
+require 'datadog/statsd'
 require 'thread'
 
 RSpec.describe 'Tracer integration tests' do
@@ -240,6 +241,8 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     context 'when sent TERM' do
+      before { skip unless PlatformHelpers.supports_fork? }
+
       subject(:terminated_process) do
         # Initiate IO pipe
         pipe
@@ -294,7 +297,7 @@ RSpec.describe 'Tracer integration tests' do
           end.finish
         end.finish
 
-        try_wait_until { tracer.writer.spans(:keep).any? }
+        try_wait_until { tracer.writer.spans.any? }
       end
 
       it do
@@ -320,7 +323,7 @@ RSpec.describe 'Tracer integration tests' do
           parent_span.context.origin = 'synthetics'
         end.finish
 
-        try_wait_until { tracer.writer.spans(:keep).any? }
+        try_wait_until { tracer.writer.spans.any? }
       end
 
       it { is_expected.to eq('synthetics') }
@@ -356,6 +359,63 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  describe 'Transport::IO' do
+    include_context 'agent-based test'
+
+    let(:writer) { Datadog::Writer.new(transport: transport, priority_sampler: Datadog::PrioritySampler.new) }
+    let(:transport) { Datadog::Transport::IO.default(out: out) }
+    let(:out) { instance_double(IO) } # Dummy output so we don't pollute STDOUT
+
+    before(:each) do
+      tracer.configure(
+        enabled: true,
+        priority_sampling: true,
+        writer: writer
+      )
+
+      # Verify Transport::IO is configured
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
+      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder)
+
+      # Verify sampling is configured properly
+      expect(tracer.writer.priority_sampler).to_not be nil
+      expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler)
+      expect(tracer.sampler).to be(tracer.writer.priority_sampler)
+
+      # Verify IO is written to
+      allow(out).to receive(:puts)
+
+      # Priority sampler does not receive updates because IO is one-way.
+      expect(tracer.sampler).to_not receive(:update)
+    end
+
+    # Reset the writer
+    after { tracer.configure(writer: Datadog::Writer.new) }
+
+    it do
+      3.times do |i|
+        parent_span = tracer.start_span('parent_span')
+        child_span = tracer.start_span('child_span', child_of: parent_span.context)
+
+        # I want to keep the trace to which `child_span` belongs
+        child_span.context.sampling_priority = i
+
+        child_span.finish
+        parent_span.finish
+
+        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+        stats = tracer.writer.stats
+
+        expect(stats[:traces_flushed]).to eq(1)
+        expect(stats[:transport].client_error).to eq(0)
+        expect(stats[:transport].server_error).to eq(0)
+        expect(stats[:transport].internal_error).to eq(0)
+
+        expect(out).to have_received(:puts)
+      end
+    end
+  end
+
   describe 'Transport::HTTP' do
     include_context 'agent-based test'
 
@@ -370,7 +430,7 @@ RSpec.describe 'Tracer integration tests' do
       )
 
       # Verify Transport::HTTP is configured
-      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
 
       # Verify sampling is configured properly
       expect(tracer.writer.priority_sampler).to_not be nil
@@ -437,7 +497,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port
           end
@@ -463,7 +523,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
             expect(transport.current_api_id).to be api_version
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port

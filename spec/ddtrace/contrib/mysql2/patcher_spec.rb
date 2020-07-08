@@ -1,13 +1,12 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
 require 'mysql2'
 
 RSpec.describe 'Mysql2::Client patcher' do
-  let(:tracer) { get_test_tracer }
   let(:service_name) { 'my-sql' }
-  let(:configuration_options) { { tracer: tracer, service_name: service_name } }
+  let(:configuration_options) { { service_name: service_name } }
 
   let(:client) do
     Mysql2::Client.new(
@@ -24,9 +23,6 @@ RSpec.describe 'Mysql2::Client patcher' do
   let(:database) { ENV.fetch('TEST_MYSQL_DB') { 'mysql' } }
   let(:username) { ENV.fetch('TEST_MYSQL_USER') { 'root' } }
   let(:password) { ENV.fetch('TEST_MYSQL_PASSWORD') { 'root' } }
-
-  let(:spans) { tracer.writer.spans(:keep) }
-  let(:span) { spans.first }
 
   before(:each) do
     Datadog.configure do |c|
@@ -76,6 +72,8 @@ RSpec.describe 'Mysql2::Client patcher' do
           let(:analytics_enabled_var) { Datadog::Contrib::Mysql2::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Contrib::Mysql2::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
+
+        it_behaves_like 'measured span for integration', false
       end
 
       context 'when a failed query is made' do

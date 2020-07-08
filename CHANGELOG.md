@@ -2,6 +2,238 @@
 
 ## [Unreleased]
 
+## [0.37.0] - 2020-06-24
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.37.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.36.0...v0.37.0
+
+### Refactored
+
+- Documentation improvements regarding Datadog Agent defaults (#1074) (@cswatt)
+- Improvements to test suite (#1043, #1051, #1062, #1075, #1076, #1086)
+
+### Removed
+
+- **DEPRECATION**: Deprecate Contrib::Configuration::Settings#tracer= (#1072, #1079)
+  - The `tracer:` option is no longer supported for integration configuration. A deprecation warning will be issued when this option is used.
+  - Tracer instances are dynamically created when `ddtrace` is reconfigured (through `Datadog.configure{}` calls).
+
+    A reference to a tracer instance cannot be stored as it will be replaced by a new instance during reconfiguration.
+
+    Retrieving the global tracer instance, by invoking `Datadog.tracer`, is the only safe mechanism to acquire the active tracer instance.
+
+    Allowing an integration to set its tracer instance is effectively preventing that integration from dynamically retrieving the current active tracer in the future, thus causing it to record spans in a stale tracer instance. Spans recorded in a stale tracer instance will look disconnected from their parent context.
+
+- **BREAKING**: Remove Pin#tracer= and DeprecatedPin#tracer= (#1073)
+  - The `Pin` and `DeprecatedPin` are internal tools used to provide more granular configuration for integrations.
+  - The APIs being removed are not public nor have been externally documented. The `DeprecatedPin` specifically has been considered deprecated since 0.20.0.
+  - This removal is a continuation of #1079 above, thus carrying the same rationale.
+
+### Migration
+
+- Remove `tracer` argument provided to integrations (e.g. `c.use :rails, tracer: ...`).
+- Remove `tracer` argument provided to `Pin` or `DeprecatedPin` initializers (e.g. `Pin.new(service, tracer: ...)`).
+- If you require a custom tracer instance, use a global instance configuration:
+    ```ruby
+    Datadog.configure do |c|
+      c.tracer.instance = custom_tracer
+    end
+    ```
+
+## [0.36.0] - 2020-05-27
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.36.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.35.2...v0.36.0
+
+### Changed
+
+- Prevent trace components from being re-initialized multiple times during setup (#1037)
+
+### Fixed
+
+- Allow Rails patching if Railties are loaded (#993, #1054) (@mustela, @bheemreddy181, @vramaiah)
+- Pin delegates to default tracer unless configured (#1041)
+
+### Refactored
+
+- Improvements to test suite (#1027, #1031, #1045, #1046, #1047)
+
+## [0.35.2] - 2020-05-08
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.35.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.35.1...v0.35.2
+
+### Fixed
+
+- Internal tracer HTTP requests generating traces (#1030, #1033) (@gingerlime)
+- `Datadog.configure` forcing all options to eager load (#1032, #1034) (@kelvin-acosta)
+
+## [0.35.1] - 2020-05-05
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.35.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.35.0...v0.35.1
+
+### Fixed
+
+- Components#teardown! NoMethodError (#1021, #1023) (@bzf)
+
+## [0.35.0] - 2020-04-29
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.35.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.34.2...v0.35.0
+
+### Added
+
+- Chunk large trace payloads before flushing (#818, #840)
+- Support for Sinatra modular apps (#486, #913, #1015) (@jpaulgs, @tomasv, @ZimbiX)
+- active_job support for Resque (#991) (@stefanahman, @psycholein)
+- JRuby 9.2 to CI test matrix (#995)
+- `TraceWriter` and `AsyncTraceWriter` workers (#986)
+- Runtime metrics worker (#988)
+
+### Changed
+
+- Populate env, service, and version from tags (#1008)
+- Extract components from configuration (#996)
+- Extract logger to components (#997)
+- Extract runtime metrics worker from `Writer` (#1004)
+- Improvements to Faraday documentation (#1005)
+
+### Fixed
+
+- Runtime metrics not starting after #write (#1010)
+
+### Refactored
+
+- Improvements to test suite (#842, #1006, #1009)
+
+## [0.34.2] - 2020-04-09
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.34.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.34.1...v0.34.2
+
+### Changed
+
+- Revert Rails applications setting default `env` if none are configured. (#1000) (@errriclee)
+
+## [0.34.1] - 2020-04-02
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.34.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...v0.34.1
+
+### Changed
+
+- Rails applications set default `service` and `env` if none are configured. (#990)
+
+### Fixed
+
+- Some configuration settings not applying (#989, #990) (@rahul342)
+
+## [0.34.0] - 2020-03-31
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.34.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...v0.34.0
+
+### Added
+
+- `Datadog::Event` for simple pub-sub messaging (#972)
+- `Datadog::Workers` for trace writing (#969, #973)
+- `_dd.measured` tag to some integrations for more statistics (#974)
+- `env`, `service`, `version`, `tags` configuration for auto-tagging (#977, #980, #982, #983, #985)
+- Multiplexed configuration for Ethon, Excon, Faraday, HTTP integrations (#882, #953) (@stormsilver)
+
+### Fixed
+
+- Runtime metrics configuration dropping with new writer (#967, #968) (@ericmustin)
+- Faraday "unexpected middleware" warnings on v0.x (#965, #971)
+- Presto configuration (#975)
+- Test suite issues (#981)
+
+## [0.33.1] - 2020-03-09
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.33.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.33.0...v0.33.1
+
+### Fixed
+
+- NoMethodError when activating instrumentation for non-existent library (#964, #966) (@roccoblues, @brafales)
+
+## [0.33.0] - 2020-03-05
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.33.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...v0.33.0
+
+### Added
+
+- Instrumentation for [Presto](https://github.com/treasure-data/presto-client-ruby) (#775, #920, #961) (@ahammel, @ericmustin)
+- Sidekiq job argument tagging (#933) (@mantrala)
+- Support for multiple Redis services (#861, #937, #940) (@mberlanda)
+- Support for Sidekiq w/ Delayed extensions (#798, #942) (@joeyAghion)
+- Setter/reset behavior for configuration options (#957)
+- Priority sampling rate tag (#891)
+
+### Changed
+
+- Enforced minimum version requirements for instrumentation (#944)
+- RubyGems minimum version requirement 2.0.0 (#954) (@Joas1988)
+- Relaxed Rack minimum version to 1.1.0 (#952)
+
+### Fixed
+
+- AWS instrumentation patching when AWS is partially loaded (#938, #945) (@letiesperon, @illdelph)
+- NoMethodError for RuleSampler with priority sampling (#949, #950) (@BabyGroot)
+- Runtime metrics accumulating service names when disabled (#956)
+- Sidekiq instrumentation incompatibility with Rails 6.0.2 (#943, #947) (@pj0tr)
+- Documentation tweaks (#948, #955) (@mstruve, @link04)
+- Various test suite issues (#930, #932, #951, #960)
+
+## [0.32.0] - 2020-01-22
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.32.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.31.1...v0.32.0
+
+### Added
+
+- New transport: Datadog::Transport::IO (#910)
+- Dual License (#893, #921)
+
+### Changed
+
+- Improved annotation of `net/http` spans during exception (#888, #907) (@djmb, @ericmustin)
+- RuleSampler is now the default sampler; no behavior changes by default (#917)
+
+### Refactored
+
+- Improved support for multiple tracer instances (#919)
+- Improvements to test suite (#909, #928, #929)
+
+## [0.31.1] - 2020-01-15
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.31.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...v0.31.1
+
+### Fixed
+
+- Implement SyncWriter#stop method (#914, #915) (@Yurokle)
+- Fix references to Datadog::Tracer.log (#912)
+- Ensure http.status_code tag is always a string (#927)
+
+### Refactored
+
+- Improvements to test suite & CI (#911, #918)
+
 ## [0.31.0] - 2020-01-07
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.31.0
@@ -1042,7 +1274,19 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...master
+[0.37.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.36.0...v0.37.0
+[0.36.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.2...v0.36.0
+[0.35.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.1...v0.35.2
+[0.35.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.0...v0.35.1
+[0.35.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.2...v0.35.0
+[0.34.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.1...v0.34.2
+[0.34.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.34.0...v0.34.1
+[0.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.1...v0.34.0
+[0.33.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.33.0...v0.33.1
+[0.33.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.32.0...v0.33.0
+[0.32.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.1...v0.32.0
+[0.31.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.31.0...v0.31.1
 [0.31.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.30.1...v0.31.0
 [0.30.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.30.0...v0.30.1
 [0.30.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.29.1...v0.30.0

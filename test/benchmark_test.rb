@@ -36,7 +36,7 @@ class EncoderTest < Minitest::Test
 
     Benchmark.benchmark(CAPTION, 7, FORMAT, '>total:', '>avg:') do |x|
       x.report("Encoding #{traces.length} traces with JSON:") do
-        N.times { json_encoder.encode_traces(traces) }
+        N.times { json_encoder.encode(traces.map { |t| t.map(&:to_hash) }) {} }
       end
     end
   end
@@ -48,7 +48,7 @@ class EncoderTest < Minitest::Test
 
     Benchmark.benchmark(CAPTION, 7, FORMAT, '>total:', '>avg:') do |x|
       x.report("Encoding #{traces.length} traces with Msgpack:") do
-        N.times { msgpack_encoder.encode_traces(traces) }
+        N.times { msgpack_encoder.encode(traces.map { |t| t.map(&:to_hash) }) {} }
       end
     end
   end

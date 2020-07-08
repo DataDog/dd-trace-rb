@@ -11,6 +11,7 @@ module Datadog
 
         # rubocop:disable Metrics/MethodLength
         def patch!
+          # rubocop:disable Metrics/BlockLength
           ::SuckerPunch::Job::ClassMethods.class_eval do
             alias_method :__run_perform_without_datadog, :__run_perform
             def __run_perform(*args)
@@ -19,10 +20,15 @@ module Datadog
 
               __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"
+
                 # Set analytics sample rate
                 if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
                   Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
                 end
+
+                # Measure service stats
+                Contrib::Analytics.set_measured(span)
+
                 __run_perform_without_datadog(*args)
               end
             rescue => e
@@ -33,6 +39,10 @@ module Datadog
             def perform_async(*args)
               __with_instrumentation(Ext::SPAN_PERFORM_ASYNC) do |span|
                 span.resource = "ENQUEUE #{self}"
+
+                # Measure service stats
+                Contrib::Analytics.set_measured(span)
+
                 __perform_async(*args)
               end
             end
@@ -42,6 +52,10 @@ module Datadog
               __with_instrumentation(Ext::SPAN_PERFORM_IN) do |span|
                 span.resource = "ENQUEUE #{self}"
                 span.set_tag(Ext::TAG_PERFORM_IN, interval)
+
+                # Measure service stats
+                Contrib::Analytics.set_measured(span)
+
                 __perform_in(interval, *args)
               end
             end

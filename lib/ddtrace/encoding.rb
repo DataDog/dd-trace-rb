@@ -10,19 +10,12 @@ module Datadog
         raise NotImplementedError
       end
 
-      # Encodes a list of traces, expecting a list of items where each items
-      # is a list of spans. Before dump the string in a serialized format all
-      # traces are normalized. The traces nesting is not changed.
-      def encode_traces(traces)
-        to_send = []
-        traces.each do |trace|
-          to_send << trace.map(&:to_hash)
-        end
-        encode(to_send)
+      # Concatenates a list of elements previously encoded by +#encode+.
+      def join(encoded_elements)
+        raise NotImplementedError
       end
 
-      # Defines the underlying format used during traces or services encoding.
-      # This method must be implemented and should only be used by the internal functions.
+      # Serializes a single trace into a String suitable for network transmission.
       def encode(_)
         raise NotImplementedError
       end
@@ -43,6 +36,10 @@ module Datadog
       def encode(obj)
         JSON.dump(obj)
       end
+
+      def join(encoded_data)
+        "[#{encoded_data.join(',')}]"
+      end
     end
 
     # Encoder for the Msgpack format
@@ -59,6 +56,13 @@ module Datadog
 
       def encode(obj)
         MessagePack.pack(obj)
+      end
+
+      def join(encoded_data)
+        packer = MessagePack::Packer.new
+        packer.write_array_header(encoded_data.size)
+
+        (packer.buffer.to_a + encoded_data).join
       end
     end
   end

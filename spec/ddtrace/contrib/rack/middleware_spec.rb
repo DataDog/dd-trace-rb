@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'rack'
 require 'ddtrace'
@@ -8,8 +8,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
   subject(:middleware) { described_class.new(app) }
   let(:app) { instance_double(Rack::Builder) }
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
@@ -29,7 +28,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
     end
 
     describe 'deprecation warnings' do
-      before(:each) { allow(Datadog::Logger.log).to receive(:warn) }
+      before(:each) { allow(Datadog.logger).to receive(:warn) }
 
       # Expect this for backwards compatibility
       context 'backwards compatibility' do
@@ -55,7 +54,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
         end
 
         it do
-          expect(Datadog::Logger.log).to_not have_received(:warn)
+          expect(Datadog.logger).to_not have_received(:warn)
             .with(/:datadog_rack_request_span/)
         end
       end
@@ -67,7 +66,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
         end
 
         it do
-          expect(Datadog::Logger.log).to_not have_received(:warn)
+          expect(Datadog.logger).to_not have_received(:warn)
             .with(/:datadog_rack_request_span/)
         end
       end

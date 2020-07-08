@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'faraday'
 require 'ddtrace'
@@ -7,8 +7,7 @@ require 'ddtrace/contrib/faraday/patcher'
 RSpec.describe 'Faraday instrumentation' do
   include_context 'tracer logging'
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   # Enable the test tracer
   before(:each) do
@@ -59,18 +58,6 @@ RSpec.describe 'Faraday instrumentation' do
             expect { pin.service_name = new_service_name }
               .to change { Datadog.configuration[:faraday][:service_name] }
               .from(original_service_name).to(new_service_name)
-          end
-        end
-
-        # Make sure 'tracer' passes through to underlying configuration
-        describe 'tracer=' do
-          let(:new_tracer) { double('tracer') }
-          after(:each) { pin.tracer = tracer }
-
-          it 'updates the configuration service name' do
-            expect { pin.tracer = new_tracer }
-              .to change { Datadog.configuration[:faraday][:tracer] }
-              .from(tracer).to(new_tracer)
           end
         end
       end

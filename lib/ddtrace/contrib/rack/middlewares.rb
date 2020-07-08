@@ -126,6 +126,7 @@ module Datadog
         end
 
         # rubocop:disable Metrics/AbcSize
+        # rubocop:disable Metrics/MethodLength
         def set_request_tags!(request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
@@ -151,6 +152,9 @@ module Datadog
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
             Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])
           end
+
+          # Measure service stats
+          Contrib::Analytics.set_measured(request_span)
 
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
@@ -218,7 +222,7 @@ module Datadog
                 if key == :datadog_rack_request_span \
                   && @datadog_span_warning \
                   && @datadog_deprecation_warnings
-                  Datadog::Logger.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                  Datadog.logger.warn(REQUEST_SPAN_DEPRECATION_WARNING)
                   @datadog_span_warning = true
                 end
                 super
@@ -228,7 +232,7 @@ module Datadog
                 if key == :datadog_rack_request_span \
                   && @datadog_span_warning \
                   && @datadog_deprecation_warnings
-                  Datadog::Logger.log.warn(REQUEST_SPAN_DEPRECATION_WARNING)
+                  Datadog.logger.warn(REQUEST_SPAN_DEPRECATION_WARNING)
                   @datadog_span_warning = true
                 end
                 super

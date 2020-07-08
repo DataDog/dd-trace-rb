@@ -1,11 +1,12 @@
+require 'ddtrace/contrib/support/spec_helper'
+
 require 'ethon'
-require 'ddtrace/contrib/ethon/easy_patch'
+require 'ddtrace/contrib/ethon/multi_patch'
 require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/analytics_examples'
 
 RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -30,7 +31,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
 
     context 'multi already performing' do
       before do
-        expect(easy).to receive(:url).and_return('http://example.com/test').once
+        expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
 
         # Trigger parent span creation, which will force easy span creation in #add
         multi.instance_eval { datadog_multi_span }
@@ -60,13 +61,12 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
     let(:multi) { ::Ethon::Multi.new }
     subject { multi.perform }
 
-    let(:spans) { tracer.writer.spans }
     let(:easy_span) { spans.select { |span| span.name == 'ethon.request' }.first }
     let(:multi_span) { spans.select { |span| span.name == 'ethon.multi.request' }.first }
 
     context 'with no easy added to multi' do
       it 'does not trace' do
-        expect { subject }.to change { tracer.writer.spans.count }.by 0
+        expect { subject }.to change { fetch_spans.count }.by 0
       end
     end
 
@@ -97,7 +97,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
       end
 
       it 'submits parent and child traces' do
-        expect { subject }.to change { tracer.writer.spans.count }.by 2
+        expect { subject }.to change { fetch_spans.count }.by 2
       end
 
       it 'cleans up multi span variable' do
@@ -117,7 +117,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
           multi.add easy
           multi.perform
           multi.perform
-        end.to change { tracer.writer.spans.count }.by 2
+        end.to change { fetch_spans.count }.by 2
       end
 
       it 'creates extra traces for each extra valid call to perform' do
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
           multi.perform
           multi.add easy
           multi.perform
-        end.to change { tracer.writer.spans.count }.by 4
+        end.to change { fetch_spans.count }.by 4
       end
     end
   end

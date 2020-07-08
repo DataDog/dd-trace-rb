@@ -19,29 +19,35 @@ module Datadog
             tracer.provider.context = context if context.trace_id
           end
 
-          # Begin the trace
-          tracer.trace(
-            Ext::SPAN_REQUEST,
-            service: configuration[:service_name],
-            span_type: Datadog::Ext::HTTP::TYPE_INBOUND
-          ) do |span|
-            Sinatra::Env.set_datadog_span(env, span)
+          Sinatra::Env.set_middleware_start_time(env)
 
+          # Run application stack
+          response = @app.call(env)
+        ensure
+          # Augment current Sinatra middleware span if we are the top-most Sinatra app on the Rack stack.
+          span = Sinatra::Env.datadog_span(env)
+          if span
             Sinatra::Env.request_header_tags(env, configuration[:headers][:request]).each do |name, value|
               span.set_tag(name, value) if span.get_tag(name).nil?
             end
 
-            # Run application stack
-            status, headers, response_body = @app.call(env)
-
-            Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
-              span.set_tag(name, value) if span.get_tag(name).nil?
+            if response && (headers = response[1])
+              Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
+                span.set_tag(name, value) if span.get_tag(name).nil?
+              end
             end
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-            [status, headers, response_body]
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
+            span.finish
+
+            # Remove span from env, so other Sinatra apps mounted on this same
+            # Rack stack do not modify it with their own information.
+            Sinatra::Env.set_datadog_span(env, nil)
           end
         end
 

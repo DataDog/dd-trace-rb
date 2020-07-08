@@ -2,6 +2,7 @@ require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/faraday/ext'
 require 'ddtrace/contrib/faraday/connection'
+require 'ddtrace/contrib/faraday/rack_builder'
 
 module Datadog
   module Contrib
@@ -30,7 +31,7 @@ module Datadog
               get_option(:service_name),
               app: Ext::APP,
               app_type: Datadog::Ext::AppTypes::WEB,
-              tracer: get_option(:tracer)
+              tracer: -> { get_option(:tracer) }
             ).onto(::Faraday)
         end
 
@@ -39,7 +40,11 @@ module Datadog
         end
 
         def add_default_middleware!
-          ::Faraday::Connection.send(:prepend, Connection)
+          if target_version >= Gem::Version.new('1.0.0')
+            ::Faraday::Connection.send(:prepend, Connection)
+          else
+            ::Faraday::RackBuilder.send(:prepend, RackBuilder)
+          end
         end
 
         def get_option(option)
@@ -56,17 +61,13 @@ module Datadog
             Upgrade to the configuration API using the migration guide here:
             https://github.com/DataDog/dd-trace-rb/releases/tag/v0.11.0).freeze
 
-          def tracer=(tracer)
-            Datadog.configuration[:faraday][:tracer] = tracer
-          end
-
           def service_name=(service_name)
             Datadog.configuration[:faraday][:service_name] = service_name
           end
 
           def log_deprecation_warning(method_name)
             do_once(method_name) do
-              Datadog::Logger.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
+              Datadog.logger.warn("#{method_name}:#{DEPRECATION_WARNING}")
             end
           end
         end

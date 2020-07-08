@@ -37,14 +37,13 @@ module Datadog
             end
 
             def initialize(*args, &block)
-              tracer = Datadog.configuration[:elasticsearch][:tracer]
               service = Datadog.configuration[:elasticsearch][:service_name]
 
               pin = Datadog::Pin.new(
                 service,
                 app: Datadog::Contrib::Elasticsearch::Ext::APP,
                 app_type: Datadog::Ext::AppTypes::DB,
-                tracer: tracer
+                tracer: -> { Datadog.configuration[:elasticsearch][:tracer] }
               )
               pin.onto(self)
               initialize_without_datadog(*args, &block)
@@ -97,7 +96,7 @@ module Datadog
                   quantized_url = Datadog::Contrib::Elasticsearch::Quantize.format_url(url)
                   span.resource = "#{method} #{quantized_url}"
                 rescue StandardError => e
-                  Datadog::Logger.log.error(e.message)
+                  Datadog.logger.error(e.message)
                 ensure
                   # the call is still executed
                   response = perform_request_without_datadog(*args)

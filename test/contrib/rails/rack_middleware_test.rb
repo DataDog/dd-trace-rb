@@ -1,36 +1,17 @@
 require 'helper'
+require 'minitest/around/unit'
 
 require 'contrib/rails/test_helper'
+require 'ddtrace'
 
 # rubocop:disable Metrics/ClassLength
 class FullStackTest < ActionDispatch::IntegrationTest
-  setup do
-    # store original tracers
-    @rails_tracer = Datadog.configuration[:rails][:tracer]
-    @rack_tracer = Rails.application.app.instance_variable_get :@tracer
+  include RailsTest
 
-    # replace the Rails and the Rack tracer with a dummy one;
-    # this prevents the overhead to reinitialize the Rails application
-    # and the Rack stack
-    @tracer = get_test_tracer
-    Datadog.configuration[:rails].reset!
-    Datadog.configuration[:rails][:tracer] = @tracer
-    Datadog.configuration[:rails][:database_service] = get_adapter_name
-    Datadog::Contrib::Rails::Framework.setup
-  end
-
-  teardown do
-    # restore original tracers
-    Datadog.configuration[:rails][:tracer] = @rails_tracer
-    Rails.application.app.instance_variable_set(:@tracer, @rack_tracer)
-  end
   test 'a full request is properly traced' do
     # make the request and assert the proper span
     get '/full'
     assert_response :success
-
-    # get spans
-    spans = @tracer.writer.spans
 
     # spans are sorted alphabetically, and ... controller names start
     # either by m or p (MySQL or PostGreSQL) so the database span is always
@@ -65,7 +46,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     adapter_name = get_adapter_name
     assert_equal(database_span.name, "#{adapter_name}.query")
     assert_equal(database_span.span_type, 'sql')
-    assert_equal(database_span.service, adapter_name)
+    assert_equal(database_span.service, "#{Datadog.configuration[:rails][:service_name]}-#{adapter_name}")
     assert_equal(adapter_name, database_span.get_tag('active_record.db.vendor'))
     assert_nil(database_span.get_tag('active_record.db.cached'))
     assert_includes(database_span.resource, 'SELECT')
@@ -95,7 +76,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_response :error
 
     # get spans
-    spans = @tracer.writer.spans()
     assert_operator(spans.length, :>=, 2, 'there should be at least 2 spans')
     request_span, controller_span = spans
 
@@ -123,7 +103,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # assert_response 520
 
     # get spans
-    spans = @tracer.writer.spans()
     assert_operator(spans.length, :>=, 2, 'there should be at least 2 spans')
     request_span, controller_span = spans
 
@@ -149,7 +128,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_response :error
 
     # get spans
-    spans = @tracer.writer.spans()
     assert_operator(spans.length, :>=, 2, 'there should be at least 2 spans')
     request_span, controller_span = spans
 
@@ -188,7 +166,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_response :error
 
     # Check spans
-    spans = @tracer.writer.spans
     assert_equal(2, spans.length)
 
     rack_span = spans.first
@@ -209,7 +186,6 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_response 404
 
     # get spans
-    spans = @tracer.writer.spans()
     assert_operator(spans.length, :>=, 1, 'there should be at least 1 span')
     request_span = spans[0]
 

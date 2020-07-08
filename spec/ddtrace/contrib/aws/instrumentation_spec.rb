@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'aws-sdk'
@@ -7,14 +7,10 @@ require 'ddtrace/contrib/aws/patcher'
 require 'ddtrace/ext/http'
 
 RSpec.describe 'AWS instrumentation' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   let(:client) { ::Aws::S3::Client.new(stub_responses: responses) }
   let(:responses) { true }
-
-  let(:span) { spans.first }
-  let(:spans) { tracer.writer.spans(:keep) }
 
   before(:each) do
     Datadog.configure do |c|
@@ -41,6 +37,8 @@ RSpec.describe 'AWS instrumentation' do
         let(:analytics_enabled_var) { Datadog::Contrib::Aws::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::Aws::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'measured span for integration', false
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')

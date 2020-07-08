@@ -142,6 +142,19 @@ RSpec.describe Datadog::Sampling::RuleSampler do
         expect(span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to be_nil
         expect(span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to be_nil
       end
+
+      context 'when the default sampler is a RateByServiceSampler' do
+        let(:default_sampler) { Datadog::RateByServiceSampler.new }
+        let(:sample_rate) { rand }
+
+        it 'sets the agent rate metric' do
+          expect(default_sampler).to receive(:sample_rate)
+            .with(span)
+            .and_return(sample_rate)
+          sample
+          expect(span.get_metric(described_class::AGENT_RATE_METRIC_KEY)).to eq(sample_rate)
+        end
+      end
     end
   end
 
@@ -149,5 +162,45 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     subject(:sample) { rule_sampler.sample?(span) }
 
     it { expect { subject }.to raise_error(StandardError, 'RuleSampler cannot be evaluated without side-effects') }
+  end
+
+  describe '#update' do
+    subject(:update) { rule_sampler.update(rates) }
+    let(:rates) { { 'service:my-service,env:test' => rand } }
+
+    context 'when configured with a default sampler' do
+      context 'that responds to #update' do
+        let(:default_sampler) { sampler_class.new }
+        let(:sampler_class) do
+          stub_const('TestSampler', Class.new(Datadog::Sampler) do
+            def update(rates)
+              rates
+            end
+          end)
+        end
+
+        before do
+          allow(default_sampler).to receive(:update)
+          update
+        end
+
+        it 'forwards to the default sampler' do
+          expect(default_sampler).to have_received(:update)
+            .with(rates)
+        end
+      end
+
+      context 'that does not respond to #update' do
+        let(:default_sampler) { sampler_class.new }
+        let(:sampler_class) do
+          stub_const('TestSampler', Class.new(Datadog::Sampler))
+        end
+
+        it 'does not forward to the default sampler' do
+          expect { update }.to_not raise_error
+          is_expected.to be false
+        end
+      end
+    end
   end
 end

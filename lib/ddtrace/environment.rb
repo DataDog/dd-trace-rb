@@ -1,3 +1,5 @@
+require 'ddtrace/ext/environment'
+
 module Datadog
   # Namespace for handling application environment
   module Environment
@@ -19,5 +21,7 @@ module Datadog
         end
       end
     end
+
+    extend Helpers
   end
 end

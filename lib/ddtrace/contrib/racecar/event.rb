@@ -41,6 +41,10 @@ module Datadog
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
             end
+
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
             span.set_tag(Ext::TAG_TOPIC, payload[:topic])
             span.set_tag(Ext::TAG_CONSUMER, payload[:consumer_class])
             span.set_tag(Ext::TAG_PARTITION, payload[:partition])

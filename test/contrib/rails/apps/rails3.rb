@@ -15,14 +15,19 @@ class Rails3 < Rails::Application
   config.middleware.delete ActionDispatch::DebugExceptions if Rails.version >= '3.2.22.5'
 end
 
-# Enables the auto-instrumentation for the testing application
-Datadog.configure do |c|
-  c.use :rails
-  c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
-end
-
 # Initialize the Rails application
 require 'contrib/rails/apps/routes'
 require 'contrib/rails/apps/controllers'
-Rails3.initialize!
-require 'contrib/rails/apps/models'
+
+def initialize_rails!
+  Rails3.initialize!
+  require 'contrib/rails/apps/models'
+
+  # Rails < 4 doesn't keep good track internally if it's been
+  # initialized or not, so we have to do it.
+  Rails.instance_variable_set(:@dd_rails_initialized, true)
+end
+
+def rails_initialized?
+  Rails.instance_variable_get(:@dd_rails_initialized)
+end

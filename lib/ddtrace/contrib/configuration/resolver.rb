@@ -1,10 +1,14 @@
 module Datadog
   module Contrib
     module Configuration
-      # Resolves a value to a configuration key
+      # Resolves a configuration key to a Datadog::Contrib::Configuration:Settings object
       class Resolver
-        def resolve(name)
-          name
+        def resolve(key)
+          key
+        end
+
+        def add(key)
+          key
         end
       end
     end

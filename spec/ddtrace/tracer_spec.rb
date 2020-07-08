@@ -19,6 +19,85 @@ RSpec.describe Datadog::Tracer do
     end
   end
 
+  describe '#tags' do
+    subject(:tags) { tracer.tags }
+    let(:env_tags) { {} }
+
+    before { allow(Datadog.configuration).to receive(:tags).and_return(env_tags) }
+
+    context 'by default' do
+      it { is_expected.to eq env_tags }
+    end
+
+    context 'when equivalent String and Symbols are added' do
+      shared_examples 'equivalent tags' do
+        it 'retains the tag only as a String' do
+          is_expected.to include('host')
+          is_expected.to_not include(:host)
+        end
+
+        it 'retains only the last value' do
+          is_expected.to include('host' => 'b')
+        end
+      end
+
+      context 'with #set_tags' do
+        it_behaves_like 'equivalent tags' do
+          before do
+            tracer.set_tags('host' => 'a')
+            tracer.set_tags(host: 'b')
+          end
+        end
+
+        it_behaves_like 'equivalent tags' do
+          before do
+            tracer.set_tags(host: 'a')
+            tracer.set_tags('host' => 'b')
+          end
+        end
+      end
+    end
+  end
+
+  describe '#start_span' do
+    subject(:start_span) { tracer.start_span(name, options) }
+    let(:span) { start_span }
+    let(:name) { 'span.name' }
+    let(:options) { {} }
+
+    it { is_expected.to be_a_kind_of(Datadog::Span) }
+
+    context 'when :tags are given' do
+      let(:options) { super().merge(tags: tags) }
+      let(:tags) { { tag_name => tag_value } }
+      let(:tag_name) { 'my-tag' }
+      let(:tag_value) { 'my-value' }
+
+      it { expect(span.get_tag(tag_name)).to eq(tag_value) }
+
+      context 'and default tags are set on the tracer' do
+        let(:default_tags) { { default_tag_name => default_tag_value } }
+        let(:default_tag_name) { 'default_tag' }
+        let(:default_tag_value) { 'default_value' }
+
+        before { tracer.set_tags(default_tags) }
+
+        it 'includes both :tags and default tags' do
+          expect(span.get_tag(default_tag_name)).to eq(default_tag_value)
+          expect(span.get_tag(tag_name)).to eq(tag_value)
+        end
+
+        context 'which conflicts with :tags' do
+          let(:tag_name) { default_tag_name }
+
+          it 'uses the tag from :tags' do
+            expect(span.get_tag(tag_name)).to eq(tag_value)
+          end
+        end
+      end
+    end
+  end
+
   describe '#trace' do
     let(:name) { 'span.name' }
     let(:options) { {} }

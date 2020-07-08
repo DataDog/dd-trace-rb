@@ -1,75 +1,68 @@
-require 'spec_helper'
-require_relative 'support/grpc_helper'
-require 'ddtrace'
+require 'ddtrace/contrib/support/spec_helper'
 
-RSpec.describe 'gRPC integration test' do
-  include GRPCHelper
+require 'ddtrace/contrib/grpc/integration'
 
-  let(:tracer) { get_test_tracer }
+RSpec.describe Datadog::Contrib::GRPC::Integration do
+  extend ConfigurationHelpers
 
-  let(:spans) do
-    tracer.writer.spans
-  end
+  let(:integration) { described_class.new(:grpc) }
 
-  before do
-    Datadog.configure do |c|
-      c.use :grpc, tracer: tracer, service_name: 'rspec'
+  describe '.version' do
+    subject(:version) { described_class.version }
+
+    context 'when the "grpc" gem is loaded' do
+      include_context 'loaded gems', grpc: described_class::MINIMUM_VERSION
+      it { is_expected.to be_a_kind_of(Gem::Version) }
+    end
+
+    context 'when "grpc" gem is not loaded' do
+      include_context 'loaded gems', grpc: nil
+      it { is_expected.to be nil }
     end
   end
 
-  context 'multiple client configurations' do
-    let(:configured_interceptor) do
-      Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
-        c.service_name = 'awesome sauce'
+  describe '.loaded?' do
+    subject(:loaded?) { described_class.loaded? }
+
+    context 'when GRPC is defined' do
+      before { stub_const('GRPC', Class.new) }
+      it { is_expected.to be true }
+    end
+
+    context 'when GRPC is not defined' do
+      before { hide_const('GRPC') }
+      it { is_expected.to be false }
+    end
+  end
+
+  describe '.compatible?' do
+    subject(:compatible?) { described_class.compatible? }
+
+    context 'when "grpc" gem is loaded with a version' do
+      context 'that is less than the minimum' do
+        include_context 'loaded gems', grpc: decrement_gem_version(described_class::MINIMUM_VERSION)
+        it { is_expected.to be false }
+      end
+
+      context 'that meets the minimum version' do
+        include_context 'loaded gems', grpc: described_class::MINIMUM_VERSION
+        it { is_expected.to be true }
       end
     end
-    let(:endpoint) { available_endpoint }
-    let(:alternate_client) do
-      GRPCHelper::TestService.rpc_stub_class.new(
-        endpoint,
-        :this_channel_is_insecure,
-        interceptors: [configured_interceptor]
-      )
-    end
 
-    it 'uses the correct configuration information' do
-      run_request_reply
-      span = spans.first
-      expect(span.service).to eq 'rspec'
-
-      run_request_reply(endpoint, alternate_client)
-      span = configured_interceptor.datadog_pin.tracer.writer.spans.first
-      expect(span.service).to eq 'awesome sauce'
+    context 'when gem is not loaded' do
+      include_context 'loaded gems', grpc: nil
+      it { is_expected.to be false }
     end
   end
 
-  shared_examples 'associates child spans with the parent' do
-    let(:parent_span) { spans.first }
-    let(:child_span) { spans.last }
-
-    specify do
-      expect(child_span.trace_id).to eq parent_span.trace_id
-      expect(child_span.parent_id).to eq parent_span.span_id
-    end
+  describe '#default_configuration' do
+    subject(:default_configuration) { integration.default_configuration }
+    it { is_expected.to be_a_kind_of(Datadog::Contrib::GRPC::Configuration::Settings) }
   end
 
-  context 'request reply' do
-    before { run_request_reply }
-    it_behaves_like 'associates child spans with the parent'
-  end
-
-  context 'client stream' do
-    before { run_client_streamer }
-    it_behaves_like 'associates child spans with the parent'
-  end
-
-  context 'server stream' do
-    before { run_server_streamer }
-    it_behaves_like 'associates child spans with the parent'
-  end
-
-  context 'bidirectional stream' do
-    before { run_bidi_streamer }
-    it_behaves_like 'associates child spans with the parent'
+  describe '#patcher' do
+    subject(:patcher) { integration.patcher }
+    it { is_expected.to be Datadog::Contrib::GRPC::Patcher }
   end
 end

@@ -9,18 +9,20 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('2.0.0')
+
         register_as :sucker_punch, auto_patch: true
 
         def self.version
           Gem.loaded_specs['sucker_punch'] && Gem.loaded_specs['sucker_punch'].version
         end
 
-        def self.present?
-          super && defined?(::SuckerPunch)
+        def self.loaded?
+          !defined?(::SuckerPunch).nil?
         end
 
         def self.compatible?
-          super && Gem::Version.new(::SuckerPunch::VERSION) >= Gem::Version.new('2.0.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

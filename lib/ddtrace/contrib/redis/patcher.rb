@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/redis/ext'
+require 'ddtrace/contrib/redis/configuration/resolver'
 
 module Datadog
   module Contrib
@@ -72,16 +73,24 @@ module Datadog
             def datadog_pin
               @datadog_pin ||= begin
                 pin = Datadog::Pin.new(
-                  Datadog.configuration[:redis][:service_name],
+                  datadog_configuration[:service_name],
                   app: Ext::APP,
                   app_type: Datadog::Ext::AppTypes::DB,
-                  tracer: Datadog.configuration[:redis][:tracer]
+                  tracer: -> { datadog_configuration[:tracer] }
                 )
                 pin.onto(self)
               end
             end
+
+            private
+
+            def datadog_configuration
+              Datadog.configuration[:redis, options]
+            end
           end
         end
+        # rubocop:enable Metrics/MethodLength
+        # rubocop:enable Metrics/BlockLength
       end
     end
   end
