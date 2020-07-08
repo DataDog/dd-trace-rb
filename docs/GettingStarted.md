@@ -1611,6 +1611,8 @@ By default, the trace agent (not this library, but the program running in the ba
 
 You can configure the application to automatically tag your traces and metrics, using the following environment variables:
 
+These variables are fully configurable for versions 0.34.0+ of the Ruby trace agent.
+
  - `DD_ENV`: Your application environment (e.g. `production`, `staging`, etc.)
  - `DD_SERVICE`: Your application's default service name (e.g. `billing-api`)
  - `DD_VERSION`: Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.)
