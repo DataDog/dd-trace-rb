@@ -198,7 +198,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
