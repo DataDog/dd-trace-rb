@@ -41,7 +41,7 @@ module Datadog
       :tracer
 
     def shutdown!
-      components.teardown! if @components
+      components.teardown! if instance_variable_defined?(:@components) && @components
     end
 
     protected
