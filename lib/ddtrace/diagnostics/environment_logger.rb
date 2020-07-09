@@ -213,6 +213,14 @@ module Datadog
         !!Datadog.configuration.diagnostics.health_metrics.enabled
       end
 
+      # TODO: Populate when profiling is implemented
+      # def profiling_enabled
+      # end
+
+      # TODO: Populate when automatic log correlation is implemented
+      # def logs_correlation_enabled
+      # end
+
       # @return [Hash] environment information available at call time
       def collect!(transport_responses)
         {
