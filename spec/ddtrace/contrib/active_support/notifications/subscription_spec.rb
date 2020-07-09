@@ -73,6 +73,11 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         it 'sets span in payload' do
           expect { subject }.to change { payload[:datadog_span] }.to be_instance_of(Datadog::Span)
         end
+
+        it 'provides a mutable copy of options to Tracer#trace' do
+          expect(tracer).to receive(:trace).with(anything, not_be(options).and(eq(options)))
+          result
+        end
       end
 
       describe '#finish' do
