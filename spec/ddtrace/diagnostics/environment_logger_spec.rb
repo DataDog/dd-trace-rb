@@ -244,11 +244,11 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
         context 'with integration-specific settings' do
           let(:options) { { service_name: 'my-http' } }
 
-          it { is_expected.to include http_analytics_enabled: false }
-          it { is_expected.to include http_analytics_sample_rate: 1.0 }
-          it { is_expected.to include http_service_name: 'my-http' }
-          it { is_expected.to include http_distributed_tracing: true }
-          it { is_expected.to include http_split_by_domain: false }
+          it { is_expected.to include integration_http_analytics_enabled: false }
+          it { is_expected.to include integration_http_analytics_sample_rate: 1.0 }
+          it { is_expected.to include integration_http_service_name: 'my-http' }
+          it { is_expected.to include integration_http_distributed_tracing: true }
+          it { is_expected.to include integration_http_split_by_domain: false }
         end
       end
 

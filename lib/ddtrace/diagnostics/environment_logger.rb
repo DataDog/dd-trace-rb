@@ -254,7 +254,7 @@ module Datadog
           integration.configuration.to_h.flat_map do |setting, value|
             next [] if setting == :tracer # Skip internal Ruby objects
 
-            [[:"#{name}_#{setting}", value]]
+            [[:"integration_#{name}_#{setting}", value]]
           end
         end]
       end
