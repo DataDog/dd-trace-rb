@@ -345,7 +345,8 @@ For a list of available integrations, and their configuration options, please re
 | Grape                    | `grape`                    | `>= 1.0`                 | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL                  | `graphql`                  | `>= 1.7.9`               | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | gRPC                     | `grpc`                     | `>= 1.7`                 | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
-| http.rb                  | `httprb`                   | `>= 2.0`                 | *[Link](#http.rb)*                   | *[Link](https://github.com/httprb/http)*                                       |
+| http.rb                  | `httprb`                   | `>= 2.0`                 | *[Link](#http.rb)*                  |  *[Link](https://github.com/httprb/http)*                                      |
+| Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | *[Link](#kafka)*                    |                                                                                |
 | MongoDB                  | `mongo`                    | `>= 2.1`                 | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
@@ -938,10 +939,8 @@ The http.rb integration will trace any HTTP call using the Http.rb gem.
 ```ruby
 require 'http'
 require 'ddtrace'
-
 Datadog.configure do |c|
   c.use :httprb, options
-
   # optionally, specify a different service name for hostnames matching a regex
   c.use :httprb, describes: /user-[^.]+\.example\.com/ do |httprb|
     httprb.service_name = 'user.example.com'
@@ -958,6 +957,30 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `httprb` instrumentation. | `'httprb'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+
+### Kafka
+
+The Kafka integration provides tracing of the `ruby-kafka` gem:
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'active_support/notifications' # required to enable 'ruby-kafka' instrumentation
+require 'kafka'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :kafka, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `kafka` instrumentation | `'kafka'` |
+| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### MongoDB
 
