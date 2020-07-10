@@ -6,9 +6,12 @@ module Datadog
     # Profiling buffer that stores profiling events. The buffer has a maximum size and when
     # the buffer is full, a random event is discarded. This class is thread-safe.
     class Recorder
+      attr_reader :max_size
+
       def initialize(event_classes, max_size)
         @buffers = {}
         @last_flush_time = Time.now.utc
+        @max_size = max_size
 
         # Add a buffer for each class
         event_classes.each do |event_class|
