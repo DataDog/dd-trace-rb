@@ -87,9 +87,9 @@ RSpec.describe Datadog::Profiling::Recorder do
     end
   end
 
-  describe '#pop' do
+  describe '#flush' do
     include_context 'test buffer'
-    subject(:pop) { recorder.pop }
+    subject(:flush) { recorder.flush }
 
     before { allow(buffer).to receive(:pop).and_return(events) }
 
@@ -99,12 +99,24 @@ RSpec.describe Datadog::Profiling::Recorder do
 
       context 'whose buffer returns events' do
         let(:events) { [event_class.new, event_class.new] }
-        it { is_expected.to be_a_kind_of(Array) }
-        it { is_expected.to have(1).items }
-        it { is_expected.to include(kind_of(Datadog::Profiling::Flush)) }
 
-        it 'has a flush with the events' do
-          expect(pop.first).to have_attributes(
+        it { is_expected.to be_a_kind_of(Datadog::Profiling::Flush) }
+
+        it do
+          is_expected.to have_attributes(
+            start: kind_of(Time),
+            finish: kind_of(Time),
+            event_groups: array_including(Datadog::Profiling::EventGroup),
+            event_count: 2
+          )
+        end
+
+        it { expect(flush.event_groups).to be_a_kind_of(Array) }
+        it { expect(flush.event_groups).to have(1).item }
+        it { expect(flush.start).to be < flush.finish }
+
+        it 'produces a flush with the events' do
+          expect(flush.event_groups.first).to have_attributes(
             event_class: event_class,
             events: events
           )
@@ -113,8 +125,20 @@ RSpec.describe Datadog::Profiling::Recorder do
 
       context 'whose buffer returns no events' do
         let(:events) { [] }
-        it { is_expected.to be_a_kind_of(Array) }
-        it { is_expected.to be_empty }
+        it { is_expected.to be_a_kind_of(Datadog::Profiling::Flush) }
+        it { expect(flush.event_groups).to be_empty }
+      end
+
+      context 'called back to back' do
+        subject(:flush) { Array.new(3) { recorder.flush } }
+        let(:events) { [] }
+
+        it 'has its start and end times line up' do
+          expect(flush[0].start).to be < flush[0].finish
+          expect(flush[0].finish).to eq(flush[1].start)
+          expect(flush[1].finish).to eq(flush[2].start)
+          expect(flush[2].start).to be < flush[2].finish
+        end
       end
     end
   end

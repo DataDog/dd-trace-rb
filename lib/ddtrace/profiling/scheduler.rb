@@ -22,13 +22,13 @@ module Datadog
 
         # Workers::Async::Thread settings
         # Restart in forks by default
-        self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_RESTART)
+        self.fork_policy = options[:fork_policy] || Workers::Async::Thread::FORK_POLICY_RESTART
 
         # Workers::IntervalLoop settings
-        self.loop_base_interval = options.fetch(:interval, DEFAULT_INTERVAL)
+        self.loop_base_interval = options[:interval] || DEFAULT_INTERVAL
 
         # Workers::Polling settings
-        self.enabled = options.fetch(:enabled, false)
+        self.enabled = options[:enabled] == true
       end
 
       def start
@@ -47,7 +47,7 @@ module Datadog
         # Clear recorder's buffers by flushing events.
         # Objects from parent process will copy-on-write,
         # and we don't want to send events for the wrong process.
-        recorder.pop
+        recorder.flush
       end
 
       def flush_and_wait
@@ -62,22 +62,21 @@ module Datadog
 
       def flush_events
         # Get events from recorder
-        flushes = recorder.pop
-        num_events = flushes.inject(0) { |sum, flush| sum + flush.events.length }
+        flush = recorder.flush
 
         # Send events to each exporter
-        if num_events > 0
+        if flush.event_count > 0
           exporters.each do |exporter|
             begin
-              exporter.export(flushes)
+              exporter.export(flush)
             rescue StandardError => e
               error_details = "Cause: #{e} Location: #{e.backtrace.first}"
-              Datadog.logger.error("Unable to export #{num_events} profiling events. #{error_details}")
+              Datadog.logger.error("Unable to export #{flush.event_count} profiling events. #{error_details}")
             end
           end
         end
 
-        num_events
+        flush
       end
     end
   end
