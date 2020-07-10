@@ -87,7 +87,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
     subject(:after_fork) { scheduler.after_fork }
 
     it 'clears the buffer' do
-      expect(recorder).to receive(:pop)
+      expect(recorder).to receive(:flush)
       after_fork
     end
   end
@@ -126,17 +126,18 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
   describe '#flush_events' do
     subject(:flush_events) { scheduler.flush_events }
+    let(:flush) { instance_double(Datadog::Profiling::Flush, event_count: event_count) }
 
     before do
-      expect(recorder).to receive(:pop).and_return(flushes)
+      expect(recorder).to receive(:flush).and_return(flush)
       exporters.each { |exporter| allow(exporter).to receive(:export) }
     end
 
-    context 'when no flushes are available' do
-      let(:flushes) { [] }
+    context 'when no events are available' do
+      let(:event_count) { 0 }
 
       it 'does not export' do
-        is_expected.to be 0
+        is_expected.to be flush
 
         exporters.each do |exporter|
           expect(exporter).to_not have_received(:export)
@@ -144,32 +145,17 @@ RSpec.describe Datadog::Profiling::Scheduler do
       end
     end
 
-    context 'when flushes are available' do
-      let(:flushes) do
-        [
-          instance_double(
-            Datadog::Profiling::Flush,
-            event_class: double('event class'),
-            events: Array.new(2) { double('event') }
-          ),
-          instance_double(
-            Datadog::Profiling::Flush,
-            event_class: double('event class'),
-            events: Array.new(2) { double('event') }
-          )
-        ]
-      end
-
-      let(:total_num_events) { flushes.inject(0) { |sum, f| sum + f.events.length } }
+    context 'when events are available' do
+      let(:event_count) { 4 }
 
       context 'and all the exporters succeed' do
-        it 'returns the number of events flushed' do
-          is_expected.to eq(total_num_events)
+        it 'returns the flush' do
+          is_expected.to be flush
 
           exporters.each do |exporter|
             expect(exporter)
               .to have_received(:export)
-              .with(flushes)
+              .with(flush)
           end
         end
       end
@@ -185,12 +171,12 @@ RSpec.describe Datadog::Profiling::Scheduler do
         end
 
         it 'returns the number of events flushed' do
-          is_expected.to eq(total_num_events)
+          is_expected.to be flush
 
           exporters.each do |exporter|
             expect(exporter)
               .to have_received(:export)
-              .with(flushes)
+              .with(flush)
           end
         end
       end

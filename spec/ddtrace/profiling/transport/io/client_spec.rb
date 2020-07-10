@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace/transport/io/client'
+require 'ddtrace/profiling/flush'
 require 'ddtrace/profiling/transport/io/client'
 
 RSpec.describe Datadog::Profiling::Transport::IO::Client do
@@ -8,30 +8,29 @@ RSpec.describe Datadog::Profiling::Transport::IO::Client do
   let(:out) { instance_double(IO) }
   let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
 
-  describe '#send_flushes' do
-    context 'given events' do
-      subject(:send_flushes) { client.send_flushes(events) }
-      let(:events) { instance_double(Array) }
-      let(:encoded_events) { double('encoded events') }
-      let(:result) { double('IO result') }
+  describe '#send_profiling_flush' do
+    subject(:send_profiling_flush) { client.send_profiling_flush(flush) }
 
-      before do
-        expect(client.encoder).to receive(:encode)
-          .with(events)
-          .and_return(encoded_events)
+    let(:flush) { instance_double(Datadog::Profiling::Flush) }
+    let(:encoded_events) { double('encoded events') }
+    let(:result) { double('IO result') }
 
-        expect(client.out).to receive(:puts)
-          .with(encoded_events)
-          .and_return(result)
+    before do
+      expect(client.encoder).to receive(:encode)
+        .with(flush)
+        .and_return(encoded_events)
 
-        expect(client).to receive(:update_stats_from_response!)
-          .with(kind_of(Datadog::Profiling::Transport::IO::Response))
-      end
+      expect(client.out).to receive(:puts)
+        .with(encoded_events)
+        .and_return(result)
 
-      it do
-        is_expected.to be_a_kind_of(Datadog::Profiling::Transport::IO::Response)
-        expect(send_flushes.result).to eq(result)
-      end
+      expect(client).to receive(:update_stats_from_response!)
+        .with(kind_of(Datadog::Profiling::Transport::IO::Response))
+    end
+
+    it do
+      is_expected.to be_a_kind_of(Datadog::Profiling::Transport::IO::Response)
+      expect(send_profiling_flush.result).to eq(result)
     end
   end
 
