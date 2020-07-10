@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace/profiling/exporter'
+require 'ddtrace/profiling/flush'
 require 'ddtrace/profiling/transport/io'
 
 RSpec.describe Datadog::Profiling::Exporter do
@@ -27,13 +28,13 @@ RSpec.describe Datadog::Profiling::Exporter do
   end
 
   describe '#export' do
-    subject(:export) { exporter.export(flushes) }
-    let(:flushes) { [] }
+    subject(:export) { exporter.export(flush) }
+    let(:flush) { instance_double(Datadog::Profiling::Flush) }
     let(:result) { double('result') }
 
     before do
       allow(transport)
-        .to receive(:send_flushes)
+        .to receive(:send_profiling_flush)
         .and_return(result)
     end
 
@@ -41,8 +42,8 @@ RSpec.describe Datadog::Profiling::Exporter do
       is_expected.to be result
 
       expect(transport)
-        .to have_received(:send_flushes)
-        .with(flushes)
+        .to have_received(:send_profiling_flush)
+        .with(flush)
     end
   end
 end

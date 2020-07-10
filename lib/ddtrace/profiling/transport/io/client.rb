@@ -1,4 +1,5 @@
 require 'ddtrace/transport/io/client'
+require 'ddtrace/profiling/transport/client'
 require 'ddtrace/profiling/transport/request'
 require 'ddtrace/profiling/transport/io/response'
 
@@ -6,11 +7,13 @@ module Datadog
   module Profiling
     module Transport
       module IO
-        # Profiling extensions for IO client
+        # IO transport for profiling
         class Client < Datadog::Transport::IO::Client
-          def send_flushes(flushes)
+          include Transport::Client
+
+          def send_profiling_flush(flush)
             # Build a request
-            request = Profiling::Transport::Request.new(flushes)
+            request = Profiling::Transport::Request.new(flush)
             send_request(request)
           end
 

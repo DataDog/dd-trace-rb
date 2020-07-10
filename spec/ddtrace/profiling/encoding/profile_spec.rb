@@ -5,10 +5,11 @@ require 'ddtrace/profiling/events/stack'
 
 RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
   describe '::encode' do
-    subject(:encode) { described_class.encode(flushes) }
+    subject(:encode) { described_class.encode(flush) }
 
-    let(:flushes) { [flush] }
-    let(:flush) { instance_double(Datadog::Profiling::Flush, event_class: event_class, events: events) }
+    let(:flush) { instance_double(Datadog::Profiling::Flush, event_groups: event_groups) }
+    let(:event_groups) { [event_group] }
+    let(:event_group) { instance_double(Datadog::Profiling::EventGroup, event_class: event_class, events: events) }
     let(:event_class) { double('event class') }
     let(:events) { double('events') }
 
@@ -24,7 +25,7 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
 
       expect(template)
         .to receive(:add_events!)
-        .with(flush.event_class, flush.events)
+        .with(event_group.event_class, event_group.events)
         .ordered
 
       expect(template)
