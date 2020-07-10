@@ -23,19 +23,19 @@ module Datadog
 
         def initialize(recorder, options = {})
           @recorder = recorder
-          @max_frames = options.fetch(:max_frames, DEFAULT_MAX_FRAMES)
-          @ignore_thread = options.fetch(:ignore_thread, nil)
-          @max_time_usage_pct = options.fetch(:max_time_usage_pct, DEFAULT_MAX_TIME_USAGE_PCT)
+          @max_frames = options[:max_frames] || DEFAULT_MAX_FRAMES
+          @ignore_thread = options[:ignore_thread]
+          @max_time_usage_pct = options[:max_time_usage_pct] || DEFAULT_MAX_TIME_USAGE_PCT
 
           # Workers::Async::Thread settings
           # Restart in forks by default
-          self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_RESTART)
+          self.fork_policy = options[:fork_policy] || Workers::Async::Thread::FORK_POLICY_RESTART
 
           # Workers::IntervalLoop settings
-          self.loop_base_interval = options.fetch(:interval, MIN_INTERVAL)
+          self.loop_base_interval = options[:interval] || MIN_INTERVAL
 
           # Workers::Polling settings
-          self.enabled = options.fetch(:enabled, false)
+          self.enabled = options[:enabled] == true
         end
 
         def start
