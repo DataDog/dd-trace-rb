@@ -6,7 +6,11 @@ module Datadog
     # Defines helper methods for environment
     module Helpers
       def env_to_bool(var, default = nil)
-        ENV.key?(var) ? ENV[var].to_s.downcase == 'true' : default
+        ENV.key?(var) ? ENV[var].to_s.strip.downcase == 'true' : default
+      end
+
+      def env_to_int(var, default = nil)
+        ENV.key?(var) ? ENV[var].to_i : default
       end
 
       def env_to_float(var, default = nil)

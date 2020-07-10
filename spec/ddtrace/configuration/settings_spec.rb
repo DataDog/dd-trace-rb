@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'securerandom'
 
 require 'ddtrace'
 require 'ddtrace/configuration/settings'
@@ -56,6 +57,38 @@ RSpec.describe Datadog::Configuration::Settings do
         .to change { settings.analytics.enabled }
         .from(nil)
         .to(true)
+    end
+  end
+
+  describe '#api_key' do
+    subject(:api_key) { settings.api_key }
+
+    context "when #{Datadog::Ext::Environment::ENV_API_KEY}" do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_API_KEY => api_key_env) do
+          example.run
+        end
+      end
+
+      context 'is not defined' do
+        let(:api_key_env) { nil }
+        it { is_expected.to be nil }
+      end
+
+      context 'is defined' do
+        let(:api_key_env) { SecureRandom.uuid.delete('-') }
+        it { is_expected.to eq(api_key_env) }
+      end
+    end
+  end
+
+  describe '#api_key=' do
+    subject(:set_api_key) { settings.api_key = api_key }
+
+    context 'when given a value' do
+      let(:api_key) { SecureRandom.uuid.delete('-') }
+      before { set_api_key }
+      it { expect(settings.api_key).to eq(api_key) }
     end
   end
 
@@ -481,6 +514,38 @@ RSpec.describe Datadog::Configuration::Settings do
       let(:service) { 'custom-service' }
       before { set_service }
       it { expect(settings.service).to eq(service) }
+    end
+  end
+
+  describe '#site' do
+    subject(:site) { settings.site }
+
+    context "when #{Datadog::Ext::Environment::ENV_SITE}" do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SITE => site_env) do
+          example.run
+        end
+      end
+
+      context 'is not defined' do
+        let(:site_env) { nil }
+        it { is_expected.to be nil }
+      end
+
+      context 'is defined' do
+        let(:site_env) { 'datadoghq.com' }
+        it { is_expected.to eq(site_env) }
+      end
+    end
+  end
+
+  describe '#site=' do
+    subject(:set_site) { settings.site = site }
+
+    context 'when given a value' do
+      let(:site) { 'datadoghq.com' }
+      before { set_site }
+      it { expect(settings.site).to eq(site) }
     end
   end
 
