@@ -45,6 +45,9 @@ module Datadog
           else
             ::Faraday::RackBuilder.send(:prepend, RackBuilder)
           end
+
+          # Instrument the Faraday default connection (e.g. +Faraday.get+)
+          ::Faraday.default_connection.use(:ddtrace)
         end
 
         def get_option(option)
