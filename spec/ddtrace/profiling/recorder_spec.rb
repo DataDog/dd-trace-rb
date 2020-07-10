@@ -20,6 +20,12 @@ RSpec.describe Datadog::Profiling::Recorder do
   end
 
   describe '::new' do
+    it do
+      is_expected.to have_attributes(
+        max_size: max_size
+      )
+    end
+
     context 'given events of different classes' do
       let(:event_classes) { [event_one.class, event_two.class] }
       let(:event_one) { Class.new(Datadog::Profiling::Event).new }
