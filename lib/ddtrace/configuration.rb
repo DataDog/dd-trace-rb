@@ -37,6 +37,7 @@ module Datadog
       :components,
       :health_metrics,
       :logger,
+      :profiler,
       :runtime_metrics,
       :tracer
 
