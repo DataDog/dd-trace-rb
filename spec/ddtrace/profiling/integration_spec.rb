@@ -75,7 +75,6 @@ RSpec.describe 'profiling integration test' do
         enabled: true
       )
     end
-    let(:profiler) { Datadog::Profiling::Profiler.new }
 
     it 'produces a profile' do
       expect(out).to receive(:puts)
