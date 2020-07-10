@@ -3,6 +3,7 @@ require 'ddtrace/configuration/base'
 
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/ext/profiling'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/ext/sampling'
 
@@ -106,6 +107,53 @@ module Datadog
 
       def logger=(logger)
         get_option(:logger).instance = logger
+      end
+
+      settings :profiling do
+        settings :cpu do
+          option :enabled, default: true
+          option :ignore_profiler do |o|
+            o.default { env_to_bool(Ext::Profiling::ENV_IGNORE_PROFILER, false) }
+            o.lazy
+          end
+
+          option :max_frames do |o|
+            o.default { env_to_int(Ext::Profiling::ENV_MAX_FRAMES, 128) }
+            o.lazy
+          end
+
+          option :max_time_usage_pct do |o|
+            o.setter { |value| value.nil? ? 2.0 : value.to_f }
+            o.default { env_to_float(Ext::Profiling::ENV_MAX_TIME_USAGE_PCT, 2.0) }
+            o.lazy
+          end
+        end
+
+        option :enabled do |o|
+          o.default { env_to_bool(Ext::Profiling::ENV_ENABLED, false) }
+          o.lazy
+        end
+
+        settings :exporter do
+          option :instances
+
+          option :timeout do |o|
+            o.setter { |value| value.nil? ? 30.0 : value.to_f }
+            o.default { env_to_float(Ext::Profiling::ENV_UPLOAD_TIMEOUT, 30.0) }
+            o.lazy
+          end
+
+          option :transport
+          option :transport_options, default: ->(_o) { {} }, lazy: true
+        end
+
+        option :max_events, default: 32768
+
+        option :upload_interval do |o|
+          o.setter { |value| value.nil? ? 60.0 : value.to_f }
+          o.default { env_to_float(Ext::Profiling::ENV_UPLOAD_INTERVAL, 60.0) }
+          o.lazy
+        end
       end
 
       option :report_hostname do |o|
