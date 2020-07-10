@@ -1,5 +1,6 @@
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/logger'
+require 'ddtrace/profiling'
 require 'ddtrace/runtime/metrics'
 require 'ddtrace/tracer'
 require 'ddtrace/workers/runtime_metrics'
@@ -7,6 +8,7 @@ require 'ddtrace/workers/runtime_metrics'
 module Datadog
   module Configuration
     # Global components for the trace library.
+    # rubocop:disable Metrics/ClassLength
     # rubocop:disable Metrics/LineLength
     class Components
       class << self
@@ -66,6 +68,17 @@ module Datadog
           tracer
         end
 
+        def build_profiler(settings)
+          return unless Datadog::Profiling.supported?
+
+          recorder = build_profiler_recorder(settings)
+          collectors = build_profiler_collectors(settings, recorder)
+          exporters = build_profiler_exporters(settings)
+          scheduler = build_profiler_scheduler(settings, recorder, exporters)
+
+          Datadog::Profiler.new(collectors, scheduler)
+        end
+
         private
 
         def build_tracer_tags(settings)
@@ -90,11 +103,64 @@ module Datadog
             opts[:writer_options] = settings.writer_options if settings.writer.nil?
           end
         end
+
+        def build_profiler_recorder(settings)
+          event_classes = []
+
+          if settings.profiling.enabled && settings.profiling.cpu.enabled
+            event_classes << Datadog::Profiling::Events::StackSample
+          end
+
+          Datadog::Profiling::Recorder.new(event_classes, settings.profiling.max_events)
+        end
+
+        def build_profiler_collectors(settings, recorder)
+          return [] unless settings.profiling.enabled && settings.profiling.cpu.enabled
+
+          [
+            Datadog::Profiling::Collectors::Stack.new(
+              recorder,
+              enabled: settings.profiling.cpu.enabled,
+              max_frames: settings.profiling.cpu.max_frames,
+              max_time_usage_pct: settings.profiling.cpu.max_time_usage_pct
+              # TODO: Provide proc that identifies Datadog worker threads.
+              # ignore_thread: settings.profiling.ignore_profiler
+            )
+          ]
+        end
+
+        def build_profiler_exporters(settings)
+          if settings.profiling.exporter.instances.is_a?(Array)
+            settings.profiling.exporter.instances
+          else
+            transport = if settings.profiling.exporter.transport
+                          settings.profiling.exporter.transport
+                        else
+                          transport_options = settings.profiling.exporter.transport_options.dup
+                          transport_options[:site] ||= settings.site if settings.site
+                          transport_options[:api_key] ||= settings.api_key if settings.api_key
+                          transport_options[:timeout] ||= settings.profiling.exporter.timeout
+                          Datadog::Profiling::Transport::HTTP.default(transport_options)
+                        end
+
+            [Datadog::Profiling::Exporter.new(transport)]
+          end
+        end
+
+        def build_profiler_scheduler(settings, recorder, exporters)
+          Datadog::Profiling::Scheduler.new(
+            recorder,
+            exporters,
+            enabled: settings.profiling.enabled,
+            interval: settings.profiling.upload_interval
+          )
+        end
       end
 
       attr_reader \
         :health_metrics,
         :logger,
+        :profiler,
         :runtime_metrics,
         :tracer
 
@@ -104,6 +170,9 @@ module Datadog
 
         # Tracer
         @tracer = self.class.build_tracer(settings)
+
+        # Profiler
+        @profiler = self.class.build_profiler(settings)
 
         # Runtime metrics
         @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
@@ -122,6 +191,9 @@ module Datadog
         # Shutdown the old tracer, unless it's still being used.
         # (e.g. a custom tracer instance passed in.)
         tracer.shutdown! unless replacement && tracer == replacement.tracer
+
+        # Shutdown old profiler
+        profiler.shutdown! unless profiler.nil?
 
         # Shutdown workers
         runtime_metrics.enabled = false
