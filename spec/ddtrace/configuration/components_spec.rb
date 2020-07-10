@@ -11,6 +11,7 @@ RSpec.describe Datadog::Configuration::Components do
     let(:settings) { instance_double(Datadog::Configuration::Settings) }
     let(:logger) { instance_double(Datadog::Logger) }
     let(:tracer) { instance_double(Datadog::Tracer) }
+    let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics) }
 
@@ -22,6 +23,10 @@ RSpec.describe Datadog::Configuration::Components do
       expect(described_class).to receive(:build_tracer)
         .with(settings)
         .and_return(tracer)
+
+      expect(described_class).to receive(:build_profiler)
+        .with(settings)
+        .and_return(profiler)
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
         .with(settings)
@@ -35,6 +40,7 @@ RSpec.describe Datadog::Configuration::Components do
     it do
       expect(components.logger).to be logger
       expect(components.tracer).to be tracer
+      expect(components.profiler).to be profiler
       expect(components.runtime_metrics).to be runtime_metrics
       expect(components.health_metrics).to be health_metrics
     end
@@ -606,6 +612,295 @@ RSpec.describe Datadog::Configuration::Components do
     end
   end
 
+  describe '::build_profiler' do
+    subject(:build_profiler) { described_class.build_profiler(settings) }
+    let(:profiler) { build_profiler }
+
+    context 'when profiling is not supported' do
+      before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }
+      it { is_expected.to be nil }
+    end
+
+    context 'given settings' do
+      before do
+        skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+      end
+
+      shared_examples_for 'disabled profiler' do
+        it do
+          expect(profiler.collectors).to be_empty
+          expect(profiler.scheduler.enabled?).to be false
+        end
+      end
+
+      shared_context 'enabled profiler' do
+        before do
+          allow(settings.profiling)
+            .to receive(:enabled)
+            .and_return(true)
+        end
+      end
+
+      shared_examples_for 'profiler with default collectors' do
+        subject(:stack_collector) { profiler.collectors.first }
+
+        it 'has a Stack collector' do
+          expect(profiler.collectors).to have(1).item
+          expect(profiler.collectors).to include(kind_of(Datadog::Profiling::Collectors::Stack))
+          is_expected.to have_attributes(
+            enabled?: true,
+            started?: false,
+            ignore_thread: nil,
+            max_frames: settings.profiling.cpu.max_frames,
+            max_time_usage_pct: settings.profiling.cpu.max_time_usage_pct
+          )
+        end
+      end
+
+      shared_examples_for 'profiler with default scheduler' do
+        subject(:scheduler) { profiler.scheduler }
+
+        it do
+          is_expected.to be_a_kind_of(Datadog::Profiling::Scheduler)
+          is_expected.to have_attributes(
+            enabled?: true,
+            started?: false,
+            loop_base_interval: settings.profiling.upload_interval
+          )
+        end
+      end
+
+      shared_examples_for 'profiler with default recorder' do
+        subject(:recorder) { profiler.scheduler.recorder }
+
+        it do
+          is_expected.to have_attributes(max_size: settings.profiling.max_events)
+        end
+      end
+
+      shared_examples_for 'profiler with default exporters' do
+        subject(:http_exporter) { profiler.scheduler.exporters.first }
+
+        it 'has an HTTP exporter' do
+          expect(profiler.scheduler.exporters).to have(1).item
+          expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
+          is_expected.to have_attributes(
+            transport: kind_of(Datadog::Profiling::Transport::HTTP::Client)
+          )
+
+          # Should be configured for agent transport
+          default_api = Datadog::Profiling::Transport::HTTP::API::V1
+          expect(http_exporter.transport.api).to have_attributes(
+            adapter: kind_of(Datadog::Transport::HTTP::Adapters::Net),
+            spec: Datadog::Profiling::Transport::HTTP::API.agent_defaults[default_api]
+          )
+          expect(http_exporter.transport.api.adapter).to have_attributes(
+            hostname: Datadog::Profiling::Transport::HTTP.default_hostname,
+            port: Datadog::Profiling::Transport::HTTP.default_port,
+            ssl: false,
+            timeout: settings.profiling.exporter.timeout
+          )
+        end
+      end
+
+      context 'by default' do
+        it_behaves_like 'disabled profiler'
+      end
+
+      context 'with :enabled false' do
+        before do
+          allow(settings.profiling)
+            .to receive(:enabled)
+            .and_return(false)
+        end
+
+        it_behaves_like 'disabled profiler'
+      end
+
+      context 'with :enabled true' do
+        include_context 'enabled profiler'
+
+        context 'by default' do
+          it_behaves_like 'profiler with default collectors'
+          it_behaves_like 'profiler with default scheduler'
+          it_behaves_like 'profiler with default recorder'
+          it_behaves_like 'profiler with default exporters'
+        end
+
+        context 'and :cpu.enabled' do
+          context 'false' do
+            before do
+              allow(settings.profiling.cpu)
+                .to receive(:enabled)
+                .and_return(false)
+            end
+
+            it_behaves_like 'profiler with default scheduler'
+            it_behaves_like 'profiler with default recorder'
+            it_behaves_like 'profiler with default exporters'
+
+            it 'does not have a CPU collector' do
+              expect(profiler.collectors).to be_empty
+            end
+          end
+        end
+
+        context 'and :cpu.ignore_profiler' do
+          context 'true' do
+            before do
+              allow(settings.profiling.cpu)
+                .to receive(:ignore_profiler)
+                .and_return(true)
+            end
+
+            # TODO: :ignore_profiler is not implemented.
+            #       when it is, it shouldn't behave like a default collector.
+            #       It should define a proc that excludes Datadog profiler.
+            it_behaves_like 'profiler with default collectors'
+            it_behaves_like 'profiler with default scheduler'
+            it_behaves_like 'profiler with default recorder'
+            it_behaves_like 'profiler with default exporters'
+          end
+        end
+
+        context 'and :exporter.instances' do
+          context 'with custom exporters' do
+            let(:instances) { Array.new(2) { double('collector') } }
+
+            before do
+              allow(settings.profiling.exporter)
+                .to receive(:instances)
+                .and_return(instances)
+            end
+
+            it_behaves_like 'profiler with default collectors'
+            it_behaves_like 'profiler with default scheduler'
+            it_behaves_like 'profiler with default recorder'
+
+            it 'uses the custom exporters instead' do
+              expect(profiler.scheduler.exporters).to eq(instances)
+            end
+          end
+        end
+
+        context 'and :site + :api_key' do
+          context 'are set' do
+            let(:site) { 'test.datadoghq.com' }
+            let(:api_key) { SecureRandom.uuid }
+
+            before do
+              allow(settings)
+                .to receive(:site)
+                .and_return(site)
+
+              allow(settings)
+                .to receive(:api_key)
+                .and_return(api_key)
+            end
+
+            it_behaves_like 'profiler with default collectors'
+            it_behaves_like 'profiler with default scheduler'
+            it_behaves_like 'profiler with default recorder'
+
+            it 'configures agentless transport' do
+              expect(profiler.scheduler.exporters).to have(1).item
+              expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
+              http_exporter = profiler.scheduler.exporters.first
+
+              expect(http_exporter).to have_attributes(
+                transport: kind_of(Datadog::Profiling::Transport::HTTP::Client)
+              )
+
+              # Should be configured for agentless transport
+              default_api = Datadog::Profiling::Transport::HTTP::API::V1
+              expect(http_exporter.transport.api).to have_attributes(
+                adapter: kind_of(Datadog::Transport::HTTP::Adapters::Net),
+                spec: Datadog::Profiling::Transport::HTTP::API.api_defaults[default_api]
+              )
+              expect(http_exporter.transport.api.adapter).to have_attributes(
+                hostname: "intake.profile.#{site}",
+                port: 443,
+                ssl: true,
+                timeout: settings.profiling.exporter.timeout
+              )
+            end
+          end
+        end
+
+        context 'and :transport' do
+          context 'is given' do
+            # Must be a kind of Datadog::Profiling::Transport::Client
+            let(:transport) { Class.new { include Datadog::Profiling::Transport::Client }.new }
+
+            before do
+              allow(settings.profiling.exporter)
+                .to receive(:transport)
+                .and_return(transport)
+            end
+
+            it_behaves_like 'profiler with default collectors'
+            it_behaves_like 'profiler with default scheduler'
+            it_behaves_like 'profiler with default recorder'
+
+            it 'uses the custom transport' do
+              expect(profiler.scheduler.exporters).to have(1).item
+              expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
+              http_exporter = profiler.scheduler.exporters.first
+
+              expect(http_exporter).to have_attributes(
+                transport: transport
+              )
+            end
+          end
+        end
+
+        context 'and :transport_options' do
+          context 'are provided' do
+            # Must be a kind of Datadog::Profiling::Transport::Client
+            let(:transport_options) do
+              {
+                timeout: 10.0
+              }
+            end
+
+            before do
+              allow(settings.profiling.exporter)
+                .to receive(:transport_options)
+                .and_return(transport_options)
+            end
+
+            it_behaves_like 'profiler with default collectors'
+            it_behaves_like 'profiler with default scheduler'
+            it_behaves_like 'profiler with default recorder'
+
+            it 'uses the transport options' do
+              expect(profiler.scheduler.exporters).to have(1).item
+              expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
+              http_exporter = profiler.scheduler.exporters.first
+
+              expect(http_exporter).to have_attributes(
+                transport: kind_of(Datadog::Profiling::Transport::HTTP::Client)
+              )
+
+              # Should be configured for agent transport
+              default_api = Datadog::Profiling::Transport::HTTP::API::V1
+              expect(http_exporter.transport.api).to have_attributes(
+                adapter: kind_of(Datadog::Transport::HTTP::Adapters::Net),
+                spec: Datadog::Profiling::Transport::HTTP::API.agent_defaults[default_api]
+              )
+              expect(http_exporter.transport.api.adapter).to have_attributes(
+                hostname: Datadog::Profiling::Transport::HTTP.default_hostname,
+                port: Datadog::Profiling::Transport::HTTP.default_port,
+                ssl: false,
+                timeout: transport_options[:timeout]
+              )
+            end
+          end
+        end
+      end
+    end
+  end
+
   describe '#shutdown!' do
     subject(:shutdown!) { components.shutdown!(replacement) }
 
@@ -614,6 +909,7 @@ RSpec.describe Datadog::Configuration::Components do
 
       it 'shuts down all components' do
         expect(components.tracer).to receive(:shutdown!)
+        expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
         expect(components.runtime_metrics).to receive(:enabled=)
           .with(false)
         expect(components.runtime_metrics).to receive(:stop)
@@ -629,6 +925,7 @@ RSpec.describe Datadog::Configuration::Components do
       shared_context 'replacement' do
         let(:replacement) { instance_double(described_class) }
         let(:tracer) { instance_double(Datadog::Tracer) }
+        let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
         let(:runtime_metrics_worker) { instance_double(Datadog::Workers::RuntimeMetrics, metrics: runtime_metrics) }
         let(:runtime_metrics) { instance_double(Datadog::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics, statsd: statsd) }
@@ -636,6 +933,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         before do
           allow(replacement).to receive(:tracer).and_return(tracer)
+          allow(replacement).to receive(:profiler).and_return(profiler)
           allow(replacement).to receive(:runtime_metrics).and_return(runtime_metrics_worker)
           allow(replacement).to receive(:health_metrics).and_return(health_metrics)
         end
@@ -646,6 +944,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components' do
           expect(components.tracer).to receive(:shutdown!)
+          expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
@@ -665,6 +964,7 @@ RSpec.describe Datadog::Configuration::Components do
 
           it 'shuts down all components' do
             expect(components.tracer).to receive(:shutdown!)
+            expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
             expect(components.runtime_metrics).to receive(:enabled=)
               .with(false)
             expect(components.runtime_metrics).to receive(:stop)
@@ -683,6 +983,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components but the tracer' do
           expect(components.tracer).to_not receive(:shutdown!)
+          expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
@@ -701,6 +1002,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components but the tracer' do
           expect(components.tracer).to receive(:shutdown!)
+          expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
@@ -720,6 +1022,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components but the tracer' do
           expect(components.tracer).to receive(:shutdown!)
+          expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)

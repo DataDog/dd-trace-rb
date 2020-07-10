@@ -322,6 +322,23 @@ RSpec.describe Datadog::Configuration do
         end
       end
 
+      context 'when the profiler' do
+        context 'is not changed' do
+          before { skip 'Profiling is not supported.' unless Datadog::Profiling.supported? }
+
+          before do
+            @original_profiler = test_class.profiler
+            expect(@original_profiler).to receive(:shutdown!)
+            test_class.configure { |_c| }
+          end
+
+          it 'replaces the old profiler and shuts it down' do
+            expect(test_class.profiler).to be_a_kind_of(Datadog::Profiler)
+            expect(test_class.profiler).to_not be(@original_profiler)
+          end
+        end
+      end
+
       context 'when reconfigured multiple times' do
         context 'with runtime metrics active' do
           before do
@@ -358,6 +375,17 @@ RSpec.describe Datadog::Configuration do
       subject(:logger) { test_class.logger }
       it { is_expected.to be_a_kind_of(Datadog::Logger) }
       it { expect(logger.level).to be default_log_level }
+    end
+
+    describe '#profiler' do
+      subject(:profiler) { test_class.profiler }
+      it do
+        if Datadog::Profiling.supported?
+          is_expected.to be_a_kind_of(Datadog::Profiler)
+        else
+          is_expected.to be nil
+        end
+      end
     end
 
     describe '#runtime_metrics' do
