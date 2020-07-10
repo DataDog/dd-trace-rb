@@ -62,11 +62,11 @@ module Datadog
             # rubocop:disable Lint/RescueException
           rescue Exception => e
             # rubocop:enable Lint/RescueException
-            span.set_error(e)
+            span.set_error(e) if span
 
             raise e
           ensure
-            span.finish
+            span.finish if span
           end
 
           private

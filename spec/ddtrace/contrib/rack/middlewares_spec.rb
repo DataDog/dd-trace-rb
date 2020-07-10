@@ -71,5 +71,18 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
         end
       end
     end
+
+    context 'with fatal exception' do
+      let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
+
+      before do
+        # Raise error at first line of #call
+        expect(Datadog.configuration[:rack]).to receive(:[]).and_raise(fatal_error)
+      end
+
+      it 'reraises exception' do
+        expect { middleware_call }.to raise_error(fatal_error)
+      end
+    end
   end
 end

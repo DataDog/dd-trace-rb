@@ -269,11 +269,16 @@ module Datadog
         begin
           begin
             span = start_span(name, options)
-          # rubocop:disable Lint/UselessAssignment
           rescue StandardError => e
-            Datadog.logger.debug('Failed to start span: #{e}')
+            Datadog.logger.debug("Failed to start span: #{e}")
           ensure
-            return_value = yield(span)
+            # We should yield to the provided block when possible, as this
+            # block is application code that we don't want to hinder. We call:
+            # * `yield(span)` during normal execution.
+            # * `yield(nil)` if `start_span` fails with a runtime error.
+            # * We don't yield during a fatal error, as the application is likely trying to
+            #   end its execution (either due to a system error or graceful shutdown).
+            return_value = yield(span) if span || e.is_a?(StandardError)
           end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
