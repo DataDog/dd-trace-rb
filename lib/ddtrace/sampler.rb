@@ -193,6 +193,8 @@ module Datadog
   class PrioritySampler
     extend Forwardable
 
+    attr_reader :pre_sampler, :priority_sampler
+
     SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
 
     def initialize(opts = {})

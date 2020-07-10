@@ -7,6 +7,7 @@ require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
+require 'ddtrace/diagnostics/environment_logger'
 
 module Datadog
   # Processor that sends traces and metadata to the agent
@@ -97,6 +98,8 @@ module Datadog
       # Update priority sampler
       update_priority_sampler(responses.last)
 
+      record_environment_information!(responses)
+
       # Return if server error occurred.
       !responses.find(&:server_error?)
     end
@@ -163,6 +166,10 @@ module Datadog
       return unless response && !response.internal_error? && priority_sampler && response.service_rates
 
       priority_sampler.update(response.service_rates)
+    end
+
+    def record_environment_information!(responses)
+      Diagnostics::EnvironmentLogger.log!(responses)
     end
   end
 end

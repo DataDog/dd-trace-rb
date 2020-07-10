@@ -47,6 +47,10 @@ module Datadog
             Response.new(http_response)
           end
 
+          def url
+            "http://#{hostname}:#{port}?timeout=#{timeout}"
+          end
+
           # Raised when called with an unknown HTTP method
           class UnknownHTTPMethod < StandardError
             attr_reader :verb
@@ -103,6 +107,10 @@ module Datadog
             def server_error?
               return super if http_response.nil?
               code.between?(500, 599)
+            end
+
+            def inspect
+              "#{super}, http_response:#{http_response}"
             end
           end
         end

@@ -1,6 +1,8 @@
 module Datadog
   module Ext
     module Diagnostics
+      DD_TRACE_STARTUP_LOGS = 'DD_TRACE_STARTUP_LOGS'.freeze
+
       # Health
       module Health
         # Metrics
