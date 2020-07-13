@@ -6,6 +6,7 @@ require 'pathname'
 require 'ddtrace/environment'
 require 'ddtrace/span'
 require 'ddtrace/context'
+require 'ddtrace/context_provider'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
 require 'ddtrace/sampler'
@@ -175,6 +176,9 @@ module Datadog
       [child_of.context, child_of]
     end
 
+    # Global tracer instance.
+    DEFAULT_TRACER = -> { Datadog.tracer }
+
     # Return a span that will trace an operation called \name. This method allows
     # parenting passing \child_of as an option. If it's missing, the newly created span is a
     # root span. Available options are:
@@ -198,7 +202,7 @@ module Datadog
       ctx, parent = guess_context_and_parent(options[:child_of])
       span_options[:context] = ctx unless ctx.nil?
 
-      span = Span.new(self, name, span_options)
+      span = Span.new(DEFAULT_TRACER, name, span_options)
       if parent.nil?
         # root span
         @sampler.sample!(span)

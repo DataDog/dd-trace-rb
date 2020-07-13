@@ -46,6 +46,8 @@ RSpec.describe Datadog::Span do
         span.service
       end
 
+      let(:default_service) { 'default-service' }
+
       context 'is set' do
         let(:service_value) { 'span-service' }
         before { span.service = service_value }
@@ -53,9 +55,26 @@ RSpec.describe Datadog::Span do
       end
 
       context 'is not set' do
-        let(:default_service) { 'default-service' }
         before { allow(tracer).to receive(:default_service).and_return(default_service) }
         it { is_expected.to eq default_service }
+      end
+
+      context 'with a lazy tracer reference' do
+        let(:tracer) { -> { tracer_instance } }
+        let(:tracer_instance) { get_test_tracer }
+
+        before { allow(tracer_instance).to receive(:default_service).and_return(default_service) }
+        it { is_expected.to eq default_service }
+      end
+    end
+
+    context 'with a lazy tracer reference' do
+      let(:tracer) { -> { tracer_instance } }
+      let(:tracer_instance) { get_test_tracer }
+
+      it 'emits a single complete tracer' do
+        expect(tracer_instance).to receive(:record).with(span)
+        finish
       end
     end
   end

@@ -39,7 +39,7 @@ module Datadog
                   :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
-                  :tracer, :context
+                  :context
 
     attr_reader :parent
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
@@ -77,6 +77,12 @@ module Datadog
 
       @allocation_count_start = now_allocations
       @allocation_count_finish = @allocation_count_start
+    end
+
+    # Retrieves the tracer associated with this span.
+    # If the provider tracer was a callable, reevalute it.
+    def tracer
+      @tracer.is_a?(Proc) ? @tracer.call : @tracer
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -180,14 +186,16 @@ module Datadog
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
 
+      tracer = @tracer.is_a?(Proc) ? @tracer.call : @tracer
+
       # spans without a service would be dropped, so here we provide a default.
       # This should really never happen with integrations in contrib, as a default
       # service is always set. It's only for custom instrumentation.
-      @service ||= (@tracer && @tracer.default_service)
+      @service ||= (tracer && tracer.default_service)
 
       begin
         @context.close_span(self)
-        @tracer.record(self)
+        tracer.record(self)
       rescue StandardError => e
         Datadog.logger.debug("error recording finished trace: #{e}")
         Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])

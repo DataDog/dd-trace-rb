@@ -67,6 +67,10 @@ RSpec.describe Datadog::Tracer do
 
     it { is_expected.to be_a_kind_of(Datadog::Span) }
 
+    it 'provides span with global tracer' do
+      expect(subject.tracer).to eq(Datadog.tracer)
+    end
+
     context 'when :tags are given' do
       let(:options) { super().merge(tags: tags) }
       let(:tags) { { tag_name => tag_value } }
@@ -204,6 +208,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'without a block' do
       subject(:trace) { tracer.trace(name, options) }
+      after { trace.finish }
 
       context 'with child_of: option' do
         let!(:root_span) { tracer.start_span 'root' }
