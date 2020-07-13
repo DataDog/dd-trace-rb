@@ -60,3 +60,6 @@ RSpec.configure do |config|
   config.warnings = true
   config.order = :random
 end
+
+# Helper matchers
+RSpec::Matchers.define_negated_matcher :not_be, :be
