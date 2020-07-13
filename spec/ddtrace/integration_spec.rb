@@ -535,8 +535,6 @@ RSpec.describe 'Tracer integration tests' do
   end
 
   describe 'thread-local context' do
-    subject(:tracer) { new_tracer }
-
     it 'clears context after tracer finishes' do
       before = tracer.call_context
 
@@ -620,6 +618,19 @@ RSpec.describe 'Tracer integration tests' do
           spans2 = tracer2.writer.spans
           expect(spans2[0].name).to eq('test2')
           expect(spans2[1].name).to eq('thread_test2')
+        end
+      end
+    end
+
+    context 'when Datadog#configure is called with an open span' do
+      it 'emits a single complete tracer' do
+        expect_any_instance_of(Datadog::Writer).to receive(:write) do |_, trace|
+          expect(trace).to have(2).items
+        end
+
+        Datadog.tracer.trace('outter') do
+          Datadog.configure {}
+          Datadog.tracer.trace('inner') {}
         end
       end
     end

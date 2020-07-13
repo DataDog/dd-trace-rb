@@ -2,7 +2,6 @@ require 'thread'
 require 'ddtrace/diagnostics/health'
 
 require 'ddtrace/context_flush'
-require 'ddtrace/context_provider'
 
 module Datadog
   # \Context is used to keep track of a hierarchy of spans for the current

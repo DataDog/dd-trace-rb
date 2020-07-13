@@ -60,3 +60,25 @@ RSpec.describe Datadog::ThreadLocalContext do
     end
   end
 end
+
+RSpec.describe Datadog::DefaultContextProvider do
+  subject(:provider) { described_class.new }
+
+  context '#context' do
+    subject(:context) { provider.context }
+    let(:shared_obj) { double('shared') }
+
+    before { provider.context = shared_obj }
+
+    it { is_expected.to eq(shared_obj) }
+
+    context 'with another provider instance' do
+      subject(:another_context) { another_provider.context }
+      let(:another_provider) { described_class.new }
+
+      it 'should return the same object for any instance of the provider' do
+        is_expected.to eq(shared_obj)
+      end
+    end
+  end
+end
