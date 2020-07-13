@@ -31,6 +31,11 @@ module Datadog
         end
       end
 
+      option :api_key do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_API_KEY, nil) }
+        o.lazy
+      end
+
       settings :diagnostics do
         option :debug, default: false
 
@@ -143,6 +148,11 @@ module Datadog
 
       option :service do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
+        o.lazy
+      end
+
+      option :site do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_SITE, nil) }
         o.lazy
       end
 
