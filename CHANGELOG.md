@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+## [0.38.0] - 2020-07-13
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.38.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...v0.38.0
+
+### Added
+
+- http.rb integration (#529, #853)
+- Kafka integration (#1070) (@tjwp)
+- Span#set_tags (#1081) (@DocX)
+- retry_count tag for Sidekiq jobs (#1089) (@elyalvarado)
+- Startup environment log (#1104)
+- DD_SITE and DD_API_KEY configuration (#1107)
+
+### Changed
+
+- Auto instrument Faraday default connection (#1057)
+- Sidekiq client middleware is now the same for client and server (#1099) (@drcapulet)
+- Single pass SpanFilter (#1071) (@tjwp)
+
+### Fixed
+
+- Ensure fatal exceptions are propagated (#1100)
+- Respect child_of: option in Tracer#trace (#1082) (@DocX)
+- Improve Writer thread safety (#1091) (@fledman)
+
+### Refactored
+
+- Improvements to test suite (#1092, #1103)
+
 ## [0.37.0] - 2020-06-24
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.37.0
@@ -1274,7 +1305,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.38.0...master
+[0.38.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...v0.38.0
 [0.37.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.36.0...v0.37.0
 [0.36.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.2...v0.36.0
 [0.35.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.1...v0.35.2
