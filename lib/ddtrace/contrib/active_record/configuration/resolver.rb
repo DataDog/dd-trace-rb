@@ -30,14 +30,32 @@ module Datadog
           end
 
           def normalize(hash)
+            # TODO: move to Sqlite3Resolver
+            adapter = hash[:adapter]
+            database = hash[:database]
+            if adapter == 'sqlite3'
+              database = database.sub(::Rails.root.to_s + '/', '')
+            end
+
             {
-              adapter:  hash[:adapter],
+              adapter:  adapter,
               host:     hash[:host],
               port:     hash[:port],
-              database: hash[:database],
+              database: database,
               username: hash[:username]
             }
           end
+          #
+          # class Key < Hash
+          #   def hash
+          #     slice(:adapter, :host, :port, :username).hash
+          #   end
+          #
+          #   def eql?(other)
+          #     slice(:adapter, :host, :port, :username) == other.slice(:adapter, :host, :port, :username) &&
+          #       (self[:database] == other[:database] || (self[:database] && self[:database].end_with?(other[:database])))
+          #   end
+          # end
         end
       end
     end

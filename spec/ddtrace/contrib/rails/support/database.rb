@@ -20,7 +20,7 @@ module Datadog
                   connector = postgres_url
                   # old versions of Rails (eg 3.0) require that sort of Monkey Patching,
                   # since using ActiveRecord is tricky (version mismatch etc.)
-                  if ::Rails.version < '3.2.22.5'
+                  if defined?(::Rails) && ::Rails.version < '3.2.22.5'
                     ::Rails::Application::Configuration.class_eval do
                       def database_configuration
                         { 'test' => { 'adapter' => 'postgresql',
