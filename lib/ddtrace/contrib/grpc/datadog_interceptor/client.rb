@@ -30,9 +30,7 @@ module Datadog
           private
 
           def annotate!(span, metadata)
-            metadata.each do |header, value|
-              span.set_tag(header, value)
-            end
+            span.set_tags(metadata)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?

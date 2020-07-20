@@ -19,10 +19,12 @@ module Datadog
       # - handle configuration entries which are specific to Datadog tracing
       # - instrument parts of the framework when needed
       module Framework
-        # configure Datadog settings
+        # After the Rails application finishes initializing, we configure the Rails
+        # integration and all its sub-components with the application information
+        # available.
+        # We do this after the initialization because not all the information we
+        # require is available before then.
         def self.setup
-          rails_config = config_with_defaults
-
           # NOTE: #configure has the side effect of rebuilding trace components.
           #       During a typical Rails application lifecycle, we will see trace
           #       components initialized twice because of this. This is necessary
@@ -31,6 +33,8 @@ module Datadog
           #       used to reconfigure tracer components with Rails-sourced defaults.
           #       This is a trade-off we take to get nice defaults.
           Datadog.configure do |datadog_config|
+            rails_config = config_with_defaults(datadog_config)
+
             # By default, default service would be guessed from the script
             # being executed, but here we know better, get it from Rails config.
             # Don't set this if service has been explicitly provided by the user.
@@ -43,17 +47,12 @@ module Datadog
             activate_action_view!(datadog_config, rails_config)
             activate_active_record!(datadog_config, rails_config)
           end
-
-          # Update the tracer if its not the default tracer.
-          if rails_config[:tracer] != Datadog.configuration.tracer
-            rails_config[:tracer].default_service = rails_config[:service_name]
-          end
         end
 
-        def self.config_with_defaults
+        def self.config_with_defaults(datadog_config)
           # We set defaults here instead of in the patcher because we need to wait
           # for the Rails application to be fully initialized.
-          Datadog.configuration[:rails].tap do |config|
+          datadog_config[:rails].tap do |config|
             config[:service_name] ||= (Datadog.configuration.service || Utils.app_name)
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:controller_service] ||= config[:service_name]
@@ -64,7 +63,6 @@ module Datadog
         def self.activate_rack!(datadog_config, rails_config)
           datadog_config.use(
             :rack,
-            tracer: rails_config[:tracer],
             application: ::Rails.application,
             service_name: rails_config[:service_name],
             middleware_names: rails_config[:middleware_names],
@@ -77,8 +75,7 @@ module Datadog
 
           datadog_config.use(
             :active_support,
-            cache_service: rails_config[:cache_service],
-            tracer: rails_config[:tracer]
+            cache_service: rails_config[:cache_service]
           )
         end
 
@@ -87,8 +84,7 @@ module Datadog
 
           datadog_config.use(
             :action_cable,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}",
-            tracer: rails_config[:tracer]
+            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}"
           )
         end
 
@@ -101,8 +97,7 @@ module Datadog
 
           datadog_config.use(
             :action_pack,
-            service_name: rails_config[:service_name],
-            tracer: rails_config[:tracer]
+            service_name: rails_config[:service_name]
           )
         end
 
@@ -111,8 +106,7 @@ module Datadog
 
           datadog_config.use(
             :action_view,
-            service_name: rails_config[:service_name],
-            tracer: rails_config[:tracer]
+            service_name: rails_config[:service_name]
           )
         end
 
@@ -121,8 +115,7 @@ module Datadog
 
           datadog_config.use(
             :active_record,
-            service_name: rails_config[:database_service],
-            tracer: rails_config[:tracer]
+            service_name: rails_config[:database_service]
           )
         end
       end

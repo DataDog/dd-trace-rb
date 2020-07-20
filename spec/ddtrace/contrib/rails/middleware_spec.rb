@@ -33,7 +33,7 @@ RSpec.describe 'Rails middleware' do
   end
 
   let(:use_rack) { true }
-  let(:rails_options) { { tracer: tracer } }
+  let(:rails_options) { {} }
 
   context 'with middleware' do
     context 'that does nothing' do

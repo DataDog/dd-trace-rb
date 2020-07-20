@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
@@ -18,10 +18,7 @@ RSpec.describe 'net/http requests' do
   let(:uri) { "http://#{host}:#{port}" }
 
   let(:client) { Net::HTTP.new(host, port) }
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
-
-  let(:spans) { tracer.writer.spans }
+  let(:configuration_options) { {} }
 
   before do
     Datadog.configure { |c| c.use :http, configuration_options }
@@ -161,7 +158,6 @@ RSpec.describe 'net/http requests' do
         stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
 
         Net::HTTP.start(host, port) do |http|
-          Datadog::Pin.get_from(http).tracer = tracer
           http.request(request)
         end
       end

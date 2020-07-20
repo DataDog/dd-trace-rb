@@ -69,6 +69,10 @@ module Datadog
             def server_error?
               code.between?(500, 599)
             end
+
+            def inspect
+              "#{super}, code:#{code}"
+            end
           end
         end
       end

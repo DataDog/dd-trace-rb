@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'rack'
 require 'ddtrace'
@@ -8,8 +8,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
   subject(:middleware) { described_class.new(app) }
   let(:app) { instance_double(Rack::Builder) }
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
@@ -70,6 +69,19 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
           expect(Datadog.logger).to_not have_received(:warn)
             .with(/:datadog_rack_request_span/)
         end
+      end
+    end
+
+    context 'with fatal exception' do
+      let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
+
+      before do
+        # Raise error at first line of #call
+        expect(Datadog.configuration[:rack]).to receive(:[]).and_raise(fatal_error)
+      end
+
+      it 'reraises exception' do
+        expect { middleware_call }.to raise_error(fatal_error)
       end
     end
   end

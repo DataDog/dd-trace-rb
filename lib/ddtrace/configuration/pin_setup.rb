@@ -13,7 +13,7 @@ module Datadog
 
         ATTRS.each { |key| pin.public_send("#{key}=", opts[key]) if opts[key] }
 
-        pin.config = opts.reject { |key, _| ATTRS.include?(key) }
+        pin.config = opts.reject { |key, _| ATTRS.include?(key) || DEPRECATED_ATTRS.include?(key) }
 
         true
       end
@@ -22,7 +22,8 @@ module Datadog
 
       attr_reader :pin, :opts
 
-      ATTRS = [:app, :tags, :app_type, :name, :tracer, :service_name].freeze
+      ATTRS = [:app, :tags, :app_type, :name, :service_name].freeze
+      DEPRECATED_ATTRS = [:tracer].freeze
 
       private_constant :ATTRS
     end

@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
@@ -7,8 +7,7 @@ require 'rest_client'
 require 'restclient/request'
 
 RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -41,7 +40,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
     shared_examples_for 'instrumented request' do
       it 'creates a span' do
-        expect { request }.to change { tracer.writer.spans.first }.to be_instance_of(Datadog::Span)
+        expect { request }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
       end
 
       it 'returns response' do
@@ -49,8 +48,6 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
       end
 
       describe 'created span' do
-        subject(:span) { tracer.writer.spans.first }
-
         context 'response is successfull' do
           before { request }
 
@@ -131,6 +128,19 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             expect(span).to_not have_error_message
           end
         end
+
+        context 'with fatal error' do
+          let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
+
+          before do
+            # Raise error at first line of #datadog_trace_request
+            expect(tracer).to receive(:trace).and_raise(fatal_error)
+          end
+
+          it 'reraises exception' do
+            expect { request }.to raise_error(fatal_error)
+          end
+        end
       end
     end
 
@@ -145,7 +155,7 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
         let(:response) { nil }
 
         it 'creates a span' do
-          expect { request }.to change { tracer.writer.spans.first }.to be_instance_of(Datadog::Span)
+          expect { request }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
         end
 
         it 'returns response' do
@@ -153,8 +163,6 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
         end
 
         describe 'created span' do
-          subject(:span) { tracer.writer.spans.first }
-
           context 'response is successfull' do
             before { request }
 
@@ -198,8 +206,6 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
       it_behaves_like 'instrumented request'
 
       shared_examples_for 'propagating distributed headers' do
-        let(:span) { tracer.writer.spans.first }
-
         it 'propagates the headers' do
           request
 
@@ -236,8 +242,6 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
       it_behaves_like 'instrumented request'
 
       shared_examples_for 'does not propagate distributed headers' do
-        let(:span) { tracer.writer.spans.first }
-
         it 'does not propagate the headers' do
           request
 

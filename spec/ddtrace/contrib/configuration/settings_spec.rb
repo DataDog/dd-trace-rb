@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 
@@ -17,6 +17,15 @@ RSpec.describe Datadog::Contrib::Configuration::Settings do
     subject(:tracer) { settings.tracer }
     it { expect(settings.tracer).to be Datadog.tracer }
     it { expect(settings[:tracer]).to be Datadog.tracer }
+
+    context 'setting the tracer value' do
+      subject(:set) { settings.tracer = double }
+
+      it 'outputs a deprecation warning' do
+        expect(Datadog.logger).to receive(:warn).with(include('DEPRECATED'))
+        set
+      end
+    end
   end
 
   describe '#analytics_enabled' do

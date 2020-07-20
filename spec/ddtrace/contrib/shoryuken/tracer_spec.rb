@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
@@ -6,11 +6,7 @@ require 'shoryuken'
 
 RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
   let(:shoryuken_tracer) { described_class.new }
-
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
+  let(:configuration_options) { {} }
 
   before do
     Shoryuken.worker_executor = Shoryuken::Worker::InlineExecutor

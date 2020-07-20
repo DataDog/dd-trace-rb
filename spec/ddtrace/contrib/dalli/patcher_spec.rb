@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'dalli'
 require 'ddtrace'
@@ -7,8 +7,7 @@ require 'ddtrace/contrib/dalli/patcher'
 RSpec.describe 'Dalli instrumentation' do
   include_context 'tracer logging'
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   # Enable the test tracer
   before(:each) do
@@ -59,13 +58,6 @@ RSpec.describe 'Dalli instrumentation' do
           let(:service_name) { 'new_service' }
           after(:each) { pin.service_name = original_service_name }
           it { expect(Datadog.configuration[:dalli][:service_name]).to eq(service_name) }
-        end
-
-        # Make sure 'tracer' passes through to underlying configuration
-        describe 'tracer=' do
-          before(:each) { pin.tracer = new_tracer }
-          let(:new_tracer) { double('tracer') }
-          it { expect(Datadog.configuration[:dalli][:tracer]).to eq(new_tracer) }
         end
       end
     end

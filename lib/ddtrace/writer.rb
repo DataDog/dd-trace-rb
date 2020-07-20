@@ -7,6 +7,7 @@ require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
+require 'ddtrace/diagnostics/environment_logger'
 
 module Datadog
   # Processor that sends traces and metadata to the agent
@@ -43,9 +44,18 @@ module Datadog
       @worker = nil
     end
 
-    # spawns a worker for spans; they share the same transport which is thread-safe
     def start
-      @pid = Process.pid
+      @mutex_after_fork.synchronize do
+        pid = Process.pid
+        return if @worker && pid == @pid
+        @pid = pid
+        start_worker
+        true
+      end
+    end
+
+    # spawns a worker for spans; they share the same transport which is thread-safe
+    def start_worker
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
       @worker = Datadog::Workers::AsyncTransport.new(
         transport: @transport,
@@ -57,13 +67,18 @@ module Datadog
       @worker.start
     end
 
-    # stops worker for spans.
     def stop
-      return if worker.nil?
+      @mutex_after_fork.synchronize { stop_worker }
+    end
+
+    def stop_worker
+      return if @worker.nil?
       @worker.stop
       @worker = nil
       true
     end
+
+    private :start_worker, :stop_worker
 
     # flush spans to the trace-agent, handles spans only
     def send_spans(traces, transport)
@@ -82,6 +97,8 @@ module Datadog
 
       # Update priority sampler
       update_priority_sampler(responses.last)
+
+      record_environment_information!(responses)
 
       # Return if server error occurred.
       !responses.find(&:server_error?)
@@ -106,13 +123,7 @@ module Datadog
       #
       # This check ensures that if a process doesn't own the current +Writer+, async workers
       # will be initialized again (but only once for each process).
-      pid = Process.pid
-      if pid != @pid # avoid using Mutex when pids are equal
-        @mutex_after_fork.synchronize do
-          # we should start threads because the worker doesn't own this
-          start if pid != @pid
-        end
-      end
+      start if @worker.nil? || @pid != Process.pid
 
       # TODO: Remove this, and have the tracer pump traces directly to runtime metrics
       #       instead of working through the trace writer.
@@ -121,7 +132,13 @@ module Datadog
         Datadog.runtime_metrics.associate_with_span(trace.first)
       end
 
-      @worker.enqueue_trace(trace)
+      worker_local = @worker
+
+      if worker_local
+        worker_local.enqueue_trace(trace)
+      else
+        Datadog.logger.debug('Writer either failed to start or was stopped before #write could complete')
+      end
     end
 
     # stats returns a dictionary of stats about the writer.
@@ -149,6 +166,10 @@ module Datadog
       return unless response && !response.internal_error? && priority_sampler && response.service_rates
 
       priority_sampler.update(response.service_rates)
+    end
+
+    def record_environment_information!(responses)
+      Diagnostics::EnvironmentLogger.log!(responses)
     end
   end
 end

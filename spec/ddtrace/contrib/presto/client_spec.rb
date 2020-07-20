@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
@@ -6,8 +6,7 @@ require 'presto-client'
 require 'ddtrace/contrib/analytics_examples'
 
 RSpec.describe 'Presto::Client instrumentation' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   let(:client) do
     Presto::Client.new(
@@ -32,14 +31,7 @@ RSpec.describe 'Presto::Client instrumentation' do
   let(:http_proxy) { 'proxy.example.com:8080' }
   let(:model_version) { '0.205' }
 
-  let(:spans) { tracer.writer.spans(:keep) }
-  let(:span) { spans.first }
-
   let(:presto_client_gem_version) { Gem.loaded_specs['presto-client'].version }
-
-  def discard_spans!
-    tracer.writer.spans
-  end
 
   before(:each) do
     Datadog.configure do |c|
@@ -60,11 +52,18 @@ RSpec.describe 'Presto::Client instrumentation' do
       Datadog.registry[:presto].reset_configuration!
       example.run
       Datadog.registry[:presto].reset_configuration!
+      Datadog.configuration.reset!
     end
   end
 
   context 'when the tracer is disabled' do
-    before(:each) { tracer.enabled = false }
+    before do
+      Datadog.configure do |c|
+        c.tracer.enabled = false
+      end
+    end
+
+    after { Datadog.configuration.tracer.reset! }
 
     it 'does not produce spans' do
       client.run('SELECT 1')
@@ -92,7 +91,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       context 'when the client is configured' do
         context 'with a different service name' do
           let(:service) { 'presto-primary' }
-          let(:configuration_options) { { tracer: tracer, service_name: service } }
+          let(:configuration_options) { { service_name: service } }
 
           it_behaves_like 'a Presto trace'
         end
@@ -223,7 +222,7 @@ RSpec.describe 'Presto::Client instrumentation' do
 
       context 'a failed query' do
         before(:each) do
-          discard_spans!
+          clear_spans!
           begin
             client.run('SELECT banana')
           # rubocop:disable Lint/HandleExceptions

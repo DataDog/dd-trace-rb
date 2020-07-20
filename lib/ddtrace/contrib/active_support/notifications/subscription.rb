@@ -75,7 +75,7 @@ module Datadog
             callbacks.run(name, :before_trace, id, payload, start)
 
             # Start a trace
-            tracer.trace(@span_name, @options).tap do |span|
+            tracer.trace(@span_name, @options.dup).tap do |span|
               # Assign start time if provided
               span.start_time = start unless start.nil?
               payload[:datadog_span] = span

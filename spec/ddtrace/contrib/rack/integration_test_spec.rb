@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'rack/test'
 require 'securerandom'
 
@@ -9,11 +9,7 @@ require 'ddtrace/contrib/rack/middlewares'
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
 
-  let(:tracer) { get_test_tracer }
-  let(:rack_options) { { tracer: tracer } }
-
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
+  let(:rack_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|

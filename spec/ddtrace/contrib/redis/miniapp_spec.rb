@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'time'
 require 'redis'
@@ -8,18 +8,11 @@ require 'ddtrace'
 RSpec.describe 'Redis mini app test' do
   before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  let(:tracer) { get_test_tracer }
-
-  def all_spans
-    tracer.writer.spans(:keep)
-  end
-
   before(:each) do
-    # Patch redis (don't bother configuring tracer)
     Datadog.configure { |c| c.use :redis }
 
-    # Configure client instance with tracer
-    Datadog.configure(client, tracer: tracer)
+    # Configure client instance with custom options
+    Datadog.configure(client, service_name: 'test-service')
   end
 
   let(:client) do
@@ -59,12 +52,12 @@ RSpec.describe 'Redis mini app test' do
     #              \
     #               |-----> span[2] (redis_cmd1_span)
     #               \-----> span[3] (redis_cmd2_span)
-    let(:publish_span) { all_spans[1] }
-    let(:process_span) { all_spans[0] }
-    let(:redis_cmd1_span) { all_spans[2] }
-    let(:redis_cmd2_span) { all_spans[3] }
+    let(:publish_span) { spans[1] }
+    let(:process_span) { spans[0] }
+    let(:redis_cmd1_span) { spans[2] }
+    let(:redis_cmd2_span) { spans[3] }
 
-    it { expect(all_spans).to have(4).items }
+    it { expect(spans).to have(4).items }
 
     describe '"publish span"' do
       it do
@@ -89,12 +82,12 @@ RSpec.describe 'Redis mini app test' do
     describe '"command spans"' do
       it do
         expect(redis_cmd1_span.name).to eq('redis.command')
-        expect(redis_cmd1_span.service).to eq('redis')
+        expect(redis_cmd1_span.service).to eq('test-service')
         expect(redis_cmd1_span.parent_id).to eq(process_span.span_id)
         expect(redis_cmd1_span.trace_id).to eq(publish_span.trace_id)
 
         expect(redis_cmd2_span.name).to eq('redis.command')
-        expect(redis_cmd2_span.service).to eq('redis')
+        expect(redis_cmd2_span.service).to eq('test-service')
         expect(redis_cmd2_span.parent_id).to eq(process_span.span_id)
         expect(redis_cmd2_span.trace_id).to eq(publish_span.trace_id)
       end

@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'time'
 require 'redis'
@@ -6,24 +6,19 @@ require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis integration test' do
-  # Use real tracer
-  let(:tracer) do
-    Datadog::Tracer.new
-  end
-
   before(:each) do
     skip unless ENV['TEST_DATADOG_INTEGRATION']
 
-    # Make sure to reset default tracer
+    use_real_tracer!
+
     Datadog.configure do |c|
-      c.use :redis, tracer: tracer
+      c.use :redis
     end
   end
 
   after(:each) do
-    Datadog.configure do |c|
-      c.use :redis
-    end
+    Datadog.registry[:redis].reset_configuration!
+    Datadog.configuration.reset!
   end
 
   let(:redis) { Redis.new(host: host, port: port) }

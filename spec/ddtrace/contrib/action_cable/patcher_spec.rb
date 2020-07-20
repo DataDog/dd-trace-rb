@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/contrib/analytics_examples'
@@ -15,8 +15,7 @@ end
 RSpec.describe 'ActionCable patcher' do
   before { skip('ActionCable not supported') unless Datadog::Contrib::ActionCable::Integration.compatible? }
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -31,11 +30,9 @@ RSpec.describe 'ActionCable patcher' do
     Datadog.registry[:action_cable].reset_configuration!
   end
 
-  let(:all_spans) { tracer.writer.spans(:keep) }
-
   let(:span) do
-    expect(all_spans).to have(1).item
-    all_spans.find { |s| s.service == 'action_cable' }
+    expect(spans).to have(1).item
+    spans.find { |s| s.service == 'action_cable' }
   end
 
   context 'with server' do
@@ -135,12 +132,12 @@ RSpec.describe 'ActionCable patcher' do
         end)
       end
 
-      let(:span) { all_spans.last } # Skip 'perform_action' span
+      let(:span) { spans.last } # Skip 'perform_action' span
 
       it 'traces transmit event' do
         perform
 
-        expect(all_spans).to have(2).items
+        expect(spans).to have(2).items
         expect(span.service).to eq('action_cable')
         expect(span.name).to eq('action_cable.transmit')
         expect(span.span_type).to eq('web')

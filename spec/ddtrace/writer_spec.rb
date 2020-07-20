@@ -56,6 +56,8 @@ RSpec.describe Datadog::Writer do
             .and_return(responses)
 
           allow(transport).to receive(:stats).and_return(transport_stats)
+
+          allow(Datadog::Diagnostics::EnvironmentLogger).to receive(:log!)
         end
 
         shared_examples_for 'priority sampling update' do
@@ -94,6 +96,13 @@ RSpec.describe Datadog::Writer do
           end
         end
 
+        shared_examples 'records environment information' do
+          it 'calls environment logger' do
+            subject
+            expect(Datadog::Diagnostics::EnvironmentLogger).to have_received(:log!).with(responses)
+          end
+        end
+
         context 'which returns a response that is' do
           let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
 
@@ -112,6 +121,8 @@ RSpec.describe Datadog::Writer do
                 end
               end
             end
+
+            it_behaves_like 'records environment information'
           end
 
           context 'a server error' do
@@ -129,6 +140,8 @@ RSpec.describe Datadog::Writer do
                 end
               end
             end
+
+            it_behaves_like 'records environment information'
           end
 
           context 'an internal error' do
@@ -156,6 +169,8 @@ RSpec.describe Datadog::Writer do
                 end
               end
             end
+
+            it_behaves_like 'records environment information'
           end
         end
 
@@ -164,12 +179,14 @@ RSpec.describe Datadog::Writer do
             instance_double(Datadog::Transport::HTTP::Traces::Response,
                             internal_error?: false,
                             server_error?: false,
+                            ok?: true,
                             trace_count: 10)
           end
           let(:response2) do
             instance_double(Datadog::Transport::HTTP::Traces::Response,
                             internal_error?: false,
                             server_error?: false,
+                            ok?: true,
                             trace_count: 20)
           end
 
@@ -179,7 +196,8 @@ RSpec.describe Datadog::Writer do
             let(:response2) do
               instance_double(Datadog::Transport::HTTP::Traces::Response,
                               internal_error?: false,
-                              server_error?: true)
+                              server_error?: true,
+                              ok?: false)
             end
 
             it do
@@ -187,6 +205,8 @@ RSpec.describe Datadog::Writer do
               expect(writer.stats[:traces_flushed]).to eq(10)
             end
           end
+
+          it_behaves_like 'records environment information'
         end
 
         context 'with report hostname' do
@@ -201,12 +221,8 @@ RSpec.describe Datadog::Writer do
           end
 
           context 'enabled' do
-            around do |example|
-              Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-                Datadog.configuration.report_hostname = true
-                example.run
-              end
-            end
+            before { Datadog.configuration.report_hostname = true }
+            after { Datadog.configuration.reset! }
 
             it do
               expect(transport).to receive(:send_traces) do |traces|
@@ -220,12 +236,8 @@ RSpec.describe Datadog::Writer do
           end
 
           context 'disabled' do
-            around do |example|
-              Datadog.configuration.report_hostname = Datadog.configuration.report_hostname.tap do
-                Datadog.configuration.report_hostname = false
-                example.run
-              end
-            end
+            before { Datadog.configuration.report_hostname = false }
+            after { Datadog.configuration.reset! }
 
             it do
               expect(writer.transport).to receive(:send_traces) do |traces|

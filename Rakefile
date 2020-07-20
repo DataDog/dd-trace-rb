@@ -95,6 +95,8 @@ namespace :spec do
     :graphql,
     :grpc,
     :http,
+    :httprb,
+    :kafka,
     :mongodb,
     :mysql2,
     :presto,
@@ -121,7 +123,7 @@ end
 namespace :test do
   task all: [:main,
              :rails,
-             :sidekiq, :monkey]
+             :monkey]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w[test lib]
@@ -140,7 +142,6 @@ namespace :test do
 
   [
     :grape,
-    :sidekiq,
     :sucker_punch
   ].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
@@ -199,7 +200,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
@@ -214,6 +214,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:excon'
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       sh 'bundle exec appraisal contrib-old rake spec:http'
+      sh 'bundle exec appraisal contrib-old rake spec:httprb'
       sh 'bundle exec appraisal contrib-old rake spec:mongodb'
       sh 'bundle exec appraisal contrib-old rake spec:mysql2'
       sh 'bundle exec appraisal contrib-old rake spec:rack'
@@ -256,7 +257,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:sidekiq'
       sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
@@ -271,6 +271,7 @@ task :ci do
       sh 'bundle exec appraisal contrib-old rake spec:excon'
       sh 'bundle exec appraisal contrib-old rake spec:faraday'
       sh 'bundle exec appraisal contrib-old rake spec:http'
+      sh 'bundle exec appraisal contrib-old rake spec:httprb'
       sh 'bundle exec appraisal contrib-old rake spec:mongodb'
       sh 'bundle exec appraisal contrib-old rake spec:mysql2'
       sh 'bundle exec appraisal contrib-old rake spec:presto'
@@ -320,7 +321,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -340,6 +340,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httprb'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
@@ -395,7 +396,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -415,6 +415,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httprb'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
@@ -475,7 +476,6 @@ task :ci do
       sh 'bundle exec rake benchmark'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -495,6 +495,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httprb'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
@@ -540,7 +541,6 @@ task :ci do
       sh 'bundle exec rake benchmark'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -560,6 +560,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httprb'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
@@ -615,7 +616,6 @@ task :ci do
       sh 'bundle exec rake benchmark'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -635,6 +635,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httprb'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
@@ -689,7 +690,6 @@ task :ci do
       sh 'bundle exec rake benchmark'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sidekiq'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -709,6 +709,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:graphql'
       sh 'bundle exec appraisal contrib rake spec:grpc'
       sh 'bundle exec appraisal contrib rake spec:http'
+      sh 'bundle exec appraisal contrib rake spec:httprb'
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'

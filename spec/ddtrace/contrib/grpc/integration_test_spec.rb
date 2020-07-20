@@ -1,19 +1,13 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require_relative 'support/grpc_helper'
 require 'ddtrace'
 
 RSpec.describe 'gRPC integration test' do
   include GRPCHelper
 
-  let(:tracer) { get_test_tracer }
-
-  let(:spans) do
-    tracer.writer.spans
-  end
-
   before do
     Datadog.configure do |c|
-      c.use :grpc, tracer: tracer, service_name: 'rspec'
+      c.use :grpc, service_name: 'rspec'
     end
   end
 
@@ -37,8 +31,10 @@ RSpec.describe 'gRPC integration test' do
       span = spans.first
       expect(span.service).to eq 'rspec'
 
+      clear_spans!
+
       run_request_reply(endpoint, alternate_client)
-      span = configured_interceptor.datadog_pin.tracer.writer.spans.first
+      span = fetch_spans(configured_interceptor.datadog_pin.tracer).first
       expect(span.service).to eq 'awesome sauce'
     end
   end

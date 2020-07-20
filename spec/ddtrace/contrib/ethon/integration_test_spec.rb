@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require 'ddtrace/contrib/ethon/easy_patch'
 require 'ddtrace/contrib/ethon/multi_patch'

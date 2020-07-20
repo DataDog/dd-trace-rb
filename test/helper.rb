@@ -236,3 +236,87 @@ def remove_patch!(integration)
     .registry[integration]
     .instance_variable_set('@patched', false)
 end
+
+require 'ddtrace/contrib/patcher'
+Datadog::Contrib::Patcher::CommonMethods.send(:prepend, Module.new do
+  # Raise error during tests that fail to patch integration, instead of simply printing a warning message.
+  def on_patch_error(e)
+    raise e
+  end
+end)
+
+require 'minitest/around/unit'
+require 'minitest/stub_any_instance'
+
+module TestTracerHelper
+  # Integration name for settings cleanup
+  def integration_name; end
+
+  def around(&block)
+    if integration_name
+      Datadog.registry[integration_name].reset_configuration!
+      Datadog.configuration[integration_name].reset_options!
+    end
+
+    with_stubbed_tracer(&block)
+
+    if integration_name
+      Datadog.registry[integration_name].reset_configuration!
+      Datadog.configuration[integration_name].reset_options!
+    end
+  end
+
+  def with_stubbed_tracer
+    # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
+    write_lock = Mutex.new
+    mock = lambda { |trace|
+      write_lock.synchronize do
+        @spans ||= []
+        @spans << trace
+      end
+    }
+
+    Datadog::Tracer.stub_any_instance(:write, mock) do
+      configure if defined?(configure)
+
+      yield
+    end
+  end
+
+  def spans
+    @spans ||= fetch_spans
+  end
+
+  def tracer
+    Datadog.tracer
+  end
+
+  # Retrieves and sorts all spans in the current tracer instance.
+  # This method does not cache its results.
+  def fetch_spans(tracer = self.tracer)
+    spans = tracer.instance_variable_get(:@spans) || []
+    spans.flatten.sort! do |a, b|
+      if a.name == b.name
+        if a.resource == b.resource
+          if a.start_time == b.start_time
+            a.end_time <=> b.end_time
+          else
+            a.start_time <=> b.start_time
+          end
+        else
+          a.resource <=> b.resource
+        end
+      else
+        a.name <=> b.name
+      end
+    end
+  end
+
+  # Remove all traces from the current tracer instance and
+  # busts cache of +#spans+.
+  def clear_spans!
+    tracer.instance_variable_set(:@spans, [])
+
+    @spans = nil
+  end
+end

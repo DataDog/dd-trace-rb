@@ -12,6 +12,9 @@ module Datadog
         option :service_name
         option :tracer do |o|
           o.delegate_to { Datadog.tracer }
+          o.on_set do |_value|
+            log_deprecation_warning(:tracer)
+          end
         end
 
         def configure(options = {})
@@ -28,6 +31,21 @@ module Datadog
 
         def []=(name, value)
           respond_to?("#{name}=") ? send("#{name}=", value) : set_option(name, value)
+        end
+
+        DEPRECATION_WARNING = %(
+          Explicitly providing a tracer instance is DEPRECATED.
+          It's recommended to not provide an explicit tracer instance
+          and let Datadog::Contrib::Configuration::Settings resolve
+          the correct tracer internally.
+          ).freeze
+
+        include Datadog::Patcher # DEV includes #do_once here. We should move that logic to a generic component.
+
+        def log_deprecation_warning(method_name)
+          do_once(method_name) do
+            Datadog.logger.warn("#{method_name}:#{DEPRECATION_WARNING}:#{caller.join("\n")}")
+          end
         end
       end
     end

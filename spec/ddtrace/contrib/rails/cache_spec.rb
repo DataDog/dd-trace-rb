@@ -1,3 +1,6 @@
+require 'spec_helper'
+require 'ddtrace/contrib/analytics_examples'
+
 require 'securerandom'
 require 'ddtrace/contrib/rails/ext'
 

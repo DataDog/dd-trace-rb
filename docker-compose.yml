@@ -281,11 +281,11 @@ services:
       - bundle-jruby-9.2:/usr/local/bundle
       - gemfiles-jruby-9.2:/app/gemfiles
   ddagent:
-    image: datadog/docker-dd-agent
+    image: datadog/agent
     environment:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=invalid_key_but_this_is_fine
+      - DD_API_KEY=00000000000000000000000000000000
     expose:
       - "8125/udp"
       - "8126"
