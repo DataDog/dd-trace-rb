@@ -120,15 +120,11 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
     end
   end
 
-  describe '#to_profile' do
-    subject(:to_profile) { template.to_profile }
-    it { is_expected.to be_kind_of(Perftools::Profiles::Profile) }
-  end
+  describe '#to_pprof' do
+    subject(:to_pprof) { template.to_pprof }
 
-  describe '#to_encoded_profile' do
-    subject(:to_encoded_profile) { template.to_encoded_profile }
     let(:profile) { instance_double(Perftools::Profiles::Profile) }
-    let(:encoded_string) { instance_double(String) }
+    let(:data) { instance_double(String) }
 
     before do
       expect(template.builder)
@@ -138,9 +134,15 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
       expect(template.builder)
         .to receive(:encode_profile)
         .with(profile)
-        .and_return(encoded_string)
+        .and_return(data)
     end
 
-    it { is_expected.to be(encoded_string) }
+    it 'returns a Payload with data and types' do
+      is_expected.to be_a_kind_of(Datadog::Profiling::Pprof::Payload)
+      is_expected.to have_attributes(
+        data: data,
+        types: template.sample_type_mappings.keys
+      )
+    end
   end
 end

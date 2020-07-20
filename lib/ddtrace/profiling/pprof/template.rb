@@ -1,3 +1,4 @@
+require 'ddtrace/profiling/pprof/payload'
 require 'ddtrace/profiling/pprof/message_set'
 require 'ddtrace/profiling/pprof/builder'
 
@@ -73,12 +74,12 @@ module Datadog
           converters[event_class].add_events!(events)
         end
 
-        def to_profile
-          builder.build_profile
-        end
+        def to_pprof
+          profile = builder.build_profile
+          data = builder.encode_profile(profile)
+          types = sample_type_mappings.keys
 
-        def to_encoded_profile
-          builder.encode_profile(to_profile)
+          Payload.new(data, types)
         end
 
         # Error when an unknown event type is given to be converted
