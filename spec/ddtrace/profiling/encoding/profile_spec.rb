@@ -15,7 +15,7 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
 
     let(:template) { instance_double(Datadog::Profiling::Pprof::Template) }
     let(:profile) { instance_double(Perftools::Profiles::Profile) }
-    let(:encoded_profile) { instance_double(String) }
+    let(:payload) { instance_double(Datadog::Profiling::Pprof::Payload) }
 
     before do
       expect(Datadog::Profiling::Pprof::Template)
@@ -29,11 +29,11 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
         .ordered
 
       expect(template)
-        .to receive(:to_encoded_profile)
-        .and_return(encoded_profile)
+        .to receive(:to_pprof)
+        .and_return(payload)
         .ordered
     end
 
-    it { is_expected.to be encoded_profile }
+    it { is_expected.to be payload }
   end
 end
