@@ -22,7 +22,7 @@ module Datadog
             flush.event_groups.each { |event_group| template.add_events!(event_group.event_class, event_group.events) }
 
             # Build the profile and encode it
-            template.to_encoded_profile
+            template.to_pprof
           end
         end
       end
