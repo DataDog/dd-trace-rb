@@ -27,7 +27,7 @@ module Datadog
       # Pass a block to override any settings.
       def default(options = {})
         new do |transport|
-          transport.adapter default_adapter, default_hostname, default_port
+          transport.adapter default_adapter, default_hostname, default_port, timeout: 1
           transport.headers default_headers
 
           apis = API.defaults
@@ -43,7 +43,7 @@ module Datadog
               hostname = options[:hostname] || default_hostname
               port = options[:port] || default_port
 
-              adapter_options = {}
+              adapter_options = { timeout: 1 }
               adapter_options[:timeout] = options[:timeout] if options.key?(:timeout)
               adapter_options[:ssl] = options[:ssl] if options.key?(:ssl)
 
