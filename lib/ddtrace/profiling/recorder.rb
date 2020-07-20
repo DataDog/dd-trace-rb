@@ -8,6 +8,7 @@ module Datadog
     class Recorder
       def initialize(event_classes, max_size)
         @buffers = {}
+        @last_flush_time = Time.now.utc
 
         # Add a buffer for each class
         event_classes.each do |event_class|
@@ -29,12 +30,24 @@ module Datadog
         end
       end
 
-      def pop
-        @buffers.collect do |event_class, buffer|
-          events = buffer.pop
-          next if events.empty?
-          Flush.new(event_class, events)
-        end.compact
+      def flush
+        event_count = 0
+
+        event_groups, start, finish = update_time do
+          @buffers.collect do |event_class, buffer|
+            events = buffer.pop
+            next if events.empty?
+            event_count += events.length
+            EventGroup.new(event_class, events)
+          end.compact
+        end
+
+        Flush.new(
+          start,
+          finish,
+          event_groups,
+          event_count
+        )
       end
 
       # Error when event of an unknown type is used with the Recorder
@@ -48,6 +61,17 @@ module Datadog
         def message
           @message ||= "Unknown event class '#{event_class}' for profiling recorder."
         end
+      end
+
+      private
+
+      def update_time
+        start = @last_flush_time
+        result = yield
+        @last_flush_time = Time.now.utc
+
+        # Return event groups, start time, finish time
+        [result, start, @last_flush_time]
       end
     end
   end

@@ -17,7 +17,7 @@ module ProfilingFeatureHelpers
 end
 
 module ProfileHelpers
-  def get_test_profiling_flushes
+  def get_test_profiling_flush
     stack_one = Thread.current.backtrace_locations.first(3)
     stack_two = Thread.current.backtrace_locations.first(3)
 
@@ -29,9 +29,16 @@ module ProfileHelpers
       build_stack_sample(stack_two, 101, 1600, 1600)
     ]
 
-    [
-      Datadog::Profiling::Flush.new(Datadog::Profiling::Events::StackSample, stack_samples)
-    ]
+    start = Time.now.utc
+    finish = start + 10
+    event_groups = [Datadog::Profiling::EventGroup.new(Datadog::Profiling::Events::StackSample, stack_samples)]
+
+    Datadog::Profiling::Flush.new(
+      start,
+      finish,
+      event_groups,
+      stack_samples.length
+    )
   end
 
   def build_stack_sample(locations = nil, thread_id = nil, cpu_time_ns = nil, wall_time_ns = nil)
