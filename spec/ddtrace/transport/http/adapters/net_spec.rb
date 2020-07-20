@@ -24,9 +24,27 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
 
       allow(http_connection).to receive(:open_timeout=).with(adapter.timeout)
       allow(http_connection).to receive(:read_timeout=).with(adapter.timeout)
+      allow(http_connection).to receive(:use_ssl=).with(adapter.ssl)
 
       allow(http_connection).to receive(:start).and_yield(http_connection)
     end
+  end
+
+  shared_context 'HTTP Env' do
+    let(:env) do
+      instance_double(
+        Datadog::Transport::HTTP::Env,
+        path: path,
+        body: body,
+        headers: headers,
+        form: form
+      )
+    end
+
+    let(:path) { '/foo' }
+    let(:body) { '{}' }
+    let(:headers) { {} }
+    let(:form) { {} }
   end
 
   describe '#initialize' do
@@ -37,15 +55,30 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
         is_expected.to have_attributes(
           hostname: hostname,
           port: port,
-          timeout: Datadog::Transport::HTTP::Adapters::Net::DEFAULT_TIMEOUT
+          timeout: Datadog::Transport::HTTP::Adapters::Net::DEFAULT_TIMEOUT,
+          ssl: false
         )
       end
     end
 
-    context 'given a timeout option' do
+    context 'given a :timeout option' do
       let(:options) { { timeout: timeout } }
       let(:timeout) { double('timeout') }
       it { is_expected.to have_attributes(timeout: timeout) }
+    end
+
+    context 'given a :ssl option' do
+      let(:options) { { ssl: ssl } }
+
+      context 'with nil' do
+        let(:ssl) { nil }
+        it { is_expected.to have_attributes(ssl: false) }
+      end
+
+      context 'with true' do
+        let(:ssl) { true }
+        it { is_expected.to have_attributes(ssl: true) }
+      end
     end
   end
 
@@ -58,11 +91,9 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
   end
 
   describe '#call' do
+    include_context 'HTTP Env'
+
     subject(:call) { adapter.call(env) }
-    let(:env) { instance_double(Datadog::Transport::HTTP::Env, path: path, body: body, headers: headers) }
-    let(:path) { '/foo' }
-    let(:body) { '{}' }
-    let(:headers) { {} }
 
     context 'given an HTTP::Env with a verb' do
       before { allow(env).to receive(:verb).and_return(verb) }
@@ -77,11 +108,48 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
         let(:verb) { :post }
         let(:http_response) { double('http_response') }
 
-        before { expect(http_connection).to receive(:request).and_return(http_response) }
+        context 'and an empty form body' do
+          let(:form) { {} }
+          let(:post) { instance_double(Net::HTTP::Post) }
 
-        it 'produces a response' do
-          is_expected.to be_a_kind_of(described_class::Response)
-          expect(call.http_response).to be(http_response)
+          it 'makes a POST and produces a response' do
+            expect(Net::HTTP::Post)
+              .to receive(:new)
+              .with(env.path, env.headers)
+              .and_return(post)
+
+            expect(post)
+              .to receive(:body=)
+              .with(env.body)
+
+            expect(http_connection)
+              .to receive(:request)
+              .with(post)
+              .and_return(http_response)
+
+            is_expected.to be_a_kind_of(described_class::Response)
+            expect(call.http_response).to be(http_response)
+          end
+        end
+
+        context 'and a form with fields' do
+          let(:form) { { 'id' => '1234', 'type' => 'Test' } }
+          let(:multipart_post) { instance_double(Datadog::Vendor::Net::HTTP::Post::Multipart) }
+
+          it 'makes a multipart POST and produces a response' do
+            expect(Datadog::Vendor::Net::HTTP::Post::Multipart)
+              .to receive(:new)
+              .with(env.path, env.form, env.headers)
+              .and_return(multipart_post)
+
+            expect(http_connection)
+              .to receive(:request)
+              .with(multipart_post)
+              .and_return(http_response)
+
+            is_expected.to be_a_kind_of(described_class::Response)
+            expect(call.http_response).to be(http_response)
+          end
         end
       end
     end
@@ -89,13 +157,9 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
 
   describe '#post' do
     include_context 'HTTP connection stub'
+    include_context 'HTTP Env'
 
     subject(:post) { adapter.post(env) }
-    let(:env) { instance_double(Datadog::Transport::HTTP::Env, path: path, body: body, headers: headers) }
-    let(:path) { '/foo' }
-    let(:body) { '{}' }
-    let(:headers) { {} }
-
     let(:http_response) { double('http_response') }
 
     before { expect(http_connection).to receive(:request).and_return(http_response) }
