@@ -102,7 +102,7 @@ RSpec.describe 'profiling integration test' do
   end
 
   describe 'building a Perftools::Profiles::Profile using Pprof::Template' do
-    subject(:build_profile) { template.to_profile }
+    subject(:build_profile) { template.to_pprof }
     let(:template) { Datadog::Profiling::Pprof::Template.for_event_classes(event_classes) }
     let(:event_classes) { events.keys.uniq }
     let(:events) do
@@ -145,8 +145,8 @@ RSpec.describe 'profiling integration test' do
       events.each { |event_class, events| template.add_events!(event_class, events) }
     end
 
-    describe 'yields a profile' do
-      subject(:profile) { build_profile }
+    describe 'yields an encoded profile' do
+      subject(:profile) { Perftools::Profiles::Profile.decode(build_profile.data) }
 
       it { is_expected.to be_kind_of(Perftools::Profiles::Profile) }
 
