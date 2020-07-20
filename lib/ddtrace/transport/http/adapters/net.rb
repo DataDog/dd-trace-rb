@@ -13,7 +13,7 @@ module Datadog
             :timeout,
             :ssl
 
-          DEFAULT_TIMEOUT = 1
+          DEFAULT_TIMEOUT = 30
 
           def initialize(hostname, port, options = {})
             @hostname = hostname
