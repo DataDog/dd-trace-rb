@@ -1,4 +1,5 @@
 require 'ddtrace/transport/response'
+require 'ddtrace/vendor/multipart-post/net/http/post/multipart'
 
 module Datadog
   module Transport
@@ -9,7 +10,8 @@ module Datadog
           attr_reader \
             :hostname,
             :port,
-            :timeout
+            :timeout,
+            :ssl
 
           DEFAULT_TIMEOUT = 1
 
@@ -17,11 +19,12 @@ module Datadog
             @hostname = hostname
             @port = port
             @timeout = options[:timeout] || DEFAULT_TIMEOUT
+            @ssl = options.key?(:ssl) ? options[:ssl] == true : false
           end
 
           def open
             # Open connection
-            ::Net::HTTP.start(hostname, port, open_timeout: timeout, read_timeout: timeout) do |http|
+            ::Net::HTTP.start(hostname, port, open_timeout: timeout, read_timeout: timeout, use_ssl: ssl) do |http|
               yield(http)
             end
           end
@@ -35,8 +38,18 @@ module Datadog
           end
 
           def post(env)
-            post = ::Net::HTTP::Post.new(env.path, env.headers)
-            post.body = env.body
+            post = nil
+
+            if env.form.nil? || env.form.empty?
+              post = ::Net::HTTP::Post.new(env.path, env.headers)
+              post.body = env.body
+            else
+              post = ::Datadog::Vendor::Net::HTTP::Post::Multipart.new(
+                env.path,
+                env.form,
+                env.headers
+              )
+            end
 
             # Connect and send the request
             http_response = open do |http|

@@ -93,7 +93,7 @@ module Datadog
               api_options[:headers] = @default_headers.merge((api_options[:headers] || {}))
 
               # Add API::Instance with all settings
-              instances[key] = API::Instance.new(
+              instances[key] = api_instance_class.new(
                 spec,
                 adapter,
                 api_options
@@ -103,6 +103,10 @@ module Datadog
               instances.with_fallbacks(key => fallback) unless fallback.nil?
             end
           end
+        end
+
+        def api_instance_class
+          API::Instance
         end
 
         # Raised when the API key does not match known APIs.
