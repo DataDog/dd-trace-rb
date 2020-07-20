@@ -46,6 +46,8 @@ RSpec.describe Datadog::Transport::HTTP do
         expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
         expect(api.adapter.hostname).to eq(described_class.default_hostname)
         expect(api.adapter.port).to eq(described_class.default_port)
+        expect(api.adapter.timeout).to eq(1)
+        expect(api.adapter.ssl).to be false
         expect(api.headers).to include(described_class.default_headers)
       end
     end
@@ -73,21 +75,35 @@ RSpec.describe Datadog::Transport::HTTP do
             expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(described_class.default_hostname)
             expect(api.adapter.port).to eq(described_class.default_port)
+            expect(api.adapter.timeout).to eq(1)
+            expect(api.adapter.ssl).to be false
             expect(api.headers).to include(described_class.default_headers)
           end
         end
       end
 
-      context 'that specify hostname and port' do
-        let(:options) { { hostname: hostname, port: port } }
+      context 'that specify host, port, timeout or ssl' do
+        let(:options) do
+          {
+            hostname: hostname,
+            port: port,
+            timeout: timeout,
+            ssl: ssl
+          }
+        end
+
         let(:hostname) { double('hostname') }
         let(:port) { double('port') }
+        let(:timeout) { double('timeout') }
+        let(:ssl) { true }
 
-        it 'returns an HTTP transport with default configuration' do
+        it 'returns a transport with provided options' do
           default.apis.each do |_key, api|
             expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(hostname)
             expect(api.adapter.port).to eq(port)
+            expect(api.adapter.timeout).to be(timeout)
+            expect(api.adapter.ssl).to be true
           end
         end
       end
@@ -153,6 +169,11 @@ RSpec.describe Datadog::Transport::HTTP do
         it { is_expected.to_not include(Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID) }
       end
     end
+  end
+
+  describe '.default_adapter' do
+    subject(:default_adapter) { described_class.default_adapter }
+    it { is_expected.to be(:net_http) }
   end
 
   describe '.default_hostname' do
