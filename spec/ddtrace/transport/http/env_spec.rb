@@ -13,7 +13,8 @@ RSpec.describe Datadog::Transport::HTTP::Env do
     it do
       is_expected.to have_attributes(
         request: request,
-        headers: {}
+        headers: {},
+        form: {}
       )
     end
 
@@ -32,5 +33,7 @@ RSpec.describe Datadog::Transport::HTTP::Env do
     is_expected.to respond_to(:body=)
     is_expected.to respond_to(:headers)
     is_expected.to respond_to(:headers=)
+    is_expected.to respond_to(:form)
+    is_expected.to respond_to(:form=)
   end
 end
