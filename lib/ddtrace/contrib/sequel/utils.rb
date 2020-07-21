@@ -5,7 +5,7 @@ module Datadog
       module Utils
         class << self
           def adapter_name(database)
-            Datadog::Utils::Database.normalize_vendor(database.adapter_scheme.to_s)
+            Datadog::Utils::Database.normalize_vendor(database.database_type.to_s)
           end
 
           def parse_opts(sql, opts, db_opts)

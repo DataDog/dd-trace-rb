@@ -9,8 +9,16 @@ require 'ddtrace/contrib/sequel/integration'
 RSpec.describe 'Sequel instrumentation' do
   let(:configuration_options) { {} }
   let(:sequel) do
-    Sequel.sqlite(':memory:').tap do |s|
-      Datadog.configure(s)
+    Sequel.connect(connection_string).tap do |db|
+      Datadog.configure(db)
+    end
+  end
+
+  let(:connection_string) do
+    if PlatformHelpers.jruby?
+      'jdbc:sqlite::memory:'
+    else
+      'sqlite::memory:'
     end
   end
 

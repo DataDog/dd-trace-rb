@@ -230,7 +230,7 @@ end
 RSpec.shared_examples_for 'measured span for integration' do |expect_active = true|
   if expect_active
     it "sets #{Datadog::Ext::Analytics::TAG_MEASURED} on the span" do
-      expect(span.get_metric(Datadog::Ext::Analytics::TAG_MEASURED)).to be 1.0
+      expect(span.get_metric(Datadog::Ext::Analytics::TAG_MEASURED)).to eq 1.0
     end
   else
     it "does not set #{Datadog::Ext::Analytics::TAG_MEASURED} on the span" do

@@ -107,7 +107,9 @@ RSpec.describe 'Server tracer' do
 
     before do
       stub_const('DelayableClass', Class.new do
-        def self.do_work; end
+        def self.do_work
+          puts 'a'
+        end
       end)
     end
 

@@ -116,6 +116,8 @@ RSpec.describe 'Resque instrumentation' do
   context 'with forking' do
     it_should_behave_like 'job execution tracing'
 
+    before { skip unless PlatformHelpers.supports_fork? }
+
     context 'trace context' do
       before(:each) do
         expect(job_class).to receive(:perform) do

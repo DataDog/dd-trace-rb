@@ -54,7 +54,7 @@ class TracedRackAPITest < BaseRackAPITest
     assert_equal(render.status, 1)
     assert_equal(render.get_tag('error.type'), 'StandardError')
     assert_equal(render.get_tag('error.msg'), 'Ouch!')
-    assert_includes(render.get_tag('error.stack'), '<class:RackTestingAPI>')
+    assert_includes(render.get_tag('error.stack'), 'grape/rack_app.rb')
     assert_equal(render.parent, run)
 
     assert_equal(run.name, 'grape.endpoint_run')
