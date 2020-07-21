@@ -41,6 +41,10 @@ module ProfileHelpers
     )
   end
 
+  def get_test_payload
+    Datadog::Profiling::Encoding::Profile::Protobuf.encode(get_test_profiling_flush)
+  end
+
   def build_stack_sample(locations = nil, thread_id = nil, cpu_time_ns = nil, wall_time_ns = nil)
     locations ||= Thread.current.backtrace_locations
 
