@@ -7,7 +7,7 @@ require 'webrick'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/http/adapters/net'
 
-RSpec.describe 'Adapters::Net integration tests' do
+RSpec.describe 'Adapters::Net tracing integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   subject(:adapter) { Datadog::Transport::HTTP::Adapters::Net.new(hostname, port) }
