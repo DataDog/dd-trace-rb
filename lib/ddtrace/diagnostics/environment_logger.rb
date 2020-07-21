@@ -262,7 +262,9 @@ module Datadog
           integration.configuration.to_h.flat_map do |setting, value|
             next [] if setting == :tracer # Skip internal Ruby objects
 
-            [[:"integration_#{name}_#{setting}", value]]
+            # Convert value to a string to avoid custom #to_json
+            # handlers possibly causing errors.
+            [[:"integration_#{name}_#{setting}", value.to_s]]
           end
         end]
       end

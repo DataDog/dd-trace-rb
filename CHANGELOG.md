@@ -14,7 +14,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...v0.38.0
 - Kafka integration (#1070) (@tjwp)
 - Span#set_tags (#1081) (@DocX)
 - retry_count tag for Sidekiq jobs (#1089) (@elyalvarado)
-- Startup environment log (#1104)
+- Startup environment log (#1104, #1109)
 - DD_SITE and DD_API_KEY configuration (#1107)
 
 ### Changed
