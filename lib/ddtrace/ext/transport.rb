@@ -8,6 +8,7 @@ module Datadog
         ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'.freeze
         ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'.freeze
         HEADER_CONTAINER_ID = 'Datadog-Container-ID'.freeze
+        HEADER_DD_API_KEY = 'DD-API-KEY'.freeze
         HEADER_META_LANG = 'Datadog-Meta-Lang'.freeze
         HEADER_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'.freeze
         HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'.freeze
