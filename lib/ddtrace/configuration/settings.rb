@@ -37,7 +37,10 @@ module Datadog
       end
 
       settings :diagnostics do
-        option :debug, default: false
+        option :debug do |o|
+          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG_LOGS, false) }
+          o.lazy
+        end
 
         settings :health_metrics do
           option :enabled do |o|
