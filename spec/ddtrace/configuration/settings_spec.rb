@@ -843,6 +843,29 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#enabled' do
       subject(:enabled) { settings.tracer.enabled }
       it { is_expected.to be true }
+
+      context "when #{Datadog::Ext::Diagnostics::DD_TRACE_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED => enable) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:enable) { nil }
+          it { is_expected.to be true }
+        end
+
+        context 'is set to true' do
+          let(:enable) { 'true' }
+          it { is_expected.to be true }
+        end
+
+        context 'is set to false' do
+          let(:enable) { 'false' }
+          it { is_expected.to be false }
+        end
+      end
     end
 
     describe '#enabled=' do

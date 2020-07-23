@@ -201,7 +201,10 @@ module Datadog
       end
 
       settings :tracer do
-        option :enabled, default: true
+        option :enabled do |o|
+          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED, true) }
+          o.lazy
+        end
         option :hostname # TODO: Deprecate
         option :instance
 

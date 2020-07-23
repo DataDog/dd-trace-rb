@@ -3,6 +3,7 @@ module Datadog
     module Diagnostics
       DD_TRACE_STARTUP_LOGS = 'DD_TRACE_STARTUP_LOGS'.freeze
       DD_TRACE_DEBUG_LOGS = 'DD_TRACE_DEBUG'.freeze
+      DD_TRACE_ENABLED = 'DD_TRACE_ENABLED'.freeze
       # Health
       module Health
         # Metrics

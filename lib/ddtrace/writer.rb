@@ -82,7 +82,7 @@ module Datadog
 
     # flush spans to the trace-agent, handles spans only
     def send_spans(traces, transport)
-      return true if traces.empty?
+      return true if traces.empty? || tracer_disabled
 
       # Inject hostname if configured to do so
       inject_hostname!(traces) if Datadog.configuration.report_hostname
