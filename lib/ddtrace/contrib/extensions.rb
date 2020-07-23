@@ -56,7 +56,7 @@ module Datadog
           def instrument(integration_name, options = {}, &block)
             integration = fetch_integration(integration_name)
 
-            unless integration.nil?
+            unless integration.nil? || !integration_enabled?(integration_name)
               configuration_name = options[:describes] || :default
               filtered_options = options.reject { |k, _v| k == :describes }
               integration.configure(configuration_name, filtered_options, &block)
@@ -85,6 +85,10 @@ module Datadog
           def fetch_integration(name)
             registry[name] ||
               raise(InvalidIntegrationError, "'#{name}' is not a valid integration.")
+          end
+
+          def integration_enabled?(name)
+            env_to_bool("DD_TRACE_#{name.to_s.sub(':','').upcase}_ENABLED", true)
           end
         end
       end
