@@ -4,7 +4,8 @@ module Datadog
       # ActiveSupport integration constants
       module Ext
         APP = 'active_support'.freeze
-        ENV_ANALYTICS_ENABLED = 'DD_ACTIVE_SUPPORT_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED_OLD = 'DD_ACTIVE_SUPPORT_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_ACTIVE_SUPPORT_ANALYTICS_SAMPLE_RATE'.freeze
         QUANTIZE_CACHE_MAX_KEY_SIZE = 300
         RESOURCE_CACHE_DELETE = 'DELETE'.freeze

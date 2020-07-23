@@ -4,7 +4,8 @@ module Datadog
       # Racecar integration constants
       module Ext
         APP = 'racecar'.freeze
-        ENV_ANALYTICS_ENABLED = 'DD_RACECAR_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_TRACE_RACECAR_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED_OLD = 'DD_RACECAR_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_RACECAR_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'racecar'.freeze
         SPAN_BATCH = 'racecar.batch'.freeze

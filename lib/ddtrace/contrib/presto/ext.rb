@@ -4,7 +4,8 @@ module Datadog
       # Presto integration constants
       module Ext
         APP = 'presto'.freeze
-        ENV_ANALYTICS_ENABLED = 'DD_PRESTO_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_TRACE_PRESTO_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED_OLD = 'DD_PRESTO_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_PRESTO_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'presto'.freeze
         SPAN_QUERY = 'presto.query'.freeze

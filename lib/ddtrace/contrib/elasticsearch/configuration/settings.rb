@@ -8,7 +8,7 @@ module Datadog
         # Custom settings for the Elasticsearch integration
         class Settings < Contrib::Configuration::Settings
           option :analytics_enabled do |o|
-            o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) }
+            o.default { env_to_bool([Ext::ENV_ANALYTICS_ENABLED, Ext::ENV_ANALYTICS_ENABLED_OLD], false) }
             o.lazy
           end
 

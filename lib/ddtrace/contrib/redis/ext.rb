@@ -4,7 +4,8 @@ module Datadog
       # Redis integration constants
       module Ext
         APP = 'redis'.freeze
-        ENV_ANALYTICS_ENABLED = 'DD_REDIS_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_TRACE_REDIS_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED_OLD = 'DD_REDIS_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_REDIS_ANALYTICS_SAMPLE_RATE'.freeze
         METRIC_PIPELINE_LEN = 'redis.pipeline_length'.freeze
         SERVICE_NAME = 'redis'.freeze

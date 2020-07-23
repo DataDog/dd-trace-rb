@@ -4,7 +4,8 @@ module Datadog
       # Rake integration constants
       module Ext
         APP = 'rake'.freeze
-        ENV_ANALYTICS_ENABLED = 'DD_RAKE_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_TRACE_RAKE_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED_OLD = 'DD_RAKE_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_RAKE_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'rake'.freeze
         SPAN_INVOKE = 'rake.invoke'.freeze

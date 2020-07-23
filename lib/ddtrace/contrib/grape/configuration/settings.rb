@@ -9,7 +9,7 @@ module Datadog
         # Custom settings for the Grape integration
         class Settings < Contrib::Configuration::Settings
           option :analytics_enabled do |o|
-            o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) }
+            o.default { env_to_bool([Ext::ENV_ANALYTICS_ENABLED, Ext::ENV_ANALYTICS_ENABLED_OLD], nil) }
             o.lazy
           end
 

@@ -4,7 +4,8 @@ module Datadog
       # ActionView integration constants
       module Ext
         APP = 'action_view'.freeze
-        ENV_ANALYTICS_ENABLED = 'DD_ACTION_VIEW_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED_OLD = 'DD_ACTION_VIEW_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_ACTION_VIEW_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'action_view'.freeze
         SPAN_RENDER_PARTIAL = 'rails.render_partial'.freeze
