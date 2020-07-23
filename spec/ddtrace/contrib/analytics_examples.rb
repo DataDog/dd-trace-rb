@@ -153,8 +153,8 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
     end
 
     context 'and explicitly enabled via deprecated env var' do
-      deprecated_analytics_enabled_var = analytics_enabled_var.sub('DD_TRACE_', 'DD_')
       around do |example|
+        deprecated_analytics_enabled_var = analytics_enabled_var.sub('DD_TRACE_', 'DD_')
         ClimateControl.modify(deprecated_analytics_enabled_var => 'true') do
           example.run
         end
