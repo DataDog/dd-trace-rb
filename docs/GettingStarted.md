@@ -1688,6 +1688,15 @@ This enables you to set this value on a per application basis, so you can have f
 
 Tags can also be set directly on individual spans, which will supersede any conflicting tags defined at the application level.
 
+### Environment variables
+
+Other Environment Variables:
+
+- `DD_TRACE_AGENT_URL`: Sets the URL endpoint where traces are sent. Overrides DD_AGENT_HOST and DD_TRACE_AGENT_PORT if set. e.g. `DD_TRACE_AGENT_URL=http://localhost:8126`
+- `DD_TRACE_<INTEGRATION>_ENABLED`: Disables a specific integration. Valid values are: false. e.g. `DD_TRACE_RAILS_ENABLED=false`. **Please note**, in order to **enable** automatic instrumentation for a specific integration, the integration must be configured via application code. This environment variable can only be used to disable an integration.
+- `DD_TRACE_<INTEGRATION>_ANALYTICS_ENABLED`: Enables or disable App Analytics for a specific integration. Valid values are: true or false (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED=true`.
+- `DD_TRACE_<INTEGRATION>_ANALYTICS_SAMPLE_RATE`: Sets the App Analytics sampling rate for a specific integration. A floating number between 0.0 and 1.0 (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE=0.5`. 
+
 ### Sampling
 
 `ddtrace` can perform trace sampling. While the trace agent already samples traces to reduce bandwidth usage, client sampling reduces the performance overhead.

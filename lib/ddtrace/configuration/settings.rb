@@ -38,7 +38,7 @@ module Datadog
 
       settings :diagnostics do
         option :debug do |o|
-          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG_LOGS, false) }
+          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG, false) }
           o.lazy
         end
 

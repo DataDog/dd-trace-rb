@@ -97,9 +97,9 @@ RSpec.describe Datadog::Configuration::Settings do
       subject(:debug) { settings.diagnostics.debug }
       it { is_expected.to be false }
 
-      context "when #{Datadog::Ext::Diagnostics::DD_TRACE_DEBUG_LOGS}" do
+      context "when #{Datadog::Ext::Diagnostics::DD_TRACE_DEBUG}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG_LOGS => environment) do
+          ClimateControl.modify(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG => environment) do
             example.run
           end
         end
