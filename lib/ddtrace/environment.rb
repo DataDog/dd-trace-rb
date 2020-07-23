@@ -7,11 +7,10 @@ module Datadog
     module Helpers
       def env_to_bool(var, default = nil)
         if var.is_a?(Array)
-          env_match = var.find { |env_var| ENV.key?(env_var) }
-          env_match ? ENV[env_match].to_s.strip.downcase == 'true' : default
-        else
-          ENV.key?(var) ? ENV[var].to_s.strip.downcase == 'true' : default
+          var = var.find { |env_var| ENV.key?(env_var) }
         end
+
+        ENV.key?(var) ? ENV[var].to_s.strip.downcase == 'true' : default
       end
 
       def env_to_int(var, default = nil)
@@ -19,6 +18,10 @@ module Datadog
       end
 
       def env_to_float(var, default = nil)
+        if var.is_a?(Array)
+          var = var.find { |env_var| ENV.key?(env_var) }
+        end
+
         ENV.key?(var) ? ENV[var].to_f : default
       end
 

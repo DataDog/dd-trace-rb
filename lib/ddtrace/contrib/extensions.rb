@@ -40,8 +40,8 @@ module Datadog
         # Extensions for Datadog::Configuration::Settings
         module Settings
           InvalidIntegrationError = Class.new(StandardError)
-          ENV_INTEGRATION_DISABLED_PREFIX = 'DD_TRACE'.freeze
-          ENV_INTEGRATION_DISABLED_SUFFIX = 'DISABLED'.freeze
+          ENV_INTEGRATION_ENABLED_PREFIX = 'DD_TRACE'.freeze
+          ENV_INTEGRATION_ENABLED_SUFFIX = 'ENABLED'.freeze
 
           def self.included(base)
             # Add the additional options to the global configuration settings
@@ -58,7 +58,7 @@ module Datadog
           def instrument(integration_name, options = {}, &block)
             integration = fetch_integration(integration_name)
 
-            unless integration.nil? || integration_disabled?(integration_name)
+            unless integration.nil? || !integration_enabled?(integration_name)
               configuration_name = options[:describes] || :default
               filtered_options = options.reject { |k, _v| k == :describes }
               integration.configure(configuration_name, filtered_options, &block)
@@ -89,12 +89,12 @@ module Datadog
               raise(InvalidIntegrationError, "'#{name}' is not a valid integration.")
           end
 
-          def integration_disabled?(name)
+          def integration_enabled?(name)
             env_to_bool(
-              "#{ENV_INTEGRATION_DISABLED_PREFIX}_"\
+              "#{ENV_INTEGRATION_ENABLED_PREFIX}_"\
               "#{name.to_s.sub(':', '').upcase}"\
-              "_#{ENV_INTEGRATION_DISABLED_SUFFIX}",
-              false
+              "_#{ENV_INTEGRATION_ENABLED_SUFFIX}",
+              true
             )
           end
         end

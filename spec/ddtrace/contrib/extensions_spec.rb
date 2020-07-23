@@ -143,9 +143,9 @@ RSpec.describe Datadog::Contrib::Extensions do
 
           context 'which is provided a name disabled by env var' do
             around do |example|
-              prefix = Datadog::Contrib::Extensions::Configuration::Settings::ENV_INTEGRATION_DISABLED_PREFIX
-              suffix = Datadog::Contrib::Extensions::Configuration::Settings::ENV_INTEGRATION_DISABLED_SUFFIX
-              ClimateControl.modify("#{prefix}_#{integration_name.to_s.sub(':', '').upcase}_#{suffix}" => 'true') do
+              prefix = Datadog::Contrib::Extensions::Configuration::Settings::ENV_INTEGRATION_ENABLED_PREFIX
+              suffix = Datadog::Contrib::Extensions::Configuration::Settings::ENV_INTEGRATION_ENABLED_SUFFIX
+              ClimateControl.modify("#{prefix}_#{integration_name.to_s.sub(':', '').upcase}_#{suffix}" => 'false') do
                 example.run
               end
             end
@@ -158,9 +158,9 @@ RSpec.describe Datadog::Contrib::Extensions do
 
           context 'which is provided a name with env var set but not disabling it' do
             around do |example|
-              prefix = Datadog::Contrib::Extensions::Configuration::Settings::ENV_INTEGRATION_DISABLED_PREFIX
-              suffix = Datadog::Contrib::Extensions::Configuration::Settings::ENV_INTEGRATION_DISABLED_SUFFIX
-              ClimateControl.modify("#{prefix}_#{integration_name.to_s.sub(':', '').upcase}_#{suffix}" => 'false') do
+              prefix = Datadog::Contrib::Extensions::Configuration::Settings::ENV_INTEGRATION_ENABLED_PREFIX
+              suffix = Datadog::Contrib::Extensions::Configuration::Settings::ENV_INTEGRATION_ENABLED_SUFFIX
+              ClimateControl.modify("#{prefix}_#{integration_name.to_s.sub(':', '').upcase}_#{suffix}" => 'true') do
                 example.run
               end
             end
