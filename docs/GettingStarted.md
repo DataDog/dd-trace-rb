@@ -78,6 +78,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Metrics](#metrics)
          - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
+     - [Profiling](#profiling)
 
 ## Compatibility
 
@@ -2274,3 +2275,70 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 | `OpenTracing::FORMAT_TEXT_MAP` | Yes        |                        |
 | `OpenTracing::FORMAT_RACK`     | Yes        | Because of the loss of resolution in the Rack format, please note that baggage items with names containing either upper case characters or `-` will be converted to lower case and `_` in a round-trip respectively. We recommend avoiding these characters or accommodating accordingly on the receiving end. |
 | `OpenTracing::FORMAT_BINARY`   | No         |                        |
+
+### Profiling
+
+*Currently available as BETA feature.*
+
+`ddtrace` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.
+
+**Compatibility**
+
+Basic profiling requires:
+
+- MRI Ruby 2.0+
+- `google-protobuf` gem installed
+
+In addition, CPU time measurements require:
+
+- MRI Ruby 2.1+
+- Linux OS with `pthread` support
+- `ffi` gem installed
+
+**Setup**
+
+1. Add gems to your `Gemfile` and `bundle install`:
+
+    ```ruby
+    gem 'ddtrace'
+    gem 'google-protobuf'
+    gem 'ffi'
+    ```
+
+2. Enable profiling flag:
+
+    Set `DD_PROFILING_ENABLED=true` in your environment, or enable it using `Datadog.configure`.
+
+    For Rails applications, you can set this in `config/initializers/datadog.rb`:
+
+    ```ruby
+    Datadog.configure do |c|
+      c.profiling.enabled = true
+    end
+    ```
+
+    Then start the profiler with:
+
+    ```ruby
+    # Start the profiler
+    Datadog.profiler.start
+    ```
+
+3. Add restart hooks, if necessary:
+
+    Additionally, some applications create forked processes. Profiling must be started in their `after_fork` callback, if available.
+
+    For example, in Puma applications, in `puma.rb`:
+
+    ```ruby
+    on_worker_boot do
+      # Start datadog profiler
+      Datadog.profiler.start
+    end
+    ```
+
+3. Start your application with preloader:
+
+    ```sh
+    bundle exec ddtracerb exec rails s
+    ```
