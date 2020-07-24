@@ -83,7 +83,7 @@ module Datadog
             case response.code.to_i
             when 400...599
               begin
-                message = response.parse['message']
+                message = JSON.parse(response.body.to_s)['message']
               rescue
                 message = 'Error'
               end
