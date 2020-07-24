@@ -275,16 +275,16 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#level' do
       subject(:level) { settings.logger.level }
-      it { is_expected.to be ::Logger::WARN }
+      it { is_expected.to be ::Logger::INFO }
     end
 
     describe 'level=' do
-      let(:level) { ::Logger::INFO }
+      let(:level) { ::Logger::DEBUG }
 
       it 'changes the #statsd setting' do
         expect { settings.logger.level = level }
           .to change { settings.logger.level }
-          .from(::Logger::WARN)
+          .from(::Logger::INFO)
           .to(level)
       end
     end

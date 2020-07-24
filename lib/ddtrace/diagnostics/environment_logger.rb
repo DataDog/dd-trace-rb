@@ -28,7 +28,7 @@ module Datadog
         private
 
         def log_environment!(line)
-          Datadog.logger.warn("DATADOG TRACER CONFIGURATION - #{line}")
+          Datadog.logger.info("DATADOG TRACER CONFIGURATION - #{line}")
         end
 
         def log_error!(type, error)

@@ -5,6 +5,8 @@ require 'ddtrace/patcher'
 require 'ddtrace/configuration'
 
 RSpec.describe Datadog::Configuration do
+  let(:default_log_level) { ::Logger::INFO }
+
   context 'when extended by a class' do
     subject(:test_class) { stub_const('TestClass', Class.new { extend Datadog::Configuration }) }
 
@@ -14,7 +16,7 @@ RSpec.describe Datadog::Configuration do
       context 'when debug mode' do
         it 'is toggled with default settings' do
           # Assert initial state
-          expect(test_class.logger.level).to be ::Logger::WARN
+          expect(test_class.logger.level).to be default_log_level
 
           # Enable
           test_class.configure do |c|
@@ -30,7 +32,7 @@ RSpec.describe Datadog::Configuration do
           end
 
           # Assert final state
-          expect(test_class.logger.level).to be ::Logger::WARN
+          expect(test_class.logger.level).to be default_log_level
         end
 
         context 'is disabled with a custom logger in use' do
@@ -276,7 +278,7 @@ RSpec.describe Datadog::Configuration do
     describe '#logger' do
       subject(:logger) { test_class.logger }
       it { is_expected.to be_a_kind_of(Datadog::Logger) }
-      it { expect(logger.level).to be ::Logger::WARN }
+      it { expect(logger.level).to be default_log_level }
     end
 
     describe '#runtime_metrics' do
