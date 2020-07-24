@@ -92,7 +92,7 @@ module Datadog
           o.on_set { |value| set_option(:level, value.level) unless value.nil? }
         end
 
-        option :level, default: ::Logger::WARN
+        option :level, default: ::Logger::INFO
       end
 
       def logger=(logger)

@@ -29,11 +29,11 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
 
     before do
       allow(Datadog).to receive(:logger).and_return(tracer_logger)
-      allow(tracer_logger).to receive(:warn)
+      allow(tracer_logger).to receive(:info)
     end
 
     it 'with a default tracer settings' do
-      expect(logger).to have_received(:warn).with start_with('DATADOG TRACER CONFIGURATION') do |msg|
+      expect(logger).to have_received(:info).with start_with('DATADOG TRACER CONFIGURATION') do |msg|
         json = JSON.parse(msg.partition('-')[2].strip)
         expect(json).to match(
           'agent_url' => "http://#{agent_hostname}:8126?timeout=1",
@@ -59,11 +59,13 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
         env_logger.log!([response])
         env_logger.log!([response])
 
-        expect(logger).to have_received(:warn).once
+        expect(logger).to have_received(:info).once
       end
     end
 
     context 'with agent error' do
+      before { allow(tracer_logger).to receive(:warn) }
+
       let(:response) { Datadog::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
 
       it do
@@ -90,7 +92,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       end
 
       context 'with default settings' do
-        it { expect(logger).to_not have_received(:warn) }
+        it { expect(logger).to_not have_received(:info) }
       end
 
       context 'with explicit setting' do
@@ -98,12 +100,13 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
           Datadog.configure { |c| c.diagnostics.startup_logs.enabled = true }
         end
 
-        it { expect(logger).to have_received(:warn) }
+        it { expect(logger).to have_received(:info) }
       end
     end
 
     context 'with error collecting information' do
       before do
+        allow(tracer_logger).to receive(:warn)
         expect_any_instance_of(Datadog::Diagnostics::EnvironmentCollector).to receive(:collect!).and_raise
       end
 
