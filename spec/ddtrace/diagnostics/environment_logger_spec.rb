@@ -148,6 +148,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
 
       context 'with tracer disabled' do
         before { Datadog.configure { |c| c.tracer.enabled = false } }
+        after { Datadog.configure { |c| c.tracer.enabled = true } }
 
         it { is_expected.to include enabled: false }
       end
