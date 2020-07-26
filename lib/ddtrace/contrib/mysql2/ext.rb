@@ -4,6 +4,7 @@ module Datadog
       # Mysql2 integration constants
       module Ext
         APP = 'mysql2'.freeze
+        ENV_ENABLED = 'DD_TRACE_MYSQL2_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_MYSQL2_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED_OLD = 'DD_MYSQL2_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_MYSQL2_ANALYTICS_SAMPLE_RATE'.freeze

@@ -8,6 +8,11 @@ module Datadog
       module Configuration
         # Custom settings for the Grape integration
         class Settings < Contrib::Configuration::Settings
+          option :enabled do |o|
+            o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+            o.lazy
+          end
+
           option :analytics_enabled do |o|
             o.default { env_to_bool([Ext::ENV_ANALYTICS_ENABLED, Ext::ENV_ANALYTICS_ENABLED_OLD], nil) }
             o.lazy
@@ -18,7 +23,6 @@ module Datadog
             o.lazy
           end
 
-          option :enabled, default: true
           option :service_name, default: Ext::SERVICE_NAME
         end
       end
