@@ -134,7 +134,7 @@ RSpec.describe Datadog::Contrib::Extensions do
                   true
                 end
               end)
-            end            
+            end
           end
 
           context 'which is provided only a name' do
@@ -152,44 +152,6 @@ RSpec.describe Datadog::Contrib::Extensions do
               )
             end
           end
-
-          # context 'which is provided a name disabled by env var' do
-          #   include_context 'registry with integration' do
-          #     let(:integration) do
-          #       integration_class.new(integration_name)
-          #     end
-          #   end
-
-          #   around do |example|
-          #     prefix = "DD_TRACE"
-          #     suffix = "ENABLED"
-          #     ClimateControl.modify("#{prefix}_#{integration_name.to_s.sub(':', '').upcase}_#{suffix}" => 'false') do
-          #       example.run
-          #     end
-          #   end
-
-          #   it do
-          #     puts(integration.inspect)
-          #     puts(settings.inspect)
-          #     expect(integration).to_not receive(:configure)
-          #     settings.use(integration_name)
-          #   end
-          # end
-
-          # context 'which is provided a name with env var set but not disabling it' do
-          #   around do |example|
-          #     prefix = "DD_TRACE"
-          #     suffix = "ENABLED"
-          #     ClimateControl.modify("#{prefix}_#{integration_name.to_s.sub(':', '').upcase}_#{suffix}" => 'true') do
-          #       example.run
-          #     end
-          #   end
-
-          #   it do
-          #     expect(integration).to receive(:configure).with(:default, {})
-          #     settings.use(integration_name)
-          #   end
-          # end
         end
       end
     end
