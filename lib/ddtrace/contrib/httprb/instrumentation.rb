@@ -83,7 +83,7 @@ module Datadog
             case response.code.to_i
             when 400...599
               # https://github.com/DataDog/dd-trace-rb/issues/1116
-              # parsing the response bpdy message will alter downstream application behavior
+              # parsing the response body message will alter downstream application behavior
               span.set_error(["Error #{response.code}", 'Error'])
             end
           end
