@@ -110,6 +110,7 @@ namespace :spec do
     :shoryuken,
     :sidekiq,
     :sinatra,
+    :sneakers,
     :sucker_punch,
     :suite
   ].each do |contrib|
@@ -354,6 +355,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
+      sh 'bundle exec appraisal contrib rake spec:sneakers'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
       sh 'bundle exec appraisal contrib rake spec:suite'
       # Rails minitests
@@ -429,6 +431,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
+      sh 'bundle exec appraisal contrib rake spec:sneakers'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
       sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
@@ -509,6 +512,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
+      sh 'bundle exec appraisal contrib rake spec:sneakers'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
       sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
@@ -574,6 +578,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
+      sh 'bundle exec appraisal contrib rake spec:sneakers'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
       sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
@@ -649,6 +654,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
+      sh 'bundle exec appraisal contrib rake spec:sneakers'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
       sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
@@ -723,6 +729,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:shoryuken'
       sh 'bundle exec appraisal contrib rake spec:sidekiq'
       sh 'bundle exec appraisal contrib rake spec:sinatra'
+      sh 'bundle exec appraisal contrib rake spec:sneakers'
       sh 'bundle exec appraisal contrib rake spec:sucker_punch'
       sh 'bundle exec appraisal contrib rake spec:suite'
       # Contrib specs with old gem versions
