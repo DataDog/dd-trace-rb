@@ -132,6 +132,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
             expect(span).to have_error_type('Error 500')
           end
 
+          # default error message to `Error` from https://github.com/DataDog/dd-trace-rb/issues/1116
           it 'has error message' do
             expect(span).to have_error_message('Error')
           end
