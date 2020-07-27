@@ -199,13 +199,12 @@ class FullStackTest < ActionDispatch::IntegrationTest
   end
 
   test 'the rack span has all exception span tags set on rails ActionView Errors' do
-
     get '/error_partial'
 
     assert_response :error
 
-    # Check spans
-    assert_equal(4, spans.length)
+    # get spans
+    assert_operator(spans.length, :>=, 2, 'there should be at least 2 span')
 
     rack_span = spans.first
     controller_span = spans.last
