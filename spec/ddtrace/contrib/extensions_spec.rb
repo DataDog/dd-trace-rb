@@ -87,9 +87,7 @@ RSpec.describe Datadog::Contrib::Extensions do
         let(:options) { {} }
 
         context 'for a generic integration' do
-          include_context 'registry with integration' do
-            # let(:integration) { double('integration') }
-          end
+          include_context 'registry with integration'
 
           before do
             expect(integration).to receive(:configure).with(:default, options).and_return([])
