@@ -82,12 +82,9 @@ module Datadog
 
             case response.code.to_i
             when 400...599
-              begin
-                message = JSON.parse(response.body)['message']
-              rescue
-                message = 'Error'
-              end
-              span.set_error(["Error #{response.code}", message])
+              # https://github.com/DataDog/dd-trace-rb/issues/1116
+              # parsing the response body message will alter downstream application behavior
+              span.set_error(["Error #{response.code}", 'Error'])
             end
           end
 
