@@ -219,8 +219,5 @@ class FullStackTest < ActionDispatch::IntegrationTest
     # Controller span
     assert_equal(controller_span.status, 1, 'span should be flagged as an error')
     assert_equal(controller_span.get_tag('error.type'), 'ActionView::Template::Error')
-    refute_nil(controller_span.get_tag('error.stack'))
-    refute_nil(controller_span.get_tag('error.msg'))
-    assert_equal(controller_span.resource, 'tracing/error_partial.html.erb')
   end
 end
