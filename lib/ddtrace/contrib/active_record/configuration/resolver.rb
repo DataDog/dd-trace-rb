@@ -33,7 +33,7 @@ module Datadog
             # TODO: move to Sqlite3Resolver
             adapter = hash[:adapter]
             database = hash[:database]
-            if adapter == 'sqlite3'
+            if adapter == 'sqlite3' && defined?(Rails.root)
               database = database.sub(::Rails.root.to_s + '/', '')
             end
 
