@@ -325,6 +325,10 @@ job_configuration:
     ruby_version: '2.7'
     image: marcotc/docker-library:ddtrace_rb_2_7_0
   # JRuby
+  - &config-jruby-9_1
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'jruby-9.1'
+    image: marcotc/docker-library:ddtrace_rb_jruby_9_1
   - &config-jruby-9_2
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2'
@@ -449,7 +453,24 @@ workflows:
           name: test-2.7
           requires:
             - build-2.7
+      #
       # JRuby
+      #
+      # JRuby-9.1
+      - orb/checkout:
+          <<: *config-jruby-9_1
+          name: checkout-jruby-9.1
+      - orb/build:
+          <<: *config-jruby-9_1
+          name: build-jruby-9.1
+          requires:
+            - checkout-jruby-9.1
+      - orb/test:
+          <<: *config-jruby-9_1
+          name: test-jruby-9.1
+          requires:
+            - build-jruby-9.1
+      # JRuby-9.2
       - orb/checkout:
           <<: *config-jruby-9_2
           name: checkout-jruby-9.2
@@ -476,6 +497,7 @@ workflows:
             - test-2.5
             - test-2.6
             - test-2.7
+            - test-jruby-9.1
             - test-jruby-9.2
       - "deploy release":
           <<: *filters_only_release_tags
@@ -489,4 +511,5 @@ workflows:
             - test-2.5
             - test-2.6
             - test-2.7
+            - test-jruby-9.1
             - test-jruby-9.2

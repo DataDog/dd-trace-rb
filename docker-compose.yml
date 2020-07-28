@@ -249,6 +249,37 @@ services:
       - bundle-2.7:/usr/local/bundle
       - gemfiles-2.7:/app/gemfiles
   # JRuby
+  tracer-jruby-9.1:
+    image: marcotc/docker-library:ddtrace_rb_jruby_9_1
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - presto
+      - redis
+    env_file: ./.env
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_PRESTO_HOST=presto
+      - TEST_PRESTO_PORT=8080
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-jruby-9.1:/usr/local/bundle
+      - gemfiles-jruby-9.1:/app/gemfiles
   tracer-jruby-9.2:
     image: marcotc/docker-library:ddtrace_rb_jruby_9_2
     command: /bin/bash
@@ -280,6 +311,7 @@ services:
       - .:/app
       - bundle-jruby-9.2:/usr/local/bundle
       - gemfiles-jruby-9.2:/app/gemfiles
+  # Support services
   ddagent:
     image: datadog/agent
     environment:
@@ -358,6 +390,7 @@ volumes:
   bundle-2.5:
   bundle-2.6:
   bundle-2.7:
+  bundle-jruby-9.1:
   bundle-jruby-9.2:
   gemfiles-2.0:
   gemfiles-2.1:
@@ -367,4 +400,5 @@ volumes:
   gemfiles-2.5:
   gemfiles-2.6:
   gemfiles-2.7:
+  gemfiles-jruby-9.1:
   gemfiles-jruby-9.2:
