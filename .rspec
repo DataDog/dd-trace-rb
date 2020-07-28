@@ -1,1 +1,2 @@
 --require spec_helper
+--failure_exit_code 0
