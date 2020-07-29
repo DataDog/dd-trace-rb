@@ -93,7 +93,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.0     | Full                                 | Latest              |
 |       |                            | 1.9.3   | Maintenance (until August 6th, 2020) | < 0.27.0            |
 |       |                            | 1.9.1   | Maintenance (until August 6th, 2020) | < 0.27.0            |
-| JRuby | http://jruby.org/          | 9.2.0.0 | Alpha                                | Latest              |
+| JRuby | https://www.jruby.org      | 9.2     | Full                                 | Latest              |
 
 **Supported web servers**:
 
@@ -1233,14 +1233,14 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 **Supported versions**
 
-| Ruby Versions | Supported Rails Versions |
-| ------------- | ------------------------ |
-|  2.0          |  3.0 - 3.2               |
-|  2.1          |  3.0 - 4.2               |
-|  2.2 - 2.3    |  3.0 - 5.2               |
-|  2.4          |  4.2.8 - 5.2             |
-|  2.5          |  4.2.8 - 6.0             |
-|  2.6 - 2.7    |  5.0 - 6.0               |
+| MRI Versions  | JRuby Versions | Rails Versions |
+| ------------- | -------------- | -------------- |
+|  2.0          |                |  3.0 - 3.2     |
+|  2.1          |                |  3.0 - 4.2     |
+|  2.2 - 2.3    |                |  3.0 - 5.2     |
+|  2.4          |                |  4.2.8 - 5.2   |
+|  2.5          |                |  4.2.8 - 6.0   |
+|  2.6 - 2.7    |  9.2           |  5.0 - 6.0     |
 
 ### Rake
 
