@@ -4,6 +4,9 @@ module Datadog
       # General purpose functions for Sequel
       module Utils
         class << self
+          # Ruby database connector library
+          #
+          # e.g. adapter:mysql2 (database:mysql), adapter:jdbc (database:postgres)
           def adapter_name(database)
             scheme = database.adapter_scheme.to_s
 
@@ -16,6 +19,9 @@ module Datadog
             end
           end
 
+          # Database engine
+          #
+          # e.g. database:mysql (adapter:mysql2), database:postgres (adapter:jdbc)
           def database_type(database)
             Datadog::Utils::Database.normalize_vendor(database.database_type.to_s)
           end
