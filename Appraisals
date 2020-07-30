@@ -76,6 +76,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'http'
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
+      gem 'pg', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
       gem 'rack-test', '0.7.0'
@@ -188,6 +189,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'http'
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
+      gem 'pg', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
       gem 'rack-test', '0.7.0'
