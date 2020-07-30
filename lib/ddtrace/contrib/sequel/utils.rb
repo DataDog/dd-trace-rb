@@ -5,6 +5,18 @@ module Datadog
       module Utils
         class << self
           def adapter_name(database)
+            scheme = database.adapter_scheme.to_s
+
+            if scheme == 'jdbc'.freeze
+              # The subtype is more important in this case,
+              # otherwise all database adapters will be 'jdbc'.
+              database_type(database)
+            else
+              Datadog::Utils::Database.normalize_vendor(scheme)
+            end
+          end
+
+          def database_type(database)
             Datadog::Utils::Database.normalize_vendor(database.database_type.to_s)
           end
 
