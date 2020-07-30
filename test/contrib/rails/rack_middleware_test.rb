@@ -197,4 +197,27 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.get_tag('http.status_code'), '404')
     assert_equal(request_span.status, 0)
   end
+
+  test 'the rack span has all exception span tags set on rails ActionView Errors' do
+    get '/error_partial'
+
+    assert_response :error
+
+    # get spans
+    assert_operator(spans.length, :>=, 2, 'there should be at least 2 span')
+
+    rack_span = spans.first
+    controller_span = spans.last
+
+    # Rack span
+    assert_equal(rack_span.status, 1)
+    assert_equal(rack_span.get_tag('error.type'), 'ActionView::Template::Error')
+    refute_nil(rack_span.get_tag('error.stack'))
+    refute_nil(rack_span.get_tag('error.msg'))
+    refute_equal(rack_span.resource, controller_span.resource) # We expect the resource hasn't been overriden
+
+    # Controller span
+    assert_equal(controller_span.status, 1, 'span should be flagged as an error')
+    assert_equal(controller_span.get_tag('error.type'), 'ActionView::Template::Error')
+  end
 end

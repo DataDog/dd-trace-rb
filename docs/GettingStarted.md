@@ -59,6 +59,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Sequel](#sequel)
      - [Sidekiq](#sidekiq)
      - [Sinatra](#sinatra)
+     - [Sneakers](#sneakers)
      - [Sucker Punch](#sucker-punch)
  - [Advanced configuration](#advanced-configuration)
      - [Tracer settings](#tracer-settings)
@@ -362,6 +363,7 @@ For a list of available integrations, and their configuration options, please re
 | Shoryuken                | `shoryuken`                | `>= 3.2`                 | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
 | Sidekiq                  | `sidekiq`                  | `>= 3.5.4`               | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
 | Sinatra                  | `sinatra`                  | `>= 1.4`                 | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
+| Sneakers                  | `sneakers`                  | `>= 2.12.0`            | *[Link](#sneakers)*                  | *[Link](https://github.com/jondot/sneakers)*                                   |
 | Sucker Punch             | `sucker_punch`             | `>= 2.0`                 | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
 
 ### Action Cable
@@ -473,7 +475,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | ---| --- | --- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
-| `orm_service_name` | Service name used for the Ruby ORM portion of `active_record` instrumentation. Overrides service name for ORM spans if explicitly set, which otherwise inherit their service from their parent. | `'active_record'` |
+| `orm_service_name` | Service name used for the mapping portion of query results to ActiveRecord objects. Inherits service name from parent by default. | _parent.service_name_ (e.g. `'mysql2'`) |
 | `service_name` | Service name used for database portion of `active_record` instrumentation. | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring trace settings per database**
@@ -1585,6 +1587,29 @@ Ensure you register `Datadog::Contrib::Sinatra::Tracer` as a middleware before y
 | `resource_script_names` | Prepend resource names with script name | `false` |
 | `service_name` | Service name used for `sinatra` instrumentation | `'sinatra'` |
 
+### Sneakers
+
+The Sneakers integration is a server-side middleware which will trace job executions.
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :sneakers, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `enabled` | Defines whether Sneakers should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
+| `service_name` | Service name used for `sneakers` instrumentation | `'sneakers'` |
+| `tag_body` | Enable tagging of job message. `true` for on, `false` for off. | `false` |
+
 ### Sucker Punch
 
 The `sucker_punch` integration traces all scheduled jobs:
@@ -1633,13 +1658,14 @@ end
 
 Available options are:
 
- - `enabled`: defines if the `tracer` is enabled or not. If set to `false` instrumentation will still run, but no spans are sent to the trace agent.
+ - `enabled`: defines if the `tracer` is enabled or not. If set to `false` instrumentation will still run, but no spans are sent to the trace agent. Can be configured through the `DD_TRACE_ENABLED` environment variable. Defaults to `true`.
  - `hostname`: set the hostname of the trace agent.
  - `instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
  - `partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
  - `port`: set the port the trace agent is listening on.
  - `sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
  - `diagnostics.startup_logs.enabled`: Startup configuration and diagnostic log. Defaults to `true`. Can be configured through the `DD_TRACE_STARTUP_LOGS` environment variable.
+ - `diagnostics.debug`: set to true to enable debug logging. Can be configured through the `DD_TRACE_DEBUG` environment variable. Defaults to `false`.
 
 #### Custom logging
 
@@ -1686,6 +1712,15 @@ end
 This enables you to set this value on a per application basis, so you can have for example several applications reporting for different environments on the same host.
 
 Tags can also be set directly on individual spans, which will supersede any conflicting tags defined at the application level.
+
+### Environment variables
+
+Other Environment Variables:
+
+- `DD_TRACE_AGENT_URL`: Sets the URL endpoint where traces are sent. Has priority over `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT` if set. e.g. `DD_TRACE_AGENT_URL=http://localhost:8126`.
+- `DD_TRACE_<INTEGRATION>_ENABLED`: Enables or disables an **activated** integration. Defaults to `true`.. e.g. `DD_TRACE_RAILS_ENABLED=false`. This option has no effects on integrations that have not been explicitly activated (e.g. `Datadog.configure{ |c| c.use :integration }`).on code. This environment variable can only be used to disable an integration.
+- `DD_TRACE_<INTEGRATION>_ANALYTICS_ENABLED`: Enables or disable App Analytics for a specific integration. Valid values are: true or false (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED=true`.
+- `DD_TRACE_<INTEGRATION>_ANALYTICS_SAMPLE_RATE`: Sets the App Analytics sampling rate for a specific integration. A floating number between 0.0 and 1.0 (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE=0.5`.
 
 ### Sampling
 
