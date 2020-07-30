@@ -176,7 +176,7 @@ RSpec.describe 'Sequel instrumentation' do
     end
     let(:connection_string) do
       user = ENV.fetch('TEST_MYSQL_USER', 'root')
-      password = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')
+      password = ENV.fetch('TEST_MYSQL_PASSWORD', 'root')
       host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
       port = ENV.fetch('TEST_MYSQL_PORT', '3306')
       db = ENV.fetch('TEST_MYSQL_DB', 'mysql')
