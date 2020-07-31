@@ -142,8 +142,7 @@ namespace :test do
   end
 
   [
-    :grape,
-    :sucker_punch
+    :grape
   ].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
       t.libs << %w[test lib]
@@ -201,7 +200,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib-old rake spec:active_record'
@@ -258,7 +256,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib-old rake test:monkey'
-      sh 'bundle exec appraisal contrib-old rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       sh 'bundle exec appraisal contrib-old rake spec:active_record'
@@ -322,7 +319,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
       sh 'bundle exec appraisal contrib rake spec:action_view'
@@ -398,7 +394,6 @@ task :ci do
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
       sh 'bundle exec appraisal contrib rake spec:action_view'
@@ -479,7 +474,6 @@ task :ci do
       sh 'bundle exec rake benchmark'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
       sh 'bundle exec appraisal contrib rake spec:action_view'
@@ -545,7 +539,6 @@ task :ci do
       sh 'bundle exec rake benchmark'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
       sh 'bundle exec appraisal contrib rake spec:action_view'
@@ -621,7 +614,6 @@ task :ci do
       sh 'bundle exec rake benchmark'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
       sh 'bundle exec appraisal contrib rake spec:action_view'
@@ -696,7 +688,6 @@ task :ci do
       sh 'bundle exec rake benchmark'
       # Contrib minitests
       sh 'bundle exec appraisal contrib rake test:grape'
-      sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
       sh 'bundle exec appraisal contrib rake spec:action_view'
