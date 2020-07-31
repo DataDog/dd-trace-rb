@@ -1,8 +1,4 @@
-require 'helper'
-require 'rack/test'
-
 require 'grape'
-require 'ddtrace/pin'
 require 'ddtrace/contrib/grape/patcher'
 
 # patch Grape before the application
@@ -45,13 +41,5 @@ class TestingAPI < Grape::API
     get :before do
       'OK'
     end
-  end
-end
-
-class BaseAPITest < MiniTest::Test
-  include Rack::Test::Methods
-
-  def app
-    TestingAPI
   end
 end
