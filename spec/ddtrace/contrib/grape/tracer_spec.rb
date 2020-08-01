@@ -1,9 +1,10 @@
 require 'ddtrace/contrib/support/spec_helper'
-require 'rack/test'
+require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace'
-require 'ddtrace/contrib/grape/app'
-require 'ddtrace/contrib/grape/rack_app'
+require 'ddtrace/contrib/grape/patcher'
 require 'ddtrace/contrib/rack/middlewares'
+require 'rack/test'
+require 'grape'
 
 RSpec.describe 'Grape instrumentation' do
   include Rack::Test::Methods
@@ -13,6 +14,77 @@ RSpec.describe 'Grape instrumentation' do
   let(:render_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RENDER } }
   let(:run_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
   let(:run_filter_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN_FILTERS } }
+  let(:span) { spans.first }
+
+  let(:testing_api) do
+    # patch Grape before the application
+    Datadog::Contrib::Grape::Patcher.patch()
+
+    stub_const('TestingAPI', Class.new(Grape::API) do
+      namespace :base do
+        desc 'Returns a success message'
+        get :success do
+          'OK'
+        end
+
+        desc 'Returns an error'
+        get :hard_failure do
+          raise StandardError, 'Ouch!'
+        end
+      end
+
+      namespace :filtered do
+        before do
+          sleep(0.01)
+        end
+
+        after do
+          sleep(0.01)
+        end
+
+        desc 'Returns a success message before and after filter processing'
+        get :before_after do
+          'OK'
+        end
+      end
+
+      namespace :filtered_exception do
+        before do
+          raise StandardError, 'Ouch!'
+        end
+
+        desc 'Returns an error in the filter'
+        get :before do
+          'OK'
+        end
+      end
+    end)
+  end
+
+  let(:rack_testing_api) do
+    # patch Grape before the application
+    Datadog::Contrib::Grape::Patcher.patch()
+
+    stub_const('RackTestingAPI', Class.new(Grape::API) do
+      desc 'Returns a success message'
+      get :success do
+        'OK'
+      end
+
+      desc 'Returns an error'
+      get :hard_failure do
+        raise StandardError, 'Ouch!'
+      end
+    end)
+
+    # create a custom Rack application with the Rack middleware and a Grape API
+    Rack::Builder.new do
+      use Datadog::Contrib::Rack::TraceMiddleware
+      map '/api/' do
+        run RackTestingAPI
+      end
+    end.to_app
+  end
 
   before do
     Datadog.configure do |c|
@@ -31,13 +103,17 @@ RSpec.describe 'Grape instrumentation' do
   end
 
   context 'without rack' do
-    let(:app) { TestingAPI }
+    let(:app) { testing_api }
 
     let(:with_rack) { false }
 
     context 'success' do
       context 'without filters' do
         subject(:response) { get '/base/success' }
+
+        it_behaves_like 'measured span for integration', true do
+          before { is_expected.to be_ok }
+        end
 
         it 'should trace the endpoint body' do
           is_expected.to be_ok
@@ -48,22 +124,24 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span.span_type).to eq('template')
           expect(render_span.service).to eq('grape')
           expect(render_span.resource).to eq('grape.endpoint_render')
-          expect(render_span.status).to eq(0)
+          expect(render_span).to_not have_error
           expect(render_span.parent).to eq(run_span)
-          expect(render_span.get_metric('_dd.measured')).to eq(1.0)
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
           expect(run_span.service).to eq('grape')
           expect(run_span.resource).to eq('TestingAPI#success')
-          expect(run_span.status).to eq(0)
+          expect(run_span).to_not have_error
           expect(run_span.parent).to be_nil
-          expect(run_span.get_metric('_dd.measured')).to eq(1.0)
         end
       end
 
       context 'with filters' do
         subject(:response) { get '/filtered/before_after' }
+
+        it_behaves_like 'measured span for integration', true do
+          before { is_expected.to be_ok }
+        end
 
         it 'should trace the endpoint body and all before/after filters' do
           is_expected.to be_ok
@@ -76,26 +154,24 @@ RSpec.describe 'Grape instrumentation' do
           expect(before_span.span_type).to eq('web')
           expect(before_span.service).to eq('grape')
           expect(before_span.resource).to eq('grape.endpoint_run_filters')
-          expect(before_span.status).to eq(0)
+          expect(before_span).to_not have_error
           expect(before_span.parent).to eq(run_span)
           expect(before_span.to_hash[:duration] > 0.01).to be true
-          expect(before_span.get_metric('_dd.measured')).to eq(1.0)
 
           expect(render_span.name).to eq('grape.endpoint_render')
           expect(render_span.span_type).to eq('template')
           expect(render_span.service).to eq('grape')
           expect(render_span.resource).to eq('grape.endpoint_render')
-          expect(render_span.status).to eq(0)
+          expect(render_span).to_not have_error
           expect(render_span.parent).to eq(run_span)
 
           expect(after_span.name).to eq('grape.endpoint_run_filters')
           expect(after_span.span_type).to eq('web')
           expect(after_span.service).to eq('grape')
           expect(after_span.resource).to eq('grape.endpoint_run_filters')
-          expect(after_span.status).to eq(0)
+          expect(after_span).to_not have_error
           expect(after_span.parent).to eq(run_span)
           expect(after_span.to_hash[:duration] > 0.01).to be true
-          expect(after_span.get_metric('_dd.measured')).to eq(1.0)
 
           expect('grape.endpoint_run').to eq(run_span.name)
           expect('web').to eq(run_span.span_type)
@@ -111,6 +187,12 @@ RSpec.describe 'Grape instrumentation' do
       context 'without filters' do
         subject(:response) { get '/base/hard_failure' }
 
+        it_behaves_like 'measured span for integration', true do
+          before do
+            expect { subject }.to raise_error(StandardError, 'Ouch!')
+          end
+        end
+
         it 'should handle exceptions' do
           expect { subject }.to raise_error(StandardError, 'Ouch!')
 
@@ -120,30 +202,34 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span.span_type).to eq('template')
           expect(render_span.service).to eq('grape')
           expect(render_span.resource).to eq('grape.endpoint_render')
-          expect(render_span.status).to eq(1)
+          expect(render_span).to have_error
 
-          expect(render_span.get_tag('error.type')).to eq('StandardError')
-          expect(render_span.get_tag('error.msg')).to eq('Ouch!')
-          expect(render_span.get_tag('error.stack')).to include('grape/app.rb')
+          expect(render_span).to have_error_type('StandardError')
+          expect(render_span).to have_error_message('Ouch!')
+          expect(render_span.get_tag('error.stack')).to include('grape/tracer_spec.rb')
           expect(render_span.parent).to eq(run_span)
-          expect(render_span.get_metric('_dd.measured')).to eq(1.0)
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
           expect(run_span.service).to eq('grape')
           expect(run_span.resource).to eq('TestingAPI#hard_failure')
-          expect(run_span.status).to eq(1)
+          expect(run_span).to have_error
 
-          expect(run_span.get_tag('error.type')).to eq('StandardError')
-          expect(run_span.get_tag('error.msg')).to eq('Ouch!')
-          expect(run_span.get_tag('error.stack')).to include('grape/app.rb')
+          expect(run_span).to have_error_type('StandardError')
+          expect(run_span).to have_error_message('Ouch!')
+          expect(run_span.get_tag('error.stack')).to include('grape/tracer_spec.rb')
           expect(run_span.parent).to be_nil
-          expect(run_span.get_metric('_dd.measured')).to eq(1.0)
         end
       end
 
       context 'with filters' do
         subject(:response) { get '/filtered_exception/before' }
+
+        it_behaves_like 'measured span for integration', true do
+          before do
+            expect { subject }.to raise_error(StandardError, 'Ouch!')
+          end
+        end
 
         it 'should trace the endpoint even if a filter raises an exception' do
           expect { subject }.to raise_error(StandardError, 'Ouch!')
@@ -156,17 +242,17 @@ RSpec.describe 'Grape instrumentation' do
           expect(before_span.span_type).to eq('web')
           expect(before_span.service).to eq('grape')
           expect(before_span.resource).to eq('grape.endpoint_run_filters')
-          expect(before_span.status).to eq(1)
-          expect(before_span.get_tag('error.type')).to eq('StandardError')
-          expect(before_span.get_tag('error.msg')).to eq('Ouch!')
-          expect(before_span.get_tag('error.stack')).to include('grape/app.rb')
+          expect(before_span).to have_error
+          expect(before_span).to have_error_type('StandardError')
+          expect(before_span).to have_error_message('Ouch!')
+          expect(before_span.get_tag('error.stack')).to include('grape/tracer_spec.rb')
           expect(before_span.parent).to eq(run_span)
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
           expect(run_span.service).to eq('grape')
           expect(run_span.resource).to eq('TestingAPI#before')
-          expect(run_span.status).to eq(1)
+          expect(run_span).to have_error
           expect(run_span.parent).to be_nil
         end
       end
@@ -174,20 +260,15 @@ RSpec.describe 'Grape instrumentation' do
   end
 
   context 'with rack' do
-    let(:app) do
-      # create a custom Rack application with the Rack middleware and a Grape API
-      Rack::Builder.new do
-        use Datadog::Contrib::Rack::TraceMiddleware
-        map '/api/' do
-          run RackTestingAPI
-        end
-      end.to_app
-    end
-
+    let(:app) { rack_testing_api }
     let(:with_rack) { true }
 
     context 'success' do
       subject(:response) { get '/api/success' }
+
+      it_behaves_like 'measured span for integration', true do
+        before { is_expected.to be_ok }
+      end
 
       it 'should intergrate with the Rack integration' do
         is_expected.to be_ok
@@ -200,26 +281,32 @@ RSpec.describe 'Grape instrumentation' do
         expect(render_span.span_type).to eq('template')
         expect(render_span.service).to eq('grape')
         expect(render_span.resource).to eq('grape.endpoint_render')
-        expect(render_span.status).to eq(0)
+        expect(render_span).to_not have_error
         expect(render_span.parent).to eq(run_span)
 
         expect(run_span.name).to eq('grape.endpoint_run')
         expect(run_span.span_type).to eq('web')
         expect(run_span.service).to eq('grape')
         expect(run_span.resource).to eq('RackTestingAPI#success')
-        expect(run_span.status).to eq(0)
+        expect(run_span).to_not have_error
         expect(run_span.parent).to eq(rack_span)
 
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
         expect(rack_span.service).to eq('rack')
         expect(rack_span.resource).to eq('RackTestingAPI#success')
-        expect(rack_span.status).to eq(0)
+        expect(rack_span).to_not have_error
         expect(rack_span.parent).to be_nil
       end
 
       context 'failure' do
         subject(:response) { get '/api/hard_failure' }
+
+        it_behaves_like 'measured span for integration', true do
+          before do
+            expect { subject }.to raise_error(StandardError, 'Ouch!')
+          end
+        end
 
         it 'should integrate with Racck integration when exception is thrown' do
           expect { subject }.to raise_error(StandardError, 'Ouch!')
@@ -231,30 +318,36 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span.span_type).to eq('template')
           expect(render_span.service).to eq('grape')
           expect(render_span.resource).to eq('grape.endpoint_render')
-          expect(render_span.status).to eq(1)
-          expect(render_span.get_tag('error.type')).to eq('StandardError')
-          expect(render_span.get_tag('error.msg')).to eq('Ouch!')
-          expect(render_span.get_tag('error.stack')).to include('grape/rack_app.rb')
+          expect(render_span).to have_error
+          expect(render_span).to have_error_type('StandardError')
+          expect(render_span).to have_error_message('Ouch!')
+          expect(render_span.get_tag('error.stack')).to include('grape/tracer_spec.rb')
           expect(render_span.parent).to eq(run_span)
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
           expect(run_span.service).to eq('grape')
           expect(run_span.resource).to eq('RackTestingAPI#hard_failure')
-          expect(run_span.status).to eq(1)
+          expect(run_span).to have_error
           expect(run_span.parent).to eq(rack_span)
 
           expect(rack_span.name).to eq('rack.request')
           expect(rack_span.span_type).to eq('web')
           expect(rack_span.service).to eq('rack')
           expect(rack_span.resource).to eq('RackTestingAPI#hard_failure')
-          expect(rack_span.status).to eq(1)
+          expect(rack_span).to have_error
           expect(rack_span.parent).to be_nil
         end
       end
 
       context 'missing route' do
         subject(:response) { get '/api/not_existing' }
+
+        it_behaves_like 'measured span for integration', true do
+          before do
+            expect(subject.status).to eq(404)
+          end
+        end
 
         it 'it should not impact the Rack integration that must work as usual' do
           expect(subject.status).to eq(404)
@@ -266,7 +359,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(rack_span.span_type).to eq('web')
           expect(rack_span.service).to eq('rack')
           expect(rack_span.resource).to eq('GET 404')
-          expect(rack_span.status).to eq(0)
+          expect(rack_span).to_not have_error
           expect(rack_span.parent).to be_nil
         end
       end
