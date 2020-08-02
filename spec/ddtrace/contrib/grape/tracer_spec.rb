@@ -14,7 +14,7 @@ RSpec.describe 'Grape instrumentation' do
   let(:render_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RENDER } }
   let(:run_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
   let(:run_filter_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN_FILTERS } }
-  let(:span) { spans.first }
+  let(:span) { spans.last }
 
   let(:testing_api) do
     # patch Grape before the application
@@ -115,6 +115,12 @@ RSpec.describe 'Grape instrumentation' do
           before { is_expected.to be_ok }
         end
 
+        it_behaves_like 'analytics for integration', ignore_global_flag: false do
+          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          before { is_expected.to be_ok }
+        end
+
         it 'should trace the endpoint body' do
           is_expected.to be_ok
           expect(response.body).to eq('OK')
@@ -141,6 +147,12 @@ RSpec.describe 'Grape instrumentation' do
 
         it_behaves_like 'measured span for integration', true do
           before { is_expected.to be_ok }
+        end
+
+        it_behaves_like 'analytics for integration', ignore_global_flag: false do
+          before { is_expected.to be_ok }
+          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it 'should trace the endpoint body and all before/after filters' do
@@ -193,6 +205,14 @@ RSpec.describe 'Grape instrumentation' do
           end
         end
 
+        it_behaves_like 'analytics for integration', ignore_global_flag: false do
+          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          before do
+            expect { subject }.to raise_error(StandardError, 'Ouch!')
+          end
+        end
+
         it 'should handle exceptions' do
           expect { subject }.to raise_error(StandardError, 'Ouch!')
 
@@ -226,6 +246,14 @@ RSpec.describe 'Grape instrumentation' do
         subject(:response) { get '/filtered_exception/before' }
 
         it_behaves_like 'measured span for integration', true do
+          before do
+            expect { subject }.to raise_error(StandardError, 'Ouch!')
+          end
+        end
+
+        it_behaves_like 'analytics for integration', ignore_global_flag: false do
+          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           before do
             expect { subject }.to raise_error(StandardError, 'Ouch!')
           end
@@ -270,6 +298,13 @@ RSpec.describe 'Grape instrumentation' do
         before { is_expected.to be_ok }
       end
 
+      it_behaves_like 'analytics for integration', ignore_global_flag: false do
+        before { is_expected.to be_ok }
+        let(:span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
+        let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+
       it 'should intergrate with the Rack integration' do
         is_expected.to be_ok
         expect(response.body).to eq('OK')
@@ -303,6 +338,15 @@ RSpec.describe 'Grape instrumentation' do
         subject(:response) { get '/api/hard_failure' }
 
         it_behaves_like 'measured span for integration', true do
+          before do
+            expect { subject }.to raise_error(StandardError, 'Ouch!')
+          end
+        end
+
+        it_behaves_like 'analytics for integration', ignore_global_flag: false do
+          let(:span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
+          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           before do
             expect { subject }.to raise_error(StandardError, 'Ouch!')
           end
