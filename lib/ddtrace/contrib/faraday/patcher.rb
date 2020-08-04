@@ -41,13 +41,22 @@ module Datadog
 
         def add_default_middleware!
           if target_version >= Gem::Version.new('1.0.0')
+            # Patch the default connection (e.g. +Faraday.get+)
+            ::Faraday.default_connection.use(:ddtrace)
+
+            # Patch new connection instances (e.g. +Faraday.new+)
             ::Faraday::Connection.send(:prepend, Connection)
           else
+            # Patch the default connection (e.g. +Faraday.get+)
+            #
+            # We insert our middleware before the 'adapter', which is
+            # always the last handler.
+            idx = ::Faraday.default_connection.builder.handlers.size - 1
+            ::Faraday.default_connection.builder.insert(idx, Middleware)
+
+            # Patch new connection instances (e.g. +Faraday.new+)
             ::Faraday::RackBuilder.send(:prepend, RackBuilder)
           end
-
-          # Instrument the Faraday default connection (e.g. +Faraday.get+)
-          ::Faraday.default_connection.use(:ddtrace)
         end
 
         def get_option(option)
