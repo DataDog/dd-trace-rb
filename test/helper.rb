@@ -225,9 +225,11 @@ def try_wait_until(options = {})
   backoff = options.fetch(:backoff, 0.1)
 
   loop do
-    break if attempts <= 0 || yield
+    break if yield
     sleep(backoff)
     attempts -= 1
+
+    raise StandardError, 'Wait time exhausted!' if attempts <= 0
   end
 end
 
