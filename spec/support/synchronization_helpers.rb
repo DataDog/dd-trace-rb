@@ -28,8 +28,9 @@ module SynchronizationHelpers
     expect(status).to be true
   end
 
+  # Defaults to 5 second timeout
   def try_wait_until(options = {})
-    attempts = options.fetch(:attempts, 10)
+    attempts = options.fetch(:attempts, 50)
     backoff = options.fetch(:backoff, 0.1)
 
     loop do
