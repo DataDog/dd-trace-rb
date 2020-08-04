@@ -285,6 +285,46 @@ module Datadog
           "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
         end
       end
+
+      class RumInjection
+
+        def initialize(app)
+          @app = app
+        end
+
+        def call(env)
+          # call app
+          puts 'calls rum injection middleware'
+          status, headers, response = @app.call(env)
+
+          # basic check to make sure it's html
+          # we need significantly more safety here to check to ensure it's something we can parse
+          # ie: it shouldnt be gzipped yet since we've injected our middleware in the stack after rack deflater
+          # or any other compression middleware for that matter
+          if headers["Content-Type"] && headers["Content-Type"].include?("text/html")
+            # aggregate the html into a complete document
+            # should have a max amount we parse here after which we give up
+            html_doc = nil
+            response.each do |frag|
+              html_doc ? (html_doc << frag.to_s) : (html_doc = frag.to_s)
+            end
+            puts 'index of ending of head is'
+            head_end_index = html_doc.index("</head")
+            puts head_end_index
+            # TODO: we need to insert the trace_id and expiry meta tags
+            # TODO: we need to update the content length (check bytesize)
+            # TODO: return new response (how do we reset into array? do we call Rack Response bodyproxy .new or something? )
+          end
+
+          [status, headers, response]
+        rescue Exception => e
+          puts 'error in rum injection'
+          puts e
+          raise e
+        ensure
+          puts 'arbitrary cleanup'
+        end
+      end
     end
   end
 end

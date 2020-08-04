@@ -48,6 +48,8 @@ module Datadog
             ActionDispatch::ShowExceptions,
             Datadog::Contrib::Rails::ExceptionMiddleware
           )
+
+          app.middleware.use(Datadog::Contrib::Rack::RumInjection)
         end
 
         def patch_after_intialize
