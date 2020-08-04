@@ -476,7 +476,7 @@ RSpec.describe Datadog::Configuration::Settings do
       subject(:rate_limit) { settings.sampling.rate_limit }
 
       context 'default' do
-        it { is_expected.to be 100 }
+        it { is_expected.to eq(100) }
       end
 
       context 'when ENV is provided' do

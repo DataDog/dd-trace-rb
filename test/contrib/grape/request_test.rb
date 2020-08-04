@@ -61,7 +61,7 @@ class TracedAPITest < BaseAPITest
     assert_equal(render.status, 1)
     assert_equal(render.get_tag('error.type'), 'StandardError')
     assert_equal(render.get_tag('error.msg'), 'Ouch!')
-    assert_includes(render.get_tag('error.stack'), '<class:TestingAPI>')
+    assert_includes(render.get_tag('error.stack'), 'grape/app.rb')
     assert_equal(render.parent, run)
     assert_equal(render.get_metric('_dd.measured'), 1.0)
 
@@ -72,7 +72,7 @@ class TracedAPITest < BaseAPITest
     assert_equal(run.status, 1)
     assert_equal(run.get_tag('error.type'), 'StandardError')
     assert_equal(run.get_tag('error.msg'), 'Ouch!')
-    assert_includes(run.get_tag('error.stack'), '<class:TestingAPI>')
+    assert_includes(run.get_tag('error.stack'), 'grape/app.rb')
     assert_nil(run.parent)
     assert_equal(run.get_metric('_dd.measured'), 1.0)
   end
@@ -137,7 +137,7 @@ class TracedAPITest < BaseAPITest
     assert_equal(before.status, 1)
     assert_equal(before.get_tag('error.type'), 'StandardError')
     assert_equal(before.get_tag('error.msg'), 'Ouch!')
-    assert_includes(before.get_tag('error.stack'), '<class:TestingAPI>')
+    assert_includes(before.get_tag('error.stack'), 'grape/app.rb')
     assert_equal(before.parent, run)
 
     assert_equal(run.name, 'grape.endpoint_run')

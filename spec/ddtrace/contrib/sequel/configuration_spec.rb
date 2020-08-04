@@ -14,10 +14,18 @@ RSpec.describe 'Sequel configuration' do
 
   describe 'for a SQLite database' do
     let(:sequel) do
-      Sequel.sqlite(':memory:').tap do |db|
+      Sequel.connect(connection_string).tap do |db|
         db.create_table(:table) do
           String :name
         end
+      end
+    end
+
+    let(:connection_string) do
+      if PlatformHelpers.jruby?
+        'jdbc:sqlite::memory:'
+      else
+        'sqlite::memory:'
       end
     end
 
