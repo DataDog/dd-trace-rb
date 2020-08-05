@@ -287,17 +287,16 @@ module Datadog
         end
       end
 
+      # for rum injection
       class RumInjection
-
         def initialize(app)
           @app = app
         end
 
-
         def call(env)
           # call app
           result = @app.call(env)
-          status, headers, response = result 
+          status, headers, response = result
 
           # basic check to make sure it's html
           # we need significantly more safety here to check to ensure it's something we can parse
@@ -305,32 +304,32 @@ module Datadog
           # or any other compression middleware for that matter
 
           injectable = should_inject?(headers)
-          
+
           if injectable
             current_trace_id = get_current_trace_id
-            
-            if current_trace_id
-              # we need to insert the trace_id and expiry meta tags
-              updated_html = generate_updated_html(response, headers, current_trace_id)
-            
-              unless updated_html.nil?
-                # we need to update the content length (check bytesize)
-                if headers.key?('Content-Length')
-                  content_length = updated_html ? updated_html.bytesize : 0
-                  headers['Content-Length'] = content_length.to_s
-                end
 
-                env[RUM_INJECTION_FLAG] = true
+            return result unless current_trace_id
 
-                # return new response (how do we reset into array? do we call Rack Response bodyproxy .new or something? )
-                if updated_html
-                  response = Rack::Response.new(updated_html, status, headers)
-                  response.finish
-                  return response
-                else
-                  return result
-                end
-              end
+            # we need to insert the trace_id and expiry meta tags
+            updated_html = generate_updated_html(response, headers, current_trace_id)
+
+            return result if updated_html.nil?
+
+            # we need to update the content length (check bytesize)
+            if headers.key?('Content-Length')
+              content_length = updated_html ? updated_html.bytesize : 0
+              headers['Content-Length'] = content_length.to_s
+            end
+
+            env[RUM_INJECTION_FLAG] = true
+
+            # return new response (how do we reset into array? do we call Rack Response bodyproxy .new or something? )
+            if updated_html
+              response = Rack::Response.new(updated_html, status, headers)
+              response.finish
+              return response
+            else
+              return result
             end
           end
 
@@ -342,60 +341,58 @@ module Datadog
         end
       end
 
-
       private
 
       def should_inject?(headers, env)
         !env[RUM_INJECTION_FLAG] &&
-        is_no_cache?(headers) &&
-        !is_compressed?(headers) &&
-        is_html?(headers) &&
-        !is_attachment?(headers) &&
-        !is_streaming?(headers, env) &&
-        is_injectable_html?(headers)
+          no_cache?(headers) &&
+          !compressed?(headers) &&
+          !attachment?(headers) &&
+          !streaming?(headers, env) &&
+          injectable_html?(headers)
       # catch everything and swallow it here for defensiveness
       rescue Exception => e
         puts "error determining injection suitability for rum #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
         return nil
       end
 
-      def is_compressed?(headers)
-        headers.key("Content-Encoding") && 
-        ( headers["Content-Encoding"].include('compress') || 
-          headers["Content-Encoding"].include('gzip') || 
-          headers["Content-Encoding"].include('deflate'))
+      def compressed?(headers)
+        headers.key('Content-Encoding') &&
+          (headers['Content-Encoding'].include('compress') ||
+            headers['Content-Encoding'].include('gzip') ||
+            headers['Content-Encoding'].include('deflate'))
       end
 
-      def is_injectable_html?(headers)
-        headers.key("Content-Type") && 
-        headers["Content-Type"].include('text/html') ||
-        headers["Content-Type"].include('application/xhtml+xml')
+      def injectable_html?(headers)
+        headers.key('Content-Type') &&
+          headers['Content-Type'].include('text/html') ||
+          headers['Content-Type'].include('application/xhtml+xml')
       end
 
-      def is_attachment?(headers)
-        headers.key("Content-Disposition") && 
-        headers["Content-Disposition"].include('attachment')
+      def attachment?(headers)
+        headers.key('Content-Disposition') &&
+          headers['Content-Disposition'].include('attachment')
       end
 
-      def is_streaming?(headers, env)
+      def streaming?(headers, env)
         # https://api.rubyonrails.org/classes/ActionController/Streaming.html
         # rails recommends disabling middlewares that interact with response body
         # when streaming via ActionController::Streaming
         # in this instance we will likely need to patch further upstream, in the render action perhaps
-        return true if (headers && && headers.key('Transfer-Encoding') && headers['Transfer-Encoding'] == 'chunked') ||
-          (headers.key("Content-Type") && headers["Content-Type"].include('text/event-stream'))
+        return true if (headers && headers.key('Transfer-Encoding') && headers['Transfer-Encoding'] == 'chunked') ||
+                       (headers.key('Content-Type') && headers['Content-Type'].include('text/event-stream'))
 
         # if we detect Server Side Event streaming controller, assume streaming
         defined?(ActionController::Live) &&
           env['action_controller.instance'].class.included_modules.include?(ActionController::Live)
       end
 
-      def is_no_cache(headers, env)
+      def no_cache?(headers, env)
         # TODO: clean this up, determine formatting, env_to_list, and how to iterate and match on glob regex
-        !env_to_list('DD_TRACE_CACHED_PAGES', []).any?{ |page_glob| File.fnmatch(page_glob, env['REQUEST_URI']) } &&
-        !headers['Cache-Control'] ||
-        headers['Cache-Control'].include('no-cache') ||
-        headers['Cache-Control'].include('no-store') 
+        env_to_list('DD_TRACE_CACHED_PAGES', []).none? { |page_glob| File.fnmatch(page_glob, env['REQUEST_URI']) } &&
+          !headers['Cache-Control'] ||
+          headers['Cache-Control'].include('no-cache') ||
+          headers['Cache-Control'].include('no-store')
       end
 
       def get_current_trace_id
@@ -413,7 +410,9 @@ module Datadog
         insert_index = concatted_html.index('>', head_start) + 1 if head_start
 
         if insert_index
-          concatted_html = concatted_html[0...insert_index] << %{<meta name="dd-trace-id" content="#{trace_id.to_s}" /> <meta name="dd-trace-expiry" content="#{Time.now.to_i + 60}" />} << concatted_html[insert_index..-1]
+          # rubocop:disable Metrics/LineLength
+          concatted_html = concatted_html[0...insert_index] << %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-expiry" content="#{Time.now.to_i + 60}" />) << concatted_html[insert_index..-1]
+          return concatted_html
         end
       # catch everything and swallow it here for defensiveness
       rescue Exception => e
