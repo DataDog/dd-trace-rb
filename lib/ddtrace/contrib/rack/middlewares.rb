@@ -307,28 +307,21 @@ module Datadog
           # ie: it shouldnt be gzipped yet since we've injected our middleware in the stack after rack deflater
           # or any other compression middleware for that matter
 
-          injectable = should_inject?(headers, env)
+          injectable = should_inject?(headers, env, status)
 
-          puts "is injectable?"
-          puts injectable
           if injectable
+            puts 'injectable response'
             current_trace_id = get_current_trace_id
 
-            puts "current trace id?"
-            puts current_trace_id
             return result unless current_trace_id
 
-            puts 'updating html'
             # we need to insert the trace_id and expiry meta tags
             updated_html = generate_updated_html(response, headers, current_trace_id)
-
-            puts 'updated html is'
-            puts updated_html
 
             return result if updated_html.nil?
 
             # we need to update the content length (check bytesize)
-            if headers.key?('Content-Length')
+            if headers && headers.key?('Content-Length')
               content_length = updated_html ? updated_html.bytesize : 0
               headers['Content-Length'] = content_length.to_s
             end
@@ -337,38 +330,28 @@ module Datadog
 
             # return new response (how do we reset into array? do we call Rack Response bodyproxy .new or something? )
             if updated_html
-              response = ::Rack::Response.new(updated_html, status, headers)
-              response.finish
-              return response
+              updated_response = ::Rack::Response.new(updated_html, status, headers)
+              puts 'injection successful'
+              return updated_response.finish
             else
+              puts 'injection unsuccessful'
               return result
             end
           end
 
           # catchall if an earlier conditional is not met
+          puts 'injection not a match'
           result
         rescue Exception => e
           puts "error in rum injection #{e.message}"
           raise e
         end
 
-
         private
 
-        def should_inject?(headers, env)
-          puts 'headers'
-          puts headers
-
-          puts(" 
-          1. #{!env[RUM_INJECTION_FLAG]}
-          2. #{no_cache?(headers, env)}
-          3. #{no_cache?(headers, env)}
-          4. #{!compressed?(headers)}
-          5. #{!attachment?(headers)}
-          6. #{!streaming?(headers, env)}
-          7. #{injectable_html?(headers)}")
-
-          !env[RUM_INJECTION_FLAG] &&
+        def should_inject?(headers, env, status)
+          status == 200 &&
+            !env[RUM_INJECTION_FLAG] &&
             no_cache?(headers, env) &&
             !compressed?(headers) &&
             !attachment?(headers) &&
@@ -381,20 +364,20 @@ module Datadog
         end
 
         def compressed?(headers)
-          headers.key?('Content-Encoding') &&
+          headers && headers.key?('Content-Encoding') &&
             (headers['Content-Encoding'].include?('compress') ||
               headers['Content-Encoding'].include?('gzip') ||
               headers['Content-Encoding'].include?('deflate'))
         end
 
         def injectable_html?(headers)
-          headers.key?('Content-Type') &&
+          headers && headers.key?('Content-Type') &&
             headers['Content-Type'].include?('text/html') ||
             headers['Content-Type'].include?('application/xhtml+xml')
         end
 
         def attachment?(headers)
-          headers.key?('Content-Disposition') &&
+          headers && headers.key?('Content-Disposition') &&
             headers['Content-Disposition'].include?('attachment')
         end
 
@@ -404,7 +387,7 @@ module Datadog
           # when streaming via ActionController::Streaming
           # in this instance we will likely need to patch further upstream, in the render action perhaps
           return true if (headers && headers.key?('Transfer-Encoding') && headers['Transfer-Encoding'] == 'chunked') ||
-                         (headers.key?('Content-Type') && headers['Content-Type'].include?('text/event-stream'))
+                         (headers && headers.key?('Content-Type') && headers['Content-Type'].include?('text/event-stream'))
 
           # if we detect Server Side Event streaming controller, assume streaming
           defined?(ActionController::Live) &&
@@ -414,7 +397,8 @@ module Datadog
         def no_cache?(headers, env)
           # TODO: clean this up, determine formatting, env_to_list, and how to iterate and match on glob regex
           env_to_list('DD_TRACE_CACHED_PAGES', []).none? { |page_glob| File.fnmatch(page_glob, env['REQUEST_URI']) } &&
-            !headers['Cache-Control'] ||
+            headers &&
+            !headers.key?('Cache-Control') ||
             headers['Cache-Control'].include?('no-cache') ||
             headers['Cache-Control'].include?('no-store')
         end
@@ -422,8 +406,6 @@ module Datadog
         def get_current_trace_id
           tracer = Datadog.configuration[:rack][:tracer]
           span = tracer.active_span
-          puts 'active span is?'
-          puts span
           span.trace_id if span
         end
 
@@ -431,13 +413,14 @@ module Datadog
           concatted_html = concat_html_fragments(response)
 
           # we insert direct after start of head tag for POC simplicityy
-          head_start = concatted_html.index('<head')
+          head_end = concatted_html.index('</head')
 
-          insert_index = concatted_html.index('>', head_start) + 1 if head_start
+          insert_index = concatted_html.index('>', head_end) + 1 if head_end
 
           if insert_index
             # rubocop:disable Metrics/LineLength
-            concatted_html = concatted_html[0...insert_index] << %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-expiry" content="#{Time.now.to_i + 60}" />) << concatted_html[insert_index..-1]
+            unix_expiry_time = Time.now.to_i + 60
+            concatted_html = %(<!-- DATADOG;trace-id=#{trace_id};expiry=#{unix_expiry_time} -->) << concatted_html[0...insert_index] << %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-expiry" content="#{unix_expiry_time}" />) << concatted_html[insert_index..-1]
             return concatted_html
           end
         # catch everything and swallow it here for defensiveness
@@ -453,6 +436,9 @@ module Datadog
           response.each do |frag|
             html_doc ? (html_doc << frag.to_s) : (html_doc = frag.to_s)
           end
+          # https://www.rubydoc.info/github/rack/rack/file/SPEC
+          # according to spec, .close must be called after iterating
+          response.close if response.respond_to?(:close)
           html_doc
         end
       end

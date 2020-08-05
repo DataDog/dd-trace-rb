@@ -46,6 +46,20 @@ RSpec.describe 'Sinatra instrumentation' do
     end
   end
 
+  shared_context 'with rack instrumentation and rum injection' do
+    let(:with_rack) { true }
+    let(:rack_span) { spans.find { |x| !x.parent && x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST } }
+
+    let(:app) do
+      sinatra_app = self.sinatra_app
+      Rack::Builder.new do
+        use Datadog::Contrib::Rack::TraceMiddleware
+        use Datadog::Contrib::Rack::RumInjection
+        run sinatra_app
+      end.to_app
+    end
+  end
+
   shared_examples 'sinatra examples' do
     context 'when configured' do
       context 'with default settings' do
@@ -395,6 +409,18 @@ RSpec.describe 'Sinatra instrumentation' do
       it do
         is_expected.to be_ok
         expect(spans).to be_empty
+      end
+    end
+
+    context 'rack and template' do
+      include_context 'with rack instrumentation and rum injection'
+
+      subject(:response) { get '/erb' }
+
+      it 'handles html injection' do
+        body = response.body
+
+        expect(body).to include(span.trace_id.to_s)
       end
     end
   end
