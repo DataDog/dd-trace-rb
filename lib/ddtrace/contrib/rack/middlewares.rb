@@ -289,6 +289,7 @@ module Datadog
 
       # for rum injection
       class RumInjection
+        include Datadog::Environment::Helpers
         RUM_INJECTION_FLAG = 'datadog.rum_injection_flag'.freeze
 
         def initialize(app)
