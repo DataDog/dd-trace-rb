@@ -17,7 +17,19 @@ RSpec.describe 'Rails database' do
   before do
     stub_const('Article', Class.new(ActiveRecord::Base))
 
-    Article.count # Ensure warm up queries are executed before tests
+    begin
+      Article.count
+    rescue ActiveRecord::StatementInvalid
+      ActiveRecord::Schema.define(version: 20161003090450) do
+        create_table 'articles', force: :cascade do |t|
+          t.string   'title'
+          t.datetime 'created_at', null: false
+          t.datetime 'updated_at', null: false
+        end
+      end
+      Article.count # Ensure warm up queries are executed before tests
+    end
+
     clear_spans!
   end
 

@@ -109,6 +109,14 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test do
       expect(adapter.status).to be status
     end
   end
+
+  describe '#url' do
+    subject(:url) { adapter.url }
+
+    it do
+      is_expected.to be nil
+    end
+  end
 end
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::Test::Response do

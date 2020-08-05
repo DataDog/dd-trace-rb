@@ -19,7 +19,7 @@ RSpec.describe Datadog::Workers::Polling do
       let(:task) { proc { |*args| worker_spy.perform(*args) } }
       let(:worker_spy) { double('worker spy') }
 
-      before { allow(worker_spy).to receive(:perform) }
+      before { allow(worker_spy).to receive(:perform) { sleep 5 } }
 
       context 'by default' do
         it do

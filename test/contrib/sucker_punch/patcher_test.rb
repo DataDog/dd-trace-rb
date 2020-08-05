@@ -12,6 +12,10 @@ module Datadog
           :sucker_punch
         end
 
+        def teardown
+          ::SuckerPunch::Queue.shutdown_all
+        end
+
         def configure
           Datadog.configure do |c|
             c.use :sucker_punch
