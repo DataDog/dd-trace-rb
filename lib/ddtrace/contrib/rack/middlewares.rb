@@ -339,95 +339,96 @@ module Datadog
           puts "error in rum injection #{e.message}"
           raise e
         end
-      end
 
-      private
 
-      def should_inject?(headers, env)
-        !env[RUM_INJECTION_FLAG] &&
-          no_cache?(headers) &&
-          !compressed?(headers) &&
-          !attachment?(headers) &&
-          !streaming?(headers, env) &&
-          injectable_html?(headers)
-      # catch everything and swallow it here for defensiveness
-      rescue Exception => e
-        puts "error determining injection suitability for rum #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
-        return nil
-      end
+        private
 
-      def compressed?(headers)
-        headers.key('Content-Encoding') &&
-          (headers['Content-Encoding'].include('compress') ||
-            headers['Content-Encoding'].include('gzip') ||
-            headers['Content-Encoding'].include('deflate'))
-      end
-
-      def injectable_html?(headers)
-        headers.key('Content-Type') &&
-          headers['Content-Type'].include('text/html') ||
-          headers['Content-Type'].include('application/xhtml+xml')
-      end
-
-      def attachment?(headers)
-        headers.key('Content-Disposition') &&
-          headers['Content-Disposition'].include('attachment')
-      end
-
-      def streaming?(headers, env)
-        # https://api.rubyonrails.org/classes/ActionController/Streaming.html
-        # rails recommends disabling middlewares that interact with response body
-        # when streaming via ActionController::Streaming
-        # in this instance we will likely need to patch further upstream, in the render action perhaps
-        return true if (headers && headers.key('Transfer-Encoding') && headers['Transfer-Encoding'] == 'chunked') ||
-                       (headers.key('Content-Type') && headers['Content-Type'].include('text/event-stream'))
-
-        # if we detect Server Side Event streaming controller, assume streaming
-        defined?(ActionController::Live) &&
-          env['action_controller.instance'].class.included_modules.include?(ActionController::Live)
-      end
-
-      def no_cache?(headers, env)
-        # TODO: clean this up, determine formatting, env_to_list, and how to iterate and match on glob regex
-        env_to_list('DD_TRACE_CACHED_PAGES', []).none? { |page_glob| File.fnmatch(page_glob, env['REQUEST_URI']) } &&
-          !headers['Cache-Control'] ||
-          headers['Cache-Control'].include('no-cache') ||
-          headers['Cache-Control'].include('no-store')
-      end
-
-      def get_current_trace_id
-        tracer = Datadog.configuration[:rack][:tracer]
-        span = tracer.active_span
-        span.trace_id if span
-      end
-
-      def generate_updated_html(response, headers, trace_id)
-        concatted_html = concat_html_fragments(response)
-
-        # we insert direct after start of head tag for POC simplicityy
-        head_start = concatted_html.index('<head')
-
-        insert_index = concatted_html.index('>', head_start) + 1 if head_start
-
-        if insert_index
-          # rubocop:disable Metrics/LineLength
-          concatted_html = concatted_html[0...insert_index] << %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-expiry" content="#{Time.now.to_i + 60}" />) << concatted_html[insert_index..-1]
-          return concatted_html
+        def should_inject?(headers, env)
+          !env[RUM_INJECTION_FLAG] &&
+            no_cache?(headers) &&
+            !compressed?(headers) &&
+            !attachment?(headers) &&
+            !streaming?(headers, env) &&
+            injectable_html?(headers)
+        # catch everything and swallow it here for defensiveness
+        rescue Exception => e
+          puts "error determining injection suitability for rum #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
+          return nil
         end
-      # catch everything and swallow it here for defensiveness
-      rescue Exception => e
-        puts "error updating html for rum injection #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
-        return nil
-      end
 
-      def concat_html_fragments(response)
-        # aggregate the html into a complete document
-        # should have a max amount we parse here after which we give up
-        html_doc = nil
-        response.each do |frag|
-          html_doc ? (html_doc << frag.to_s) : (html_doc = frag.to_s)
+        def compressed?(headers)
+          headers.key('Content-Encoding') &&
+            (headers['Content-Encoding'].include('compress') ||
+              headers['Content-Encoding'].include('gzip') ||
+              headers['Content-Encoding'].include('deflate'))
         end
-        html_doc
+
+        def injectable_html?(headers)
+          headers.key('Content-Type') &&
+            headers['Content-Type'].include('text/html') ||
+            headers['Content-Type'].include('application/xhtml+xml')
+        end
+
+        def attachment?(headers)
+          headers.key('Content-Disposition') &&
+            headers['Content-Disposition'].include('attachment')
+        end
+
+        def streaming?(headers, env)
+          # https://api.rubyonrails.org/classes/ActionController/Streaming.html
+          # rails recommends disabling middlewares that interact with response body
+          # when streaming via ActionController::Streaming
+          # in this instance we will likely need to patch further upstream, in the render action perhaps
+          return true if (headers && headers.key('Transfer-Encoding') && headers['Transfer-Encoding'] == 'chunked') ||
+                         (headers.key('Content-Type') && headers['Content-Type'].include('text/event-stream'))
+
+          # if we detect Server Side Event streaming controller, assume streaming
+          defined?(ActionController::Live) &&
+            env['action_controller.instance'].class.included_modules.include?(ActionController::Live)
+        end
+
+        def no_cache?(headers, env)
+          # TODO: clean this up, determine formatting, env_to_list, and how to iterate and match on glob regex
+          env_to_list('DD_TRACE_CACHED_PAGES', []).none? { |page_glob| File.fnmatch(page_glob, env['REQUEST_URI']) } &&
+            !headers['Cache-Control'] ||
+            headers['Cache-Control'].include('no-cache') ||
+            headers['Cache-Control'].include('no-store')
+        end
+
+        def get_current_trace_id
+          tracer = Datadog.configuration[:rack][:tracer]
+          span = tracer.active_span
+          span.trace_id if span
+        end
+
+        def generate_updated_html(response, headers, trace_id)
+          concatted_html = concat_html_fragments(response)
+
+          # we insert direct after start of head tag for POC simplicityy
+          head_start = concatted_html.index('<head')
+
+          insert_index = concatted_html.index('>', head_start) + 1 if head_start
+
+          if insert_index
+            # rubocop:disable Metrics/LineLength
+            concatted_html = concatted_html[0...insert_index] << %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-expiry" content="#{Time.now.to_i + 60}" />) << concatted_html[insert_index..-1]
+            return concatted_html
+          end
+        # catch everything and swallow it here for defensiveness
+        rescue Exception => e
+          puts "error updating html for rum injection #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
+          return nil
+        end
+
+        def concat_html_fragments(response)
+          # aggregate the html into a complete document
+          # should have a max amount we parse here after which we give up
+          html_doc = nil
+          response.each do |frag|
+            html_doc ? (html_doc << frag.to_s) : (html_doc = frag.to_s)
+          end
+          html_doc
+        end
       end
     end
   end
