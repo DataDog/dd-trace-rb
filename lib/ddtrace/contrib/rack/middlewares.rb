@@ -20,6 +20,7 @@ module Datadog
         # DEPRECATED: Remove in 1.0 in favor of Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN
         # This constant will remain here until then, for backwards compatibility.
         RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
+        RUM_INJECTION_FLAG = 'datadog.rum_injection_flag'.freeze
 
         def initialize(app)
           @app = app
@@ -292,6 +293,7 @@ module Datadog
           @app = app
         end
 
+
         def call(env)
           # call app
           puts 'calls rum injection middleware'
@@ -301,13 +303,26 @@ module Datadog
           # we need significantly more safety here to check to ensure it's something we can parse
           # ie: it shouldnt be gzipped yet since we've injected our middleware in the stack after rack deflater
           # or any other compression middleware for that matter
-          if headers["Content-Type"] && headers["Content-Type"].include?("text/html")
-            # aggregate the html into a complete document
-            # should have a max amount we parse here after which we give up
-            html_doc = nil
-            response.each do |frag|
-              html_doc ? (html_doc << frag.to_s) : (html_doc = frag.to_s)
-            end
+          puts 'content encoding type'
+          if headers["Content-Encoding"]
+
+          puts 'Transfer-Encoding is'
+          puts headers['Transfer-Encoding']
+
+          puts 'cache control is'
+          puts headers['Cache-Control']
+          puts 'headers are'
+          puts headers
+
+          injectable = should_inject?(headers)
+          current_trace_id = get_current_trace_id
+
+          if should_inject? && current_trace_id
+
+            updated_html = generate_updated_html(response, headers, current_trace_id)
+            
+            return [status, headers, response] if updated_html.nil?
+
             puts 'index of ending of head is'
             head_end_index = html_doc.index("</head")
             puts head_end_index
@@ -324,6 +339,95 @@ module Datadog
         ensure
           puts 'arbitrary cleanup'
         end
+      end
+
+
+      private
+
+      def should_inject?(headers, env)
+        !env[RUM_INJECTION_FLAG] &&
+        is_no_cache?(headers) &&
+        !is_compressed?(headers) &&
+        is_html?(headers) &&
+        !is_attachment?(headers) &&
+        !is_streaming?(headers, env) &&
+        is_injectable_html?(headers)
+      end
+
+      def is_compressed?(headers)
+        headers["Content-Encoding"] && 
+        ( headers["Content-Encoding"].include('compress') || 
+          headers["Content-Encoding"].include('gzip') || 
+          headers["Content-Encoding"].include('deflate'))
+      end
+
+      def is_injectable_html?(headers)
+        headers["Content-Type"] && 
+        headers["Content-Type"].include('text/html') ||
+        headers["Content-Type"].include('application/xhtml+xml')
+      end
+
+      def is_attachment?(headers)
+        headers["Content-Disposition"] && 
+        headers["Content-Disposition"].include('attachment')
+      end
+
+      def is_streaming?(headers, env)
+        # https://api.rubyonrails.org/classes/ActionController/Streaming.html
+        # rails recommends disabling middlewares that interact with response body
+        # when streaming via ActionController::Streaming
+        # in this instance we will likely need to patch further upstream, in the render action perhaps
+        return true if (headers && headers['Transfer-Encoding'] == 'chunked') ||
+          (headers["Content-Type"] && headers["Content-Type"].include('text/event-stream'))
+
+        # if we detect Server Side Event streaming controller, assume streaming
+        defined?(ActionController::Live) &&
+          env['action_controller.instance'].class.included_modules.include?(ActionController::Live)
+      end
+
+      def is_no_cache(headers, env)
+        # TODO: clean this up, determine formatting, env_to_list, and how to iterate and match on glob regex
+        !env_to_list('DD_TRACE_CACHED_PAGES', []).any?{ |page_glob| File.fnmatch(page_glob, env['REQUEST_URI']) } &&
+        !headers['Cache-Control'] ||
+        headers['Cache-Control'].include('no-cache') ||
+        headers['Cache-Control'].include('no-store') 
+      end
+
+      def get_current_trace_id
+        tracer = Datadog.configuration[:rack][:tracer]
+        span = tracer.active_span
+        span.trace_id if span
+      end
+
+      def generate_updated_html(response, headers, updated_html)
+        concatted_html = concat_html_fragments(response)
+
+        head_start = concatted_html.index('<head')
+
+        insert_index = concatted_html.index('>', head_start) + 1 if head_start
+
+        if insert_index
+          concatted_html = concatted_html[0...insert_index] << %{<meta name="#{name}" content="#{content}" />}
+
+
+
+      end
+
+
+      # catch everything and swallow it here for defensiveness
+      rescue Exception => e
+        puts "error updating html for rum injection #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
+        return nil
+      end
+
+      def concat_html_fragments(response)
+        # aggregate the html into a complete document
+        # should have a max amount we parse here after which we give up
+        html_doc = nil
+        response.each do |frag|
+          html_doc ? (html_doc << frag.to_s) : (html_doc = frag.to_s)
+        end
+        html_doc
       end
     end
   end
