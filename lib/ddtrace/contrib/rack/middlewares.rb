@@ -346,7 +346,7 @@ module Datadog
 
         def should_inject?(headers, env)
           !env[RUM_INJECTION_FLAG] &&
-            no_cache?(headers) &&
+            no_cache?(headers, env) &&
             !compressed?(headers) &&
             !attachment?(headers) &&
             !streaming?(headers, env) &&
