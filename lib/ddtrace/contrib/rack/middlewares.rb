@@ -303,7 +303,7 @@ module Datadog
           # ie: it shouldnt be gzipped yet since we've injected our middleware in the stack after rack deflater
           # or any other compression middleware for that matter
 
-          injectable = should_inject?(headers)
+          injectable = should_inject?(headers, env)
 
           if injectable
             current_trace_id = get_current_trace_id
