@@ -296,48 +296,49 @@ module Datadog
 
         def call(env)
           # call app
-          puts 'calls rum injection middleware'
-          status, headers, response = @app.call(env)
+          result = @app.call(env)
+          status, headers, response = result 
 
           # basic check to make sure it's html
           # we need significantly more safety here to check to ensure it's something we can parse
           # ie: it shouldnt be gzipped yet since we've injected our middleware in the stack after rack deflater
           # or any other compression middleware for that matter
-          puts 'content encoding type'
-          if headers["Content-Encoding"]
-
-          puts 'Transfer-Encoding is'
-          puts headers['Transfer-Encoding']
-
-          puts 'cache control is'
-          puts headers['Cache-Control']
-          puts 'headers are'
-          puts headers
 
           injectable = should_inject?(headers)
-          current_trace_id = get_current_trace_id
-
-          if should_inject? && current_trace_id
-
-            updated_html = generate_updated_html(response, headers, current_trace_id)
+          
+          if injectable
+            current_trace_id = get_current_trace_id
             
-            return [status, headers, response] if updated_html.nil?
+            if current_trace_id
+              # we need to insert the trace_id and expiry meta tags
+              updated_html = generate_updated_html(response, headers, current_trace_id)
+            
+              unless updated_html.nil?
+                # we need to update the content length (check bytesize)
+                if headers.key?('Content-Length')
+                  content_length = updated_html ? updated_html.bytesize : 0
+                  headers['Content-Length'] = content_length.to_s
+                end
 
-            puts 'index of ending of head is'
-            head_end_index = html_doc.index("</head")
-            puts head_end_index
-            # TODO: we need to insert the trace_id and expiry meta tags
-            # TODO: we need to update the content length (check bytesize)
-            # TODO: return new response (how do we reset into array? do we call Rack Response bodyproxy .new or something? )
+                env[RUM_INJECTION_FLAG] = true
+
+                # return new response (how do we reset into array? do we call Rack Response bodyproxy .new or something? )
+                if updated_html
+                  response = Rack::Response.new(updated_html, status, headers)
+                  response.finish
+                  return response
+                else
+                  return result
+                end
+              end
+            end
           end
 
-          [status, headers, response]
+          # catchall if an earlier conditional is not met
+          result
         rescue Exception => e
-          puts 'error in rum injection'
-          puts e
+          puts "error in rum injection #{e.message}"
           raise e
-        ensure
-          puts 'arbitrary cleanup'
         end
       end
 
@@ -352,23 +353,27 @@ module Datadog
         !is_attachment?(headers) &&
         !is_streaming?(headers, env) &&
         is_injectable_html?(headers)
+      # catch everything and swallow it here for defensiveness
+      rescue Exception => e
+        puts "error determining injection suitability for rum #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
+        return nil
       end
 
       def is_compressed?(headers)
-        headers["Content-Encoding"] && 
+        headers.key("Content-Encoding") && 
         ( headers["Content-Encoding"].include('compress') || 
           headers["Content-Encoding"].include('gzip') || 
           headers["Content-Encoding"].include('deflate'))
       end
 
       def is_injectable_html?(headers)
-        headers["Content-Type"] && 
+        headers.key("Content-Type") && 
         headers["Content-Type"].include('text/html') ||
         headers["Content-Type"].include('application/xhtml+xml')
       end
 
       def is_attachment?(headers)
-        headers["Content-Disposition"] && 
+        headers.key("Content-Disposition") && 
         headers["Content-Disposition"].include('attachment')
       end
 
@@ -377,8 +382,8 @@ module Datadog
         # rails recommends disabling middlewares that interact with response body
         # when streaming via ActionController::Streaming
         # in this instance we will likely need to patch further upstream, in the render action perhaps
-        return true if (headers && headers['Transfer-Encoding'] == 'chunked') ||
-          (headers["Content-Type"] && headers["Content-Type"].include('text/event-stream'))
+        return true if (headers && && headers.key('Transfer-Encoding') && headers['Transfer-Encoding'] == 'chunked') ||
+          (headers.key("Content-Type") && headers["Content-Type"].include('text/event-stream'))
 
         # if we detect Server Side Event streaming controller, assume streaming
         defined?(ActionController::Live) &&
@@ -399,21 +404,17 @@ module Datadog
         span.trace_id if span
       end
 
-      def generate_updated_html(response, headers, updated_html)
+      def generate_updated_html(response, headers, trace_id)
         concatted_html = concat_html_fragments(response)
 
+        # we insert direct after start of head tag for POC simplicityy
         head_start = concatted_html.index('<head')
 
         insert_index = concatted_html.index('>', head_start) + 1 if head_start
 
         if insert_index
-          concatted_html = concatted_html[0...insert_index] << %{<meta name="#{name}" content="#{content}" />}
-
-
-
-      end
-
-
+          concatted_html = concatted_html[0...insert_index] << %{<meta name="dd-trace-id" content="#{trace_id.to_s}" /> <meta name="dd-trace-expiry" content="#{Time.now.to_i + 60}" />} << concatted_html[insert_index..-1]
+        end
       # catch everything and swallow it here for defensiveness
       rescue Exception => e
         puts "error updating html for rum injection #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
