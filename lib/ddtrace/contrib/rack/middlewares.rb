@@ -290,6 +290,7 @@ module Datadog
       # for rum injection
       class RumInjection
         include Datadog::Environment::Helpers
+
         RUM_INJECTION_FLAG = 'datadog.rum_injection_flag'.freeze
 
         def initialize(app)
@@ -361,20 +362,20 @@ module Datadog
 
         def compressed?(headers)
           headers.key('Content-Encoding') &&
-            (headers['Content-Encoding'].include('compress') ||
-              headers['Content-Encoding'].include('gzip') ||
-              headers['Content-Encoding'].include('deflate'))
+            (headers['Content-Encoding'].include?('compress') ||
+              headers['Content-Encoding'].include?('gzip') ||
+              headers['Content-Encoding'].include?('deflate'))
         end
 
         def injectable_html?(headers)
           headers.key('Content-Type') &&
-            headers['Content-Type'].include('text/html') ||
-            headers['Content-Type'].include('application/xhtml+xml')
+            headers['Content-Type'].include?('text/html') ||
+            headers['Content-Type'].include?('application/xhtml+xml')
         end
 
         def attachment?(headers)
           headers.key('Content-Disposition') &&
-            headers['Content-Disposition'].include('attachment')
+            headers['Content-Disposition'].include?('attachment')
         end
 
         def streaming?(headers, env)
@@ -383,7 +384,7 @@ module Datadog
           # when streaming via ActionController::Streaming
           # in this instance we will likely need to patch further upstream, in the render action perhaps
           return true if (headers && headers.key('Transfer-Encoding') && headers['Transfer-Encoding'] == 'chunked') ||
-                         (headers.key('Content-Type') && headers['Content-Type'].include('text/event-stream'))
+                         (headers.key('Content-Type') && headers['Content-Type'].include?('text/event-stream'))
 
           # if we detect Server Side Event streaming controller, assume streaming
           defined?(ActionController::Live) &&
@@ -394,8 +395,8 @@ module Datadog
           # TODO: clean this up, determine formatting, env_to_list, and how to iterate and match on glob regex
           env_to_list('DD_TRACE_CACHED_PAGES', []).none? { |page_glob| File.fnmatch(page_glob, env['REQUEST_URI']) } &&
             !headers['Cache-Control'] ||
-            headers['Cache-Control'].include('no-cache') ||
-            headers['Cache-Control'].include('no-store')
+            headers['Cache-Control'].include?('no-cache') ||
+            headers['Cache-Control'].include?('no-store')
         end
 
         def get_current_trace_id
