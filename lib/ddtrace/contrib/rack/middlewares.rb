@@ -309,13 +309,21 @@ module Datadog
 
           injectable = should_inject?(headers, env)
 
+          puts "is injectable?"
+          puts injectable
           if injectable
             current_trace_id = get_current_trace_id
 
+            puts "current trace id?"
+            puts current_trace_id
             return result unless current_trace_id
 
+            puts 'updating html'
             # we need to insert the trace_id and expiry meta tags
             updated_html = generate_updated_html(response, headers, current_trace_id)
+
+            puts 'updated html is'
+            puts updated_html
 
             return result if updated_html.nil?
 
@@ -402,6 +410,8 @@ module Datadog
         def get_current_trace_id
           tracer = Datadog.configuration[:rack][:tracer]
           span = tracer.active_span
+          puts 'active span is?'
+          puts span
           span.trace_id if span
         end
 
