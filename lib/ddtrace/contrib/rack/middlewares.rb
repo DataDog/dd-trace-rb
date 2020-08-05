@@ -381,20 +381,20 @@ module Datadog
         end
 
         def compressed?(headers)
-          headers.key('Content-Encoding') &&
+          headers.key?('Content-Encoding') &&
             (headers['Content-Encoding'].include?('compress') ||
               headers['Content-Encoding'].include?('gzip') ||
               headers['Content-Encoding'].include?('deflate'))
         end
 
         def injectable_html?(headers)
-          headers.key('Content-Type') &&
+          headers.key?('Content-Type') &&
             headers['Content-Type'].include?('text/html') ||
             headers['Content-Type'].include?('application/xhtml+xml')
         end
 
         def attachment?(headers)
-          headers.key('Content-Disposition') &&
+          headers.key?('Content-Disposition') &&
             headers['Content-Disposition'].include?('attachment')
         end
 
@@ -403,8 +403,8 @@ module Datadog
           # rails recommends disabling middlewares that interact with response body
           # when streaming via ActionController::Streaming
           # in this instance we will likely need to patch further upstream, in the render action perhaps
-          return true if (headers && headers.key('Transfer-Encoding') && headers['Transfer-Encoding'] == 'chunked') ||
-                         (headers.key('Content-Type') && headers['Content-Type'].include?('text/event-stream'))
+          return true if (headers && headers.key?('Transfer-Encoding') && headers['Transfer-Encoding'] == 'chunked') ||
+                         (headers.key?('Content-Type') && headers['Content-Type'].include?('text/event-stream'))
 
           # if we detect Server Side Event streaming controller, assume streaming
           defined?(ActionController::Live) &&
