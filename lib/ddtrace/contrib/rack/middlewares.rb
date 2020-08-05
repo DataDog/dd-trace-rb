@@ -337,7 +337,7 @@ module Datadog
 
             # return new response (how do we reset into array? do we call Rack Response bodyproxy .new or something? )
             if updated_html
-              response = Rack::Response.new(updated_html, status, headers)
+              response = ::Rack::Response.new(updated_html, status, headers)
               response.finish
               return response
             else
