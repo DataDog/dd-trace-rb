@@ -20,7 +20,6 @@ module Datadog
         # DEPRECATED: Remove in 1.0 in favor of Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN
         # This constant will remain here until then, for backwards compatibility.
         RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
-        RUM_INJECTION_FLAG = 'datadog.rum_injection_flag'.freeze
 
         def initialize(app)
           @app = app
@@ -289,6 +288,8 @@ module Datadog
 
       # for rum injection
       class RumInjection
+        RUM_INJECTION_FLAG = 'datadog.rum_injection_flag'.freeze
+
         def initialize(app)
           @app = app
         end
