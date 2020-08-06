@@ -303,14 +303,14 @@ module Datadog
           status, headers, response = result
 
           # basic check to make sure it's html
-          # we need significantly more safety here to check to ensure it's something we can parse
+          # we need significant safety here to check to ensure it's something we can parse
           # ie: it shouldnt be gzipped yet since we've injected our middleware in the stack after rack deflater
           # or any other compression middleware for that matter
 
           injectable = should_inject?(headers, env, status)
 
           if injectable
-            puts 'injectable response'
+            Datadog.logger.debug('injectable response')
             current_trace_id = get_current_trace_id
 
             return result unless current_trace_id
@@ -331,19 +331,19 @@ module Datadog
             # return new response (how do we reset into array? do we call Rack Response bodyproxy .new or something? )
             if updated_html
               updated_response = ::Rack::Response.new(updated_html, status, headers)
-              puts 'injection successful'
+              Datadog.logger.debug('injection successful')
               return updated_response.finish
             else
-              puts 'injection unsuccessful'
+              Datadog.logger.debug('injection unsuccessful')
               return result
             end
           end
 
           # catchall if an earlier conditional is not met
-          puts 'injection not a match'
+          Datadog.logger.debug('response not a match')
           result
         rescue Exception => e
-          puts "error in rum injection #{e.message}"
+          Datadog.logger.warn("error in rum injection #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
           raise e
         end
 
@@ -359,7 +359,7 @@ module Datadog
             injectable_html?(headers)
         # catch everything and swallow it here for defensiveness
         rescue Exception => e
-          puts "error determining injection suitability for rum #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
+          Datadog.logger.warn("error determining injection suitability for rum #{e.class}: #{e.message} #{e.backtrace.join("\n")}") # rubocop:disable Metrics/LineLength
           return nil
         end
 
@@ -412,20 +412,19 @@ module Datadog
         def generate_updated_html(response, headers, trace_id)
           concatted_html = concat_html_fragments(response)
 
-          # we insert direct after start of head tag for POC simplicityy
+          # we insert direct before end of head tag for POC simplicity
           head_end = concatted_html.index('</head')
 
           insert_index = concatted_html.index('>', head_end) + 1 if head_end
 
           if insert_index
-            # rubocop:disable Metrics/LineLength
             unix_expiry_time = Time.now.to_i + 60
-            concatted_html = %(<!-- DATADOG;trace-id=#{trace_id};expiry=#{unix_expiry_time} -->) << concatted_html[0...insert_index] << %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-expiry" content="#{unix_expiry_time}" />) << concatted_html[insert_index..-1]
+            concatted_html = %(<!-- DATADOG;trace-id=#{trace_id};expiry=#{unix_expiry_time} -->) << concatted_html[0...insert_index] << %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-expiry" content="#{unix_expiry_time}" />) << concatted_html[insert_index..-1] # rubocop:disable Metrics/LineLength
             return concatted_html
           end
         # catch everything and swallow it here for defensiveness
         rescue Exception => e
-          puts "error updating html for rum injection #{e.class}: #{e.message} #{e.backtrace.join("\n")}"
+          Datadog.logger.warn("error updating html for rum injection #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
           return nil
         end
 
