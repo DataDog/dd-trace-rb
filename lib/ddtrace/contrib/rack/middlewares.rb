@@ -5,6 +5,7 @@ require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
 require 'ddtrace/environment'
+require 'date'
 
 module Datadog
   module Contrib
@@ -418,7 +419,8 @@ module Datadog
           insert_index = concatted_html.index('>', head_end) + 1 if head_end
 
           if insert_index
-            unix_expiry_time = Time.now.to_i + 60
+            # unix ts in milliseconds to 2 minutes
+            unix_expiry_time =  (DateTime.now.strftime('%Q').to_i + 120000)
             concatted_html = %(<!-- DATADOG;trace-id=#{trace_id};expiry=#{unix_expiry_time} -->) << concatted_html[0...insert_index] << %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-expiry" content="#{unix_expiry_time}" />) << concatted_html[insert_index..-1] # rubocop:disable Metrics/LineLength
             return concatted_html
           end
