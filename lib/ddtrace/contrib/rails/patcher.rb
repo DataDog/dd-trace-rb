@@ -2,6 +2,7 @@ require 'ddtrace/contrib/rails/utils'
 require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
 require 'ddtrace/contrib/rack/middlewares'
+require 'ddtrace/contrib/rack/rum_injection'
 
 module Datadog
   module Contrib
@@ -49,7 +50,9 @@ module Datadog
             Datadog::Contrib::Rails::ExceptionMiddleware
           )
 
-          app.middleware.use(Datadog::Contrib::Rack::RumInjection)
+          if Datadog.configuration[:rack][:rum_injection_enabled]
+            app.middleware.use(Datadog::Contrib::Rack::RumInjection)
+          end
         end
 
         def patch_after_intialize

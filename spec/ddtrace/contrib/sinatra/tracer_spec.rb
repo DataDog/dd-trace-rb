@@ -18,10 +18,11 @@ RSpec.describe 'Sinatra instrumentation' do
   let(:app) { sinatra_app }
 
   let(:with_rack) { false }
+  let(:with_rum_enabled) { false }
 
   before do
     Datadog.configure do |c|
-      c.use :rack, configuration_options if with_rack
+      c.use :rack, rum_injection_enabled: with_rum_enabled if with_rack
       c.use :sinatra, configuration_options
     end
   end
@@ -48,6 +49,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
   shared_context 'with rack instrumentation and rum injection' do
     let(:with_rack) { true }
+    let(:with_rum_enabled) { true }
     let(:rack_span) { spans.find { |x| !x.parent && x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST } }
 
     let(:app) do
@@ -449,6 +451,8 @@ RSpec.describe 'Sinatra instrumentation' do
       end
 
       get '/erb' do
+        headers['Cache-Control'] = 'max-age=0'
+
         erb :msg, locals: { msg: 'hello' }
       end
 
