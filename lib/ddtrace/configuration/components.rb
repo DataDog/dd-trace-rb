@@ -120,10 +120,8 @@ module Datadog
           [
             Datadog::Profiling::Collectors::Stack.new(
               recorder,
-              enabled: settings.profiling.cpu.enabled,
-              max_frames: settings.profiling.cpu.max_frames,
-              max_time_usage_pct: settings.profiling.cpu.max_time_usage_pct
-              # TODO: Provide proc that identifies Datadog worker threads.
+              enabled: settings.profiling.cpu.enabled
+              # TODO: Provide proc that identifies Datadog worker threads?
               # ignore_thread: settings.profiling.ignore_profiler
             )
           ]
@@ -152,7 +150,7 @@ module Datadog
             recorder,
             exporters,
             enabled: settings.profiling.enabled,
-            interval: settings.profiling.upload_interval
+            interval: 60
           )
         end
       end
