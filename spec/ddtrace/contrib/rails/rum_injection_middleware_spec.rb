@@ -18,11 +18,17 @@ RSpec.describe 'Rails Rack Rum Injection middleware' do
 
   before do
     Datadog.configuration[:rack].reset_options!
+    Datadog.configuration[:rails].reset_options!
 
     Datadog.configure do |c|
       c.use :rack, rum_injection_enabled: true
       c.use :rails
     end
+  end
+
+  after do
+    Datadog.configuration[:rack].reset_options!
+    Datadog.configuration[:rails].reset_options!
   end
 
   context 'with RumInjection middleware' do
