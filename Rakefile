@@ -142,7 +142,6 @@ namespace :test do
   end
 
   [
-    :grape,
     :sucker_punch
   ].each do |contrib|
     Rake::TestTask.new(contrib) do |t|
@@ -321,7 +320,6 @@ task :ci do
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -397,7 +395,6 @@ task :ci do
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -478,7 +475,6 @@ task :ci do
       # Benchmarks
       sh 'bundle exec rake benchmark'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -541,7 +537,6 @@ task :ci do
     sh 'bundle exec rake spec:benchmark' if RUBY_PLATFORM != 'java' # Too slow due to repeated JVM instantiation
     sh 'bundle exec rake benchmark'
     # Contrib minitests
-    sh 'bundle exec appraisal contrib rake test:grape'
     sh 'bundle exec appraisal contrib rake test:sucker_punch'
     # Contrib specs
     sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -616,7 +611,6 @@ task :ci do
       # Benchmarks
       sh 'bundle exec rake benchmark'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
@@ -691,7 +685,6 @@ task :ci do
       # Benchmarks
       sh 'bundle exec rake benchmark'
       # Contrib minitests
-      sh 'bundle exec appraisal contrib rake test:grape'
       sh 'bundle exec appraisal contrib rake test:sucker_punch'
       # Contrib specs
       sh 'bundle exec appraisal contrib rake spec:action_pack'
