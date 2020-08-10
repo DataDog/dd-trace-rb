@@ -364,24 +364,16 @@ RSpec.describe 'Rack integration tests' do
           it 'updates Content-Length header when injecting new html' do
             expect(response.body).to include(span.trace_id.to_s)
             expect(response.body.bytesize.to_s).to eq(response.headers['Content-Length'])
+            expect(response.body.bytesize.to_s).to be > html_response.to_s.bytesize
           end
 
-          context 'content-length not set' do
-            let(:content_length) {}
-
-            it 'does not modify Content-Length header if it does not exist' do
-              expect(response.body).to include(span.trace_id.to_s)
-              expect(response.headers['Content-Length'].nil?).to be true
-            end
-          end
-
-          context 'content-length not set' do
+          context 'and no trace_id injection' do
+            # to force injection not to occur
             let(:cache_control) { 'public' }
-            let(:content_length) { 1 }
 
-            it 'does not modify Content-Length header if inject does not occur' do
+            it 'does not modify Content-Length header if injection does not occur' do
               expect(response.body).to_not include(span.trace_id.to_s)
-              expect(response.headers['Content-Length']).to eq(1)
+              expect(response.headers['Content-Length']).to eq(html_response.to_s.bytesize)
             end
           end
         end

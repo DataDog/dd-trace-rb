@@ -33,10 +33,10 @@ RSpec.describe 'Rails Rack Rum Injection middleware' do
 
   context 'with RumInjection middleware' do
     context 'injects rum related trace_id when enabled' do
-      before { get '/' }
+      subject(:response) { get '/' }
 
       it 'should inject trace_id into html response' do
-        expect(last_response.body).to include(spans[0].trace_id.to_s)
+        expect(response.body).to include(spans[0].trace_id.to_s)
       end
     end
   end
