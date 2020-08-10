@@ -651,8 +651,8 @@ RSpec.describe Datadog::Configuration::Components do
             enabled?: true,
             started?: false,
             ignore_thread: nil,
-            max_frames: settings.profiling.cpu.max_frames,
-            max_time_usage_pct: settings.profiling.cpu.max_time_usage_pct
+            max_frames: 128,
+            max_time_usage_pct: 2.0
           )
         end
       end
@@ -665,7 +665,7 @@ RSpec.describe Datadog::Configuration::Components do
           is_expected.to have_attributes(
             enabled?: true,
             started?: false,
-            loop_base_interval: settings.profiling.upload_interval
+            loop_base_interval: 60.0
           )
         end
       end
@@ -745,23 +745,23 @@ RSpec.describe Datadog::Configuration::Components do
           end
         end
 
-        context 'and :cpu.ignore_profiler' do
-          context 'true' do
-            before do
-              allow(settings.profiling.cpu)
-                .to receive(:ignore_profiler)
-                .and_return(true)
-            end
-
-            # TODO: :ignore_profiler is not implemented.
-            #       when it is, it shouldn't behave like a default collector.
-            #       It should define a proc that excludes Datadog profiler.
-            it_behaves_like 'profiler with default collectors'
-            it_behaves_like 'profiler with default scheduler'
-            it_behaves_like 'profiler with default recorder'
-            it_behaves_like 'profiler with default exporters'
-          end
-        end
+        # TODO: :ignore_profiler is not implemented.
+        #       when it is, it shouldn't behave like a default collector.
+        #       It should define a proc that excludes Datadog profiler.
+        # context 'and :cpu.ignore_profiler' do
+        #   context 'true' do
+        #     before do
+        #       allow(settings.profiling.cpu)
+        #         .to receive(:ignore_profiler)
+        #         .and_return(true)
+        #     end
+        #
+        #     it_behaves_like 'profiler with default collectors'
+        #     it_behaves_like 'profiler with default scheduler'
+        #     it_behaves_like 'profiler with default recorder'
+        #     it_behaves_like 'profiler with default exporters'
+        #   end
+        # end
 
         context 'and :exporter.instances' do
           context 'with custom exporters' do
