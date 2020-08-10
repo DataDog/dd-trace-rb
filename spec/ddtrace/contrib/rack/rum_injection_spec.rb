@@ -158,7 +158,7 @@ RSpec.describe 'Rack integration tests' do
           context 'context-type css' do
             let(:content_type) { 'application/css' }
 
-            it 'does not inject trace_id when set to ccss' do
+            it 'does not inject trace_id when set to css' do
               expect(response.body).to_not include(span.trace_id.to_s)
             end
           end

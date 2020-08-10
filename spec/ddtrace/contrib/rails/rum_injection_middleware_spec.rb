@@ -4,11 +4,11 @@ RSpec.describe 'Rails Rack Rum Injection middleware' do
   include Rack::Test::Methods
   include_context 'Rails test application'
 
-  let(:routes) { { '/' => 'test#index' } }
+  let(:routes) { { '/' => 'rum_test#index' } }
   let(:controllers) { [controller] }
 
   let(:controller) do
-    stub_const('TestController', Class.new(ActionController::Base) do
+    stub_const('RumTestController', Class.new(ActionController::Base) do
       def index
         response.headers['Cache-Control'] = 'max-age=0'
         render inline: '<html> <head> </head> <body> <div> Hello from index </div> </body> </html>'
