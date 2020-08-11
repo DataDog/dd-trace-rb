@@ -1,13 +1,9 @@
 require 'spec_helper'
 require 'ddtrace/pipeline'
-require 'ddtrace/span'
+require_relative 'pipeline/support/helper'
 
 RSpec.describe Datadog::Pipeline do
-  def generate_span(name, parent = nil)
-    Datadog::Span.new(nil, name).tap do |span|
-      span.parent = parent
-    end
-  end
+  include PipelineHelpers
 
   let(:span_a) { generate_span('a') }
   let(:span_b) { generate_span('b') }
@@ -17,9 +13,6 @@ RSpec.describe Datadog::Pipeline do
   let(:callable) { ->(trace) { trace } }
   let(:custom_callable_conditional) { ->(trace) { trace if trace.size == 3 } }
   let(:custom_callable_reverse) { ->(trace) { trace.reverse } }
-
-  before do
-  end
 
   after do
     Datadog::Pipeline.processors = []

@@ -1,13 +1,9 @@
 require 'spec_helper'
 require 'ddtrace/pipeline'
-require 'ddtrace/span'
+require_relative 'support/helper'
 
 RSpec.describe Datadog::Pipeline::SpanFilter do
-  def generate_span(name, parent = nil)
-    Datadog::Span.new(nil, name).tap do |span|
-      span.parent = parent
-    end
-  end
+  include PipelineHelpers
 
   let(:span_a) { generate_span('a') }
   let(:span_b) { generate_span('b') }
