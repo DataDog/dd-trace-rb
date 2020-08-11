@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+## [0.39.0] - 2020-08-05
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.39.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.38.0...v0.39.0
+
+### Added
+
+- JRuby 9.2 support (#1126)
+- Sneakers integration (#1121) (@janz93)
+
+### Changed
+
+- Consistent environment variables across languages (#1115)
+- Default logger level from WARN to INFO (#1120) (@gingerlime)
+  - This change also reduces the startup environment log message to INFO level (#1104)
+
+### Fixed
+
+- HTTP::StateError on error responses for http.rb (#1116, #1122) (@evan-waters)
+- Startup log error when using the test adapter (#1125, #1131) (@benhutton)
+- Warning message for Faraday < 1.0 (#1129) (@fledman, @tjwp)
+- Propagate Rails error message to Rack span (#1124)
+
+### Refactored
+
+- Improved ActiveRecord documentation (#1119)
+- Improvements to test suite (#1105, #1118)
+
 ## [0.38.0] - 2020-07-13
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.38.0
@@ -1305,7 +1334,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.38.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.39.0...master
+[0.39.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.38.0...v0.39.0
 [0.38.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...v0.38.0
 [0.37.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.36.0...v0.37.0
 [0.36.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.2...v0.36.0
