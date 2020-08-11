@@ -22,8 +22,8 @@ RSpec.describe Datadog::Correlation do
 
       it { is_expected.to be_a_kind_of(described_class::Identifier) }
       it { expect(identifier_from_context.frozen?).to be true }
-      it { expect(identifier_from_context.trace_id).to be 0 }
-      it { expect(identifier_from_context.span_id).to be 0 }
+      it { expect(identifier_from_context.trace_id).to eq 0 }
+      it { expect(identifier_from_context.span_id).to eq 0 }
       it { expect(identifier_from_context.env).to be default_env }
       it { expect(identifier_from_context.service).to be default_service }
       it { expect(identifier_from_context.version).to be default_version }

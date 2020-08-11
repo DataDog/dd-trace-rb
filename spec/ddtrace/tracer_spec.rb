@@ -263,8 +263,8 @@ RSpec.describe Datadog::Tracer do
     context 'when no trace is active' do
       it 'produces an empty Datadog::Correlation::Identifier' do
         is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
-        expect(active_correlation.trace_id).to be 0
-        expect(active_correlation.span_id).to be 0
+        expect(active_correlation.trace_id).to eq 0
+        expect(active_correlation.span_id).to eq 0
       end
     end
   end

@@ -136,11 +136,13 @@ module RailsTest
     def before_setup
       before_each
       super
+      clear_spans! # Clears JDBC "BEGIN TRANSACTION" span
     end
   else
     def setup
       before_each
       super
+      clear_spans! # Clears JDBC "BEGIN TRANSACTION" span
     end
 
     def run(*_)

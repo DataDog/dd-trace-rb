@@ -167,14 +167,29 @@ RSpec.describe Datadog::Runtime::Metrics do
   describe '#gc_metrics' do
     subject(:gc_metrics) { runtime_metrics.gc_metrics }
 
-    let(:nested_gc_keys) { PlatformHelpers.jruby? ? 2 : 0 }
+    context 'on MRI' do
+      before { skip unless PlatformHelpers.mri? }
 
-    it 'has a metric for each value in GC.stat' do
-      is_expected.to have(GC.stat.keys.count - nested_gc_keys).items
+      it 'has a metric for each value in GC.stat' do
+        is_expected.to have(GC.stat.keys.size).items
 
-      gc_metrics.each do |metric, value|
-        expect(metric).to start_with(Datadog::Ext::Runtime::Metrics::METRIC_GC_PREFIX)
-        expect(value).to be_a_kind_of(Numeric)
+        gc_metrics.each do |metric, value|
+          expect(metric).to start_with(Datadog::Ext::Runtime::Metrics::METRIC_GC_PREFIX)
+          expect(value).to be_a_kind_of(Numeric)
+        end
+      end
+    end
+
+    context 'on JRuby' do
+      before { skip unless PlatformHelpers.jruby? }
+
+      it 'has a metric for each value in GC.stat' do
+        is_expected.to have_at_least(GC.stat.keys.count).items
+
+        gc_metrics.each do |metric, value|
+          expect(metric).to start_with(Datadog::Ext::Runtime::Metrics::METRIC_GC_PREFIX)
+          expect(value).to be_a_kind_of(Numeric)
+        end
       end
     end
   end
