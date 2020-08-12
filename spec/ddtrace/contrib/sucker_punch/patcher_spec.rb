@@ -38,7 +38,6 @@ RSpec.describe 'sucker_punch instrumentation' do
     subject(:dummy_worker_success) { worker_class.perform_async }
     let(:job_span) { spans.find { |s| s.resource[/PROCESS/] } }
     let(:enqueue_span) { spans.find { |s| s.resource[/ENQUEUE/] } }
-    let(:span) { spans.find { |s| s.resource[/PROCESS/] } }
 
     it_behaves_like 'measured span for integration', true do
       before do
@@ -79,7 +78,6 @@ RSpec.describe 'sucker_punch instrumentation' do
   context 'failed job' do
     subject(:dummy_worker_fail) { worker_class.perform_async(:fail) }
     let(:job_span) { spans.find { |s| s.resource[/PROCESS/] } }
-    let(:span) { spans.find { |s| s.resource[/PROCESS/] } }
 
     it_behaves_like 'measured span for integration', true do
       before do
@@ -105,7 +103,6 @@ RSpec.describe 'sucker_punch instrumentation' do
   context 'delayed job' do
     subject(:dummy_worker_delay) { worker_class.perform_in(0) }
     let(:enqueue_span) { spans.find { |s| s.resource[/ENQUEUE/] } }
-    let(:span) { spans.find { |s| s.resource[/ENQUEUE/] } }
 
     it_behaves_like 'measured span for integration', true do
       before do
