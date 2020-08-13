@@ -40,6 +40,7 @@ RSpec.describe 'Rack integration tests' do
 
     context 'with a basic route' do
       let(:html_response) { '<html> <head>   </head> <body> <div> ok </div> </body> </html>' }
+      let(:original_html_response_bytesize) { '<html> <head>   </head> <body> <div> ok </div> </body> </html>'.bytesize }
       let(:cache_control) { 'no-store max-age=0' }
       let(:content_type) { 'text/html' }
       let(:expires) { 'Thu, 01 Dec 1994 16:00:00 GMT' }
@@ -364,7 +365,7 @@ RSpec.describe 'Rack integration tests' do
           it 'updates Content-Length header when injecting new html' do
             expect(response.body).to include(span.trace_id.to_s)
             expect(response.body.bytesize.to_s).to eq(response.headers['Content-Length'])
-            expect(response.body.bytesize.to_i).to be > html_response.to_s.bytesize.to_i
+            expect(response.body.bytesize.to_i).to be > original_html_response_bytesize.to_i
           end
 
           context 'and no trace_id injection' do
@@ -373,7 +374,7 @@ RSpec.describe 'Rack integration tests' do
 
             it 'does not modify Content-Length header if injection does not occur' do
               expect(response.body).to_not include(span.trace_id.to_s)
-              expect(response.headers['Content-Length']).to eq(html_response.bytesize.to_s)
+              expect(response.headers['Content-Length']).to eq(original_html_response_bytesize.to_s)
             end
           end
         end

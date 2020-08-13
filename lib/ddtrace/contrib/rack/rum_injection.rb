@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/environment'
+require 'delegate'
 require 'date'
 
 module Datadog
@@ -71,8 +72,14 @@ module Datadog
               html_comment = html_comment_template(trace_id, unix_time)
 
               # update content length and return new response if we don't fail on rum injection
-              if body.respond_to?(:unshift)
-                body.unshift(html_comment)
+              if body.respond_to?(:each)
+                # inject html comment into first available fragment and then end early so we do not
+                # iterate over entire response
+                body.each do |fragment|
+                  fragment.insert(0, html_comment)
+                  break
+                end
+
                 update_content_length(headers, html_comment)
                 # ensure idempotency on injection in case middleware is inserted or called twice
                 env[RUM_INJECTION_FLAG] = true
@@ -122,10 +129,12 @@ module Datadog
 
         def injectable_html?(headers)
           (headers && headers.key?(CONTENT_TYPE_HEADER) && !headers[CONTENT_TYPE_HEADER].nil?) &&
-            headers[CONTENT_TYPE_HEADER].start_with?(HTML_CONTENT, XHTML_CONTENT)
+            (headers[CONTENT_TYPE_HEADER].include?(HTML_CONTENT) ||
+            headers[CONTENT_TYPE_HEADER].include?(XHTML_CONTENT))
         end
 
         def attachment?(headers)
+          puts headers[CONTENT_DISPOSITION_HEADER]
           (headers && headers.key?(CONTENT_DISPOSITION_HEADER) && !headers[CONTENT_DISPOSITION_HEADER].nil?) &&
             !headers[CONTENT_DISPOSITION_HEADER].include?(INLINE)
         end
@@ -205,24 +214,11 @@ module Datadog
           %(<!-- DATADOG;trace-id=#{trace_id};trace-time=#{unix_time} -->)
         end
 
-        def modify_html(html, html_comment = nil, meta_injection_point = nil, meta_tag = nil)
-          html_string = ''
-
-          html_string << html_comment if html_comment
-
-          if meta_injection_point && meta_tag
-            html_string << html[0...meta_injection_point] << meta_tag << html[meta_injection_point..-1]
-          else
-            html_string << html
-          end
-
-          html_string
-        end
-
         def update_content_length(headers, additional_html)
           # we need to update the content length (check bytesize)
           if headers && headers.key?(CONTENT_LENGTH_HEADER) && !headers[CONTENT_LENGTH_HEADER].nil?
             content_length_addition = additional_html ? additional_html.bytesize : 0
+
             headers[CONTENT_LENGTH_HEADER] = (headers[CONTENT_LENGTH_HEADER].to_i + content_length_addition).to_s
           end
         end
