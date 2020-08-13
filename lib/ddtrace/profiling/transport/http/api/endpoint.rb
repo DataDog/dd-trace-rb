@@ -58,9 +58,7 @@ module Datadog
               }
 
               # Add types
-              types.each_with_index do |type, i|
-                form["types[#{i}]"] = type
-              end
+              form['types[0]'] = types.join(',')
 
               # Optional fields
               form[FORM_FIELD_TAGS] << "#{FORM_FIELD_TAG_SERVICE}:#{flush.service}" unless flush.service.nil?
