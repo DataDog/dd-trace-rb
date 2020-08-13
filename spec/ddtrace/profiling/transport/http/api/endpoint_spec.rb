@@ -111,8 +111,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
         it 'includes env tags' do
           call
           expect(env.form).to include(
-            'types[0]' => 'wall_time_ns',
-            'types[1]' => 'ruby-cpu'
+            'types[0]' => 'wall_time_ns,ruby-cpu'
           )
         end
       end
