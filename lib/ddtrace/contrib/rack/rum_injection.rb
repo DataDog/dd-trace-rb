@@ -122,8 +122,7 @@ module Datadog
 
         def injectable_html?(headers)
           (headers && headers.key?(CONTENT_TYPE_HEADER) && !headers[CONTENT_TYPE_HEADER].nil?) &&
-            (headers[CONTENT_TYPE_HEADER].start_with?(HTML_CONTENT) ||
-            headers[CONTENT_TYPE_HEADER].start_with?(XHTML_CONTENT))
+            headers[CONTENT_TYPE_HEADER].start_with?(HTML_CONTENT, XHTML_CONTENT)
         end
 
         def attachment?(headers)
