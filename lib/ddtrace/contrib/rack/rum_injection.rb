@@ -16,10 +16,8 @@ module Datadog
         include Datadog::Environment::Helpers
 
         RUM_INJECTION_FLAG = 'datadog.rum_injection_flag'.freeze
-        ATTACHMENT = 'attachment'.freeze
-        GZIP = 'gzip'.freeze
-        COMPRESS = 'compress'.freeze
-        DEFLATE = 'deflate'.freeze
+        INLINE = 'inline'.freeze
+        IDENTITY = 'identity'.freeze
         HTML_CONTENT = 'text/html'.freeze
         XHTML_CONTENT = 'application/xhtml+xml'.freeze
         HEAD_TAG_OPEN = '<head'.freeze
@@ -42,7 +40,6 @@ module Datadog
         TRANSFER_ENCODING_HEADER = 'Transfer-Encoding'.freeze
         ACTION_CONTROLLER_INSTANCE = 'action_controller.instance'.freeze
         TRANSFER_ENCODING_CHUNKED = 'chunked'.freeze
-        META_TAG_ENABLED = false
 
         def initialize(app)
           @app = app
@@ -50,45 +47,52 @@ module Datadog
 
         def call(env)
           result = @app.call(env)
-          return result unless configuration[:rum_injection_enabled] === true
 
-          status, headers, response = result
+          begin
+            return result unless configuration[:rum_injection_enabled] === true
 
-          # need significant safety here to ensure result is parsable + injectable
-          # shouldnt be gzipped/compressed yet since we've injected our middleware in the stack after rack deflater
-          # or any other compression middleware for that matter
-          # also ensure its non-cacheable, is html, is not streaming, and is not an attachment
-          injectable = should_inject?(headers, env, status)
+            status, headers, body = result
 
-          if injectable
-            current_trace_id = get_current_trace_id
+            # need significant safety here to ensure result is parsable + injectable
+            # shouldnt be gzipped/compressed yet since we've injected our middleware in the stack after rack deflater
+            # or any other compression middleware for that matter
+            # also ensure its non-cacheable, is html, is not streaming, and is not an attachment
+            injectable = should_inject?(headers, env, status)
 
-            # do not inject if no trace
-            return result unless current_trace_id
+            if injectable
+              trace_id = current_trace_id
 
-            # we need to insert the trace_id and expiry meta tags
-            updated_html = generate_updated_html(response, headers, current_trace_id)
+              # do not inject if no trace or trace is not sampled
+              return result unless trace_id
 
-            # update content length and return new response if we don't fail on rum injection
-            if updated_html
-              update_content_length(headers, updated_html)
-              # ensure idempotency on injection in case middleware is inserted or called twice
-              env[RUM_INJECTION_FLAG] = true
+              # we need to insert the trace_id and expiry meta tags
+              unix_time = DateTime.now.strftime('%Q').to_i
 
-              updated_response = ::Rack::Response.new(updated_html, status, headers)
-              Datadog.logger.debug('Rum injection successful')
-              return updated_response.finish
-            else
-              Datadog.logger.debug('Rum injection unsuccessful')
-              return result
+              html_comment = html_comment_template(trace_id, unix_time)
+
+              # update content length and return new response if we don't fail on rum injection
+              if body.respond_to?(:unshift)
+                body.unshift(html_comment)
+                update_content_length(headers, html_comment)
+                # ensure idempotency on injection in case middleware is inserted or called twice
+                env[RUM_INJECTION_FLAG] = true
+
+                updated_response = ::Rack::Response.new(body, status, headers)
+                Datadog.logger.debug('Rum injection successful')
+                return updated_response.finish
+              else
+                Datadog.logger.debug('Rum injection unsuccessful')
+                return result
+              end
             end
-          end
 
-          # catchall if an earlier conditional is not met
-          result
-        rescue Exception => e # rubocop:disable Lint/RescueException
-          Datadog.logger.warn("error checking rum injectability #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
-          raise e
+            # catchall if an earlier conditional is not met
+            result
+          rescue StandardError => e
+            Datadog.logger.warn("error checking rum injectability #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
+            # we should ensure we don't interfere if original app response if our injection code has an exception
+            result
+          end
         end
 
         private
@@ -113,20 +117,18 @@ module Datadog
 
         def compressed?(headers)
           headers && headers.key?(CONTENT_ENCODING_HEADER) &&
-            (headers[CONTENT_ENCODING_HEADER].include?(COMPRESS) ||
-              headers[CONTENT_ENCODING_HEADER].include?(GZIP) ||
-              headers[CONTENT_ENCODING_HEADER].include?(DEFLATE))
+            !headers[CONTENT_ENCODING_HEADER].start_with?(IDENTITY)
         end
 
         def injectable_html?(headers)
           (headers && headers.key?(CONTENT_TYPE_HEADER) && !headers[CONTENT_TYPE_HEADER].nil?) &&
-            (headers[CONTENT_TYPE_HEADER].include?(HTML_CONTENT) ||
-            headers[CONTENT_TYPE_HEADER].include?(XHTML_CONTENT))
+            (headers[CONTENT_TYPE_HEADER].start_with?(HTML_CONTENT) ||
+            headers[CONTENT_TYPE_HEADER].start_with?(XHTML_CONTENT))
         end
 
         def attachment?(headers)
           (headers && headers.key?(CONTENT_DISPOSITION_HEADER) && !headers[CONTENT_DISPOSITION_HEADER].nil?) &&
-            headers[CONTENT_DISPOSITION_HEADER].include?(ATTACHMENT)
+            !headers[CONTENT_DISPOSITION_HEADER].include?(INLINE)
         end
 
         def streaming?(headers, env)
@@ -139,7 +141,7 @@ module Datadog
                          (
                             headers && headers.key?(CONTENT_TYPE_HEADER) &&
                             !headers[CONTENT_TYPE_HEADER].nil? &&
-                            headers[CONTENT_TYPE_HEADER].include?(CONTENT_TYPE_STREAMING)
+                            headers[CONTENT_TYPE_HEADER].start_with?(CONTENT_TYPE_STREAMING)
                          )
 
           # if we detect Server Side Event streaming controller, assume streaming
@@ -187,53 +189,21 @@ module Datadog
           end
         end
 
-        def get_current_trace_id
+        def current_trace_id
           tracer = configuration[:tracer]
           span = tracer.active_span
-          span.trace_id if span
+          # only return trace id if sampled
+          span.trace_id if span && span.sampled
         end
 
-        def generate_updated_html(response, headers, trace_id)
-          concatted_html = concat_html_fragments(response)
+        # TODO: this will eventually be abstracted into a template helper function that can be used for
+        # manual injection. Leave but comment out in the meantime.
+        # def meta_tag_template(trace_id, unix_time)
+        #   %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />)
+        # end
 
-          unix_expiry_time = DateTime.now.strftime('%Q').to_i
-
-          meta_injection_point = find_meta_injection_point(concatted_html)
-          html_comment = html_comment_template(trace_id, unix_expiry_time)
-          meta_tag = meta_tag_template(trace_id, unix_expiry_time) if META_TAG_ENABLED
-
-          modify_html(concatted_html, html_comment, meta_injection_point, meta_tag)
-        # catch everything and swallow it here for defensiveness
-        rescue Exception => e # rubocop:disable Lint/RescueException
-          Datadog.logger.warn("Error updating html for rum injection #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
-          return nil
-        end
-
-        def concat_html_fragments(response)
-          # aggregate the html into a complete document
-          # should have a max amount we parse here after which we give up
-          html_doc = nil
-          response.each do |frag|
-            html_doc ? (html_doc << frag.to_s) : (html_doc = frag.to_s)
-          end
-          # https://www.rubydoc.info/github/rack/rack/file/SPEC
-          # according to spec, .close must be called after iterating
-          response.close if response.respond_to?(:close)
-          html_doc
-        end
-
-        def find_meta_injection_point(html)
-          # we insert directly after head tag open for POC simplicity
-          head_start = html.index(HEAD_TAG_OPEN)
-          html.index(TAG_CLOSE, head_start) + 1 if head_start
-        end
-
-        def meta_tag_template(trace_id, unix_expiry_time)
-          %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_expiry_time}" />)
-        end
-
-        def html_comment_template(trace_id, unix_expiry_time)
-          %(<!-- DATADOG;trace-id=#{trace_id};trace-time=#{unix_expiry_time} -->)
+        def html_comment_template(trace_id, unix_time)
+          %(<!-- DATADOG;trace-id=#{trace_id};trace-time=#{unix_time} -->)
         end
 
         def modify_html(html, html_comment = nil, meta_injection_point = nil, meta_tag = nil)
@@ -250,11 +220,11 @@ module Datadog
           html_string
         end
 
-        def update_content_length(headers, updated_html)
+        def update_content_length(headers, additional_html)
           # we need to update the content length (check bytesize)
           if headers && headers.key?(CONTENT_LENGTH_HEADER) && !headers[CONTENT_LENGTH_HEADER].nil?
-            content_length = updated_html ? updated_html.bytesize : 0
-            headers[CONTENT_LENGTH_HEADER] = content_length.to_s
+            content_length_addition = additional_html ? additional_html.bytesize : 0
+            headers[CONTENT_LENGTH_HEADER] = (headers[CONTENT_LENGTH_HEADER].to_i + content_length_addition).to_s
           end
         end
 
