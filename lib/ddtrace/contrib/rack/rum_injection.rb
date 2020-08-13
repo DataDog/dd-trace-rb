@@ -50,7 +50,7 @@ module Datadog
           result = @app.call(env)
 
           begin
-            return result unless configuration[:rum_injection_enabled] === true
+            return result unless configuration[:rum_injection_enabled] == true && env['rack.hijack?'] != true
 
             status, headers, body = result
 
@@ -79,6 +79,8 @@ module Datadog
                   fragment.insert(0, html_comment)
                   break
                 end
+
+                body.close if body.respond_to?(:close)
 
                 update_content_length(headers, html_comment)
                 # ensure idempotency on injection in case middleware is inserted or called twice
@@ -134,7 +136,6 @@ module Datadog
         end
 
         def attachment?(headers)
-          puts headers[CONTENT_DISPOSITION_HEADER]
           (headers && headers.key?(CONTENT_DISPOSITION_HEADER) && !headers[CONTENT_DISPOSITION_HEADER].nil?) &&
             !headers[CONTENT_DISPOSITION_HEADER].include?(INLINE)
         end
