@@ -51,6 +51,8 @@ module Datadog
 
           begin
             puts 'starting block'
+            puts 'env rack hijack?'
+            puts "#{env['rack.hijack?']}"
             return result unless configuration[:rum_injection_enabled] == true && env['rack.hijack?'] != true
             puts 'not returned early'
             status, headers, body = result
