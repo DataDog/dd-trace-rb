@@ -139,7 +139,7 @@ module Datadog
             !streaming?(headers, env) &&
             injectable_html?(headers) &&
             no_cache?(headers) &&
-            !user_defined_cached?(env)
+            !user_defined_cached(env)
         # catch everything and swallow it here for defensiveness
         rescue Exception => e # rubocop:disable Lint/RescueException
           Datadog.logger.warn("Error during rum injection  #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
@@ -226,6 +226,9 @@ module Datadog
             # Expires=0 means not cached
             return true if headers[EXPIRES_HEADER] == '0'
           end
+
+          # if no specific headers have been set return trues
+          true
         end
 
         def user_defined_cached?(env)
