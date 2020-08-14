@@ -44,11 +44,15 @@ module Datadog
         end
 
         def call(env)
+          puts 'starting middleware'
+          
+          puts "config is #{configuration[:rum_injection_enabled]}"
           result = @app.call(env)
 
           begin
+            puts 'starting block'
             return result unless configuration[:rum_injection_enabled] == true && env['rack.hijack?'] != true
-
+            puts 'not returned early'
             status, headers, body = result
 
             # need significant safety here to ensure result is parsable + injectable
@@ -56,12 +60,14 @@ module Datadog
             # or any other compression middleware for that matter
             # also ensure its non-cacheable, is html, is not streaming, and is not an attachment
             injectable = should_inject?(headers, env, status)
-
+            puts "is it injectable? #{injectable}"
             if injectable
+              puts 'it is injectable'
               trace_id = current_trace_id
 
               # do not inject if no trace or trace is not sampled
               return result unless trace_id
+              puts 'trace id exists not returning early'
 
               # we need to insert the trace_id and expiry meta tags
               unix_time = DateTime.now.strftime('%Q').to_i
@@ -70,6 +76,7 @@ module Datadog
 
               # update content length and return new response if we don't fail on rum injection
               if body.respond_to?(:each)
+                puts 'body responds to each'
                 # inject html comment into first available fragment and then end early so we do not
                 # iterate over entire response
                 # body.each do |fragment|
@@ -84,10 +91,12 @@ module Datadog
                 # ensure idempotency on injection in case middleware is inserted or called twice
                 env[RUM_INJECTION_FLAG] = true
 
+                puts 'updating'
                 updated_response = ::Rack::Response.new(rum_body, status, headers)
                 Datadog.logger.debug('Rum injection successful')
                 return updated_response.finish
               else
+                puts 'there was an issue'
                 Datadog.logger.debug('Rum injection unsuccessful')
                 return result
               end
@@ -96,6 +105,7 @@ module Datadog
             # catchall if an earlier conditional is not met
             result
           rescue StandardError => e
+            puts 'things fall apart'
             Datadog.logger.warn("error checking rum injectability #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
             # we should ensure we don't interfere if original app response if our injection code has an exception
             result
