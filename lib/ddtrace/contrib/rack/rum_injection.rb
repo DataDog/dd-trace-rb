@@ -53,7 +53,11 @@ module Datadog
             puts 'starting block'
             puts 'env rack hijack?'
             puts "#{env['rack.hijack?']}"
-            return result unless configuration[:rum_injection_enabled] == true && env['rack.hijack?'] != true
+            # TODO: rack hijack? is true in rails local testing for some reason, dont check until we have more clarity
+            # on usage
+            # return result unless configuration[:rum_injection_enabled] == true && env['rack.hijack?'] != true
+            
+            return result unless configuration[:rum_injection_enabled] == true
             puts 'not returned early'
             status, headers, body = result
 
