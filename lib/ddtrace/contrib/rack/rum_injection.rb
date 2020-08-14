@@ -109,6 +109,14 @@ module Datadog
         end
 
         def should_inject?(headers, env, status)
+          puts "#{!env[RUM_INJECTION_FLAG]}"
+          puts "#{!compressed?(headers)}"
+          puts "#{!attachment?(headers)}"
+          puts "#{!streaming?(headers, env)}"
+          puts "#{injectable_html?(headers)}"
+          puts "#{no_cache?(headers)}"
+          puts "#{user_defined_cached?(env)}"
+
           !env[RUM_INJECTION_FLAG] &&
             !compressed?(headers) &&
             !attachment?(headers) &&
