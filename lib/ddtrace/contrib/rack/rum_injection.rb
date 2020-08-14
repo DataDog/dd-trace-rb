@@ -1,6 +1,5 @@
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/environment'
-require 'delegate'
 require 'date'
 
 module Datadog
@@ -77,7 +76,7 @@ module Datadog
                 #   fragment.insert(0, html_comment)
                 #   break
                 # end
-                rum_body = RumBody.new(html_comment, body)
+                rum_body = RumBody.new(body, html_comment)
 
                 # body.close if body.respond_to?(:close)
 
@@ -251,20 +250,23 @@ module Datadog
 
     # RumBody is a wrapper for the Rack Response body, that allows the RumInjectionMiddleware
     # to insert the hhtm_comment at the beginning of the body without eagerly reading the entire
-    # response body into memory. In this case we're usng a Simple delegator to ensure we adhere
-    # to the Spec https://www.rubydoc.info/github/rack/rack/file/SPEC#label-The+Body
-    class RumBody < SimpleDelegator
-      def initialize(*args)
-        html_comment, @body = args
-        __setobj__ @body
+    # response body into memory. In this case we adhere to the Spec
+    # https://www.rubydoc.info/github/rack/rack/file/SPEC#label-The+Body
+    class RumBody
+      def initialize(original_body, html_comment)
+        @original_body = original_body
         @new_body = Enumerator.new do |y|
           y << html_comment
-          __getobj__.each { |e| y << e }
+          @original_body.each { |e| y << e }
         end
       end
 
       def each(&block)
         @new_body.each(&block)
+      end
+
+      def close
+        @original_body.close if @original_body.respond_to?(:close)
       end
     end
   end
