@@ -21,8 +21,6 @@ module Datadog
         IDENTITY = 'identity'.freeze
         HTML_CONTENT = 'text/html'.freeze
         XHTML_CONTENT = 'application/xhtml+xml'.freeze
-        HEAD_TAG_OPEN = '<head'.freeze
-        TAG_CLOSE = '>'.freeze
         NO_CACHE = 'no-cache'.freeze
         NO_STORE = 'no-store'.freeze
         PRIVATE = 'private'.freeze
@@ -75,18 +73,19 @@ module Datadog
               if body.respond_to?(:each)
                 # inject html comment into first available fragment and then end early so we do not
                 # iterate over entire response
-                body.each do |fragment|
-                  fragment.insert(0, html_comment)
-                  break
-                end
+                # body.each do |fragment|
+                #   fragment.insert(0, html_comment)
+                #   break
+                # end
+                rum_body = RumBody.new(html_comment, body)
 
-                body.close if body.respond_to?(:close)
+                # body.close if body.respond_to?(:close)
 
                 update_content_length(headers, html_comment)
                 # ensure idempotency on injection in case middleware is inserted or called twice
                 env[RUM_INJECTION_FLAG] = true
 
-                updated_response = ::Rack::Response.new(body, status, headers)
+                updated_response = ::Rack::Response.new(rum_body, status, headers)
                 Datadog.logger.debug('Rum injection successful')
                 return updated_response.finish
               else
@@ -111,13 +110,13 @@ module Datadog
         end
 
         def should_inject?(headers, env, status)
-          status == 200 &&
-            !env[RUM_INJECTION_FLAG] &&
-            no_cache?(headers, env) &&
+          !env[RUM_INJECTION_FLAG] &&
             !compressed?(headers) &&
             !attachment?(headers) &&
             !streaming?(headers, env) &&
-            injectable_html?(headers)
+            injectable_html?(headers) &&
+            no_cache?(headers) &&
+            user_defined_cached?(env)
         # catch everything and swallow it here for defensiveness
         rescue Exception => e # rubocop:disable Lint/RescueException
           Datadog.logger.warn("Error during rum injection  #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
@@ -130,9 +129,14 @@ module Datadog
         end
 
         def injectable_html?(headers)
-          (headers && headers.key?(CONTENT_TYPE_HEADER) && !headers[CONTENT_TYPE_HEADER].nil?) &&
-            (headers[CONTENT_TYPE_HEADER].include?(HTML_CONTENT) ||
-            headers[CONTENT_TYPE_HEADER].include?(XHTML_CONTENT))
+          # assume we cant inject if no headers
+          return false unless headers && headers.key?(CONTENT_TYPE_HEADER)
+
+          content_type_header = headers[CONTENT_TYPE_HEADER]
+
+          if content_type_header
+            content_type_header.include?(HTML_CONTENT) || content_type_header.include?(XHTML_CONTENT)
+          end
         end
 
         def attachment?(headers)
@@ -145,7 +149,8 @@ module Datadog
           # rails recommends disabling middlewares that interact with response body
           # when streaming via ActionController::Streaming
           # TODO: if required to patch streaming, investigate patching further upstream, in the render action perhaps
-          return true if (headers && headers.key?(TRANSFER_ENCODING_HEADER) &&
+          return false unless headers
+          return true if (headers.key?(TRANSFER_ENCODING_HEADER) &&
                          headers[TRANSFER_ENCODING_HEADER] == TRANSFER_ENCODING_CHUNKED) ||
                          (
                             headers && headers.key?(CONTENT_TYPE_HEADER) &&
@@ -158,43 +163,47 @@ module Datadog
             env[ACTION_CONTROLLER_INSTANCE].class.included_modules.include?(ActionController::Live)
         end
 
-        def no_cache?(headers, env)
+        def no_cache?(headers)
           # TODO: this is very complex, is there an easier way to determine cache behavior on cdn and browser
-          # TODO: glob performance may be worse than regex
-          return false unless configuration[:rum_cached_pages].none? do |page_glob|
-            File.fnmatch(page_glob, env['PATH_INFO']) if env['PATH_INFO']
-          end
-
           return false unless headers
 
           # first check Surrogate-Controle, which fastly uses
           # indicates a cdn cache if Surrogate-Control max-age>0,
+          # Surrogate-Control takes precedence over Cache-Controll which is why it has to be checked first
           # otherwise check cache-control, then expiry to determine if there is browser cache
           return false if surrogate_cache?(headers)
 
           # then check Cache-Control
           if headers.key?(CACHE_CONTROL_HEADER) && !headers[CACHE_CONTROL_HEADER].nil?
+            cache_control_header = headers[CACHE_CONTROL_HEADER]
             # s-maxage gets priority over max-age since s-maxage sits at cdn level
-            # cdn cache if s-maxage >0,
+            # cdn cache if s-maxage > 0,
             # otherwise check max-age, (no-store|no-cache|private) or expires to determine if therre is browser cache
             return false if server_cache?(headers)
 
             # then check max-age
-            if headers[CACHE_CONTROL_HEADER].include?(MAX_AGE)
+            if cache_control_header.include?(MAX_AGE)
               # only not cached if max-age is 0
-              return headers[CACHE_CONTROL_HEADER].include?(MAX_AGE_ZERO)
+              return cache_control_header.include?(MAX_AGE_ZERO)
             end
 
             # not cached if marked no-store, no-cache, or private
-            return (headers[CACHE_CONTROL_HEADER].include?(NO_CACHE) ||
-                   headers[CACHE_CONTROL_HEADER].include?(NO_STORE) ||
-                   headers[CACHE_CONTROL_HEADER].include?(PRIVATE))
+            return (cache_control_header.include?(NO_CACHE) ||
+                   cache_control_header.include?(NO_STORE) ||
+                   cache_control_header.include?(PRIVATE))
           end
 
           # last check expires
           if headers.key?(EXPIRES_HEADER) && !headers[EXPIRES_HEADER].nil?
-            # Expires=0 means not cacced
+            # Expires=0 means not cached
             return true if headers[EXPIRES_HEADER] == '0'
+          end
+        end
+
+        def user_defined_cached?(env)
+          # TODO: glob performance may be worse than regex
+          configuration[:rum_cached_pages].none? do |page_glob|
+            File.fnmatch(page_glob, env['PATH_INFO']) if env['PATH_INFO']
           end
         end
 
@@ -225,14 +234,36 @@ module Datadog
         end
 
         def surrogate_cache?(headers)
-          headers.key?(SURROGATE_CACHE_CONTROL_HEADER) &&
-            !headers[SURROGATE_CACHE_CONTROL_HEADER].nil? &&
-            !headers[SURROGATE_CACHE_CONTROL_HEADER].include?(MAX_AGE_ZERO)
+          return false unless headers.key?(SURROGATE_CACHE_CONTROL_HEADER)
+
+          surrogate_control_header = headers[SURROGATE_CACHE_CONTROL_HEADER]
+
+          if surrogate_control_header
+            !surrogate_control_header.include?(MAX_AGE_ZERO)
+          end
         end
 
         def server_cache?(headers)
           headers[CACHE_CONTROL_HEADER].include?(SMAX_AGE) && !headers[CACHE_CONTROL_HEADER].include?(SMAX_AGE_ZERO)
         end
+      end
+    end
+
+    # RumBody is a wrapper for the Rack Response body, that allows the RumInjectionMiddleware
+    # to insert the hhtm_comment at the beginning of the body without eagerly reading the entire
+    # response body into memory. In this case we're usng a Simple delegator to ensure we adhere
+    # to the Spec https://www.rubydoc.info/github/rack/rack/file/SPEC#label-The+Body
+    class RumBody < SimpleDelegator
+      def initialize(html_comment, original_body)
+        __setobj__ original_body
+        @new_body = Enumerator.new do |y|
+          y << html_comment
+          __getobj__.each { |e| y << e }
+        end
+      end
+
+      def each(&block)
+        @new_body.each(&block)
       end
     end
   end
