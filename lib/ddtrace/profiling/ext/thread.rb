@@ -25,7 +25,7 @@ module Datadog
           :native_thread_id
 
         def initialize(*args)
-          @pid = Process.pid
+          @pid = ::Process.pid
           @native_thread_id = nil
           @clock_id = nil
 
@@ -46,19 +46,19 @@ module Datadog
         end
 
         def cpu_time(unit = :float_second)
-          return unless clock_id && Process.respond_to?(:clock_gettime)
-          Process.clock_gettime(clock_id, unit)
+          return unless clock_id && ::Process.respond_to?(:clock_gettime)
+          ::Process.clock_gettime(clock_id, unit)
         end
 
         private
 
         # Retrieves number of classes from runtime
         def forked?
-          Process.pid != (@pid ||= nil)
+          ::Process.pid != (@pid ||= nil)
         end
 
         def update_native_ids
-          @pid = Process.pid
+          @pid = ::Process.pid
           @native_thread_id = get_native_thread_id
           @clock_id = get_clock_id(@native_thread_id)
         end
