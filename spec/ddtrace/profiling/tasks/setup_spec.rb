@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/tasks/setup'
+require 'ddtrace/profiling/ext/forking'
 
 RSpec.describe Datadog::Profiling::Tasks::Setup do
   subject(:task) { described_class.new }
@@ -8,21 +9,63 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
   describe '#run' do
     subject(:run) { task.run }
 
-    if Datadog::Profiling.native_cpu_time_supported?
-      context 'when native CPU time is supported' do
-        around do |example|
-          unmodified_class = ::Thread.dup
+    it do
+      expect(task).to receive(:activate_main_extensions)
+      expect(task).to receive(:activate_thread_extensions)
+      run
+    end
+  end
 
-          example.run
+  describe '#activate_main_extensions' do
+    subject(:activate_main_extensions) { task.activate_main_extensions }
 
-          Object.send(:remove_const, :Thread)
-          Object.const_set('Thread', unmodified_class)
+    context 'when forking extensions can be applied' do
+      before do
+        expect(Datadog::Profiling::Ext::Forking)
+          .to receive(:apply!)
+      end
+
+      it do
+        expect(STDOUT).to_not receive(:puts)
+        activate_main_extensions
+      end
+    end
+
+    context 'when forking extensions cannot be applied' do
+      before do
+        expect(Datadog::Profiling::Ext::Forking)
+          .to receive(:apply!)
+          .and_raise(StandardError)
+      end
+
+      it 'displays a warning to STDOUT' do
+        expect(STDOUT).to receive(:puts) do |message|
+          expect(message).to include('Forking extensions unavailable')
         end
 
+        activate_main_extensions
+      end
+    end
+  end
+
+  describe '#activate_thread_extensions' do
+    subject(:activate_thread_extensions) { task.activate_thread_extensions }
+
+    around do |example|
+      unmodified_class = ::Thread.dup
+
+      example.run
+
+      Object.send(:remove_const, :Thread)
+      Object.const_set('Thread', unmodified_class)
+    end
+
+    if Datadog::Profiling.native_cpu_time_supported?
+      context 'when native CPU time is supported' do
         before { expect(STDOUT).to_not receive(:puts) }
 
         it 'adds Thread extensions' do
-          run
+          activate_thread_extensions
           expect(Thread.ancestors).to include(Datadog::Profiling::Ext::CThread)
         end
       end
@@ -33,7 +76,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
             expect(message).to include('CPU profiling unavailable')
           end
 
-          task.run
+          activate_thread_extensions
         end
       end
     end

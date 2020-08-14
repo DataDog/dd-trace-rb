@@ -3,15 +3,22 @@ require 'ddtrace/profiling'
 module ProfilingFeatureHelpers
   RSpec.shared_context 'with profiling extensions' do
     around do |example|
-      unmodified_class = ::Thread.dup
+      unmodified_thread_class = ::Thread.dup
+      unmodified_process_class = ::Process.dup
+      unmodified_kernel_class = ::Kernel.dup
 
       # Setup profiling to add
       require 'ddtrace/profiling/tasks/setup'
       Datadog::Profiling::Tasks::Setup.new.run
 
       example.run
+
       Object.send(:remove_const, :Thread)
-      Object.const_set('Thread', unmodified_class)
+      Object.const_set('Thread', unmodified_thread_class)
+      Object.send(:remove_const, :Process)
+      Object.const_set('Process', unmodified_process_class)
+      Object.send(:remove_const, :Kernel)
+      Object.const_set('Kernel', unmodified_kernel_class)
     end
   end
 end
