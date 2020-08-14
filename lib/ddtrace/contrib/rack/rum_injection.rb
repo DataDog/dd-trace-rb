@@ -139,7 +139,7 @@ module Datadog
             !streaming?(headers, env) &&
             injectable_html?(headers) &&
             no_cache?(headers) &&
-            user_defined_cached?(env)
+            !user_defined_cached?(env)
         # catch everything and swallow it here for defensiveness
         rescue Exception => e # rubocop:disable Lint/RescueException
           Datadog.logger.warn("Error during rum injection  #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
@@ -153,6 +153,7 @@ module Datadog
 
         def injectable_html?(headers)
           # assume we cant inject if no headers
+          puts headers.key?(CONTENT_TYPE_HEADER)
           return false unless headers && headers.key?(CONTENT_TYPE_HEADER)
 
           content_type_header = headers[CONTENT_TYPE_HEADER]
@@ -197,6 +198,8 @@ module Datadog
           return false if surrogate_cache?(headers)
 
           # then check Cache-Control
+          puts'cache control'
+          puts headers[CACHE_CONTROL_HEADER]
           if headers.key?(CACHE_CONTROL_HEADER) && !headers[CACHE_CONTROL_HEADER].nil?
             cache_control_header = headers[CACHE_CONTROL_HEADER]
             # s-maxage gets priority over max-age since s-maxage sits at cdn level
@@ -217,6 +220,8 @@ module Datadog
           end
 
           # last check expires
+          puts 'at expiry'
+          puts headers[EXPIRES_HEADER]
           if headers.key?(EXPIRES_HEADER) && !headers[EXPIRES_HEADER].nil?
             # Expires=0 means not cached
             return true if headers[EXPIRES_HEADER] == '0'
@@ -225,7 +230,7 @@ module Datadog
 
         def user_defined_cached?(env)
           # TODO: glob performance may be worse than regex
-          configuration[:rum_cached_pages].none? do |page_glob|
+          configuration[:rum_cached_pages].any? do |page_glob|
             File.fnmatch(page_glob, env['PATH_INFO']) if env['PATH_INFO']
           end
         end
