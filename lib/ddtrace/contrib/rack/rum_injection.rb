@@ -11,7 +11,6 @@ module Datadog
       # injected into it's html. The middleware modifies the response body
       # of non-cached html so that it can be retrieved by the rum browser-sdk in
       # the application frontend.
-      # rubocop:disable Metrics/ClassLength
       class RumInjection
         include Datadog::Environment::Helpers
 
@@ -47,45 +46,40 @@ module Datadog
           result = @app.call(env)
 
           begin
-            # TODO: env['rack.hijack?'] is true in rails tests
-            # dont check until we have more clarity on usage
-
             return result unless configuration[:rum_injection_enabled] == true
 
             status, headers, body = result
 
             # need significant safety here to ensure result is parsable + injectable
-            # shouldnt be gzipped/compressed yet since we've injected our middleware in the stack after rack deflater
+            # shouldn't be gzipped/compressed yet since we've injected our middleware in the stack after rack deflater
             # or any other compression middleware for that matter
             # also ensure its non-cacheable, is html, is not streaming, and is not an attachment
-            injectable = should_inject?(headers, env, status)
+            return result unless headers && should_inject?(headers, env)
 
-            if injectable
-              trace_id = current_trace_id
+            trace_id = current_trace_id
 
-              # do not inject if no trace or trace is not sampled
-              return result unless trace_id
+            # do not inject if no trace or trace is not sampled
+            return result unless trace_id
 
+            # update content length and return new response if we don't fail on rum injection
+            if body.respond_to?(:each)
               # we need to insert the trace_id and expiry meta tags
               unix_time = DateTime.now.strftime('%Q').to_i
 
               html_comment = html_comment_template(trace_id, unix_time)
 
-              # update content length and return new response if we don't fail on rum injection
-              if body.respond_to?(:each)
-                rum_body = RumBody.new(body, html_comment)
+              rum_body = RumBody.new(body, html_comment)
 
-                update_content_length(headers, html_comment)
-                # ensure idempotency on injection in case middleware is inserted or called twice
-                env[RUM_INJECTION_FLAG] = true
+              update_content_length(headers, html_comment)
+              # ensure idempotency on injection in case middleware is inserted or called twice
+              env[RUM_INJECTION_FLAG] = true
 
-                updated_response = ::Rack::Response.new(rum_body, status, headers)
-                Datadog.logger.debug('Rum injection successful')
-                return updated_response.finish
-              else
-                Datadog.logger.debug('Rum injection unsuccessful')
-                return result
-              end
+              updated_response = ::Rack::Response.new(rum_body, status, headers)
+              Datadog.logger.debug { "Rum injection successful: #{html_comment}" }
+              return updated_response.finish
+            else
+              Datadog.logger.debug('Rum injection unsuccessful')
+              return result
             end
 
             # catchall if an earlier conditional is not met
@@ -103,7 +97,7 @@ module Datadog
           Datadog.configuration[:rack]
         end
 
-        def should_inject?(headers, env, status)
+        def should_inject?(headers, env)
           !env[RUM_INJECTION_FLAG] &&
             !compressed?(headers) &&
             !attachment?(headers) &&
@@ -118,24 +112,16 @@ module Datadog
         end
 
         def compressed?(headers)
-          headers && headers.key?(CONTENT_ENCODING_HEADER) &&
-            !headers[CONTENT_ENCODING_HEADER].start_with?(IDENTITY)
+          (content_encoding = headers[CONTENT_ENCODING_HEADER]) && !content_encoding.start_with?(IDENTITY)
         end
 
         def injectable_html?(headers)
-          # assume we cant inject if no headers
-          return false unless headers && headers.key?(CONTENT_TYPE_HEADER)
-
-          content_type_header = headers[CONTENT_TYPE_HEADER]
-
-          if content_type_header
-            content_type_header.include?(HTML_CONTENT) || content_type_header.include?(XHTML_CONTENT)
-          end
+          (content_type = headers[CONTENT_TYPE_HEADER]) &&
+            (content_type.include?(HTML_CONTENT) || content_type.include?(XHTML_CONTENT))
         end
 
         def attachment?(headers)
-          (headers && headers.key?(CONTENT_DISPOSITION_HEADER) && !headers[CONTENT_DISPOSITION_HEADER].nil?) &&
-            !headers[CONTENT_DISPOSITION_HEADER].include?(INLINE)
+          (content_disposition = headers[CONTENT_DISPOSITION_HEADER]) && !content_disposition.include?(INLINE)
         end
 
         def streaming?(headers, env)
@@ -143,14 +129,8 @@ module Datadog
           # rails recommends disabling middlewares that interact with response body
           # when streaming via ActionController::Streaming
           # TODO: if required to patch streaming, investigate patching further upstream, in the render action perhaps
-          return false unless headers
-          return true if (headers.key?(TRANSFER_ENCODING_HEADER) &&
-                         headers[TRANSFER_ENCODING_HEADER] == TRANSFER_ENCODING_CHUNKED) ||
-                         (
-                            headers && headers.key?(CONTENT_TYPE_HEADER) &&
-                            !headers[CONTENT_TYPE_HEADER].nil? &&
-                            headers[CONTENT_TYPE_HEADER].start_with?(CONTENT_TYPE_STREAMING)
-                         )
+          return true if ((encoding = headers[TRANSFER_ENCODING_HEADER]) && encoding == TRANSFER_ENCODING_CHUNKED) ||
+                         ((content_type = headers[CONTENT_TYPE_HEADER]) && content_type.start_with?(CONTENT_TYPE_STREAMING))
 
           # if we detect Server Side Event streaming controller, assume streaming
           defined?(ActionController::Live) &&
@@ -159,40 +139,38 @@ module Datadog
 
         def no_cache?(headers)
           # TODO: this is very complex, is there an easier way to determine cache behavior on cdn and browser
-          return false unless headers
 
-          # first check Surrogate-Controle, which fastly uses
+          # first check Surrogate-Control, which Fastly uses
           # indicates a cdn cache if Surrogate-Control max-age>0,
-          # Surrogate-Control takes precedence over Cache-Controll which is why it has to be checked first
+          # Surrogate-Control takes precedence over Cache-Control which is why it has to be checked first
           # otherwise check cache-control, then expiry to determine if there is browser cache
           return false if surrogate_cache?(headers)
 
           # then check Cache-Control
-          if headers.key?(CACHE_CONTROL_HEADER) && !headers[CACHE_CONTROL_HEADER].nil?
-            cache_control_header = headers[CACHE_CONTROL_HEADER]
+          if (cache_control = headers[CACHE_CONTROL_HEADER])
             # s-maxage gets priority over max-age since s-maxage sits at cdn level
             # cdn cache if s-maxage > 0,
             # otherwise check max-age, (no-store|no-cache|private) or expires to determine if therre is browser cache
-            return false if server_cache?(headers)
+            return false if server_cache?(cache_control)
 
             # then check max-age
-            if cache_control_header.include?(MAX_AGE)
+            if cache_control.include?(MAX_AGE)
               # only not cached if max-age is 0
-              return cache_control_header.include?(MAX_AGE_ZERO)
+              return cache_control.include?(MAX_AGE_ZERO)
             end
 
             # not cached if marked no-store, no-cache, or private
-            return (cache_control_header.include?(NO_CACHE) ||
-                   cache_control_header.include?(NO_STORE) ||
-                   cache_control_header.include?(PRIVATE))
+            return (cache_control.include?(NO_CACHE) ||
+                   cache_control.include?(NO_STORE) ||
+                   cache_control.include?(PRIVATE))
           end
 
           # last check expires
-          if headers.key?(EXPIRES_HEADER) && !headers[EXPIRES_HEADER].nil?
+          if (expires = headers[EXPIRES_HEADER])
             # Expires=0 means not cached
             # TODO: Do we want to do date validation to determine if expiry is in future
             # and would indicate a cache
-            return true if headers[EXPIRES_HEADER] == '0'
+            return true if expires == '0'
           end
 
           # if no specific headers have been set indicating a cached response, return true
@@ -225,25 +203,19 @@ module Datadog
 
         def update_content_length(headers, additional_html)
           # we need to update the content length (check bytesize)
-          if headers && headers.key?(CONTENT_LENGTH_HEADER) && !headers[CONTENT_LENGTH_HEADER].nil?
+          if (content_length = headers[CONTENT_LENGTH_HEADER])
             content_length_addition = additional_html ? additional_html.bytesize : 0
 
-            headers[CONTENT_LENGTH_HEADER] = (headers[CONTENT_LENGTH_HEADER].to_i + content_length_addition).to_s
+            headers[CONTENT_LENGTH_HEADER] = (content_length.to_i + content_length_addition).to_s
           end
         end
 
         def surrogate_cache?(headers)
-          return false unless headers.key?(SURROGATE_CACHE_CONTROL_HEADER)
-
-          surrogate_control_header = headers[SURROGATE_CACHE_CONTROL_HEADER]
-
-          if surrogate_control_header
-            !surrogate_control_header.include?(MAX_AGE_ZERO)
-          end
+          (surrogate_control = headers[SURROGATE_CACHE_CONTROL_HEADER]) && !surrogate_control.include?(MAX_AGE_ZERO)
         end
 
-        def server_cache?(headers)
-          headers[CACHE_CONTROL_HEADER].include?(SMAX_AGE) && !headers[CACHE_CONTROL_HEADER].include?(SMAX_AGE_ZERO)
+        def server_cache?(cache_control)
+          cache_control.include?(SMAX_AGE) && !cache_control.include?(SMAX_AGE_ZERO)
         end
       end
     end
