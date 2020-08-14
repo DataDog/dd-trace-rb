@@ -254,8 +254,9 @@ module Datadog
     # response body into memory. In this case we're usng a Simple delegator to ensure we adhere
     # to the Spec https://www.rubydoc.info/github/rack/rack/file/SPEC#label-The+Body
     class RumBody < SimpleDelegator
-      def initialize(html_comment, original_body)
-        __setobj__ original_body
+      def initialize(*args)
+        html_comment, @body = args
+        __setobj__ @body
         @new_body = Enumerator.new do |y|
           y << html_comment
           __getobj__.each { |e| y << e }
