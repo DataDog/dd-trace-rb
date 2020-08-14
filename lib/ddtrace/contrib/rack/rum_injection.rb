@@ -44,21 +44,14 @@ module Datadog
         end
 
         def call(env)
-          puts 'starting middleware'
-          
-          puts "config is #{configuration[:rum_injection_enabled]}"
           result = @app.call(env)
 
           begin
-            puts 'starting block'
-            puts 'env rack hijack?'
-            puts "#{env['rack.hijack?']}"
-            # TODO: rack hijack? is true in rails local testing for some reason, dont check until we have more clarity
-            # on usage
-            # return result unless configuration[:rum_injection_enabled] == true && env['rack.hijack?'] != true
-            
+            # TODO: env['rack.hijack?'] is true in rails tests
+            # dont check until we have more clarity on usage
+
             return result unless configuration[:rum_injection_enabled] == true
-            puts 'not returned early'
+
             status, headers, body = result
 
             # need significant safety here to ensure result is parsable + injectable
@@ -66,14 +59,12 @@ module Datadog
             # or any other compression middleware for that matter
             # also ensure its non-cacheable, is html, is not streaming, and is not an attachment
             injectable = should_inject?(headers, env, status)
-            puts "is it injectable? #{injectable}"
+
             if injectable
-              puts 'it is injectable'
               trace_id = current_trace_id
 
               # do not inject if no trace or trace is not sampled
               return result unless trace_id
-              puts 'trace id exists not returning early'
 
               # we need to insert the trace_id and expiry meta tags
               unix_time = DateTime.now.strftime('%Q').to_i
@@ -82,27 +73,16 @@ module Datadog
 
               # update content length and return new response if we don't fail on rum injection
               if body.respond_to?(:each)
-                puts 'body responds to each'
-                # inject html comment into first available fragment and then end early so we do not
-                # iterate over entire response
-                # body.each do |fragment|
-                #   fragment.insert(0, html_comment)
-                #   break
-                # end
                 rum_body = RumBody.new(body, html_comment)
-
-                # body.close if body.respond_to?(:close)
 
                 update_content_length(headers, html_comment)
                 # ensure idempotency on injection in case middleware is inserted or called twice
                 env[RUM_INJECTION_FLAG] = true
 
-                puts 'updating'
                 updated_response = ::Rack::Response.new(rum_body, status, headers)
                 Datadog.logger.debug('Rum injection successful')
                 return updated_response.finish
               else
-                puts 'there was an issue'
                 Datadog.logger.debug('Rum injection unsuccessful')
                 return result
               end
@@ -111,7 +91,6 @@ module Datadog
             # catchall if an earlier conditional is not met
             result
           rescue StandardError => e
-            puts 'things fall apart'
             Datadog.logger.warn("error checking rum injectability #{e.class}: #{e.message} #{e.backtrace.join("\n")}")
             # we should ensure we don't interfere if original app response if our injection code has an exception
             result
@@ -125,14 +104,6 @@ module Datadog
         end
 
         def should_inject?(headers, env, status)
-          puts "#{!env[RUM_INJECTION_FLAG]}"
-          puts "#{!compressed?(headers)}"
-          puts "#{!attachment?(headers)}"
-          puts "#{!streaming?(headers, env)}"
-          puts "#{injectable_html?(headers)}"
-          puts "#{no_cache?(headers)}"
-          puts "#{user_defined_cached?(env)}"
-
           !env[RUM_INJECTION_FLAG] &&
             !compressed?(headers) &&
             !attachment?(headers) &&
@@ -153,7 +124,6 @@ module Datadog
 
         def injectable_html?(headers)
           # assume we cant inject if no headers
-          puts headers.key?(CONTENT_TYPE_HEADER)
           return false unless headers && headers.key?(CONTENT_TYPE_HEADER)
 
           content_type_header = headers[CONTENT_TYPE_HEADER]
@@ -198,8 +168,6 @@ module Datadog
           return false if surrogate_cache?(headers)
 
           # then check Cache-Control
-          puts'cache control'
-          puts headers[CACHE_CONTROL_HEADER]
           if headers.key?(CACHE_CONTROL_HEADER) && !headers[CACHE_CONTROL_HEADER].nil?
             cache_control_header = headers[CACHE_CONTROL_HEADER]
             # s-maxage gets priority over max-age since s-maxage sits at cdn level
@@ -220,14 +188,14 @@ module Datadog
           end
 
           # last check expires
-          puts 'at expiry'
-          puts headers[EXPIRES_HEADER]
           if headers.key?(EXPIRES_HEADER) && !headers[EXPIRES_HEADER].nil?
             # Expires=0 means not cached
+            # TODO: Do we want to do date validation to determine if expiry is in future
+            # and would indicate a cache
             return true if headers[EXPIRES_HEADER] == '0'
           end
 
-          # if no specific headers have been set return trues
+          # if no specific headers have been set indicating a cached response, return true
           true
         end
 
