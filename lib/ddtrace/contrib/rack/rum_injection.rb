@@ -91,6 +91,19 @@ module Datadog
           end
         end
 
+        def inject_rum_data
+          begin
+            env[RUM_INJECTION_FLAG] = true
+          rescue StandardError => error
+            Datadog.logger.warn("rack request Environment unavailable: ", error.message)
+          end
+
+          trace_id = current_trace_id
+          unix_time = DateTime.now.strftime('%Q').to_i
+
+          trace_id ? meta_tag_template(trace_id, unix_time) : ''
+        end
+
         private
 
         def configuration
@@ -191,11 +204,11 @@ module Datadog
           span.trace_id if span && span.sampled
         end
 
-        # TODO: this will eventually be abstracted into a template helper function that can be used for
-        # manual injection. Leave but comment out in the meantime.
-        # def meta_tag_template(trace_id, unix_time)
-        #   %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />)
-        # end
+        # a template helper function that can be used for
+        # manual injection. 
+        def meta_tag_template(trace_id, unix_time)
+          %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />)
+        end
 
         def html_comment_template(trace_id, unix_time)
           %(<!-- DATADOG;trace-id=#{trace_id};trace-time=#{unix_time} -->)
