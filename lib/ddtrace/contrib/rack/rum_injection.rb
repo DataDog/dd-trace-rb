@@ -14,6 +14,8 @@ module Datadog
       class RumInjection
         include Datadog::Environment::Helpers
 
+        
+
         RUM_INJECTION_FLAG = 'datadog.rum_injection_flag'.freeze
         INLINE = 'inline'.freeze
         IDENTITY = 'identity'.freeze
@@ -91,18 +93,28 @@ module Datadog
           end
         end
 
-        def inject_rum_data
+        def self.inject_rum_data
           begin
             env[RUM_INJECTION_FLAG] = true
           rescue StandardError => error
-            Datadog.logger.warn("rack request Environment unavailable: ", error.message)
+            Datadog.logger.warn("rack request Environment unavailable: #{error.message}")
           end
 
-          trace_id = current_trace_id
+          tracer = Datadog.configuration[:rack][:tracer]
+          span = tracer.active_span
+          
+          # only return trace id if sampled
+          trace_id = (span && span.sampled) ? span.trace_id : nil
+
           unix_time = DateTime.now.strftime('%Q').to_i
 
-          trace_id ? meta_tag_template(trace_id, unix_time) : ''
+          trace_id ? %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />) : ''
+        rescue StandardError => err
+          # maybe shouldnt log in case datadog is disabled or not required
+          Datadog.logger.warn("datadog inject_rum_data failed: #{err.message}")
         end
+
+        # INJECT_RUM_META = inject_rum_data
 
         private
 
