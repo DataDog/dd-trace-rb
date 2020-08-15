@@ -93,7 +93,7 @@ module Datadog
           end
         end
 
-        def self.inject_rum_data
+        def self.inject_rum_data(env = nil)
           begin
             env[RUM_INJECTION_FLAG] = true
           rescue StandardError => error
