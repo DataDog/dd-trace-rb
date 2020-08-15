@@ -103,9 +103,9 @@ RSpec.describe 'Rack integration tests' do
           end
         end
 
-        context 'with rum_cached_pages' do
+        context 'with rum_injection_disabled_paths' do
           subject(:response) { get '/success?foo=bar', {} }
-          let(:rack_options) { { rum_cached_pages: ['/success'], rum_injection_enabled: true } }
+          let(:rack_options) { { rum_injection_disabled_paths: ['/success'], rum_injection_enabled: true } }
 
           it 'filters trace_id injection based on route' do
             expect(response.body).to_not include(span.trace_id.to_s)

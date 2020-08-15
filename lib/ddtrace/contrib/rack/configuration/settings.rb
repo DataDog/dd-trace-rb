@@ -45,7 +45,7 @@ module Datadog
             o.lazy
           end
 
-          option :rum_cached_pages do |o|
+          option :rum_injection_disabled_paths do |o|
             o.default { env_to_list(Ext::ENV_TRACE_CACHED_PAGES, []) }
             o.lazy
           end

@@ -201,7 +201,7 @@ module Datadog
 
         def user_defined_cached?(env)
           # TODO: glob performance may be worse than regex
-          configuration[:rum_cached_pages].any? do |page_glob|
+          configuration[:rum_injection_disabled_paths].any? do |page_glob|
             File.fnmatch(page_glob, env['PATH_INFO']) if env['PATH_INFO']
           end
         end
