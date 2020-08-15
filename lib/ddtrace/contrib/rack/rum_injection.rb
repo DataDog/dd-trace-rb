@@ -11,10 +11,8 @@ module Datadog
       # injected into it's html. The middleware modifies the response body
       # of non-cached html so that it can be retrieved by the rum browser-sdk in
       # the application frontend.
-      class RumInjection
+      class RumInjection # rubocop:disable Metrics/ClassLength
         include Datadog::Environment::Helpers
-
-        
 
         RUM_INJECTION_FLAG = 'datadog.rum_injection_flag'.freeze
         INLINE = 'inline'.freeze
@@ -93,22 +91,39 @@ module Datadog
           end
         end
 
-        def self.inject_rum_data(env = nil)
+        def self.inject_rum_data(supplied_env = nil)
           begin
-            env[RUM_INJECTION_FLAG] = true
+            # the goal here is to abstract away as much config from the user as possible
+            # so, try to support main frameworks OOTB and document what we support OOTB
+            # request.env is rails (and possibly sinatra) controller specific env var
+            # env possibly matches grape
+            request_env = if supplied_env
+                            supplied_env
+                          elsif defined?(request.env)
+                            request.env
+                          elsif defined?(env)
+                            env
+                          end
+
+            request_env[RUM_INJECTION_FLAG] = true if request_env
           rescue StandardError => error
-            Datadog.logger.warn("rack request Environment unavailable: #{error.message}")
+            Datadog.logger.debug("rack request Environment unavailable: #{error.message}")
           end
 
           tracer = Datadog.configuration[:rack][:tracer]
           span = tracer.active_span
-          
+
           # only return trace id if sampled
-          trace_id = (span && span.sampled) ? span.trace_id : nil
+          trace_id = span && span.sampled ? span.trace_id : nil
 
           unix_time = DateTime.now.strftime('%Q').to_i
 
-          tag_string = trace_id ? %(\n<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />) : ''
+          tag_string = if trace_id
+                         %(\n<meta name="dd-trace-id" content="#{trace_id}" />\
+                         <meta name="dd-trace-time" content="#{unix_time}" />)
+                       else
+                         ''
+                       end
 
           tag_string.respond_to?(:html_safe) ? tag_string.html_safe : tag_string
         rescue StandardError => err
@@ -219,7 +234,7 @@ module Datadog
         end
 
         # a template helper function that can be used for
-        # manual injection. 
+        # manual injection.
         def meta_tag_template(trace_id, unix_time)
           %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />)
         end
