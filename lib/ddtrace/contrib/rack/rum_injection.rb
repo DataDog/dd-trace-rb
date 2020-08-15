@@ -108,9 +108,11 @@ module Datadog
 
           unix_time = DateTime.now.strftime('%Q').to_i
 
-          trace_id ? %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />) : ''
+          tag_string = trace_id ? %(\n<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />) : ''
+
+          tag_string.respond_to?(:html_safe) ? tag_string.html_safe : tag_string
         rescue StandardError => err
-          # maybe shouldnt log in case datadog is disabled or not required
+          # maybe shouldnt log in case datadog is disabled or not required in
           Datadog.logger.warn("datadog inject_rum_data failed: #{err.message}")
         end
 
