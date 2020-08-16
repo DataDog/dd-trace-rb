@@ -40,12 +40,15 @@ module Datadog
 
         def initialize(app)
           @app = app
+          @rum_injection_flag = false
         end
 
         def call(env)
+          puts "rum_injection_flag before is #{@rum_injection_flag}"
           result = @app.call(env)
 
           begin
+            puts "rum_injection_flag after is #{@rum_injection_flag}"
             return result unless configuration[:rum_injection_enabled] == true
 
             status, headers, body = result
@@ -54,7 +57,7 @@ module Datadog
             # shouldn't be gzipped/compressed yet since we've injected our middleware in the stack after rack deflater
             # or any other compression middleware for that matter
             # also ensure its non-cacheable, is html, is not streaming, and is not an attachment
-            return result unless headers && should_inject?(headers, env)
+            return result unless headers && should_inject?(headers, env) && !@rum_injection_flag
 
             trace_id = current_trace_id
 
@@ -97,15 +100,11 @@ module Datadog
             # so, try to support main frameworks OOTB and document what we support OOTB
             # request.env is rails (and possibly sinatra) controller specific env var
             # env possibly matches grape
-            request_env = if supplied_env
-                            supplied_env
-                          elsif defined?(request.env)
-                            request.env
-                          elsif defined?(env)
-                            env
-                          end
-
+            request_env = supplied_env
             request_env[RUM_INJECTION_FLAG] = true if request_env
+
+            puts "do i have access to @rum_injection_flag #{@rum_injection_flag}"
+            @rum_injection_flag = true
           rescue StandardError => error
             Datadog.logger.debug("rack request Environment unavailable: #{error.message}")
           end
@@ -125,7 +124,22 @@ module Datadog
                          ''
                        end
 
-          tag_string.respond_to?(:html_safe) ? tag_string.html_safe : tag_string
+          # lambda do |supplied_env = nil|
+          #   puts 'ok'
+          #   puts 'env'
+          #   puts @request
+          #   request_env = if supplied_env
+          #                   supplied_env
+          #                 elsif defined?(request.env)
+          #                   request.env
+          #                 elsif defined?(env)
+          #                   env
+          #                 end
+
+          #   request_env[RUM_INJECTION_FLAG] = true if request_env
+
+          tag_string.respond_to?(:html_safe) ? tag_string.html_safe : tag_string 
+          # end
         rescue StandardError => err
           # maybe shouldnt log in case datadog is disabled or not required in
           Datadog.logger.warn("datadog inject_rum_data failed: #{err.message}")
