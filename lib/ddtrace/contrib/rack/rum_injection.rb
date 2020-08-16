@@ -40,15 +40,12 @@ module Datadog
 
         def initialize(app)
           @app = app
-          @rum_injection_flag = false
         end
 
         def call(env)
-          puts "rum_injection_flag before is #{@rum_injection_flag}"
           result = @app.call(env)
 
           begin
-            puts "rum_injection_flag after is #{@rum_injection_flag}"
             return result unless configuration[:rum_injection_enabled] == true
 
             status, headers, body = result
@@ -57,7 +54,7 @@ module Datadog
             # shouldn't be gzipped/compressed yet since we've injected our middleware in the stack after rack deflater
             # or any other compression middleware for that matter
             # also ensure its non-cacheable, is html, is not streaming, and is not an attachment
-            return result unless headers && should_inject?(headers, env) && !@rum_injection_flag
+            return result unless headers && should_inject?(headers, env)
 
             trace_id = current_trace_id
 
@@ -95,27 +92,26 @@ module Datadog
         end
 
         def self.inject_rum_data(supplied_env = nil)
-          begin
-            # the goal here is to abstract away as much config from the user as possible
-            # so, try to support main frameworks OOTB and document what we support OOTB
-            # request.env is rails (and possibly sinatra) controller specific env var
-            # env possibly matches grape
-            request_env = supplied_env
-            request_env[RUM_INJECTION_FLAG] = true if request_env
-
-            puts "do i have access to @rum_injection_flag #{@rum_injection_flag}"
-            @rum_injection_flag = true
-          rescue StandardError => error
-            Datadog.logger.debug("rack request Environment unavailable: #{error.message}")
-          end
-
           tracer = Datadog.configuration[:rack][:tracer]
           span = tracer.active_span
 
           # only return trace id if sampled
           trace_id = span && span.sampled ? span.trace_id : nil
-
           unix_time = DateTime.now.strftime('%Q').to_i
+
+          if trace_id
+            begin
+              # the user can ensure there is not a double patching from auto-injection
+              # by passing in the rack env so that a flag can be set. This flag is checked
+              # later by auto injection. the goal is to support main frameworks and
+              # document what we support OOTB. Most frameworks that are rack compatible also expose
+              # a helper in the framework controller/template the user can use to access the rack env
+              # request.env (rails), env (rails/sinatra/grape?). Should provide example snippets.
+              supplied_env[RUM_INJECTION_FLAG] = true if supplied_env
+            rescue StandardError => error
+              Datadog.logger.debug("rack request Environment unavailable: #{error.message}")
+            end
+          end
 
           tag_string = if trace_id
                          %(\n<meta name="dd-trace-id" content="#{trace_id}" />\
@@ -124,24 +120,10 @@ module Datadog
                          ''
                        end
 
-          # lambda do |supplied_env = nil|
-          #   puts 'ok'
-          #   puts 'env'
-          #   puts @request
-          #   request_env = if supplied_env
-          #                   supplied_env
-          #                 elsif defined?(request.env)
-          #                   request.env
-          #                 elsif defined?(env)
-          #                   env
-          #                 end
-
-          #   request_env[RUM_INJECTION_FLAG] = true if request_env
-
-          tag_string.respond_to?(:html_safe) ? tag_string.html_safe : tag_string 
+          tag_string.respond_to?(:html_safe) ? tag_string.html_safe : tag_string
           # end
         rescue StandardError => err
-          # maybe shouldnt log in case datadog is disabled or not required in
+          # maybe shouldnt log in case datadog is disabled or not required in?
           Datadog.logger.warn("datadog inject_rum_data failed: #{err.message}")
         end
 
@@ -245,12 +227,6 @@ module Datadog
           span = tracer.active_span
           # only return trace id if sampled
           span.trace_id if span && span.sampled
-        end
-
-        # a template helper function that can be used for
-        # manual injection.
-        def meta_tag_template(trace_id, unix_time)
-          %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />)
         end
 
         def html_comment_template(trace_id, unix_time)

@@ -1992,6 +1992,40 @@ Last, ensure the [`browser-sdk`](https://docs.datadoghq.com/real_user_monitoring
 
 The RUM Injection middleware will insert an HTML comment into only those responses that are `Content-Type` `html` or `xhtml`, can be reasonably determined to be non-cached html responses at either browser or CDN level, are not streaming responses, and are not compressed or gzipped at time of injection.
 
+
+#### RUM Manual Injection
+
+For users that have a caching strategy for their HTML that leverages a CDN, VCL, or custom caching rules, the automatic RUM Injection may not be suitable for determining which html templates are not cached, and should have a trace-id injected.  In this case, we also provide a Manual Injection option so that users can configure which HTML templates specifically they should inject the trace-id into. The Manual Injection template helpers inject an HTML `<meta>` tag containing the `dd-trace-id` and `dd-trace-time`. This allows the [`browser-sdk`](https://docs.datadoghq.com/real_user_monitoring/installation/?tab=us) to connect frontend sessions to backend traces.  To modify a template, add the template helper to generate the RUM Injection meta tags (we recommend `<head>` section of your template, but it can be added anywhere)
+
+```
+  <head>
+    <%= ::Datadog::Contrib::Rack::RumInjection.inject_rum_data rescue "" %>
+    ... existing template code ...
+  </head>
+```
+
+To ensure that the automatic RUM Injection's HTML Comment insertion is also disabled for the template, optionally pass in the rack environment to the helper. The rack environment variable may vary from framework to framework but is usually available with any rack compatible web framework. Below are examples of popular frameworks:
+
+##### Rails RUM Manual Injection
+
+```
+  # application.html.erb
+
+  <head>
+    <%= ::Datadog::Contrib::Rack::RumInjection.inject_rum_data(request.env) rescue "" %>
+    ... existing template code ...
+  </head>
+```
+
+##### Sinatra RUM Manual Injection
+
+```
+  <head>
+    <%= ::Datadog::Contrib::Rack::RumInjection.inject_rum_data(env) rescue "" %>
+    ... existing template code ...
+  </head>
+```
+
 ### Processing Pipeline
 
 Some applications might require that traces be altered or filtered out before they are sent upstream. The processing pipeline allows users to create *processors* to define such behavior.
