@@ -100,6 +100,7 @@ namespace :spec do
     :mongodb,
     :mysql2,
     :presto,
+    :que,
     :racecar,
     :rack,
     :rake,
@@ -339,6 +340,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
+      sh 'bundle exec appraisal contrib rake spec:que'
       sh 'bundle exec appraisal contrib rake spec:racecar'
       sh 'bundle exec appraisal contrib rake spec:rack'
       sh 'bundle exec appraisal contrib rake spec:rake'
@@ -413,6 +415,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
+      sh 'bundle exec appraisal contrib rake spec:que'
       sh 'bundle exec appraisal contrib rake spec:racecar'
       sh 'bundle exec appraisal contrib rake spec:rack'
       sh 'bundle exec appraisal contrib rake spec:rake'
@@ -492,6 +495,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
+      sh 'bundle exec appraisal contrib rake spec:que'
       sh 'bundle exec appraisal contrib rake spec:racecar'
       sh 'bundle exec appraisal contrib rake spec:rack'
       sh 'bundle exec appraisal contrib rake spec:rake'
@@ -553,6 +557,7 @@ task :ci do
     sh 'bundle exec appraisal contrib rake spec:mongodb'
     sh 'bundle exec appraisal contrib rake spec:mysql2' if RUBY_PLATFORM != 'java' # built-in jdbc is used instead
     sh 'bundle exec appraisal contrib rake spec:presto'
+    sh 'bundle exec appraisal contrib rake spec:que'
     sh 'bundle exec appraisal contrib rake spec:racecar'
     sh 'bundle exec appraisal contrib rake spec:rack'
     sh 'bundle exec appraisal contrib rake spec:rake'
@@ -626,6 +631,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
+      sh 'bundle exec appraisal contrib rake spec:que'
       sh 'bundle exec appraisal contrib rake spec:racecar'
       sh 'bundle exec appraisal contrib rake spec:rack'
       sh 'bundle exec appraisal contrib rake spec:rake'
@@ -699,6 +705,7 @@ task :ci do
       sh 'bundle exec appraisal contrib rake spec:mongodb'
       sh 'bundle exec appraisal contrib rake spec:mysql2'
       sh 'bundle exec appraisal contrib rake spec:presto'
+      sh 'bundle exec appraisal contrib rake spec:que'
       sh 'bundle exec appraisal contrib rake spec:racecar'
       sh 'bundle exec appraisal contrib rake spec:rack'
       sh 'bundle exec appraisal contrib rake spec:rake'
