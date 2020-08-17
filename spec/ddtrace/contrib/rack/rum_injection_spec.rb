@@ -39,8 +39,8 @@ RSpec.describe 'Rack integration tests' do
     end
 
     context 'with a basic route' do
-      let(:html_response) { '<html> <head>   </head> <body> <div> ok </div> </body> </html>' }
-      let(:original_html_response_bytesize) { '<html> <head>   </head> <body> <div> ok </div> </body> </html>'.bytesize }
+      let(:html_response) { '<html> <head> </head> <body> <div> ok </div> </body> </html>' }
+      let(:original_html_response_bytesize) { '<html> <head> </head> <body> <div> ok </div> </body> </html>'.bytesize }
       let(:cache_control) { 'no-store max-age=0' }
       let(:content_type) { 'text/html' }
       let(:expires) { 'Thu, 01 Dec 1994 16:00:00 GMT' }
@@ -428,6 +428,74 @@ RSpec.describe 'Rack integration tests' do
             gz.close
             readable_body = tmp
             expect(readable_body).to include(span.trace_id.to_s)
+          end
+        end
+      end
+
+      describe 'Manual RUM Injection' do
+        context 'Manual RUM Injection helper method is added to response template' do
+          subject(:response) { get '/success?foo=bar', {}, 'HTTP_ACCEPT_ENCODING' => 'gzip, compress, br' }
+
+          let(:app) do
+            base_response_headers = self.base_response_headers
+
+            app_routes = proc do
+              map '/success/' do
+                run(proc do |env|
+                  response_headers = base_response_headers
+                  html_response = "<html> <head> #{Datadog::Contrib::Rack::RumInjection.inject_rum_data(env)}\
+                  </head> <body> <div> ok </div> </body> </html>"
+                  [200, response_headers, [html_response]]
+                end)
+              end
+            end
+
+            Rack::Builder.new do
+              use Datadog::Contrib::Rack::TraceMiddleware
+              use Datadog::Contrib::Rack::RumInjection
+              instance_eval(&app_routes)
+            end.to_app
+          end
+
+          it 'injects the html meta tag containing trace_id' do
+            expect(response.body).to include(span.trace_id.to_s)
+            expect(response.body).to include('dd-trace-id')
+          end
+
+          it 'injects the html meta tag containing ms precision trace-time' do
+            expect(response.body).to match(/.*content="\d{13}".*/)
+            expect(response.body).to include('name="dd-trace-time"')
+          end
+
+          it 'disables HTML comments from automatic injection' do
+            expect(response.body).to_not include('DATADOG')
+          end
+
+          context 'and not passed in rack env' do
+            let(:app) do
+              base_response_headers = self.base_response_headers
+
+              app_routes = proc do
+                map '/success/' do
+                  run(proc do |env|
+                    response_headers = base_response_headers
+                    html_response = "<html> <head> #{Datadog::Contrib::Rack::RumInjection.inject_rum_data(env)}\
+                    </head> <body> <div> ok </div> </body> </html>"
+                    [200, response_headers, [html_response]]
+                  end)
+                end
+              end
+
+              Rack::Builder.new do
+                use Datadog::Contrib::Rack::TraceMiddleware
+                use Datadog::Contrib::Rack::RumInjection
+                instance_eval(&app_routes)
+              end.to_app
+            end
+
+            it 'does not disable HTML Comments from automatic injection' do
+              expect(response.body).to_not include('DATADOG')
+            end
           end
         end
       end

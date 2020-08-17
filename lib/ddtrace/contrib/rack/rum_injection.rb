@@ -121,7 +121,6 @@ module Datadog
                        end
 
           tag_string.respond_to?(:html_safe) ? tag_string.html_safe : tag_string
-          # end
         rescue StandardError => err
           # maybe shouldnt log in case datadog is disabled or not required in?
           Datadog.logger.warn("datadog inject_rum_data failed: #{err.message}")
