@@ -143,7 +143,8 @@ module Datadog
           # first check Surrogate-Control, which Fastly uses
           # indicates a cdn cache if Surrogate-Control max-age>0,
           # Surrogate-Control takes precedence over Cache-Control which is why it has to be checked first
-          # otherwise check cache-control, then expiry to determine if there is browser cache
+          # https://docs.fastly.com/en/guides/configuring-caching
+          # otherwise check Cache-Control, then expiry to determine if there is browser cache
           return false if surrogate_cache?(headers)
 
           # then check Cache-Control
@@ -165,7 +166,7 @@ module Datadog
                    cache_control.include?(PRIVATE))
           end
 
-          # last check expires
+          # last check Expires
           if (expires = headers[EXPIRES_HEADER])
             # Expires=0 means not cached
             # TODO: Do we want to do date validation to determine if expiry is in future
