@@ -8,9 +8,6 @@ module Datadog
     module Sinatra
       # Middleware used for automatically tagging configured headers and handle request span
       class TracerMiddleware
-        # Span resource when the application does not have the matching route
-        # NO_ROUTE_RESOURCE = 'no route'.freeze
-
         def initialize(app, app_instance: nil)
           @app = app
           @app_instance = app_instance
