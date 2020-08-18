@@ -69,6 +69,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
          - [Priority sampling](#priority-sampling)
      - [Distributed tracing](#distributed-tracing)
      - [HTTP request queuing](#http-request-queuing)
+     - [RUM Injection](#rum-injection)
      - [Processing pipeline](#processing-pipeline)
          - [Filtering](#filtering)
          - [Processing](#processing)
@@ -1169,6 +1170,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `quantize.query.exclude` | Defines which values should be removed entirely. Excludes nothing by default. May be an Array of strings, or `:all` to remove the query string entirely. Option must be nested inside the `query` option. | `nil` |
 | `quantize.fragment` | Defines behavior for URL fragments. Removes fragments by default. May be `:show` to show URL fragments. Option must be nested inside the `quantize` option. | `nil` |
 | `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | `false` |
+| `rum_injection_enabled` | Connect frontend traces from the RUM (real user monitoring) [`browser-sdk`](https://docs.datadoghq.com/real_user_monitoring/installation/?tab=us) to backend traces by automatically injecting an HTML Comment containing the datadog trace-id. This only is applies to html and xhtml pages which are not cached, as determined by HTTP response headers. See [RUM Injection](#rum-injection) for setup details. Set to `true` to enable. Environment Variable: `DD_RUM_INJECTION`. *Experimental* | `false` |
+| `rum_injection_disabled_paths` | Define which pages to exclude from automatically injecting an HTML Comment containing the Datadoog trace-id.  See [RUM Injection](#rum-injection) for setup details. Accepts an array of path values, including globbed paths e.g. `['/admin', 'api/**/update']`. Environment Variable: `DD_TRACE_CACHED_PAGES`, accepts a CSV formatted string. *Experimental* | `[]` |
 | `service_name` | Service name used for `rack` instrumentation | `'rack'` |
 | `web_service_name` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | `'web-server'` |
 
@@ -1721,6 +1724,8 @@ Other Environment Variables:
 - `DD_TRACE_<INTEGRATION>_ENABLED`: Enables or disables an **activated** integration. Defaults to `true`.. e.g. `DD_TRACE_RAILS_ENABLED=false`. This option has no effects on integrations that have not been explicitly activated (e.g. `Datadog.configure{ |c| c.use :integration }`).on code. This environment variable can only be used to disable an integration.
 - `DD_TRACE_<INTEGRATION>_ANALYTICS_ENABLED`: Enables or disable App Analytics for a specific integration. Valid values are: true or false (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED=true`.
 - `DD_TRACE_<INTEGRATION>_ANALYTICS_SAMPLE_RATE`: Sets the App Analytics sampling rate for a specific integration. A floating number between 0.0 and 1.0 (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE=0.5`.
+- `DD_RUM_INJECTION`: Connect frontend traces from the RUM (real user monitoring) [`browser-sdk`](https://docs.datadoghq.com/real_user_monitoring/installation/?tab=us) to backend traces by automatically injecting an HTML Comment containing the datadog trace-id. See [RUM Injection](#rum-injection) for setup details. Set to `true` to enable. Accepts a boolean (default `false`) e.g. `DD_RUM_INJECTION=true`. *experimental*.
+- `DD_TRACE_CACHED_PAGES`: Define which pages to exclude from automatically injecting an HTML Comment containing the Datadoog trace-id.  See [RUM Injection](#rum-injection) for setup details. Accepts a CSV formatted string (default `''`) of path values, including globbed paths e.g. `DD_TRACE_CACHED_PAGES=/admin,api/**/update`. *Experimental*
 
 ### Sampling
 
@@ -1935,6 +1940,57 @@ server {
 Then you must enable the request queuing feature in the integration handling the request.
 
 For Rack-based applications, see the [documentation](#rack) for details for enabling this feature.
+
+### RUM Injection
+
+This feature is used in conjunction with Datadog [Real User Monitoring (RUM)](https://docs.datadoghq.com/real_user_monitoring/), which enables end-to-end visibility into real-time activity of individual users in web and mobile applications. In order to captura an initial request's page load times it is necesary to connect front-end and back-end tracing. This is accomplished via our RUM Injection Rack Middleware, which injects the trace-id into eligble html responses via an HTML Comment for Rack based applications. The trace-id can then be used to connect the trace associated with the initial request with the rest of the User's RUM Session.
+
+This functionality is **experimental** and deactivated by default.
+
+To activate this feature, first you must set the rum injection configuration option `rum_injection_enabled` to `true` in the `rack` integration. Additionally, you can use the `rack` configuration option `rum_injection_disabled_paths` to designate a list of any Paths that include cached HTML and should therefore not have a trace-id injected. `rum_injection_disabled_paths` should be set to an array of url Paths, including globbed urls. The following is an example:
+
+```ruby
+    Datadog.configure do |c|
+      c.use :rack, rum_injection_enabled: true, rum_injection_disabled_paths: ['/api', '/blog/**/**']
+    end
+```
+
+Review the Rack [documentation](#rack) for more configuration details.
+
+When the Rack RUM Injection Middlewarre is used in conjunction with the Ruby on Rails instrumentation, the middleware is automatically inserted into your application's rack middleware stack in the appropriate location. Here is an example configuration:
+
+
+```ruby
+    Datadog.configure do |c|
+      c.use :rack, rum_injection_enabled: true, rum_injection_disabled_paths: ['/api', '/blog/**/**']
+      c.use :rails
+    end
+```
+
+However, when using Rack as a standalone application or in conjunction with another web framework, such as Sinatra, you must manually insert the Rack RUM Injection Middleware at the appropriate location within the middleware stack, via `use Datadog::Contrib::Rack::RumInjection`. It should be the _last_ middleware in the stack, and come _after_ any compression middleware such as `Rack::Deflater`
+
+```ruby
+# config.ru example
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :rack, options
+end
+
+use Datadog::Contrib::Rack::TraceMiddleware
+use Rack::Deflater
+use Datadog::Contrib::Rack::RumInjection
+
+app = proc do |env|
+  [ 200, {'Content-Type' => 'text/plain'}, ['OK'] ]
+end
+
+run app
+```
+
+Last, ensure the [`browser-sdk`](https://docs.datadoghq.com/real_user_monitoring/installation/?tab=us) is setup correctly in your front-end web application.
+
+The RUM Injection middleware will insert an HTML comment into only those responses that are `Content-Type` `html` or `xhtml`, can be reasonably determined to be non-cached html responses at either browser or CDN level, are not streaming responses, and are not compressed or gzipped at time of injection.
 
 ### Processing Pipeline
 
