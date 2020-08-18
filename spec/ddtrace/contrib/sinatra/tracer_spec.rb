@@ -22,10 +22,11 @@ RSpec.describe 'Sinatra instrumentation' do
   let(:app) { sinatra_app }
 
   let(:with_rack) { false }
+  let(:with_rum_enabled) { false }
 
   before do
     Datadog.configure do |c|
-      c.use :rack, configuration_options if with_rack
+      c.use :rack, rum_injection_enabled: with_rum_enabled if with_rack
       c.use :sinatra, configuration_options
     end
   end
@@ -40,14 +41,22 @@ RSpec.describe 'Sinatra instrumentation' do
   shared_context 'with rack instrumentation' do
     let(:with_rack) { true }
     let(:rack_span) { spans.find { |x| !x.parent && x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST } }
+    let(:rack_middlewares) { [Datadog::Contrib::Rack::TraceMiddleware] }
 
     let(:app) do
-      sinatra_app = self.sinatra_app
+      example = self
       Rack::Builder.new do
-        use Datadog::Contrib::Rack::TraceMiddleware
-        run sinatra_app
+        example.rack_middlewares.each { |m| use m }
+        run example.sinatra_app
       end.to_app
     end
+  end
+
+  shared_context 'with rack instrumentation and rum injection' do
+    include_context 'with rack instrumentation'
+
+    let(:with_rum_enabled) { true }
+    before { rack_middlewares << Datadog::Contrib::Rack::RumInjection }
   end
 
   let(:url) { '/' }
@@ -318,6 +327,18 @@ RSpec.describe 'Sinatra instrumentation' do
       end
     end
 
+    context 'rack and template' do
+      include_context 'with rack instrumentation and rum injection'
+
+      subject(:response) { get '/erb' }
+
+      it 'handles html injection' do
+        body = response.body
+
+        expect(body).to include(span.trace_id.to_s)
+      end
+    end
+
     context 'when the tracer is disabled' do
       subject(:response) { get '/' }
       let(:tracer) { get_test_tracer(enabled: false) }
@@ -438,6 +459,8 @@ RSpec.describe 'Sinatra instrumentation' do
       end
 
       get '/erb' do
+        headers['Cache-Control'] = 'max-age=0'
+
         erb :msg, locals: { msg: 'hello' }
       end
 
