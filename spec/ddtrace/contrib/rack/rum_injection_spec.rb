@@ -443,7 +443,7 @@ RSpec.describe 'Rack integration tests' do
               map '/success/' do
                 run(proc do |env|
                   response_headers = base_response_headers
-                  html_response = "<html> <head> #{Datadog::Contrib::Rack::RumInjection.inject_rum_data(env)}\
+                  html_response = "<html> <head> #{::Datadog::Contrib::Rack::RumInjection.inject_rum_data(env)}\
                   </head> <body> <div> ok </div> </body> </html>"
                   [200, response_headers, [html_response]]
                 end)
