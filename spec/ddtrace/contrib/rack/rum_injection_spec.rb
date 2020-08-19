@@ -6,6 +6,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/rack/middlewares'
 require 'ddtrace/contrib/rack/rum_injection'
 require 'zlib'
+require 'date'
 
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
@@ -329,7 +330,31 @@ RSpec.describe 'Rack integration tests' do
           context 'with Expires=0' do
             let(:expires) { '0' }
 
-            it 'inject trace_id when Expires is max-age=0' do
+            it 'inject trace_id when Expires is 0' do
+              expect(response.body).to include(span.trace_id.to_s)
+            end
+          end
+
+          context 'with Expires an HTTP-Datetime in the past' do
+            let(:expires) { Time.at(DateTime.now.strftime('%s').to_i - 1000).to_datetime.httpdate }
+
+            it 'inject trace_id when Expires is before current time' do
+              expect(response.body).to include(span.trace_id.to_s)
+            end
+          end
+
+          context 'with Expires an HTTP-Datetime in the future' do
+            let(:expires) { Time.at(DateTime.now.strftime('%s').to_i + 1000).to_datetime.httpdate }
+
+            it 'inject trace_id when Expires is greater than current time' do
+              expect(response.body).to_not include(span.trace_id.to_s)
+            end
+          end
+
+          context 'with Expires an invalid format' do
+            let(:expires) { 'it is the distant future. the year...2000' }
+
+            it 'inject trace_id when Expires is not valid' do
               expect(response.body).to include(span.trace_id.to_s)
             end
           end

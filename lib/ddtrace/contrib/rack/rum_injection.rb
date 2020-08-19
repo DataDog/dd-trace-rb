@@ -201,13 +201,29 @@ module Datadog
 
           # last check Expires
           if (expires = headers[EXPIRES_HEADER])
-            # Expires=0 means not cached
-            # TODO: Do we want to do date validation to determine if expiry is in future
-            # and would indicate a cache
-            return true if expires == '0'
+            return no_expires_cache?(expires)
           end
 
           # if no specific headers have been set indicating a cached response, return true
+          true
+        end
+
+        def no_expires_cache?(expires)
+          # Does date validation to determine if expiry is in future and would indicate a cache
+
+          # Expires=0 means not cached
+          return true if expires == '0'
+
+          # Expires format is HTTP-date timestamp
+          # https://tools.ietf.org/html/rfc7234#section-5.3
+          # Ex: Thu Dec 30 1999 18:00:00 GMT-0600 (Central Standard Time)
+          expires_time_unix_seconds = DateTime.parse(expires).strftime('%s').to_i
+          current_time_unix_seconds = DateTime.now.strftime('%s').to_i
+
+          # if expires time is in the future, the response is cached
+          current_time_unix_seconds >= expires_time_unix_seconds
+        rescue StandardError
+          # return true if we can't reasonably determine a cached response from Expiry header due to malformed value
           true
         end
 
