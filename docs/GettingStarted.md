@@ -43,7 +43,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Grape](#grape)
      - [GraphQL](#graphql)
      - [gRPC](#grpc)
-     - [http.rb](#http.rb)
+     - [http.rb](#http-rb)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#net-http)
@@ -93,9 +93,9 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.2     | Full                                 | Latest              |
 |       |                            | 2.1     | Full                                 | Latest              |
 |       |                            | 2.0     | Full                                 | Latest              |
-|       |                            | 1.9.3   | Maintenance (until August 6th, 2020) | < 0.27.0            |
-|       |                            | 1.9.1   | Maintenance (until August 6th, 2020) | < 0.27.0            |
-| JRuby | http://jruby.org/          | 9.2.0.0 | Alpha                                | Latest              |
+|       |                            | 1.9.3   | EOL since August 6th, 2020           | < 0.27.0            |
+|       |                            | 1.9.1   | EOL since August 6th, 2020           | < 0.27.0            |
+| JRuby | https://www.jruby.org      | 9.2     | Full                                 | Latest              |
 
 **Supported web servers**:
 
@@ -328,44 +328,44 @@ end
 
 For a list of available integrations, and their configuration options, please refer to the following:
 
-| Name                     | Key                        | Versions Supported       | How to configure                    | Gem source                                                                     |
-| ------------------------ | -------------------------- | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------ |
-| Action Cable             | `action_cable`             | `>= 5.0`                 | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
-| Action View              | `action_view`              | `>= 3.0`                 | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
-| Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
-| Action Pack              | `action_pack`              | `>= 3.0`                 | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
-| Active Record            | `active_record`            | `>= 3.0`                 | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
-| Active Support           | `active_support`           | `>= 3.0`                 | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
-| AWS                      | `aws`                      | `>= 2.0`                 | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
-| Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
-| Dalli                    | `dalli`                    | `>= 2.0`                 | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
-| DelayedJob               | `delayed_job`              | `>= 4.1`                 | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
-| Elasticsearch            | `elasticsearch`            | `>= 1.0`                 | *[Link](#elasticsearch)*            | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
-| Ethon                    | `ethon`                    | `>= 0.11`                | *[Link](#ethon)*                    | *[Link](https://github.com/typhoeus/ethon)*                                    |
-| Excon                    | `excon`                    | `>= 0.50`                | *[Link](#excon)*                    | *[Link](https://github.com/excon/excon)*                                       |
-| Faraday                  | `faraday`                  | `>= 0.14`                | *[Link](#faraday)*                  | *[Link](https://github.com/lostisland/faraday)*                                |
-| Grape                    | `grape`                    | `>= 1.0`                 | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
-| GraphQL                  | `graphql`                  | `>= 1.7.9`               | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
-| gRPC                     | `grpc`                     | `>= 1.7`                 | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
-| http.rb                  | `httprb`                   | `>= 2.0`                 | *[Link](#http.rb)*                  |  *[Link](https://github.com/httprb/http)*                                      |
-| Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | *[Link](#kafka)*                    |                                                                                |
-| MongoDB                  | `mongo`                    | `>= 2.1`                 | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
-| MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
-| Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
-| Presto                   | `presto`                   | `>= 0.5.14`              | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
-| Racecar                  | `racecar`                  | `>= 0.3.5`               | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
-| Rack                     | `rack`                     | `>= 1.1`                 | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
-| Rails                    | `rails`                    | `>= 3.0`                 | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
-| Rake                     | `rake`                     | `>= 12.0`                | *[Link](#rake)*                     | *[Link](https://github.com/ruby/rake)*                                         |
-| Redis                    | `redis`                    | `>= 3.2`                 | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
-| Resque                   | `resque`                   | `>= 1.0, < 2.0`          | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
-| Rest Client              | `rest-client`              | `>= 1.8`                 | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
-| Sequel                   | `sequel`                   | `>= 3.41`                | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
-| Shoryuken                | `shoryuken`                | `>= 3.2`                 | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
-| Sidekiq                  | `sidekiq`                  | `>= 3.5.4`               | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
-| Sinatra                  | `sinatra`                  | `>= 1.4`                 | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
-| Sneakers                  | `sneakers`                  | `>= 2.12.0`            | *[Link](#sneakers)*                  | *[Link](https://github.com/jondot/sneakers)*                                   |
-| Sucker Punch             | `sucker_punch`             | `>= 2.0`                 | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
+| Name                     | Key                        | Versions Supported: MRI  | Versions Supported: JRuby | How to configure                    | Gem source                                                                     |
+| ------------------------ | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
+| Action Cable             | `action_cable`             | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
+| Action View              | `action_view`              | `>= 3.0`                 | `>= 3.0`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
+| Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
+| Action Pack              | `action_pack`              | `>= 3.0`                 | `>= 3.0`                  | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
+| Active Record            | `active_record`            | `>= 3.0`                 | `>= 3.0`                  | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
+| Active Support           | `active_support`           | `>= 3.0`                 | `>= 3.0`                  | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
+| AWS                      | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
+| Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | `>= 0.9`                  | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
+| Dalli                    | `dalli`                    | `>= 2.0`                 | `>= 2.0`                  | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
+| DelayedJob               | `delayed_job`              | `>= 4.1`                 | `>= 4.1`                  | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
+| Elasticsearch            | `elasticsearch`            | `>= 1.0`                 | `>= 1.0`                  | *[Link](#elasticsearch)*            | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
+| Ethon                    | `ethon`                    | `>= 0.11`                | `>= 0.11`                 | *[Link](#ethon)*                    | *[Link](https://github.com/typhoeus/ethon)*                                    |
+| Excon                    | `excon`                    | `>= 0.50`                | `>= 0.50`                 | *[Link](#excon)*                    | *[Link](https://github.com/excon/excon)*                                       |
+| Faraday                  | `faraday`                  | `>= 0.14`                | `>= 0.14`                 | *[Link](#faraday)*                  | *[Link](https://github.com/lostisland/faraday)*                                |
+| Grape                    | `grape`                    | `>= 1.0`                 | `>= 1.0`                  | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
+| GraphQL                  | `graphql`                  | `>= 1.7.9`               | `>= 1.7.9`                | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
+| gRPC                     | `grpc`                     | `>= 1.7`                 | *gem not available*       | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
+| http.rb                  | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#http-rb)*                  | *[Link](https://github.com/httprb/http)*                                       |
+| Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | `>= 0.7.10`               | *[Link](#kafka)*                    | *[Link](https://github.com/zendesk/ruby-kafka)*                                |
+| MongoDB                  | `mongo`                    | `>= 2.1`                 | `>= 2.1`                  | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
+| MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
+| Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *(Any supported Ruby)*    | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
+| Presto                   | `presto`                   | `>= 0.5.14`              | `>= 0.5.14`               | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
+| Racecar                  | `racecar`                  | `>= 0.3.5`               | `>= 0.3.5`                | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
+| Rack                     | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
+| Rails                    | `rails`                    | `>= 3.0`                 | `>= 3.0`                  | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
+| Rake                     | `rake`                     | `>= 12.0`                | `>= 12.0`                 | *[Link](#rake)*                     | *[Link](https://github.com/ruby/rake)*                                         |
+| Redis                    | `redis`                    | `>= 3.2`                 | `>= 3.2`                  | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
+| Resque                   | `resque`                   | `>= 1.0, < 2.0`          | `>= 1.0, < 2.0`           | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
+| Rest Client              | `rest-client`              | `>= 1.8`                 | `>= 1.8`                  | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
+| Sequel                   | `sequel`                   | `>= 3.41`                | `>= 3.41`                 | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
+| Shoryuken                | `shoryuken`                | `>= 3.2`                 | `>= 3.2`                  | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
+| Sidekiq                  | `sidekiq`                  | `>= 3.5.4`               | `>= 3.5.4`                | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
+| Sinatra                  | `sinatra`                  | `>= 1.4`                 | `>= 1.4`                  | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
+| Sneakers                 | `sneakers`                 | `>= 2.12.0`              | `>= 2.12.0`               | *[Link](#sneakers)*                 | *[Link](https://github.com/jondot/sneakers)*                                   |
+| Sucker Punch             | `sucker_punch`             | `>= 2.0`                 | `>= 2.0`                  | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
 
 ### Action Cable
 
@@ -1171,7 +1171,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `quantize.fragment` | Defines behavior for URL fragments. Removes fragments by default. May be `:show` to show URL fragments. Option must be nested inside the `quantize` option. | `nil` |
 | `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | `false` |
 | `rum_injection_enabled` | Connect frontend traces from the RUM (real user monitoring) [`browser-sdk`](https://docs.datadoghq.com/real_user_monitoring/installation/?tab=us) to backend traces by automatically injecting an HTML Comment containing the datadog trace-id. This only is applies to html and xhtml pages which are not cached, as determined by HTTP response headers. See [RUM Injection](#rum-injection) for setup details. Set to `true` to enable. Environment Variable: `DD_RUM_INJECTION`. *Experimental* | `false` |
-| `rum_injection_disabled_paths` | Define which pages to exclude from automatically injecting an HTML Comment containing the Datadoog trace-id.  See [RUM Injection](#rum-injection) for setup details. Accepts an array of path values, including globbed paths e.g. `['/admin', 'api/**/update']`. Environment Variable: `DD_TRACE_CACHED_PAGES` , accepts an csv formatted string. *Experimental* | `[]` |
+| `rum_injection_disabled_paths` | Define which pages to exclude from automatically injecting an HTML Comment containing the Datadoog trace-id.  See [RUM Injection](#rum-injection) for setup details. Accepts an array of path values, including globbed paths e.g. `['/admin', 'api/**/update']`. Environment Variable: `DD_TRACE_CACHED_PAGES`, accepts a CSV formatted string. *Experimental* | `[]` |
 | `service_name` | Service name used for `rack` instrumentation | `'rack'` |
 | `web_service_name` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | `'web-server'` |
 
@@ -1238,14 +1238,14 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 **Supported versions**
 
-| Ruby Versions | Supported Rails Versions |
-| ------------- | ------------------------ |
-|  2.0          |  3.0 - 3.2               |
-|  2.1          |  3.0 - 4.2               |
-|  2.2 - 2.3    |  3.0 - 5.2               |
-|  2.4          |  4.2.8 - 5.2             |
-|  2.5          |  4.2.8 - 6.0             |
-|  2.6 - 2.7    |  5.0 - 6.0               |
+| MRI Versions  | JRuby Versions | Rails Versions |
+| ------------- | -------------- | -------------- |
+|  2.0          |                |  3.0 - 3.2     |
+|  2.1          |                |  3.0 - 4.2     |
+|  2.2 - 2.3    |                |  3.0 - 5.2     |
+|  2.4          |                |  4.2.8 - 5.2   |
+|  2.5          |                |  4.2.8 - 6.0   |
+|  2.6 - 2.7    |  9.2           |  5.0 - 6.0     |
 
 ### Rake
 
@@ -1725,7 +1725,7 @@ Other Environment Variables:
 - `DD_TRACE_<INTEGRATION>_ANALYTICS_ENABLED`: Enables or disable App Analytics for a specific integration. Valid values are: true or false (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED=true`.
 - `DD_TRACE_<INTEGRATION>_ANALYTICS_SAMPLE_RATE`: Sets the App Analytics sampling rate for a specific integration. A floating number between 0.0 and 1.0 (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE=0.5`.
 - `DD_RUM_INJECTION`: Connect frontend traces from the RUM (real user monitoring) [`browser-sdk`](https://docs.datadoghq.com/real_user_monitoring/installation/?tab=us) to backend traces by automatically injecting an HTML Comment containing the datadog trace-id. See [RUM Injection](#rum-injection) for setup details. Set to `true` to enable. Accepts a boolean (default `false`) e.g. `DD_RUM_INJECTION=true`. *experimental*.
-- `DD_TRACE_CACHED_PAGES`: Define which pages to exclude from automatically injecting an HTML Comment containing the Datadoog trace-id.  See [RUM Injection](#rum-injection) for setup details. Accepts an csv formatted string (default `''`) of path values, including globbed paths e.g. `DD_TRACE_CACHED_PAGES=/admin,api/**/update`. *Experimental*
+- `DD_TRACE_CACHED_PAGES`: Define which pages to exclude from automatically injecting an HTML Comment containing the Datadoog trace-id.  See [RUM Injection](#rum-injection) for setup details. Accepts a CSV formatted string (default `''`) of path values, including globbed paths e.g. `DD_TRACE_CACHED_PAGES=/admin,api/**/update`. *Experimental*
 
 ### Sampling
 
@@ -1892,7 +1892,7 @@ For more details on how to activate distributed tracing for integrations, see th
 - [Rack](#rack)
 - [Rails](#rails)
 - [Sinatra](#sinatra)
-- [http.rb](#http.rb)
+- [http.rb](#http-rb)
 
 **Using the HTTP propagator**
 
@@ -2304,13 +2304,13 @@ end
 
 See the [Dogstatsd documentation](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/frames) for more details about configuring `Datadog::Statsd`.
 
-The stats sent will include:
+The stats are VM specific and will include:
 
 | Name                        | Type    | Description                                              |
 | --------------------------  | ------- | -------------------------------------------------------- |
 | `runtime.ruby.class_count`  | `gauge` | Number of classes in memory space.                       |
 | `runtime.ruby.thread_count` | `gauge` | Number of threads.                                       |
-| `runtime.ruby.gc.*`.        | `gauge` | Garbage collection statistics (one per value in GC.stat) |
+| `runtime.ruby.gc.*`.        | `gauge` | Garbage collection statistics: collected from `GC.stat`. |
 
 In addition, all metrics include the following tags:
 

@@ -1,5 +1,6 @@
 require 'spec_helper'
 
+require_relative 'matchers'
 require_relative 'tracer_helpers'
 
 RSpec.configure do |config|

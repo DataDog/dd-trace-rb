@@ -34,6 +34,7 @@ RSpec.shared_context 'Rails 6 base application' do
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
       config.eager_load = false
       config.consider_all_requests_local = true
+      config.hosts.clear # Allow requests for any hostname during tests
 
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
       config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)

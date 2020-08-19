@@ -2,8 +2,13 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 
 require 'active_record'
-require 'mysql2'
-require 'sqlite3'
+
+if PlatformHelpers.jruby?
+  require 'activerecord-jdbc-adapter'
+else
+  require 'mysql2'
+  require 'sqlite3'
+end
 
 RSpec.describe 'ActiveRecord multi-database implementation' do
   let(:configuration_options) { { service_name: default_db_service_name } }

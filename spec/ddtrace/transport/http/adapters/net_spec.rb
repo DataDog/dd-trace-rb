@@ -130,7 +130,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net::Response do
   describe '#code' do
     subject(:code) { response.code }
     let(:http_response) { instance_double(::Net::HTTPResponse, code: '200') }
-    it { is_expected.to be(200) }
+    it { is_expected.to eq(200) }
   end
 
   describe '#ok?' do
