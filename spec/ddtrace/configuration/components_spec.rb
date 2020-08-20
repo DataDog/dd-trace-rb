@@ -901,6 +901,89 @@ RSpec.describe Datadog::Configuration::Components do
     end
   end
 
+  describe '#startup!' do
+    subject(:startup!) { components.startup!(settings) }
+
+    context 'when profiling' do
+      context 'is unsupported' do
+        before do
+          allow(Datadog::Profiling)
+            .to receive(:supported?)
+            .and_return(false)
+        end
+
+        context 'and enabled' do
+          before do
+            allow(settings.profiling)
+              .to receive(:enabled)
+              .and_return(true)
+          end
+
+          it do
+            expect(components.profiler)
+              .to be nil
+
+            expect(components.logger)
+              .to receive(:warn)
+              .with(/profiling disabled/)
+
+            startup!
+          end
+        end
+
+        context 'and disabled' do
+          before do
+            allow(settings.profiling)
+              .to receive(:enabled)
+              .and_return(false)
+          end
+
+          it do
+            expect(components.profiler)
+              .to be nil
+
+            expect(components.logger)
+              .to_not receive(:warn)
+
+            startup!
+          end
+        end
+      end
+
+      context 'is enabled' do
+        before do
+          skip 'Profiling not supported.' unless Datadog::Profiling.supported?
+
+          allow(settings.profiling)
+            .to receive(:enabled)
+            .and_return(true)
+        end
+
+        it do
+          expect(components.profiler)
+            .to receive(:start)
+
+          startup!
+        end
+      end
+
+      context 'is disabled' do
+        before do
+          allow(settings.profiling)
+            .to receive(:enabled)
+            .and_return(false)
+        end
+
+        it do
+          expect(components.profiler)
+            .to_not receive(:start)
+
+          startup!
+        end
+      end
+    end
+  end
+
   describe '#shutdown!' do
     subject(:shutdown!) { components.shutdown!(replacement) }
 
