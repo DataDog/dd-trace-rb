@@ -22,9 +22,9 @@ module Datadog
         # Build immutable components from settings
         @components ||= nil
         @components = if @components
-                        Components.replace!(@components, target)
+                        replace_components!(target, @components)
                       else
-                        Components.new(target)
+                        build_components(target)
                       end
 
         target
@@ -41,13 +41,29 @@ module Datadog
       :tracer
 
     def shutdown!
-      components.teardown! if @components
+      components.shutdown! if instance_variable_defined?(:@components) && @components
     end
 
     protected
 
     def components
-      @components ||= Components.new(configuration)
+      @components ||= build_components(configuration)
+    end
+
+    private
+
+    def build_components(settings)
+      components = Components.new(settings)
+      components.startup!(settings)
+      components
+    end
+
+    def replace_components!(settings, old)
+      components = Components.new(settings)
+
+      old.shutdown!(components)
+      components.startup!(settings)
+      components
     end
   end
 end
