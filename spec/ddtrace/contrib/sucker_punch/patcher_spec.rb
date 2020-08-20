@@ -115,7 +115,7 @@ RSpec.describe 'sucker_punch instrumentation' do
     end
 
     it 'should instrument enqueuing for a delayed job' do
-      is_expected.to be true
+      dummy_worker_delay
       try_wait_until { fetch_spans.any? }
 
       expect(enqueue_span.service).to eq('sucker_punch')
