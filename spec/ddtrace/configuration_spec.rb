@@ -329,12 +329,28 @@ RSpec.describe Datadog::Configuration do
           before do
             @original_profiler = test_class.profiler
             expect(@original_profiler).to receive(:shutdown!)
-            test_class.configure { |_c| }
           end
 
-          it 'replaces the old profiler and shuts it down' do
+          it 'shuts down the old profiler' do
+            configure
             expect(test_class.profiler).to be_a_kind_of(Datadog::Profiler)
             expect(test_class.profiler).to_not be(@original_profiler)
+          end
+
+          context 'and profiling is enabled' do
+            before do
+              allow(test_class.configuration.profiling)
+                .to receive(:enabled)
+                .and_return(true)
+
+              allow_any_instance_of(Datadog::Profiler)
+                .to receive(:start)
+            end
+
+            it 'starts the profiler' do
+              configure
+              expect(test_class.profiler).to have_received(:start)
+            end
           end
         end
       end
