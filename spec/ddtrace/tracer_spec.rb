@@ -187,7 +187,6 @@ RSpec.describe Datadog::Tracer do
 
           context 'is a block' do
             it 'yields to the error block and raises the error' do
-              expect_any_instance_of(Datadog::Span).to_not receive(:set_error)
               expect do
                 expect do |b|
                   tracer.trace(name, on_error: b.to_proc, &block)
@@ -196,6 +195,9 @@ RSpec.describe Datadog::Tracer do
                   error
                 )
               end.to raise_error(error)
+
+              expect(spans).to have(1).item
+              expect(spans[0]).to_not have_error
             end
           end
         end
