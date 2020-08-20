@@ -180,7 +180,17 @@ module Datadog
       end
 
       # Starts up components
-      def startup!(settings); end
+      def startup!(settings)
+        if settings.profiling.enabled
+          if profiler
+            profiler.start
+          else
+            # Display a warning for users who expected profiling to autostart
+            protobuf = Datadog::Profiling.google_protobuf_supported?
+            logger.warn("Profiling was enabled but is not supported; profiling disabled. (google-protobuf?: #{protobuf})")
+          end
+        end
+      end
 
       # Shuts down all the components in use.
       # If it has another instance to compare to, it will compare
