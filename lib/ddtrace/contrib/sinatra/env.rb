@@ -8,12 +8,13 @@ module Datadog
       module Env
         module_function
 
-        def datadog_span(env)
-          env[Ext::RACK_ENV_REQUEST_SPAN]
+        def datadog_span(env, app)
+          env[Ext::RACK_ENV_REQUEST_SPAN][app]
         end
 
-        def set_datadog_span(env, span)
-          env[Ext::RACK_ENV_REQUEST_SPAN] = span
+        def set_datadog_span(env, app, span)
+          hash = (env[Ext::RACK_ENV_REQUEST_SPAN] ||= {})
+          hash[app] = span
         end
 
         def request_header_tags(env, headers)
