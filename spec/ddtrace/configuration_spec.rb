@@ -13,6 +13,85 @@ RSpec.describe Datadog::Configuration do
     describe '#configure' do
       subject(:configure) { test_class.configure }
 
+      context 'when Settings are configured' do
+        before do
+          allow(Datadog::Configuration::Components).to receive(:new)
+            .and_wrap_original do |m, *args|
+              new_components = m.call(*args)
+              allow(new_components).to receive(:shutdown!)
+              allow(new_components).to receive(:startup!)
+              new_components
+            end
+        end
+
+        context 'and components have been initialized' do
+          before do
+            @original_components = test_class.send(:components)
+          end
+
+          it do
+            # Components should have changed
+            expect { configure }
+              .to change { test_class.send(:components) }
+              .from(@original_components)
+
+            new_components = test_class.send(:components)
+            expect(new_components).to_not be(@original_components)
+
+            # Old components should shutdown, new components should startup
+            expect(@original_components)
+              .to have_received(:shutdown!)
+              .with(new_components)
+              .ordered
+
+            expect(new_components)
+              .to have_received(:startup!)
+              .with(test_class.configuration)
+              .ordered
+
+            expect(new_components).to_not have_received(:shutdown!)
+          end
+        end
+
+        context 'and components have not been initialized' do
+          it do
+            expect_any_instance_of(Datadog::Configuration::Components)
+              .to_not receive(:shutdown!)
+
+            configure
+
+            # Components should have changed
+            new_components = test_class.send(:components)
+
+            # New components should startup
+            expect(new_components)
+              .to have_received(:startup!)
+              .with(test_class.configuration)
+
+            expect(new_components).to_not have_received(:shutdown!)
+          end
+        end
+      end
+
+      context 'when an object is configured' do
+        subject(:configure) { test_class.configure(object, options) }
+        let(:object) { double('object') }
+        let(:options) { {} }
+
+        let(:pin_setup) { instance_double(Datadog::Configuration::PinSetup) }
+
+        it 'attaches a pin to the object' do
+          expect(Datadog::Configuration::PinSetup)
+            .to receive(:new)
+            .with(object, options)
+            .and_return(pin_setup)
+
+          expect(pin_setup).to receive(:call)
+
+          configure
+        end
+      end
+
       context 'when debug mode' do
         it 'is toggled with default settings' do
           # Assert initial state

@@ -40,24 +40,6 @@ RSpec.describe Datadog::Configuration::Components do
     end
   end
 
-  describe '::replace!' do
-    subject(:replace!) { described_class.replace!(old, settings) }
-    let(:old) { instance_double(described_class) }
-    let(:replacement) { instance_double(described_class) }
-    let(:settings) { instance_double(Datadog::Configuration::Settings) }
-
-    it do
-      expect(described_class).to receive(:new)
-        .with(settings)
-        .and_return(replacement)
-
-      expect(old).to receive(:teardown!)
-        .with(replacement)
-
-      is_expected.to be replacement
-    end
-  end
-
   describe '::build_health_metrics' do
     subject(:build_health_metrics) { described_class.build_health_metrics(settings) }
 
@@ -624,8 +606,8 @@ RSpec.describe Datadog::Configuration::Components do
     end
   end
 
-  describe '#teardown!' do
-    subject(:teardown!) { components.teardown!(replacement) }
+  describe '#shutdown!' do
+    subject(:shutdown!) { components.shutdown!(replacement) }
 
     context 'given no replacement' do
       let(:replacement) { nil }
@@ -639,7 +621,7 @@ RSpec.describe Datadog::Configuration::Components do
         expect(components.runtime_metrics.metrics.statsd).to receive(:close)
         expect(components.health_metrics.statsd).to receive(:close)
 
-        teardown!
+        shutdown!
       end
     end
 
@@ -671,7 +653,7 @@ RSpec.describe Datadog::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)
           expect(components.health_metrics.statsd).to receive(:close)
 
-          teardown!
+          shutdown!
         end
 
         context 'and Statsd is not initialized' do
@@ -689,7 +671,7 @@ RSpec.describe Datadog::Configuration::Components do
               .with(true)
             expect(components.health_metrics.statsd).to receive(:close)
 
-            teardown!
+            shutdown!
           end
         end
       end
@@ -708,7 +690,7 @@ RSpec.describe Datadog::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)
           expect(components.health_metrics.statsd).to receive(:close)
 
-          teardown!
+          shutdown!
         end
       end
 
@@ -726,7 +708,7 @@ RSpec.describe Datadog::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
           expect(components.health_metrics.statsd).to receive(:close)
 
-          teardown!
+          shutdown!
         end
       end
 
@@ -745,7 +727,7 @@ RSpec.describe Datadog::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
           expect(components.health_metrics.statsd).to_not receive(:close)
 
-          teardown!
+          shutdown!
         end
       end
     end
