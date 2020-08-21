@@ -36,7 +36,7 @@ module Datadog
             service:   configuration[:service_name],
             span_type: Datadog::Ext::AppTypes::WORKER
           }
-          request_span  = tracer.trace(Ext::SPAN_JOB, trace_options)
+          request_span = tracer.trace(Ext::SPAN_JOB, trace_options)
 
           request_span.resource = job.class.name.to_s
           request_span.set_tag(Ext::TAG_JOB_QUEUE, job.que_attrs[:queue])

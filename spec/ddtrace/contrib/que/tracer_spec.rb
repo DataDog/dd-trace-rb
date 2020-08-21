@@ -36,7 +36,7 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
     end
 
     context 'with tag_args enabled' do
-      let(:configuration_options) { {tag_args: true} }
+      let(:configuration_options) { { tag_args: true } }
 
       it 'captures spans for args and error counts' do
         args = { a: 1 }
