@@ -408,6 +408,74 @@ RSpec.describe Datadog::Context do
     end
   end
 
+  describe '#length' do
+    subject(:ctx) { context }
+    let(:span) { new_span }
+
+    def new_span(name = nil)
+      Datadog::Span.new(get_test_tracer, name)
+    end
+
+    context 'with many spans' do
+      it 'should track the number of spans added to the trace' do
+        10.times do |i|
+          span_to_add = span
+          expect(ctx.send(:length)).to eq(i)
+          ctx.add_span(span_to_add)
+          expect(ctx.send(:length)).to eq(i + 1)
+          ctx.close_span(span_to_add)
+          expect(ctx.send(:length)).to eq(i + 1)
+        end
+
+        ctx.get
+        expect(ctx.send(:length)).to eq(0)
+      end
+    end
+  end
+
+  describe '#start_time' do
+    subject(:ctx) { tracer.call_context }
+    let(:tracer) { get_test_tracer }
+
+    context 'with no active spans' do
+      it 'should not have a start time' do
+        expect(ctx.send(:start_time)).to be nil
+      end
+    end
+
+    context 'with a span in the trace' do
+      it 'should track start time of the span when trace is active' do
+        expect(ctx.send(:start_time)).to be nil
+
+        tracer.trace('test.op') do |span|
+          expect(ctx.send(:start_time)).to eq(span.start_time)
+          expect(ctx.send(:start_time)).to_not be nil
+        end
+
+        expect(ctx.send(:start_time)).to be nil
+      end
+    end
+  end
+
+  describe '#each_span' do
+    subject(:ctx) { context }
+
+    def new_span(name = nil)
+      Datadog::Span.new(get_test_tracer, name)
+    end
+
+    context 'with a span in the trace' do
+      it 'should iterate over all the spans available' do
+        test_name = 'op.test'
+        new_span(test_name)
+
+        ctx.send(:each_span) do |span|
+          expect(span.name).to eq(test_name)
+        end
+      end
+    end
+  end
+
   describe 'thread safe behavior' do
     def new_span(name = nil)
       Datadog::Span.new(get_test_tracer, name)
