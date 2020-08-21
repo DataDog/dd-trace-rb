@@ -2,6 +2,49 @@ require 'spec_helper'
 
 require 'ddtrace/context_provider'
 
+RSpec.describe Datadog::DefaultContextProvider do
+  let(:provider) { described_class.new }
+  let(:local_context) { instance_double(Datadog::ThreadLocalContext) }
+
+  context '#context=' do
+    subject(:context=) { provider.context = ctx }
+    let(:ctx) { double }
+
+    before { expect(Datadog::ThreadLocalContext).to receive(:new).and_return(local_context) }
+
+    it do
+      expect(local_context).to receive(:local=).with(ctx)
+      subject
+    end
+  end
+
+  context '#context' do
+    subject(:context) { provider.context }
+
+    before { expect(Datadog::ThreadLocalContext).to receive(:new).and_return(local_context) }
+
+    it do
+      expect(local_context).to receive(:local)
+      subject
+    end
+  end
+
+  context 'with multiple instances' do
+    it 'holds independent values for each instance' do
+      provider1 = described_class.new
+      provider2 = described_class.new
+
+      ctx1 = provider1.context = double
+      expect(provider1.context).to be(ctx1)
+      expect(provider2.context).to_not be(ctx1)
+
+      ctx2 = provider2.context = double
+      expect(provider1.context).to be(ctx1)
+      expect(provider2.context).to be(ctx2)
+    end
+  end
+end
+
 RSpec.describe Datadog::ThreadLocalContext do
   subject(:thread_local_context) { described_class.new }
 
