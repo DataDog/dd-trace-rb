@@ -369,7 +369,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'typhoeus'
-      gem 'que', '1.0.0.beta4'
+      gem 'que', '1.0.0.beta2'
     end
   end
 elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -534,7 +534,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'typhoeus'
-      gem 'que', '1.0.0.beta4'
+      gem 'que', '1.0.0.beta2'
     end
 
     appraise 'contrib-old' do
@@ -618,7 +618,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'typhoeus'
-      gem 'que', '1.0.0.beta4'
+      gem 'que', '1.0.0.beta2'
     end
 
     appraise 'contrib-old' do
@@ -746,7 +746,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sqlite3', '~> 1.4.1', platform: :ruby
       gem 'sucker_punch'
       gem 'typhoeus'
-      gem 'que', '1.0.0.beta4'
+      gem 'que', '1.0.0.beta2'
     end
 
     appraise 'contrib-old' do
@@ -862,7 +862,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
       gem 'typhoeus'
-      gem 'que', '1.0.0.beta4'
+      gem 'que', '1.0.0.beta2'
     end
 
     appraise 'contrib-old' do
@@ -981,7 +981,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
       gem 'typhoeus'
-      gem 'que', '1.0.0.beta4'
+      gem 'que', '1.0.0.beta2'
     end
 
     appraise 'contrib-old' do

@@ -8,6 +8,9 @@ module Datadog
       module Configuration
         # Default settings for the Que integration
         class Settings < Datadog::Contrib::Configuration::Settings
+          option :service_name, default: Ext::SERVICE_NAME
+          option :distributed_tracing, default: true
+
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }
             o.lazy
@@ -23,8 +26,15 @@ module Datadog
             o.lazy
           end
 
-          option :service_name, default: Ext::SERVICE_NAME
-          option :tag_body, default: false
+          option :tag_args do |o|
+            o.default { env_to_bool(Ext::ENV_TAG_ARGS_ENABLED, false) }
+            o.lazy
+          end
+
+          option :tag_data do |o|
+            o.default { env_to_bool(Ext::ENV_TAG_DATA_ENABLED, false) }
+            o.lazy
+          end
         end
       end
     end

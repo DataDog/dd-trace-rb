@@ -11,6 +11,8 @@ module Datadog
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE'.freeze
         ENV_ANALYTICS_SAMPLE_RATE_OLD = 'DD_QUE_ANALYTICS_SAMPLE_RATE'.freeze
         ENV_ENABLED = 'DD_TRACE_QUE_ENABLED'.freeze
+        ENV_TAG_ARGS_ENABLED = 'DD_TRACE_QUE_TAG_ARGS_ENABLED'.freeze
+        ENV_TAG_DATA_ENABLED = 'DD_TRACE_QUE_TAG_DATA_ENABLED'.freeze
         SERVICE_NAME = 'que'.freeze
         SPAN_JOB = 'que.job'.freeze
         TAG_JOB_ARGS = 'que.job.args'.freeze

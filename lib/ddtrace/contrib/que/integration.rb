@@ -12,12 +12,13 @@ module Datadog
       class Integration
         include Datadog::Contrib::Integration
 
-        MINIMUM_VERSION = Gem::Version.new('1.0.0.beta4')
+        MINIMUM_VERSION = Gem::Version.new('1.0.0.beta2')
 
         register_as :que, auto_patch: true
 
         def self.version
-          Gem.loaded_specs['que'] && Gem.loaded_specs['que'].version
+          Gem.loaded_specs[Datadog::Contrib::Que::Ext::APP] &&
+            Gem.loaded_specs[Datadog::Contrib::Que::Ext::APP].version
         end
 
         def self.loaded?

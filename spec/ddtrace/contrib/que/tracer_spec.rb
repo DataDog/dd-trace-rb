@@ -5,7 +5,6 @@ require 'que'
 
 RSpec.describe Datadog::Contrib::Que::Tracer do
   let(:que_tracer) { described_class.new }
-  let(:configuration_options) { {} }
 
   class TestJobClass < ::Que::Job
     def run(*args); end
@@ -24,13 +23,26 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   end
 
   describe '#call' do
-    context 'with minimal arguments' do
+    context 'with default options' do
+      let(:configuration_options) { {} }
+
       it 'captures spans for args and error counts' do
-        args = { a: 1, b: 2 }
+        args = { a: 1 }
+        TestJobClass.run(args)
+
+        expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_ARGS)).to eq(nil)
+        expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_DATA)).to eq(nil)
+      end
+    end
+
+    context 'with tag_args enabled' do
+      let(:configuration_options) { {tag_args: true} }
+
+      it 'captures spans for args and error counts' do
+        args = { a: 1 }
         TestJobClass.run(args)
 
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_ARGS)).to eq([args].to_s)
-        expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_ERROR_COUNT)).to eq(0.0)
       end
     end
   end
