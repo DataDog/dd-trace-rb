@@ -23,6 +23,7 @@ module Datadog
         TAG_JOB_ID = 'que.job.id'.freeze
         TAG_JOB_PRIORITY = 'que.job.priority'.freeze
         TAG_JOB_QUEUE = 'que.job.queue'.freeze
+        TAG_JOB_RUN_AT = 'que.job.run_at'.freeze
       end
     end
   end

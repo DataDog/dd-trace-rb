@@ -43,6 +43,7 @@ module Datadog
           request_span.set_tag(Ext::TAG_JOB_ID, job.que_attrs[:id])
           request_span.set_tag(Ext::TAG_JOB_PRIORITY, job.que_attrs[:priority])
           request_span.set_tag(Ext::TAG_JOB_ERROR_COUNT, job.que_attrs[:error_count])
+          request_span.set_tag(Ext::TAG_JOB_RUN_AT, job.que_attrs[:run_at])
           request_span.set_tag(Ext::TAG_JOB_EXPIRED_AT, job.que_attrs[:expired_at])
           request_span.set_tag(Ext::TAG_JOB_FINISHED_AT, job.que_attrs[:finished_at])
           request_span.set_tag(Ext::TAG_JOB_ARGS, job.que_attrs[:args]) if configuration[:tag_args]
