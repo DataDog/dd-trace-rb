@@ -19,8 +19,9 @@ module Datadog
         end
 
         def register_tracer
-          ::Sinatra.send(:register, Datadog::Contrib::Sinatra::Tracer)
+          # ::Sinatra.send(:register, Sinatra::Tracer)
           ::Sinatra::Base.send(:prepend, Sinatra::Tracer::Base)
+          ::Sinatra::Base.send(:register, Sinatra::Tracer)
         end
       end
     end

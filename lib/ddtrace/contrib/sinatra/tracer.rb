@@ -36,6 +36,8 @@ module Datadog
         end
 
         def self.registered(app)
+          return if app.extensions.select { |e| e == self }.size > 1
+
           app.use TracerMiddleware, app_instance: app
 
           app.after do
