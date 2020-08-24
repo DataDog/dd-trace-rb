@@ -2,7 +2,12 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 
 require 'active_record'
-require 'sqlite3'
+
+if PlatformHelpers.jruby?
+  require 'activerecord-jdbc-adapter'
+else
+  require 'sqlite3'
+end
 
 RSpec.describe 'ActiveRecord tracing performance' do
   let(:options) { {} }

@@ -9,6 +9,7 @@ module Datadog
 
         option :analytics_enabled, default: false
         option :analytics_sample_rate, default: 1.0
+        option :enabled, default: true
         option :service_name
         option :tracer do |o|
           o.delegate_to { Datadog.tracer }

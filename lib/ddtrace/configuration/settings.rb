@@ -37,7 +37,10 @@ module Datadog
       end
 
       settings :diagnostics do
-        option :debug, default: false
+        option :debug do |o|
+          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG, false) }
+          o.lazy
+        end
 
         settings :health_metrics do
           option :enabled do |o|
@@ -92,7 +95,7 @@ module Datadog
           o.on_set { |value| set_option(:level, value.level) unless value.nil? }
         end
 
-        option :level, default: ::Logger::WARN
+        option :level, default: ::Logger::INFO
       end
 
       def logger=(logger)
@@ -198,7 +201,10 @@ module Datadog
       end
 
       settings :tracer do
-        option :enabled, default: true
+        option :enabled do |o|
+          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED, true) }
+          o.lazy
+        end
         option :hostname # TODO: Deprecate
         option :instance
 

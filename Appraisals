@@ -76,6 +76,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'http'
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
+      gem 'pg', '< 1.0', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
       gem 'rack-test', '0.7.0'
@@ -188,6 +189,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'http'
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
+      gem 'pg', '< 1.0', platform: :ruby
       gem 'rack', '1.4.7'
       gem 'rack-cache', '1.7.1'
       gem 'rack-test', '0.7.0'
@@ -339,6 +341,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
+      gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
       gem 'ethon'
       gem 'excon'
@@ -362,6 +365,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
+      gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'typhoeus'
@@ -511,6 +515,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
       gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
@@ -524,6 +529,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
+      gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'typhoeus'
@@ -592,6 +598,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -605,6 +612,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
+      gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.3.6'
       gem 'sucker_punch'
       gem 'typhoeus'
@@ -616,22 +624,24 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
   end
 elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
-  if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby
+      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails5-postgres' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
     end
@@ -639,6 +649,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
     end
@@ -646,6 +657,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails5-postgres-sidekiq' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sidekiq'
       gem 'activejob'
       gem 'sprockets', '< 4'
@@ -654,18 +666,21 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails6-mysql2' do
       gem 'rails', '~> 6.0.0'
       gem 'mysql2', '< 1', platform: :ruby
+      gem 'activerecord-jdbcmysql-adapter', '>= 60', platform: :jruby # try remove >= 60
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails6-postgres' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
       gem 'sprockets', '< 4'
     end
 
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
     end
@@ -673,6 +688,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
     end
@@ -680,6 +696,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'rails6-postgres-sidekiq' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
       gem 'sidekiq'
       gem 'activejob'
       gem 'sprockets', '< 4'
@@ -701,12 +718,15 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'faraday'
       gem 'grape'
       gem 'graphql'
-      gem 'grpc'
+      gem 'grpc', platform: :ruby
       gem 'hiredis'
       gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
-      gem 'presto-client', '>=  0.5.14'      
+      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+      gem 'pg', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+      gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-test'
@@ -719,7 +739,8 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
-      gem 'sqlite3', '~> 1.4.1'
+      gem 'sneakers', '>= 2.12.0'
+      gem 'sqlite3', '~> 1.4.1', platform: :ruby
       gem 'sucker_punch'
       gem 'typhoeus'
     end
@@ -727,7 +748,6 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
     end
-  end
 elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
   if RUBY_PLATFORM != 'java'
@@ -820,6 +840,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -833,6 +854,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
+      gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
       gem 'typhoeus'
@@ -936,6 +958,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -949,6 +972,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
+      gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
       gem 'typhoeus'

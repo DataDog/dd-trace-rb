@@ -6,7 +6,7 @@ RSpec.describe Datadog::Logger do
   describe '::new' do
     subject(:logger) { described_class.new(STDOUT) }
     it { is_expected.to be_a_kind_of(::Logger) }
-    it { expect(logger.level).to be ::Logger::WARN }
+    it { expect(logger.level).to be ::Logger::INFO }
     it { expect(logger.progname).to eq(Datadog::Logger::PREFIX) }
   end
 
@@ -29,21 +29,23 @@ RSpec.describe Datadog::Logger do
     end
 
     context 'with default settings' do
-      it { is_expected.to have(4).items }
+      it { is_expected.to have(5).items }
       it 'produces log messages with expected format' do
-        expect(lines[0]).to match(
+        expect(lines[0]).to match(/I,.*INFO -- ddtrace: \[ddtrace\] Info message/)
+
+        expect(lines[1]).to match(
           /W,.*WARN -- ddtrace: \[ddtrace\] Warning message/
         )
 
-        expect(lines[1]).to match(
+        expect(lines[2]).to match(
           /E,.*ERROR -- ddtrace: \[ddtrace\] \(.*logger_spec.rb.*\) Error message #1/
         )
 
-        expect(lines[2]).to match(
+        expect(lines[3]).to match(
           /E,.*ERROR -- my-progname: \[ddtrace\] \(.*logger_spec.rb.*\) Error message #2/
         )
 
-        expect(lines[3]).to match(
+        expect(lines[4]).to match(
           /E,.*ERROR -- ddtrace: \[ddtrace\] \(.*logger_spec.rb.*\) Error message #3/
         )
       end

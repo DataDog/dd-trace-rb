@@ -151,6 +151,110 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
         end
       end
     end
+
+    context 'and explicitly enabled via deprecated env var' do
+      around do |example|
+        deprecated_analytics_enabled_var = analytics_enabled_var.sub('DD_TRACE_', 'DD_')
+        ClimateControl.modify(deprecated_analytics_enabled_var => 'true') do
+          example.run
+        end
+      end
+
+      shared_examples_for 'sample rate value' do
+        context 'isn\'t set' do
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0) }
+        end
+
+        context 'is set' do
+          let(:analytics_sample_rate) { 0.5 }
+          around do |example|
+            ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
+              example.run
+            end
+          end
+
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(analytics_sample_rate) }
+        end
+      end
+
+      context 'and global flag' do
+        context 'is not set' do
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly enabled' do
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly disabled' do
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
+      end
+    end
+
+    context 'and explicitly disabled via deprecated env var' do
+      around do |example|
+        deprecated_analytics_enabled_var = analytics_enabled_var.sub('DD_TRACE_', 'DD_')
+        ClimateControl.modify(deprecated_analytics_enabled_var => 'false') do
+          example.run
+        end
+      end
+
+      shared_examples_for 'sample rate value' do
+        context 'isn\'t set' do
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+        end
+
+        context 'is set' do
+          let(:analytics_sample_rate) { 0.5 }
+          around do |example|
+            ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
+              example.run
+            end
+          end
+
+          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+        end
+      end
+
+      context 'and global flag' do
+        context 'is not set' do
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly enabled' do
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
+
+        context 'is explicitly disabled' do
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+              example.run
+            end
+          end
+
+          it_behaves_like 'sample rate value'
+        end
+      end
+    end
   end
 
   shared_context 'analytics setting' do |analytics_enabled|
@@ -230,7 +334,7 @@ end
 RSpec.shared_examples_for 'measured span for integration' do |expect_active = true|
   if expect_active
     it "sets #{Datadog::Ext::Analytics::TAG_MEASURED} on the span" do
-      expect(span.get_metric(Datadog::Ext::Analytics::TAG_MEASURED)).to be 1.0
+      expect(span.get_metric(Datadog::Ext::Analytics::TAG_MEASURED)).to eq 1.0
     end
   else
     it "does not set #{Datadog::Ext::Analytics::TAG_MEASURED} on the span" do

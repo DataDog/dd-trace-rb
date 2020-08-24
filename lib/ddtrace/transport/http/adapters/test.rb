@@ -33,6 +33,8 @@ module Datadog
             @status = status
           end
 
+          def url; end
+
           # Response for test adapter
           class Response
             include Datadog::Transport::Response
