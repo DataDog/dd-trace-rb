@@ -433,6 +433,48 @@ RSpec.describe 'Sinatra instrumentation' do
         end
       end
     end
+
+    context 'rack and rum manual injection template' do
+      include_context 'with rack instrumentation and rum injection'
+
+      context 'with rack env available' do
+        subject(:response) { get '/erb_manual_injection' }
+
+        it 'handles html injection of meta tags for trace id and time' do
+          body = response.body
+
+          expect(body).to include(span.trace_id.to_s)
+          expect(body).to include('dd-trace-id')
+          expect(body).to include('dd-trace-time')
+        end
+
+        it 'disables HTML comments from automatic injection' do
+          body = response.body
+
+          expect(body).to include(span.trace_id.to_s)
+          expect(body).to_not include('DATADOG')
+        end
+      end
+
+      context 'with rack env unavailable' do
+        subject(:response) { get '/erb_manual_injection_no_env' }
+
+        it 'handles html injection of meta tags for trace id and time' do
+          body = response.body
+
+          expect(body).to include(span.trace_id.to_s)
+          expect(body).to include('dd-trace-id')
+          expect(body).to include('dd-trace-time')
+        end
+
+        it 'does not disable HTML comments from automatic injection' do
+          body = response.body
+
+          expect(body).to include(span.trace_id.to_s)
+          expect(body).to include('DATADOG')
+        end
+      end
+    end
   end
 
   let(:sinatra_routes) do
@@ -462,6 +504,18 @@ RSpec.describe 'Sinatra instrumentation' do
         headers['Cache-Control'] = 'max-age=0'
 
         erb :msg, locals: { msg: 'hello' }
+      end
+
+      get '/erb_manual_injection' do
+        headers['Cache-Control'] = 'max-age=0'
+
+        erb :msg_manual_injection, locals: { msg: 'hello' }
+      end
+
+      get '/erb_manual_injection_no_env' do
+        headers['Cache-Control'] = 'max-age=0'
+
+        erb :msg_manual_injection_no_env, locals: { msg: 'hello' }
       end
 
       get '/erb_literal' do

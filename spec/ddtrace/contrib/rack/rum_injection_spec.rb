@@ -6,6 +6,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/rack/middlewares'
 require 'ddtrace/contrib/rack/rum_injection'
 require 'zlib'
+require 'date'
 
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
@@ -39,8 +40,8 @@ RSpec.describe 'Rack integration tests' do
     end
 
     context 'with a basic route' do
-      let(:html_response) { '<html> <head>   </head> <body> <div> ok </div> </body> </html>' }
-      let(:original_html_response_bytesize) { '<html> <head>   </head> <body> <div> ok </div> </body> </html>'.bytesize }
+      let(:html_response) { '<html> <head> </head> <body> <div> ok </div> </body> </html>' }
+      let(:original_html_response_bytesize) { '<html> <head> </head> <body> <div> ok </div> </body> </html>'.bytesize }
       let(:cache_control) { 'no-store max-age=0' }
       let(:content_type) { 'text/html' }
       let(:expires) { 'Thu, 01 Dec 1994 16:00:00 GMT' }
@@ -329,7 +330,31 @@ RSpec.describe 'Rack integration tests' do
           context 'with Expires=0' do
             let(:expires) { '0' }
 
-            it 'inject trace_id when Expires is max-age=0' do
+            it 'inject trace_id when Expires is 0' do
+              expect(response.body).to include(span.trace_id.to_s)
+            end
+          end
+
+          context 'with Expires an HTTP-Datetime in the past' do
+            let(:expires) { Time.at(DateTime.now.strftime('%s').to_i - 1000).to_datetime.httpdate }
+
+            it 'inject trace_id when Expires is before current time' do
+              expect(response.body).to include(span.trace_id.to_s)
+            end
+          end
+
+          context 'with Expires an HTTP-Datetime in the future' do
+            let(:expires) { Time.at(DateTime.now.strftime('%s').to_i + 1000).to_datetime.httpdate }
+
+            it 'inject trace_id when Expires is greater than current time' do
+              expect(response.body).to_not include(span.trace_id.to_s)
+            end
+          end
+
+          context 'with Expires an invalid format' do
+            let(:expires) { 'it is the distant future. the year...2000' }
+
+            it 'inject trace_id when Expires is not valid' do
               expect(response.body).to include(span.trace_id.to_s)
             end
           end
@@ -428,6 +453,74 @@ RSpec.describe 'Rack integration tests' do
             gz.close
             readable_body = tmp
             expect(readable_body).to include(span.trace_id.to_s)
+          end
+        end
+      end
+
+      describe 'Manual RUM Injection' do
+        context 'Manual RUM Injection helper method is added to response template' do
+          subject(:response) { get '/success?foo=bar', {}, 'HTTP_ACCEPT_ENCODING' => 'gzip, compress, br' }
+
+          let(:app) do
+            base_response_headers = self.base_response_headers
+
+            app_routes = proc do
+              map '/success/' do
+                run(proc do |env|
+                  response_headers = base_response_headers
+                  html_response = "<html> <head> #{::Datadog::Contrib::Rack::RumInjection.inject_rum_data(env)}\
+                  </head> <body> <div> ok </div> </body> </html>"
+                  [200, response_headers, [html_response]]
+                end)
+              end
+            end
+
+            Rack::Builder.new do
+              use Datadog::Contrib::Rack::TraceMiddleware
+              use Datadog::Contrib::Rack::RumInjection
+              instance_eval(&app_routes)
+            end.to_app
+          end
+
+          it 'injects the html meta tag containing trace_id' do
+            expect(response.body).to include(span.trace_id.to_s)
+            expect(response.body).to include('dd-trace-id')
+          end
+
+          it 'injects the html meta tag containing ms precision trace-time' do
+            expect(response.body).to match(/.*content="\d{13}".*/)
+            expect(response.body).to include('name="dd-trace-time"')
+          end
+
+          it 'disables HTML comments from automatic injection' do
+            expect(response.body).to_not include('DATADOG')
+          end
+
+          context 'and not passed in rack env' do
+            let(:app) do
+              base_response_headers = self.base_response_headers
+
+              app_routes = proc do
+                map '/success/' do
+                  run(proc do |env|
+                    response_headers = base_response_headers
+                    html_response = "<html> <head> #{Datadog::Contrib::Rack::RumInjection.inject_rum_data(env)}\
+                    </head> <body> <div> ok </div> </body> </html>"
+                    [200, response_headers, [html_response]]
+                  end)
+                end
+              end
+
+              Rack::Builder.new do
+                use Datadog::Contrib::Rack::TraceMiddleware
+                use Datadog::Contrib::Rack::RumInjection
+                instance_eval(&app_routes)
+              end.to_app
+            end
+
+            it 'does not disable HTML Comments from automatic injection' do
+              expect(response.body).to_not include('DATADOG')
+            end
           end
         end
       end

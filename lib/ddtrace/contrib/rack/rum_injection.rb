@@ -11,7 +11,7 @@ module Datadog
       # injected into it's html. The middleware modifies the response body
       # of non-cached html so that it can be retrieved by the rum browser-sdk in
       # the application frontend.
-      class RumInjection
+      class RumInjection # rubocop:disable Metrics/ClassLength
         include Datadog::Environment::Helpers
 
         RUM_INJECTION_FLAG = 'datadog.rum_injection_flag'.freeze
@@ -91,6 +91,39 @@ module Datadog
           end
         end
 
+        def self.inject_rum_data(supplied_env = nil)
+          tracer = Datadog.configuration[:rack][:tracer]
+          return '' unless tracer.enabled
+
+          span = tracer.active_span
+
+          # only return trace id if sampled
+          trace_id = span && span.sampled ? span.trace_id : nil
+          return '' unless trace_id
+
+          begin
+            # the user can ensure there is not a double patching from auto-injection
+            # by passing in the rack env so that a flag can be set. This flag is checked
+            # later by auto injection. the goal is to support main frameworks and
+            # document what we support OOTB. Most frameworks that are rack compatible also expose
+            # a helper in the framework controller/template the user can use to access the rack env
+            # request.env (rails), env (rails/sinatra/grape?). Should provide example snippets.
+            supplied_env[RUM_INJECTION_FLAG] = true if supplied_env
+          rescue StandardError => error
+            Datadog.logger.debug("rack request Environment unavailable: #{error.message}")
+          end
+
+          unix_time = DateTime.now.strftime('%Q').to_i
+          tag_string = %(\n<meta name="dd-trace-id" content="#{trace_id}" />\
+          <meta name="dd-trace-time" content="#{unix_time}" />)
+
+          tag_string.respond_to?(:html_safe) ? tag_string.html_safe : tag_string
+        rescue StandardError => err
+          # maybe shouldnt log in case datadog is disabled or not required in?
+          Datadog.logger.warn("datadog inject_rum_data failed: #{err.message}")
+          ''
+        end
+
         private
 
         def configuration
@@ -168,13 +201,29 @@ module Datadog
 
           # last check Expires
           if (expires = headers[EXPIRES_HEADER])
-            # Expires=0 means not cached
-            # TODO: Do we want to do date validation to determine if expiry is in future
-            # and would indicate a cache
-            return true if expires == '0'
+            return no_expires_cache?(expires)
           end
 
           # if no specific headers have been set indicating a cached response, return true
+          true
+        end
+
+        def no_expires_cache?(expires)
+          # Does date validation to determine if expiry is in future and would indicate a cache
+
+          # Expires=0 means not cached
+          return true if expires == '0'
+
+          # Expires format is HTTP-date timestamp
+          # https://tools.ietf.org/html/rfc7234#section-5.3
+          # Ex: Thu Dec 30 1999 18:00:00 GMT-0600 (Central Standard Time)
+          expires_time_unix_seconds = DateTime.parse(expires).strftime('%s').to_i
+          current_time_unix_seconds = DateTime.now.strftime('%s').to_i
+
+          # if expires time is in the future, the response is cached
+          current_time_unix_seconds >= expires_time_unix_seconds
+        rescue StandardError
+          # return true if we can't reasonably determine a cached response from Expiry header due to malformed value
           true
         end
 
@@ -191,12 +240,6 @@ module Datadog
           # only return trace id if sampled
           span.trace_id if span && span.sampled
         end
-
-        # TODO: this will eventually be abstracted into a template helper function that can be used for
-        # manual injection. Leave but comment out in the meantime.
-        # def meta_tag_template(trace_id, unix_time)
-        #   %(<meta name="dd-trace-id" content="#{trace_id}" /> <meta name="dd-trace-time" content="#{unix_time}" />)
-        # end
 
         def html_comment_template(trace_id, unix_time)
           %(<!-- DATADOG;trace-id=#{trace_id};trace-time=#{unix_time} -->)
