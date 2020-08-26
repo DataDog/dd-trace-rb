@@ -57,7 +57,7 @@ RSpec.describe 'Rails Rack Rum Injection middleware' do
         end
       end
 
-      context 'with tagged logging setupu and existing log_tags' do
+      context 'with tagged logging setup and existing log_tags' do
         before do
           allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
         end
@@ -69,6 +69,58 @@ RSpec.describe 'Rails Rack Rum Injection middleware' do
           expect(logs).to include('MINASWAN')
           expect(logs).to include('some_info')
           expect(logs).to include('some_other_info')
+        end
+      end
+
+      context 'with Lograge' do
+        before do
+          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return('true')
+        end
+
+        context 'with Lograge setup and no custom_options' do
+          it 'should inject trace_id into logs' do
+            is_expected.to be_ok
+            logs = RailsLogAutoInjectionHelper.read_logs
+            expect(logs).to include(spans[0].trace_id.to_s)
+            expect(logs).to include('MINASWAN')
+          end
+        end
+
+        context 'with Lograge and existing custom_options as a hash' do
+          before do
+            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+              'some_hash_info' => 'test info',
+              'some_other_hash_info' => 'yes'
+            )
+          end
+
+          it 'should inject trace_id into logs and preserve existing hash' do
+            is_expected.to be_ok
+            logs = RailsLogAutoInjectionHelper.read_logs
+            expect(logs).to include(spans[0].trace_id.to_s)
+            expect(logs).to include('MINASWAN')
+            expect(logs).to include('some_hash_info')
+            expect(logs).to include('some_other_hash_info')
+          end
+        end
+
+        context 'with Lograge and existing custom_options as a lambda' do
+          before do
+            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+              lambda do |_event|
+                return { 'some_lambda_info' => 'test info', 'some_other_lambda_info' => 'yes' }
+              end
+            )
+          end
+
+          it 'should inject trace_id into logs and preserve existing lambda' do
+            is_expected.to be_ok
+            logs = RailsLogAutoInjectionHelper.read_logs
+            expect(logs).to include(spans[0].trace_id.to_s)
+            expect(logs).to include('MINASWAN')
+            expect(logs).to include('some_lambda_info')
+            expect(logs).to include('some_other_lambda_info')
+          end
         end
       end
     end

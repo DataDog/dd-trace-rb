@@ -5,21 +5,22 @@ module Datadog
       # Rails log injection helper methods
       module LogInjection
         def self.add_lograge_logger(app)
-          custom_options = app.config.custom_options
+          custom_options = app.config.lograge.custom_options
 
           # custom_options defaults to nil and can be either a hash or a lambda which returns a hash
           # https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lib/lograge.rb#L28
           if custom_options.nil?
             # if it's not set, we set to a lambda that returns DD tracing context
-            app.config.custom_options = lambda do |_event|
+            app.config.lograge.custom_options = lambda do |_event|
               # Retrieves trace information for current thread
               correlation = Datadog.tracer.active_correlation
+
               datadog_trace_log_hash(correlation)
             end
           # check if lambda, if so then define a new lambda which invokes the original lambda and
           # merges the returned hash with the the DD tracing context hash.
           elsif custom_options.respond_to?(:call)
-            app.config.custom_options lambda do |event|
+            app.config.lograge.custom_options = lambda do |event|
               # invoke original lambda
               result = custom_options.call(event)
               # Retrieves trace information for current thread
@@ -31,7 +32,7 @@ module Datadog
           # the DD tracing context, then merge the tracing context with the original static hash.
           # don't modify if custom_options is not an accepted format.
           elsif custom_options.is_a?(Hash)
-            app.config.custom_options lambda do |_event|
+            app.config.lograge.custom_options = lambda do |_event|
               # Retrieves trace information for current thread
               correlation = Datadog.tracer.active_correlation
 
@@ -41,7 +42,7 @@ module Datadog
           end
         rescue StandardError => e
           # TODO: can we use Datadog.logger at this point?
-          Datadog.logger.warn("Unabe to add Datadog Trace context to Lograge: #{e.message}")
+          Datadog.logger.warn("Unabe to add Datadog Trace context to Lograge: #{e.message} #{e.backtrace}")
           false
         end
 
@@ -60,9 +61,7 @@ module Datadog
           false
         end
 
-        private
-
-        def datadog_trace_log_hash(correlation)
+        def self.datadog_trace_log_hash(correlation)
           {
             # Adds IDs as tags to log output
             dd: {

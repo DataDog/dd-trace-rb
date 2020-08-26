@@ -60,7 +60,7 @@ module Datadog
         # TODO: split into smaller helper methods
         def add_logger(app)
           # check if lograge key exists
-          if app.config.respond_to?(:lograge) && app.config.lograge.enabled == true
+          if app.config.respond_to?(:lograge) && app.config.lograge.enabled
             Datadog::Contrib::Rails::LogInjection.add_lograge_logger(app)
           # if lograge isn't set, check if tagged logged is enabed.
           # if so, add proc that injects trace identifiers for tagged logging.

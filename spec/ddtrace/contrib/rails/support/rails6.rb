@@ -6,7 +6,9 @@ if ENV['USE_SIDEKIQ']
   require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
-require 'lograge' if ENV['USE_LOGRAGE']
+# if ENV['USE_LOGRAGE']
+require 'lograge'
+# end
 
 require 'ddtrace/contrib/rails/support/controllers'
 require 'ddtrace/contrib/rails/support/middleware'
@@ -44,8 +46,12 @@ RSpec.shared_context 'Rails 6 base application' do
       end
 
       if ENV['USE_LOGRAGE']
-        config.logger = ActiveSupport::TaggedLogging.new(Logger.new('./spec/ddtrace/contrib/rails/support/test_logs.log'))
+        if ENV['LOGRAGE_CUSTOM_OPTIONS']
+          config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS']
+        end
+
         config.lograge.enabled = true
+        config.lograge.base_controller_class = 'ActionController::Base'
       end
 
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
