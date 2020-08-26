@@ -6,6 +6,8 @@ if ENV['USE_SIDEKIQ']
   require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
+require 'lograge' if ENV['USE_LOGRAGE']
+
 require 'ddtrace/contrib/rails/support/controllers'
 require 'ddtrace/contrib/rails/support/middleware'
 require 'ddtrace/contrib/rails/support/models'
@@ -35,6 +37,16 @@ RSpec.shared_context 'Rails 6 base application' do
       config.eager_load = false
       config.consider_all_requests_local = true
       config.hosts.clear # Allow requests for any hostname during tests
+
+      if ENV['USE_TAGGED_LOGGING']
+        config.log_tags = ENV['LOG_TAGS'] || []
+        config.logger = ActiveSupport::TaggedLogging.new(Logger.new('./spec/ddtrace/contrib/rails/support/test_logs.log'))
+      end
+
+      if ENV['USE_LOGRAGE']
+        config.logger = ActiveSupport::TaggedLogging.new(Logger.new('./spec/ddtrace/contrib/rails/support/test_logs.log'))
+        config.lograge.enabled = true
+      end
 
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
       config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)

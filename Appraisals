@@ -912,6 +912,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
+      gem 'lograge'
     end
 
     appraise 'rails6-postgres-redis' do

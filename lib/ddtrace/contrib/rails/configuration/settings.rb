@@ -81,6 +81,8 @@ module Datadog
               Datadog.configuration[:action_view][:template_base_path] = value
             end
           end
+
+          option :log_injection, default: false
         end
       end
     end
