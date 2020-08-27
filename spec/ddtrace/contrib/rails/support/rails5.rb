@@ -59,6 +59,7 @@ RSpec.shared_context 'Rails 5 base application' do
         end
 
         config.lograge.enabled = true
+        config.lograge.base_controller_class = 'LogrageTestController'
         config.lograge.logger = logger
       end
 
