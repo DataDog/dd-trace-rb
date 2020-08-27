@@ -3,7 +3,6 @@ module Datadog
   module Profiling
     module_function
 
-    FFI_MINIMUM_VERSION = Gem::Version.new('1.0')
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
 
     def supported?
@@ -11,10 +10,8 @@ module Datadog
     end
 
     def native_cpu_time_supported?
-      RUBY_PLATFORM != 'java' \
-        && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1') \
-        && !Gem.loaded_specs['ffi'].nil? \
-        && Gem.loaded_specs['ffi'].version >= FFI_MINIMUM_VERSION
+      require 'ddtrace/profiling/ext/cpu'
+      Ext::CPU.supported?
     end
 
     def google_protobuf_supported?
@@ -24,6 +21,9 @@ module Datadog
     end
 
     def load_profiling
+      require 'ddtrace/profiling/ext/cpu'
+      require 'ddtrace/profiling/ext/forking'
+
       require 'ddtrace/profiling/collectors/stack'
       require 'ddtrace/profiling/exporter'
       require 'ddtrace/profiling/recorder'
