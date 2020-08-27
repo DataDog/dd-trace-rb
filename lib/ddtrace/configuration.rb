@@ -36,9 +36,24 @@ module Datadog
     def_delegators \
       :components,
       :health_metrics,
-      :logger,
       :runtime_metrics,
       :tracer
+
+    def logger
+      if instance_variable_defined?(:@components) && @components
+        @temp_logger = nil
+        components.logger
+      else
+        # Use default logger without initializing components.
+        # This prevents recursive loops while initializing.
+        # e.g. Get logger --> Build components --> Log message --> Repeat...
+        @temp_logger ||= begin
+          logger = configuration.logger.instance || Datadog::Logger.new(STDOUT)
+          logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
+          logger
+        end
+      end
+    end
 
     def shutdown!
       components.shutdown! if instance_variable_defined?(:@components) && @components
