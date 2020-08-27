@@ -1,7 +1,3 @@
-require 'ddtrace/profiling'
+require 'ddtrace/profiling/tasks/setup'
 
-if Datadog::Profiling.supported? && Datadog::Profiling.native_cpu_time_supported?
-  Datadog::Profiling::Tasks::Setup.new.run
-else
-  puts '[DDTRACE] Profiling not supported; skipping preload.'
-end
+Datadog::Profiling::Tasks::Setup.new.run
