@@ -8,7 +8,7 @@ module Datadog
         end
 
         def self.apply!
-          return unless supported?
+          return false unless supported?
 
           modules = [::Process, ::Kernel]
           # TODO: Ruby < 2.3 doesn't support Binding#receiver.
