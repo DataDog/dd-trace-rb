@@ -18,6 +18,7 @@ module Datadog
 
         def self.prepended(base)
           # Be sure to update the current thread too; as it wouldn't have been set.
+          ::Thread.current.class.send(:prepend, CThread) unless base == ::Thread.current.class
           ::Thread.current.send(:update_native_ids)
         end
 
