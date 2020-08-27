@@ -66,7 +66,7 @@ module Datadog
           elsif (logger = app.config.logger) && logger.is_a?(::ActiveSupport::TaggedLogging)
             Datadog::Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
           else
-            Datadog.logger.warn("Unabe to enable Datadog Trace context, Logger is not supported")
+            Datadog.logger.warn('Unabe to enable Datadog Trace context, Logger is not supported')
           end
         end
 

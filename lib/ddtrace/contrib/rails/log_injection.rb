@@ -40,7 +40,7 @@ module Datadog
           end
         rescue StandardError => e
           # TODO: can we use Datadog.logger at this point?
-          Datadog.logger.warn("Unabe to add Datadog Trace context to Lograge: #{e.message} #{e.backtrace}")
+          Datadog.logger.warn("Unabe to add Datadog Trace context to Lograge: #{e.message}")
           false
         end
 
