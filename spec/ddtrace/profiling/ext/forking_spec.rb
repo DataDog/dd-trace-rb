@@ -56,7 +56,9 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
       # expect(toplevel_receiver.method(:fork).source_location).to be nil
     end
 
-    if described_class.supported?
+    context 'when forking is supported' do
+      before { skip 'Forking not supported' unless described_class.supported? }
+
       it 'applies the Kernel patch' do
         # NOTE: There's no way to undo a modification of the TOPLEVEL_BINDING.
         #       The results of this will carry over into other tests...
@@ -74,19 +76,17 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         expect(::Process.method(:fork).source_location.first).to match(%r{.*ddtrace/profiling/ext/forking.rb})
         expect(::Kernel.method(:fork).source_location.first).to match(%r{.*ddtrace/profiling/ext/forking.rb})
       end
-    else
+    end
+
+    context 'when forking is not supported' do
+      before do
+        allow(described_class)
+          .to receive(:supported?)
+          .and_return(false)
+      end
+
       it 'skips the Kernel patch' do
-        expect(toplevel_receiver)
-          .to_not receive(:extend)
-          .with(described_class::Kernel)
-
-        apply!
-
-        expect(::Process.ancestors).to_not include(described_class::Kernel)
-        expect(::Kernel.ancestors).to_not include(described_class::Kernel)
-
-        expect(::Process.method(:fork).source_location).to be nil
-        expect(::Kernel.method(:fork).source_location).to be nil
+        is_expected.to be false
       end
     end
   end
