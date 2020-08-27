@@ -2308,33 +2308,13 @@ In addition, CPU time measurements require:
 
 2. Enable profiling flag:
 
-    Set `DD_PROFILING_ENABLED=true` in your environment, or enable it using `Datadog.configure`.
+    Set `DD_PROFILING_ENABLED=true` in your environment, OR enable it using `Datadog.configure`.
 
     For Rails applications, you can set this in `config/initializers/datadog.rb`:
 
     ```ruby
     Datadog.configure do |c|
       c.profiling.enabled = true
-    end
-    ```
-
-    Then start the profiler with:
-
-    ```ruby
-    # Start the profiler
-    Datadog.profiler.start
-    ```
-
-3. Add restart hooks, if necessary:
-
-    Additionally, some applications create forked processes. Profiling must be started in their `after_fork` callback, if available.
-
-    For example, in Puma applications, in `puma.rb`:
-
-    ```ruby
-    on_worker_boot do
-      # Start datadog profiler
-      Datadog.profiler.start
     end
     ```
 
