@@ -48,9 +48,14 @@ RSpec.shared_context 'Rails 6 base application' do
       config.hosts.clear # Allow requests for any hostname during tests
 
       # for log_injection testing
-      if ENV['USE_TAGGED_LOGGING']
-        config.log_tags = ENV['LOG_TAGS'] || []
-        config.logger = ActiveSupport::TaggedLogging.new(logger)
+
+      # ActiveSupport::TaggedLogging was introduced in 3.2
+      # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
+      if Rails.version >= '3.2'
+        if ENV['USE_TAGGED_LOGGING']
+          config.log_tags = ENV['LOG_TAGS'] || []
+          config.logger = ActiveSupport::TaggedLogging.new(logger)
+        end
       end
 
       if ENV['USE_LOGRAGE']

@@ -48,9 +48,14 @@ RSpec.shared_context 'Rails 4 base application' do
       config.active_support.test_order = :random
 
       # for log_injection testing
-      if ENV['USE_TAGGED_LOGGING']
-        config.log_tags = ENV['LOG_TAGS'] || []
-        config.logger = ActiveSupport::TaggedLogging.new(logger)
+
+      # ActiveSupport::TaggedLogging was introduced in 3.2
+      # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
+      if Rails.version >= '3.2'
+        if ENV['USE_TAGGED_LOGGING']
+          config.log_tags = ENV['LOG_TAGS'] || []
+          config.logger = ActiveSupport::TaggedLogging.new(logger)
+        end
       end
 
       if ENV['USE_LOGRAGE']
