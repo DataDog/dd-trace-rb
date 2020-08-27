@@ -1,8 +1,8 @@
 require 'spec_helper'
 require 'ddtrace/profiling'
 
-if Datadog::Profiling.native_cpu_time_supported?
-  require 'ddtrace/profiling/ext/thread'
+if Datadog::Profiling::Ext::CPU.supported?
+  require 'ddtrace/profiling/ext/cthread'
 
   RSpec.describe Datadog::Profiling::Ext::CThread do
     subject(:thread) do
@@ -63,7 +63,7 @@ if Datadog::Profiling.native_cpu_time_supported?
       context 'main thread' do
         context 'when forked' do
           it 'returns a new native thread ID' do
-            # Get main thread clock ID
+            # Get main thread native ID
             original_native_thread_id = thread_class.current.native_thread_id
 
             expect_in_fork do
