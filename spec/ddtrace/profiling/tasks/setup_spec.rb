@@ -10,8 +10,8 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     subject(:run) { task.run }
 
     it do
-      expect(task).to receive(:activate_main_extensions)
-      expect(task).to receive(:activate_thread_extensions)
+      expect(task).to receive(:activate_main_extensions).ordered
+      expect(task).to receive(:activate_cpu_extensions).ordered
       run
     end
   end
@@ -19,64 +19,148 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
   describe '#activate_main_extensions' do
     subject(:activate_main_extensions) { task.activate_main_extensions }
 
-    context 'when forking extensions can be applied' do
+    context 'when forking extensions are supported' do
       before do
-        expect(Datadog::Profiling::Ext::Forking)
-          .to receive(:apply!)
+        allow(Datadog::Profiling::Ext::Forking)
+          .to receive(:supported?)
+          .and_return(true)
       end
 
-      it do
-        expect(STDOUT).to_not receive(:puts)
-        activate_main_extensions
+      context 'and succeeds' do
+        it 'applies forking extensions' do
+          expect(Datadog::Profiling::Ext::Forking).to receive(:apply!)
+          expect(STDOUT).to_not receive(:puts)
+          activate_main_extensions
+        end
+      end
+
+      context 'but fails' do
+        before do
+          expect(Datadog::Profiling::Ext::Forking)
+            .to receive(:apply!)
+            .and_raise(StandardError)
+        end
+
+        it 'displays a warning to STDOUT' do
+          expect(STDOUT).to receive(:puts) do |message|
+            expect(message).to include('Forking extensions unavailable')
+          end
+
+          activate_main_extensions
+        end
       end
     end
 
-    context 'when forking extensions cannot be applied' do
+    context 'when forking extensions are not supported' do
       before do
-        expect(Datadog::Profiling::Ext::Forking)
-          .to receive(:apply!)
-          .and_raise(StandardError)
+        allow(Datadog::Profiling::Ext::Forking)
+          .to receive(:supported?)
+          .and_return(false)
       end
 
-      it 'displays a warning to STDOUT' do
-        expect(STDOUT).to receive(:puts) do |message|
-          expect(message).to include('Forking extensions unavailable')
+      context 'and profiling is enabled' do
+        before do
+          allow(Datadog.configuration.profiling)
+            .to receive(:enabled)
+            .and_return(true)
         end
 
-        activate_main_extensions
+        it 'skips forking extensions with warning' do
+          expect(Datadog::Profiling::Ext::Forking).to_not receive(:apply!)
+          expect(STDOUT).to receive(:puts) do |message|
+            expect(message).to include('Forking extensions skipped')
+          end
+
+          activate_main_extensions
+        end
+      end
+
+      context 'and profiling is disabled' do
+        before do
+          allow(Datadog.configuration.profiling)
+            .to receive(:enabled)
+            .and_return(false)
+        end
+
+        it 'skips forking extensions without warning' do
+          expect(Datadog::Profiling::Ext::Forking).to_not receive(:apply!)
+          expect(STDOUT).to_not receive(:puts)
+          activate_main_extensions
+        end
       end
     end
   end
 
-  describe '#activate_thread_extensions' do
-    subject(:activate_thread_extensions) { task.activate_thread_extensions }
+  describe '#activate_cpu_extensions' do
+    subject(:activate_cpu_extensions) { task.activate_cpu_extensions }
 
-    around do |example|
-      unmodified_class = ::Thread.dup
+    context 'when CPU extensions are supported' do
+      before do
+        allow(Datadog::Profiling::Ext::CPU)
+          .to receive(:supported?)
+          .and_return(true)
+      end
 
-      example.run
-
-      Object.send(:remove_const, :Thread)
-      Object.const_set('Thread', unmodified_class)
-    end
-
-    if Datadog::Profiling.native_cpu_time_supported?
-      context 'when native CPU time is supported' do
-        before { expect(STDOUT).to_not receive(:puts) }
-
-        it 'adds Thread extensions' do
-          activate_thread_extensions
-          expect(Thread.ancestors).to include(Datadog::Profiling::Ext::CThread)
+      context 'and succeeds' do
+        it 'applies CPU extensions' do
+          expect(Datadog::Profiling::Ext::CPU).to receive(:apply!)
+          expect(STDOUT).to_not receive(:puts)
+          activate_cpu_extensions
         end
       end
-    else
-      context 'when native CPU time is not supported' do
+
+      context 'but fails' do
+        before do
+          expect(Datadog::Profiling::Ext::CPU)
+            .to receive(:apply!)
+            .and_raise(StandardError)
+        end
+
         it 'displays a warning to STDOUT' do
           expect(STDOUT).to receive(:puts) do |message|
             expect(message).to include('CPU profiling unavailable')
           end
 
-          activate_thread_extensions
+          activate_cpu_extensions
+        end
+      end
+    end
+
+    context 'when CPU extensions are not supported' do
+      before do
+        allow(Datadog::Profiling::Ext::CPU)
+          .to receive(:supported?)
+          .and_return(false)
+      end
+
+      context 'and profiling is enabled' do
+        before do
+          allow(Datadog.configuration.profiling)
+            .to receive(:enabled)
+            .and_return(true)
+        end
+
+        it 'skips CPU extensions with warning' do
+          expect(Datadog::Profiling::Ext::CPU).to_not receive(:apply!)
+          expect(STDOUT).to receive(:puts) do |message|
+            expect(message).to include('CPU profiling skipped')
+          end
+
+          activate_cpu_extensions
+        end
+      end
+
+      context 'and profiling is disabled' do
+        before do
+          allow(Datadog.configuration.profiling)
+            .to receive(:enabled)
+            .and_return(false)
+        end
+
+        it 'skips CPU extensions without warning' do
+          expect(Datadog::Profiling::Ext::CPU).to_not receive(:apply!)
+          expect(STDOUT).to_not receive(:puts)
+          activate_cpu_extensions
         end
       end
     end
