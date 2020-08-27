@@ -57,7 +57,6 @@ module Datadog
           end
         end
 
-        # TODO: split into smaller helper methods
         def add_logger(app)
           # check if lograge key exists
           if app.config.respond_to?(:lograge) && app.config.lograge.enabled
@@ -66,6 +65,8 @@ module Datadog
           # if so, add proc that injects trace identifiers for tagged logging.
           elsif (logger = app.config.logger) && logger.is_a?(::ActiveSupport::TaggedLogging)
             Datadog::Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
+          else
+            Datadog.logger.warn("Unabe to enable Datadog Trace context, Logger is not supported")
           end
         end
 
