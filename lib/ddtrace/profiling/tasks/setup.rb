@@ -11,6 +11,7 @@ module Datadog
         def run
           activate_main_extensions
           activate_cpu_extensions
+          autostart_profiler
         end
 
         def activate_main_extensions
@@ -33,6 +34,26 @@ module Datadog
           end
         rescue StandardError, ScriptError => e
           log "[DDTRACE] CPU profiling unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
+        end
+
+        def autostart_profiler
+          if Datadog::Profiling.supported?
+            # Start the profiler
+            Datadog.profiler.start if Datadog.profiler
+
+            # Setup at_fork hook:
+            # When Ruby forks, threads running in the parent process
+            # won't be restarted in the child process. This hook will
+            # restart the profiler in the child process when this happens.
+            if Process.respond_to?(:at_fork)
+              Process.at_fork(:child) { Datadog.profiler.start if Datadog.profiler }
+            end
+          elsif Datadog.configuration.profiling.enabled
+            # Log warning if profiling was supposed to be activated.
+            log '[DDTRACE] Profiling did not autostart; profiling not supported.'
+          end
+        rescue StandardError => e
+          log "[DDTRACE] Could not autostart profiling. Cause: #{e.message} Location: #{e.backtrace.first}"
         end
 
         private
