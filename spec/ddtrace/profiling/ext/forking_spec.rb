@@ -29,8 +29,8 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
     end
 
     around do |example|
-      expect(::Process.ancestors).to_not include(described_class::Kernel)
-      expect(::Kernel.ancestors).to_not include(described_class::Kernel)
+      expect(::Process.ancestors.include?(described_class::Kernel)).to be false
+      expect(::Kernel.ancestors.include?(described_class::Kernel)).to be false
 
       unmodified_process_class = ::Process.dup
       unmodified_kernel_class = ::Kernel.dup
@@ -116,6 +116,17 @@ RSpec.describe Datadog::Profiling::Ext::Forking::Kernel do
       allow(Kernel).to receive(:fork) do |*_args, &b|
         b.call
         :fork_result
+      end
+    end
+
+    before do
+      # TODO: This test breaks other tests when Forking#apply! runs first in Ruby < 2.3
+      #       Unclear whether its the setup from this test, or cleanup elsewhere (e.g. spec_helper.rb)
+      #       Either way, #apply! causes callbacks not to work; Forking patch is
+      #       not hooking in properly. See `fork_class.method(:fork).source_location`
+      #       and `fork.class.ancestors` vs `fork.singleton_class.ancestors`.
+      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+        skip 'Test is unstable for Ruby < 2.3'
       end
     end
   end
