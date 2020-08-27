@@ -5,11 +5,9 @@ module Datadog
       # Rails log injection helper methods
       module LogInjection
         def self.add_lograge_logger(app)
-          custom_options = app.config.lograge.custom_options
-
           # custom_options defaults to nil and can be either a hash or a lambda which returns a hash
           # https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lib/lograge.rb#L28
-          if custom_options.nil?
+          if (custom_options = app.config.lograge.custom_options).nil?
             # if it's not set, we set to a lambda that returns DD tracing context
             app.config.lograge.custom_options = lambda do |_event|
               # Retrieves trace information for current thread

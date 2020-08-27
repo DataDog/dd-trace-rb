@@ -6,9 +6,8 @@ if ENV['USE_SIDEKIQ']
   require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
-# if ENV['USE_LOGRAGE']
+# for log_injection testing
 require 'lograge'
-# end
 
 require 'ddtrace/contrib/rails/support/controllers'
 require 'ddtrace/contrib/rails/support/middleware'
@@ -19,7 +18,15 @@ RSpec.shared_context 'Rails 6 base application' do
   include_context 'Rails middleware'
   include_context 'Rails models'
 
+  # for log_injection testing
+  let(:log_output) { StringIO.new }
+  let(:logger) do
+    Logger.new(log_output)
+  end
+
   let(:rails_base_application) do
+    logger = self.logger
+
     klass = Class.new(Rails::Application) do
       def config.database_configuration
         parsed = super
@@ -40,18 +47,21 @@ RSpec.shared_context 'Rails 6 base application' do
       config.consider_all_requests_local = true
       config.hosts.clear # Allow requests for any hostname during tests
 
+      # for log_injection testing
       if ENV['USE_TAGGED_LOGGING']
         config.log_tags = ENV['LOG_TAGS'] || []
-        config.logger = ActiveSupport::TaggedLogging.new(Logger.new('./spec/ddtrace/contrib/rails/support/test_logs.log'))
+        config.logger = ActiveSupport::TaggedLogging.new(logger)
       end
 
       if ENV['USE_LOGRAGE']
+        config.logger = logger
+
         if ENV['LOGRAGE_CUSTOM_OPTIONS']
           config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS']
         end
 
         config.lograge.enabled = true
-        config.lograge.base_controller_class = 'ActionController::Base'
+        config.lograge.logger = logger
       end
 
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization

@@ -6,6 +6,9 @@ if ENV['USE_SIDEKIQ']
   require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
+# for log_injection testing
+require 'lograge'
+
 require 'ddtrace/contrib/rails/support/controllers'
 require 'ddtrace/contrib/rails/support/middleware'
 require 'ddtrace/contrib/rails/support/models'
@@ -15,7 +18,15 @@ RSpec.shared_context 'Rails 5 base application' do
   include_context 'Rails middleware'
   include_context 'Rails models'
 
+  # for log_injection testing
+  let(:log_output) { StringIO.new }
+  let(:logger) do
+    Logger.new(log_output)
+  end
+
   let(:rails_base_application) do
+    logger = self.logger
+
     klass = Class.new(Rails::Application) do
       def config.database_configuration
         parsed = super
@@ -33,6 +44,24 @@ RSpec.shared_context 'Rails 5 base application' do
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
       config.eager_load = false
       config.consider_all_requests_local = true
+
+      # for log_injection testing
+      if ENV['USE_TAGGED_LOGGING']
+        config.log_tags = ENV['LOG_TAGS'] || []
+        config.logger = ActiveSupport::TaggedLogging.new(logger)
+      end
+
+      if ENV['USE_LOGRAGE']
+        config.logger = logger
+
+        if ENV['LOGRAGE_CUSTOM_OPTIONS']
+          config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS']
+        end
+
+        config.lograge.enabled = true
+        config.lograge.logger = logger
+      end
+
       config.middleware.delete ActionDispatch::DebugExceptions
       instance_eval(&during_init)
 
