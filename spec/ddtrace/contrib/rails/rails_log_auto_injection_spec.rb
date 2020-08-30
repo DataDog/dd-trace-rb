@@ -60,7 +60,7 @@ RSpec.describe 'Rails Log Auto Injection' do
         subject(:response) { get '/tagged_logging' }
 
         before do
-          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return('true')
+          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
         end
 
         context 'with Tagged logging setup and no tags' do
@@ -93,7 +93,7 @@ RSpec.describe 'Rails Log Auto Injection' do
       subject(:response) { get '/lograge' }
 
       before do
-        allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return('true')
+        allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
       end
 
       context 'with Lograge setup and no custom_options' do

@@ -6,7 +6,7 @@ if ENV['USE_SIDEKIQ']
   require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
-
+require 'lograge' if ENV['USE_LOGRAGE'] == true
 
 RSpec.shared_context 'Rails base application' do
   if Rails.version >= '6.0'
@@ -29,7 +29,7 @@ RSpec.shared_context 'Rails base application' do
   let(:log_output) { StringIO.new }
   let(:logger) do
     Logger.new(log_output)
-  end  
+  end
 
   let(:initialize_block) do
     middleware = rails_middleware
@@ -37,28 +37,28 @@ RSpec.shared_context 'Rails base application' do
     logger = self.logger
 
     proc do
-
-      # for log_injection testing
-
       # ActiveSupport::TaggedLogging was introduced in 3.2
       # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
       if Rails.version >= '3.2'
-        if ENV['USE_TAGGED_LOGGING']
+        if ENV['USE_TAGGED_LOGGING'] == true
           config.log_tags = ENV['LOG_TAGS'] || []
           config.logger = ActiveSupport::TaggedLogging.new(logger)
         end
       end
 
-      if ENV['USE_LOGRAGE']
+      if ENV['USE_LOGRAGE'] == true
         config.logger = logger
 
-        if ENV['LOGRAGE_CUSTOM_OPTIONS']
+        unless ENV['LOGRAGE_CUSTOM_OPTIONS'].nil?
           config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS']
         end
 
         config.lograge.enabled = true
         config.lograge.base_controller_class = 'LogrageTestController'
         config.lograge.logger = logger
+      else
+        config.lograge.enabled = false
+        config.lograge.keep_original_rails_log = true
       end
 
       config.middleware.insert_after ActionDispatch::ShowExceptions, debug_mw

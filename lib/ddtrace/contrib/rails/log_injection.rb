@@ -4,7 +4,6 @@ module Datadog
     module Rails
       # Rails log injection helper methods
       module LogInjection
-
         module_function
 
         def add_lograge_logger(app)

@@ -6,9 +6,6 @@ if ENV['USE_SIDEKIQ']
   require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
-# # for log_injection testing
-# require 'lograge'
-
 require 'ddtrace/contrib/rails/support/controllers'
 require 'ddtrace/contrib/rails/support/middleware'
 require 'ddtrace/contrib/rails/support/models'
@@ -17,12 +14,6 @@ RSpec.shared_context 'Rails 6 base application' do
   include_context 'Rails controllers'
   include_context 'Rails middleware'
   include_context 'Rails models'
-
-  # # for log_injection testing
-  # let(:log_output) { StringIO.new }
-  # let(:logger) do
-  #   Logger.new(log_output)
-  # end
 
   let(:rails_base_application) do
     # logger = self.logger
@@ -46,29 +37,6 @@ RSpec.shared_context 'Rails 6 base application' do
       config.eager_load = false
       config.consider_all_requests_local = true
       config.hosts.clear # Allow requests for any hostname during tests
-
-      # # for log_injection testing
-
-      # # ActiveSupport::TaggedLogging was introduced in 3.2
-      # # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
-      # if Rails.version >= '3.2'
-      #   if ENV['USE_TAGGED_LOGGING']
-      #     config.log_tags = ENV['LOG_TAGS'] || []
-      #     config.logger = ActiveSupport::TaggedLogging.new(logger)
-      #   end
-      # end
-
-      # if ENV['USE_LOGRAGE']
-      #   config.logger = logger
-
-      #   if ENV['LOGRAGE_CUSTOM_OPTIONS']
-      #     config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS']
-      #   end
-
-      #   config.lograge.enabled = true
-      #   config.lograge.base_controller_class = 'LogrageTestController'
-      #   config.lograge.logger = logger
-      # end
 
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
       config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)
@@ -132,6 +100,8 @@ RSpec.shared_context 'Rails 6 base application' do
   def reset_rails_configuration!
     # Reset autoloaded constants
     ActiveSupport::Dependencies.clear if Rails.application
+
+    Lograge.remove_existing_log_subscriptions if Object.const_defined?('Lograge')
 
     reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
     # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
