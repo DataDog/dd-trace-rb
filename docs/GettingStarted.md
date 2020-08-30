@@ -2095,11 +2095,11 @@ Datadog::Pipeline.before_flush(
 
 In many cases, such as logging, it may be useful to correlate trace IDs to other events or data streams, for easier cross-referencing.
 
-#### For logging in Rails applications using Lograge (recommended)
+#### For logging in Rails applications
 
-After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), either automatically enable trace correlation with logs by setting the `rails` instrumentation configuration option `log_injection` to `true`, or manually modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs. 
+##### Automatic Trace Correlation (Lograge and ActiveSupport::TaggedLogging)
 
-##### Automatic
+Rails applications which are configured with an `ActiveSupport::TaggedLogging` logger or with `Lograge`, can automatically enable trace correlation information injected in logs. To enable, setting the `rails` instrumentation configuration option `log_injection` to `true`.
 
 ```ruby
 # config/initializers/datadog.rb
@@ -2110,7 +2110,9 @@ Datadog.configure do |c|
 end
 ```
 
-##### Manual
+##### Manual (Lograge)
+
+After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), manually modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs. 
 
 ```ruby
 config.lograge.custom_options = lambda do |event|
@@ -2133,24 +2135,9 @@ config.lograge.custom_options = lambda do |event|
 end
 ```
 
-#### For logging in Rails applications
+##### Manual (ActiveSupport::TaggedLogging)
 
-Rails applications which are configured with an `ActiveSupport::TaggedLogging` logger can append correlation IDs as tags to log output. The default Rails logger implements this tagged logging, making it easier to add correlation tags. To enable Trace Correlation with `ActiveSupport::TaggedLogging`, either automatically configure by setting the `rails` instrumentation configuration option `log_injection` to `true`, or manually modify your Rails environment configuration file.
-
-##### Automatic
-
-```ruby
-# config/initializers/datadog.rb
-require 'ddtrace'
-
-Datadog.configure do |c|
-  c.use :rails, log_injection: true
-end
-```
-
-##### Manual
-
-In your Rails environment configuration file, add the following:
+Rails applications which are configured with an `ActiveSupport::TaggedLogging` logger can append correlation IDs as tags to log output. The default Rails logger implements this tagged logging, making it easier to add correlation tags. To enable Trace Correlation with `ActiveSupport::TaggedLogging`, in your Rails environment configuration file, manually add the following:
 
 ```ruby
 Rails.application.configure do
