@@ -4,7 +4,10 @@ module Datadog
     module Rails
       # Rails log injection helper methods
       module LogInjection
-        def self.add_lograge_logger(app)
+
+        module_function
+
+        def add_lograge_logger(app)
           # custom_options defaults to nil and can be either a hash or a lambda which returns a hash
           # https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lib/lograge.rb#L28
           if (custom_options = app.config.lograge.custom_options).nil?
@@ -40,11 +43,11 @@ module Datadog
           end
         rescue StandardError => e
           # TODO: can we use Datadog.logger at this point?
-          Datadog.logger.warn("Unabe to add Datadog Trace context to Lograge: #{e.message}")
+          Datadog.logger.warn("Unable to add Datadog Trace context to Lograge: #{e.message}")
           false
         end
 
-        def self.add_as_tagged_logging_logger(app)
+        def add_as_tagged_logging_logger(app)
           # we want to check if the current logger is a tagger logger instance
           # log_tags defaults to nil so we have to set as an array if nothing exists yet
           if (log_tags = app.config.log_tags).nil?
@@ -55,11 +58,11 @@ module Datadog
           end
         rescue StandardError => e
           # TODO: can we use Datadog.logger at this point?
-          Datadog.logger.warn("Unabe to add Datadog Trace context to ActiveSupport::TaggedLogging: #{e.message}")
+          Datadog.logger.warn("Unable to add Datadog Trace context to ActiveSupport::TaggedLogging: #{e.message}")
           false
         end
 
-        def self.datadog_trace_log_hash(correlation)
+        def datadog_trace_log_hash(correlation)
           {
             # Adds IDs as tags to log output
             dd: {

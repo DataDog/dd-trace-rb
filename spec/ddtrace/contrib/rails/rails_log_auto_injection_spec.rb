@@ -1,6 +1,8 @@
 require 'ddtrace/contrib/rails/rails_helper'
+# for log_injection testing
+require 'lograge'
 
-RSpec.describe 'Rails Rack Rum Injection middleware' do
+RSpec.describe 'Rails Log Auto Injection' do
   include Rack::Test::Methods
   include_context 'Rails test application'
 
@@ -54,37 +56,37 @@ RSpec.describe 'Rails Rack Rum Injection middleware' do
     let(:logs) { log_output.string }
 
     if Rails.version >= '3.2'
-      # context 'with Tagged Logging' do
-      #   subject(:response) { get '/tagged_logging' }
+      context 'with Tagged Logging' do
+        subject(:response) { get '/tagged_logging' }
 
-      #   before do
-      #     allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return('true')
-      #   end
+        before do
+          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return('true')
+        end
 
-      #   context 'with Tagged logging setup and no tags' do
-      #     it 'should inject trace_id into logs' do
-      #       is_expected.to be_ok
+        context 'with Tagged logging setup and no tags' do
+          it 'should inject trace_id into logs' do
+            is_expected.to be_ok
 
-      #       expect(logs).to include(spans[0].trace_id.to_s)
-      #       expect(logs).to include('MINASWAN')
-      #     end
-      #   end
+            expect(logs).to include(spans[0].trace_id.to_s)
+            expect(logs).to include('MINASWAN')
+          end
+        end
 
-      #   context 'with tagged logging setup and existing log_tags' do
-      #     before do
-      #       allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-      #     end
+        context 'with tagged logging setup and existing log_tags' do
+          before do
+            allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
+          end
 
-      #     it 'should inject trace_id into logs and preserve existing log tags' do
-      #       is_expected.to be_ok
+          it 'should inject trace_id into logs and preserve existing log tags' do
+            is_expected.to be_ok
 
-      #       expect(logs).to include(spans[0].trace_id.to_s)
-      #       expect(logs).to include('MINASWAN')
-      #       expect(logs).to include('some_info')
-      #       expect(logs).to include('some_other_info')
-      #     end
-      #   end
-      # end
+            expect(logs).to include(spans[0].trace_id.to_s)
+            expect(logs).to include('MINASWAN')
+            expect(logs).to include('some_info')
+            expect(logs).to include('some_other_info')
+          end
+        end
+      end
     end
 
     context 'with Lograge' do
