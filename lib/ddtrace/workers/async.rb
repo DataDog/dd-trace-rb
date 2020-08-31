@@ -42,7 +42,7 @@ module Datadog
         end
 
         def run_async?
-          @run_async = false unless instance_variable_defined?(:@run_async)
+          return false unless instance_variable_defined?(:@run_async)
           @run_async == true
         end
 
@@ -55,7 +55,7 @@ module Datadog
         end
 
         def error?
-          @error = nil unless instance_variable_defined?(:@error)
+          return false unless instance_variable_defined?(:@error)
           !@error.nil?
         end
 
