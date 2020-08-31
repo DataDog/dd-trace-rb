@@ -17,8 +17,20 @@ RSpec.describe 'Rails database' do
   before do
     stub_const('Article', Class.new(ActiveRecord::Base))
 
-    Article.count # Ensure warm up queries are executed before tests
-    clear_spans
+    begin
+      Article.count
+    rescue ActiveRecord::StatementInvalid
+      ActiveRecord::Schema.define(version: 20161003090450) do
+        create_table 'articles', force: :cascade do |t|
+          t.string   'title'
+          t.datetime 'created_at', null: false
+          t.datetime 'updated_at', null: false
+        end
+      end
+      Article.count # Ensure warm up queries are executed before tests
+    end
+
+    clear_spans!
   end
 
   after { Article.delete_all }
@@ -44,7 +56,7 @@ RSpec.describe 'Rails database' do
   context 'on record creation' do
     before do
       Article.create(title: 'Instantiation test')
-      clear_spans
+      clear_spans!
     end
 
     context 'with instantiation support' do
@@ -102,7 +114,7 @@ RSpec.describe 'Rails database' do
         Article.count
         expect(span.get_tag('active_record.db.cached')).to be_nil
 
-        clear_spans
+        clear_spans!
 
         Article.count
         expect(span.get_tag('active_record.db.cached')).to eq('true')

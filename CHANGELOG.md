@@ -2,6 +2,105 @@
 
 ## [Unreleased]
 
+## [0.39.0] - 2020-08-05
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.39.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.38.0...v0.39.0
+
+### Added
+
+- JRuby 9.2 support (#1126)
+- Sneakers integration (#1121) (@janz93)
+
+### Changed
+
+- Consistent environment variables across languages (#1115)
+- Default logger level from WARN to INFO (#1120) (@gingerlime)
+  - This change also reduces the startup environment log message to INFO level (#1104)
+
+### Fixed
+
+- HTTP::StateError on error responses for http.rb (#1116, #1122) (@evan-waters)
+- Startup log error when using the test adapter (#1125, #1131) (@benhutton)
+- Warning message for Faraday < 1.0 (#1129) (@fledman, @tjwp)
+- Propagate Rails error message to Rack span (#1124)
+
+### Refactored
+
+- Improved ActiveRecord documentation (#1119)
+- Improvements to test suite (#1105, #1118)
+
+## [0.38.0] - 2020-07-13
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.38.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...v0.38.0
+
+### Added
+
+- http.rb integration (#529, #853)
+- Kafka integration (#1070) (@tjwp)
+- Span#set_tags (#1081) (@DocX)
+- retry_count tag for Sidekiq jobs (#1089) (@elyalvarado)
+- Startup environment log (#1104, #1109)
+- DD_SITE and DD_API_KEY configuration (#1107)
+
+### Changed
+
+- Auto instrument Faraday default connection (#1057)
+- Sidekiq client middleware is now the same for client and server (#1099) (@drcapulet)
+- Single pass SpanFilter (#1071) (@tjwp)
+
+### Fixed
+
+- Ensure fatal exceptions are propagated (#1100)
+- Respect child_of: option in Tracer#trace (#1082) (@DocX)
+- Improve Writer thread safety (#1091) (@fledman)
+
+### Refactored
+
+- Improvements to test suite (#1092, #1103)
+
+## [0.37.0] - 2020-06-24
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.37.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.36.0...v0.37.0
+
+### Refactored
+
+- Documentation improvements regarding Datadog Agent defaults (#1074) (@cswatt)
+- Improvements to test suite (#1043, #1051, #1062, #1075, #1076, #1086)
+
+### Removed
+
+- **DEPRECATION**: Deprecate Contrib::Configuration::Settings#tracer= (#1072, #1079)
+  - The `tracer:` option is no longer supported for integration configuration. A deprecation warning will be issued when this option is used.
+  - Tracer instances are dynamically created when `ddtrace` is reconfigured (through `Datadog.configure{}` calls).
+
+    A reference to a tracer instance cannot be stored as it will be replaced by a new instance during reconfiguration.
+
+    Retrieving the global tracer instance, by invoking `Datadog.tracer`, is the only safe mechanism to acquire the active tracer instance.
+
+    Allowing an integration to set its tracer instance is effectively preventing that integration from dynamically retrieving the current active tracer in the future, thus causing it to record spans in a stale tracer instance. Spans recorded in a stale tracer instance will look disconnected from their parent context.
+
+- **BREAKING**: Remove Pin#tracer= and DeprecatedPin#tracer= (#1073)
+  - The `Pin` and `DeprecatedPin` are internal tools used to provide more granular configuration for integrations.
+  - The APIs being removed are not public nor have been externally documented. The `DeprecatedPin` specifically has been considered deprecated since 0.20.0.
+  - This removal is a continuation of #1079 above, thus carrying the same rationale.
+
+### Migration
+
+- Remove `tracer` argument provided to integrations (e.g. `c.use :rails, tracer: ...`).
+- Remove `tracer` argument provided to `Pin` or `DeprecatedPin` initializers (e.g. `Pin.new(service, tracer: ...)`).
+- If you require a custom tracer instance, use a global instance configuration:
+    ```ruby
+    Datadog.configure do |c|
+      c.tracer.instance = custom_tracer
+    end
+    ```
+
 ## [0.36.0] - 2020-05-27
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.36.0
@@ -1235,7 +1334,10 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.36.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.39.0...master
+[0.39.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.38.0...v0.39.0
+[0.38.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...v0.38.0
+[0.37.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.36.0...v0.37.0
 [0.36.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.2...v0.36.0
 [0.35.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.1...v0.35.2
 [0.35.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.35.0...v0.35.1

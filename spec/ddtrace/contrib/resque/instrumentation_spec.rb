@@ -7,15 +7,11 @@ require 'ddtrace'
 RSpec.describe 'Resque instrumentation' do
   include_context 'Resque job'
 
-  let(:tracer) { get_test_tracer }
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
-
   let(:url) { "redis://#{host}:#{port}" }
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379) }
 
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before(:each) do
     # Setup Resque to use Redis
@@ -41,7 +37,7 @@ RSpec.describe 'Resque instrumentation' do
 
       it 'is traced' do
         expect(spans).to have(1).items
-        expect(Resque::Failure.count).to be(0)
+        expect(Resque::Failure.count).to eq(0)
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
@@ -63,7 +59,7 @@ RSpec.describe 'Resque instrumentation' do
 
         it 'sets the resource to underlying job class' do
           expect(spans).to have(1).items
-          expect(Resque::Failure.count).to be(0)
+          expect(Resque::Failure.count).to eq(0)
           expect(span.resource).to eq('UnderlyingTestJob')
         end
       end
@@ -86,7 +82,7 @@ RSpec.describe 'Resque instrumentation' do
 
       it 'is traced' do
         expect(spans).to have(1).items
-        expect(Resque::Failure.count).to be(1)
+        expect(Resque::Failure.count).to eq(1)
         expect(Resque::Failure.all['error']).to eq(error_message)
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
@@ -120,6 +116,8 @@ RSpec.describe 'Resque instrumentation' do
   context 'with forking' do
     it_should_behave_like 'job execution tracing'
 
+    before { skip unless PlatformHelpers.supports_fork? }
+
     context 'trace context' do
       before(:each) do
         expect(job_class).to receive(:perform) do
@@ -128,7 +126,7 @@ RSpec.describe 'Resque instrumentation' do
         end
 
         # On completion of the fork, `Datadog.tracer.shutdown!` will be invoked.
-        expect(tracer.writer).to receive(:stop)
+        expect(tracer).to receive(:shutdown!)
 
         tracer.trace('main.process') do
           perform_job(job_class)
@@ -140,7 +138,7 @@ RSpec.describe 'Resque instrumentation' do
 
       it 'is clean' do
         expect(spans).to have(2).items
-        expect(Resque::Failure.count).to be(0)
+        expect(Resque::Failure.count).to eq(0)
         expect(main_span.name).to eq('main.process')
         expect(job_span.name).to eq('resque.job')
         expect(main_span.trace_id).to_not eq(job_span.trace_id)

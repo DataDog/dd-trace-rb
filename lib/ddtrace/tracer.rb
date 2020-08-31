@@ -211,8 +211,8 @@ module Datadog
         # child span
         span.parent = parent # sets service, trace_id, parent_id, sampled
       end
-      @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
-      tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
+      span.set_tags(@tags) unless @tags.empty?
+      span.set_tags(tags) unless tags.empty?
       span.start_time = start_time
 
       # this could at some point be optional (start_active_span vs start_manual_span)
@@ -254,9 +254,11 @@ module Datadog
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or \name if it's missing
     # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
+    #   If not set, defaults to Tracer.call_context
     # * +tags+: extra tags which should be added to the span.
     def trace(name, options = {})
-      options[:child_of] = call_context
+      options[:child_of] ||= call_context
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
@@ -268,11 +270,16 @@ module Datadog
         begin
           begin
             span = start_span(name, options)
-          # rubocop:disable Lint/UselessAssignment
           rescue StandardError => e
-            Datadog.logger.debug('Failed to start span: #{e}')
+            Datadog.logger.debug("Failed to start span: #{e}")
           ensure
-            return_value = yield(span)
+            # We should yield to the provided block when possible, as this
+            # block is application code that we don't want to hinder. We call:
+            # * `yield(span)` during normal execution.
+            # * `yield(nil)` if `start_span` fails with a runtime error.
+            # * We don't yield during a fatal error, as the application is likely trying to
+            #   end its execution (either due to a system error or graceful shutdown).
+            return_value = yield(span) if span || e.is_a?(StandardError)
           end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -313,7 +320,7 @@ module Datadog
     def record_context(context)
       trace = @context_flush.consume!(context)
 
-      write(trace) if trace && !trace.empty?
+      write(trace) if @enabled && trace && !trace.empty?
     end
 
     # Return the current active span or +nil+.
@@ -334,7 +341,7 @@ module Datadog
     # Send the trace to the writer to enqueue the spans list in the agent
     # sending queue.
     def write(trace)
-      return if @writer.nil? || !@enabled
+      return if @writer.nil?
 
       if Datadog.configuration.diagnostics.debug
         Datadog.logger.debug("Writing #{trace.length} spans (enabled: #{@enabled})")

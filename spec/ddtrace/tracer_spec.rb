@@ -169,6 +169,23 @@ RSpec.describe Datadog::Tracer do
             end.to yield_with_args(nil)
           end.to_not raise_error
         end
+
+        context 'with fatal exception' do
+          let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
+
+          before(:each) do
+            # Raise error at first line of begin block
+            allow(tracer).to receive(:start_span).and_raise(fatal_error)
+          end
+
+          it 'does not yield to block and reraises exception' do
+            expect do |b|
+              expect do
+                tracer.trace(name, &b)
+              end.to raise_error(fatal_error)
+            end.to_not yield_control
+          end
+        end
       end
 
       context 'when the block raises an error' do
@@ -187,7 +204,6 @@ RSpec.describe Datadog::Tracer do
 
           context 'is a block' do
             it 'yields to the error block and raises the error' do
-              expect_any_instance_of(Datadog::Span).to_not receive(:set_error)
               expect do
                 expect do |b|
                   tracer.trace(name, on_error: b.to_proc, &block)
@@ -196,6 +212,36 @@ RSpec.describe Datadog::Tracer do
                   error
                 )
               end.to raise_error(error)
+
+              expect(spans).to have(1).item
+              expect(spans[0]).to_not have_error
+            end
+          end
+        end
+      end
+    end
+
+    context 'without a block' do
+      subject(:trace) { tracer.trace(name, options) }
+
+      context 'with child_of: option' do
+        let!(:root_span) { tracer.start_span 'root' }
+        let(:options) { { child_of: root_span } }
+
+        it 'creates span with root span parent' do
+          tracer.trace 'another' do |_another_span|
+            expect(trace.parent).to eq root_span
+          end
+        end
+      end
+
+      context 'without child_of: option' do
+        let(:options) { {} }
+
+        it 'creates span with current context' do
+          tracer.trace 'root' do |_root_span|
+            tracer.trace 'another' do |another_span|
+              expect(trace.parent).to eq another_span
             end
           end
         end
@@ -236,8 +282,8 @@ RSpec.describe Datadog::Tracer do
     context 'when no trace is active' do
       it 'produces an empty Datadog::Correlation::Identifier' do
         is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
-        expect(active_correlation.trace_id).to be 0
-        expect(active_correlation.span_id).to be 0
+        expect(active_correlation.trace_id).to eq 0
+        expect(active_correlation.span_id).to eq 0
       end
     end
   end

@@ -2,8 +2,7 @@ require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails trace analytics' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
@@ -24,9 +23,6 @@ RSpec.describe 'Rails trace analytics' do
     Datadog.registry[:rails].reset_configuration!
     Datadog.registry[:action_pack].reset_configuration!
   end
-
-  let(:span) { spans.first }
-  let(:spans) { tracer.writer.spans(:keep) }
 
   describe 'for a controller action' do
     subject(:result) { action.call(env) }

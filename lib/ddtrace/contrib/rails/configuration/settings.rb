@@ -19,8 +19,13 @@ module Datadog
             analytics_sample_rate
           end
 
+          option :enabled do |o|
+            o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+            o.lazy
+          end
+
           option :analytics_enabled do |o|
-            o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) }
+            o.default { env_to_bool([Ext::ENV_ANALYTICS_ENABLED, Ext::ENV_ANALYTICS_ENABLED_OLD], nil) }
             o.lazy
             o.on_set do |value|
               # Update ActionPack analytics too
@@ -29,7 +34,7 @@ module Datadog
           end
 
           option :analytics_sample_rate do |o|
-            o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
+            o.default { env_to_float([Ext::ENV_ANALYTICS_SAMPLE_RATE, Ext::ENV_ANALYTICS_SAMPLE_RATE_OLD], 1.0) }
             o.lazy
             o.on_set do |value|
               # Update ActionPack analytics too
@@ -74,18 +79,6 @@ module Datadog
             o.on_set do |value|
               # Update ActionView template base path too
               Datadog.configuration[:action_view][:template_base_path] = value
-            end
-          end
-
-          option :tracer do |o|
-            o.delegate_to { Datadog.tracer }
-            o.on_set do |value|
-              Datadog.configuration[:action_cable][:tracer] = value
-              Datadog.configuration[:active_record][:tracer] = value
-              Datadog.configuration[:active_support][:tracer] = value
-              Datadog.configuration[:action_pack][:tracer] = value
-              Datadog.configuration[:action_view][:tracer] = value
-              Datadog.configuration[:rack][:tracer] = value
             end
           end
         end

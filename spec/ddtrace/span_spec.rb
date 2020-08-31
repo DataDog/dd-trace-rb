@@ -3,13 +3,126 @@ require 'ddtrace/ext/forced_tracing'
 require 'ddtrace/span'
 
 RSpec.describe Datadog::Span do
-  subject(:span) { described_class.new(tracer, name, context: context) }
+  subject(:span) { described_class.new(tracer, name, context: context, **span_options) }
   let(:tracer) { get_test_tracer }
   let(:context) { Datadog::Context.new }
   let(:name) { 'my.span' }
+  let(:span_options) { {} }
+
+  context 'ids' do
+    it do
+      expect(span.span_id).to be_nonzero
+      expect(span.parent_id).to be_zero
+      expect(span.trace_id).to be_nonzero
+
+      expect(span.trace_id).to_not eq(span.span_id)
+    end
+
+    context 'with parent id' do
+      let(:span_options) { { parent_id: 2 } }
+      it { expect(span.parent_id).to eq(2) }
+    end
+
+    context 'with trace id' do
+      let(:span_options) { { trace_id: 3 } }
+      it { expect(span.trace_id).to eq(3) }
+    end
+
+    context 'set parent span' do
+      subject(:parent=) { span.parent = parent }
+
+      context 'to a span' do
+        let(:parent) { described_class.new(tracer, 'parent', **parent_span_options) }
+        let(:parent_span_options) { {} }
+
+        before do
+          parent.sampled = false
+          subject
+        end
+
+        it do
+          expect(span.parent).to eq(parent)
+          expect(span.parent_id).to eq(parent.span_id)
+          expect(span.trace_id).to eq(parent.trace_id)
+          expect(span.sampled).to eq(false)
+        end
+
+        context 'with service' do
+          let(:parent_span_options) { { service: 'parent' } }
+
+          it 'copies parent service to child' do
+            expect(span.service).to eq('parent')
+          end
+
+          context 'with existing child service' do
+            let(:span_options) { { service: 'child' } }
+
+            it 'does not override child service' do
+              expect(span.service).to eq('child')
+            end
+          end
+        end
+      end
+
+      context 'to nil' do
+        let(:parent) { nil }
+
+        it 'removes the parent' do
+          subject
+          expect(span.parent).to be_nil
+          expect(span.parent_id).to be_zero
+          expect(span.trace_id).to eq(span.span_id)
+        end
+      end
+    end
+  end
 
   describe '#finish' do
     subject(:finish) { span.finish }
+
+    it 'calculates duration' do
+      expect(span.start_time).to be_nil
+      expect(span.end_time).to be_nil
+
+      subject
+
+      expect(span.end_time).to be <= Time.now
+      expect(span.start_time).to be <= span.end_time
+      expect(span.to_hash[:duration]).to be >= 0
+    end
+
+    context 'with multiple calls to finish' do
+      it 'does not flush the span more than once' do
+        allow(context).to receive(:close_span).once
+        allow(tracer).to receive(:record).once
+
+        subject
+        expect(span.finish).to be_falsey
+      end
+
+      it 'does not modify the span' do
+        end_time = subject.end_time
+
+        expect(span.finish).to be_falsey
+        expect(span.end_time).to eq(end_time)
+      end
+    end
+
+    context 'with finish time provided' do
+      subject(:finish) { span.finish(time) }
+      let(:time) { Time.now }
+
+      it 'does not use wall time' do
+        sleep(0.0001)
+        subject
+
+        expect(span.end_time).to eq(time)
+      end
+    end
+
+    context '#finished?' do
+      it { expect { subject }.to change { span.finished? }.from(false).to(true) }
+    end
 
     context 'when an error occurs while closing the span on the context' do
       include_context 'health metrics'
@@ -91,6 +204,74 @@ RSpec.describe Datadog::Span do
     it 'removes value, instead of setting to nil, to ensure correct deserialization by agent' do
       subject
       expect(span.instance_variable_get(:@metrics)).to_not have_key(key)
+    end
+  end
+
+  describe '#get_metric' do
+    subject(:get_metric) { span.get_metric(key) }
+    let(:key) { 'key' }
+
+    context 'with no metrics' do
+      it { is_expected.to be_nil }
+    end
+
+    context 'with a metric' do
+      let(:value) { 1.0 }
+      before { span.set_metric(key, value) }
+
+      it { is_expected.to eq(1.0) }
+    end
+
+    context 'with a tag' do
+      let(:value) { 'tag' }
+      before { span.set_tag(key, value) }
+
+      it { is_expected.to eq('tag') }
+    end
+  end
+
+  describe '#set_metric' do
+    subject(:set_metric) { span.set_metric(key, value) }
+    let(:key) { 'key' }
+
+    let(:metrics) { span.to_hash[:metrics] }
+    let(:metric) { metrics[key] }
+
+    shared_examples 'a metric' do |value, expected|
+      let(:value) { value }
+
+      it do
+        subject
+        expect(metric).to eq(expected)
+      end
+    end
+
+    context 'with a valid value' do
+      context 'with an integer' do
+        it_behaves_like 'a metric', 0, 0.0
+      end
+
+      context 'with a float' do
+        it_behaves_like 'a metric', 12.34, 12.34
+      end
+
+      context 'with a number as string' do
+        it_behaves_like 'a metric', '12.34', 12.34
+      end
+    end
+
+    context 'with an invalid value' do
+      context 'with nil' do
+        it_behaves_like 'a metric', nil, nil
+      end
+
+      context 'with a string' do
+        it_behaves_like 'a metric', 'foo', nil
+      end
+
+      context 'with a complex object' do
+        it_behaves_like 'a metric', [], nil
+      end
     end
   end
 
@@ -302,5 +483,57 @@ RSpec.describe Datadog::Span do
     it_behaves_like('setting sampling priority tag',
                     Datadog::Ext::ManualTracing::TAG_DROP,
                     Datadog::Ext::Priority::USER_REJECT)
+  end
+
+  describe '#set_tags' do
+    subject(:set_tags) { span.set_tags(tags) }
+
+    context 'with empty hash' do
+      let(:tags) { {} }
+
+      it 'does not change tags' do
+        expect(span).to_not receive(:set_tag)
+        expect { set_tags }.to_not change { span.instance_variable_get(:@meta) }.from({})
+      end
+    end
+
+    context 'with multiple tags' do
+      let(:tags) { { 'user.id' => 123, 'user.domain' => 'datadog.com' } }
+
+      it 'sets the tags from hash keys' do
+        expect { set_tags }.to change { tags.map { |k, _| span.get_tag(k) } }.from([nil, nil]).to([123, 'datadog.com'])
+      end
+    end
+
+    context 'with nested hashes' do
+      let(:tags) do
+        {
+          'user' => {
+            'id' => 123
+          }
+        }
+      end
+
+      it 'does not support it - it sets stringified nested hash as value' do
+        expect { set_tags }.to change { span.get_tag('user') }.from(nil).to('{"id"=>123}')
+      end
+    end
+  end
+
+  describe '#set_error' do
+    subject(:set_error) { span.set_error(error) }
+    let(:error) { RuntimeError.new('oops') }
+    let(:backtrace) { %w[method1 method2 method3] }
+
+    before { error.set_backtrace(backtrace) }
+
+    it do
+      subject
+
+      expect(span).to have_error
+      expect(span).to have_error_message('oops')
+      expect(span).to have_error_type('RuntimeError')
+      expect(span).to have_error_stack(backtrace.join($RS))
+    end
   end
 end

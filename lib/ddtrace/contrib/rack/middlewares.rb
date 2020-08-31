@@ -4,6 +4,8 @@ require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
+require 'ddtrace/environment'
+require 'date'
 
 module Datadog
   module Contrib
@@ -98,23 +100,26 @@ module Datadog
           request_span.set_error(e) unless request_span.nil?
           raise e
         ensure
-          # Rack is a really low level interface and it doesn't provide any
-          # advanced functionality like routers. Because of that, we assume that
-          # the underlying framework or application has more knowledge about
-          # the result for this request; `resource` and `tags` are expected to
-          # be set in another level but if they're missing, reasonable defaults
-          # are used.
-          set_request_tags!(request_span, env, status, headers, response, original_env)
+          if request_span
+            # Rack is a really low level interface and it doesn't provide any
+            # advanced functionality like routers. Because of that, we assume that
+            # the underlying framework or application has more knowledge about
+            # the result for this request; `resource` and `tags` are expected to
+            # be set in another level but if they're missing, reasonable defaults
+            # are used.
+            set_request_tags!(request_span, env, status, headers, response, original_env || env)
 
-          # ensure the request_span is finished and the context reset;
-          # this assumes that the Rack middleware creates a root span
-          request_span.finish
+            # ensure the request_span is finished and the context reset;
+            # this assumes that the Rack middleware creates a root span
+            request_span.finish
+          end
+
           frontend_span.finish unless frontend_span.nil?
 
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding
           # memory leaks.
-          tracer.provider.context = Datadog::Context.new
+          tracer.provider.context = Datadog::Context.new if tracer
         end
 
         def resource_name_for(env, status)

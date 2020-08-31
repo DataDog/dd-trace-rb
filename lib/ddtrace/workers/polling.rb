@@ -34,7 +34,7 @@ module Datadog
       end
 
       def enabled?
-        @enabled = true unless instance_variable_defined?(:@enabled)
+        return true unless instance_variable_defined?(:@enabled)
         @enabled
       end
 

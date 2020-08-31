@@ -7,8 +7,19 @@ RSpec.describe Datadog::Contrib::Extensions do
   shared_context 'registry with integration' do
     let(:registry) { Datadog::Contrib::Registry.new }
     let(:integration_name) { :example }
-    let(:integration) { instance_double(integration_class) }
-    let(:integration_class) { Class.new { include Datadog::Contrib::Integration } }
+    let(:integration) { integration_class.new(integration_name) }
+    let(:integration_class) do
+      Class.new do
+        include Datadog::Contrib::Integration
+        include Datadog::Contrib::Configurable
+      end
+    end
+
+    let(:configurable_module) do
+      stub_const('Configurable', Module.new do
+        include Datadog::Contrib::Configurable
+      end)
+    end
 
     before { registry.add(integration_name, integration) }
   end
@@ -76,9 +87,7 @@ RSpec.describe Datadog::Contrib::Extensions do
         let(:options) { {} }
 
         context 'for a generic integration' do
-          include_context 'registry with integration' do
-            let(:integration) { double('integration') }
-          end
+          include_context 'registry with integration'
 
           before do
             expect(integration).to receive(:configure).with(:default, options).and_return([])
@@ -88,6 +97,7 @@ RSpec.describe Datadog::Contrib::Extensions do
           it do
             expect { result }.to_not raise_error
             expect(settings.integrations_pending_activation).to include(integration)
+            expect(settings.instrumented_integrations).to include(integration_name => integration)
           end
         end
 
@@ -102,6 +112,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
               Class.new do
                 include Datadog::Contrib::Integration
+                include Datadog::Contrib::Configurable
 
                 def self.version
                   Gem::Version.new('0.1')

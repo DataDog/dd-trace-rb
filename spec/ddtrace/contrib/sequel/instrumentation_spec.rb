@@ -7,15 +7,20 @@ require 'ddtrace'
 require 'ddtrace/contrib/sequel/integration'
 
 RSpec.describe 'Sequel instrumentation' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
   let(:sequel) do
-    Sequel.sqlite(':memory:').tap do |s|
-      Datadog.configure(s, tracer: tracer)
+    Sequel.connect(sequel_connection_string).tap do |db|
+      Datadog.configure(db)
     end
   end
 
-  let(:spans) { tracer.writer.spans }
+  let(:sequel_connection_string) do
+    if PlatformHelpers.jruby?
+      "jdbc:#{connection_string}"
+    else
+      connection_string
+    end
+  end
 
   before(:each) do
     skip('Sequel not compatible.') unless Datadog::Contrib::Sequel::Integration.compatible?
@@ -33,24 +38,26 @@ RSpec.describe 'Sequel instrumentation' do
     Datadog.registry[:sequel].reset_configuration!
   end
 
-  describe 'for a SQLite database' do
+  shared_context 'instrumented queries' do
     before(:each) do
-      sequel.create_table(:table) do
+      sequel.create_table!(:tbl) do # Drops table before creating if already exists
         String :name
       end
     end
 
+    let(:normalized_adapter) { defined?(super) ? super() : adapter }
+
     describe 'when queried through a Sequel::Database object' do
       before(:each) { sequel.run(query) }
-      let(:query) { 'SELECT * FROM \'table\' WHERE `name` = \'John Doe\'' }
+      let(:query) { "SELECT * FROM tbl WHERE name = 'foo'" }
       let(:span) { spans.first }
 
       it 'traces the command' do
         expect(span.name).to eq('sequel.query')
         # Expect it to be the normalized adapter name.
-        expect(span.service).to eq('sqlite')
+        expect(span.service).to eq(normalized_adapter)
         expect(span.span_type).to eq('sql')
-        expect(span.get_tag('sequel.db.vendor')).to eq('sqlite')
+        expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
         # Expect non-quantized query: agent does SQL quantization.
         expect(span.resource).to eq(query)
         expect(span.status).to eq(0)
@@ -71,7 +78,7 @@ RSpec.describe 'Sequel instrumentation' do
       let(:sequel_cmd1_span) { spans[2] }
       let(:sequel_cmd2_span) { spans[3] }
       let(:sequel_cmd3_span) { spans[4] }
-      let(:sequel_cmd4_span) { spans[5] }
+      let(:sequel_internal_spans) { spans[5..-1] }
 
       before(:each) do
         tracer.trace('publish') do |span|
@@ -80,9 +87,9 @@ RSpec.describe 'Sequel instrumentation' do
           tracer.trace('process') do |subspan|
             subspan.service = 'datalayer'
             subspan.resource = 'home'
-            sequel[:table].insert(name: 'data1')
-            sequel[:table].insert(name: 'data2')
-            data = sequel[:table].select.to_a
+            sequel[:tbl].insert(name: 'data1')
+            sequel[:tbl].insert(name: 'data2')
+            data = sequel[:tbl].select.to_a
             expect(data.length).to eq(2)
             data.each do |row|
               expect(row[:name]).to match(/^data.$/)
@@ -92,7 +99,7 @@ RSpec.describe 'Sequel instrumentation' do
       end
 
       it do
-        expect(spans).to have(6).items
+        expect(spans).to have_at_least(5).items
 
         # Check publish span
         expect(publish_span.name).to eq('publish')
@@ -110,21 +117,30 @@ RSpec.describe 'Sequel instrumentation' do
 
         # Check each command span
         [
-          [sequel_cmd1_span, 'INSERT INTO `table` (`name`) VALUES (\'data1\')'],
-          [sequel_cmd2_span, 'INSERT INTO `table` (`name`) VALUES (\'data2\')'],
-          [sequel_cmd3_span, 'SELECT * FROM `table`'],
-          [sequel_cmd4_span, 'SELECT sqlite_version()']
-        ].each do |command_span, query|
-          expect(command_span.name).to eq('sequel.query')
+          [sequel_cmd1_span, "INSERT INTO tbl (name) VALUES ('data1')"],
+          [sequel_cmd2_span, "INSERT INTO tbl (name) VALUES ('data2')"],
+          [sequel_cmd3_span, 'SELECT * FROM tbl'],
+          # Internal queries run by Sequel (e.g. 'SELECT version()').
+          # We don't care about their content, only that they are
+          # correctly tagged.
+          *sequel_internal_spans.map { |span| [span, nil] }
+        ].each do |span, query|
+          expect(span.name).to eq('sequel.query')
           # Expect it to be the normalized adapter name.
-          expect(command_span.service).to eq('sqlite')
-          expect(command_span.span_type).to eq('sql')
-          expect(command_span.get_tag('sequel.db.vendor')).to eq('sqlite')
+          expect(span.service).to eq(normalized_adapter)
+          expect(span.span_type).to eq('sql')
+          expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
+          expect(span.status).to eq(0)
+
+          # We then match `query` and `trace_id` for the statements under test.
+          # Skip for internal Sequel queries.
+          next unless query
+
           # Expect non-quantized query: agent does SQL quantization.
-          expect(command_span.resource).to eq(query)
-          expect(command_span.status).to eq(0)
-          expect(command_span.parent_id).to eq(process_span.span_id)
-          expect(command_span.trace_id).to eq(publish_span.trace_id)
+          expect(span.resource).to match_normalized_sql(start_with query)
+
+          expect(span.parent_id).to eq(process_span.span_id)
+          expect(span.trace_id).to eq(publish_span.trace_id)
         end
       end
 
@@ -138,6 +154,48 @@ RSpec.describe 'Sequel instrumentation' do
       it_behaves_like 'measured span for integration', false do
         let(:span) { spans[2..5].sample }
       end
+    end
+  end
+
+  describe 'with a SQLite database' do
+    it_behaves_like 'instrumented queries'
+
+    let(:adapter) { 'sqlite' }
+    let(:connection_string) { 'sqlite::memory:' }
+  end
+
+  describe 'with a MySQL database' do
+    it_behaves_like 'instrumented queries'
+
+    let(:adapter) do
+      if PlatformHelpers.jruby?
+        'mysql'
+      else
+        'mysql2'
+      end
+    end
+    let(:connection_string) do
+      user = ENV.fetch('TEST_MYSQL_USER', 'root')
+      password = ENV.fetch('TEST_MYSQL_PASSWORD', 'root')
+      host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
+      port = ENV.fetch('TEST_MYSQL_PORT', '3306')
+      db = ENV.fetch('TEST_MYSQL_DB', 'mysql')
+      "#{adapter}://#{host}:#{port}/#{db}?user=#{user}&password=#{password}"
+    end
+  end
+
+  describe 'with a PostgreSQL database' do
+    it_behaves_like 'instrumented queries'
+
+    let(:adapter) { 'postgresql' }
+    let(:normalized_adapter) { 'postgres' }
+    let(:connection_string) do
+      user = ENV.fetch('TEST_POSTGRES_USER', 'postgres')
+      password = ENV.fetch('TEST_POSTGRES_PASSWORD', 'postgres')
+      host = ENV.fetch('TEST_POSTGRES_HOST', '127.0.0.1')
+      port = ENV.fetch('TEST_POSTGRES_PORT', 5432)
+      db = ENV.fetch('TEST_POSTGRES_DB', 'postgres')
+      "#{adapter}://#{host}:#{port}/#{db}?user=#{user}&password=#{password}"
     end
   end
 end

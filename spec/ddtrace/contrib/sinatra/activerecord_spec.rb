@@ -2,8 +2,13 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'rack/test'
 
 require 'sinatra/base'
-require 'sqlite3'
 require 'active_record'
+
+if PlatformHelpers.jruby?
+  require 'activerecord-jdbc-adapter'
+else
+  require 'sqlite3'
+end
 
 require 'ddtrace'
 require 'ddtrace/contrib/sinatra/tracer'
@@ -11,11 +16,7 @@ require 'ddtrace/contrib/sinatra/tracer'
 RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
   include Rack::Test::Methods
 
-  let(:tracer) { get_test_tracer }
-  let(:options) { { tracer: tracer } }
-
-  let(:span) { spans.first }
-  let(:spans) { tracer.writer.spans }
+  let(:options) { {} }
 
   before do
     Datadog.configure do |c|

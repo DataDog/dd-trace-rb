@@ -297,7 +297,7 @@ RSpec.describe 'Tracer integration tests' do
           end.finish
         end.finish
 
-        try_wait_until { tracer.writer.spans(:keep).any? }
+        try_wait_until { tracer.writer.spans.any? }
       end
 
       it do
@@ -323,7 +323,7 @@ RSpec.describe 'Tracer integration tests' do
           parent_span.context.origin = 'synthetics'
         end.finish
 
-        try_wait_until { tracer.writer.spans(:keep).any? }
+        try_wait_until { tracer.writer.spans.any? }
       end
 
       it { is_expected.to eq('synthetics') }

@@ -31,9 +31,15 @@ module Datadog
         end
       end
 
+      option :api_key do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_API_KEY, nil) }
+        o.lazy
+      end
+
       settings :diagnostics do
         option :debug do |o|
-          o.default false
+          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG, false) }
+          o.lazy
           o.on_set do |enabled|
             # Enable rich debug print statements
             require 'pp' if enabled
@@ -47,6 +53,14 @@ module Datadog
           end
 
           option :statsd
+        end
+
+        settings :startup_logs do
+          option :enabled do |o|
+            # Defaults to nil as we want to know when the default value is being used
+            o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_STARTUP_LOGS, nil) }
+            o.lazy
+          end
         end
       end
 
@@ -85,7 +99,7 @@ module Datadog
           o.on_set { |value| set_option(:level, value.level) unless value.nil? }
         end
 
-        option :level, default: ::Logger::WARN
+        option :level, default: ::Logger::INFO
       end
 
       def logger=(logger)
@@ -144,6 +158,11 @@ module Datadog
         o.lazy
       end
 
+      option :site do |o|
+        o.default { ENV.fetch(Ext::Environment::ENV_SITE, nil) }
+        o.lazy
+      end
+
       option :tags do |o|
         o.default do
           tags = {}
@@ -186,7 +205,10 @@ module Datadog
       end
 
       settings :tracer do
-        option :enabled, default: true
+        option :enabled do |o|
+          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED, true) }
+          o.lazy
+        end
         option :hostname # TODO: Deprecate
         option :instance
 

@@ -6,4 +6,10 @@ module Rails4
   end
 end
 
-Rails4::Application.test_config()
+def initialize_rails!
+  Rails4::Application.test_config()
+end
+
+def rails_initialized?
+  Rails.application.initialized?
+end

@@ -143,7 +143,7 @@ RSpec.describe Datadog::HTTPPropagator do
             it do
               expect(context.trace_id).to eq(7)
               expect(context.span_id).to eq(8)
-              expect(context.sampling_priority).to be(0)
+              expect(context.sampling_priority).to eq(0)
               expect(context.origin).to eq('synthetics')
             end
           end
@@ -257,7 +257,7 @@ RSpec.describe Datadog::HTTPPropagator do
           it do
             expect(context.trace_id).to eq(61185)
             expect(context.span_id).to eq(73456)
-            expect(context.sampling_priority).to be(1)
+            expect(context.sampling_priority).to eq(1)
           end
         end
 
@@ -312,7 +312,7 @@ RSpec.describe Datadog::HTTPPropagator do
           it do
             expect(context.trace_id).to eq(61185)
             expect(context.span_id).to eq(73456)
-            expect(context.sampling_priority).to be(1)
+            expect(context.sampling_priority).to eq(1)
           end
         end
 
@@ -364,7 +364,7 @@ RSpec.describe Datadog::HTTPPropagator do
           it do
             expect(context.trace_id).to eq(61185)
             expect(context.span_id).to eq(73456)
-            expect(context.sampling_priority).to be(1)
+            expect(context.sampling_priority).to eq(1)
           end
         end
 
