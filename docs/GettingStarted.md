@@ -1235,7 +1235,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `middleware_names` | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace. | `false` |
 | `service_name` | Service name used when tracing application requests (on the `rack` level) | `'<app_name>'` (inferred from your Rails application namespace) |
 | `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
-| `log_injection` | Automatically enables injection [Trace Correlation](#trace-correlation) information, such as `dd.trace_id`, into Rails logs. Supports `Lograge` and `ActiveSupport::TaggedLogging` loggers. Details on the format of Trace Correlation information can be found in the [Trace Correlation](#trace-correlation) section.  | `false` |
+| `log_injection` | Automatically enables injection [Trace Correlation](#trace-correlation) information, such as `dd.trace_id`, into Rails logs. Supports the default logger (`ActiveSupport::TaggedLogging`) and `Lograge`. Details on the format of Trace Correlation information can be found in the [Trace Correlation](#trace-correlation) section.  | `false` |
 
 **Supported versions**
 
@@ -2097,9 +2097,9 @@ In many cases, such as logging, it may be useful to correlate trace IDs to other
 
 #### For logging in Rails applications
 
-##### Automatic Trace Correlation (Lograge and ActiveSupport::TaggedLogging)
+##### Automatic
 
-Rails applications which are configured with an `ActiveSupport::TaggedLogging` logger or with `Lograge`, can automatically enable trace correlation information injected in logs. To enable, setting the `rails` instrumentation configuration option `log_injection` to `true`.
+For Rails applications using the default logger (`ActiveSupport::TaggedLogging`) or `lograge`, you can automatically enable trace correlation injection by setting the `rails` instrumentation configuration option `log_injection` to `true`:
 
 ```ruby
 # config/initializers/datadog.rb
@@ -2137,7 +2137,7 @@ end
 
 ##### Manual (ActiveSupport::TaggedLogging)
 
-Rails applications which are configured with an `ActiveSupport::TaggedLogging` logger can append correlation IDs as tags to log output. The default Rails logger implements this tagged logging, making it easier to add correlation tags. To enable Trace Correlation with `ActiveSupport::TaggedLogging`, in your Rails environment configuration file, manually add the following:
+Rails applications which are configured with the default `ActiveSupport::TaggedLogging` logger can append correlation IDs as tags to log output. To enable Trace Correlation with `ActiveSupport::TaggedLogging`, in your Rails environment configuration file, add the following:
 
 ```ruby
 Rails.application.configure do
