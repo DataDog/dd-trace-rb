@@ -4,7 +4,7 @@ require 'action_view/testing/resolvers'
 class ApplicationController < ActionController::Base; end
 
 class TracingController < ActionController::Base
-  rescue_from 'ActionController::RenderError' do 
+  rescue_from 'ActionController::RenderError' do
     render 'views/tracing/index.html.erb'
   end
 

@@ -173,9 +173,8 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_equal(request_span.status, 0, 'rack span should not be flagged as an error')
     assert_nil(request_span.get_tag('error.type'))
     assert_nil(request_span.get_tag('error.msg'))
-    assert_nil(request_span.get_tag('error.stack'))    
+    assert_nil(request_span.get_tag('error.stack'))
   end
-
 
   test 'custom error controllers should not override trace resource names' do
     # Simulate an error being passed to the exception controller
