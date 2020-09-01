@@ -16,8 +16,6 @@ RSpec.shared_context 'Rails 6 base application' do
   include_context 'Rails models'
 
   let(:rails_base_application) do
-    # logger = self.logger
-
     klass = Class.new(Rails::Application) do
       def config.database_configuration
         parsed = super
@@ -101,7 +99,7 @@ RSpec.shared_context 'Rails 6 base application' do
     # Reset autoloaded constants
     ActiveSupport::Dependencies.clear if Rails.application
 
-    Lograge.remove_existing_log_subscriptions if Object.const_defined?('Lograge')
+    Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
     reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
     # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.

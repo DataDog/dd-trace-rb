@@ -1727,6 +1727,7 @@ Other Environment Variables:
 - `DD_TRACE_<INTEGRATION>_ANALYTICS_SAMPLE_RATE`: Sets the App Analytics sampling rate for a specific integration. A floating number between 0.0 and 1.0 (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE=0.5`.
 - `DD_TRACE_RUM_INJECT_TRACE`: Connect frontend traces from the RUM (real user monitoring) [`browser-sdk`](https://docs.datadoghq.com/real_user_monitoring/installation/?tab=us) to backend traces by automatically injecting an HTML Comment containing the datadog trace-id. See [RUM Injection](#rum-injection) for setup details. Set to `true` to enable. Accepts a boolean (default `false`) e.g. `DD_TRACE_RUM_INJECT_TRACE=true`. *experimental*.
 - `DD_TRACE_CACHED_PAGES`: Define which pages to exclude from automatically injecting an HTML Comment containing the Datadoog trace-id.  See [RUM Injection](#rum-injection) for setup details. Accepts a CSV formatted string (default `''`) of path values, including globbed paths e.g. `DD_TRACE_CACHED_PAGES=/admin,api/**/update`. *Experimental*
+- `DD_LOGS_INJECTION`: Automatically enables injection [Trace Correlation](#trace-correlation) information, such as `dd.trace_id`, into Rails logs. Supports the default logger (`ActiveSupport::TaggedLogging`) and `Lograge`. Details on the format of Trace Correlation information can be found in the [Trace Correlation](#trace-correlation) section. Valid values are: `true` or `false`(default). e.g. `DD_LOGS_INJECTION=true`.
 
 ### Sampling
 
@@ -2099,7 +2100,7 @@ In many cases, such as logging, it may be useful to correlate trace IDs to other
 
 ##### Automatic
 
-For Rails applications using the default logger (`ActiveSupport::TaggedLogging`) or `lograge`, you can automatically enable trace correlation injection by setting the `rails` instrumentation configuration option `log_injection` to `true`:
+For Rails applications using the default logger (`ActiveSupport::TaggedLogging`) or `lograge`, you can automatically enable trace correlation injection by setting the `rails` instrumentation configuration option `log_injection` to `true` or by setting environment variable `DD_LOGS_INJECTION=true`:
 
 ```ruby
 # config/initializers/datadog.rb

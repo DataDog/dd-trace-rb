@@ -6,9 +6,6 @@ if ENV['USE_SIDEKIQ']
   require 'ddtrace/contrib/sidekiq/server_tracer'
 end
 
-# # for log_injection testing
-# require 'lograge'
-
 require 'ddtrace/contrib/rails/support/controllers'
 require 'ddtrace/contrib/rails/support/middleware'
 require 'ddtrace/contrib/rails/support/models'
@@ -18,15 +15,7 @@ RSpec.shared_context 'Rails 5 base application' do
   include_context 'Rails middleware'
   include_context 'Rails models'
 
-  # for log_injection testing
-  # let(:log_output) { StringIO.new }
-  # let(:logger) do
-  #   Logger.new(log_output)
-  # end
-
   let(:rails_base_application) do
-    # logger = self.logger
-
     klass = Class.new(Rails::Application) do
       def config.database_configuration
         parsed = super
@@ -97,7 +86,7 @@ RSpec.shared_context 'Rails 5 base application' do
   # Rails 5 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
-    Lograge.remove_existing_log_subscriptions if Object.const_defined?('Lograge')
+    Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)
