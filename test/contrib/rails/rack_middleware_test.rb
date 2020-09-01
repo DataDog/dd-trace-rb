@@ -154,7 +154,7 @@ class FullStackTest < ActionDispatch::IntegrationTest
     assert_match(/\n/, request_span.get_tag('error.stack'))
   end
 
-  test 'the rack.request span does not has the Rails exception when its handled' do
+  test 'the rack.request span does not have the Rails exception when its handled with rescue_from' do
     # make a request that throws an error but is handled
     get '/index_with_rescue_from'
 
@@ -163,14 +163,14 @@ class FullStackTest < ActionDispatch::IntegrationTest
     request_span, controller_span = spans
 
     assert_equal(controller_span.name, 'rails.action_controller')
-    assert_equal(controller_span.status, 1)
+    assert_equal(controller_span.status, 1, 'rails controller span should be flagged as an error')
     assert_equal(controller_span.get_tag('error.type'), 'ActionController::RenderError')
 
     assert_equal('rack.request', request_span.name)
     assert_equal(request_span.span_type, 'web')
     assert_equal(request_span.get_tag('http.method'), 'GET')
     assert_equal(request_span.get_tag('http.status_code'), '200')
-    assert_equal(request_span.status, 0, 'span should not be flagged as an error')
+    assert_equal(request_span.status, 0, 'rack span should not be flagged as an error')
     assert_nil(request_span.get_tag('error.type'))
     assert_nil(request_span.get_tag('error.msg'))
     assert_nil(request_span.get_tag('error.stack'))    
