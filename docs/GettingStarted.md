@@ -1261,6 +1261,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `middleware_names` | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace. | `false` |
 | `service_name` | Service name used when tracing application requests (on the `rack` level) | `'<app_name>'` (inferred from your Rails application namespace) |
 | `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
+| `log_injection` | Automatically enables injection [Trace Correlation](#trace-correlation) information, such as `dd.trace_id`, into Rails logs. Supports the default logger (`ActiveSupport::TaggedLogging`) and `Lograge`. Details on the format of Trace Correlation information can be found in the [Trace Correlation](#trace-correlation) section.  | `false` |
 
 **Supported versions**
 
@@ -1752,6 +1753,7 @@ Other Environment Variables:
 - `DD_TRACE_<INTEGRATION>_ANALYTICS_SAMPLE_RATE`: Sets the App Analytics sampling rate for a specific integration. A floating number between 0.0 and 1.0 (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE=0.5`.
 - `DD_TRACE_RUM_INJECT_TRACE`: Connect frontend traces from the RUM (real user monitoring) [`browser-sdk`](https://docs.datadoghq.com/real_user_monitoring/installation/?tab=us) to backend traces by automatically injecting an HTML Comment containing the datadog trace-id. See [RUM Injection](#rum-injection) for setup details. Set to `true` to enable. Accepts a boolean (default `false`) e.g. `DD_TRACE_RUM_INJECT_TRACE=true`. *experimental*.
 - `DD_TRACE_CACHED_PAGES`: Define which pages to exclude from automatically injecting an HTML Comment containing the Datadoog trace-id.  See [RUM Injection](#rum-injection) for setup details. Accepts a CSV formatted string (default `''`) of path values, including globbed paths e.g. `DD_TRACE_CACHED_PAGES=/admin,api/**/update`. *Experimental*
+- `DD_LOGS_INJECTION`: Automatically enables injection [Trace Correlation](#trace-correlation) information, such as `dd.trace_id`, into Rails logs. Supports the default logger (`ActiveSupport::TaggedLogging`) and `Lograge`. Details on the format of Trace Correlation information can be found in the [Trace Correlation](#trace-correlation) section. Valid values are: `true` or `false`(default). e.g. `DD_LOGS_INJECTION=true`.
 
 ### Sampling
 
@@ -2118,34 +2120,26 @@ Datadog::Pipeline.before_flush(
 
 ### Trace correlation
 
-In many cases, such as logging, it may be useful to correlate trace IDs to other events or data streams, for easier cross-referencing. The tracer can produce a correlation identifier for the currently active trace via `active_correlation`, which can be used to decorate these other data sources.
+In many cases, such as logging, it may be useful to correlate trace IDs to other events or data streams, for easier cross-referencing.
+
+#### For logging in Rails applications
+
+##### Automatic
+
+For Rails applications using the default logger (`ActiveSupport::TaggedLogging`) or `lograge`, you can automatically enable trace correlation injection by setting the `rails` instrumentation configuration option `log_injection` to `true` or by setting environment variable `DD_LOGS_INJECTION=true`:
 
 ```ruby
-# When a trace is active...
-Datadog.tracer.trace('correlation.example') do
-  # Returns #<Datadog::Correlation::Identifier>
-  correlation = Datadog.tracer.active_correlation
-  correlation.trace_id # => 5963550561812073440
-  correlation.span_id # => 2232727802607726424
-  correlation.env # => 'production' (derived from DD_ENV)
-  correlation.service # => 'billing-api' (derived from DD_SERVICE)
-  correlation.version # => '2.5.17' (derived from DD_VERSION)
-end
+# config/initializers/datadog.rb
+require 'ddtrace'
 
-# When a trace isn't active...
-correlation = Datadog.tracer.active_correlation
-# Returns #<Datadog::Correlation::Identifier>
-correlation = Datadog.tracer.active_correlation
-correlation.trace_id # => 0
-correlation.span_id # => 0
-correlation.env # => 'production' (derived from DD_ENV)
-correlation.service # => 'billing-api' (derived from DD_SERVICE)
-correlation.version # => '2.5.17' (derived from DD_VERSION)
+Datadog.configure do |c|
+  c.use :rails, log_injection: true
+end
 ```
 
-#### For logging in Rails applications using Lograge (recommended)
+##### Manual (Lograge)
 
-After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs:
+After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), manually modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs. 
 
 ```ruby
 config.lograge.custom_options = lambda do |event|
@@ -2168,11 +2162,9 @@ config.lograge.custom_options = lambda do |event|
 end
 ```
 
-#### For logging in Rails applications
+##### Manual (ActiveSupport::TaggedLogging)
 
-Rails applications which are configured with an `ActiveSupport::TaggedLogging` logger can append correlation IDs as tags to log output. The default Rails logger implements this tagged logging, making it easier to add correlation tags.
-
-In your Rails environment configuration file, add the following:
+Rails applications which are configured with the default `ActiveSupport::TaggedLogging` logger can append correlation IDs as tags to log output. To enable Trace Correlation with `ActiveSupport::TaggedLogging`, in your Rails environment configuration file, add the following:
 
 ```ruby
 Rails.application.configure do
