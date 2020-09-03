@@ -42,21 +42,6 @@ module Datadog
           )
         end
 
-        def compute_cdn_time(env, tracer)
-          return unless configuration[:request_queuing]
-
-          # parse the request queue time
-          request_start = Datadog::Contrib::Rack::FastlyCdnTime.get_request_start(env)
-          return if request_start.nil?
-
-          tracer.trace(
-            Ext::SPAN_HTTP_SERVER_CDN,
-            span_type: Datadog::Ext::HTTP::TYPE_PROXY,
-            start_time: request_start,
-            service: configuration[:web_service_name] + "-fastly-cdn"
-          )
-        end
-
         def call(env)
           # retrieve integration settings
           tracer = configuration[:tracer]
@@ -67,10 +52,6 @@ module Datadog
             context = HTTPPropagator.extract(env)
             tracer.provider.context = context if context.trace_id
           end
-
-          # [experimental] create a root Span to keep track of frontend web servers cdn level
-          # (i.e. fastly) if the header is properly set
-          cdn_span = compute_cdn_time(env, tracer)
 
           # [experimental] create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
@@ -134,7 +115,6 @@ module Datadog
           end
 
           frontend_span.finish unless frontend_span.nil?
-          cdn_span.finish unless cdn_span.nil?
 
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding

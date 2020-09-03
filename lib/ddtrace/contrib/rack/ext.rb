@@ -12,7 +12,6 @@ module Datadog
         RACK_ENV_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
         SERVICE_NAME = 'rack'.freeze
         SPAN_HTTP_SERVER_QUEUE = 'http_server.queue'.freeze
-        SPAN_HTTP_SERVER_CDN = 'http_server.cdn'.freeze
         SPAN_REQUEST = 'rack.request'.freeze
         WEBSERVER_APP = 'webserver'.freeze
         WEBSERVER_SERVICE_NAME = 'web-server'.freeze

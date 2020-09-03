@@ -37,6 +37,10 @@ module Datadog
         TRANSFER_ENCODING_HEADER = 'Transfer-Encoding'.freeze
         ACTION_CONTROLLER_INSTANCE = 'action_controller.instance'.freeze
         TRANSFER_ENCODING_CHUNKED = 'chunked'.freeze
+        REQUESTED_WITH_HEADER = 'X-Requested-With'.freeze
+        REQUESTED_WITH_AJAX = 'XMLHttpRequest'.freeze
+        CHARSET = 'charset'.freeze
+        CHARSET_UTF8 = 'utf-8'.freeze
 
         def initialize(app)
           @app = app
@@ -137,6 +141,8 @@ module Datadog
             !streaming?(headers, env) &&
             injectable_html?(headers) &&
             no_cache?(headers) &&
+            utf8?(headers) &&
+            !ajax_request?(headers) &&
             !user_defined_cached?(env)
         # catch everything and swallow it here for defensiveness
         rescue Exception => e # rubocop:disable Lint/RescueException
@@ -151,6 +157,19 @@ module Datadog
         def injectable_html?(headers)
           (content_type = headers[CONTENT_TYPE_HEADER]) &&
             (content_type.include?(HTML_CONTENT) || content_type.include?(XHTML_CONTENT))
+        end
+
+        def utf8?(headers)
+          # only inject in utf8
+          # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
+
+          # ensure header exists
+          # if it doesnt exist we cant reasonably injecct
+          return unless (content_type = headers[CONTENT_TYPE_HEADER])
+          # if charset is not explicitly stated we can assume its ok to inject utf8
+          return true unless content_type.include?(CHARSET)
+          # if charset is stated, ensure it is set to utf8
+          content_type.downcase.include?(CHARSET_UTF8)
         end
 
         def attachment?(headers)
@@ -168,6 +187,15 @@ module Datadog
           # if we detect Server Side Event streaming controller, assume streaming
           defined?(ActionController::Live) &&
             env[ACTION_CONTROLLER_INSTANCE].class.included_modules.include?(ActionController::Live)
+        end
+
+        def ajax_request?(headers)
+          # We want to avoid adding HTML Comment to a potential HTML Fragment.
+          # AJAX requests sometimes retrieve html and then add them as fragment to dom via js
+          # A nonstandard but common indication of ajax is `X-Requested-With` header as `XMLHttpRequest`
+          # If this exists, do not inject https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
+
+          (ajax_header = headers[REQUESTED_WITH_HEADER]) && ajax_header.include?(REQUESTED_WITH_AJAX)
         end
 
         def no_cache?(headers)

@@ -34,37 +34,6 @@ module Datadog
           nil
         end
       end
-
-      # Fastly CDN Time
-      module FastlyCdnTime
-        REQUEST_START = 'HTTP_X_CDN_START'.freeze
-        MINIMUM_ACCEPTABLE_TIME_VALUE = 1_000_000_000
-
-        module_function
-
-        def get_request_start(env, now = Time.now.utc)
-          header = env[REQUEST_START]
-          return unless header
-
-          # fastly header is milliseconds in the format "1570634024294"
-          time_string = header.to_s.delete('^0-9')
-          return if time_string.nil?
-
-          # Return nil if the time is clearly invalid
-          time_value = "#{time_string[0, 10]}.#{time_string[10, 6]}".to_f
-          return if time_value.zero? || time_value < MINIMUM_ACCEPTABLE_TIME_VALUE
-
-          # return the request_start only if it's lesser than
-          # current time, to avoid significant clock skew
-          request_start = Time.at(time_value)
-          request_start.utc > now ? nil : request_start
-        rescue StandardError => e
-          # in case of an Exception we don't create a
-          # `request.queuing` span
-          Datadog.logger.debug("[rack] unable to parse request cdn headers: #{e}")
-          nil
-        end
-      end
     end
   end
 end
