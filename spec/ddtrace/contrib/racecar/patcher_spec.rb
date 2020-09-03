@@ -21,6 +21,64 @@ RSpec.describe 'Racecar patcher' do
     Datadog.registry[:racecar].reset_configuration!
   end
 
+  describe 'for both single and batch message processing' do
+    let(:consumer) { 'DummyConsumer' }
+    let(:payload) { { consumer_class: consumer } }
+
+    let(:span) do
+      spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_CONSUME }.first
+    end
+
+    context 'that doesn\'t raise an error' do
+      it 'is expected to send a span' do
+        ActiveSupport::Notifications.instrument('main_loop.racecar', payload)
+
+        span.tap do |span|
+          expect(span).to_not be nil
+          expect(span.service).to eq('racecar')
+          expect(span.name).to eq('racecar.consume')
+          expect(span.resource).to eq(consumer)
+          expect(span.get_tag('kafka.consumer')).to eq(consumer)
+          expect(span).to_not have_error
+        end
+      end
+    end
+
+    context 'that raises an error' do
+      let(:error_class) { Class.new(StandardError) }
+
+      it 'is expected to send a span' do
+        # Emulate failure
+        begin
+          ActiveSupport::Notifications.instrument('main_loop.racecar', payload) do
+            raise error_class
+          end
+        rescue error_class
+          nil
+        end
+
+        span.tap do |span|
+          expect(span).to_not be nil
+          expect(span.service).to eq('racecar')
+          expect(span.name).to eq('racecar.consume')
+          expect(span.resource).to eq(consumer)
+          expect(span.get_tag('kafka.consumer')).to eq(consumer)
+          expect(span).to have_error
+        end
+      end
+    end
+
+    it_behaves_like 'analytics for integration' do
+      before { ActiveSupport::Notifications.instrument('main_loop.racecar', payload) }
+      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+    end
+
+    it_behaves_like 'measured span for integration', true do
+      before { ActiveSupport::Notifications.instrument('main_loop.racecar', payload) }
+    end
+  end
+
   describe 'for single message processing' do
     let(:topic) { 'dd_trace_test_dummy' }
     let(:consumer) { 'DummyConsumer' }

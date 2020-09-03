@@ -35,6 +35,7 @@ RSpec.shared_context 'Rails 4 base application' do
       config.eager_load = false
       config.consider_all_requests_local = true
       config.active_support.test_order = :random
+
       config.middleware.delete ActionDispatch::DebugExceptions
       instance_eval(&during_init)
 
@@ -107,6 +108,8 @@ RSpec.shared_context 'Rails 4 base application' do
   # Rails 4 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
+    Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
+
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_dirs, nil)

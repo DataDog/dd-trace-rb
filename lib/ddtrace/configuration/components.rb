@@ -10,12 +10,6 @@ module Datadog
     # rubocop:disable Metrics/LineLength
     class Components
       class << self
-        def replace!(old, settings)
-          replacement = new(settings)
-          old.teardown!(replacement)
-          replacement
-        end
-
         def build_health_metrics(settings)
           settings = settings.diagnostics.health_metrics
           options = { enabled: settings.enabled }
@@ -118,10 +112,13 @@ module Datadog
         @health_metrics = self.class.build_health_metrics(settings)
       end
 
+      # Starts up components
+      def startup!(settings); end
+
       # Shuts down all the components in use.
       # If it has another instance to compare to, it will compare
       # and avoid tearing down parts still in use.
-      def teardown!(replacement = nil)
+      def shutdown!(replacement = nil)
         # Shutdown the old tracer, unless it's still being used.
         # (e.g. a custom tracer instance passed in.)
         tracer.shutdown! unless replacement && tracer == replacement.tracer
