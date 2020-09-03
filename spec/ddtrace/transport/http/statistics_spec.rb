@@ -16,6 +16,8 @@ RSpec.describe Datadog::Transport::HTTP::Statistics do
 
       context 'when the response' do
         context 'is OK' do
+          let(:status_code) { 200 }
+
           before do
             allow(response).to receive(:ok?).and_return(true)
             allow(response).to receive(:internal_error?).and_return(false)
@@ -35,6 +37,8 @@ RSpec.describe Datadog::Transport::HTTP::Statistics do
         end
 
         context 'is a client error' do
+          let(:status_code) { 400 }
+
           before do
             allow(response).to receive(:ok?).and_return(false)
             allow(response).to receive(:client_error?).and_return(true)
@@ -56,6 +60,8 @@ RSpec.describe Datadog::Transport::HTTP::Statistics do
         end
 
         context 'is a server error' do
+          let(:status_code) { 500 }
+
           before do
             allow(response).to receive(:ok?).and_return(false)
             allow(response).to receive(:client_error?).and_return(false)

@@ -20,8 +20,14 @@ module Datadog
           end
 
           def open
-            # Open connection
-            ::Net::HTTP.start(hostname, port, open_timeout: timeout, read_timeout: timeout) do |http|
+            # DEV Initializing +Net::HTTP+ directly help us avoid expensive
+            # options processing done in +Net::HTTP.start+:
+            # https://github.com/ruby/ruby/blob/b2d96abb42abbe2e01f010ffc9ac51f0f9a50002/lib/net/http.rb#L614-L618
+            req = ::Net::HTTP.new(hostname, port, nil)
+
+            req.open_timeout = req.read_timeout = timeout
+
+            req.start do |http|
               yield(http)
             end
           end

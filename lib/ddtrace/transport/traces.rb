@@ -57,7 +57,12 @@ module Datadog
         # @return [Enumerable[Array[Bytes,Integer]]] list of encoded chunks: each containing a byte array and
         #   number of traces
         def encode_in_chunks(traces)
-          encoded_traces = traces.map { |t| encode_one(t) }.reject(&:nil?)
+          encoded_traces = if traces.respond_to?(:filter_map)
+                             # DEV Supported since Ruby 2.7, saves an intermediate object creation
+                             traces.filter_map { |t| encode_one(t) }
+                           else
+                             traces.map { |t| encode_one(t) }.reject(&:nil?)
+                           end
 
           Datadog::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
             [encoder.join(chunk), chunk.size]
@@ -86,7 +91,7 @@ module Datadog
         module_function
 
         def encode_trace(encoder, trace)
-          encoder.encode(trace.map(&:to_hash))
+          encoder.encode(trace)
         end
       end
 

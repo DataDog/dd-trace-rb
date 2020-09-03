@@ -254,6 +254,61 @@ module Datadog
       h
     end
 
+    # MessagePack serializer interface. Making this object
+    # respond to `#to_msgpack` allows it to be automatically
+    # serialized by MessagePack.
+    #
+    # This is more efficient than doing +MessagePack.pack(span.to_hash)+
+    # as we don't have to create an intermediate Hash.
+    #
+    # @param packer [MessagePack::Packer] serialization buffer, can be +nil+ with JRuby
+    def to_msgpack(packer = nil)
+      # As of 1.3.3, JRuby implementation doesn't pass an existing packer
+      packer ||= MessagePack::Packer.new
+
+      if !@start_time.nil? && !@end_time.nil?
+        packer.write_map_header(13) # Set header with how many elements in the map
+
+        packer.write(:start)
+        packer.write((@start_time.to_f * 1e9).to_i)
+
+        packer.write(:duration)
+        packer.write(((@end_time - @start_time) * 1e9).to_i)
+      else
+        packer.write_map_header(11) # Set header with how many elements in the map
+      end
+
+      packer.write(:span_id)
+      packer.write(@span_id)
+      packer.write(:parent_id)
+      packer.write(@parent_id)
+      packer.write(:trace_id)
+      packer.write(@trace_id)
+      packer.write(:name)
+      packer.write(@name)
+      packer.write(:service)
+      packer.write(@service)
+      packer.write(:resource)
+      packer.write(@resource)
+      packer.write(:type)
+      packer.write(@span_type)
+      packer.write(:meta)
+      packer.write(@meta)
+      packer.write(:metrics)
+      packer.write(@metrics)
+      packer.write(:allocations)
+      packer.write(allocations)
+      packer.write(:error)
+      packer.write(@status)
+      packer
+    end
+
+    # JSON serializer interface.
+    # Used by older version of the transport.
+    def to_json(*args)
+      to_hash.to_json(*args)
+    end
+
     # Return a human readable version of the span
     def pretty_print(q)
       start_time = (@start_time.to_f * 1e9).to_i rescue '-'
