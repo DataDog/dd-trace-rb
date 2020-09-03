@@ -37,7 +37,7 @@ module Datadog
         TRANSFER_ENCODING_HEADER = 'Transfer-Encoding'.freeze
         ACTION_CONTROLLER_INSTANCE = 'action_controller.instance'.freeze
         TRANSFER_ENCODING_CHUNKED = 'chunked'.freeze
-        REQUESTED_WITH_HEADER = 'X-Requested-With'.freeze
+        RACK_CLIENT_REQUESTED_WITH_HEADER = 'HTTP_X_REQUESTED_WITH'.freeze
         REQUESTED_WITH_AJAX = 'XMLHttpRequest'.freeze
         CHARSET = 'charset'.freeze
         CHARSET_UTF8 = 'utf-8'.freeze
@@ -142,7 +142,7 @@ module Datadog
             injectable_html?(headers) &&
             no_cache?(headers) &&
             utf8?(headers) &&
-            !ajax_request?(headers) &&
+            !ajax_request?(env) &&
             !user_defined_cached?(env)
         # catch everything and swallow it here for defensiveness
         rescue Exception => e # rubocop:disable Lint/RescueException
@@ -189,13 +189,16 @@ module Datadog
             env[ACTION_CONTROLLER_INSTANCE].class.included_modules.include?(ActionController::Live)
         end
 
-        def ajax_request?(headers)
+        def ajax_request?(env)
           # We want to avoid adding HTML Comment to a potential HTML Fragment.
           # AJAX requests sometimes retrieve html and then add them as fragment to dom via js
           # A nonstandard but common indication of ajax is `X-Requested-With` header as `XMLHttpRequest`
           # If this exists, do not inject https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
 
-          (ajax_header = headers[REQUESTED_WITH_HEADER]) && ajax_header.include?(REQUESTED_WITH_AJAX)
+          (ajax_header = env[RACK_CLIENT_REQUESTED_WITH_HEADER]) && ajax_header.include?(REQUESTED_WITH_AJAX)
+        rescue StandardError => e
+          Datadog.logger.warn("Error checking X-Requested-With: #{e.message}")
+          false
         end
 
         def no_cache?(headers)
