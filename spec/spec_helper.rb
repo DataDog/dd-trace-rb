@@ -5,6 +5,12 @@ require 'rspec/collection_matchers'
 require 'webmock/rspec'
 require 'climate_control'
 
+# +SimpleCov.start+ must be invoked before any application code is loaded
+require 'simplecov'
+SimpleCov.start do
+  formatter SimpleCov::Formatter::SimpleFormatter
+end
+
 require 'ddtrace/encoding'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
