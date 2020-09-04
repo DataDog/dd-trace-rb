@@ -1,5 +1,6 @@
 routes = {
   '/' => 'tracing#index',
+  '/index_with_rescue_from' => 'tracing#index_with_rescue_from',
   '/nested_partial' => 'tracing#nested_partial',
   '/partial' => 'tracing#partial',
   '/full' => 'tracing#full',

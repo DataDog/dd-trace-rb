@@ -22,11 +22,10 @@ RSpec.describe 'Sinatra instrumentation' do
   let(:app) { sinatra_app }
 
   let(:with_rack) { false }
-  let(:with_rum_enabled) { false }
 
   before do
     Datadog.configure do |c|
-      c.use :rack, rum_injection_enabled: with_rum_enabled if with_rack
+      c.use :rack if with_rack
       c.use :sinatra, configuration_options
     end
   end
@@ -50,13 +49,6 @@ RSpec.describe 'Sinatra instrumentation' do
         run example.sinatra_app
       end.to_app
     end
-  end
-
-  shared_context 'with rack instrumentation and rum injection' do
-    include_context 'with rack instrumentation'
-
-    let(:with_rum_enabled) { true }
-    before { rack_middlewares << Datadog::Contrib::Rack::RumInjection }
   end
 
   let(:url) { '/' }
@@ -327,18 +319,6 @@ RSpec.describe 'Sinatra instrumentation' do
       end
     end
 
-    context 'rack and template' do
-      include_context 'with rack instrumentation and rum injection'
-
-      subject(:response) { get '/erb' }
-
-      it 'handles html injection' do
-        body = response.body
-
-        expect(body).to include(span.trace_id.to_s)
-      end
-    end
-
     context 'when the tracer is disabled' do
       subject(:response) { get '/' }
       let(:tracer) { get_test_tracer(enabled: false) }
@@ -430,48 +410,6 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.parent_id).to_not eq(2)
             expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to_not eq(2.0)
           end
-        end
-      end
-    end
-
-    context 'rack and rum manual injection template' do
-      include_context 'with rack instrumentation and rum injection'
-
-      context 'with rack env available' do
-        subject(:response) { get '/erb_manual_injection' }
-
-        it 'handles html injection of meta tags for trace id and time' do
-          body = response.body
-
-          expect(body).to include(span.trace_id.to_s)
-          expect(body).to include('dd-trace-id')
-          expect(body).to include('dd-trace-time')
-        end
-
-        it 'disables HTML comments from automatic injection' do
-          body = response.body
-
-          expect(body).to include(span.trace_id.to_s)
-          expect(body).to_not include('DATADOG')
-        end
-      end
-
-      context 'with rack env unavailable' do
-        subject(:response) { get '/erb_manual_injection_no_env' }
-
-        it 'handles html injection of meta tags for trace id and time' do
-          body = response.body
-
-          expect(body).to include(span.trace_id.to_s)
-          expect(body).to include('dd-trace-id')
-          expect(body).to include('dd-trace-time')
-        end
-
-        it 'does not disable HTML comments from automatic injection' do
-          body = response.body
-
-          expect(body).to include(span.trace_id.to_s)
-          expect(body).to include('DATADOG')
         end
       end
     end
