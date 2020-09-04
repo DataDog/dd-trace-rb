@@ -33,7 +33,7 @@ module Datadog
           FORM_FIELD_TAG_VERSION = 'version'.freeze
           FORM_FIELD_TAGS = 'tags'.freeze
           FORM_FIELD_TYPES = 'types'.freeze
-          FORM_FIELD_TYPE_CPU_TIME = 'cpu_time'.freeze
+          FORM_FIELD_TYPES_AUTO = 'auto'.freeze
 
           HEADER_CONTENT_TYPE = 'Content-Type'.freeze
           HEADER_CONTENT_TYPE_OCTET_STREAM = 'application/octet-stream'.freeze

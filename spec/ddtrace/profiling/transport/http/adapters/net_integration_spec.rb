@@ -87,7 +87,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           'recording-start' => kind_of(String),
           'recording-end' => kind_of(String),
           'data[0]' => kind_of(String),
-          'types[0]' => /ruby-cpu(,wall_time_ns)?/, # TODO: Replace
+          'types[0]' => /auto/,
           'runtime' => Datadog::Ext::Runtime::LANG_INTERPRETER,
           'format' => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT_PPROF
         )

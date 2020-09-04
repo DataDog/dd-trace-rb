@@ -14,10 +14,6 @@ module Datadog
           class Endpoint < Datadog::Transport::HTTP::API::Endpoint
             include Datadog::Ext::Profiling::Transport::HTTP
 
-            TYPE_MAPPINGS = {
-              cpu_time_ns: 'ruby-cpu'.freeze
-            }.freeze
-
             attr_reader \
               :encoder
 
@@ -71,11 +67,6 @@ module Datadog
             def build_pprof(flush)
               pprof = encoder.encode(flush)
 
-              # Convert types
-              types = pprof.types.map do |type|
-                TYPE_MAPPINGS.key?(type) ? TYPE_MAPPINGS[type] : type.to_s
-              end
-
               # Wrap pprof as a gzipped file
               gzipped_data = Datadog::Utils::Compression.gzip(pprof.data)
               pprof_file = Datadog::Vendor::Multipart::Post::UploadIO.new(
@@ -84,7 +75,7 @@ module Datadog
                 PPROF_DEFAULT_FILENAME
               )
 
-              [pprof_file, types]
+              [pprof_file, [FORM_FIELD_TYPES_AUTO]]
             end
           end
         end
