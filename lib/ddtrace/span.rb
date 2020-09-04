@@ -280,6 +280,9 @@ module Datadog
         packer.write_map_header(11) # Set header with how many elements in the map
       end
 
+      # DEV: We use strings as keys here, instead of symbols, as
+      # DEV: MessagePack will ultimately convert them to strings.
+      # DEV: By providing strings directly, we skip this indirection operation.
       packer.write('span_id')
       packer.write(@span_id)
       packer.write('parent_id')
