@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'time'
 require 'thread'
 
@@ -269,36 +271,36 @@ module Datadog
       if !@start_time.nil? && !@end_time.nil?
         packer.write_map_header(13) # Set header with how many elements in the map
 
-        packer.write(:start)
+        packer.write('start')
         packer.write((@start_time.to_f * 1e9).to_i)
 
-        packer.write(:duration)
+        packer.write('duration')
         packer.write(((@end_time - @start_time) * 1e9).to_i)
       else
         packer.write_map_header(11) # Set header with how many elements in the map
       end
 
-      packer.write(:span_id)
+      packer.write('span_id')
       packer.write(@span_id)
-      packer.write(:parent_id)
+      packer.write('parent_id')
       packer.write(@parent_id)
-      packer.write(:trace_id)
+      packer.write('trace_id')
       packer.write(@trace_id)
-      packer.write(:name)
+      packer.write('name')
       packer.write(@name)
-      packer.write(:service)
+      packer.write('service')
       packer.write(@service)
-      packer.write(:resource)
+      packer.write('resource')
       packer.write(@resource)
-      packer.write(:type)
+      packer.write('type')
       packer.write(@span_type)
-      packer.write(:meta)
+      packer.write('meta')
       packer.write(@meta)
-      packer.write(:metrics)
+      packer.write('metrics')
       packer.write(@metrics)
-      packer.write(:allocations)
+      packer.write('allocations')
       packer.write(allocations)
-      packer.write(:error)
+      packer.write('error')
       packer.write(@status)
       packer
     end
