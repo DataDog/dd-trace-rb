@@ -19,27 +19,40 @@ RSpec.describe 'Microbenchmark Transport' do
     "\r\n" \
     "{\"rate_by_service\":{\"service:,env:\":1}}\n".freeze
 
-    before(:each) do
-      @server_thread = Thread.new do
-        previous_conn = nil
-        loop do
-          conn = server.accept
-          conn.print AGENT_HTTP_RESPONSE
-          conn.flush
+    def server_runner
+      previous_conn = nil
+      loop do
+        conn = server.accept
+        conn.print AGENT_HTTP_RESPONSE
+        conn.flush
 
-          # Closing the connection immediately can sometimes
-          # be too fast, cause to other side to not be able
-          # to read the response in time.
-          # We instead delay closing the connection until the next
-          # connection request comes in.
-          previous_conn.close if previous_conn
-          previous_conn = conn
-        end
+        # Closing the connection immediately can sometimes
+        # be too fast, cause to other side to not be able
+        # to read the response in time.
+        # We instead delay closing the connection until the next
+        # connection request comes in.
+        previous_conn.close if previous_conn
+        previous_conn = conn
       end
     end
 
-    after(:each) do
-      @server_thread.kill
+    before do
+      # Initializes server in a fork, to allow for true concurrency.
+      # In JRuby, threads are not supported, but true thread concurrency is.
+      @server_runner = if PlatformHelpers.supports_fork?
+                         fork { server_runner }
+                       else
+                         Thread.new { server_runner }
+                       end
+    end
+
+    after do
+      if PlatformHelpers.supports_fork?
+        Process.kill('TERM', @server_runner) rescue nil
+        Process.wait(@server_runner)
+      else
+        @server_runner.kill
+      end
     end
 
     around do |example|
