@@ -39,16 +39,6 @@ module Datadog
           option :service_name, default: Ext::SERVICE_NAME
 
           option :web_service_name, default: Ext::WEBSERVER_SERVICE_NAME
-
-          option :rum_injection_enabled do |o|
-            o.default { env_to_bool(Ext::ENV_RUM_INJECTION, false) }
-            o.lazy
-          end
-
-          option :rum_injection_disabled_paths do |o|
-            o.default { env_to_list(Ext::ENV_TRACE_CACHED_PAGES, []) }
-            o.lazy
-          end
         end
       end
     end

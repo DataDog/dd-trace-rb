@@ -3,7 +3,6 @@ require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
 require 'ddtrace/contrib/rails/log_injection'
 require 'ddtrace/contrib/rack/middlewares'
-require 'ddtrace/contrib/rack/rum_injection'
 
 module Datadog
   module Contrib
@@ -51,10 +50,6 @@ module Datadog
             ActionDispatch::ShowExceptions,
             Datadog::Contrib::Rails::ExceptionMiddleware
           )
-
-          if Datadog.configuration[:rack][:rum_injection_enabled]
-            app.middleware.use(Datadog::Contrib::Rack::RumInjection)
-          end
         end
 
         def add_logger(app)
