@@ -15,7 +15,7 @@ module Datadog
             include Datadog::Ext::Profiling::Transport::HTTP
 
             TYPE_MAPPINGS = {
-              cpu_time_ns: 'ruby-cpu'.freeze
+              cpu_time_ns: 'auto'.freeze
             }.freeze
 
             attr_reader \
@@ -70,11 +70,6 @@ module Datadog
 
             def build_pprof(flush)
               pprof = encoder.encode(flush)
-
-              # Convert types
-              types = pprof.types.map do |type|
-                TYPE_MAPPINGS.key?(type) ? TYPE_MAPPINGS[type] : type.to_s
-              end
 
               # Wrap pprof as a gzipped file
               gzipped_data = Datadog::Utils::Compression.gzip(pprof.data)
