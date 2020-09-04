@@ -1198,7 +1198,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `service_name` | Service name used for `rack` instrumentation | `'rack'` |
 | `web_service_name` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | `'web-server'` |
 
-
 **Configuring URL quantization behavior**
 
 ```ruby
