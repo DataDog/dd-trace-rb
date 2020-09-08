@@ -32,7 +32,7 @@ module Datadog
           FORM_FIELD_TAG_SERVICE = 'service'.freeze
           FORM_FIELD_TAG_VERSION = 'version'.freeze
           FORM_FIELD_TAGS = 'tags'.freeze
-          FORM_FIELD_TYPES = 'types'.freeze
+          FORM_FIELD_TYPES = 'types[0]'.freeze
           FORM_FIELD_TYPES_AUTO = 'auto'.freeze
 
           HEADER_CONTENT_TYPE = 'Content-Type'.freeze
