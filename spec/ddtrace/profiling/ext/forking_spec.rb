@@ -58,6 +58,10 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
     context 'when forking is supported' do
       before { skip 'Forking not supported' unless described_class.supported? }
+      # NOTE: For whatever reason, if this patch is applied and reset in other tests,
+      #       it tends not to re-patch properly in Ruby < 2.3. This is not an issue in
+      #       production environments but will fail the test suite occasionally.
+      before { skip 'Test is unstable for Ruby < 2.3' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3') }
 
       it 'applies the Kernel patch' do
         # NOTE: There's no way to undo a modification of the TOPLEVEL_BINDING.
