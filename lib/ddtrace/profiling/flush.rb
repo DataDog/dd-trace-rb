@@ -15,7 +15,8 @@ module Datadog
       :version,
       :host,
       :language,
-      :runtime,
+      :runtime_engine,
+      :runtime_platform,
       :runtime_version,
       :profiler_version
     ) do
@@ -27,7 +28,8 @@ module Datadog
         self.version = version || Datadog.configuration.version
         self.host = host || Datadog::Runtime::Socket.hostname
         self.language = language || Datadog::Runtime::Identity.lang
-        self.runtime = runtime || Datadog::Runtime::Identity.lang_interpreter
+        self.runtime_engine = runtime_engine || Datadog::Runtime::Identity.lang_engine
+        self.runtime_platform = runtime_platform || Datadog::Runtime::Identity.lang_platform
         self.runtime_version = runtime_version || Datadog::Runtime::Identity.lang_version
         self.profiler_version = profiler_version || Datadog::Runtime::Identity.tracer_version
       end
