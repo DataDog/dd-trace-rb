@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace'
@@ -107,6 +108,8 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           it 'has correct service name' do
             expect(span.service).to eq('httprb')
           end
+
+          it_behaves_like 'a peer service span'
 
           it_behaves_like 'analytics for integration' do
             let(:analytics_enabled_var) { Datadog::Contrib::Httprb::Ext::ENV_ANALYTICS_ENABLED }

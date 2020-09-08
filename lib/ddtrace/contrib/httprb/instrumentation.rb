@@ -72,6 +72,9 @@ module Datadog
               logger.debug("service #{req_options[:service_name]} span #{Ext::SPAN_REQUEST} missing uri")
             end
 
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+
             set_analytics_sample_rate(span, req_options)
           end
 

@@ -70,11 +70,9 @@ RSpec.describe 'Sequel instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-<<<<<<< HEAD
       it_behaves_like 'a peer service span'
-=======
+
       it_behaves_like 'measured span for integration', false
->>>>>>> master
     end
 
     describe 'when queried through a Sequel::Dataset' do

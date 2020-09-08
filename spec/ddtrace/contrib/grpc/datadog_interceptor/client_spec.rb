@@ -68,11 +68,9 @@ RSpec.describe 'tracing on the client connection' do
       let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-<<<<<<< HEAD
     it_behaves_like 'a peer service span'
-=======
+
     it_behaves_like 'measured span for integration', false
->>>>>>> master
   end
 
   describe '#request_response' do

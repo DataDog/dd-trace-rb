@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -202,6 +203,8 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
 
       it_behaves_like 'measured span for integration', false
+
+      it_behaves_like 'a peer service span'
     end
 
     describe '#run operation' do
