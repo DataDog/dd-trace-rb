@@ -111,7 +111,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
         it 'includes env tags' do
           call
           expect(env.form).to include(
-            'types[0]' => 'auto'
+            Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TYPES => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TYPES_AUTO
           )
         end
       end
