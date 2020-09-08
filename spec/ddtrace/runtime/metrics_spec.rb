@@ -43,7 +43,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
       context 'with external resource span' do
         let(:span) do
-          super().tap { |s| s.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, 'peer-service-name') }
+          Datadog::Span.new(nil, 'dummy', service: service).tap { |s| s.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, 'peer-service-name') }
         end
 
         it "doesn't tag as an internal language span" do
