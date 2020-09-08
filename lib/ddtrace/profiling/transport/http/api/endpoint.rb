@@ -42,14 +42,17 @@ module Datadog
                 FORM_FIELD_RECORDING_START => flush.start.utc.iso8601,
                 FORM_FIELD_RECORDING_END => flush.finish.utc.iso8601,
                 FORM_FIELD_TAGS => [
-                  "#{FORM_FIELD_TAG_RUNTIME}:#{flush.runtime}",
+                  "#{FORM_FIELD_TAG_RUNTIME}:#{flush.language}",
+                  "#{FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
+                  "#{FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
                   "#{FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
                   "#{FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
+                  # NOTE: Redundant w/ 'runtime'; may want to remove this later.
                   "#{FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",
                   "#{FORM_FIELD_TAG_HOST}:#{flush.host}"
                 ],
                 FORM_FIELD_DATA => pprof_file,
-                FORM_FIELD_RUNTIME => flush.runtime,
+                FORM_FIELD_RUNTIME => flush.language,
                 FORM_FIELD_FORMAT => FORM_FIELD_FORMAT_PPROF
               }
 
