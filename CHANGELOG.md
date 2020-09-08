@@ -2,6 +2,67 @@
 
 ## [Unreleased]
 
+## [0.40.0] - 2020-09-08
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.40.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.39.0...v0.40.0
+
+### Added
+
+- Rails `log_injection` option to auto enable log correlation (#1157)
+- Que integration (#1141, #1146) (@hs-bguven)
+- `Components#startup!` hook (#1151)
+- Code coverage report (#1159)
+  - Every commit now has a `coverage` CI step that contains the code coverage report. This report can be found in the `Artifacts` tab of that CI step, under `coverage/index.html`.
+
+### Changed
+
+- Use a single top level span for Racecar consumers (#1150) (@dasch)
+
+### Fixed
+
+- Sinatra nested modular applications possibly leaking spans (#1035, #1145)
+  
+  * **BREAKING** for nested modular Sinatra applications only:
+    ```ruby
+    class Nested < Sinatra::Base
+    end
+    
+    class TopLevel < Sinatra::Base
+      use Nested # Nesting happens here
+    end
+    ```
+  * Non-breaking for classic applications nor modular non-nested applications.
+  
+  Fixes issues introduced by #1015 (in 0.35.0), when we first introduced Sinatra support for modular applications.
+  
+  The main issue we had to solve for modular support is how to handle nested applications, as only one application is actually responsible for handling the route. A naive implementation would cause the creation of nested `sinatra.request` spans, even for applications that did not handle the request. This is technically correct, as Sinatra is traversing that middleware, accruing overhead, but that does not aligned with our existing behavior of having a single `sinatra.request` span.
+  
+  While trying to achieve backwards-compatibility, we had to resort to a solution that turned out brittle: `sinatra.request` spans had to start in one middleware level and finished it in another. This allowed us to only capture the `sinatra.request` for the matching route, and skip the non-matching one. This caused unexpected issues on some user setups, specially around Sinatra middleware that created spans in between the initialization and closure of `sinatra.request` spans.
+  
+  This change now address these implementation issues by creating multiple `sinatra.request`, one for each traversed Sinatra application, even non-matching ones. This instrumentation is more correct, but at the cost of being a breaking change for nested modular applications.
+  
+  Please see #1145 for more information, and example screenshots on how traces for affected applications will look like.
+
+- Rack/Rails span error propagation with `rescue_from` (#1155, #1162)
+- Prevent logger recursion during startup (#1158)
+- Race condition on new worker classes (#1154)
+  - These classes represent future work, and not being used at the moment.
+
+### Refactored
+
+- Run CI tests in parallel (#1156)
+- Migrate minitest tests to RSpec (#1127, #1128, #1133, #1149, #1152, #1153)
+- Improvements to test suite (#1134, #1148, #1163)
+- Improvements to documentation (#1138)
+
+### Removed
+
+- **Ruby 1.9 support ended, as it transitions from Maintenance to End-Of-Life (#1137)**
+- GitLab status check when not applicable (#1160)
+  - Allows for PRs pass all status checks once again. Before this change, a `dd-gitlab/copy_to_s3` check would never leave the "Pending" status. This check tracks the deployment of a commit to an internal testing platform, which currently only happens on `master` branch or when manually triggered internally.
+
 ## [0.39.0] - 2020-08-05
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.39.0
@@ -1334,7 +1395,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.39.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.40.0...master
+[0.40.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.39.0...v0.40.0
 [0.39.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.38.0...v0.39.0
 [0.38.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...v0.38.0
 [0.37.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.36.0...v0.37.0
