@@ -49,14 +49,13 @@ module Datadog
           module InstanceMethods
             def datadog_pin
               @datadog_pin ||= begin
-                tracer = Datadog.configuration[:mongo][:tracer]
                 service = Datadog.configuration[:mongo][:service_name]
 
                 Datadog::Pin.new(
                   service,
                   app: Datadog::Contrib::MongoDB::Ext::APP,
                   app_type: Datadog::Ext::AppTypes::DB,
-                  tracer: tracer
+                  tracer: -> { Datadog.configuration[:mongo][:tracer] }
                 )
               end
             end

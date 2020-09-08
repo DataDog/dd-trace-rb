@@ -4,7 +4,7 @@ module Datadog
   module Configuration
     # Represents a definition for an integration configuration option
     class OptionDefinition
-      IDENTITY = ->(x) { x }
+      IDENTITY = ->(new_value, _old_value) { new_value }
 
       attr_reader \
         :default,
@@ -25,10 +25,6 @@ module Datadog
         @on_set = meta[:on_set]
         @resetter = meta[:resetter]
         @setter = meta[:setter] || block || IDENTITY
-      end
-
-      def default_value
-        lazy ? @default.call : @default
       end
 
       # Creates a new Option, bound to the context provided.

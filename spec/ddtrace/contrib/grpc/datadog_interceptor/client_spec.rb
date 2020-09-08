@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/integration_examples'
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'grpc'
@@ -7,10 +7,7 @@ require 'ddtrace'
 
 RSpec.describe 'tracing on the client connection' do
   subject(:client) { Datadog::Contrib::GRPC::DatadogInterceptor::Client.new }
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer, service_name: 'rspec' } }
-
-  let(:span) { tracer.writer.spans.first }
+  let(:configuration_options) { { service_name: 'rspec' } }
 
   before do
     Datadog.configure do |c|
@@ -45,12 +42,14 @@ RSpec.describe 'tracing on the client connection' do
 
     it 'replaces default service name' do
       default_client_interceptor.request_response(keywords) {}
-      span = tracer.writer.spans.first
+      span = fetch_spans.first
       expect(span.service).to eq 'rspec'
       expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('rspec')
 
+      clear_spans!
+
       configured_client_interceptor.request_response(keywords) {}
-      span = tracer.writer.spans.first
+      span = fetch_spans.first
       expect(span.service).to eq 'cepsr'
       expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('cepsr')
     end
@@ -69,7 +68,11 @@ RSpec.describe 'tracing on the client connection' do
       let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
+<<<<<<< HEAD
     it_behaves_like 'a peer service span'
+=======
+    it_behaves_like 'measured span for integration', false
+>>>>>>> master
   end
 
   describe '#request_response' do

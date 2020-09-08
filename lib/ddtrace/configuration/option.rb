@@ -13,9 +13,10 @@ module Datadog
       end
 
       def set(value)
-        (@value = context_exec(value, &definition.setter)).tap do |v|
+        old_value = @value
+        (@value = context_exec(value, old_value, &definition.setter)).tap do |v|
           @is_set = true
-          context_exec(v, &definition.on_set) if definition.on_set
+          context_exec(v, old_value, &definition.on_set) if definition.on_set
         end
       end
 
@@ -25,7 +26,7 @@ module Datadog
         elsif definition.delegate_to
           context_eval(&definition.delegate_to)
         else
-          set(definition.default_value)
+          set(default_value)
         end
       end
 
@@ -39,6 +40,14 @@ module Datadog
                    @is_set = false
                    nil
                  end
+      end
+
+      def default_value
+        if definition.lazy
+          context_eval(&definition.default)
+        else
+          definition.default
+        end
       end
 
       private

@@ -75,7 +75,7 @@ module Datadog
             callbacks.run(name, :before_trace, id, payload, start)
 
             # Start a trace
-            tracer.trace(@span_name, @options).tap do |span|
+            tracer.trace(@span_name, @options.dup).tap do |span|
               # Assign start time if provided
               span.start_time = start unless start.nil?
               payload[:datadog_span] = span
@@ -114,7 +114,7 @@ module Datadog
             def run(span, name, id, payload)
               run!(span, name, id, payload)
             rescue StandardError => e
-              Datadog::Logger.log.debug("ActiveSupport::Notifications handler for '#{name}' failed: #{e.message}")
+              Datadog.logger.debug("ActiveSupport::Notifications handler for '#{name}' failed: #{e.message}")
             end
 
             def run!(*args)
@@ -139,7 +139,7 @@ module Datadog
                 begin
                   callback.call(event, key, *args)
                 rescue StandardError => e
-                  Datadog::Logger.log.debug(
+                  Datadog.logger.debug(
                     "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.message}"
                   )
                 end

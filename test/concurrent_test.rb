@@ -2,6 +2,11 @@ require 'helper'
 require 'ddtrace/tracer'
 
 class ConcurrentTest < Minitest::Test
+  def setup
+    # Ensure library is initialized in the main thread first
+    Datadog.configure
+  end
+
   def traced_task
     @tracer.trace('a-root-task') do |_root_span|
       delay = rand()

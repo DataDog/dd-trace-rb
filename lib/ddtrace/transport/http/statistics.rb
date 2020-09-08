@@ -6,7 +6,7 @@ module Datadog
       # Tracks statistics for HTTP transports
       module Statistics
         def self.included(base)
-          base.send(:include, Transport::Statistics)
+          base.send(:include, Datadog::Transport::Statistics)
           base.send(:include, InstanceMethods)
         end
 

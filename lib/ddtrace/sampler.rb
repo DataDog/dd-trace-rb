@@ -48,7 +48,7 @@ module Datadog
     #   sampled.
     def initialize(sample_rate = 1.0)
       unless sample_rate > 0.0 && sample_rate <= 1.0
-        Datadog::Logger.log.error('sample rate is not between 0 and 1, disabling the sampler')
+        Datadog.logger.error('sample rate is not between 0 and 1, disabling the sampler')
         sample_rate = 1.0
       end
 
@@ -176,7 +176,7 @@ module Datadog
       update_all(rate_by_service)
 
       # Emit metric for service cache size
-      Diagnostics::Health.metrics.sampling_service_cache_length(length)
+      Datadog.health_metrics.sampling_service_cache_length(length)
     end
 
     private
@@ -192,6 +192,8 @@ module Datadog
   # \PrioritySampler
   class PrioritySampler
     extend Forwardable
+
+    attr_reader :pre_sampler, :priority_sampler
 
     SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
 

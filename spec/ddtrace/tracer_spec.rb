@@ -19,6 +19,85 @@ RSpec.describe Datadog::Tracer do
     end
   end
 
+  describe '#tags' do
+    subject(:tags) { tracer.tags }
+    let(:env_tags) { {} }
+
+    before { allow(Datadog.configuration).to receive(:tags).and_return(env_tags) }
+
+    context 'by default' do
+      it { is_expected.to eq env_tags }
+    end
+
+    context 'when equivalent String and Symbols are added' do
+      shared_examples 'equivalent tags' do
+        it 'retains the tag only as a String' do
+          is_expected.to include('host')
+          is_expected.to_not include(:host)
+        end
+
+        it 'retains only the last value' do
+          is_expected.to include('host' => 'b')
+        end
+      end
+
+      context 'with #set_tags' do
+        it_behaves_like 'equivalent tags' do
+          before do
+            tracer.set_tags('host' => 'a')
+            tracer.set_tags(host: 'b')
+          end
+        end
+
+        it_behaves_like 'equivalent tags' do
+          before do
+            tracer.set_tags(host: 'a')
+            tracer.set_tags('host' => 'b')
+          end
+        end
+      end
+    end
+  end
+
+  describe '#start_span' do
+    subject(:start_span) { tracer.start_span(name, options) }
+    let(:span) { start_span }
+    let(:name) { 'span.name' }
+    let(:options) { {} }
+
+    it { is_expected.to be_a_kind_of(Datadog::Span) }
+
+    context 'when :tags are given' do
+      let(:options) { super().merge(tags: tags) }
+      let(:tags) { { tag_name => tag_value } }
+      let(:tag_name) { 'my-tag' }
+      let(:tag_value) { 'my-value' }
+
+      it { expect(span.get_tag(tag_name)).to eq(tag_value) }
+
+      context 'and default tags are set on the tracer' do
+        let(:default_tags) { { default_tag_name => default_tag_value } }
+        let(:default_tag_name) { 'default_tag' }
+        let(:default_tag_value) { 'default_value' }
+
+        before { tracer.set_tags(default_tags) }
+
+        it 'includes both :tags and default tags' do
+          expect(span.get_tag(default_tag_name)).to eq(default_tag_value)
+          expect(span.get_tag(tag_name)).to eq(tag_value)
+        end
+
+        context 'which conflicts with :tags' do
+          let(:tag_name) { default_tag_name }
+
+          it 'uses the tag from :tags' do
+            expect(span.get_tag(tag_name)).to eq(tag_value)
+          end
+        end
+      end
+    end
+  end
+
   describe '#trace' do
     let(:name) { 'span.name' }
     let(:options) { {} }
@@ -73,6 +152,23 @@ RSpec.describe Datadog::Tracer do
             end.to yield_with_args(nil)
           end.to_not raise_error
         end
+
+        context 'with fatal exception' do
+          let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
+
+          before(:each) do
+            # Raise error at first line of begin block
+            allow(tracer).to receive(:start_span).and_raise(fatal_error)
+          end
+
+          it 'does not yield to block and reraises exception' do
+            expect do |b|
+              expect do
+                tracer.trace(name, &b)
+              end.to raise_error(fatal_error)
+            end.to_not yield_control
+          end
+        end
       end
 
       context 'when the block raises an error' do
@@ -91,7 +187,6 @@ RSpec.describe Datadog::Tracer do
 
           context 'is a block' do
             it 'yields to the error block and raises the error' do
-              expect_any_instance_of(Datadog::Span).to_not receive(:set_error)
               expect do
                 expect do |b|
                   tracer.trace(name, on_error: b.to_proc, &block)
@@ -100,6 +195,36 @@ RSpec.describe Datadog::Tracer do
                   error
                 )
               end.to raise_error(error)
+
+              expect(spans).to have(1).item
+              expect(spans[0]).to_not have_error
+            end
+          end
+        end
+      end
+    end
+
+    context 'without a block' do
+      subject(:trace) { tracer.trace(name, options) }
+
+      context 'with child_of: option' do
+        let!(:root_span) { tracer.start_span 'root' }
+        let(:options) { { child_of: root_span } }
+
+        it 'creates span with root span parent' do
+          tracer.trace 'another' do |_another_span|
+            expect(trace.parent).to eq root_span
+          end
+        end
+      end
+
+      context 'without child_of: option' do
+        let(:options) { {} }
+
+        it 'creates span with current context' do
+          tracer.trace 'root' do |_root_span|
+            tracer.trace 'another' do |another_span|
+              expect(trace.parent).to eq another_span
             end
           end
         end
@@ -140,8 +265,8 @@ RSpec.describe Datadog::Tracer do
     context 'when no trace is active' do
       it 'produces an empty Datadog::Correlation::Identifier' do
         is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
-        expect(active_correlation.trace_id).to be 0
-        expect(active_correlation.span_id).to be 0
+        expect(active_correlation.trace_id).to eq 0
+        expect(active_correlation.span_id).to eq 0
       end
     end
   end

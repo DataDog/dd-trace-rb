@@ -1,5 +1,8 @@
 require 'time'
 
+require 'ddtrace/workers/trace_writer'
+require 'ddtrace/workers/runtime_metrics'
+
 require 'ddtrace/buffer'
 require 'ddtrace/runtime/metrics'
 
@@ -25,7 +28,6 @@ module Datadog
 
         # Callbacks
         @trace_task = options[:on_trace]
-        @runtime_metrics_task = options[:on_runtime_metrics]
 
         # Intervals
         interval = options.fetch(:interval, DEFAULT_FLUSH_INTERVAL)
@@ -55,18 +57,10 @@ module Datadog
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
           # a fatal exception
-          Datadog::Logger.log.error(
+          Datadog.logger.error(
             "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{e.backtrace.first}"
           )
         end
-      end
-
-      def callback_runtime_metrics
-        @runtime_metrics_task.call unless @runtime_metrics_task.nil?
-      rescue StandardError => e
-        Datadog::Logger.log.error(
-          "Error during runtime metrics flush. Cause: #{e} Location: #{e.backtrace.first}"
-        )
       end
 
       # Start the timer execution.
@@ -74,7 +68,7 @@ module Datadog
         @mutex.synchronize do
           return if @run
           @run = true
-          Logger.log.debug("Starting thread in the process: #{Process.pid}")
+          Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
           @worker = Thread.new { perform }
         end
       end
@@ -111,8 +105,6 @@ module Datadog
       def perform
         loop do
           @back_off = flush_data ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
-
-          callback_runtime_metrics
 
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty?

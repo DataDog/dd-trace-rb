@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'aws-sdk'
 require 'ddtrace/contrib/aws/parsed_context'

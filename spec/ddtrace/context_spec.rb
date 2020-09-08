@@ -42,6 +42,23 @@ RSpec.describe Datadog::Context do
       let(:sampled) { double('sampled') }
       it { expect(context.sampled?).to eq(sampled) }
     end
+
+    context 'given a sampling_priority' do
+      [Datadog::Ext::Priority::USER_REJECT,
+       Datadog::Ext::Priority::AUTO_REJECT,
+       Datadog::Ext::Priority::AUTO_KEEP,
+       Datadog::Ext::Priority::USER_KEEP,
+       nil, 999].each do |sampling_priority|
+        context ": #{sampling_priority} sampling_priority" do
+          let(:options) { { sampling_priority: sampling_priority } }
+          if sampling_priority
+            it { expect(context.sampling_priority).to eq(sampling_priority) }
+          else
+            it { expect(context.sampling_priority).to be nil }
+          end
+        end
+      end
+    end
   end
 
   describe '#add_span' do
@@ -70,7 +87,7 @@ RSpec.describe Datadog::Context do
 
         let(:options) { { max_length: max_length } }
         let(:max_length) { 1 }
-        before { allow(Datadog::Logger.log).to receive(:debug) }
+        before { allow(Datadog.logger).to receive(:debug) }
 
         RSpec::Matchers.define :a_context_overflow_error do
           match { |actual| actual.include?('context full') }
@@ -88,7 +105,7 @@ RSpec.describe Datadog::Context do
 
           it 'sends overflow metric' do
             expect(overflow_span).to have_received(:context=).with(nil)
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
             expect(health_metrics).to have_received(:error_context_overflow)
               .with(1, tags: ["max_length:#{max_length}"])
@@ -102,7 +119,7 @@ RSpec.describe Datadog::Context do
           end
 
           it 'sends overflow metric only once' do
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
               .twice
             expect(health_metrics).to have_received(:error_context_overflow)
@@ -121,7 +138,7 @@ RSpec.describe Datadog::Context do
           end
 
           it 'sends overflow metric once per reset' do
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
               .twice
             expect(health_metrics).to have_received(:error_context_overflow)
@@ -183,19 +200,19 @@ RSpec.describe Datadog::Context do
           match { |actual| actual.include?('unfinished span:') }
         end
 
-        context 'when tracer debug logging is on' do
+        context 'when debug mode is on' do
           before do
-            allow(Datadog::Logger).to receive(:debug_logging).and_return(true)
-            allow(Datadog::Logger.log).to receive(:debug)
+            allow(Datadog.configuration.diagnostics).to receive(:debug).and_return(true)
+            allow(Datadog.logger).to receive(:debug)
             context.add_span(unfinished_span)
             close_span
           end
 
           it 'logs debug messages' do
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(an_unfinished_spans_error('root.span', 1))
 
-            expect(Datadog::Logger.log).to have_received(:debug)
+            expect(Datadog.logger).to have_received(:debug)
               .with(an_unfinished_span_error).once
           end
         end
@@ -387,6 +404,116 @@ RSpec.describe Datadog::Context do
 
       it do
         expect(root_span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority)
+      end
+    end
+  end
+
+  describe '#length' do
+    subject(:ctx) { context }
+    let(:span) { new_span }
+
+    def new_span(name = nil)
+      Datadog::Span.new(get_test_tracer, name)
+    end
+
+    context 'with many spans' do
+      it 'should track the number of spans added to the trace' do
+        10.times do |i|
+          span_to_add = span
+          expect(ctx.send(:length)).to eq(i)
+          ctx.add_span(span_to_add)
+          expect(ctx.send(:length)).to eq(i + 1)
+          ctx.close_span(span_to_add)
+          expect(ctx.send(:length)).to eq(i + 1)
+        end
+
+        ctx.get
+        expect(ctx.send(:length)).to eq(0)
+      end
+    end
+  end
+
+  describe '#start_time' do
+    subject(:ctx) { tracer.call_context }
+    let(:tracer) { get_test_tracer }
+
+    context 'with no active spans' do
+      it 'should not have a start time' do
+        expect(ctx.send(:start_time)).to be nil
+      end
+    end
+
+    context 'with a span in the trace' do
+      it 'should track start time of the span when trace is active' do
+        expect(ctx.send(:start_time)).to be nil
+
+        tracer.trace('test.op') do |span|
+          expect(ctx.send(:start_time)).to eq(span.start_time)
+          expect(ctx.send(:start_time)).to_not be nil
+        end
+
+        expect(ctx.send(:start_time)).to be nil
+      end
+    end
+  end
+
+  describe '#each_span' do
+    subject(:ctx) { context }
+
+    def new_span(name = nil)
+      Datadog::Span.new(get_test_tracer, name)
+    end
+
+    context 'with a span in the trace' do
+      it 'should iterate over all the spans available' do
+        test_name = 'op.test'
+        new_span(test_name)
+
+        ctx.send(:each_span) do |span|
+          expect(span.name).to eq(test_name)
+        end
+      end
+    end
+  end
+
+  describe 'thread safe behavior' do
+    def new_span(name = nil)
+      Datadog::Span.new(get_test_tracer, name)
+    end
+
+    context 'with many threads' do
+      it 'should be threadsafe' do
+        n = 100
+        threads = []
+        spans = []
+        mutex = Mutex.new
+
+        n.times do |i|
+          threads << Thread.new do
+            span = new_span("test.op#{i}")
+            context.add_span(span)
+            mutex.synchronize do
+              spans << span
+            end
+          end
+        end
+        threads.each(&:join)
+
+        threads = []
+        spans.each do |span|
+          threads << Thread.new do
+            context.close_span(span)
+          end
+        end
+        threads.each(&:join)
+
+        trace, sampled = context.get
+
+        expect(trace.length).to eq(n)
+        expect(sampled).to be true
+        expect(context.finished_span_count).to eq(0)
+        expect(context.current_span).to be nil
+        expect(context.sampled?).to be false
       end
     end
   end

@@ -13,13 +13,14 @@ RSpec.shared_context 'Resque job' do
   let(:queue_name) { :test_queue }
   let(:worker) { Resque::Worker.new(queue_name) }
   let(:job_class) do
-    stub_const('TestJob', Module.new).tap do |mod|
+    stub_const('TestJob', Class.new).tap do |mod|
       mod.send(:extend, Datadog::Contrib::Resque::ResqueJob)
-      mod.send(:define_singleton_method, :perform) do
+      mod.send(:define_singleton_method, :perform) do |*args|
         # Do nothing by default.
       end
     end
   end
+  let(:job_args) { nil }
 
   before(:each) do
     Resque.after_fork { Datadog::Pin.get_from(Resque).tracer.writer = FauxWriter.new }

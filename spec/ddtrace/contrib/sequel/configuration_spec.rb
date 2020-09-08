@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/integration_examples'
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'time'
 require 'sequel'
@@ -7,20 +7,26 @@ require 'ddtrace'
 require 'ddtrace/contrib/sequel/patcher'
 
 RSpec.describe 'Sequel configuration' do
-  let(:tracer) { get_test_tracer }
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
-
   before(:each) do
     skip unless Datadog::Contrib::Sequel::Integration.compatible?
   end
 
+  let(:span) { spans.first }
+
   describe 'for a SQLite database' do
     let(:sequel) do
-      Sequel.sqlite(':memory:').tap do |db|
+      Sequel.connect(connection_string).tap do |db|
         db.create_table(:table) do
           String :name
         end
+      end
+    end
+
+    let(:connection_string) do
+      if PlatformHelpers.jruby?
+        'jdbc:sqlite::memory:'
+      else
+        'sqlite::memory:'
       end
     end
 
@@ -33,10 +39,17 @@ RSpec.describe 'Sequel configuration' do
       after(:each) { Datadog.configuration[:sequel].reset! }
 
       context 'only with defaults' do
+<<<<<<< HEAD
         before { Datadog.configure { |c| c.use :sequel, tracer: tracer } }
 
         it 'normalizes adapter name' do
           subject
+=======
+        # Expect it to be the normalized adapter name.
+        it do
+          Datadog.configure { |c| c.use :sequel }
+          perform_query!
+>>>>>>> master
           expect(span.service).to eq('sqlite')
         end
 
@@ -49,7 +62,12 @@ RSpec.describe 'Sequel configuration' do
         before { Datadog.configure { |c| c.use :sequel, tracer: tracer, service_name: service_name } }
 
         it do
+<<<<<<< HEAD
           subject
+=======
+          Datadog.configure { |c| c.use :sequel, service_name: service_name }
+          perform_query!
+>>>>>>> master
           expect(span.service).to eq(service_name)
         end
 
@@ -59,8 +77,13 @@ RSpec.describe 'Sequel configuration' do
       context 'with options set on Sequel::Database' do
         let(:service_name) { 'custom-sequel' }
 
+<<<<<<< HEAD
         before do
           Datadog.configure { |c| c.use :sequel, tracer: tracer }
+=======
+        it do
+          Datadog.configure { |c| c.use :sequel }
+>>>>>>> master
           Datadog.configure(sequel, service_name: service_name)
         end
 
@@ -78,7 +101,7 @@ RSpec.describe 'Sequel configuration' do
       context 'after the database has been initialized' do
         before do
           sequel
-          Datadog.configure { |c| c.use :sequel, tracer: tracer }
+          Datadog.configure { |c| c.use :sequel }
           perform_query!
         end
 

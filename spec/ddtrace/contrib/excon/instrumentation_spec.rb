@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/integration_examples'
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'excon'
@@ -7,18 +7,16 @@ require 'ddtrace'
 require 'ddtrace/contrib/excon/middleware'
 
 RSpec.describe Datadog::Contrib::Excon::Middleware do
-  let(:tracer) { get_test_tracer }
-
   let(:connection_options) { { mock: true } }
   let(:middleware_options) { {} }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   let(:request_span) do
-    tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
+    spans.find { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
   end
 
   let(:all_request_spans) do
-    tracer.writer.spans(:keep).find_all { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
+    spans.find_all { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
   end
 
   before(:each) do
@@ -85,6 +83,8 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       let(:analytics_sample_rate_var) { Datadog::Contrib::Excon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       let(:span) { request_span }
     end
+
+    it_behaves_like 'measured span for integration', false
 
     it do
       expect(request_span).to_not be nil
@@ -157,17 +157,36 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
   end
 
   context 'when split by domain' do
-    subject!(:response) { connection.get(path: '/success') }
+    subject(:response) { connection.get(path: '/success') }
     let(:configuration_options) { super().merge(split_by_domain: true) }
     after(:each) { Datadog.configuration[:excon][:split_by_domain] = false }
 
     it do
+      response
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.service).to eq('example.com')
       expect(request_span.resource).to eq('GET')
     end
 
+<<<<<<< HEAD
     it_behaves_like 'a peer service span'
+=======
+    context 'and the host matches a specific configuration' do
+      before do
+        Datadog.configure do |c|
+          c.use :excon, describe: /example\.com/ do |faraday|
+            faraday.service_name = 'bar'
+            faraday.split_by_domain = false
+          end
+        end
+      end
+
+      it 'uses the configured service name over the domain name' do
+        response
+        expect(request_span.service).to eq('bar')
+      end
+    end
+>>>>>>> master
   end
 
   context 'default request headers' do

@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace/transport/http'
+require 'uri'
 
 RSpec.describe Datadog::Transport::HTTP do
   describe '.new' do
@@ -9,7 +10,7 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:block) { proc {} }
 
       let(:builder) { instance_double(Datadog::Transport::HTTP::Builder) }
-      let(:client) { instance_double(Datadog::Transport::HTTP::Client) }
+      let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
 
       before do
         expect(Datadog::Transport::HTTP::Builder).to receive(:new) do |&blk|
@@ -17,19 +18,19 @@ RSpec.describe Datadog::Transport::HTTP do
           builder
         end
 
-        expect(builder).to receive(:to_client)
-          .and_return(client)
+        expect(builder).to receive(:to_transport)
+          .and_return(transport)
       end
 
-      it { is_expected.to be client }
+      it { is_expected.to be transport }
     end
   end
 
   describe '.default' do
     subject(:default) { described_class.default }
 
-    it 'returns an HTTP client with default configuration' do
-      is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Client)
+    it 'returns an HTTP transport with default configuration' do
+      is_expected.to be_a_kind_of(Datadog::Transport::Traces::Transport)
       expect(default.current_api_id).to eq(Datadog::Transport::HTTP::API::V4)
 
       expect(default.apis.keys).to eq(
@@ -55,8 +56,8 @@ RSpec.describe Datadog::Transport::HTTP do
       context 'that are empty' do
         let(:options) { {} }
 
-        it 'returns an HTTP client with default configuration' do
-          is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Client)
+        it 'returns an HTTP transport with default configuration' do
+          is_expected.to be_a_kind_of(Datadog::Transport::Traces::Transport)
           expect(default.current_api_id).to eq(Datadog::Transport::HTTP::API::V4)
 
           expect(default.apis.keys).to eq(
@@ -82,7 +83,7 @@ RSpec.describe Datadog::Transport::HTTP do
         let(:hostname) { double('hostname') }
         let(:port) { double('port') }
 
-        it 'returns an HTTP client with default configuration' do
+        it 'returns an HTTP transport with default configuration' do
           default.apis.each do |_key, api|
             expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(hostname)
@@ -179,6 +180,18 @@ RSpec.describe Datadog::Transport::HTTP do
 
         it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_HOST) }
       end
+
+      context 'set via url' do
+        let(:value) { 'http://my-hostname:8125' }
+
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL => value) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(URI.parse(value).hostname) }
+      end
     end
   end
 
@@ -206,6 +219,18 @@ RSpec.describe Datadog::Transport::HTTP do
         end
 
         it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_PORT) }
+      end
+
+      context 'set via url' do
+        let(:value) { 'http://my-hostname:8125' }
+
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL => value) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(URI.parse(value).port) }
       end
     end
   end

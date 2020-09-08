@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/rails/utils'
 require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
+require 'ddtrace/contrib/rails/log_injection'
 require 'ddtrace/contrib/rack/middlewares'
 
 module Datadog
@@ -33,6 +34,7 @@ module Datadog
             # Otherwise the middleware stack will be frozen.
             # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
             add_middleware(app) if Datadog.configuration[:rails][:middleware]
+            add_logger(app) if Datadog.configuration[:rails][:log_injection]
           end
         end
 
@@ -48,6 +50,19 @@ module Datadog
             ActionDispatch::ShowExceptions,
             Datadog::Contrib::Rails::ExceptionMiddleware
           )
+        end
+
+        def add_logger(app)
+          # check if lograge key exists
+          if app.config.respond_to?(:lograge) && app.config.lograge.enabled
+            Datadog::Contrib::Rails::LogInjection.add_lograge_logger(app)
+          # if lograge isn't set, check if tagged logged is enabed.
+          # if so, add proc that injects trace identifiers for tagged logging.
+          elsif (logger = app.config.logger) && logger.is_a?(::ActiveSupport::TaggedLogging)
+            Datadog::Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
+          else
+            Datadog.logger.warn("Unabe to enable Datadog Trace context, Logger #{logger} is not supported")
+          end
         end
 
         def patch_after_intialize

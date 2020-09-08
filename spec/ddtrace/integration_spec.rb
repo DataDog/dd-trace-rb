@@ -2,6 +2,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/tracer'
+require 'datadog/statsd'
 require 'thread'
 
 RSpec.describe 'Tracer integration tests' do
@@ -240,6 +241,8 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     context 'when sent TERM' do
+      before { skip unless PlatformHelpers.supports_fork? }
+
       subject(:terminated_process) do
         # Initiate IO pipe
         pipe
@@ -294,7 +297,7 @@ RSpec.describe 'Tracer integration tests' do
           end.finish
         end.finish
 
-        try_wait_until { tracer.writer.spans(:keep).any? }
+        try_wait_until { tracer.writer.spans.any? }
       end
 
       it do
@@ -320,7 +323,7 @@ RSpec.describe 'Tracer integration tests' do
           parent_span.context.origin = 'synthetics'
         end.finish
 
-        try_wait_until { tracer.writer.spans(:keep).any? }
+        try_wait_until { tracer.writer.spans.any? }
       end
 
       it { is_expected.to eq('synthetics') }
@@ -372,7 +375,7 @@ RSpec.describe 'Tracer integration tests' do
 
       # Verify Transport::IO is configured
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
-      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder::V2)
+      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder)
 
       # Verify sampling is configured properly
       expect(tracer.writer.priority_sampler).to_not be nil
@@ -427,7 +430,7 @@ RSpec.describe 'Tracer integration tests' do
       )
 
       # Verify Transport::HTTP is configured
-      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
 
       # Verify sampling is configured properly
       expect(tracer.writer.priority_sampler).to_not be nil
@@ -494,7 +497,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port
           end
@@ -520,7 +523,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::HTTP::Client)
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
             expect(transport.current_api_id).to be api_version
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port

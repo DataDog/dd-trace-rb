@@ -19,7 +19,7 @@ module Datadog
     def self.inject!(context, env)
       # Prevent propagation from being attempted if context provided is nil.
       if context.nil?
-        ::Datadog::Logger.log.debug('Cannot inject context into env to propagate over HTTP: context is nil.'.freeze)
+        ::Datadog.logger.debug('Cannot inject context into env to propagate over HTTP: context is nil.'.freeze)
         return
       end
 
@@ -58,7 +58,7 @@ module Datadog
             # Return an empty/new context if we have a mismatch in values extracted
             msg = "#{context.trace_id} != #{extracted_context.trace_id} && " \
                   "#{context.span_id} != #{extracted_context.span_id}"
-            ::Datadog::Logger.log.debug("Cannot extract context from HTTP: extracted contexts differ, #{msg}".freeze)
+            ::Datadog.logger.debug("Cannot extract context from HTTP: extracted contexts differ, #{msg}".freeze)
             # DEV: This will return from `self.extract` not this `each` block
             return ::Datadog::Context.new
           end

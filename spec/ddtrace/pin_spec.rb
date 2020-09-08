@@ -13,25 +13,62 @@ RSpec.describe Datadog::Pin do
     before(:each) { pin }
 
     context 'when given some options' do
-      let(:options) { { app: 'anapp' } }
+      let(:options) do
+        {
+          app: double('app'),
+          app_type: double('app_type'),
+          config: double('config'),
+          name: double('name'),
+          tags: double('tags'),
+          writer: double('writer')
+        }
+      end
 
       it do
-        expect(pin.service).to eq(service_name)
-        expect(pin.app).to eq(options[:app])
+        is_expected.to have_attributes(
+          app: options[:app],
+          app_type: options[:app_type],
+          config: options[:config],
+          name: nil,
+          service_name: service_name,
+          tags: options[:tags],
+          writer: nil
+        )
+      end
+    end
+  end
+
+  describe '#tracer' do
+    subject(:tracer) { pin.tracer }
+
+    context 'when a tracer has been provided' do
+      let(:options) { super().merge(tracer: tracer_option) }
+      let(:tracer_option) { get_test_tracer }
+
+      before do
+        allow_any_instance_of(Datadog::Pin).to receive(:deprecation_warning).and_call_original
+      end
+
+      it 'expect a deprecation warning' do
+        expect(Datadog.logger).to receive(:warn).with(include('DEPRECATED'))
+        subject
       end
     end
 
-    context 'when given sufficient info' do
-      let(:options) { { app: 'test-app', app_type: 'test-type', tracer: tracer } }
-      let(:tracer) { get_test_tracer }
-    end
+    context 'when no tracer has been provided' do
+      it { is_expected.to be Datadog.tracer }
 
-    context 'when given insufficient info' do
-      let(:options) { { app_type: 'test-type', tracer: tracer } }
-      let(:tracer) { get_test_tracer }
+      context 'and the default tracer mutates' do
+        let(:new_tracer) { get_test_tracer }
 
-      it 'does not sets the service info' do
-        expect(tracer.services).to be_empty
+        it 'gets the current tracer' do
+          old_tracer = Datadog.tracer
+
+          expect { allow(Datadog).to receive(:tracer).and_return(new_tracer) }
+            .to change { pin.tracer }
+            .from(old_tracer)
+            .to(new_tracer)
+        end
       end
     end
   end
@@ -108,7 +145,6 @@ RSpec.describe Datadog::Pin do
     it { is_expected.to be true }
 
     context 'when the tracer is disabled' do
-      let(:options) { { tracer: Datadog::Tracer.new(writer: FauxWriter.new) } }
       before(:each) { pin.tracer.enabled = false }
       it { is_expected.to be false }
     end

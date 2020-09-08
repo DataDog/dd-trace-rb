@@ -83,25 +83,29 @@ RSpec.describe Datadog::Tracer do
 
       context 'when runtime metrics' do
         before do
-          allow(Datadog.configuration).to receive(:runtime_metrics_enabled)
-            .and_return(runtime_metrics_enabled)
+          allow(Datadog.configuration.runtime_metrics).to receive(:enabled)
+            .and_return(enabled)
+
+          allow(Datadog.runtime_metrics).to receive(:associate_with_span)
 
           trace
         end
 
         context 'are enabled' do
-          let(:runtime_metrics_enabled) { true }
-          it 'sets the language tag' do
-            expect(lang_tag(parent_span)).to eq('ruby')
-            expect(lang_tag(child_span)).to eq('ruby')
+          let(:enabled) { true }
+          it 'associates the span with the runtime' do
+            expect(Datadog.runtime_metrics).to have_received(:associate_with_span)
+              .with(parent_span)
+
+            expect(Datadog.runtime_metrics).to have_received(:associate_with_span)
+              .with(child_span)
           end
         end
 
         context 'disabled' do
-          let(:runtime_metrics_enabled) { false }
-          it 'sets the language tag' do
-            expect(lang_tag(parent_span)).to be nil
-            expect(lang_tag(child_span)).to be nil
+          let(:enabled) { false }
+          it 'does not associate the span with the runtime' do
+            expect(Datadog.runtime_metrics).to_not have_received(:associate_with_span)
           end
         end
       end

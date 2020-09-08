@@ -59,7 +59,7 @@ module Datadog
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, config[:host]) if config[:host]
             span.set_tag(Datadog::Ext::NET::TARGET_PORT, config[:port]) if config[:port]
           rescue StandardError => e
-            Datadog::Logger.log.debug(e.message)
+            Datadog.logger.debug(e.message)
           end
         end
       end

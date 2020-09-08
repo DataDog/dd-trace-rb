@@ -9,18 +9,20 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('3.0')
+
         register_as :action_pack, auto_patch: false
 
         def self.version
           Gem.loaded_specs['actionpack'] && Gem.loaded_specs['actionpack'].version
         end
 
-        def self.present?
-          super && defined?(::ActionPack)
+        def self.loaded?
+          !defined?(::ActionPack).nil?
         end
 
         def self.compatible?
-          super && version >= Gem::Version.new('3.0')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

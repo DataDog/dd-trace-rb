@@ -44,17 +44,21 @@ module Datadog
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
             end
+
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
             span.set_tag(Ext::TAG_TASK_ARG_NAMES, arg_names)
             span.set_tag(Ext::TAG_INVOKE_ARGS, quantize_args(args)) unless args.nil?
           rescue StandardError => e
-            Datadog::Logger.log.debug("Error while tracing Rake invoke: #{e.message}")
+            Datadog.logger.debug("Error while tracing Rake invoke: #{e.message}")
           end
 
           def annotate_execute!(span, args)
             span.resource = name
             span.set_tag(Ext::TAG_EXECUTE_ARGS, quantize_args(args.to_hash)) unless args.nil?
           rescue StandardError => e
-            Datadog::Logger.log.debug("Error while tracing Rake execute: #{e.message}")
+            Datadog.logger.debug("Error while tracing Rake execute: #{e.message}")
           end
 
           def quantize_args(args)

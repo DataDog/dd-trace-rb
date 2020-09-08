@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/integration_examples'
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'grpc'
@@ -7,8 +7,7 @@ require 'ddtrace'
 
 RSpec.describe 'tracing on the server connection' do
   subject(:server) { Datadog::Contrib::GRPC::DatadogInterceptor::Server.new }
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer, service_name: 'rspec' } }
+  let(:configuration_options) { { service_name: 'rspec' } }
 
   before do
     Datadog.configure do |c|
@@ -23,8 +22,6 @@ RSpec.describe 'tracing on the server connection' do
     Datadog.registry[:grpc].reset_configuration!
   end
 
-  let(:span) { tracer.writer.spans.first }
-
   shared_examples 'span data contents' do
     specify { expect(span.name).to eq 'grpc.service' }
     specify { expect(span.span_type).to eq 'web' }
@@ -38,7 +35,11 @@ RSpec.describe 'tracing on the server connection' do
       let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
+<<<<<<< HEAD
     it_behaves_like 'a peer service span'
+=======
+    it_behaves_like 'measured span for integration', true
+>>>>>>> master
   end
 
   describe '#request_response' do

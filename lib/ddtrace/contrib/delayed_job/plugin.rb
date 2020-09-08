@@ -23,6 +23,10 @@ module Datadog
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
             end
+
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
             span.set_tag(Ext::TAG_ID, job.id)
             span.set_tag(Ext::TAG_QUEUE, job.queue) if job.queue
             span.set_tag(Ext::TAG_PRIORITY, job.priority)

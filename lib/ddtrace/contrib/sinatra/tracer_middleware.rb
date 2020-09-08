@@ -8,10 +8,13 @@ module Datadog
     module Sinatra
       # Middleware used for automatically tagging configured headers and handle request span
       class TracerMiddleware
-        def initialize(app)
+        def initialize(app, app_instance: nil)
           @app = app
+          @app_instance = app_instance
         end
 
+        # rubocop:disable Metrics/AbcSize
+        # rubocop:disable Metrics/MethodLength
         def call(env)
           # Set the trace context (e.g. distributed tracing)
           if configuration[:distributed_tracing] && tracer.provider.context.trace_id.nil?
@@ -19,29 +22,59 @@ module Datadog
             tracer.provider.context = context if context.trace_id
           end
 
-          # Begin the trace
           tracer.trace(
             Ext::SPAN_REQUEST,
             service: configuration[:service_name],
-            span_type: Datadog::Ext::HTTP::TYPE_INBOUND
+            span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
+            resource: env['REQUEST_METHOD']
           ) do |span|
-            Sinatra::Env.set_datadog_span(env, span)
+            begin
+              Sinatra::Env.set_datadog_span(env, @app_instance, span)
 
-            Sinatra::Env.request_header_tags(env, configuration[:headers][:request]).each do |name, value|
-              span.set_tag(name, value) if span.get_tag(name).nil?
+              response = @app.call(env)
+            ensure
+              Sinatra::Env.request_header_tags(env, configuration[:headers][:request]).each do |name, value|
+                span.set_tag(name, value) if span.get_tag(name).nil?
+              end
+
+              request = ::Sinatra::Request.new(env)
+              span.set_tag(Datadog::Ext::HTTP::URL, request.path)
+              span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
+              if request.script_name && !request.script_name.empty?
+                span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)
+              end
+
+              span.set_tag(Ext::TAG_APP_NAME, @app_instance.settings.name)
+
+              # TODO: This backfills the non-matching Sinatra app with a "#{method} #{path}"
+              # TODO: resource name. This shouldn't be the case, as that app has never handled
+              # TODO: the response with that resource.
+              # TODO: We should replace this backfill code with a clear `resource` that signals
+              # TODO: that this Sinatra span was *not* responsible for processing the current request.
+              rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
+              span.resource = rack_request_span.resource if rack_request_span && rack_request_span.resource
+
+              if response
+                if (status = response[0])
+                  sinatra_response = ::Sinatra::Response.new([], status) # Build object to use status code helpers
+
+                  span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, sinatra_response.status)
+                  span.set_error(env['sinatra.error']) if sinatra_response.server_error?
+                end
+
+                if (headers = response[1])
+                  Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
+                    span.set_tag(name, value) if span.get_tag(name).nil?
+                  end
+                end
+              end
+
+              # Set analytics sample rate
+              Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
             end
-
-            # Run application stack
-            status, headers, response_body = @app.call(env)
-
-            Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
-              span.set_tag(name, value) if span.get_tag(name).nil?
-            end
-
-            # Set analytics sample rate
-            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-            [status, headers, response_body]
           end
         end
 

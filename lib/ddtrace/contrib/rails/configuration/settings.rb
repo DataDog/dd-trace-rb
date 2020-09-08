@@ -6,8 +6,26 @@ module Datadog
       module Configuration
         # Custom settings for the Rails integration
         class Settings < Contrib::Configuration::Settings
+          def initialize(options = {})
+            super(options)
+
+            # NOTE: Eager load these
+            #       Rails integration is responsible for orchestrating other integrations.
+            #       When using environment variables, settings will not be automatically
+            #       filled because nothing explicitly calls them. They must though, so
+            #       integrations like ActionPack can receive the value as it should.
+            #       Trigger these manually to force an eager load and propagate them.
+            analytics_enabled
+            analytics_sample_rate
+          end
+
+          option :enabled do |o|
+            o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+            o.lazy
+          end
+
           option :analytics_enabled do |o|
-            o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) }
+            o.default { env_to_bool([Ext::ENV_ANALYTICS_ENABLED, Ext::ENV_ANALYTICS_ENABLED_OLD], nil) }
             o.lazy
             o.on_set do |value|
               # Update ActionPack analytics too
@@ -16,7 +34,7 @@ module Datadog
           end
 
           option :analytics_sample_rate do |o|
-            o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
+            o.default { env_to_float([Ext::ENV_ANALYTICS_SAMPLE_RATE, Ext::ENV_ANALYTICS_SAMPLE_RATE_OLD], 1.0) }
             o.lazy
             o.on_set do |value|
               # Update ActionPack analytics too
@@ -64,15 +82,9 @@ module Datadog
             end
           end
 
-          option :tracer do |o|
-            o.delegate_to { Datadog.tracer }
-            o.on_set do |value|
-              Datadog.configuration[:action_cable][:tracer] = value
-              Datadog.configuration[:active_record][:tracer] = value
-              Datadog.configuration[:active_support][:tracer] = value
-              Datadog.configuration[:action_pack][:tracer] = value
-              Datadog.configuration[:action_view][:tracer] = value
-            end
+          option :log_injection do |o|
+            o.default { env_to_bool(Ext::ENV_LOGS_INJECTION_ENABLED, false) }
+            o.lazy
           end
         end
       end

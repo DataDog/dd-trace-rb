@@ -7,6 +7,7 @@ module Datadog
     module Base
       def self.included(base)
         base.send(:extend, Datadog::Environment::Helpers)
+        base.send(:include, Datadog::Environment::Helpers)
         base.send(:include, Options)
 
         base.send(:extend, ClassMethods)
@@ -23,7 +24,7 @@ module Datadog
           settings_class = new_settings_class(&block)
 
           option(name) do |o|
-            o.default -> { settings_class.new }
+            o.default { settings_class.new }
             o.lazy
             o.resetter do |value|
               value.reset! if value.respond_to?(:reset!)
@@ -44,7 +45,7 @@ module Datadog
       # Instance methods for configuration
       module InstanceMethods
         def initialize(options = {})
-          configure(options)
+          configure(options) unless options.empty?
         end
 
         def configure(opts = {})

@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/analytics'
 
@@ -49,6 +49,33 @@ RSpec.describe Datadog::Contrib::Analytics do
           )
 
         set_sample_rate
+      end
+    end
+  end
+
+  describe '::set_measured' do
+    subject(:set_measured) { described_class.set_measured(span) }
+    let(:span) { instance_double(Datadog::Span) }
+
+    before do
+      allow(Datadog::Analytics).to receive(:set_measured)
+      set_measured
+    end
+
+    context 'when only a span is given' do
+      it 'sets measured as true' do
+        expect(Datadog::Analytics).to have_received(:set_measured)
+          .with(span, true)
+      end
+    end
+
+    context 'when a span and value is given' do
+      subject(:set_measured) { described_class.set_measured(span, value) }
+      let(:value) { double('value') }
+
+      it 'sets measured as true' do
+        expect(Datadog::Analytics).to have_received(:set_measured)
+          .with(span, value)
       end
     end
   end

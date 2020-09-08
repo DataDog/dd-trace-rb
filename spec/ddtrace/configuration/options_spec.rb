@@ -27,7 +27,7 @@ RSpec.describe Datadog::Configuration::Options do
           let(:options_class) { Class.new(parent_class) }
 
           context 'which defines some options' do
-            before(:each) { parent_class.send(:option, :foo) }
+            before { parent_class.send(:option, :foo) }
 
             it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinitionSet) }
             it { is_expected.to_not be(parent_class.options) }
@@ -109,7 +109,7 @@ RSpec.describe Datadog::Configuration::Options do
         let(:value) { double('value') }
 
         context 'when the option is defined' do
-          before(:each) { options_class.send(:option, name) }
+          before { options_class.send(:option, name) }
           it { expect { set_option }.to change { options_object.send(name) }.from(nil).to(value) }
         end
 
@@ -123,12 +123,12 @@ RSpec.describe Datadog::Configuration::Options do
         let(:name) { :foo }
 
         context 'when the option is defined' do
-          before(:each) { options_class.send(:option, name, meta) }
+          before { options_class.send(:option, name, meta) }
           let(:meta) { {} }
 
           context 'and a value is set' do
             let(:value) { double('value') }
-            before(:each) { options_object.set_option(name, value) }
+            before { options_object.set_option(name, value) }
             it { is_expected.to be(value) }
           end
 
@@ -141,6 +141,31 @@ RSpec.describe Datadog::Configuration::Options do
 
         context 'when the option is not defined' do
           it { expect { get_option }.to raise_error(described_class::InvalidOptionError) }
+        end
+      end
+
+      describe '#reset_option' do
+        subject(:reset_option) { options_object.reset_option(name) }
+        let(:name) { :foo }
+
+        context 'when the option is defined' do
+          before { options_class.send(:option, name, default: default_value) }
+          let(:default_value) { double('default_value') }
+
+          context 'and a value is set' do
+            let(:value) { double('value') }
+            before { options_object.set_option(name, value) }
+
+            it do
+              expect { reset_option }.to change { options_object.get_option(name) }
+                .from(value)
+                .to(default_value)
+            end
+          end
+        end
+
+        context 'when the option is not defined' do
+          it { expect { reset_option }.to raise_error(described_class::InvalidOptionError) }
         end
       end
 
@@ -166,7 +191,7 @@ RSpec.describe Datadog::Configuration::Options do
         end
 
         context 'when options are set' do
-          before(:each) do
+          before do
             options_class.send(:option, :foo)
             options_object.set_option(:foo, :bar)
           end
@@ -181,7 +206,7 @@ RSpec.describe Datadog::Configuration::Options do
         context 'when an option is defined' do
           let(:option) { options_object.options[:foo] }
 
-          before(:each) do
+          before do
             options_class.send(:option, :foo, default: :bar)
             options_object.set_option(:foo, :baz)
           end

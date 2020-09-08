@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'securerandom'
@@ -8,10 +8,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/rake/patcher'
 
 RSpec.describe Datadog::Contrib::Rake::Instrumentation do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer, enabled: true } }
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
+  let(:configuration_options) { { enabled: true } }
 
   before(:each) do
     skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Integration.compatible?
@@ -96,6 +93,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           let(:span) { invoke_span }
           let(:analytics_enabled_var) { Datadog::Contrib::Rake::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Contrib::Rake::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        end
+
+        it_behaves_like 'measured span for integration', true do
+          let(:span) { invoke_span }
         end
       end
 

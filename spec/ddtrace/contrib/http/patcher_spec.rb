@@ -1,10 +1,9 @@
 require 'ddtrace/contrib/integration_examples'
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require 'net/http'
 
 RSpec.describe 'net/http patcher' do
-  let(:tracer) { get_test_tracer }
   let(:host) { 'example.com' }
 
   before do
@@ -15,12 +14,12 @@ RSpec.describe 'net/http patcher' do
 
     Datadog.configuration[:http].reset!
     Datadog.configure do |c|
-      c.use :http, tracer: tracer
+      c.use :http
     end
   end
 
   let(:request_span) do
-    tracer.writer.spans(:keep).find { |span| span.name == Datadog::Contrib::HTTP::Ext::SPAN_REQUEST }
+    spans.find { |span| span.name == Datadog::Contrib::HTTP::Ext::SPAN_REQUEST }
   end
 
   describe 'with default configuration' do
@@ -41,7 +40,7 @@ RSpec.describe 'net/http patcher' do
 
     before do
       Datadog.configure do |c|
-        c.use :http, tracer: tracer, service_name: new_service_name
+        c.use :http, service_name: new_service_name
       end
     end
 

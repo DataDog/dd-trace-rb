@@ -3,6 +3,7 @@ require 'ddtrace/ext/http'
 require 'ddtrace/contrib/action_pack/ext'
 require 'ddtrace/contrib/action_pack/utils'
 require 'ddtrace/contrib/rack/middlewares'
+require 'ddtrace/contrib/analytics'
 
 module Datadog
   module Contrib
@@ -23,7 +24,7 @@ module Datadog
             tracing_context = payload.fetch(:tracing_context)
             tracing_context[:dd_request_span] = span
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def finish_processing(payload)
@@ -48,6 +49,9 @@ module Datadog
               # Set analytics sample rate
               Utils.set_analytics_sample_rate(span)
 
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
+
               # Associate with runtime metrics
               Datadog.runtime_metrics.associate_with_span(span)
 
@@ -67,7 +71,7 @@ module Datadog
               span.finish
             end
           rescue StandardError => e
-            Datadog::Logger.log.error(e.message)
+            Datadog.logger.error(e.message)
           end
 
           def exception_controller?(payload)

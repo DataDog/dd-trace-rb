@@ -8,10 +8,6 @@ module Datadog
       def initialize(data)
         @data = data
       end
-
-      def encode_with(encoder)
-        encoder.encode(data)
-      end
     end
   end
 end

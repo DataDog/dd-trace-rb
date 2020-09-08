@@ -2,6 +2,7 @@ require 'ddtrace/ext/metrics'
 
 require 'set'
 require 'logger'
+require 'ddtrace/environment'
 require 'ddtrace/utils/time'
 require 'ddtrace/runtime/identity'
 
@@ -62,7 +63,7 @@ module Datadog
 
       statsd.count(stat, value, metric_options(options))
     rescue StandardError => e
-      Datadog::Logger.log.error("Failed to send count stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.error("Failed to send count stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def distribution(stat, value = nil, options = nil, &block)
@@ -72,7 +73,7 @@ module Datadog
 
       statsd.distribution(stat, value, metric_options(options))
     rescue StandardError => e
-      Datadog::Logger.log.error("Failed to send distribution stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.error("Failed to send distribution stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def increment(stat, options = nil)
@@ -81,7 +82,7 @@ module Datadog
 
       statsd.increment(stat, metric_options(options))
     rescue StandardError => e
-      Datadog::Logger.log.error("Failed to send increment stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.error("Failed to send increment stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def gauge(stat, value = nil, options = nil, &block)
@@ -91,7 +92,7 @@ module Datadog
 
       statsd.gauge(stat, value, metric_options(options))
     rescue StandardError => e
-      Datadog::Logger.log.error("Failed to send gauge stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.error("Failed to send gauge stat. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def time(stat, options = nil)
@@ -107,7 +108,7 @@ module Datadog
           distribution(stat, ((finished - start) * 1000), options)
         end
       rescue StandardError => e
-        Datadog::Logger.log.error("Failed to send time stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog.logger.error("Failed to send time stat. Cause: #{e.message} Source: #{e.backtrace.first}")
       end
     end
 
@@ -151,6 +152,12 @@ module Datadog
         # and defaults are unfrozen for mutation in Statsd.
         DEFAULT.dup.tap do |options|
           options[:tags] = options[:tags].dup
+
+          env = Datadog.configuration.env
+          options[:tags] << "#{Datadog::Ext::Environment::TAG_ENV}:#{env}" unless env.nil?
+
+          version = Datadog.configuration.version
+          options[:tags] << "#{Datadog::Ext::Environment::TAG_VERSION}:#{version}" unless version.nil?
         end
       end
     end

@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/integration_examples'
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
@@ -8,7 +8,7 @@ require 'time'
 require 'json'
 
 RSpec.describe 'net/http requests' do
-  before(:each) { WebMock.enable! }
+  before { WebMock.enable! }
   after(:each) do
     WebMock.reset!
     WebMock.disable!
@@ -19,12 +19,9 @@ RSpec.describe 'net/http requests' do
   let(:uri) { "http://#{host}:#{port}" }
 
   let(:client) { Net::HTTP.new(host, port) }
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
-  let(:spans) { tracer.writer.spans }
-
-  before(:each) do
+  before do
     Datadog.configure { |c| c.use :http, configuration_options }
   end
 
@@ -40,7 +37,7 @@ RSpec.describe 'net/http requests' do
     let(:path) { '/my/path' }
 
     context 'that returns 200' do
-      before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
+      before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
       let(:content) { JSON.parse(response.body) }
       let(:span) { spans.first }
 
@@ -62,14 +59,18 @@ RSpec.describe 'net/http requests' do
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Contrib::HTTP::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::HTTP::Ext::ENV_ANALYTICS_SAMPLE_RATE }
-        before(:each) { response }
+        before { response }
+      end
+
+      it_behaves_like 'measured span for integration', false do
+        before { response }
       end
 
       it_behaves_like 'a peer service span'
     end
 
     context 'that returns 404' do
-      before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 404, body: body) }
+      before { stub_request(:get, "#{uri}#{path}").to_return(status: 404, body: body) }
       let(:body) { '{ "code": 404, message": "Not found!" }' }
       let(:span) { spans.first }
 
@@ -92,7 +93,7 @@ RSpec.describe 'net/http requests' do
       it_behaves_like 'a peer service span'
 
       context 'when configured with #after_request hook' do
-        before(:each) { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
+        before { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
         after(:each) { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
 
         context 'which defines each parameter' do
@@ -137,7 +138,7 @@ RSpec.describe 'net/http requests' do
     let(:payload) { '{ "foo": "bar" }' }
 
     context 'that returns 201' do
-      before(:each) { stub_request(:post, "#{uri}#{path}").to_return(status: 201) }
+      before { stub_request(:post, "#{uri}#{path}").to_return(status: 201) }
       let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
@@ -160,11 +161,10 @@ RSpec.describe 'net/http requests' do
 
   describe '#start' do
     context 'which applies a pin to the Net::HTTP object' do
-      before(:each) do
+      before do
         stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
 
         Net::HTTP.start(host, port) do |http|
-          Datadog::Pin.get_from(http).tracer = tracer
           http.request(request)
         end
       end
@@ -194,7 +194,7 @@ RSpec.describe 'net/http requests' do
     context 'when overriden with a different #service value' do
       subject(:response) { client.get(path) }
 
-      before(:each) do
+      before do
         stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
         Datadog::Pin.get_from(client).service = service_name
       end
@@ -214,10 +214,41 @@ RSpec.describe 'net/http requests' do
     end
   end
 
+  context 'when split by domain' do
+    subject(:response) { client.get(path) }
+    let(:path) { '/my/path' }
+    let(:span) { spans.first }
+    let(:configuration_options) { super().merge(split_by_domain: true) }
+    before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
+
+    it do
+      response
+      expect(span.name).to eq(Datadog::Contrib::HTTP::Ext::SPAN_REQUEST)
+      expect(span.service).to eq(host)
+      expect(span.resource).to eq('GET')
+    end
+
+    context 'and the host matches a specific configuration' do
+      before do
+        Datadog.configure do |c|
+          c.use :http, describe: /example\.com/ do |http|
+            http.service_name = 'bar'
+            http.split_by_domain = false
+          end
+        end
+      end
+
+      it 'uses the configured service name over the domain name' do
+        response
+        expect(span.service).to eq('bar')
+      end
+    end
+  end
+
   describe 'distributed tracing' do
     let(:path) { '/my/path' }
 
-    before(:each) do
+    before do
       stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
     end
 
@@ -236,7 +267,7 @@ RSpec.describe 'net/http requests' do
 
     context 'by default' do
       context 'and the tracer is enabled' do
-        before(:each) do
+        before do
           tracer.configure(enabled: true)
           tracer.trace('foo.bar') do |span|
             span.context.sampling_priority = sampling_priority
@@ -273,7 +304,7 @@ RSpec.describe 'net/http requests' do
       # This can happen if another http client uses net/http (e.g. restclient)
       # The goal here is to ensure we do not add multiple values for a given header
       context 'with existing distributed tracing headers' do
-        before(:each) do
+        before do
           tracer.configure(enabled: true)
           tracer.trace('foo.bar') do |span|
             span.context.sampling_priority = sampling_priority
@@ -316,7 +347,7 @@ RSpec.describe 'net/http requests' do
       end
 
       context 'but the tracer is disabled' do
-        before(:each) do
+        before do
           tracer.configure(enabled: false)
           client.get(path)
         end
@@ -329,7 +360,7 @@ RSpec.describe 'net/http requests' do
     end
 
     context 'when disabled' do
-      before(:each) do
+      before do
         Datadog.configure { |c| c.use :http, distributed_tracing: false }
         client.get(path)
       end
@@ -354,7 +385,7 @@ RSpec.describe 'net/http requests' do
       let(:timeout_error) { Net::OpenTimeout.new('execution expired') }
       let(:span) { spans.first }
 
-      before(:each) { stub_request(:get, "#{uri}#{path}").to_raise(timeout_error) }
+      before { stub_request(:get, "#{uri}#{path}").to_raise(timeout_error) }
 
       it 'generates a well-formed trace with span tags available from request object' do
         expect { response }.to raise_error(timeout_error)
@@ -377,7 +408,7 @@ RSpec.describe 'net/http requests' do
       let(:custom_error) { StandardError.new(custom_error_message) }
       let(:span) { spans.first }
 
-      before(:each) { stub_request(:get, "#{uri}#{path}").to_raise(custom_error) }
+      before { stub_request(:get, "#{uri}#{path}").to_raise(custom_error) }
 
       it 'generates a well-formed trace with span tags available from request object' do
         expect { response }.to raise_error(custom_error)

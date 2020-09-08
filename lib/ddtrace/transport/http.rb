@@ -10,6 +10,7 @@ require 'ddtrace/transport/http/api'
 require 'ddtrace/transport/http/adapters/net'
 require 'ddtrace/transport/http/adapters/test'
 require 'ddtrace/transport/http/adapters/unix_socket'
+require 'uri'
 
 module Datadog
   module Transport
@@ -19,7 +20,7 @@ module Datadog
 
       # Builds a new Transport::HTTP::Client
       def new(&block)
-        Builder.new(&block).to_client
+        Builder.new(&block).to_transport
       end
 
       # Builds a new Transport::HTTP::Client with default settings
@@ -75,11 +76,25 @@ module Datadog
       end
 
       def default_hostname
+        return default_url.hostname if default_url
+
         ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST, Datadog::Ext::Transport::HTTP::DEFAULT_HOST)
       end
 
       def default_port
+        return default_url.port if default_url
+
         ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT, Datadog::Ext::Transport::HTTP::DEFAULT_PORT).to_i
+      end
+
+      def default_url
+        url_env = ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL, nil)
+
+        if url_env
+          uri_parsed = URI.parse(url_env)
+
+          uri_parsed if %w[http https].include?(uri_parsed.scheme)
+        end
       end
 
       # Add adapters to registry

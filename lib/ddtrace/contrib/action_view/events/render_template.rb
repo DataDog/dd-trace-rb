@@ -34,9 +34,12 @@ module Datadog
             layout = payload[:layout]
             span.set_tag(Ext::TAG_LAYOUT, layout) if layout
 
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
             record_exception(span, payload)
           rescue StandardError => e
-            Datadog::Logger.log.debug(e.message)
+            Datadog.logger.debug(e.message)
           end
         end
       end
