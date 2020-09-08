@@ -54,7 +54,7 @@ module Datadog
               }
 
               # Add types
-              form['types[0]'] = types.join(',')
+              form[FORM_FIELD_TYPES] = types.join(',')
 
               # Optional fields
               form[FORM_FIELD_TAGS] << "#{FORM_FIELD_TAG_SERVICE}:#{flush.service}" unless flush.service.nil?
