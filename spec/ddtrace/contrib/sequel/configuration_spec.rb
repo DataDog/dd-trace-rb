@@ -39,9 +39,12 @@ RSpec.describe 'Sequel configuration' do
 
       context 'only with defaults' do
         # Expect it to be the normalized adapter name.
-        it do
+        before do
           Datadog.configure { |c| c.use :sequel }
           perform_query!
+        end
+
+        it do
           expect(span.service).to eq('sqlite')
         end
 
@@ -51,9 +54,12 @@ RSpec.describe 'Sequel configuration' do
       context 'with options set via #use' do
         let(:service_name) { 'my-sequel' }
 
-        it do
+        before do
           Datadog.configure { |c| c.use :sequel, service_name: service_name }
           perform_query!
+        end
+
+        it do
           expect(span.service).to eq(service_name)
         end
 
@@ -63,10 +69,14 @@ RSpec.describe 'Sequel configuration' do
       context 'with options set on Sequel::Database' do
         let(:service_name) { 'custom-sequel' }
 
-        it do
+        before do
           Datadog.configure { |c| c.use :sequel }
           Datadog.configure(sequel, service_name: service_name)
+          Datadog.configure { |c| c.use :sequel }
           perform_query!
+        end
+
+        it do
           expect(span.service).to eq(service_name)
         end
 
@@ -77,10 +87,13 @@ RSpec.describe 'Sequel configuration' do
         # NOTE: This test really only works when run in isolation.
         #       It relies on Sequel not being patched, and there's
         #       no way to unpatch it once its happened in other tests.
-        it do
+        before do
           sequel
           Datadog.configure { |c| c.use :sequel }
           perform_query!
+        end
+
+        it do
           expect(span.service).to eq('sqlite')
         end
 

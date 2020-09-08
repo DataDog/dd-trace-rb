@@ -168,9 +168,8 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.resource).to eq('GET')
     end
 
-<<<<<<< HEAD
     it_behaves_like 'a peer service span'
-=======
+
     context 'and the host matches a specific configuration' do
       before do
         Datadog.configure do |c|
@@ -186,7 +185,6 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
         expect(request_span.service).to eq('bar')
       end
     end
->>>>>>> master
   end
 
   context 'default request headers' do
