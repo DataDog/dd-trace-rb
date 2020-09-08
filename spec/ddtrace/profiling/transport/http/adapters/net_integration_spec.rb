@@ -88,7 +88,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           'recording-end' => kind_of(String),
           'data[0]' => kind_of(String),
           'types[0]' => /auto/,
-          'runtime' => Datadog::Ext::Runtime::LANG_INTERPRETER,
+          'runtime' => Datadog::Ext::Runtime::LANG,
           'format' => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT_PPROF
         )
 
@@ -96,7 +96,9 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         tags = body["#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS}[]"].list
         expect(tags).to be_a_kind_of(Array)
         expect(tags).to include(
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Ext::Runtime::LANG_INTERPRETER}/,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Ext::Runtime::LANG}/,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{Datadog::Ext::Runtime::LANG_ENGINE}/,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{Datadog::Ext::Runtime::LANG_PLATFORM}/,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Ext::Runtime::LANG_VERSION}/,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Ext::Runtime::TRACER_VERSION}/,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Ext::Runtime::LANG}/
