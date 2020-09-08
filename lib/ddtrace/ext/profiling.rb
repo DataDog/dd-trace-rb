@@ -28,6 +28,8 @@ module Datadog
           FORM_FIELD_TAG_LANGUAGE = 'language'.freeze
           FORM_FIELD_TAG_PROFILER_VERSION = 'profiler_version'.freeze
           FORM_FIELD_TAG_RUNTIME = 'runtime'.freeze
+          FORM_FIELD_TAG_RUNTIME_ENGINE = 'runtime_engine'.freeze
+          FORM_FIELD_TAG_RUNTIME_PLATFORM = 'runtime_platform'.freeze
           FORM_FIELD_TAG_RUNTIME_VERSION = 'runtime_version'.freeze
           FORM_FIELD_TAG_SERVICE = 'service'.freeze
           FORM_FIELD_TAG_VERSION = 'version'.freeze
