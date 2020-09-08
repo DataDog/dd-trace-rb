@@ -9,18 +9,21 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('1.0')
+
         register_as :grape, auto_patch: true
 
         def self.version
           Gem.loaded_specs['grape'] && Gem.loaded_specs['grape'].version
         end
 
-        def self.present?
-          super && defined?(::Grape)
+        def self.loaded?
+          !defined?(::Grape).nil? \
+            && !defined?(::ActiveSupport::Notifications).nil?
         end
 
         def self.compatible?
-          super && defined?(::ActiveSupport::Notifications)
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

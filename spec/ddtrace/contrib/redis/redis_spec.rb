@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/integration_examples'
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'time'
@@ -8,12 +8,7 @@ require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis test' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
-
-  def all_spans
-    tracer.writer.spans(:keep)
-  end
+  let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
@@ -71,6 +66,8 @@ RSpec.describe 'Redis test' do
         let(:analytics_enabled_var) { Datadog::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'measured span for integration', false
     end
 
     context 'roundtrip' do
@@ -80,10 +77,10 @@ RSpec.describe 'Redis test' do
         expect(redis.get('FOO')).to eq('bar')
       end
 
-      it { expect(all_spans).to have(2).items }
+      it { expect(spans).to have(2).items }
 
       describe 'set span' do
-        subject(:span) { all_spans[-1] }
+        subject(:span) { spans[-1] }
 
         it do
           expect(span.name).to eq('redis.command')
@@ -97,7 +94,7 @@ RSpec.describe 'Redis test' do
       end
 
       describe 'get span' do
-        subject(:span) { all_spans[0] }
+        subject(:span) { spans[0] }
 
         it do
           expect(span.name).to eq('redis.command')
@@ -116,10 +113,10 @@ RSpec.describe 'Redis test' do
         expect(redis.call([:set, 'FOO', 'bar'])).to eq('OK')
       end
 
-      it { expect(all_spans).to have(1).item }
+      it { expect(spans).to have(1).item }
 
       describe 'span' do
-        subject(:span) { all_spans[-1] }
+        subject(:span) { spans[-1] }
 
         it do
           expect(span.resource).to eq('SET FOO bar')
@@ -143,11 +140,11 @@ RSpec.describe 'Redis test' do
 
       it do
         expect(responses.map(&:value)).to eq(['OK', 'OK', 1, 1, 2])
-        expect(all_spans).to have(1).items
+        expect(spans).to have(1).items
       end
 
       describe 'span' do
-        subject(:span) { all_spans[-1] }
+        subject(:span) { spans[-1] }
 
         it do
           expect(span.get_metric('redis.pipeline_length')).to eq(5)
@@ -172,11 +169,11 @@ RSpec.describe 'Redis test' do
       end
 
       it do
-        expect(all_spans).to have(1).items
+        expect(spans).to have(1).items
       end
 
       describe 'span' do
-        subject(:span) { all_spans[-1] }
+        subject(:span) { spans[-1] }
 
         it do
           expect(span.name).to eq('redis.command')
@@ -196,12 +193,9 @@ RSpec.describe 'Redis test' do
 
     context 'quantize' do
       describe 'set span' do
-        subject(:span) { all_spans.first }
-
         before { expect(redis.set('K', 'x' * 500)).to eq('OK') }
 
         it do
-          expect(all_spans).to have(1).items
           expect(span.name).to eq('redis.command')
           expect(span.service).to eq('redis')
           expect(span.resource).to eq('SET K ' + 'x' * 47 + '...')
@@ -213,7 +207,7 @@ RSpec.describe 'Redis test' do
       end
 
       describe 'get span' do
-        subject(:span) { all_spans.first }
+        subject(:span) { spans.first }
 
         before do
           expect(redis.set('K', 'x' * 500)).to eq('OK')
@@ -221,7 +215,7 @@ RSpec.describe 'Redis test' do
         end
 
         it do
-          expect(all_spans).to have(2).items
+          expect(spans).to have(2).items
           expect(span.name).to eq('redis.command')
           expect(span.service).to eq('redis')
           expect(span.resource).to eq('GET K')
@@ -235,12 +229,9 @@ RSpec.describe 'Redis test' do
       describe 'auth span' do
         include_context 'password-protected Redis server'
 
-        subject(:span) { all_spans.first }
-
         before { redis.auth(password) }
 
         it do
-          expect(all_spans).to have(1).items
           expect(span.name).to eq('redis.command')
           expect(span.service).to eq('redis')
           expect(span.resource).to eq('AUTH ?')

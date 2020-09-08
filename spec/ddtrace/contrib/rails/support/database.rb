@@ -6,6 +6,7 @@ module Datadog
         module Database
           module_function
 
+          # rubocop:disable Metrics/MethodLength
           def load_adapter!
             [
               'pg',
@@ -46,6 +47,8 @@ module Datadog
                 return connector
               end
             end
+
+            raise 'No database adapter found!'
           end
 
           def postgres_url

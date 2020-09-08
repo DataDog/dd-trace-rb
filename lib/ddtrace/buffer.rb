@@ -83,7 +83,7 @@ module Datadog
       @buffer_accepted += 1
       @buffer_accepted_lengths += trace.length
     rescue StandardError => e
-      Datadog::Logger.log.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def measure_drop(trace)
@@ -91,21 +91,21 @@ module Datadog
       @buffer_spans -= trace.length
       @buffer_accepted_lengths -= trace.length
     rescue StandardError => e
-      Datadog::Logger.log.debug("Failed to measure queue drop. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.debug("Failed to measure queue drop. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def measure_pop(traces)
       # Accepted
-      Diagnostics::Health.metrics.queue_accepted(@buffer_accepted)
-      Diagnostics::Health.metrics.queue_accepted_lengths(@buffer_accepted_lengths)
+      Datadog.health_metrics.queue_accepted(@buffer_accepted)
+      Datadog.health_metrics.queue_accepted_lengths(@buffer_accepted_lengths)
 
       # Dropped
-      Diagnostics::Health.metrics.queue_dropped(@buffer_dropped)
+      Datadog.health_metrics.queue_dropped(@buffer_dropped)
 
       # Queue gauges
-      Diagnostics::Health.metrics.queue_max_length(@max_size)
-      Diagnostics::Health.metrics.queue_spans(@buffer_spans)
-      Diagnostics::Health.metrics.queue_length(traces.length)
+      Datadog.health_metrics.queue_max_length(@max_size)
+      Datadog.health_metrics.queue_spans(@buffer_spans)
+      Datadog.health_metrics.queue_length(traces.length)
 
       # Reset aggregated metrics
       @buffer_accepted = 0
@@ -113,7 +113,7 @@ module Datadog
       @buffer_dropped = 0
       @buffer_spans = 0
     rescue StandardError => e
-      Datadog::Logger.log.debug("Failed to measure queue. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.debug("Failed to measure queue. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
   end
 end

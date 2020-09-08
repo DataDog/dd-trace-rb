@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 
 require 'ddtrace/contrib/rails/rails_helper'
@@ -16,10 +16,7 @@ RSpec.describe 'ActionCable Rack override' do
   include Rack::Test::Methods
   include_context 'Rails test application'
 
-  let(:tracer) { get_test_tracer }
-  let(:spans) { tracer.writer.spans(:keep) }
-
-  let(:options) { { tracer: tracer } }
+  let(:options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -46,8 +43,13 @@ RSpec.describe 'ActionCable Rack override' do
     subject! { get '/cable' }
 
     it 'overrides parent Rack resource' do
-      expect(span.name).to eq('rack.request')
-      expect(span.resource).to eq('ActionCable::Connection::Base#on_open')
+      action_cable, rack = spans
+
+      expect(action_cable.name).to eq('action_cable.on_open')
+      expect(action_cable.resource).to eq('ActionCable::Connection::Base#on_open')
+
+      expect(rack.name).to eq('rack.request')
+      expect(rack.resource).to eq('ActionCable::Connection::Base#on_open')
     end
   end
 end

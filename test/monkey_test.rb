@@ -3,20 +3,25 @@ require 'minitest/autorun'
 require 'ddtrace'
 
 class MonkeyTest < Minitest::Test
-  DEFAULT_LOG = Datadog::Logger.log
+  DEFAULT_LOG = Datadog.logger
 
   def setup
     @buf = StringIO.new
-    Datadog::Logger.log = Datadog::Logger.new(@buf)
-    Datadog::Logger.log.level = ::Logger::WARN
+
+    Datadog.configure do |c|
+      c.logger = Datadog::Logger.new(@buf)
+      c.logger.level = ::Logger::WARN
+    end
   end
 
   def teardown
-    Datadog::Logger.log = DEFAULT_LOG
+    Datadog.configure do |c|
+      c.logger = DEFAULT_LOG
+    end
   end
 
   def assert_warning_issued(method)
-    assert_equal(true, Datadog::Logger.log.warn?)
+    assert_equal(true, Datadog.logger.warn?)
     lines = @buf.string.lines
     assert_equal(6, lines.length, 'there should be 1 log messages (with 6 lines)') if lines.respond_to? :length
 

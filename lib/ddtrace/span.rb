@@ -4,6 +4,7 @@ require 'thread'
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/priority'
+require 'ddtrace/environment'
 require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
 require 'ddtrace/diagnostics/health'
@@ -103,7 +104,17 @@ module Datadog
         @meta[key] = value.to_s
       end
     rescue StandardError => e
-      Datadog::Logger.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+      Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+    end
+
+    # Sets tags from given hash, for each key in hash it sets the tag with that key
+    # and associated value from the hash. It is shortcut for `set_tag`. Keys and values
+    # of the hash must be strings. Note that nested hashes are not supported.
+    # A valid example is:
+    #
+    #   span.set_tags({ "http.method" => "GET", "user.id" => "234" })
+    def set_tags(tags)
+      tags.each { |k, v| set_tag(k, v) }
     end
 
     # This method removes a tag for the given key.
@@ -126,7 +137,7 @@ module Datadog
       value = Float(value)
       @metrics[key] = value
     rescue StandardError => e
-      Datadog::Logger.log.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
+      Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
     end
 
     # This method removes a metric for the given key. It acts like {#remove_tag}.
@@ -172,14 +183,14 @@ module Datadog
       # spans without a service would be dropped, so here we provide a default.
       # This should really never happen with integrations in contrib, as a default
       # service is always set. It's only for custom instrumentation.
-      @service ||= @tracer.default_service unless @tracer.nil?
+      @service ||= (@tracer && @tracer.default_service)
 
       begin
         @context.close_span(self)
         @tracer.record(self)
       rescue StandardError => e
-        Datadog::Logger.log.debug("error recording finished trace: #{e}")
-        Diagnostics::Health.metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
+        Datadog.logger.debug("error recording finished trace: #{e}")
+        Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
       self
     end

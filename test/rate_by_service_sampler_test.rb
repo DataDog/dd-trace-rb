@@ -3,8 +3,8 @@ require 'ddtrace/sampler'
 
 module Datadog
   class RateByServiceSamplerTest < Minitest::Test
-    MAX_DEVIATION = 0.3
-    ITERATIONS_PER_SERVICE = 1_000
+    MAX_DEVIATION = 0.2
+    ITERATIONS_PER_SERVICE = 10_000
     DEFAULT_RATE = 0.5
 
     def setup

@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/graphql/test_types'
 
 require 'ddtrace'
@@ -21,7 +21,6 @@ RSpec.describe 'GraphQL patcher' do
       Datadog.configure do |c|
         c.use :graphql,
               service_name: 'graphql-test',
-              tracer: tracer,
               schemas: [schema]
       end
     end

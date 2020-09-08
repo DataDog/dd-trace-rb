@@ -18,20 +18,18 @@ RSpec.describe Datadog::Configuration::PinSetup do
           service_name: 'my-service',
           app: 'my-app',
           app_type: :cache,
-          tracer: tracer,
           tags: { env: :prod },
+          tracer: 'deprecated option',
           distributed_tracing: true
         }
       end
-
-      let(:tracer) { get_test_tracer }
 
       it do
         expect(target.datadog_pin.service).to eq('my-service')
         expect(target.datadog_pin.app).to eq('my-app')
         expect(target.datadog_pin.tags).to eq(env: :prod)
         expect(target.datadog_pin.config).to eq(distributed_tracing: true)
-        expect(target.datadog_pin.tracer).to eq(tracer)
+        expect(target.datadog_pin.tracer).to eq(Datadog.tracer)
       end
     end
 

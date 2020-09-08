@@ -70,12 +70,17 @@ module Datadog
           options[name].get
         end
 
+        def reset_option(name)
+          assert_valid_option!(name)
+          options[name].reset if options.key?(name)
+        end
+
         def option_defined?(name)
           self.class.options.key?(name)
         end
 
         def options_hash
-          options.each_with_object({}) do |(key, _), hash|
+          self.class.options.merge(options).each_with_object({}) do |(key, _), hash|
             hash[key] = get_option(key)
           end
         end

@@ -34,6 +34,7 @@ RSpec.shared_context 'Rails 6 base application' do
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
       config.eager_load = false
       config.consider_all_requests_local = true
+      config.hosts.clear # Allow requests for any hostname during tests
 
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
       config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)
@@ -97,6 +98,8 @@ RSpec.shared_context 'Rails 6 base application' do
   def reset_rails_configuration!
     # Reset autoloaded constants
     ActiveSupport::Dependencies.clear if Rails.application
+
+    Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
     reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
     # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.

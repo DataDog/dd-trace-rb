@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace'
@@ -6,8 +6,7 @@ require 'ddtrace'
 require_relative 'app'
 
 RSpec.describe 'ActiveRecord instrumentation' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before(:each) do
     # Prevent extra spans during tests
@@ -31,9 +30,6 @@ RSpec.describe 'ActiveRecord instrumentation' do
   context 'when query is made' do
     before(:each) { Article.count }
 
-    let(:spans) { tracer.writer.spans }
-    let(:span) { spans.first }
-
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_SAMPLE_RATE }
@@ -41,10 +37,9 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
     it_behaves_like 'a peer service span'
 
-    it 'calls the instrumentation when is used standalone' do
-      # expect service and trace is sent
-      expect(spans.size).to eq(1)
+    it_behaves_like 'measured span for integration', false
 
+    it 'calls the instrumentation when is used standalone' do
       expect(span.service).to eq('mysql2')
       expect(span.name).to eq('mysql2.query')
       expect(span.span_type).to eq('sql')

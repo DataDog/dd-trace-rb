@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/contrib/analytics_examples'
@@ -15,8 +15,7 @@ end
 RSpec.describe 'ActionCable patcher' do
   before { skip('ActionCable not supported') unless Datadog::Contrib::ActionCable::Integration.compatible? }
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -31,11 +30,9 @@ RSpec.describe 'ActionCable patcher' do
     Datadog.registry[:action_cable].reset_configuration!
   end
 
-  let(:all_spans) { tracer.writer.spans(:keep) }
-
   let(:span) do
-    expect(all_spans).to have(1).item
-    all_spans.find { |s| s.service == 'action_cable' }
+    expect(spans).to have(1).item
+    spans.find { |s| s.service == 'action_cable' }
   end
 
   context 'with server' do
@@ -68,6 +65,10 @@ RSpec.describe 'ActionCable patcher' do
         before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Broadcast::EVENT_NAME) }
         let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+
+      it_behaves_like 'measured span for integration', false do
+        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Broadcast::EVENT_NAME) }
       end
     end
   end
@@ -105,6 +106,10 @@ RSpec.describe 'ActionCable patcher' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
+      it_behaves_like 'measured span for integration', true do
+        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::PerformAction::EVENT_NAME) }
+      end
+
       context 'with a leaking context' do
         let!(:leaky_span) { tracer.trace('unfinished_span') }
 
@@ -127,12 +132,12 @@ RSpec.describe 'ActionCable patcher' do
         end)
       end
 
-      let(:span) { all_spans.last } # Skip 'perform_action' span
+      let(:span) { spans.last } # Skip 'perform_action' span
 
       it 'traces transmit event' do
         perform
 
-        expect(all_spans).to have(2).items
+        expect(spans).to have(2).items
         expect(span.service).to eq('action_cable')
         expect(span.name).to eq('action_cable.transmit')
         expect(span.span_type).to eq('web')
@@ -146,6 +151,10 @@ RSpec.describe 'ActionCable patcher' do
         before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Transmit::EVENT_NAME) }
         let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+
+      it_behaves_like 'measured span for integration', false do
+        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Transmit::EVENT_NAME) }
       end
     end
   end

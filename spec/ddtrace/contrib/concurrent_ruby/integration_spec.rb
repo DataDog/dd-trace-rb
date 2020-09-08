@@ -1,88 +1,68 @@
-require 'concurrent/future'
+require 'ddtrace/contrib/support/spec_helper'
 
-require 'spec_helper'
-require 'ddtrace'
+require 'ddtrace/contrib/concurrent_ruby/integration'
 
 RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
-  around do |example|
-    unmodified_future = ::Concurrent::Future.dup
-    example.run
-    ::Concurrent.send(:remove_const, :Future)
-    ::Concurrent.const_set('Future', unmodified_future)
-    remove_patch!(:concurrent_ruby)
-  end
+  extend ConfigurationHelpers
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:integration) { described_class.new(:concurrent_ruby) }
 
-  subject(:deferred_execution) do
-    outer_span = tracer.trace('outer_span')
-    inner_span = nil
-    future = Concurrent::Future.new do
-      inner_span = tracer.trace('inner_span')
-      inner_span.finish
-    end
-    future.execute
+  describe '.version' do
+    subject(:version) { described_class.version }
 
-    future.wait
-    outer_span.finish
-
-    { outer_span: outer_span, inner_span: inner_span }
-  end
-
-  let(:outer_span) { deferred_execution[:outer_span] }
-  let(:inner_span) { deferred_execution[:inner_span] }
-
-  shared_examples_for 'deferred execution' do
-    before do
-      deferred_execution
+    context 'when the "actionpack" gem is loaded' do
+      include_context 'loaded gems', :'concurrent-ruby' => described_class::MINIMUM_VERSION
+      it { is_expected.to be_a_kind_of(Gem::Version) }
     end
 
-    it 'creates outer span with nil parent' do
-      expect(outer_span.parent).to be_nil
-    end
-
-    it 'writes inner span to tracer' do
-      expect(tracer.writer.spans).to include(inner_span)
-    end
-
-    it 'writes outer span to tracer' do
-      expect(tracer.writer.spans).to include(outer_span)
+    context 'when "actionpack" gem is not loaded' do
+      include_context 'loaded gems', :'concurrent-ruby' => nil
+      it { is_expected.to be nil }
     end
   end
 
-  describe 'patching' do
-    subject(:patch) do
-      Datadog.configure do |c|
-        c.use :concurrent_ruby, tracer: tracer
+  describe '.loaded?' do
+    subject(:loaded?) { described_class.loaded? }
+
+    context 'when Concurrent::Future is defined' do
+      before { stub_const('Concurrent::Future', Class.new) }
+      it { is_expected.to be true }
+    end
+
+    context 'when Concurrent::Future is not defined' do
+      before { hide_const('Concurrent::Future') }
+      it { is_expected.to be false }
+    end
+  end
+
+  describe '.compatible?' do
+    subject(:compatible?) { described_class.compatible? }
+
+    context 'when "actionpack" gem is loaded with a version' do
+      context 'that is less than the minimum' do
+        include_context 'loaded gems', :'concurrent-ruby' => decrement_gem_version(described_class::MINIMUM_VERSION)
+        it { is_expected.to be false }
+      end
+
+      context 'that meets the minimum version' do
+        include_context 'loaded gems', :'concurrent-ruby' => described_class::MINIMUM_VERSION
+        it { is_expected.to be true }
       end
     end
 
-    it 'should add FuturePatch to Future ancestors' do
-      expect { patch }.to change { ::Concurrent::Future.ancestors.map(&:to_s) }
-        .to include('Datadog::Contrib::ConcurrentRuby::FuturePatch')
+    context 'when gem is not loaded' do
+      include_context 'loaded gems', :'concurrent-ruby' => nil
+      it { is_expected.to be false }
     end
   end
 
-  context 'when context propagation is disabled' do
-    it_should_behave_like 'deferred execution'
-
-    it 'inner span should not have parent' do
-      expect(inner_span.parent).to be_nil
-    end
+  describe '#default_configuration' do
+    subject(:default_configuration) { integration.default_configuration }
+    it { is_expected.to be_a_kind_of(Datadog::Contrib::ConcurrentRuby::Configuration::Settings) }
   end
 
-  context 'when context propagation is enabled' do
-    it_should_behave_like 'deferred execution'
-
-    before do
-      Datadog.configure do |c|
-        c.use :concurrent_ruby, tracer: tracer
-      end
-    end
-
-    it 'inner span parent should be included in outer span' do
-      expect(inner_span.parent).to eq(outer_span)
-    end
+  describe '#patcher' do
+    subject(:patcher) { integration.patcher }
+    it { is_expected.to be Datadog::Contrib::ConcurrentRuby::Patcher }
   end
 end

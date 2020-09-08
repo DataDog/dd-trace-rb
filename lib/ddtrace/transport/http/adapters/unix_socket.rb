@@ -31,6 +31,10 @@ module Datadog
             end
           end
 
+          def url
+            "http+unix://#{filepath}?timeout=#{timeout}"
+          end
+
           # Re-implements Net:HTTP with underlying Unix socket
           class HTTP < ::Net::HTTP
             DEFAULT_TIMEOUT = 1

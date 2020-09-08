@@ -1,6 +1,9 @@
 module Datadog
   module Ext
     module Diagnostics
+      DD_TRACE_STARTUP_LOGS = 'DD_TRACE_STARTUP_LOGS'.freeze
+      DD_TRACE_DEBUG = 'DD_TRACE_DEBUG'.freeze
+      DD_TRACE_ENABLED = 'DD_TRACE_ENABLED'.freeze
       # Health
       module Health
         # Metrics
@@ -23,6 +26,8 @@ module Datadog
           METRIC_QUEUE_SPANS = 'datadog.tracer.queue.spans'.freeze
           METRIC_SAMPLING_SERVICE_CACHE_LENGTH = 'datadog.tracer.sampling.service_cache_length'.freeze
           METRIC_TRACES_FILTERED = 'datadog.tracer.traces.filtered'.freeze
+          METRIC_TRANSPORT_CHUNKED = 'datadog.tracer.transport.chunked'.freeze
+          METRIC_TRANSPORT_TRACE_TOO_LARGE = 'datadog.tracer.transport.trace_too_large'.freeze
           METRIC_WRITER_CPU_TIME = 'datadog.tracer.writer.cpu_time'.freeze
         end
       end

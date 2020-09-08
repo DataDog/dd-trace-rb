@@ -15,8 +15,8 @@ RSpec.describe Datadog::Transport::IO::Client do
       let(:result) { double('IO result') }
 
       before do
-        expect(client.encoder).to receive(:encode_traces)
-          .with(traces)
+        expect_any_instance_of(Datadog::Transport::IO::Traces::Parcel).to receive(:encode_with)
+          .with(encoder)
           .and_return(encoded_traces)
 
         expect(client.out).to receive(:puts)
@@ -28,8 +28,8 @@ RSpec.describe Datadog::Transport::IO::Client do
       end
 
       it do
-        is_expected.to be_a_kind_of(Datadog::Transport::IO::Traces::Response)
-        expect(send_traces.result).to eq(result)
+        is_expected.to all(be_a(Datadog::Transport::IO::Traces::Response))
+        expect(send_traces.first.result).to eq(result)
       end
     end
 
@@ -41,8 +41,8 @@ RSpec.describe Datadog::Transport::IO::Client do
       let(:target) { double('target') }
 
       before do
-        expect(client.encoder).to receive(:encode_traces)
-          .with(traces)
+        expect_any_instance_of(Datadog::Transport::IO::Traces::Parcel).to receive(:encode_traces)
+          .with(encoder, traces)
           .and_return(encoded_traces)
 
         expect(target).to receive(:write)
@@ -54,8 +54,80 @@ RSpec.describe Datadog::Transport::IO::Client do
       end
 
       it do
-        is_expected.to be_a_kind_of(Datadog::Transport::IO::Traces::Response)
-        expect(send_traces.result).to eq(result)
+        is_expected.to all(be_a(Datadog::Transport::IO::Traces::Response))
+        expect(send_traces.first.result).to eq(result)
+      end
+    end
+  end
+end
+
+RSpec.describe Datadog::Transport::IO::Traces::Encoder do
+  describe '#encode_data' do
+    def compare_arrays(left = [], right = [])
+      left.zip(right).each { |tuple| yield(*tuple) }
+    end
+
+    let(:trace_encoder) { Class.new { include Datadog::Transport::IO::Traces::Encoder }.new }
+    let(:encoder) { Datadog::Encoding::JSONEncoder }
+
+    describe '.encode_traces' do
+      subject(:encode_traces) { trace_encoder.encode_traces(encoder, traces) }
+      let(:traces) { get_test_traces(2) }
+
+      it { is_expected.to be_a_kind_of(String) }
+
+      describe 'produces a JSON schema' do
+        subject(:schema) { JSON.parse(encode_traces) }
+
+        it 'which is wrapped' do
+          is_expected.to be_a_kind_of(Hash)
+          is_expected.to include('traces' => kind_of(Array))
+        end
+
+        describe 'whose encoded traces' do
+          subject(:encoded_traces) { schema['traces'] }
+
+          it 'contains the traces' do
+            is_expected.to have(traces.length).items
+          end
+
+          it 'has IDs that are hex encoded' do
+            compare_arrays(traces, encoded_traces) do |trace, encoded_trace|
+              compare_arrays(trace, encoded_trace) do |span, encoded_span|
+                described_class::ENCODED_IDS.each do |id|
+                  encoded_id = encoded_span[id.to_s].to_i(16)
+                  original_id = span.send(id)
+                  expect(encoded_id).to eq(original_id)
+                end
+              end
+            end
+          end
+        end
+      end
+
+      context 'when ID is missing' do
+        subject(:encoded_traces) { JSON.parse(encode_traces)['traces'] }
+        let(:missing_id) { :span_id }
+
+        before do
+          # Delete ID from each Span
+          traces.each do |trace|
+            trace.each do |span|
+              allow(span).to receive(:to_hash)
+                .and_wrap_original do |m, *_args|
+                m.call.tap { |h| h.delete(missing_id) }
+              end
+            end
+          end
+        end
+
+        it 'does not include the missing ID' do
+          compare_arrays(traces, encoded_traces) do |trace, encoded_trace|
+            compare_arrays(trace, encoded_trace) do |_span, encoded_span|
+              expect(encoded_span).to_not include(missing_id.to_s)
+            end
+          end
+        end
       end
     end
   end

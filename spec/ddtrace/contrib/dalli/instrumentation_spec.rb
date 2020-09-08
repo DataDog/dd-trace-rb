@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/integration_examples'
 
@@ -11,14 +11,7 @@ RSpec.describe 'Dalli instrumentation' do
   let(:test_port) { ENV.fetch('TEST_MEMCACHED_PORT', '11211') }
 
   let(:client) { ::Dalli::Client.new("#{test_host}:#{test_port}") }
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
-
-  def all_spans
-    tracer.writer.spans(:keep)
-  end
-
-  let(:span) { all_spans.first }
+  let(:configuration_options) { {} }
 
   # Enable the test tracer
   before(:each) do
@@ -37,7 +30,7 @@ RSpec.describe 'Dalli instrumentation' do
   describe 'when a client calls #set' do
     before do
       client.set('abc', 123)
-      try_wait_until { all_spans.any? }
+      try_wait_until { fetch_spans.any? }
     end
 
     it_behaves_like 'analytics for integration' do
@@ -45,8 +38,10 @@ RSpec.describe 'Dalli instrumentation' do
       let(:analytics_sample_rate_var) { Datadog::Contrib::Dalli::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
+    it_behaves_like 'measured span for integration', false
+
     it 'calls instrumentation' do
-      expect(all_spans.size).to eq(1)
+      expect(spans.size).to eq(1)
       expect(span.service).to eq('memcached')
       expect(span.name).to eq('memcached.command')
       expect(span.span_type).to eq('memcached')
@@ -64,18 +59,18 @@ RSpec.describe 'Dalli instrumentation' do
 
     before do
       Datadog.configure do |c|
-        c.use :dalli, describes: "#{test_host}:#{test_port}", tracer: tracer, service_name: service_name
+        c.use :dalli, describes: "#{test_host}:#{test_port}", service_name: service_name
       end
     end
 
     context 'and #set is called' do
       before do
         client.set('abc', 123)
-        try_wait_until { all_spans.any? }
+        try_wait_until { fetch_spans.any? }
       end
 
       it 'calls instrumentation' do
-        expect(all_spans.size).to eq(1)
+        expect(spans.size).to eq(1)
         expect(span.service).to eq(service_name)
         expect(span.name).to eq('memcached.command')
         expect(span.span_type).to eq('memcached')

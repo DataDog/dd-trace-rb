@@ -33,6 +33,8 @@ module Datadog
             @status = status
           end
 
+          def url; end
+
           # Response for test adapter
           class Response
             include Datadog::Transport::Response
@@ -68,6 +70,10 @@ module Datadog
 
             def server_error?
               code.between?(500, 599)
+            end
+
+            def inspect
+              "#{super}, code:#{code}"
             end
           end
         end

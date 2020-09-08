@@ -179,7 +179,9 @@ class TracerTest < Minitest::Test
     assert_equal('my-type', span.span_type)
     # 2 tags from tracer, 2 for span, metrics for PID, and sampling priority,
     # then optionally 1 from runtime metrics if enabled.
-    expected_length = Datadog.configuration.runtime_metrics_enabled ? 7 : 6
+    expected_length = 7 # 4 tags, 3 metrics
+    expected_length += 1 if Datadog.configuration.runtime_metrics_enabled
+
     assert_equal(expected_length, span.meta.length + span.metrics.length)
     assert_equal('test', span.get_tag('env'))
     assert_equal('cool', span.get_tag('temp'))

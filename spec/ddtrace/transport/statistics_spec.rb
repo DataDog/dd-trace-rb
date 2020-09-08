@@ -18,7 +18,7 @@ RSpec.describe Datadog::Transport::Statistics do
       subject(:update) { object.update_stats_from_response!(response) }
       let(:response) { instance_double(Datadog::Transport::Response) }
 
-      before { allow(Datadog::Diagnostics::Health.metrics).to receive(:send_metrics) }
+      before { allow(Datadog.health_metrics).to receive(:send_metrics) }
 
       context 'when the response' do
         context 'is OK' do
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Transport::Statistics do
             expect(object.stats.internal_error).to eq(0)
             expect(object.stats.consecutive_errors).to eq(0)
 
-            expect(Datadog::Diagnostics::Health.metrics).to have_received(:send_metrics) do |metrics|
+            expect(Datadog.health_metrics).to have_received(:send_metrics) do |metrics|
               expect(metrics).to be_a_kind_of(Array)
               expect(metrics).to have(1).item
               expect(metrics).to include(kind_of(Datadog::Metrics::Metric))
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Transport::Statistics do
             expect(object.stats.internal_error).to eq(0)
             expect(object.stats.consecutive_errors).to eq(1)
 
-            expect(Datadog::Diagnostics::Health.metrics).to have_received(:send_metrics) do |metrics|
+            expect(Datadog.health_metrics).to have_received(:send_metrics) do |metrics|
               expect(metrics).to be_a_kind_of(Array)
               expect(metrics).to have(1).item
               expect(metrics).to include(kind_of(Datadog::Metrics::Metric))
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Transport::Statistics do
             expect(object.stats.internal_error).to eq(0)
             expect(object.stats.consecutive_errors).to eq(1)
 
-            expect(Datadog::Diagnostics::Health.metrics).to have_received(:send_metrics) do |metrics|
+            expect(Datadog.health_metrics).to have_received(:send_metrics) do |metrics|
               expect(metrics).to be_a_kind_of(Array)
               expect(metrics).to have(1).item
               expect(metrics).to include(kind_of(Datadog::Metrics::Metric))
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Transport::Statistics do
             expect(object.stats.internal_error).to eq(1)
             expect(object.stats.consecutive_errors).to eq(1)
 
-            expect(Datadog::Diagnostics::Health.metrics).to have_received(:send_metrics) do |metrics|
+            expect(Datadog.health_metrics).to have_received(:send_metrics) do |metrics|
               expect(metrics).to be_a_kind_of(Array)
               expect(metrics).to have(1).item
               expect(metrics).to include(kind_of(Datadog::Metrics::Metric))
@@ -226,7 +226,7 @@ RSpec.describe Datadog::Transport::Statistics do
       subject(:update) { object.update_stats_from_exception!(exception) }
       let(:exception) { instance_double(StandardError) }
 
-      before { allow(Datadog::Diagnostics::Health.metrics).to receive(:send_metrics) }
+      before { allow(Datadog.health_metrics).to receive(:send_metrics) }
 
       it do
         update
@@ -236,7 +236,7 @@ RSpec.describe Datadog::Transport::Statistics do
         expect(object.stats.internal_error).to eq(1)
         expect(object.stats.consecutive_errors).to eq(1)
 
-        expect(Datadog::Diagnostics::Health.metrics).to have_received(:send_metrics) do |metrics|
+        expect(Datadog.health_metrics).to have_received(:send_metrics) do |metrics|
           expect(metrics).to be_a_kind_of(Array)
           expect(metrics).to have(1).item
           expect(metrics).to include(kind_of(Datadog::Metrics::Metric))

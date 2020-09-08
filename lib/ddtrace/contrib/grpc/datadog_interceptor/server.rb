@@ -36,7 +36,7 @@ module Datadog
             tracer.provider.context = Datadog::GRPCPropagator
                                       .extract(metadata)
           rescue StandardError => e
-            Datadog::Logger.log.debug(
+            Datadog.logger.debug(
               "unable to propagate GRPC metadata to context: #{e}"
             )
           end
@@ -52,8 +52,11 @@ module Datadog
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
           rescue StandardError => e
-            Datadog::Logger.log.debug("GRPC client trace failed: #{e}")
+            Datadog.logger.debug("GRPC client trace failed: #{e}")
           end
 
           def reserved_headers

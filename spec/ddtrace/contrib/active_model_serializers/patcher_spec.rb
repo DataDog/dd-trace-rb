@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'spec/ddtrace/contrib/active_model_serializers/helpers'
 
@@ -11,12 +11,7 @@ require 'ddtrace/ext/http'
 RSpec.describe 'ActiveModelSerializers patcher' do
   include_context 'AMS serializer'
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
-
-  def all_spans
-    tracer.writer.spans(:keep)
-  end
+  let(:configuration_options) { {} }
 
   before(:each) do
     # Supress active_model_serializers log output in the test run
@@ -56,7 +51,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     end
 
     let(:active_model_serializers_span) do
-      all_spans.select { |s| s.name == name }.first
+      spans.select { |s| s.name == name }.first
     end
 
     if ActiveModelSerializersHelpers.ams_0_10_or_newer?
@@ -67,6 +62,13 @@ RSpec.describe 'ActiveModelSerializers patcher' do
           let(:analytics_enabled_var) { Datadog::Contrib::ActiveModelSerializers::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Contrib::ActiveModelSerializers::Ext::ENV_ANALYTICS_SAMPLE_RATE }
 
+          let(:span) do
+            render
+            active_model_serializers_span
+          end
+        end
+
+        it_behaves_like 'measured span for integration', true do
           let(:span) do
             render
             active_model_serializers_span

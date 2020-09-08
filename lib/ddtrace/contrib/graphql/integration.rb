@@ -9,20 +9,21 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('1.7.9')
+
         register_as :graphql, auto_patch: true
 
         def self.version
           Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version
         end
 
-        def self.present?
-          super && defined?(::GraphQL)
+        def self.loaded?
+          !defined?(::GraphQL).nil? \
+            && !defined?(::GraphQL::Tracing::DataDogTracing).nil?
         end
 
         def self.compatible?
-          super \
-            && defined?(::GraphQL::Tracing::DataDogTracing) \
-            && version >= Gem::Version.new('1.7.9')
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

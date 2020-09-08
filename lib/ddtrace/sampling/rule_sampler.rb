@@ -16,6 +16,8 @@ module Datadog
     class RuleSampler
       extend Forwardable
 
+      AGENT_RATE_METRIC_KEY = '_dd.agent_psr'.freeze
+
       attr_reader :rules, :rate_limiter, :default_sampler
 
       # @param rules [Array<Rule>] ordered list of rules to be applied to a span
@@ -68,14 +70,26 @@ module Datadog
       end
 
       def sample!(span)
-        sampled = sample_span(span) { |s| @default_sampler.sample!(s) }
+        sampled = sample_span(span) do |s|
+          @default_sampler.sample!(s).tap do
+            # We want to make sure the span is tagged with the agent-derived
+            # service rate. Retrieve this from the rate by service sampler.
+            # Only do this if it was set by a RateByServiceSampler.
+            if @default_sampler.is_a?(RateByServiceSampler)
+              s.set_metric(AGENT_RATE_METRIC_KEY, @default_sampler.sample_rate(span))
+            end
+          end
+        end
 
         sampled.tap do
           span.sampled = sampled
         end
       end
 
-      def_delegators :@default_sampler, :update
+      def update(*args)
+        return false unless @default_sampler.respond_to?(:update)
+        @default_sampler.update(*args)
+      end
 
       private
 
@@ -95,7 +109,7 @@ module Datadog
           set_limiter_metrics(span, rate_limiter.effective_rate)
         end
       rescue StandardError => e
-        Datadog::Logger.log.error("Rule sampling failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog.logger.error("Rule sampling failed. Cause: #{e.message} Source: #{e.backtrace.first}")
         yield(span)
       end
 

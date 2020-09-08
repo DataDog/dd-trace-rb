@@ -9,14 +9,20 @@ module Datadog
       class Integration
         include Contrib::Integration
 
+        MINIMUM_VERSION = Gem::Version.new('0.3.21')
+
         register_as :mysql2
 
         def self.version
           Gem.loaded_specs['mysql2'] && Gem.loaded_specs['mysql2'].version
         end
 
-        def self.present?
-          super && defined?(::Mysql2)
+        def self.loaded?
+          !defined?(::Mysql2).nil?
+        end
+
+        def self.compatible?
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration

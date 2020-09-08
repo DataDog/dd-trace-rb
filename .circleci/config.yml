@@ -15,6 +15,8 @@ test_containers:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+  - &container_presto
+    image: prestosql/presto
   - &container_mysql
     image: mysql:5.6
     environment:
@@ -52,11 +54,16 @@ step_rubocop: &step_rubocop
 step_appraisal_install: &step_appraisal_install
   run:
     name: Install Appraisal gems
-    command: bundle exec appraisal install
+    command: |
+      bundle exec appraisal clean # Ensure we fetch the latest version of dependencies
+      bundle exec appraisal install
 step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
     command: |
+      # JRuby: Ensure files exist when Appraisal generates no output
+      mkdir gemfiles
+      touch gemfiles/_.gemfile.lock
       cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
@@ -108,10 +115,6 @@ orbs:
           image:
             description: Docker image location
             type: string
-          rubocop:
-            description: Run Rubocop on this version of Ruby
-            type: boolean
-            default: true
         docker:
           - <<: *container_base
             image: <<parameters.image>>
@@ -130,10 +133,6 @@ orbs:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
           - *step_bundle_install
-          - when:
-              condition: <<parameters.rubocop>>
-              steps:
-                - *step_rubocop
           - *step_appraisal_install
           - *step_compute_bundle_checksum
           - save_cache:
@@ -163,13 +162,16 @@ orbs:
             environment:
               - BUNDLE_GEMFILE: /app/Gemfile
               - TEST_DATADOG_INTEGRATION: 1
+              - COVERAGE_BASE_DIR: coverage
           - *container_postgres
+          - *container_presto
           - *container_mysql
           - *container_elasticsearch
           - *container_redis
           - *container_mongo
           - *container_memcached
           - *container_agent
+        parallelism: 22
         steps:
           - restore_cache:
               keys:
@@ -177,7 +179,16 @@ orbs:
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+          - run:
+              name: Set coverage report directory
+              command: |
+                # Create a unique coverage directory for this job, to avoid conflicts when merging all results
+                echo 'export COVERAGE_DIR="$COVERAGE_BASE_DIR/versions/$CIRCLE_JOB/$CIRCLE_NODE_INDEX"' >> $BASH_ENV
           - *step_run_all_tests
+          - persist_to_workspace:
+              root: .
+              paths:
+                - coverage
       benchmark:
         <<: *job_defaults
         parameters:
@@ -209,6 +220,60 @@ orbs:
           - run:
               name: Run Benchmark without ddtracer
               command: rm -f lib/ddtrace.rb && bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
+      lint:
+        <<: *job_defaults
+        parameters:
+          ruby_version:
+            description: Ruby version
+            type: string
+          image:
+            description: Docker image location
+            type: string
+        docker:
+          - <<: *container_base
+            image: <<parameters.image>>
+            environment:
+              - BUNDLE_GEMFILE: /app/Gemfile
+        steps:
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+          - *step_rubocop
+      coverage:
+        <<: *job_defaults
+        parameters:
+          ruby_version:
+            description: Ruby version
+            type: string
+          image:
+            description: Docker image location
+            type: string
+        docker:
+          - <<: *container_base
+            image: <<parameters.image>>
+            environment:
+              - BUNDLE_GEMFILE: /app/Gemfile
+        steps:
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+          - attach_workspace:
+              at: /tmp/workspace
+          - run:
+              name: Generate coverage report artifact "coverage/index.html"
+              command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
+          - run:
+              name: Generate coverage report artifact "coverage/versions/*/index.html"
+              command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report_per_ruby_version
+          - store_artifacts:
+              path: /tmp/workspace/coverage/report/
+              destination: coverage
     commands:
     executors:
 
@@ -221,6 +286,7 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install AWS CLI
           command: |
             apt-get -y -qq update
             apt-get -y -qq install awscli
@@ -248,6 +314,7 @@ jobs:
             fi
       - checkout
       - run:
+          name: Install AWS CLI
           command: |
             apt-get -y -qq update
             apt-get -y -qq install awscli
@@ -267,6 +334,7 @@ jobs:
           destination: gem
 
 job_configuration:
+  # MRI
   - &config-2_0
     <<: *filters_all_branches_and_tags
     ruby_version: '2.0'
@@ -299,17 +367,40 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: '2.7'
     image: marcotc/docker-library:ddtrace_rb_2_7_0
+  # JRuby
+  - &config-jruby-9_2
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'jruby-9.2'
+    image: marcotc/docker-library:ddtrace_rb_jruby_9_2
 
 workflows:
   version: 2
   build-and-test:
     jobs:
+      - orb/lint:
+          <<: *config-2_6
+          name: lint
+          requires:
+            - build-2.6
+      - orb/coverage:
+          <<: *config-2_7
+          name: coverage
+          requires:
+            - test-2.0
+            - test-2.1
+            - test-2.2
+            - test-2.3
+            - test-2.4
+            - test-2.5
+            - test-2.6
+            - test-2.7
+            - test-jruby-9.2
+      # MRI
       - orb/checkout:
           <<: *config-2_0
           name: checkout-2.0
       - orb/build:
           <<: *config-2_0
-          rubocop: false
           name: build-2.0
           requires:
             - checkout-2.0
@@ -414,9 +505,25 @@ workflows:
           name: test-2.7
           requires:
             - build-2.7
+      # JRuby
+      - orb/checkout:
+          <<: *config-jruby-9_2
+          name: checkout-jruby-9.2
+      - orb/build:
+          <<: *config-jruby-9_2
+          name: build-jruby-9.2
+          requires:
+            - checkout-jruby-9.2
+      - orb/test:
+          <<: *config-jruby-9_2
+          name: test-jruby-9.2
+          requires:
+            - build-jruby-9.2
+      # Release jobs
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
           requires:
+            - lint
             - test-2.0
             - test-2.1
             - test-2.2
@@ -425,9 +532,11 @@ workflows:
             - test-2.5
             - test-2.6
             - test-2.7
+            - test-jruby-9.2
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
+            - lint
             - test-2.0
             - test-2.1
             - test-2.2
@@ -436,3 +545,4 @@ workflows:
             - test-2.5
             - test-2.6
             - test-2.7
+            - test-jruby-9.2
