@@ -1,4 +1,5 @@
 require 'thread'
+require 'monitor'
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/runtime/object_space'
 
@@ -9,7 +10,7 @@ module Datadog
     def initialize(max_size)
       @max_size = max_size
 
-      @mutex = Mutex.new
+      @mutex = Monitor.new
       @items = []
       @closed = false
     end
@@ -17,16 +18,16 @@ module Datadog
     # Add a new ``item`` in the local queue. This method doesn't block the execution
     # even if the buffer is full. In that case, a random item is discarded.
     def push(item)
-      @mutex.synchronize do
-        return if @closed
+      synchronize do
+        return if closed?
         full? ? replace!(item) : add!(item)
         item
       end
     end
 
     def concat(items)
-      @mutex.synchronize do
-        return if @closed
+      synchronize do
+        return if closed?
 
         # Segment items into underflow and overflow
         underflow, overflow = overflow_segments(items)
@@ -41,29 +42,37 @@ module Datadog
 
     # Return the current number of stored items.
     def length
-      @mutex.synchronize do
+      synchronize do
         return @items.length
       end
     end
 
     # Return if the buffer is empty.
     def empty?
-      @mutex.synchronize do
+      synchronize do
         return @items.empty?
       end
     end
 
     # Stored items are returned and the local buffer is reset.
     def pop
-      @mutex.synchronize do
+      synchronize do
         drain!
       end
     end
 
     def close
-      @mutex.synchronize do
+      synchronize do
         @closed = true
       end
+    end
+
+    def closed?
+      @closed
+    end
+
+    def synchronize
+      @mutex.synchronize { yield }
     end
 
     protected
