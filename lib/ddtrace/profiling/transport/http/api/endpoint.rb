@@ -14,10 +14,6 @@ module Datadog
           class Endpoint < Datadog::Transport::HTTP::API::Endpoint
             include Datadog::Ext::Profiling::Transport::HTTP
 
-            TYPE_MAPPINGS = {
-              cpu_time_ns: 'ruby-cpu'.freeze
-            }.freeze
-
             attr_reader \
               :encoder
 
@@ -46,19 +42,22 @@ module Datadog
                 FORM_FIELD_RECORDING_START => flush.start.utc.iso8601,
                 FORM_FIELD_RECORDING_END => flush.finish.utc.iso8601,
                 FORM_FIELD_TAGS => [
-                  "#{FORM_FIELD_TAG_RUNTIME}:#{flush.runtime}",
+                  "#{FORM_FIELD_TAG_RUNTIME}:#{flush.language}",
+                  "#{FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
+                  "#{FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
                   "#{FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
                   "#{FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
+                  # NOTE: Redundant w/ 'runtime'; may want to remove this later.
                   "#{FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",
                   "#{FORM_FIELD_TAG_HOST}:#{flush.host}"
                 ],
                 FORM_FIELD_DATA => pprof_file,
-                FORM_FIELD_RUNTIME => flush.runtime,
+                FORM_FIELD_RUNTIME => flush.language,
                 FORM_FIELD_FORMAT => FORM_FIELD_FORMAT_PPROF
               }
 
               # Add types
-              form['types[0]'] = types.join(',')
+              form[FORM_FIELD_TYPES] = types.join(',')
 
               # Optional fields
               form[FORM_FIELD_TAGS] << "#{FORM_FIELD_TAG_SERVICE}:#{flush.service}" unless flush.service.nil?
@@ -71,11 +70,6 @@ module Datadog
             def build_pprof(flush)
               pprof = encoder.encode(flush)
 
-              # Convert types
-              types = pprof.types.map do |type|
-                TYPE_MAPPINGS.key?(type) ? TYPE_MAPPINGS[type] : type.to_s
-              end
-
               # Wrap pprof as a gzipped file
               gzipped_data = Datadog::Utils::Compression.gzip(pprof.data)
               pprof_file = Datadog::Vendor::Multipart::Post::UploadIO.new(
@@ -84,7 +78,7 @@ module Datadog
                 PPROF_DEFAULT_FILENAME
               )
 
-              [pprof_file, types]
+              [pprof_file, [FORM_FIELD_TYPES_AUTO]]
             end
           end
         end

@@ -28,12 +28,14 @@ module Datadog
           FORM_FIELD_TAG_LANGUAGE = 'language'.freeze
           FORM_FIELD_TAG_PROFILER_VERSION = 'profiler_version'.freeze
           FORM_FIELD_TAG_RUNTIME = 'runtime'.freeze
+          FORM_FIELD_TAG_RUNTIME_ENGINE = 'runtime_engine'.freeze
+          FORM_FIELD_TAG_RUNTIME_PLATFORM = 'runtime_platform'.freeze
           FORM_FIELD_TAG_RUNTIME_VERSION = 'runtime_version'.freeze
           FORM_FIELD_TAG_SERVICE = 'service'.freeze
           FORM_FIELD_TAG_VERSION = 'version'.freeze
           FORM_FIELD_TAGS = 'tags'.freeze
-          FORM_FIELD_TYPES = 'types'.freeze
-          FORM_FIELD_TYPE_CPU_TIME = 'cpu_time'.freeze
+          FORM_FIELD_TYPES = 'types[0]'.freeze
+          FORM_FIELD_TYPES_AUTO = 'auto'.freeze
 
           HEADER_CONTENT_TYPE = 'Content-Type'.freeze
           HEADER_CONTENT_TYPE_OCTET_STREAM = 'application/octet-stream'.freeze
