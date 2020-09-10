@@ -24,21 +24,31 @@ RSpec.describe Datadog::Runtime::Metrics do
 
   describe '#associate_with_span' do
     subject(:associate_with_span) { runtime_metrics.associate_with_span(span) }
-    let(:span) { instance_double(Datadog::Span, service: service) }
+    let(:span) { Datadog::Span.new(nil, 'dummy', service: service) }
     let(:service) { 'parser' }
 
     context 'when enabled' do
       before do
         runtime_metrics.enabled = true
 
-        expect(span).to receive(:set_tag)
-          .with(Datadog::Ext::Runtime::TAG_LANG, Datadog::Runtime::Identity.lang)
-
         associate_with_span
       end
 
-      it 'registers the span\'s service' do
-        expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
+      context 'with internal span' do
+        it 'registers the span\'s service' do
+          expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
+          expect(span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq(Datadog::Runtime::Identity.lang)
+        end
+      end
+
+      context 'with external resource span' do
+        let(:span) do
+          super().tap { |s| s.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, 'peer-service-name') }
+        end
+
+        it "doesn't tag as an internal language span" do
+          expect(span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to be nil
+        end
       end
     end
 
