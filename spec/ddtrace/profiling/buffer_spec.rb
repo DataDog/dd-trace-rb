@@ -7,4 +7,29 @@ RSpec.describe Datadog::Profiling::Buffer do
   let(:max_size) { 0 }
 
   it { is_expected.to be_a_kind_of(Datadog::ThreadSafeBuffer) }
+
+  describe '#cache' do
+    subject(:cache) { buffer.cache(name) }
+    let(:name) { :test }
+    it { is_expected.to be_a_kind_of(Datadog::Utils::ObjectSet) }
+  end
+
+  describe '#string_table' do
+    subject(:string_table) { buffer.string_table }
+    it { is_expected.to be_a_kind_of(Datadog::Utils::StringTable) }
+  end
+
+  describe '#pop' do
+    subject(:pop) { buffer.pop }
+
+    it 'replaces the string table' do
+      expect { pop }
+        .to(change { buffer.string_table.object_id })
+    end
+
+    it 'replaces caches' do
+      expect { pop }
+        .to(change { buffer.cache(:test).object_id })
+    end
+  end
 end
