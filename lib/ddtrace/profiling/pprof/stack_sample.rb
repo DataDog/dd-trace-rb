@@ -32,7 +32,7 @@ module Datadog
           [
             stack_sample.thread_id,
             [
-              stack_sample.frames.collect(&:to_s),
+              stack_sample.frames.collect(&:hash),
               stack_sample.total_frame_count
             ]
           ].hash
