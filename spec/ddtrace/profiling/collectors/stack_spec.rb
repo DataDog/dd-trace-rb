@@ -9,6 +9,26 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
   let(:options) { {} }
 
+  let(:buffer) { instance_double(Datadog::Profiling::Buffer) }
+  let(:string_table) { Datadog::Utils::StringTable.new }
+  let(:backtrace_location_cache) { Datadog::Utils::ObjectSet.new }
+
+  before do
+    allow(recorder)
+      .to receive(:[])
+      .with(Datadog::Profiling::Events::StackSample)
+      .and_return(buffer)
+
+    allow(buffer)
+      .to receive(:string_table)
+      .and_return(string_table)
+
+    allow(buffer)
+      .to receive(:cache)
+      .with(:backtrace_locations)
+      .and_return(backtrace_location_cache)
+  end
+
   describe '::new' do
     it 'with default settings' do
       is_expected.to have_attributes(
@@ -192,7 +212,21 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     context 'when the backtrace is not empty' do
-      let(:backtrace) { Array.new(backtrace_size) { instance_double(Thread::Backtrace::Location) } }
+      let(:backtrace) do
+        Array.new(backtrace_size) do
+          instance_double(
+            Thread::Backtrace::Location,
+            base_label: base_label,
+            lineno: lineno,
+            path: path
+          )
+        end
+      end
+
+      let(:base_label) { double('base_label') }
+      let(:lineno) { double('lineno') }
+      let(:path) { double('path') }
+
       let(:backtrace_size) { collector.max_frames }
 
       context 'and CPU timing is unavailable' do
@@ -201,7 +235,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
           is_expected.to have_attributes(
             timestamp: kind_of(Float),
-            frames: backtrace,
+            frames: array_including(kind_of(Datadog::Profiling::BacktraceLocation)),
             total_frame_count: backtrace.length,
             thread_id: thread.object_id,
             cpu_time_interval_ns: nil,
@@ -239,7 +273,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
             is_expected.to have_attributes(
               timestamp: kind_of(Float),
-              frames: backtrace,
+              frames: array_including(kind_of(Datadog::Profiling::BacktraceLocation)),
               total_frame_count: backtrace.length,
               thread_id: thread.object_id,
               cpu_time_interval_ns: cpu_interval,
@@ -371,6 +405,129 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:max_time_usage_pct) { 2.0 }
         it { is_expected.to eq 49.0 }
       end
+    end
+  end
+
+  describe '#convert_backtrace_locations' do
+    subject(:convert_backtrace_locations) { collector.convert_backtrace_locations(backtrace) }
+
+    context 'given backtrace containing identical frames' do
+      let(:backtrace) do
+        [
+          instance_double(
+            Thread::Backtrace::Location,
+            base_label: 'to_s',
+            lineno: 15,
+            path: 'path/to/file.rb'
+          ),
+          instance_double(
+            Thread::Backtrace::Location,
+            base_label: 'to_s',
+            lineno: 15,
+            path: 'path/to/file.rb'
+          )
+        ]
+      end
+
+      it 'reuses the same frame and strings' do
+        locations = convert_backtrace_locations
+
+        expect(locations).to have(2).items
+        expect(locations[0]).to be(locations[1])
+        expect(locations[0].base_label).to be(locations[1].base_label)
+        expect(locations[0].path).to be(locations[1].path)
+      end
+    end
+
+    context 'given backtrace containing unique frames' do
+      let(:backtrace) do
+        [
+          instance_double(
+            Thread::Backtrace::Location,
+            base_label: 'to_s',
+            lineno: 15,
+            path: 'path/to/file.rb'
+          ),
+          instance_double(
+            Thread::Backtrace::Location,
+            base_label: 'initialize',
+            lineno: 7,
+            path: 'path/to/file.rb'
+          )
+        ]
+      end
+
+      it 'uses different frames but same strings' do
+        locations = convert_backtrace_locations
+
+        expect(locations).to have(2).items
+        expect(locations[0]).to_not be(locations[1])
+        expect(locations[0].base_label).to_not be(locations[1].base_label)
+        expect(locations[0].path).to be(locations[1].path)
+      end
+    end
+
+    context 'when the cache already contains an identical frame' do
+      let(:backtrace) do
+        [
+          instance_double(
+            Thread::Backtrace::Location,
+            base_label: 'to_s',
+            lineno: 15,
+            path: 'path/to/file.rb'
+          )
+        ]
+      end
+
+      before do
+        # Add frame to cache
+        @original_frame = backtrace_location_cache.fetch(
+          string_table.fetch_string(backtrace.first.base_label),
+          backtrace.first.lineno,
+          string_table.fetch_string(backtrace.first.path)
+        ) do |_id, base_label, lineno, path|
+          Datadog::Profiling::BacktraceLocation.new(
+            base_label,
+            lineno,
+            path
+          )
+        end
+      end
+
+      it 'reuses the same frame and strings' do
+        locations = convert_backtrace_locations
+
+        expect(locations).to have(1).items
+        expect(locations[0]).to be(@original_frame)
+        expect(locations[0].base_label).to be(@original_frame.base_label)
+        expect(locations[0].path).to be(@original_frame.path)
+      end
+    end
+  end
+
+  describe '#build_backtrace_location' do
+    subject(:build_backtrace_location) do
+      collector.build_backtrace_location(
+        id,
+        base_label,
+        lineno,
+        path
+      )
+    end
+
+    let(:id) { double('id') }
+    let(:base_label) { double('base_label') }
+    let(:lineno) { double('lineno') }
+    let(:path) { double('path') }
+
+    it { is_expected.to be_a_kind_of(Datadog::Profiling::BacktraceLocation) }
+
+    it do
+      is_expected.to have_attributes(
+        base_label: base_label,
+        lineno: lineno,
+        path: path
+      )
     end
   end
 end
