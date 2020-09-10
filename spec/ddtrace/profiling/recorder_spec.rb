@@ -42,6 +42,17 @@ RSpec.describe Datadog::Profiling::Recorder do
     end
   end
 
+  describe '#[]' do
+    subject(:buffer) { recorder[event_class] }
+
+    context 'given an event class that is defined' do
+      let(:event_class) { Class.new }
+      let(:event_classes) { [event_class] }
+
+      it { is_expected.to be_a_kind_of(Datadog::Profiling::Buffer) }
+    end
+  end
+
   describe '#push' do
     include_context 'test buffer'
 

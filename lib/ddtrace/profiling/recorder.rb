@@ -19,6 +19,10 @@ module Datadog
         end
       end
 
+      def [](event_class)
+        @buffers[event_class]
+      end
+
       def push(events)
         if events.is_a?(Array)
           # Push multiple events
