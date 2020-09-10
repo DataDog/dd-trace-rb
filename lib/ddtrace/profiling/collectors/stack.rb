@@ -1,3 +1,4 @@
+require 'ddtrace/profiling/backtrace_location'
 require 'ddtrace/profiling/events/stack'
 require 'ddtrace/utils/time'
 require 'ddtrace/worker'
@@ -97,6 +98,9 @@ module Datadog
           stack_size = locations.length
           locations = locations[0..(max_frames - 1)]
 
+          # Convert backtrace locations into structs
+          locations = convert_backtrace_locations(locations)
+
           thread_id = thread.respond_to?(:native_thread_id) ? thread.native_thread_id : nil
           thread_id ||= thread.object_id
 
@@ -131,6 +135,34 @@ module Datadog
 
           interval = (used_time_ns / (max_time_usage_pct / 100.0)) - used_time_ns
           [interval / 1e9, MIN_INTERVAL].max
+        end
+
+        # Convert backtrace locations into structs
+        # Re-use old backtrace location objects if they already exist in the buffer
+        def convert_backtrace_locations(locations)
+          string_table = recorder[Events::StackSample].string_table
+
+          locations.collect do |location|
+            # Re-use existing BacktraceLocation if identical copy, otherwise build a new one.
+            recorder[Events::StackSample].cache(:backtrace_locations).fetch(
+              # Function name
+              string_table.fetch_string(location.base_label),
+              # Line number
+              location.lineno,
+              # Filename
+              string_table.fetch_string(location.path),
+              # Build function
+              &method(:build_backtrace_location)
+            )
+          end
+        end
+
+        def build_backtrace_location(_id, base_label, lineno, path)
+          Profiling::BacktraceLocation.new(
+            base_label,
+            lineno,
+            path
+          )
         end
       end
     end
