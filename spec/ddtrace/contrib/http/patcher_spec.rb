@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require 'net/http'
@@ -22,10 +23,15 @@ RSpec.describe 'net/http patcher' do
   end
 
   describe 'with default configuration' do
-    it 'uses default service name' do
-      Net::HTTP.get(host, '/')
+    subject { Net::HTTP.get(host, '/') }
 
+    it 'uses default service name' do
+      subject
       expect(request_span.service).to eq('net/http')
+    end
+
+    it_behaves_like 'a peer service span' do
+      let(:span) { request_span }
     end
   end
 
@@ -40,10 +46,15 @@ RSpec.describe 'net/http patcher' do
 
     after(:each) { Datadog.configure { |c| c.use :http, service_name: Datadog::Contrib::HTTP::Ext::SERVICE_NAME } }
 
-    it 'uses new service name' do
-      Net::HTTP.get(host, '/')
+    subject { Net::HTTP.get(host, '/') }
 
+    it 'uses new service name' do
+      subject
       expect(request_span.service).to eq(new_service_name)
+    end
+
+    it_behaves_like 'a peer service span' do
+      let(:service) { request_span }
     end
   end
 end

@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -87,6 +88,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             let(:analytics_enabled_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_ENABLED }
             let(:analytics_sample_rate_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
+
+          it_behaves_like 'a peer service span'
 
           it_behaves_like 'measured span for integration', false
         end
@@ -197,6 +200,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             it 'has correct service name' do
               expect(span.service).to eq('rest_client')
             end
+
+            it_behaves_like 'a peer service span'
           end
         end
       end

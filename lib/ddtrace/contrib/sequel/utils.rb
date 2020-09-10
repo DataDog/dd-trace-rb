@@ -1,3 +1,5 @@
+require 'ddtrace/ext/integration'
+
 module Datadog
   module Contrib
     module Sequel
@@ -40,7 +42,11 @@ module Datadog
             }
           end
 
-          def set_analytics_sample_rate(span)
+          def set_common_tags(span)
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+
+            # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
           end
 

@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
+require 'ddtrace/contrib/integration_examples'
 
 require 'aws-sdk'
 require 'ddtrace'
@@ -54,6 +55,8 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('http.status_code')).to eq('200')
       end
+
+      it_behaves_like 'a peer service span'
 
       it 'returns the correct response' do
         expect(list_buckets.buckets.map(&:name)).to eq(['bucket1'])

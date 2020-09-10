@@ -1,4 +1,5 @@
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/integration'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'
 
@@ -31,6 +32,9 @@ module Datadog
 
           def annotate!(span, metadata)
             span.set_tags(metadata)
+
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
