@@ -249,8 +249,8 @@ module Datadog
       }
 
       if !@start_time.nil? && !@end_time.nil?
-        h[:start] = (@start_time.to_f * 1e9).to_i
-        h[:duration] = ((@end_time - @start_time) * 1e9).to_i
+        h[:start] = start_time_nano
+        h[:duration] = duration_nano
       end
 
       h
@@ -272,10 +272,10 @@ module Datadog
         packer.write_map_header(13) # Set header with how many elements in the map
 
         packer.write('start')
-        packer.write((@start_time.to_f * 1e9).to_i)
+        packer.write(start_time_nano)
 
         packer.write('duration')
-        packer.write(((@end_time - @start_time) * 1e9).to_i)
+        packer.write(duration_nano)
       else
         packer.write_map_header(11) # Set header with how many elements in the map
       end
@@ -362,6 +362,18 @@ module Datadog
       def now_allocations
         GC.stat(:total_allocated_objects)
       end
+    end
+
+    # Used for serialization
+    # @return [Integer] in nanoseconds since Epoch
+    def start_time_nano
+      @start_time.to_i * 1000000000 + @start_time.nsec
+    end
+
+    # Used for serialization
+    # @return [Integer] in nanoseconds since Epoch
+    def duration_nano
+      ((@end_time - @start_time) * 1e9).to_i
     end
   end
 end
