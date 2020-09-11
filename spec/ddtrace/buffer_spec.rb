@@ -3,11 +3,28 @@ require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/buffer'
 
+require 'concurrent'
+
 RSpec.describe Datadog::TraceBuffer do
+  subject(:buffer_class) { described_class }
+
+  context 'with CRuby' do
+    before { skip unless PlatformHelpers.mri? }
+    it { is_expected.to be <= Datadog::CRubyTraceBuffer }
+  end
+
+  context 'with JRuby' do
+    before { skip unless PlatformHelpers.jruby? }
+    it { is_expected.to be <= Datadog::ThreadSafeBuffer }
+  end
+end
+
+RSpec.shared_examples 'trace buffer' do
   include_context 'health metrics'
 
   subject(:buffer) { described_class.new(max_size) }
   let(:max_size) { 0 }
+  let(:max_size_leniency) { defined?(super) ? super() : 1 } # Multiplier to allowed max_size
 
   def measure_traces_size(traces)
     traces.inject(Datadog::Runtime::ObjectSpace.estimate_bytesize(traces)) do |sum, trace|
@@ -137,6 +154,54 @@ RSpec.describe Datadog::TraceBuffer do
         expect(output).to_not be nil
         expect(output.sort).to eq((0..thread_count - 1).map { |i| [i] })
       end
+
+      context 'with items exceeding maximum size' do
+        let(:max_size) { 100 }
+        let(:thread_count) { 1000 }
+        let(:barrier) { Concurrent::CyclicBarrier.new(thread_count) }
+        let(:threads) do
+          buffer
+          barrier
+
+          Array.new(thread_count) do |i|
+            Thread.new do
+              barrier.wait
+              1000.times { buffer.push([i]) }
+            end
+          end
+        end
+
+        it 'does not exceed expected maximum size' do
+          push
+          expect(output).to have_at_most(max_size * max_size_leniency).items
+        end
+
+        context 'with #pop operations' do
+          let(:barrier) { Concurrent::CyclicBarrier.new(thread_count + 1) }
+
+          before do
+            allow(Datadog).to receive(:logger).and_return(double)
+          end
+
+          it 'executes without error' do
+            threads
+
+            barrier.wait
+            1000.times do
+              buffer.pop
+
+              # Yield control to threads to increase contention.
+              # Otherwise we might run #pop a few times in succession,
+              # which doesn't help us stress test this case.
+              sleep 0
+            end
+
+            threads.each(&:kill)
+
+            push
+          end
+        end
+      end
     end
   end
 
@@ -199,5 +264,17 @@ RSpec.describe Datadog::TraceBuffer do
       expect(health_metrics).to have_received(:queue_length)
         .with(traces.length)
     end
+  end
+end
+
+RSpec.describe Datadog::ThreadSafeBuffer do
+  it_behaves_like 'trace buffer'
+end
+
+RSpec.describe Datadog::CRubyTraceBuffer do
+  before { skip unless PlatformHelpers.mri? }
+
+  it_behaves_like 'trace buffer' do
+    let(:max_size_leniency) { 1.04 } # 4%
   end
 end
