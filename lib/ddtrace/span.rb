@@ -1,5 +1,6 @@
 require 'time'
 require 'thread'
+require 'forwardable'
 
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
@@ -8,6 +9,7 @@ require 'ddtrace/environment'
 require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
 require 'ddtrace/diagnostics/health'
+require 'ddtrace/span/duration'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -20,6 +22,7 @@ module Datadog
   class Span
     prepend Analytics::Span
     prepend ForcedTracing::Span
+    extend Forwardable
 
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
@@ -36,12 +39,14 @@ module Datadog
     NUMERIC_TAG_SIZE_RANGE = (-2**53..2**53)
 
     attr_accessor :name, :service, :resource, :span_type,
-                  :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
                   :tracer, :context
 
     attr_reader :parent
+
+    def_delegators :@duration, :start_time, :end_time, :started?, :finished?
+
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
     # and then <tt>finish()</tt> once the tracer operation is over.
     #
@@ -72,11 +77,10 @@ module Datadog
       @parent = nil
       @sampled = true
 
-      @start_time = nil # set by Tracer.start_span
-      @end_time = nil # set by Span.finish
-
       @allocation_count_start = now_allocations
       @allocation_count_finish = @allocation_count_start
+
+      @duration = Duration.new
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -160,6 +164,28 @@ module Datadog
       set_tag(Ext::Errors::STACK, e.backtrace) unless e.backtrace.empty?
     end
 
+    # Mark the span started at the current time.
+    def start(start_time = nil)
+      # A span should not be started twice. Note that this is not thread-safe,
+      # start is called from multiple threads, a given span might be started
+      # several times. Again, one should not do this, so this test is more a
+      # fallback to avoid very bad things and protect you in most common cases.
+      return if started?
+      @duration.start(start_time)
+
+      self
+    end
+
+    # for backwards compatibility
+    def start_time=(time)
+      time.tap { start(time) }
+    end
+
+    # for backwards compatibility
+    def end_time=(time)
+      time.tap { @duration.finish(time) }
+    end
+
     # Mark the span finished at the current time and submit it.
     def finish(finish_time = nil)
       # A span should not be finished twice. Note that this is not thread-safe,
@@ -170,12 +196,7 @@ module Datadog
 
       @allocation_count_finish = now_allocations
 
-      # Provide a default start_time if unset, but this should have been set by start_span.
-      # Using now here causes 0-duration spans, still, this is expected, as we never
-      # explicitely say when it started.
-      @start_time ||= Time.now.utc
-
-      @end_time = finish_time.nil? ? Time.now.utc : finish_time # finish this
+      @duration.finish(finish_time)
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
@@ -193,11 +214,6 @@ module Datadog
         Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
       self
-    end
-
-    # Return whether the span is finished or not.
-    def finished?
-      !@end_time.nil?
     end
 
     # Return a string representation of the span.
@@ -232,7 +248,7 @@ module Datadog
 
     # Return the hash representation of the current span.
     def to_hash
-      h = {
+      {
         span_id: @span_id,
         parent_id: @parent_id,
         trace_id: @trace_id,
@@ -244,21 +260,18 @@ module Datadog
         metrics: @metrics,
         allocations: allocations,
         error: @status
-      }
-
-      if !@start_time.nil? && !@end_time.nil?
-        h[:start] = (@start_time.to_f * 1e9).to_i
-        h[:duration] = ((@end_time - @start_time) * 1e9).to_i
+      }.tap do |h|
+        if @duration.complete?
+          h[:start] = (@duration.start_time.to_f * 1e9).to_i
+          h[:duration] = (@duration.to_f * 1e9).to_i
+        end
       end
-
-      h
     end
 
     # Return a human readable version of the span
     def pretty_print(q)
-      start_time = (@start_time.to_f * 1e9).to_i rescue '-'
-      end_time = (@end_time.to_f * 1e9).to_i rescue '-'
-      duration = ((@end_time - @start_time) * 1e9).to_i rescue 0
+      start_time = (@duration.start_time.to_f * 1e9).to_i rescue '-'
+      end_time = (@duration.end_time.to_f * 1e9).to_i rescue '-'
       q.group 0 do
         q.breakable
         q.text "Name: #{@name}\n"
@@ -271,7 +284,7 @@ module Datadog
         q.text "Error: #{@status}\n"
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
-        q.text "Duration: #{duration}\n"
+        q.text "Duration: #{@duration.to_f}\n"
         q.text "Allocations: #{allocations}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
