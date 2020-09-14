@@ -27,6 +27,7 @@ module Datadog
           options[name] = builder.to_definition.tap do
             # Resolve and define helper functions
             helpers = default_helpers(name)
+            # Prevent unnecessary creation of an identical copy of helpers if there's nothing to merge
             helpers = helpers.merge(builder.helpers) unless builder.helpers.empty?
             define_helpers(helpers)
           end

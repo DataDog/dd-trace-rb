@@ -41,7 +41,8 @@ module Datadog
           o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG, false) }
           o.lazy
           o.on_set do |enabled|
-            # Enable rich debug print statements
+            # Enable rich debug print statements.
+            # We do not need to unnecessarily load 'pp' unless in debugging mode.
             require 'pp' if enabled
           end
         end
