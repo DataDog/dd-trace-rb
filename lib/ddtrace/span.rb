@@ -8,7 +8,6 @@ require 'ddtrace/environment'
 require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
 require 'ddtrace/diagnostics/health'
-require 'ddtrace/span/duration'
 require 'ddtrace/utils/time'
 
 module Datadog
