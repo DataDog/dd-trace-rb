@@ -59,7 +59,11 @@ module Datadog
       end
 
       def to_f
-        (@duration_end - @duration_start).to_f rescue 0.0
+        if @wall_clock_duration
+          (@start_time - @end_time).to_f rescue 0.0
+        else
+          (@duration_end - @duration_start).to_f rescue 0.0
+        end
       end
 
       def duration_marker
