@@ -1,4 +1,5 @@
-require 'concurrent/utility/monotonic_time'
+require 'ddtrace/utils/time'
+
 module Datadog
   class Span
     # Stateful class used to track and calculate the duration of a Span.
@@ -62,7 +63,7 @@ module Datadog
       end
 
       def duration_marker
-        Concurrent.monotonic_time
+        Utils::Time.get_time
       end
     end
   end
