@@ -1,4 +1,4 @@
-  
+
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 require 'ddtrace/contrib/analytics'
