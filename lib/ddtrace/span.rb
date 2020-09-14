@@ -1,6 +1,5 @@
 require 'time'
 require 'thread'
-require 'forwardable'
 
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
@@ -10,6 +9,7 @@ require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/span/duration'
+require 'ddtrace/utils/time'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -22,7 +22,6 @@ module Datadog
   class Span
     prepend Analytics::Span
     prepend ForcedTracing::Span
-    extend Forwardable
 
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
@@ -41,11 +40,9 @@ module Datadog
     attr_accessor :name, :service, :resource, :span_type,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
-                  :tracer, :context
+                  :tracer, :context, :duration, :start_time, :end_time
 
     attr_reader :parent
-
-    def_delegators :@duration, :start_time, :end_time, :started?, :finished?
 
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
     # and then <tt>finish()</tt> once the tracer operation is over.
@@ -80,7 +77,11 @@ module Datadog
       @allocation_count_start = now_allocations
       @allocation_count_finish = @allocation_count_start
 
-      @duration = Duration.new
+      @start_time = nil
+      @duration_start = nil
+      @end_time = nil
+      @duration_end = nil
+      @wall_clock_duration = false
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -171,7 +172,15 @@ module Datadog
       # several times. Again, one should not do this, so this test is more a
       # fallback to avoid very bad things and protect you in most common cases.
       return if started?
-      @duration.start(start_time)
+
+      if start_time
+        @start_time = start_time
+        @duration_start = start_time
+        @wall_clock_duration = true
+      else
+        @start_time = Time.now.utc
+        @duration_start = duration_marker
+      end
 
       self
     end
@@ -183,7 +192,7 @@ module Datadog
 
     # for backwards compatibility
     def end_time=(time)
-      time.tap { @duration.finish(time) }
+      time.tap { finish(time) }
     end
 
     # Mark the span finished at the current time and submit it.
@@ -196,7 +205,22 @@ module Datadog
 
       @allocation_count_finish = now_allocations
 
-      @duration.finish(finish_time)
+      now = Time.now.utc
+
+      # Provide a default start_time if unset.
+      # Using `now` here causes duration to be 0; this is expected
+      # behavior when start_time is unknown.
+      start(finish_time || now) unless started?
+
+      if finish_time
+        @end_time = finish_time
+        @duration_start = @start_time
+        @duration_end = finish_time
+        @wall_clock_duration = true
+      else
+        @end_time = now
+        @duration_end = @wall_clock_duration ? now : duration_marker
+      end
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
@@ -261,17 +285,17 @@ module Datadog
         allocations: allocations,
         error: @status
       }.tap do |h|
-        if @duration.complete?
-          h[:start] = (@duration.start_time.to_f * 1e9).to_i
-          h[:duration] = (@duration.to_f * 1e9).to_i
+        if complete?
+          h[:start] = (start_time.to_f * 1e9).to_i
+          h[:duration] = (duration.to_f * 1e9).to_i
         end
       end
     end
 
     # Return a human readable version of the span
     def pretty_print(q)
-      start_time = (@duration.start_time.to_f * 1e9).to_i rescue '-'
-      end_time = (@duration.end_time.to_f * 1e9).to_i rescue '-'
+      start_time = (start_time.to_f * 1e9).to_i rescue '-'
+      end_time = (end_time.to_f * 1e9).to_i rescue '-'
       q.group 0 do
         q.breakable
         q.text "Name: #{@name}\n"
@@ -284,7 +308,7 @@ module Datadog
         q.text "Error: #{@status}\n"
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
-        q.text "Duration: #{@duration.to_f}\n"
+        q.text "Duration: #{duration.to_f}\n"
         q.text "Allocations: #{allocations}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
@@ -301,7 +325,33 @@ module Datadog
       end
     end
 
+    # Return whether the duration is started or not
+    def started?
+      !@start_time.nil?
+    end
+
+    # Return whether the duration is finished or not.
+    def finished?
+      !@end_time.nil?
+    end
+
+    def complete?
+      started? && finished?
+    end
+
+    def duration
+      if @wall_clock_duration
+        (@start_time - @end_time).to_f rescue 0.0
+      else
+        (@duration_end - @duration_start).to_f rescue 0.0
+      end
+    end
+
     private
+
+    def duration_marker
+      Utils::Time.get_time
+    end
 
     if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION) < Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION)
       def now_allocations
