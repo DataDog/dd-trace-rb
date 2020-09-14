@@ -15,6 +15,7 @@ copy_to_s3:
     - if: '$CI_COMMIT_BRANCH == "master"'
       when: on_success
     - when: manual
+      allow_failure: true
   script:
     - export ACCESS_KEY_ID=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.secret_key_id --with-decryption --query "Parameter.Value" --out text)
     - export SECRET_ACCESS_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.secret_sec_key_id --with-decryption --query "Parameter.Value" --out text)

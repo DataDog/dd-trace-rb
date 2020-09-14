@@ -11,6 +11,11 @@ if Datadog::OpenTracer.supported?
     let(:datadog_tracer) { tracer.datadog_tracer }
     let(:datadog_spans) { datadog_tracer.writer.spans(:keep) }
 
+    after do
+      # Ensure tracer is shutdown between test, as to not leak threads.
+      datadog_tracer.shutdown!
+    end
+
     def sampling_priority_metric(span)
       span.get_metric(Datadog::OpenTracer::TextMapPropagator::SAMPLING_PRIORITY_KEY)
     end

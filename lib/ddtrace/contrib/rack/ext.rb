@@ -15,8 +15,6 @@ module Datadog
         SPAN_REQUEST = 'rack.request'.freeze
         WEBSERVER_APP = 'webserver'.freeze
         WEBSERVER_SERVICE_NAME = 'web-server'.freeze
-        ENV_TRACE_CACHED_PAGES = 'DD_TRACE_CACHED_PAGES'.freeze
-        ENV_RUM_INJECTION = 'DD_TRACE_RUM_INJECT_TRACE'.freeze
       end
     end
   end

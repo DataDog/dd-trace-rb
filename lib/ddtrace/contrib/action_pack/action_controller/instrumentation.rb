@@ -66,13 +66,6 @@ module Datadog
                 span.status = 1 if status.starts_with?('5')
               elsif Utils.exception_is_error?(exception)
                 span.set_error(exception)
-
-                # Some exception gets handled by Rails middleware before it can be set on Rack middleware
-                # The rack span is the root span of the request and should make sure it has the full exception
-                # set on it.
-                if env[:datadog_rack_request_span]
-                  env[:datadog_rack_request_span].set_error(exception)
-                end
               end
             ensure
               span.finish

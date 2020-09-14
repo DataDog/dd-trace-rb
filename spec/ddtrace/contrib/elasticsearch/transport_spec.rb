@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'time'
 require 'elasticsearch-transport'
@@ -84,6 +85,8 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
           expect(span.get_tag('out.host')).to eq(host)
           expect(span.get_tag('out.port')).to eq(port)
         end
+
+        it_behaves_like 'a peer service span'
       end
 
       context 'PUT request' do
@@ -113,6 +116,8 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
             expect(span.get_tag('out.host')).to eq(host)
             expect(span.get_tag('out.port')).to eq(port)
           end
+
+          it_behaves_like 'a peer service span'
         end
 
         context 'with Hash params' do

@@ -2,7 +2,6 @@ require 'ddtrace/contrib/rails/rails_helper'
 require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
 require 'ddtrace/contrib/rack/middlewares'
-require 'ddtrace/contrib/rack/rum_injection'
 
 RSpec.describe 'Rails Railtie' do
   before { skip 'Test not compatible with Rails < 4.0' if Rails.version < '4.0' }

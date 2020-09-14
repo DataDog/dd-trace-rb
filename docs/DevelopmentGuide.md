@@ -98,6 +98,22 @@ $ bundle exec appraisal contrib rake spec:redis'[--seed,1234]'
 
 This can be useful for replicating conditions from CI or isolating certain tests.
 
+**Checking test coverage**
+
+You can check test code coverage by creating a report _after_ running a test suite:
+```
+# Run the desired test suite
+$ bundle exec appraisal contrib rake spec:redis
+# Generate report for the suite executed
+$ bundle exec rake coverage:report
+```
+
+A webpage will be generated at `coverage/report/index.html` with the resulting report.
+
+Because you are likely not running all tests locally, your report will contain partial coverage results.
+You *must* check the CI step `coverage` for the complete test coverage report, ensuring coverage is not
+decreased.
+
 ### Checking code quality
 
 **Linting**
