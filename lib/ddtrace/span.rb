@@ -170,7 +170,7 @@ module Datadog
       # who are using async manual instrumentation that may rely on this
 
       @start_time = start_time || Time.now.utc
-      @duration_start = start_time.nil? duration_marker : nil
+      @duration_start = start_time.nil? ? duration_marker : nil
 
       self
     end
