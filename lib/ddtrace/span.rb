@@ -76,8 +76,15 @@ module Datadog
       @allocation_count_start = now_allocations
       @allocation_count_finish = @allocation_count_start
 
+      # start_time and end_time track wall clock. In Ruby, wall clock
+      # has less accuracy than monotonic clock, so if possible we look to only use wall clock
+      # to measure duration when a time is supplied by the user, or if monotonic clock
+      # is unsupported.
       @start_time = nil
       @end_time = nil
+
+      # duration_start and duration_end track monotonic clock, and may remain nil in cases where it
+      # is known that we have to use wall clock to measure duration.
       @duration_start = nil
       @duration_end = nil
     end
@@ -268,7 +275,7 @@ module Datadog
         allocations: allocations,
         error: @status
       }.tap do |h|
-        if complete?
+        if finished?
           h[:start] = (start_time.to_f * 1e9).to_i
           h[:duration] = (duration.to_f * 1e9).to_i
         end
@@ -316,10 +323,6 @@ module Datadog
     # Return whether the duration is finished or not.
     def finished?
       !@end_time.nil?
-    end
-
-    def complete?
-      started? && finished?
     end
 
     def duration
