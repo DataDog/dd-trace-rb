@@ -190,6 +190,42 @@ RSpec.describe Datadog::Buffer do
     end
   end
 
+  describe '#close' do
+    subject(:close) { buffer.close }
+
+    it do
+      expect { close }
+        .to change { buffer.closed? }
+        .from(false)
+        .to(true)
+    end
+  end
+
+  describe '#closed?' do
+    subject(:closed?) { buffer.closed? }
+
+    context 'when the buffer has not been closed' do
+      it { is_expected.to be false }
+    end
+
+    context 'when the buffer is closed' do
+      before { buffer.close }
+      it { is_expected.to be true }
+    end
+  end
+
+  describe '#synchronize' do
+    it 'is re-entrant' do
+      expect do
+        buffer.synchronize do
+          buffer.synchronize do
+            true
+          end
+        end
+      end.to_not raise_error
+    end
+  end
+
   describe 'performance' do
     require 'benchmark'
     let(:n) { 10_000 }
