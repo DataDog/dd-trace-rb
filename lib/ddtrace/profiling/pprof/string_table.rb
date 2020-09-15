@@ -1,23 +1,10 @@
-require 'ddtrace/utils/sequence'
+require 'ddtrace/utils/string_table'
 
 module Datadog
   module Profiling
     module Pprof
       # Tracks strings and returns IDs
-      class StringTable
-        def initialize
-          @sequence = Utils::Sequence.new
-          @ids = { ''.freeze => @sequence.next }
-        end
-
-        def fetch(string)
-          @ids[string.to_s] ||= @sequence.next
-        end
-
-        def strings
-          @ids.keys
-        end
-      end
+      class StringTable < Utils::StringTable; end
     end
   end
 end
