@@ -77,10 +77,9 @@ module Datadog
       @allocation_count_finish = @allocation_count_start
 
       @start_time = nil
-      @duration_start = nil
       @end_time = nil
+      @duration_start = nil
       @duration_end = nil
-      @wall_clock_duration = false
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -166,20 +165,12 @@ module Datadog
 
     # Mark the span started at the current time.
     def start(start_time = nil)
-      # A span should not be started twice. Note that this is not thread-safe,
-      # start is called from multiple threads, a given span might be started
-      # several times. Again, one should not do this, so this test is more a
-      # fallback to avoid very bad things and protect you in most common cases.
-      return if started?
+      # A span should not be started twice. However, this is existing
+      # behavior and so we maintain it for backward compatibility for those
+      # who are using async manual instrumentation that may rely on this
 
-      if start_time
-        @start_time = start_time
-        @duration_start = start_time
-        @wall_clock_duration = true
-      else
-        @start_time = Time.now.utc
-        @duration_start = duration_marker
-      end
+      @start_time = start_time || Time.now.utc
+      @duration_start = start_time.nil? duration_marker : nil
 
       self
     end
@@ -211,15 +202,8 @@ module Datadog
       # behavior when start_time is unknown.
       start(finish_time || now) unless started?
 
-      if finish_time
-        @end_time = finish_time
-        @duration_start = @start_time
-        @duration_end = finish_time
-        @wall_clock_duration = true
-      else
-        @end_time = now
-        @duration_end = @wall_clock_duration ? now : duration_marker
-      end
+      @end_time = finish_time || now
+      @duration_end = finish_time.nil? ? duration_marker : nil
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
@@ -339,7 +323,7 @@ module Datadog
     end
 
     def duration
-      if @wall_clock_duration
+      if @duration_end.nil? || @duration_start.nil?
         (@end_time - @start_time).to_f rescue 0.0
       else
         (@duration_end - @duration_start).to_f rescue 0.0
