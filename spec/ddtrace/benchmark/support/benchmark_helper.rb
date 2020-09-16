@@ -174,3 +174,69 @@ RSpec.shared_context 'benchmark' do
     end
   end
 end
+
+require 'socket'
+
+# An "agent" that always responds with a proper OK response, while
+# keeping minimum overhead.
+#
+# The goal is to reduce external performance noise from running a real
+# agent process in the system.
+#
+# It finds a locally available port to listen on, and updates the value of
+# {Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} accordingly.
+RSpec.shared_context 'minimal agent' do
+  let(:agent_server) { TCPServer.new '127.0.0.1', agent_port }
+  let(:agent_port) { ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT].to_i }
+
+  # Sample agent response, collected from a real agent exchange.
+  AGENT_HTTP_RESPONSE = "HTTP/1.1 200\r\n" \
+    "Content-Length: 40\r\n" \
+    "Content-Type: application/json\r\n" \
+    "Date: Thu, 03 Sep 2020 20:05:54 GMT\r\n" \
+    "\r\n" \
+    "{\"rate_by_service\":{\"service:,env:\":1}}\n".freeze
+
+  def server_runner
+    previous_conn = nil
+    loop do
+      conn = agent_server.accept
+      conn.print AGENT_HTTP_RESPONSE
+      conn.flush
+
+      # Closing the connection immediately can sometimes
+      # be too fast, cause to other side to not be able
+      # to read the response in time.
+      # We instead delay closing the connection until the next
+      # connection request comes in.
+      previous_conn.close if previous_conn
+      previous_conn = conn
+    end
+  end
+
+  before do
+    # Initializes server in a fork, to allow for true concurrency.
+    # In JRuby, threads are not supported, but true thread concurrency is.
+    @agent_runner = if PlatformHelpers.supports_fork?
+                      fork { server_runner }
+                    else
+                      Thread.new { server_runner }
+                    end
+  end
+
+  after do
+    if PlatformHelpers.supports_fork?
+      Process.kill('TERM', @agent_runner) rescue nil
+      Process.wait(@agent_runner)
+    else
+      @agent_runner.kill
+    end
+  end
+
+  around do |example|
+    # Set the agent port used by the default HTTP transport
+    ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => available_port.to_s) do
+      example.run
+    end
+  end
+end
