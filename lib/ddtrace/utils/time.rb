@@ -7,7 +7,13 @@ module Datadog
       module_function
 
       def get_time
-        PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : ::Time.now.to_f
+        PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : timecop_supported_time_now.to_f
+      end
+
+      # TODO: provide a `c.use timecop` type interface to give this proper support
+      # Patch for api integration client
+      def timecop_supported_time_now
+        (::Time.respond_to?(:now_without_mock_time) ? ::Time.now_without_mock_time : ::Time.now)
       end
     end
   end
