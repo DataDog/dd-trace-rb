@@ -71,6 +71,10 @@ module Contrib
           instance
         end
       end
+
+      config.after(:each) do
+        Datadog.shutdown!
+      end
     end
 
     # Useful for integration testing.

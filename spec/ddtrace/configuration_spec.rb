@@ -372,5 +372,17 @@ RSpec.describe Datadog::Configuration do
       it { is_expected.to be_a_kind_of(Datadog::Tracer) }
       it { expect(tracer.context_flush).to be_a_kind_of(Datadog::ContextFlush::Finished) }
     end
+
+    describe '#shutdown!' do
+      subject(:shutdown!) { test_class.shutdown! }
+
+      it 'allows for a clean component restart' do
+        original_components = test_class.send(:components)
+
+        shutdown!
+
+        expect(test_class.send(:components)).to_not be(original_components)
+      end
+    end
   end
 end
