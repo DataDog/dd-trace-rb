@@ -28,6 +28,9 @@ RSpec.shared_context 'benchmark' do
   # the real memory culprits to surface.
   let(:memory_iterations) { defined?(super) ? super() : 100 }
 
+  # How long the program will run when calculating IPS performance, in seconds.
+  let(:timing_runtime) { defined?(super) ? super() : 5 }
+
   # Outputs human readable information to STDERR.
   # Most of the benchmarks have nicely formatted reports
   # that are by default printed to terminal.
@@ -62,7 +65,7 @@ RSpec.shared_context 'benchmark' do
   # Measure execution time
   it 'timing' do
     report = Benchmark.ips do |x|
-      x.config(time: 5, warmup: 0.5)
+      x.config(time: timing_runtime, warmup: timing_runtime / 10)
 
       steps.each do |s|
         x.report(s) do
