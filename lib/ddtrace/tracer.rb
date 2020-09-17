@@ -186,8 +186,7 @@ module Datadog
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
-      start_time = options.fetch(:start_time, Time.now.utc)
-
+      start_time = options[:start_time]
       tags = options.fetch(:tags, {})
 
       span_options = options.select do |k, _v|
@@ -212,9 +211,10 @@ module Datadog
         # child span
         span.parent = parent # sets service, trace_id, parent_id, sampled
       end
+
       span.set_tags(@tags) unless @tags.empty?
       span.set_tags(tags) unless tags.empty?
-      span.start_time = start_time
+      span.start(start_time)
 
       # this could at some point be optional (start_active_span vs start_manual_span)
       ctx.add_span(span) unless ctx.nil?
