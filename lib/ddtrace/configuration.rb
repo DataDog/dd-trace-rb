@@ -56,7 +56,10 @@ module Datadog
     end
 
     def shutdown!
-      components.shutdown! if instance_variable_defined?(:@components) && @components
+      if instance_variable_defined?(:@components) && @components
+        components.shutdown!
+        @components = nil
+      end
     end
 
     protected
