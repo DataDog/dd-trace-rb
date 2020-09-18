@@ -1,3 +1,4 @@
+
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 require 'ddtrace/contrib/analytics'
@@ -95,7 +96,7 @@ module Datadog
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
               span.set_tag(Ext::TAG_ROUTE_PATH, path)
             ensure
-              span.start_time = start
+              span.start(start)
               span.finish(finish)
             end
           rescue StandardError => e
@@ -134,7 +135,7 @@ module Datadog
 
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
             ensure
-              span.start_time = start
+              span.start(start)
               span.finish(finish)
             end
           rescue StandardError => e
@@ -153,7 +154,8 @@ module Datadog
             span = tracer.trace(
               Ext::SPAN_ENDPOINT_RUN_FILTERS,
               service: service_name,
-              span_type: Datadog::Ext::HTTP::TYPE_INBOUND
+              span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
+              start_time: start
             )
 
             begin
@@ -169,7 +171,7 @@ module Datadog
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
               span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
             ensure
-              span.start_time = start
+              span.start(start)
               span.finish(finish)
             end
           rescue StandardError => e

@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -68,6 +69,8 @@ RSpec.describe 'Sequel instrumentation' do
         let(:analytics_enabled_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'a peer service span'
 
       it_behaves_like 'measured span for integration', false
     end
