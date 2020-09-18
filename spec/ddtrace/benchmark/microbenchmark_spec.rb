@@ -75,4 +75,30 @@ RSpec.describe 'Microbenchmark' do
       end
     end
   end
+
+  describe 'end-to-end' do
+    include_context 'minimal agent'
+
+    describe 'nested traces' do
+      include_examples 'benchmark'
+
+      let(:timing_runtime) { 60 }
+      let(:memory_iterations) { 1000 }
+
+      let(:steps) { [1, 10, 100] }
+
+      let(:tracer) { Datadog::Tracer.new }
+      after { tracer.shutdown! }
+
+      let(:name) { 'span'.freeze }
+
+      def trace(i, total)
+        tracer.trace(name) { trace(i + 1, total) unless i == total }
+      end
+
+      def subject(i)
+        trace(1, i)
+      end
+    end
+  end
 end
