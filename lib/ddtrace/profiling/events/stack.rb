@@ -8,7 +8,8 @@ module Datadog
         attr_reader \
           :frames,
           :total_frame_count,
-          :thread_id
+          :thread_id,
+          :hash
 
         def initialize(
           timestamp,
@@ -21,6 +22,14 @@ module Datadog
           @frames = frames
           @total_frame_count = total_frame_count
           @thread_id = thread_id
+
+          @hash = [
+            thread_id,
+            [
+              frames.collect(&:hash),
+              total_frame_count
+            ]
+          ].hash
         end
       end
 
