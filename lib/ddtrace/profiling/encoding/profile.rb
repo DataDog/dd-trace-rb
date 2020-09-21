@@ -12,6 +12,7 @@ module Datadog
           module_function
 
           def encode(flush)
+            return Pprof::Payload.new('', [])
             return unless flush
 
             # Create a pprof template from the list of event types
