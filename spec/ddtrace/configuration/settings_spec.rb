@@ -122,11 +122,26 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     describe '#debug=' do
-      it 'updates the #debug setting' do
-        expect { settings.diagnostics.debug = true }
-          .to change { settings.diagnostics.debug }
-          .from(false)
-          .to(true)
+      context 'enabled' do
+        subject(:set_debug) { settings.diagnostics.debug = true }
+
+        it 'updates the #debug setting' do
+          expect { set_debug }.to change { settings.diagnostics.debug }.from(false).to(true)
+        end
+
+        it 'requires debug dependencies' do
+          expect_any_instance_of(Kernel).to receive(:require).with('pp')
+          set_debug
+        end
+      end
+
+      context 'disabled' do
+        subject(:set_debug) { settings.diagnostics.debug = false }
+
+        it 'does not require debug dependencies' do
+          expect_any_instance_of(Kernel).to_not receive(:require)
+          set_debug
+        end
       end
     end
 
