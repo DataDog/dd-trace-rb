@@ -29,8 +29,9 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
     end
 
     around do |example|
-      expect(::Process.ancestors.include?(described_class::Kernel)).to be false
-      expect(::Kernel.ancestors.include?(described_class::Kernel)).to be false
+      if ::Process.singleton_class.ancestors.include?(Datadog::Profiling::Ext::Forking::Kernel)
+        skip 'Unclean Process class state.'
+      end
 
       unmodified_process_class = ::Process.dup
       unmodified_kernel_class = ::Kernel.dup
