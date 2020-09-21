@@ -2,6 +2,9 @@ require 'spec_helper'
 require 'ddtrace/ext/forced_tracing'
 require 'ddtrace/span'
 
+require 'json'
+require 'msgpack'
+
 RSpec.describe Datadog::Span do
   subject(:span) { described_class.new(tracer, name, context: context, **span_options) }
   let(:tracer) { get_test_tracer }
@@ -595,6 +598,55 @@ RSpec.describe Datadog::Span do
       expect(span).to have_error_message('oops')
       expect(span).to have_error_type('RuntimeError')
       expect(span).to have_error_stack(backtrace.join($RS))
+    end
+  end
+
+  describe '#to_hash' do
+    subject(:to_hash) { span.to_hash }
+    let(:span_options) { { trace_id: 12 } }
+    before { span.span_id = 34 }
+
+    it do
+      is_expected.to eq(
+        trace_id: 12,
+        span_id: 34,
+        parent_id: 0,
+        name: 'my.span',
+        service: nil,
+        resource: 'my.span',
+        type: nil,
+        meta: {},
+        metrics: {},
+        allocations: 0,
+        error: 0
+      )
+    end
+
+    context 'with a finished span' do
+      before { span.finish }
+
+      it 'includes timing information' do
+        is_expected.to include(
+          start: be >= 0,
+          duration: be >= 0
+        )
+      end
+    end
+  end
+
+  describe '#to_msgpack' do
+    subject(:to_msgpack) { MessagePack.unpack(MessagePack.pack(span)) }
+
+    it 'correctly performs a serialization round-trip' do
+      is_expected.to eq(Hash[span.to_hash.map { |k, v| [k.to_s, v] }])
+    end
+  end
+
+  describe '#to_json' do
+    subject(:to_json) { JSON(JSON.dump(span)) }
+
+    it 'correctly performs a serialization round-trip' do
+      is_expected.to eq(Hash[span.to_hash.map { |k, v| [k.to_s, v] }])
     end
   end
 end

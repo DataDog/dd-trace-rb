@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'time'
 require 'thread'
 
@@ -262,7 +264,7 @@ module Datadog
 
     # Return the hash representation of the current span.
     def to_hash
-      {
+      h = {
         span_id: @span_id,
         parent_id: @parent_id,
         trace_id: @trace_id,
@@ -274,12 +276,72 @@ module Datadog
         metrics: @metrics,
         allocations: allocations,
         error: @status
-      }.tap do |h|
-        if finished?
-          h[:start] = (start_time.to_f * 1e9).to_i
-          h[:duration] = (duration.to_f * 1e9).to_i
-        end
+      }
+
+      if finished?
+        h[:start] = start_time_nano
+        h[:duration] = duration_nano
       end
+
+      h
+    end
+
+    # MessagePack serializer interface. Making this object
+    # respond to `#to_msgpack` allows it to be automatically
+    # serialized by MessagePack.
+    #
+    # This is more efficient than doing +MessagePack.pack(span.to_hash)+
+    # as we don't have to create an intermediate Hash.
+    #
+    # @param packer [MessagePack::Packer] serialization buffer, can be +nil+ with JRuby
+    def to_msgpack(packer = nil)
+      # As of 1.3.3, JRuby implementation doesn't pass an existing packer
+      packer ||= MessagePack::Packer.new
+
+      if finished?
+        packer.write_map_header(13) # Set header with how many elements in the map
+
+        packer.write('start')
+        packer.write(start_time_nano)
+
+        packer.write('duration')
+        packer.write(duration_nano)
+      else
+        packer.write_map_header(11) # Set header with how many elements in the map
+      end
+
+      # DEV: We use strings as keys here, instead of symbols, as
+      # DEV: MessagePack will ultimately convert them to strings.
+      # DEV: By providing strings directly, we skip this indirection operation.
+      packer.write('span_id')
+      packer.write(@span_id)
+      packer.write('parent_id')
+      packer.write(@parent_id)
+      packer.write('trace_id')
+      packer.write(@trace_id)
+      packer.write('name')
+      packer.write(@name)
+      packer.write('service')
+      packer.write(@service)
+      packer.write('resource')
+      packer.write(@resource)
+      packer.write('type')
+      packer.write(@span_type)
+      packer.write('meta')
+      packer.write(@meta)
+      packer.write('metrics')
+      packer.write(@metrics)
+      packer.write('allocations')
+      packer.write(allocations)
+      packer.write('error')
+      packer.write(@status)
+      packer
+    end
+
+    # JSON serializer interface.
+    # Used by older version of the transport.
+    def to_json(*args)
+      to_hash.to_json(*args)
     end
 
     # Return a human readable version of the span
@@ -327,9 +389,9 @@ module Datadog
 
     def duration
       if @duration_end.nil? || @duration_start.nil?
-        (@end_time - @start_time).to_f rescue 0.0
+        @end_time - @start_time
       else
-        (@duration_end - @duration_start).to_f rescue 0.0
+        @duration_end - @duration_start
       end
     end
 
@@ -351,6 +413,18 @@ module Datadog
       def now_allocations
         GC.stat(:total_allocated_objects)
       end
+    end
+
+    # Used for serialization
+    # @return [Integer] in nanoseconds since Epoch
+    def start_time_nano
+      @start_time.to_i * 1000000000 + @start_time.nsec
+    end
+
+    # Used for serialization
+    # @return [Integer] in nanoseconds since Epoch
+    def duration_nano
+      (duration * 1e9).to_i
     end
   end
 end

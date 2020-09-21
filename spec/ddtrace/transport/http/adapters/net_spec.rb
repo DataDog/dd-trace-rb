@@ -9,20 +9,23 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
   let(:port) { double('port') }
   let(:timeout) { double('timeout') }
   let(:options) { { timeout: timeout } }
+  let(:proxy_addr) { nil } # We currently disable proxy for transport HTTP requests
 
   shared_context 'HTTP connection stub' do
     let(:http_connection) { instance_double(::Net::HTTP) }
 
     before do
-      allow(::Net::HTTP).to receive(:start)
+      allow(::Net::HTTP).to receive(:new)
         .with(
           adapter.hostname,
           adapter.port,
-          open_timeout: adapter.timeout,
-          read_timeout: adapter.timeout
-        ) do |*_args, &block|
-          block.call(http_connection)
-        end
+          proxy_addr
+        ).and_return(http_connection)
+
+      allow(http_connection).to receive(:open_timeout=).with(adapter.timeout)
+      allow(http_connection).to receive(:read_timeout=).with(adapter.timeout)
+
+      allow(http_connection).to receive(:start).and_yield(http_connection)
     end
   end
 
