@@ -5,7 +5,8 @@ module Datadog
       attr_reader \
         :base_label,
         :lineno,
-        :path
+        :path,
+        :hash
 
       def initialize(
         base_label,
@@ -15,6 +16,7 @@ module Datadog
         @base_label = base_label
         @lineno = lineno
         @path = path
+        @hash = [base_label, lineno, path].hash
       end
 
       def ==(other)
@@ -23,10 +25,6 @@ module Datadog
 
       def eql?(other)
         hash == other.hash
-      end
-
-      def hash
-        [base_label, lineno, path].hash
       end
     end
   end
