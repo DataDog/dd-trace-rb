@@ -209,8 +209,6 @@ task :ci do
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
     declare 'bundle exec rake spec:contrib'
-    # Benchmarks
-    declare 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -265,8 +263,6 @@ task :ci do
     declare 'bundle exec rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
-    # Benchmarks
-    declare 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -328,8 +324,6 @@ task :ci do
     declare 'bundle exec rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
-    # Benchmarks
-    declare 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -403,8 +397,6 @@ task :ci do
     declare 'bundle exec rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
-    # Benchmarks
-    declare 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
       # Contrib minitests
@@ -481,12 +473,8 @@ task :ci do
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
     declare 'bundle exec rake spec:opentelemetry'
-    # Benchmarks
-    declare 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
-      # Benchmarks
-      declare 'bundle exec rake benchmark'
       # Contrib minitests
       # Contrib specs
       declare 'bundle exec appraisal contrib rake spec:action_pack'
@@ -546,9 +534,6 @@ task :ci do
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
     declare 'bundle exec rake spec:opentelemetry'
-    # Benchmarks
-    declare 'bundle exec rake spec:benchmark' if RUBY_PLATFORM != 'java' # Too slow due to repeated JVM instantiation
-    declare 'bundle exec rake benchmark'
     # Contrib minitests
     # Contrib specs
     declare 'bundle exec appraisal contrib rake spec:action_pack'
@@ -617,12 +602,8 @@ task :ci do
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
     declare 'bundle exec rake spec:opentelemetry'
-    # Benchmarks
-    declare 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
-      # Benchmarks
-      declare 'bundle exec rake benchmark'
       # Contrib minitests
       # Contrib specs
       declare 'bundle exec appraisal contrib rake spec:action_pack'
@@ -691,12 +672,8 @@ task :ci do
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
     declare 'bundle exec rake spec:opentelemetry'
-    # Benchmarks
-    declare 'bundle exec rake spec:benchmark'
 
     if RUBY_PLATFORM != 'java'
-      # Benchmarks
-      declare 'bundle exec rake benchmark'
       # Contrib minitests
       # Contrib specs
       declare 'bundle exec appraisal contrib rake spec:action_pack'
