@@ -144,8 +144,8 @@ module Datadog
   # * Pushed into a single CRubyTraceBuffer from 1000 threads.
   # The buffer can exceed its maximum size by no more than 4%.
   #
-  # This implementation allocates 17-93% less memory and
-  # is 5-15% faster than {Datadog::ThreadSafeBuffer}.
+  # This implementation allocates less memory and is faster
+  # than {Datadog::ThreadSafeBuffer}.
   #
   # @see spec/ddtrace/benchmark/buffer_benchmark_spec.rb Buffer benchmarks
   # @see https://github.com/ruby-concurrency/concurrent-ruby/blob/c1114a0c6891d9634f019f1f9fe58dcae8658964/lib/concurrent-ruby/concurrent/array.rb#L23-L27
