@@ -173,6 +173,67 @@ RSpec.describe Datadog::Span do
     end
   end
 
+  describe '#duration' do
+    subject(:duration) { span.duration }
+
+    context 'without start or end time provided' do
+      let(:static_time) { Time.new('2010-09-16 00:03:15 +0200') }
+
+      before do
+        # We set the same time no matte what.
+        # If duration is greater than zero but start_time == end_time, we can
+        # be sure we're using the monotonic time.
+        allow(Time).to receive(:now)
+          .and_return(static_time)
+      end
+
+      it 'uses monotonic time' do
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
+          skip('monotonic time not supported')
+        else
+          span.start
+          sleep(0.0002)
+          span.finish
+          expect((subject.to_f * 1e9).to_i).to be > 0
+
+          expect(span.end_time).to eq static_time
+          expect(span.start_time).to eq static_time
+          expect(span.end_time - span.start_time).to eq 0
+        end
+      end
+    end
+
+    context 'with start_time provided' do
+      # set a start time considerably longer than span duration
+      # set a day in the past and then measure duration is longer than
+      # amount of time slept, which would represent monotonic
+      let(:start_time) { Time.now - (3600 * 24) }
+
+      it 'does not use monotonic time' do
+        span.start(start_time)
+        sleep(0.0001)
+        span.finish
+
+        expect((subject.to_f * 1e9).to_i).to be >= 3600
+      end
+    end
+
+    context 'with end_time provided' do
+      # set an end time considerably ahead of than span duration
+      # set a day in the future and then measure duration is longer than
+      # amount of time slept, which would represent monotonic
+      let(:end_time) { Time.now + (3600 * 24) }
+
+      it 'does not use monotonic time' do
+        span.start
+        sleep(0.0001)
+        span.finish(end_time)
+
+        expect((subject.to_f * 1e9).to_i).to be >= 3600
+      end
+    end
+  end
+
   describe '#clear_tag' do
     subject(:clear_tag) { span.clear_tag(key) }
     let(:key) { 'key' }
