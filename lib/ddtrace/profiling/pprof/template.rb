@@ -76,7 +76,7 @@ module Datadog
 
         def to_pprof
           profile = builder.build_profile
-          data = builder.encode_profile(profile)
+          data = '' # builder.encode_profile(profile)
           types = sample_type_mappings.keys
 
           Payload.new(data, types)
