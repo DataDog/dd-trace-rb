@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/rails/rails_helper'
 
 # It's important that there's *NO* "require 'redis-rails'" or
@@ -74,6 +75,10 @@ MESSAGE
       expect(cache.trace_id).to eq(redis.trace_id)
       expect(cache.span_id).to eq(redis.parent_id)
     end
+
+    it_behaves_like 'a peer service span' do
+      let(:span) { spans.last }
+    end
   end
 
   context '#read' do
@@ -134,6 +139,10 @@ MESSAGE
       expect(cache.trace_id).to eq(redis.trace_id)
       expect(cache.span_id).to eq(redis.parent_id)
     end
+
+    it_behaves_like 'a peer service span' do
+      let(:span) { spans.last }
+    end
   end
 
   context '#delete' do
@@ -153,6 +162,10 @@ MESSAGE
       # the following ensures span will be correctly displayed (parent/child of the same trace)
       expect(cache.trace_id).to eq(del.trace_id)
       expect(cache.span_id).to eq(del.parent_id)
+    end
+
+    it_behaves_like 'a peer service span' do
+      let(:span) { spans.last }
     end
   end
 

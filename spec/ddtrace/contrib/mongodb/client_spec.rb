@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -55,11 +56,15 @@ RSpec.describe 'Mongo::Client instrumentation' do
       let(:service) { 'mongodb-primary' }
       before(:each) { Datadog.configure(client, service_name: service) }
 
+      subject { client[collection].insert_one(name: 'FKA Twigs') }
+
       it 'produces spans with the correct service' do
-        client[collection].insert_one(name: 'FKA Twigs')
+        subject
         expect(spans).to have(1).items
         expect(spans.first.service).to eq(service)
       end
+
+      it_behaves_like 'a peer service span'
     end
 
     context 'to disable the tracer' do
@@ -90,6 +95,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         let(:analytics_enabled_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'a peer service span'
 
       it_behaves_like 'measured span for integration', false
     end

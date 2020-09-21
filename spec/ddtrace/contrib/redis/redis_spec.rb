@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -89,6 +90,7 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
+        it_behaves_like 'a peer service span'
       end
 
       describe 'get span' do
@@ -102,6 +104,7 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
+        it_behaves_like 'a peer service span'
       end
     end
 
@@ -152,6 +155,7 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
+        it_behaves_like 'a peer service span'
       end
     end
 
@@ -183,6 +187,7 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
+        it_behaves_like 'a peer service span'
       end
     end
 
@@ -198,6 +203,7 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
+        it_behaves_like 'a peer service span'
       end
 
       describe 'get span' do
@@ -217,6 +223,7 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
+        it_behaves_like 'a peer service span'
       end
 
       describe 'auth span' do
@@ -230,6 +237,8 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq('AUTH ?')
           expect(span.get_tag('redis.raw_command')).to eq('AUTH ?')
         end
+
+        it_behaves_like 'a peer service span'
       end
     end
   end
