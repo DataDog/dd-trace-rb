@@ -14,7 +14,7 @@ RSpec.describe Datadog::Profiling::Events::Stack do
     end
 
     let(:timestamp) { double('timestamp') }
-    let(:frames) { double('frames') }
+    let(:frames) { double('frames', collect: []) }
     let(:total_frame_count) { double('total_frame_count') }
     let(:thread_id) { double('thread_id') }
 
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Profiling::Events::StackSample do
     end
 
     let(:timestamp) { double('timestamp') }
-    let(:frames) { double('frames') }
+    let(:frames) { double('frames', collect: []) }
     let(:total_frame_count) { double('total_frame_count') }
     let(:thread_id) { double('thread_id') }
     let(:cpu_time_interval_ns) { double('cpu_time_interval_ns') }
@@ -75,7 +75,7 @@ RSpec.describe Datadog::Profiling::Events::StackExceptionSample do
     end
 
     let(:timestamp) { double('timestamp') }
-    let(:frames) { double('frames') }
+    let(:frames) { double('frames', collect: []) }
     let(:total_frame_count) { double('total_frame_count') }
     let(:thread_id) { double('thread_id') }
     let(:exception) { double('exception') }
