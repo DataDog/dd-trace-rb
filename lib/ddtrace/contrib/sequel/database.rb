@@ -52,6 +52,14 @@ module Datadog
                       elsif instance_variable_defined?(:@pool) && @pool
                         @pool.db.opts
                       end
+            sql = case sql
+                  when Symbol
+                    ::Sequel.lit(sql).to_s
+                  when ::Sequel::SQL::Expression
+                    literal(sql)
+                  else
+                    sql
+                  end
             Utils.parse_opts(sql, opts, db_opts)
           end
         end
