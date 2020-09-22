@@ -85,7 +85,7 @@ RSpec.describe 'Sequel instrumentation' do
 
       context 'with query provided as complex expression' do
         it_behaves_like 'query executed through a Sequel::Database object' do
-          let(:query) { Sequel.lit("SELECT * FROM tbl WHERE name = :var", var: 'foo') }
+          let(:query) { Sequel.lit('SELECT * FROM tbl WHERE name = :var', var: 'foo') }
           let(:expected_query) { sequel.literal(query) }
         end
       end
