@@ -286,7 +286,14 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     describe '#instance=' do
-      let(:logger) { Datadog::Logger.new(STDOUT) }
+      let(:logger) do
+        double(:logger,
+               debug: true,
+               info: true,
+               warn: true,
+               error: true,
+               level: true)
+      end
 
       it 'updates the #instance setting' do
         expect { settings.logger.instance = logger }
