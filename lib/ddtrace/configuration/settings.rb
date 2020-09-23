@@ -126,7 +126,7 @@ module Datadog
           option :transport_options, default: ->(_o) { {} }, lazy: true
         end
 
-        option :max_events, default: 32768
+        option :max_events, default: 20000
       end
 
       option :report_hostname do |o|
