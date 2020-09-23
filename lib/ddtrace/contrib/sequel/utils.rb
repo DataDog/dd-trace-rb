@@ -33,7 +33,7 @@ module Datadog
             unless sql.is_a?(String)
               if dataset && dataset.respond_to?(:prepared_sql) && (resolved_sql = dataset.prepared_sql)
                 # The dataset contains the resolved SQL query and prepared statement name.
-                prepared_name = dataset.opts[:prepared_statement_name]
+                prepared_name = dataset.prepared_statement_name
                 sql = resolved_sql
               end
             end
