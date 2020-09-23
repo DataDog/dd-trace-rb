@@ -35,6 +35,7 @@ RSpec.describe 'Sequel instrumentation' do
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
     Datadog.registry[:sequel].reset_configuration!
+    Sequel::DATABASES.each(&:disconnect)
     example.run
     Datadog.registry[:sequel].reset_configuration!
   end
@@ -48,31 +49,46 @@ RSpec.describe 'Sequel instrumentation' do
 
     let(:normalized_adapter) { defined?(super) ? super() : adapter }
 
-    describe 'when queried through a Sequel::Database object' do
-      before(:each) { sequel.run(query) }
-      let(:query) { "SELECT * FROM tbl WHERE name = 'foo'" }
-      let(:span) { spans.first }
+    describe 'Sequel::Database.run' do
+      shared_context 'query executed through a Sequel::Database object' do
+        before(:each) { sequel.run(query) }
+        let(:span) { spans.first }
 
-      it 'traces the command' do
-        expect(span.name).to eq('sequel.query')
-        # Expect it to be the normalized adapter name.
-        expect(span.service).to eq(normalized_adapter)
-        expect(span.span_type).to eq('sql')
-        expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
-        # Expect non-quantized query: agent does SQL quantization.
-        expect(span.resource).to eq(query)
-        expect(span.status).to eq(0)
-        expect(span.parent_id).to eq(0)
+        it 'traces the command' do
+          expect(span.name).to eq('sequel.query')
+          # Expect it to be the normalized adapter name.
+          expect(span.service).to eq(normalized_adapter)
+          expect(span.span_type).to eq('sql')
+          expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
+          # Expect non-quantized query: agent does SQL quantization.
+          expect(span.resource).to eq(expected_query)
+          expect(span.status).to eq(0)
+          expect(span.parent_id).to eq(0)
+        end
+
+        it_behaves_like 'analytics for integration' do
+          let(:analytics_enabled_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        end
+
+        it_behaves_like 'a peer service span'
+
+        it_behaves_like 'measured span for integration', false
       end
 
-      it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      context 'with query provided as a string' do
+        it_behaves_like 'query executed through a Sequel::Database object' do
+          let(:query) { "SELECT * FROM tbl WHERE name = 'foo'" }
+          let(:expected_query) { query }
+        end
       end
 
-      it_behaves_like 'a peer service span'
-
-      it_behaves_like 'measured span for integration', false
+      context 'with query provided as complex expression' do
+        it_behaves_like 'query executed through a Sequel::Database object' do
+          let(:query) { Sequel.lit('SELECT * FROM tbl WHERE name = :var', var: 'foo') }
+          let(:expected_query) { sequel.literal(query) }
+        end
+      end
     end
 
     describe 'when queried through a Sequel::Dataset' do
