@@ -52,6 +52,8 @@ module Datadog
                       elsif instance_variable_defined?(:@pool) && @pool
                         @pool.db.opts
                       end
+            sql = sql.is_a?(::Sequel::SQL::Expression) ? literal(sql) : sql.to_s
+
             Utils.parse_opts(sql, opts, db_opts)
           end
         end
