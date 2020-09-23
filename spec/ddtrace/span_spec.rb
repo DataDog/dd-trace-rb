@@ -649,4 +649,12 @@ RSpec.describe Datadog::Span do
       is_expected.to eq(Hash[span.to_hash.map { |k, v| [k.to_s, v] }])
     end
   end
+
+  describe '#pretty_print' do
+    subject(:pretty_print) { PP.pp(span) }
+
+    it 'output without errors' do
+      expect { pretty_print }.to output.to_stdout
+    end
+  end
 end
