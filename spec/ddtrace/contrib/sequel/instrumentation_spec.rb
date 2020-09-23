@@ -44,6 +44,8 @@ RSpec.describe 'Sequel instrumentation' do
       sequel.create_table!(:tbl) do # Drops table before creating if already exists
         String :name
       end
+
+      clear_spans!
     end
 
     let(:normalized_adapter) { defined?(super) ? super() : adapter }
@@ -156,6 +158,29 @@ RSpec.describe 'Sequel instrumentation' do
 
       it_behaves_like 'measured span for integration', false do
         let(:span) { spans[2..5].sample }
+      end
+    end
+
+    describe 'with a prepared statement' do
+      subject(:run_prepared_statement) { prepared_statement.call(n: 'foo') }
+
+      let(:prepared_statement) { sequel[:tbl].where(name: :$n).prepare(:select, :prepared_name) }
+
+      let(:span) { spans.first }
+
+      it do
+        run_prepared_statement
+
+        expect(span.name).to eq('sequel.query')
+        # Expect it to be the normalized adapter name.
+        expect(span.service).to eq(normalized_adapter)
+        expect(span.span_type).to eq('sql')
+        expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
+        expect(span.get_tag('sequel.prepared.name')).to eq('prepared_name')
+        # Expect non-quantized query: agent does SQL quantization.
+        expect(span.resource).to match_normalized_sql('SELECT * FROM tbl WHERE (name = ?)')
+        expect(span.status).to eq(0)
+        expect(span.parent_id).to eq(0)
       end
     end
   end
