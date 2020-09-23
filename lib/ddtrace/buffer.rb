@@ -18,30 +18,32 @@ module Datadog
     end
 
     def measure_accept(trace)
-      @buffer_spans += trace.length
       @buffer_accepted += 1
       @buffer_accepted_lengths += trace.length
+
+      @buffer_spans += trace.length
     rescue StandardError => e
       Datadog.logger.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def measure_drop(trace)
       @buffer_dropped += 1
+
       @buffer_spans -= trace.length
-      @buffer_accepted_lengths -= trace.length
     rescue StandardError => e
       Datadog.logger.debug("Failed to measure queue drop. Cause: #{e.message} Source: #{e.backtrace.first}")
     end
 
     def measure_pop(traces)
-      # Accepted
+      # Accepted, cumulative totals
       Datadog.health_metrics.queue_accepted(@buffer_accepted)
       Datadog.health_metrics.queue_accepted_lengths(@buffer_accepted_lengths)
 
-      # Dropped
+      # Dropped, cumulative totals
       Datadog.health_metrics.queue_dropped(@buffer_dropped)
+      # TODO: are we missing a +queue_dropped_lengths+ metric?
 
-      # Queue gauges
+      # Queue gauges, current values
       Datadog.health_metrics.queue_max_length(@max_size)
       Datadog.health_metrics.queue_spans(@buffer_spans)
       Datadog.health_metrics.queue_length(traces.length)

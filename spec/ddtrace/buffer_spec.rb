@@ -65,19 +65,21 @@ RSpec.shared_examples 'trace buffer' do
         expect(output.length).to eq(max_size)
         expect(output).to include(traces.last)
 
+        accepted_spans = traces.inject(0) { |sum, t| sum + t.length }
+
         # A trace will be dropped at random, except the trace
         # that triggered the overflow.
         dropped_traces = traces.reject { |t| output.include?(t) }
 
         expected_traces = traces - dropped_traces
-        expected_spans = expected_traces.inject(0) { |sum, t| sum + t.length }
+        net_spans = expected_traces.inject(0) { |sum, t| sum + t.length }
 
         # Calling #pop produces metrics:
         # Accept events for every #push, and one drop event for overflow
         expect(health_metrics).to have_received(:queue_accepted)
           .with(traces.length)
         expect(health_metrics).to have_received(:queue_accepted_lengths)
-          .with(expected_spans)
+          .with(accepted_spans)
 
         expect(health_metrics).to have_received(:queue_dropped)
           .with(dropped_traces.length)
@@ -86,7 +88,7 @@ RSpec.shared_examples 'trace buffer' do
         expect(health_metrics).to have_received(:queue_max_length)
           .with(max_size)
         expect(health_metrics).to have_received(:queue_spans)
-          .with(expected_spans)
+          .with(net_spans)
         expect(health_metrics).to have_received(:queue_length)
           .with(max_size)
       end

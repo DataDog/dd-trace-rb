@@ -1,3 +1,4 @@
+require 'ddtrace/ext/integration'
 require 'ddtrace/ext/runtime'
 
 require 'ddtrace/metrics'
@@ -25,8 +26,11 @@ module Datadog
         # Register service as associated with metrics
         register_service(span.service) unless span.service.nil?
 
-        # Tag span with language and runtime ID for association with metrics
-        span.set_tag(Ext::Runtime::TAG_LANG, Runtime::Identity.lang)
+        # Tag span with language and runtime ID for association with metrics.
+        # We only tag spans that performed internal application work.
+        unless span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)
+          span.set_tag(Ext::Runtime::TAG_LANG, Runtime::Identity.lang)
+        end
       end
 
       # Associate service with runtime metrics

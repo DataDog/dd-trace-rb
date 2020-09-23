@@ -96,7 +96,6 @@ module Datadog
 
       settings :logger do
         option :instance do |o|
-          o.setter { |value, old_value| value.is_a?(::Logger) ? value : old_value }
           o.on_set { |value| set_option(:level, value.level) unless value.nil? }
         end
 
