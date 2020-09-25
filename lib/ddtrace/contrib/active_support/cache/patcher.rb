@@ -17,8 +17,11 @@ module Datadog
 
           def patch
             patch_cache_store_read
+            patch_cache_store_read_multi
             patch_cache_store_fetch
+            patch_cache_store_fetch_multi
             patch_cache_store_write
+            patch_cache_store_write_multi
             patch_cache_store_delete
           end
 
@@ -30,12 +33,30 @@ module Datadog
             cache_store_class(:read).send(:prepend, Cache::Instrumentation::Read)
           end
 
+          def patch_cache_store_read_multi
+            cache_store_class(:read_multi).send(:prepend, Cache::Instrumentation::ReadMulti)
+          end
+
           def patch_cache_store_fetch
             cache_store_class(:fetch).send(:prepend, Cache::Instrumentation::Fetch)
           end
 
+          def patch_cache_store_fetch_multi
+            klass = cache_store_class(:fetch_multi)
+            return unless klass.public_method_defined?(:fetch_multi)
+
+            klass.send(:prepend, Cache::Instrumentation::FetchMulti)
+          end
+
           def patch_cache_store_write
             cache_store_class(:write).send(:prepend, Cache::Instrumentation::Write)
+          end
+
+          def patch_cache_store_write_multi
+            klass = cache_store_class(:write_multi)
+            return unless klass.public_method_defined?(:write_multi)
+
+            klass.send(:prepend, Cache::Instrumentation::WriteMulti)
           end
 
           def patch_cache_store_delete
