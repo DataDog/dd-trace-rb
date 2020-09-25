@@ -28,15 +28,20 @@ module Datadog
             Datadog::Utils::Database.normalize_vendor(database.database_type.to_s)
           end
 
-          def parse_opts(sql, opts, db_opts)
-            if ::Sequel::VERSION >= '4.37.0' && !sql.is_a?(String)
-              # In 4.37.0, sql was converted to a prepared statement object
-              sql = sql.prepared_sql unless sql.is_a?(Symbol)
+          def parse_opts(sql, opts, db_opts, dataset = nil)
+            # Prepared statements don't provide their sql query in the +sql+ parameter.
+            unless sql.is_a?(String)
+              if dataset && dataset.respond_to?(:prepared_sql) && (resolved_sql = dataset.prepared_sql)
+                # The dataset contains the resolved SQL query and prepared statement name.
+                prepared_name = dataset.prepared_statement_name
+                sql = resolved_sql
+              end
             end
 
             {
               name: opts[:type],
               query: sql,
+              prepared_name: prepared_name,
               database: db_opts[:database],
               host: db_opts[:host]
             }

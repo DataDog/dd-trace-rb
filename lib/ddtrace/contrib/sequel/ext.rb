@@ -12,6 +12,7 @@ module Datadog
         SERVICE_NAME = 'sequel'.freeze
         SPAN_QUERY = 'sequel.query'.freeze
         TAG_DB_VENDOR = 'sequel.db.vendor'.freeze
+        TAG_PREPARED_NAME = 'sequel.prepared.name'.freeze
       end
     end
   end

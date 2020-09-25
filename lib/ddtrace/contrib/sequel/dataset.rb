@@ -38,7 +38,7 @@ module Datadog
           private
 
           def trace_execute(super_method, sql, options, &block)
-            opts = Utils.parse_opts(sql, options, db.opts)
+            opts = Utils.parse_opts(sql, options, db.opts, self)
             response = nil
 
             datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
@@ -47,6 +47,7 @@ module Datadog
               span.span_type = Datadog::Ext::SQL::TYPE
               Utils.set_common_tags(span)
               span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
+              span.set_tag(Ext::TAG_PREPARED_NAME, opts[:prepared_name]) if opts[:prepared_name]
               response = super_method.call(sql, options, &block)
             end
             response
