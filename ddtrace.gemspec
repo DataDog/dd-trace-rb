@@ -46,7 +46,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rubocop', '= 0.49.1' if RUBY_VERSION >= '2.1.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'rspec-collection_matchers', '~> 1.1'
-  spec.add_development_dependency 'ruby-prof', '~> 1.4'
+  spec.add_development_dependency 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java'
   spec.add_development_dependency 'minitest', '= 5.10.1'
   spec.add_development_dependency 'minitest-around', '0.5.0'
   spec.add_development_dependency 'minitest-stub_any_instance', '1.0.2'
