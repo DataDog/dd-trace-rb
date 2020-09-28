@@ -39,8 +39,9 @@ RSpec.shared_context 'benchmark' do
     @type = e.description
 
     STDERR.puts "Test:#{e.metadata[:example_group][:full_description]} #{e.description}"
+  end
 
-    # Warm up
+  def warm_up
     steps.each do |s|
       subject(s)
     end
@@ -49,23 +50,36 @@ RSpec.shared_context 'benchmark' do
   # Report JSON result objects to ./tmp/benchmark/ folder
   # Theses results can be historically tracked (e.g. plotting) if needed.
   def write_result(result, subtype = nil)
-    type = @type
-    type = "#{type}-#{subtype}" if subtype
+    file_name = if subtype
+                  "#{@type}-#{subtype}"
+                else
+                  @type
+                end
 
-    STDERR.puts(@test, type, result)
+    STDERR.puts(@test, file_name, result)
 
-    path = File.join('tmp', 'benchmark', @test, type)
-    FileUtils.mkdir_p(File.dirname(path))
+    directory = result_directory!(subtype)
+    path = File.join(directory, file_name)
 
     File.write(path, JSON.pretty_generate(result))
 
     STDERR.puts("Result written to #{path}")
   end
 
+  # Create result directory for current benchmark
+  def result_directory!(subtype = nil)
+    path = File.join('tmp', 'benchmark', @test)
+    path = File.join(path, subtype.to_s) if subtype
+
+    FileUtils.mkdir_p(path)
+
+    path
+  end
+
   # Measure execution time
   it 'timing' do
     report = Benchmark.ips do |x|
-      x.config(time: timing_runtime, warmup: timing_runtime / 10)
+      x.config(time: timing_runtime, warmup: timing_runtime / 10.0)
 
       steps.each do |s|
         x.report(s) do
@@ -85,6 +99,8 @@ RSpec.shared_context 'benchmark' do
 
   # Measure memory usage (object creation and memory size)
   it 'memory' do
+    warm_up
+
     if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
       skip("'benchmark/memory' not supported")
     end
@@ -114,6 +130,8 @@ RSpec.shared_context 'benchmark' do
   it 'gc' do
     skip if PlatformHelpers.jruby?
 
+    warm_up
+
     io = StringIO.new
     GC::Profiler.enable
 
@@ -135,7 +153,7 @@ RSpec.shared_context 'benchmark' do
 
   # Reports that generate non-aggregated data.
   # Useful for debugging.
-  context 'detailed report' do
+  context 'detailed' do
     before { skip('Detailed report are too verbose for CI') if ENV.key?('CI') }
 
     let(:ignore_files) { defined?(super) ? super() : nil }
@@ -145,6 +163,8 @@ RSpec.shared_context 'benchmark' do
       if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
         skip("'benchmark/memory' not supported")
       end
+
+      warm_up
 
       steps.each do |step|
         report = MemoryProfiler.report(ignore_files: ignore_files) do
@@ -174,6 +194,43 @@ RSpec.shared_context 'benchmark' do
         retained_objects_by_gem: per_gem_report[report.retained_objects_by_gem]
       }
       write_result(result, step)
+    end
+
+    # CPU profiling report
+    context 'RubyProf report' do
+      before { skip("'ruby-prof' not supported") if PlatformHelpers.jruby? }
+
+      before do
+        require 'ruby-prof'
+        RubyProf.measure_mode = RubyProf::PROCESS_TIME
+      end
+
+      it do
+        warm_up
+
+        steps.each do |step|
+          result = RubyProf.profile do
+            (memory_iterations * 5).times { subject(step) }
+          end
+
+          report_results(result, step)
+        end
+      end
+
+      def report_results(result, step)
+        puts "Report for step: #{step}"
+
+        directory = result_directory!(step)
+
+        printer = RubyProf::CallTreePrinter.new(result)
+        printer.print(path: directory)
+
+        STDERR.puts("Results written in Callgrind format to #{directory}")
+        STDERR.puts('You can use KCachegrind or QCachegrind to read these results.')
+        STDERR.puts('On MacOS:')
+        STDERR.puts('$ brew install qcachegrind')
+        STDERR.puts("$ qcachegrind '#{Dir["#{directory}/*"].sort[0]}'")
+      end
     end
   end
 end
@@ -206,6 +263,11 @@ RSpec.shared_context 'minimal agent' do
       conn = agent_server.accept
       conn.print AGENT_HTTP_RESPONSE
       conn.flush
+
+      # Read HTTP request to allow other side to have enough
+      # buffer write room. If we don't, the client won't be
+      # able to send the full request until the buffer is cleared.
+      conn.read(1 << 31 - 1)
 
       # Closing the connection immediately can sometimes
       # be too fast, cause to other side to not be able

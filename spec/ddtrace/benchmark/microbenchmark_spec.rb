@@ -87,8 +87,10 @@ RSpec.describe 'Microbenchmark' do
 
       let(:steps) { [1, 10, 100] }
 
-      let(:tracer) { Datadog::Tracer.new }
+      let(:tracer) { Datadog::Tracer.new(writer: writer) }
       after { tracer.shutdown! }
+
+      let(:writer) { Datadog::Writer.new(buffer_size: 1000, flush_interval: 0) }
 
       let(:name) { 'span'.freeze }
 
