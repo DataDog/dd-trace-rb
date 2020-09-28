@@ -12,7 +12,7 @@ module Datadog
     def self.next_id
       reset! if was_forked?
 
-      @rnd.rand(Datadog::Span::MAX_ID)
+      @rnd.rand(Datadog::Span::RUBY_MAX_ID)
     end
 
     def self.reset!

@@ -61,11 +61,11 @@ module Datadog
 
     def sample_rate=(sample_rate)
       @sample_rate = sample_rate
-      @sampling_id_threshold = sample_rate * Span::MAX_ID
+      @sampling_id_threshold = sample_rate * Span::EXTERNAL_MAX_ID
     end
 
     def sample?(span)
-      ((span.trace_id * KNUTH_FACTOR) % Datadog::Span::MAX_ID) <= @sampling_id_threshold
+      ((span.trace_id * KNUTH_FACTOR) % Datadog::Span::EXTERNAL_MAX_ID) <= @sampling_id_threshold
     end
 
     def sample!(span)

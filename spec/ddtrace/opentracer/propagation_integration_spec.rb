@@ -87,8 +87,8 @@ if Datadog::OpenTracer.supported?
             )
           end
 
-          let(:trace_id) { Datadog::Span::MAX_ID - 1 }
-          let(:parent_id) { Datadog::Span::MAX_ID - 2 }
+          let(:trace_id) { Datadog::Span::EXTERNAL_MAX_ID - 1 }
+          let(:parent_id) { Datadog::Span::EXTERNAL_MAX_ID - 2 }
           let(:sampling_priority) { 2 }
           let(:origin) { 'synthetics' }
 
@@ -229,8 +229,8 @@ if Datadog::OpenTracer.supported?
             )
           end
 
-          let(:trace_id) { Datadog::Span::MAX_ID - 1 }
-          let(:parent_id) { Datadog::Span::MAX_ID - 2 }
+          let(:trace_id) { Datadog::Span::EXTERNAL_MAX_ID - 1 }
+          let(:parent_id) { Datadog::Span::EXTERNAL_MAX_ID - 2 }
           let(:sampling_priority) { 2 }
           let(:origin) { 'synthetics' }
 
