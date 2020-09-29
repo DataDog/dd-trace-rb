@@ -29,13 +29,7 @@ module Datadog
         end
 
         def stack_sample_group_key(stack_sample)
-          [
-            stack_sample.thread_id,
-            [
-              stack_sample.frames.collect(&:hash),
-              stack_sample.total_frame_count
-            ]
-          ].hash
+          stack_sample.hash
         end
 
         def build_samples(stack_samples)
