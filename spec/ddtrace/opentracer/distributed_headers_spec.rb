@@ -25,19 +25,19 @@ if Datadog::OpenTracer.supported?
 
       context 'when #trace_id is missing' do
         let(:trace_id) { nil }
-        let(:parent_id) { (Datadog::Span::MAX_ID + 1).to_s }
+        let(:parent_id) { (Datadog::Span::EXTERNAL_MAX_ID + 1).to_s }
         it { is_expected.to be false }
       end
 
       context 'when #parent_id is missing' do
-        let(:trace_id) { (Datadog::Span::MAX_ID + 1).to_s }
+        let(:trace_id) { (Datadog::Span::EXTERNAL_MAX_ID + 1).to_s }
         let(:parent_id) { nil }
         it { is_expected.to be false }
       end
 
       context 'when both #trace_id and #parent_id are present' do
-        let(:trace_id) { (Datadog::Span::MAX_ID - 1).to_s }
-        let(:parent_id) { (Datadog::Span::MAX_ID - 1).to_s }
+        let(:trace_id) { (Datadog::Span::EXTERNAL_MAX_ID - 1).to_s }
+        let(:parent_id) { (Datadog::Span::EXTERNAL_MAX_ID - 1).to_s }
         it { is_expected.to be true }
       end
     end
@@ -57,12 +57,12 @@ if Datadog::OpenTracer.supported?
 
       context 'when the header is present' do
         context 'but the value is out of range' do
-          let(:value) { (Datadog::Span::MAX_ID + 1).to_s }
+          let(:value) { (Datadog::Span::EXTERNAL_MAX_ID + 1).to_s }
           it { is_expected.to be nil }
         end
 
         context 'and the value is in range' do
-          let(:value) { (Datadog::Span::MAX_ID - 1).to_s }
+          let(:value) { (Datadog::Span::EXTERNAL_MAX_ID - 1).to_s }
           it { is_expected.to eq value.to_i }
 
           context 'as a negative signed integer' do
@@ -89,12 +89,12 @@ if Datadog::OpenTracer.supported?
 
       context 'when the header is present' do
         context 'but the value is out of range' do
-          let(:value) { (Datadog::Span::MAX_ID + 1).to_s }
+          let(:value) { (Datadog::Span::EXTERNAL_MAX_ID + 1).to_s }
           it { is_expected.to be nil }
         end
 
         context 'and the value is in range' do
-          let(:value) { (Datadog::Span::MAX_ID - 1).to_s }
+          let(:value) { (Datadog::Span::EXTERNAL_MAX_ID - 1).to_s }
           it { is_expected.to eq value.to_i }
 
           context 'as a negative signed integer' do

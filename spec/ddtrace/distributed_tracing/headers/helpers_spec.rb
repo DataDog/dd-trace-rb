@@ -43,7 +43,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Helpers do
       [((2**64) - 1).to_s(16), 'ffffffffffffffff'],
 
       # Our max generated id
-      [Datadog::Span::MAX_ID.to_s(16), '8000000000000000'],
+      [Datadog::Span::RUBY_MAX_ID.to_s(16), '3fffffffffffffff'],
       # Our max external id
       # DEV: This is the same as (2**64) above, but use the constant to be sure
       [Datadog::Span::EXTERNAL_MAX_ID.to_s(16), '0'],

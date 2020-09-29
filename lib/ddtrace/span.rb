@@ -27,16 +27,18 @@ module Datadog
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
     #
-    # Limited to 63-bit positive integers, as some other languages might be limited to this,
-    # and IDs need to be easy to port across various languages and platforms.
-    MAX_ID = 2**63
+    # Limited to +2<<62-1+ positive integers, as Ruby is able to represent such numbers "inline",
+    # inside a +VALUE+ scalar, thus not requiring memory allocation.
+    #
+    # The range of IDs also has to consider portability across different languages and platforms.
+    RUBY_MAX_ID = (1 << 62) - 1
 
     # While we only generate 63-bit integers due to limitations in other languages, we support
     # parsing 64-bit integers for distributed tracing since an upstream system may generate one
-    EXTERNAL_MAX_ID = 2**64
+    EXTERNAL_MAX_ID = 1 << 64
 
     # This limit is for numeric tags because uint64 could end up rounded.
-    NUMERIC_TAG_SIZE_RANGE = (-2**53..2**53)
+    NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53)
 
     attr_accessor :name, :service, :resource, :span_type,
                   :span_id, :trace_id, :parent_id,

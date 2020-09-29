@@ -44,7 +44,7 @@ module Datadog
 
       def id(header)
         value = @carrier[header].to_i
-        return if value.zero? || value >= Datadog::Span::MAX_ID
+        return if value.zero? || value >= Datadog::Span::EXTERNAL_MAX_ID
         value < 0 ? value + 0x1_0000_0000_0000_0000 : value
       end
     end

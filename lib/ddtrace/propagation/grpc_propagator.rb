@@ -39,12 +39,12 @@ module Datadog
 
       def trace_id
         value = @metadata[GRPC_METADATA_TRACE_ID].to_i
-        value if (1..Span::MAX_ID).cover? value
+        value if (1..Span::EXTERNAL_MAX_ID).cover? value
       end
 
       def parent_id
         value = @metadata[GRPC_METADATA_PARENT_ID].to_i
-        value if (1..Span::MAX_ID).cover? value
+        value if (1..Span::EXTERNAL_MAX_ID).cover? value
       end
 
       def sampling_priority
