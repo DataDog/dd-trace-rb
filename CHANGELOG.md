@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+## [0.41.0] - 2020-09-30
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.41.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.40.0...v0.41.0
+
+### Added
+
+- Improve duration counting using monotonic clock (#424, #1173) (@soulcutter)
+
+### Changed
+
+- Add peer.service tag to external services and skip tagging external services with language tag for runtime metrics (#934, #935, #1180)
+  - This helps support the way runtime metrics are associated with spans in the UI.
+- Faster TraceBuffer for CRuby (#1172)
+- Reduce memory usage during gem statup (#1090)
+- Reduce memory usage of the HTTP transport (#1165)
+
+### Fixed
+
+- Improved prepared statement support for Sequel  integrations (#1186)
+- Fix Sequel instrumentation when executing literal strings (#1185) (@matchbookmac)
+- Remove explicit `Logger` class verification (#1181) (@bartekbsh)
+  - This allows users to pass in a custom logger that does not inherit from `Logger` class.
+- Correct tracer buffer metric counting (#1182)
+- Fix Span#pretty_print for empty duration (#1183)
+
+### Refactored
+
+- Improvements to test suite & CI (#1179, #1184, #1177, #1178, #1176)
+- Reduce generated Span ID range to fit in Fixnum (#1189)
+
 ## [0.40.0] - 2020-09-08
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.40.0
@@ -1395,7 +1427,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.40.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.41.0...master
+[0.41.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.40.0...v0.41.0
 [0.40.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.39.0...v0.40.0
 [0.39.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.38.0...v0.39.0
 [0.38.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.37.0...v0.38.0
