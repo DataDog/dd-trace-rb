@@ -140,17 +140,15 @@ module Datadog
         # Convert backtrace locations into structs
         # Re-use old backtrace location objects if they already exist in the buffer
         def convert_backtrace_locations(locations)
-          string_table = recorder[Events::StackSample].string_table
-
           locations.collect do |location|
             # Re-use existing BacktraceLocation if identical copy, otherwise build a new one.
             recorder[Events::StackSample].cache(:backtrace_locations).fetch(
               # Function name
-              string_table.fetch_string(location.base_label),
+              location.base_label,
               # Line number
               location.lineno,
               # Filename
-              string_table.fetch_string(location.path),
+              location.path,
               # Build function
               &method(:build_backtrace_location)
             )
@@ -158,10 +156,12 @@ module Datadog
         end
 
         def build_backtrace_location(_id, base_label, lineno, path)
+          string_table = recorder[Events::StackSample].string_table
+
           Profiling::BacktraceLocation.new(
-            base_label,
+            string_table.fetch_string(base_label),
             lineno,
-            path
+            string_table.fetch_string(path)
           )
         end
       end
