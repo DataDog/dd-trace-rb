@@ -617,7 +617,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 ### DelayedJob
 
-The DelayedJob integration uses lifecycle hooks to trace the job executions.
+The DelayedJob integration uses lifecycle hooks to trace the job executions and enqueues.
 
 You can enable it through `Datadog.configure`:
 
@@ -635,6 +635,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `DelayedJob` instrumentation | `'delayed_job'` |
+| `client_service_name` | Service name used for client-side `DelayedJob` instrumentation | `'delayed_job-client'` |
 
 ### Elasticsearch
 

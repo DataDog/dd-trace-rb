@@ -23,6 +23,7 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
+          option :client_service_name, default: Ext::CLIENT_SERVICE_NAME
         end
       end
     end
