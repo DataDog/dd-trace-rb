@@ -56,7 +56,7 @@ We welcome code contributions to the library, which you can [submit as a pull re
 2. **Make any changes** for your patch.
 3. **Write tests** that demonstrate how the feature works or how the bug is fixed.
 4. **Update any documentation** such as `docs/GettingStarted.md`, especially for new features.
-5. **Submit the pull request** from your fork back to https://github.com/DataDog/dd-trace-rb. Bugs should merge back to `master`, and new features should merge back to the latest `dev` branch (e.g. `0.24-dev`).
+5. **Submit the pull request** from your fork back to the latest revision of the `master` branch on https://github.com/DataDog/dd-trace-rb.
 
 The pull request will be run through our CI pipeline, and a project member will review the changes with you. At a minimum, to be accepted and merged, pull requests must:
 
