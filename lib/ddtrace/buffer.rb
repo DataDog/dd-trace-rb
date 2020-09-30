@@ -5,16 +5,267 @@ require 'ddtrace/runtime/object_space'
 # Trace buffer that accumulates traces for a consumer.
 # Consumption can happen from a different thread.
 module Datadog
-  # Aggregate metrics:
-  # They reflect buffer activity since last #pop.
-  # These may not be as accurate or as granular, but they
-  # don't use as much network traffic as live stats.
-  class MeasuredBuffer
-    def initialize
+  # Buffer that stores objects. The buffer has a maximum size and when
+  # the buffer is full, a random object is discarded.
+  class Buffer
+    def initialize(max_size)
+      @max_size = max_size
+      @items = []
+      @closed = false
+    end
+
+    # Add a new ``item`` in the local queue. This method doesn't block the execution
+    # even if the buffer is full. In that case, a random item is discarded.
+    def push(item)
+      return if closed?
+      full? ? replace!(item) : add!(item)
+      item
+    end
+
+    # A bulk push alternative to +#push+. Use this method if
+    # pushing more than one item for efficiency.
+    def concat(items)
+      return if closed?
+
+      # Segment items into underflow and overflow
+      underflow, overflow = overflow_segments(items)
+
+      # Concatenate items do not exceed capacity.
+      add_all!(underflow) unless underflow.nil?
+
+      # Iteratively replace items, to ensure pseudo-random replacement.
+      overflow.each { |item| replace!(item) } unless overflow.nil?
+    end
+
+    # Stored items are returned and the local buffer is reset.
+    def pop
+      drain!
+    end
+
+    # Return the current number of stored traces.
+    def length
+      @items.length
+    end
+
+    # Return if the buffer is empty.
+    def empty?
+      @items.empty?
+    end
+
+    # Closes this buffer, preventing further pushing.
+    # Draining is still allowed.
+    def close
+      @closed = true
+    end
+
+    def closed?
+      @closed
+    end
+
+    protected
+
+    # Segment items into two distinct segments: underflow and overflow.
+    # Underflow are items that will fit into buffer.
+    # Overflow are items that will exceed capacity, after underflow is added.
+    # Returns each array, and nil if there is no underflow/overflow.
+    def overflow_segments(items)
+      underflow = nil
+      overflow = nil
+
+      overflow_size = @max_size > 0 ? (@items.length + items.length) - @max_size : 0
+
+      if overflow_size > 0
+        # Items will overflow
+        if overflow_size < items.length
+          # Partial overflow
+          underflow_end_index = items.length - overflow_size - 1
+          underflow = items[0..underflow_end_index]
+          overflow = items[(underflow_end_index + 1)..-1]
+        else
+          # Total overflow
+          overflow = items
+        end
+      else
+        # Items do not exceed capacity.
+        underflow = items
+      end
+
+      [underflow, overflow]
+    end
+
+    def full?
+      @max_size > 0 && @items.length >= @max_size
+    end
+
+    def add_all!(items)
+      @items.concat(items)
+    end
+
+    def add!(item)
+      @items << item
+    end
+
+    def replace!(item)
+      # Choose random item to be replaced
+      replace_index = rand(@items.length)
+
+      # Replace random item
+      discarded_item = @items[replace_index]
+      @items[replace_index] = item
+
+      # Return discarded item
+      discarded_item
+    end
+
+    def drain!
+      items = @items
+      @items = []
+      items
+    end
+  end
+
+  # Buffer that stores objects, has a maximum size, and
+  # can be safely used concurrently on any environment.
+  #
+  # This implementation uses a {Mutex} around public methods, incurring
+  # overhead in order to ensure thread-safety.
+  #
+  # This is implementation is recommended for non-CRuby environments.
+  # If using CRuby, {Datadog::CRubyBuffer} is a faster implementation with minimal compromise.
+  class ThreadSafeBuffer < Buffer
+    def initialize(max_size)
+      super
+
+      @mutex = Mutex.new
+    end
+
+    # Add a new ``item`` in the local queue. This method doesn't block the execution
+    # even if the buffer is full. In that case, a random item is discarded.
+    def push(item)
+      synchronize { super }
+    end
+
+    def concat(items)
+      synchronize { super }
+    end
+
+    # Return the current number of stored traces.
+    def length
+      synchronize { super }
+    end
+
+    # Return if the buffer is empty.
+    def empty?
+      synchronize { super }
+    end
+
+    # Stored traces are returned and the local buffer is reset.
+    def pop
+      synchronize { super }
+    end
+
+    def close
+      synchronize { super }
+    end
+
+    def synchronize
+      @mutex.synchronize { yield }
+    end
+  end
+
+  # Buffer that stores objects, has a maximum size, and
+  # can be safely used concurrently with CRuby.
+  #
+  # Under extreme concurrency scenarios, this class can exceed
+  # its +max_size+ by up to 4%.
+  #
+  # Because singular +Array+ operations are thread-safe in CRuby,
+  # we can implement the trace buffer without an explicit lock,
+  # while making the compromise of allowing the buffer to go
+  # over its maximum limit under extreme circumstances.
+  #
+  # On the following scenario:
+  # * 4.5 million spans/second.
+  # * Pushed into a single CRubyTraceBuffer from 1000 threads.
+  # The buffer can exceed its maximum size by no more than 4%.
+  #
+  # This implementation allocates less memory and is faster
+  # than {Datadog::ThreadSafeBuffer}.
+  #
+  # @see spec/ddtrace/benchmark/buffer_benchmark_spec.rb Buffer benchmarks
+  # @see https://github.com/ruby-concurrency/concurrent-ruby/blob/c1114a0c6891d9634f019f1f9fe58dcae8658964/lib/concurrent-ruby/concurrent/array.rb#L23-L27
+  class CRubyBuffer < Buffer
+    # Add a new ``trace`` in the local queue. This method doesn't block the execution
+    # even if the buffer is full. In that case, a random trace is discarded.
+    def replace!(item)
+      # we should replace a random trace with the new one
+      replace_index = rand(@items.size)
+      replaced_trace = @items.delete_at(replace_index)
+      @items << item
+
+      # We might have deleted an element right when the buffer
+      # was drained, thus +replaced_trace+ will be +nil+.
+      # In that case, nothing was replaced, and this method
+      # performed a simple insertion into the buffer.
+      replaced_trace
+    end
+
+    # # Return all traces stored and reset buffer.
+    # def pop
+    #   # We use pop, instead of replacing +@items+
+    #   # with a new Array as #pop is thread-safe
+    #   traces = @items
+    #   @items = []# TODO: .pop(VERY_LARGE_INTEGER)
+    #
+    #   measure_pop(traces)
+    #
+    #   traces
+    # end
+    # Very large value, to ensure that we drain the whole buffer.
+    # 1<<62-1 happens to be the largest integer that can be stored inline in CRuby.
+    # VERY_LARGE_INTEGER = 1 << 62 - 1
+  end
+
+  # Health metrics for trace buffers.
+  module MeasuredBuffer
+    def initialize(*_)
+      super
+
       @buffer_accepted = 0
       @buffer_accepted_lengths = 0
       @buffer_dropped = 0
       @buffer_spans = 0
+    end
+
+    def add!(trace)
+      super
+
+      # Emit health metrics
+      measure_accept(trace)
+    end
+
+    def add_all!(traces)
+      super
+
+      # Emit health metrics
+      traces.each { |trace| measure_accept(trace) }
+    end
+
+    def replace!(trace)
+      discarded_trace = super
+
+      # Emit health metrics
+      measure_accept(trace)
+      measure_drop(discarded_trace) if discarded_trace
+
+      discarded_trace
+    end
+
+    # Stored traces are returned and the local buffer is reset.
+    def drain!
+      traces = super
+      measure_pop(traces)
+      traces
     end
 
     def measure_accept(trace)
@@ -58,173 +309,33 @@ module Datadog
     end
   end
 
-  # Trace buffer that stores application traces and
+  # Trace buffer that stores application traces, has a maximum size, and
   # can be safely used concurrently on any environment.
   #
-  # This implementation uses a {Mutex} around public methods, incurring
-  # overhead in order to ensure full thread-safety.
-  #
-  # This is implementation is recommended for non-CRuby environments.
-  # If using CRuby, {Datadog::CRubyTraceBuffer} is a faster implementation with minimal compromise.
-  class ThreadSafeBuffer < MeasuredBuffer
-    def initialize(max_size)
-      super()
-
-      @max_size = max_size
-
-      @mutex = Mutex.new()
-      @traces = []
-      @closed = false
-    end
-
-    # Add a new ``trace`` in the local queue. This method doesn't block the execution
-    # even if the buffer is full. In that case, a random trace is discarded.
-    def push(trace)
-      @mutex.synchronize do
-        return if @closed
-        len = @traces.length
-        if len < @max_size || @max_size <= 0
-          @traces << trace
-        else
-          # we should replace a random trace with the new one
-          replace_index = rand(len)
-          replaced_trace = @traces[replace_index]
-          @traces[replace_index] = trace
-          measure_drop(replaced_trace)
-        end
-
-        measure_accept(trace)
-      end
-    end
-
-    # Return the current number of stored traces.
-    def length
-      @mutex.synchronize do
-        return @traces.length
-      end
-    end
-
-    # Return if the buffer is empty.
-    def empty?
-      @mutex.synchronize do
-        return @traces.empty?
-      end
-    end
-
-    # Stored traces are returned and the local buffer is reset.
-    def pop
-      @mutex.synchronize do
-        traces = @traces
-        @traces = []
-
-        measure_pop(traces)
-
-        return traces
-      end
-    end
-
-    def close
-      @mutex.synchronize do
-        @closed = true
-      end
-    end
+  # @see {Datadog::ThreadSafeBuffer}
+  class ThreadSafeTraceBuffer < ThreadSafeBuffer
+    prepend MeasuredBuffer
   end
 
-  # Trace buffer that stores application traces and
+  # Trace buffer that stores application traces, has a maximum size, and
   # can be safely used concurrently with CRuby.
   #
-  # Under extreme concurrency scenarios, this class can exceed
-  # its +max_size+ by up to 4%.
-  #
-  # Because singular +Array+ operations are thread-safe in CRuby,
-  # we can implement the trace buffer without an explicit lock,
-  # while making the compromise of allowing the buffer to go
-  # over its maximum limit under extreme circumstances.
-  #
-  # On the following scenario:
-  # * 4.5 million spans/second.
-  # * Pushed into a single CRubyTraceBuffer from 1000 threads.
-  # The buffer can exceed its maximum size by no more than 4%.
-  #
-  # This implementation allocates less memory and is faster
-  # than {Datadog::ThreadSafeBuffer}.
-  #
-  # @see spec/ddtrace/benchmark/buffer_benchmark_spec.rb Buffer benchmarks
-  # @see https://github.com/ruby-concurrency/concurrent-ruby/blob/c1114a0c6891d9634f019f1f9fe58dcae8658964/lib/concurrent-ruby/concurrent/array.rb#L23-L27
-  class CRubyTraceBuffer < MeasuredBuffer
-    def initialize(max_size)
-      super()
-
-      @max_size = max_size
-
-      @traces = []
-      @closed = false
-    end
-
-    # Add a new ``trace`` in the local queue. This method doesn't block the execution
-    # even if the buffer is full. In that case, a random trace is discarded.
-    def push(trace)
-      return if @closed
-      len = @traces.length
-      if len < @max_size || @max_size <= 0
-        @traces << trace
-      else
-        # we should replace a random trace with the new one
-        replace_index = rand(len)
-        replaced_trace = @traces.delete_at(replace_index)
-        @traces << trace
-
-        # Check if we deleted the element right when the buffer
-        # was popped. In that case we didn't actually delete anything,
-        # we just inserted into a newly cleared buffer instead.
-        measure_drop(replaced_trace) if replaced_trace
-      end
-
-      measure_accept(trace)
-    end
-
-    # Return the current number of stored traces.
-    def length
-      @traces.length
-    end
-
-    # Return if the buffer is empty.
-    def empty?
-      @traces.empty?
-    end
-
-    # Return all traces stored and reset buffer.
-    def pop
-      traces = @traces.pop(VERY_LARGE_INTEGER)
-
-      measure_pop(traces)
-
-      traces
-    end
-
-    # Very large value, to ensure that we drain the whole buffer.
-    # 1<<62-1 happens to be the largest integer that can be stored inline in CRuby.
-    VERY_LARGE_INTEGER = 1 << 62 - 1
-
-    def close
-      @closed = true
-    end
+  # @see {Datadog::CRubyBuffer}
+  class CRubyTraceBuffer < CRubyBuffer
+    prepend MeasuredBuffer
   end
-
-  # Choose default TraceBuffer implementation for current platform.
-  BUFFER_IMPLEMENTATION = if Datadog::Ext::Runtime::RUBY_ENGINE == 'ruby'
-                            CRubyTraceBuffer
-                          else
-                            ThreadSafeBuffer
-                          end
-  private_constant :BUFFER_IMPLEMENTATION
 
   # Trace buffer that stores application traces. The buffer has a maximum size and when
   # the buffer is full, a random trace is discarded. This class is thread-safe and is used
   # automatically by the ``Tracer`` instance when a ``Span`` is finished.
   #
+  # We choose the default TraceBuffer implementation for current platform dynamically here.
+  #
   # TODO We should restructure this module, so that classes are not declared at top-level ::Datadog.
   # TODO Making such a change is potentially breaking for users manually configuring the tracer.
-  class TraceBuffer < BUFFER_IMPLEMENTATION
-  end
+  TraceBuffer = if Datadog::Ext::Runtime::RUBY_ENGINE == 'ruby' # rubocop:disable Naming/ConstantName
+                  CRubyTraceBuffer
+                else
+                  ThreadSafeTraceBuffer
+                end
 end
