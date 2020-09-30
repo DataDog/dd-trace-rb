@@ -524,10 +524,23 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     it do
       is_expected.to have_attributes(
-        base_label: base_label,
+        base_label: base_label.to_s,
         lineno: lineno,
-        path: path
+        path: path.to_s
       )
+    end
+
+    context 'when strings' do
+      context 'exist in the string table' do
+        let!(:string_table_base_label) { string_table.fetch_string(base_label.to_s) }
+        let!(:string_table_path) { string_table.fetch_string(path.to_s) }
+
+        it 'reuses strings' do
+          backtrace_location = build_backtrace_location
+          expect(backtrace_location.base_label).to be string_table_base_label
+          expect(backtrace_location.path).to be string_table_path
+        end
+      end
     end
   end
 end
