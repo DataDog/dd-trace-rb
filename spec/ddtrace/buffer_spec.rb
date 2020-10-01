@@ -57,31 +57,6 @@ RSpec.describe Datadog::Buffer do
         expect(output).to_not include(*items.last(2))
       end
     end
-
-    context 'thread safety' do
-      subject(:push) { threads.each(&:join) }
-
-      let(:max_size) { 500 }
-      let(:thread_count) { 100 }
-      let(:threads) do
-        buffer
-
-        Array.new(thread_count) do |i|
-          Thread.new do
-            sleep(rand / 1000.0)
-            buffer.push([i])
-          end
-        end
-      end
-
-      let(:output) { buffer.pop }
-
-      it 'does not have collisions' do
-        push
-        expect(output).to_not be nil
-        expect(output.sort).to eq((0..thread_count - 1).map { |i| [i] })
-      end
-    end
   end
 
   describe '#concat' do
@@ -122,31 +97,6 @@ RSpec.describe Datadog::Buffer do
 
         expect(output.length).to eq(4)
         expect(output).to_not include(*items.last(2))
-      end
-    end
-
-    context 'thread safety' do
-      subject(:concat) { threads.each(&:join) }
-
-      let(:max_size) { 500 }
-      let(:thread_count) { 100 }
-      let(:threads) do
-        buffer
-
-        Array.new(thread_count) do |i|
-          Thread.new do
-            sleep(rand / 1000.0)
-            buffer.concat([i])
-          end
-        end
-      end
-
-      let(:output) { buffer.pop }
-
-      it 'does not have collisions' do
-        concat
-        expect(output).to_not be nil
-        expect(output.sort).to eq((0..thread_count - 1).map { |i| i })
       end
     end
   end
@@ -213,19 +163,6 @@ RSpec.describe Datadog::Buffer do
     context 'when the buffer is closed' do
       before { buffer.close }
       it { is_expected.to be true }
-    end
-  end
-
-  # TODO: check if profiling requires this feature
-  xdescribe '#synchronize' do
-    it 'is re-entrant' do
-      expect do
-        buffer.synchronize do
-          buffer.synchronize do
-            true
-          end
-        end
-      end.to_not raise_error
     end
   end
 
@@ -796,6 +733,8 @@ RSpec.describe Datadog::ThreadSafeBuffer do
 end
 
 RSpec.describe Datadog::CRubyBuffer do
+  before { skip unless PlatformHelpers.mri? }
+
   it_behaves_like 'thread-safe buffer'
   it_behaves_like 'performance'
 end
