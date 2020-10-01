@@ -209,21 +209,6 @@ module Datadog
       # performed a simple insertion into the buffer.
       replaced_trace
     end
-
-    # # Return all traces stored and reset buffer.
-    # def pop
-    #   # We use pop, instead of replacing +@items+
-    #   # with a new Array as #pop is thread-safe
-    #   traces = @items
-    #   @items = []# TODO: .pop(VERY_LARGE_INTEGER)
-    #
-    #   measure_pop(traces)
-    #
-    #   traces
-    # end
-    # Very large value, to ensure that we drain the whole buffer.
-    # 1<<62-1 happens to be the largest integer that can be stored inline in CRuby.
-    # VERY_LARGE_INTEGER = 1 << 62 - 1
   end
 
   # Health metrics for trace buffers.

@@ -469,19 +469,6 @@ RSpec.shared_examples 'thread-safe buffer' do
       traces.each { |t| buffer.push(t) }
     end
   end
-
-  # TODO: check if profiling requires this feature
-  xdescribe '#synchronize' do
-    it 'is re-entrant' do
-      expect do
-        buffer.synchronize do
-          buffer.synchronize do
-            true
-          end
-        end
-      end.to_not raise_error
-    end
-  end
 end
 
 RSpec.shared_examples 'trace buffer' do
