@@ -1,0 +1,1 @@
+rails _6.0.3.2_ new rails-app -m ./template.rb
