@@ -333,7 +333,7 @@ module Datadog
   #
   # TODO We should restructure this module, so that classes are not declared at top-level ::Datadog.
   # TODO Making such a change is potentially breaking for users manually configuring the tracer.
-  TraceBuffer = if Datadog::Ext::Runtime::RUBY_ENGINE == 'ruby' # rubocop:disable Naming/ConstantName
+  TraceBuffer = if Datadog::Ext::Runtime::RUBY_ENGINE == 'ruby' # rubocop:disable Style/ConstantName
                   CRubyTraceBuffer
                 else
                   ThreadSafeTraceBuffer
