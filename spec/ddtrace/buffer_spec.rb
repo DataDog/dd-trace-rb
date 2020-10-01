@@ -722,7 +722,9 @@ end
 RSpec.describe Datadog::CRubyBuffer do
   before { skip unless PlatformHelpers.mri? }
 
-  it_behaves_like 'thread-safe buffer'
+  it_behaves_like 'thread-safe buffer' do
+    let(:max_size_leniency) { 1.04 } # 4%
+  end
   it_behaves_like 'performance'
 end
 
