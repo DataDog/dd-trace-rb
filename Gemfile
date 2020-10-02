@@ -9,7 +9,7 @@ gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '~> 0.1'
 gem 'builder'
 gem 'climate_control', '~> 0.2.0'
-gem 'concurrent-ruby' # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
+gem 'concurrent-ruby' # Leave it open; it's integration too, and we want Appraisal to set the version.
 gem 'memory_profiler', '~> 0.9'
 gem 'minitest', '= 5.10.1'
 gem 'minitest-around', '0.5.0'
