@@ -25,8 +25,8 @@ RSpec.describe 'Microbenchmark Buffer' do
     let(:buffer) { Datadog::CRubyTraceBuffer.new(max_size) }
   end
 
-  describe 'ThreadSafeBuffer' do
+  describe 'ThreadSafeTraceBuffer' do
     include_examples 'benchmark'
-    let(:buffer) { Datadog::ThreadSafeBuffer.new(max_size) }
+    let(:buffer) { Datadog::ThreadSafeTraceBuffer.new(max_size) }
   end
 end
