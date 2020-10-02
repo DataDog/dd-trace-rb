@@ -11,6 +11,7 @@ module Datadog
         def initialize(options = {})
           super
           @sidekiq_service = options[:service_name] || configuration[:service_name]
+          @error_handler = options[:error_handler] || configuration[:error_handler]
         end
 
         def call(worker, job, queue)
@@ -19,7 +20,7 @@ module Datadog
           service = worker_config(resource, :service_name) || @sidekiq_service
           tag_args = worker_config(resource, :tag_args) || configuration[:tag_args]
 
-          @tracer.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER) do |span|
+          @tracer.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER, on_error: @error_handler) do |span|
             span.resource = resource
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

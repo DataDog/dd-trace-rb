@@ -18,7 +18,7 @@ module Datadog
                        job.name
                      end
 
-          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name) do |span|
+          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name, on_error: configuration[:error_handler]) do |span|
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
