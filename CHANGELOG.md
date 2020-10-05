@@ -17,7 +17,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.40.0...v0.41.0
 - Add peer.service tag to external services and skip tagging external services with language tag for runtime metrics (#934, #935, #1180)
   - This helps support the way runtime metrics are associated with spans in the UI.
 - Faster TraceBuffer for CRuby (#1172)
-- Reduce memory usage during gem statup (#1090)
+- Reduce memory usage during gem startup (#1090)
 - Reduce memory usage of the HTTP transport (#1165)
 
 ### Fixed
