@@ -249,13 +249,97 @@ RSpec.describe Datadog::Tracer do
     end
   end
 
-  describe '#active_root_span' do
-    subject(:active_root_span) { tracer.active_root_span }
-    let(:span) { instance_double(Datadog::Span) }
+  describe '#call_context' do
+    subject(:call_context) { tracer.call_context }
+    let(:context) { instance_double(Datadog::Context) }
 
-    it do
-      expect(tracer.call_context).to receive(:current_root_span).and_return(span)
-      is_expected.to be(span)
+    context 'given no arguments' do
+      it do
+        expect(tracer.provider)
+          .to receive(:context)
+          .with(nil)
+          .and_return(context)
+
+        is_expected.to be context
+      end
+    end
+
+    context 'given a key' do
+      subject(:call_context) { tracer.call_context(key) }
+      let(:key) { Thread.current }
+
+      it do
+        expect(tracer.provider)
+          .to receive(:context)
+          .with(key)
+          .and_return(context)
+
+        is_expected.to be context
+      end
+    end
+  end
+
+  describe '#active_span' do
+    let(:span) { instance_double(Datadog::Span) }
+    let(:call_context) { instance_double(Datadog::Context) }
+
+    context 'given no arguments' do
+      subject(:active_span) { tracer.active_span }
+
+      it do
+        expect(tracer.call_context).to receive(:current_span).and_return(span)
+        is_expected.to be(span)
+      end
+    end
+
+    context 'given a key' do
+      subject(:active_span) { tracer.active_span(key) }
+      let(:key) { double('key') }
+
+      it do
+        expect(tracer)
+          .to receive(:call_context)
+          .with(key)
+          .and_return(call_context)
+
+        expect(call_context)
+          .to receive(:current_span)
+          .and_return(span)
+
+        is_expected.to be(span)
+      end
+    end
+  end
+
+  describe '#active_root_span' do
+    let(:span) { instance_double(Datadog::Span) }
+    let(:call_context) { instance_double(Datadog::Context) }
+
+    context 'given no arguments' do
+      subject(:active_root_span) { tracer.active_root_span }
+
+      it do
+        expect(tracer.call_context).to receive(:current_root_span).and_return(span)
+        is_expected.to be(span)
+      end
+    end
+
+    context 'given a key' do
+      subject(:active_root_span) { tracer.active_root_span(key) }
+      let(:key) { double('key') }
+
+      it do
+        expect(tracer)
+          .to receive(:call_context)
+          .with(key)
+          .and_return(call_context)
+
+        expect(call_context)
+          .to receive(:current_root_span)
+          .and_return(span)
+
+        is_expected.to be(span)
+      end
     end
   end
 
@@ -284,6 +368,22 @@ RSpec.describe Datadog::Tracer do
         is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
         expect(active_correlation.trace_id).to eq 0
         expect(active_correlation.span_id).to eq 0
+      end
+    end
+
+    context 'given a key' do
+      subject(:active_correlation) { tracer.active_correlation(key) }
+
+      let(:key) { Thread.current }
+      let(:call_context) { instance_double(Datadog::Context) }
+
+      it 'returns a correlation that matches that context' do
+        expect(tracer)
+          .to receive(:call_context)
+          .with(key)
+          .and_call_original
+
+        is_expected.to be_a_kind_of(Datadog::Correlation::Identifier)
       end
     end
   end

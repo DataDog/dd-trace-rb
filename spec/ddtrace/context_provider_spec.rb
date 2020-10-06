@@ -23,9 +23,24 @@ RSpec.describe Datadog::DefaultContextProvider do
 
     before { expect(Datadog::ThreadLocalContext).to receive(:new).and_return(local_context) }
 
-    it do
-      expect(local_context).to receive(:local)
-      subject
+    context 'when given no arguments' do
+      it do
+        expect(local_context).to receive(:local)
+        subject
+      end
+    end
+
+    context 'when given a key' do
+      subject(:context) { provider.context(key) }
+      let(:key) { double('key') }
+
+      it do
+        expect(local_context)
+          .to receive(:local)
+          .with(key)
+
+        subject
+      end
     end
   end
 
@@ -87,6 +102,21 @@ RSpec.describe Datadog::ThreadLocalContext do
 
         expect(@thread_context).to_not eq(context)
       end
+    end
+
+    context 'given a thread' do
+      subject(:local) { thread_local_context.local(thread) }
+      let(:thread) { Thread.new {} }
+
+      it 'retrieves the context for the provided thread' do
+        is_expected.to be_a_kind_of(Datadog::Context)
+        expect(local).to_not be(thread_local_context.local)
+      end
+    end
+
+    context 'given a bad argument' do
+      subject(:local) { thread_local_context.local('bad_arg') }
+      it { expect { local }.to raise_error(ArgumentError) }
     end
   end
 

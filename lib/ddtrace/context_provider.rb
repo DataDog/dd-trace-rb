@@ -13,9 +13,9 @@ module Datadog
       @context.local = ctx
     end
 
-    # Return the current context.
-    def context
-      @context.local
+    # Return the local context.
+    def context(key = nil)
+      key.nil? ? @context.local : @context.local(key)
     end
   end
 
@@ -43,8 +43,9 @@ module Datadog
     end
 
     # Return the thread-local context.
-    def local
-      Thread.current[@key] ||= Datadog::Context.new
+    def local(thread = Thread.current)
+      raise ArgumentError, '\'thread\' must be a Thread.' unless thread.is_a?(Thread)
+      thread[@key] ||= Datadog::Context.new
     end
   end
 end

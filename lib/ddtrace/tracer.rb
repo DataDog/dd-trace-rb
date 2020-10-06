@@ -59,8 +59,8 @@ module Datadog
     #
     # This method makes use of a \ContextProvider that is automatically set during the tracer
     # initialization, or while using a library instrumentation.
-    def call_context
-      @provider.context
+    def call_context(key = nil)
+      @provider.context(key)
     end
 
     # Initialize a new \Tracer used to create, sample and submit spans that measure the
@@ -324,18 +324,18 @@ module Datadog
     end
 
     # Return the current active span or +nil+.
-    def active_span
-      call_context.current_span
+    def active_span(key = nil)
+      call_context(key).current_span
     end
 
     # Return the current active root span or +nil+.
-    def active_root_span
-      call_context.current_root_span
+    def active_root_span(key = nil)
+      call_context(key).current_root_span
     end
 
     # Return a CorrelationIdentifier for active span
-    def active_correlation
-      Datadog::Correlation.identifier_from_context(call_context)
+    def active_correlation(key = nil)
+      Datadog::Correlation.identifier_from_context(call_context(key))
     end
 
     # Send the trace to the writer to enqueue the spans list in the agent
