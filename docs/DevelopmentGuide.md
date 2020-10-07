@@ -124,6 +124,16 @@ The trace library uses Rubocop to enforce [code style](https://github.com/bbatso
 $ bundle exec rake rubocop
 ```
 
+### Running benchmarks
+
+If your changes can have a measurable performance impact, we recommend running our benchmark suite:
+
+```
+$ bundle exec rake spec:benchmark
+```
+
+Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
+
 ## Appendix
 
 ### Writing new integrations
