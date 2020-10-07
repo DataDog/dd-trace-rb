@@ -75,9 +75,9 @@ RSpec.describe Datadog::Tracer do
         # propagate the root span, only its ID. Therefore the span reference
         # should be the first span on the other end of the distributed trace.
         it { expect(@child_root_span).to be child_span }
-        it 'does not set runtime metrics language tag' do
-          expect(lang_tag(parent_span)).to be nil
-          expect(lang_tag(child_span)).to be nil
+        it 'sets runtime metrics language tag' do
+          expect(lang_tag(parent_span)).to eq('ruby')
+          expect(lang_tag(child_span)).to eq('ruby')
         end
       end
 

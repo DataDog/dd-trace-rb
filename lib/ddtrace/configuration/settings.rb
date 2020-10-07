@@ -113,7 +113,7 @@ module Datadog
 
       settings :runtime_metrics do
         option :enabled do |o|
-          o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
+          o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, true) }
           o.lazy
         end
 

@@ -47,7 +47,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
           'os_name' => include('x86_64'),
           'partial_flushing_enabled' => false,
           'priority_sampling_enabled' => false,
-          'runtime_metrics_enabled' => false,
+          'runtime_metrics_enabled' => true,
           'version' => Datadog::VERSION::STRING,
           'vm' => be_a(String)
         )
@@ -139,7 +139,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
           os_name: include('x86_64'),
           partial_flushing_enabled: false,
           priority_sampling_enabled: false,
-          runtime_metrics_enabled: false,
+          runtime_metrics_enabled: true,
           sample_rate: nil,
           sampling_rules: nil,
           service: nil,
@@ -192,10 +192,10 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
         it { is_expected.to include analytics_enabled: true }
       end
 
-      context 'with runtime metrics enabled' do
-        before { Datadog.configure { |c| c.runtime_metrics_enabled = true } }
+      context 'with runtime metrics disabled' do
+        before { Datadog.configure { |c| c.runtime_metrics_enabled = false } }
 
-        it { is_expected.to include runtime_metrics_enabled: true }
+        it { is_expected.to include runtime_metrics_enabled: false }
       end
 
       context 'with partial flushing enabled' do
