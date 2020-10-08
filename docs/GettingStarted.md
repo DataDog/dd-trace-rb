@@ -2208,7 +2208,7 @@ To configure your application for metrics collection:
 
 #### For application runtime
 
-If runtime metrics are configured, the trace library will automatically collect and send metrics about the health of your application.
+Runtime metrics are enabled by default. When enabled, the trace library will automatically collect and send metrics about the health of your application.
 
 To configure runtime metrics, add the following configuration:
 
@@ -2218,8 +2218,9 @@ require 'datadog/statsd'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  # To enable runtime metrics collection, set `true`. Defaults to `true`
-  # You can also set DD_RUNTIME_METRICS_ENABLED=true to configure this.
+  # Runtime metrics collection is enabled by default.
+  # To disable, set `false`. Defaults to `true`
+  # You can also set DD_RUNTIME_METRICS_ENABLED=false to disable this.
   c.runtime_metrics.enabled = true
 
   # Optionally, you can configure the Statsd instance used for sending runtime metrics.
