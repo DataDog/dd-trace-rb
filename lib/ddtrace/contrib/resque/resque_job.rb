@@ -48,7 +48,7 @@ module Datadog
         end
 
         def span_options
-          { service: datadog_configuration[:service_name] }
+          { service: datadog_configuration[:service_name], on_error: datadog_configuration[:error_handler] }
         end
 
         def tracer
