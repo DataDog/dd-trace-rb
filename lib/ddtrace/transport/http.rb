@@ -7,6 +7,7 @@ require 'ddtrace/runtime/container'
 require 'ddtrace/transport/http/builder'
 require 'ddtrace/transport/http/api'
 
+require 'ddtrace/transport/http/adapters/httprb'
 require 'ddtrace/transport/http/adapters/net'
 require 'ddtrace/transport/http/adapters/test'
 require 'ddtrace/transport/http/adapters/unix_socket'
@@ -27,7 +28,8 @@ module Datadog
       # Pass a block to override any settings.
       def default(options = {})
         new do |transport|
-          transport.adapter :net_http, default_hostname, default_port
+          # transport.adapter :net_http, default_hostname, default_port
+          transport.adapter :httprb, default_hostname, default_port
           transport.headers default_headers
 
           apis = API.defaults
@@ -42,7 +44,8 @@ module Datadog
             if options.key?(:hostname) || options.key?(:port)
               hostname = options.fetch(:hostname, default_hostname)
               port = options.fetch(:port, default_port)
-              transport.adapter :net_http, hostname, port
+              # transport.adapter :net_http, hostname, port
+              transport.adapter :httprb, hostname, port
             end
 
             # Change default API
@@ -98,6 +101,7 @@ module Datadog
       end
 
       # Add adapters to registry
+      Builder::REGISTRY.set(Adapters::Httprb, :httprb)
       Builder::REGISTRY.set(Adapters::Net, :net_http)
       Builder::REGISTRY.set(Adapters::Test, :test)
       Builder::REGISTRY.set(Adapters::UnixSocket, :unix)

@@ -34,11 +34,13 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'msgpack'
+  spec.add_dependency 'http'
 
   # Optional extensions
   # TODO: Move this to Appraisals?
   spec.add_development_dependency 'dogstatsd-ruby', '>= 3.3.0'
   spec.add_development_dependency 'opentracing', '>= 0.4.1'
+  # spec.add_development_dependency 'http'
 
   # Development dependencies
   spec.add_development_dependency 'concurrent-ruby' # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
