@@ -386,6 +386,70 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  describe '#get_trace_identifiers' do
+    subject(:get_trace_identifiers) { collector.get_trace_identifiers(thread) }
+    let(:thread) { Thread.new {} }
+
+    context 'given a non-thread' do
+      let(:thread) { nil }
+      it { is_expected.to be nil }
+    end
+
+    context 'when linking is unavailable' do
+      context 'because the tracer is unavailable' do
+        let(:datadog) { Module.new }
+        before { stub_const('Datadog', datadog, transfer_nested_constant: true) }
+        it { is_expected.to be nil }
+      end
+
+      context 'because correlations are unavailable' do
+        let(:tracer) { instance_double(Datadog::Tracer) }
+        before { allow(Datadog).to receive(:tracer).and_return(tracer) }
+        it { is_expected.to be nil }
+      end
+    end
+
+    context 'when linking is available' do
+      context 'and the trace & span IDs are' do
+        context 'set' do
+          let(:correlation) do
+            instance_double(
+              Datadog::Correlation::Identifier,
+              trace_id: rand(1e12),
+              span_id: rand(1e12)
+            )
+          end
+
+          it { is_expected.to eq([correlation.trace_id, correlation.span_id]) }
+        end
+
+        context '0' do
+          let(:correlation) do
+            instance_double(
+              Datadog::Correlation::Identifier,
+              trace_id: 0,
+              span_id: 0
+            )
+          end
+
+          it { is_expected.to eq([0, 0]) }
+        end
+
+        context 'are nil' do
+          let(:correlation) do
+            instance_double(
+              Datadog::Correlation::Identifier,
+              trace_id: nil,
+              span_id: nil
+            )
+          end
+
+          it { is_expected.to eq([nil, nil]) }
+        end
+      end
+    end
+  end
+
   describe '#compute_wait_time' do
     subject(:compute_wait_time) { collector.compute_wait_time(used_time) }
     let(:used_time) { 1 }
