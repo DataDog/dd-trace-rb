@@ -8,7 +8,7 @@ module Datadog
     module GRPC
       module DatadogInterceptor
         # The DatadogInterceptor::Client implements the tracing strategy
-        # for gRPC client-side endpoitns. This middleware compoent will
+        # for gRPC client-side endpoints. This middleware component will
         # inject trace context information into gRPC metadata prior to
         # sending the request to the server.
         class Client < Base
