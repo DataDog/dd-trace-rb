@@ -38,22 +38,38 @@ module Datadog
       end
 
       def trace_id
-        value = Array(@metadata[GRPC_METADATA_TRACE_ID]).first.to_i
+        value = if @metadata[GRPC_METADATA_TRACE_ID].is_a?(Array)
+                  @metadata[GRPC_METADATA_TRACE_ID].first.to_i
+                else
+                  @metadata[GRPC_METADATA_TRACE_ID].to_i
+                end
         value if (1..Span::EXTERNAL_MAX_ID).cover? value
       end
 
       def parent_id
-        value = Array(@metadata[GRPC_METADATA_PARENT_ID]).first.to_i
+        value = if @metadata[GRPC_METADATA_PARENT_ID].is_a?(Array)
+                  @metadata[GRPC_METADATA_PARENT_ID].first.to_i
+                else
+                  @metadata[GRPC_METADATA_PARENT_ID].to_i
+                end
         value if (1..Span::EXTERNAL_MAX_ID).cover? value
       end
 
       def sampling_priority
-        value = Array(@metadata[GRPC_METADATA_SAMPLING_PRIORITY]).first
+        value = if @metadata[GRPC_METADATA_SAMPLING_PRIORITY].is_a?(Array)
+                  @metadata[GRPC_METADATA_SAMPLING_PRIORITY].first.to_i
+                else
+                  @metadata[GRPC_METADATA_SAMPLING_PRIORITY].to_i
+                end
         value && value.to_i
       end
 
       def origin
-        value = Array(@metadata[GRPC_METADATA_ORIGIN]).first
+        value = if @metadata[GRPC_METADATA_ORIGIN].is_a?(Array)
+                  @metadata[GRPC_METADATA_ORIGIN].first
+                else
+                  @metadata[GRPC_METADATA_ORIGIN]
+                end
         value if value != ''
       end
     end
