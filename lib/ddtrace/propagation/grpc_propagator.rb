@@ -57,9 +57,9 @@ module Datadog
 
       def sampling_priority
         value = if @metadata[GRPC_METADATA_SAMPLING_PRIORITY].is_a?(Array)
-                  @metadata[GRPC_METADATA_SAMPLING_PRIORITY].first.to_i
+                  @metadata[GRPC_METADATA_SAMPLING_PRIORITY].first
                 else
-                  @metadata[GRPC_METADATA_SAMPLING_PRIORITY].to_i
+                  @metadata[GRPC_METADATA_SAMPLING_PRIORITY]
                 end
         value && value.to_i
       end
