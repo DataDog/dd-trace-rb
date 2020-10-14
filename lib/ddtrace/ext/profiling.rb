@@ -5,7 +5,9 @@ module Datadog
       ENV_UPLOAD_TIMEOUT = 'DD_PROFILING_UPLOAD_TIMEOUT'.freeze
 
       module Pprof
+        LABEL_KEY_SPAN_ID = 'span id'.freeze
         LABEL_KEY_THREAD_ID = 'thread id'.freeze
+        LABEL_KEY_TRACE_ID = 'trace id'.freeze
         SAMPLE_VALUE_NO_VALUE = 0
         VALUE_TYPE_CPU = 'cpu-time'.freeze
         VALUE_TYPE_WALL = 'wall-time'.freeze
