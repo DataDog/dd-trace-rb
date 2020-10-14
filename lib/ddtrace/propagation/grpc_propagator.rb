@@ -38,39 +38,31 @@ module Datadog
       end
 
       def trace_id
-        value = if @metadata[GRPC_METADATA_TRACE_ID].is_a?(Array)
-                  @metadata[GRPC_METADATA_TRACE_ID].first.to_i
-                else
-                  @metadata[GRPC_METADATA_TRACE_ID].to_i
-                end
+        value = metadata_for_key(GRPC_METADATA_TRACE_ID).to_i
         value if (1..Span::EXTERNAL_MAX_ID).cover? value
       end
 
       def parent_id
-        value = if @metadata[GRPC_METADATA_PARENT_ID].is_a?(Array)
-                  @metadata[GRPC_METADATA_PARENT_ID].first.to_i
-                else
-                  @metadata[GRPC_METADATA_PARENT_ID].to_i
-                end
+        value = metadata_for_key(GRPC_METADATA_PARENT_ID).to_i
         value if (1..Span::EXTERNAL_MAX_ID).cover? value
       end
 
       def sampling_priority
-        value = if @metadata[GRPC_METADATA_SAMPLING_PRIORITY].is_a?(Array)
-                  @metadata[GRPC_METADATA_SAMPLING_PRIORITY].first
-                else
-                  @metadata[GRPC_METADATA_SAMPLING_PRIORITY]
-                end
+        value = metadata_for_key(GRPC_METADATA_SAMPLING_PRIORITY)
         value && value.to_i
       end
 
       def origin
-        value = if @metadata[GRPC_METADATA_ORIGIN].is_a?(Array)
-                  @metadata[GRPC_METADATA_ORIGIN].first
-                else
-                  @metadata[GRPC_METADATA_ORIGIN]
-                end
+        value = metadata_for_key(GRPC_METADATA_ORIGIN)
         value if value != ''
+      end
+
+      private
+
+      def metadata_for_key(key)
+        # metadata values can be arrays (multiple headers with the same values)
+        return @metadata[key].first if @metadata[key].is_a?(Array)
+        @metadata[key]
       end
     end
   end
