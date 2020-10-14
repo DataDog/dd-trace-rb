@@ -38,11 +38,11 @@ module ProfileHelpers
     stack_two = Thread.current.backtrace_locations.first(3)
 
     stack_samples = [
-      build_stack_sample(stack_one, 100, 100, 100),
-      build_stack_sample(stack_two, 100, 200, 200),
-      build_stack_sample(stack_one, 101, 400, 400),
-      build_stack_sample(stack_two, 101, 800, 800),
-      build_stack_sample(stack_two, 101, 1600, 1600)
+      build_stack_sample(stack_one, 100, 0, 0, 100, 100),
+      build_stack_sample(stack_two, 100, 0, 0, 200, 200),
+      build_stack_sample(stack_one, 101, 0, 0, 400, 400),
+      build_stack_sample(stack_two, 101, 0, 0, 800, 800),
+      build_stack_sample(stack_two, 101, 0, 0, 1600, 1600)
     ]
 
     start = Time.now.utc
@@ -61,7 +61,14 @@ module ProfileHelpers
     Datadog::Profiling::Encoding::Profile::Protobuf.encode(get_test_profiling_flush)
   end
 
-  def build_stack_sample(locations = nil, thread_id = nil, cpu_time_ns = nil, wall_time_ns = nil)
+  def build_stack_sample(
+    locations = nil,
+    thread_id = nil,
+    trace_id = nil,
+    span_id = nil,
+    cpu_time_ns = nil,
+    wall_time_ns = nil
+  )
     locations ||= Thread.current.backtrace_locations
 
     Datadog::Profiling::Events::StackSample.new(
@@ -69,6 +76,8 @@ module ProfileHelpers
       locations,
       locations.length,
       thread_id || rand(1e9),
+      trace_id || rand(1e9),
+      span_id || rand(1e9),
       cpu_time_ns || rand(1e9),
       wall_time_ns || rand(1e9)
     )
