@@ -85,5 +85,23 @@ RSpec.describe Datadog::GRPCPropagator do
         expect(subject.origin).to eq 'synthetics'
       end
     end
+
+    # Metadata values can also be arrays
+    # https://github.com/grpc/grpc-go/blob/master/Documentation/grpc-metadata.md
+    context 'given populated metadata in array format' do
+      let(:metadata) do
+        { 'x-datadog-trace-id' => %w[12345 67890],
+          'x-datadog-parent-id' => %w[98765 43210],
+          'x-datadog-sampling-priority' => ['0'],
+          'x-datadog-origin' => ['synthetics'] }
+      end
+
+      it 'returns a populated context with the first metadata array values' do
+        expect(subject.trace_id).to eq 12345
+        expect(subject.span_id).to eq 98765
+        expect(subject.sampling_priority).to be_zero
+        expect(subject.origin).to eq 'synthetics'
+      end
+    end
   end
 end
