@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'ddtrace/profiling/spec_helper'
 
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/events/stack'
@@ -20,19 +21,6 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
   end
 
   let(:stack_samples) { Array.new(2) { build_stack_sample } }
-
-  def build_stack_sample(locations = nil, thread_id = nil, cpu_time_ns = nil, wall_time_ns = nil)
-    locations ||= Thread.current.backtrace_locations
-
-    Datadog::Profiling::Events::StackSample.new(
-      nil,
-      locations,
-      locations.length,
-      thread_id || rand(1e9),
-      cpu_time_ns || rand(1e9),
-      wall_time_ns || rand(1e9)
-    )
-  end
 
   def string_id_for(string)
     builder.string_table.fetch(string)
@@ -99,21 +87,39 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       let(:second_key) { converter.stack_sample_group_key(second) }
 
       let(:thread_id) { 1 }
+      let(:trace_id) { 2 }
+      let(:span_id) { 3 }
       let(:stack) { Thread.current.backtrace_locations }
 
-      context 'with identical threads and stacks' do
-        let(:first) { build_stack_sample(stack, 1) }
-        let(:second) { build_stack_sample(stack, 1) }
+      context 'with identical threads, stacks, trace and span IDs' do
+        let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
+        let(:second) { build_stack_sample(stack, thread_id, trace_id, span_id) }
         before { expect(first.frames).to eq(second.frames) }
         it { expect(first_key).to eq(second_key) }
       end
 
-      context 'with identical threads and different' do
-        let(:thread_id) { 1 }
+      context 'with identical threads and stacks but different' do
+        context 'trace IDs' do
+          let(:other_trace_id) { 3 }
+          let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
+          let(:second) { build_stack_sample(stack, thread_id, other_trace_id, span_id) }
+          before { expect(first.frames).to eq(second.frames) }
+          it { expect(first_key).to_not eq(second_key) }
+        end
 
+        context 'span IDs' do
+          let(:other_span_id) { 4 }
+          let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
+          let(:second) { build_stack_sample(stack, thread_id, trace_id, other_span_id) }
+          before { expect(first.frames).to eq(second.frames) }
+          it { expect(first_key).to_not eq(second_key) }
+        end
+      end
+
+      context 'with identical threads and different' do
         context 'stacks' do
-          let(:first) { build_stack_sample(nil, thread_id) }
-          let(:second) { build_stack_sample(nil, thread_id) }
+          let(:first) { build_stack_sample(nil, thread_id, trace_id, span_id) }
+          let(:second) { build_stack_sample(nil, thread_id, trace_id, span_id) }
           before { expect(first.frames).to_not eq(second.frames) }
           it { expect(first_key).to_not eq(second_key) }
         end
@@ -125,6 +131,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length,
               thread_id,
+              trace_id,
+              span_id,
               rand(1e9),
               rand(1e9)
             )
@@ -136,6 +144,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length + 1,
               thread_id,
+              trace_id,
+              span_id,
               rand(1e9),
               rand(1e9)
             )
@@ -166,6 +176,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
     context 'given stack samples' do
       let(:thread_id) { 1 }
+      let(:trace_id) { 2 }
+      let(:span_id) { 3 }
       let(:stack) { Thread.current.backtrace_locations }
 
       shared_examples_for 'independent stack samples' do
@@ -189,9 +201,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
         end
       end
 
-      context 'with identical threads and stacks' do
-        let(:first) { build_stack_sample(stack, 1) }
-        let(:second) { build_stack_sample(stack, 1) }
+      context 'with identical threads, stacks, trace and span IDs' do
+        let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
+        let(:second) { build_stack_sample(stack, thread_id, trace_id, span_id) }
 
         before { expect(first.frames).to eq(second.frames) }
 
@@ -211,11 +223,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       end
 
       context 'with identical threads and different' do
-        let(:thread_id) { 1 }
-
         context 'stacks' do
-          let(:first) { build_stack_sample(nil, thread_id) }
-          let(:second) { build_stack_sample(nil, thread_id) }
+          let(:first) { build_stack_sample(nil, thread_id, trace_id, span_id) }
+          let(:second) { build_stack_sample(nil, thread_id, trace_id, span_id) }
           before { expect(first.frames).to_not eq(second.frames) }
 
           it_behaves_like 'independent stack samples'
@@ -228,6 +238,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length,
               thread_id,
+              trace_id,
+              span_id,
               rand(1e9),
               rand(1e9)
             )
@@ -239,6 +251,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length + 1,
               thread_id,
+              trace_id,
+              span_id,
               rand(1e9),
               rand(1e9)
             )
@@ -292,7 +306,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
       context 'whose labels' do
         subject(:locations) { build_sample.label }
-        it { is_expected.to have(1).items }
+        it { is_expected.to have(3).items }
       end
     end
   end
@@ -314,19 +328,89 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
     subject(:build_sample_labels) { converter.build_sample_labels(stack_sample) }
     let(:stack_sample) { build_stack_sample }
 
-    it do
-      is_expected.to be_kind_of(Array)
-      is_expected.to have(1).items
-    end
-
-    describe 'produces a label' do
-      subject(:label) { build_sample_labels.first }
+    shared_examples_for 'contains thread ID label' do |index = 0|
+      subject(:thread_id_label) { build_sample_labels[index] }
       it { is_expected.to be_kind_of(Perftools::Profiles::Label) }
       it do
         is_expected.to have_attributes(
           key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
           str: string_id_for(stack_sample.thread_id.to_s)
         )
+      end
+    end
+
+    shared_examples_for 'contains trace ID label' do |index = 1|
+      subject(:trace_id_label) { build_sample_labels[index] }
+      it { is_expected.to be_kind_of(Perftools::Profiles::Label) }
+      it do
+        is_expected.to have_attributes(
+          key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
+          str: string_id_for(stack_sample.trace_id.to_s)
+        )
+      end
+    end
+
+    shared_examples_for 'contains span ID label' do |index = 2|
+      subject(:span_id_label) { build_sample_labels[index] }
+      it { is_expected.to be_kind_of(Perftools::Profiles::Label) }
+      it do
+        is_expected.to have_attributes(
+          key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_SPAN_ID),
+          str: string_id_for(stack_sample.span_id.to_s)
+        )
+      end
+    end
+
+    context 'when thread ID is set' do
+      let(:stack_sample) do
+        instance_double(
+          Datadog::Profiling::Events::StackSample,
+          thread_id: thread_id,
+          trace_id: trace_id,
+          span_id: span_id
+        )
+      end
+
+      let(:thread_id) { rand(1e9) }
+
+      context 'when trace and span IDs are' do
+        context 'set' do
+          let(:trace_id) { rand(1e9) }
+          let(:span_id) { rand(1e9) }
+
+          it do
+            is_expected.to be_kind_of(Array)
+            is_expected.to have(3).items
+          end
+
+          it_behaves_like 'contains thread ID label'
+          it_behaves_like 'contains trace ID label'
+          it_behaves_like 'contains span ID label'
+        end
+
+        context '0' do
+          let(:trace_id) { 0 }
+          let(:span_id) { 0 }
+
+          it do
+            is_expected.to be_kind_of(Array)
+            is_expected.to have(1).item
+          end
+
+          it_behaves_like 'contains thread ID label'
+        end
+
+        context 'nil' do
+          let(:trace_id) { nil }
+          let(:span_id) { nil }
+
+          it do
+            is_expected.to be_kind_of(Array)
+            is_expected.to have(1).item
+          end
+
+          it_behaves_like 'contains thread ID label'
+        end
       end
     end
   end

@@ -19,35 +19,25 @@ RSpec.describe 'profiling integration test' do
     let(:stack_one) { Thread.current.backtrace_locations.first(3) }
     let(:stack_two) { Thread.current.backtrace_locations.first(3) }
 
+    let(:trace_id) { 0 }
+    let(:span_id) { 0 }
+
     let(:stack_samples) do
       [
-        build_stack_sample(stack_one, 100, 100),
-        build_stack_sample(stack_two, 100, 200),
-        build_stack_sample(stack_one, 101, 400),
-        build_stack_sample(stack_two, 101, 800),
-        build_stack_sample(stack_two, 101, 1600)
+        build_stack_sample(stack_one, 100, trace_id, span_id, 100),
+        build_stack_sample(stack_two, 100, trace_id, span_id, 200),
+        build_stack_sample(stack_one, 101, trace_id, span_id, 400),
+        build_stack_sample(stack_two, 101, trace_id, span_id, 800),
+        build_stack_sample(stack_two, 101, trace_id, span_id, 1600)
       ]
     end
 
     before do
       expect(stack_one).to_not eq(stack_two)
     end
-
-    def build_stack_sample(locations = nil, thread_id = nil, cpu_time_ns = nil, wall_time_ns = nil)
-      locations ||= Thread.current.backtrace_locations
-
-      Datadog::Profiling::Events::StackSample.new(
-        nil,
-        locations,
-        locations.length,
-        thread_id || rand(1e9),
-        cpu_time_ns || rand(1e9),
-        wall_time_ns || rand(1e9)
-      )
-    end
   end
 
-  shared_examples_for 'end-to-end profiling' do
+  shared_context 'end-to-end profiler' do
     let(:recorder) do
       Datadog::Profiling::Recorder.new(
         [Datadog::Profiling::Events::StackSample],
@@ -75,6 +65,10 @@ RSpec.describe 'profiling integration test' do
         enabled: true
       )
     end
+  end
+
+  shared_examples_for 'end-to-end profiling' do
+    include_context 'end-to-end profiler'
 
     it 'produces a profile' do
       expect(out).to receive(:puts)
@@ -92,12 +86,51 @@ RSpec.describe 'profiling integration test' do
 
     if Datadog::Profiling.native_cpu_time_supported?
       context 'with CPU profiling' do
-        include_context 'with profiling extensions'
+        # include_context 'with profiling extensions'
+        include_context 'end-to-end profiler'
 
-        it_behaves_like 'end-to-end profiling' do
-          before { expect(Thread.instance_methods).to include(:cpu_time) }
+        it 'produces a profile' do
+          with_profiling_extensions_in_fork do
+            expect(Thread.instance_methods).to include(:cpu_time)
+
+            expect(out).to receive(:puts)
+            collector.collect_events
+            scheduler.flush_events
+          end
         end
       end
+    end
+
+    context 'with tracing' do
+      around(:each) do |example|
+        Datadog.tracer.trace('profiler.test') do |span|
+          @current_span = span
+          example.run
+        end
+      end
+
+      before do
+        expect(recorder)
+          .to receive(:flush)
+          .and_wrap_original do |m, *args|
+            flush = m.call(*args)
+
+            # Verify that all the stack samples for this test received the same non-zero trace and span ID
+            stack_sample_group = flush.event_groups.find { |g| g.event_class == Datadog::Profiling::Events::StackSample }
+            stack_samples = stack_sample_group.events.select { |e| e.thread_id == Thread.current.object_id }
+
+            raise 'No stack samples matching current thread!' if stack_samples.empty?
+
+            stack_samples.each do |stack_sample|
+              expect(stack_sample.trace_id).to eq(@current_span.trace_id)
+              expect(stack_sample.span_id).to eq(@current_span.span_id)
+            end
+
+            flush
+          end
+      end
+
+      it_behaves_like 'end-to-end profiling'
     end
   end
 
@@ -212,13 +245,50 @@ RSpec.describe 'profiling integration test' do
               stack_samples[3].cpu_time_interval_ns + stack_samples[4].cpu_time_interval_ns,
               stack_samples[3].wall_time_interval_ns + stack_samples[4].wall_time_interval_ns
             ],
-            label: [{
-              key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
-              str: string_id_for(stack_samples.last.thread_id.to_s),
-              num: 0,
-              num_unit: 0
-            }]
+            label: [
+              {
+                key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
+                str: string_id_for(stack_samples.last.thread_id.to_s),
+                num: 0,
+                num_unit: 0
+              }
+            ]
           )
+        end
+
+        context 'when trace and span IDs are available' do
+          let(:trace_id) { rand(1e9) }
+          let(:span_id) { rand(1e9) }
+
+          it 'is well formed with trace and span ID labels' do
+            expect(sample.last.to_h).to eq(
+              location_id: stack_samples.last.frames.collect { |f| stack_frame_to_location_id(f) },
+              value: [
+                stack_samples[3].cpu_time_interval_ns + stack_samples[4].cpu_time_interval_ns,
+                stack_samples[3].wall_time_interval_ns + stack_samples[4].wall_time_interval_ns
+              ],
+              label: [
+                {
+                  key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
+                  str: string_id_for(stack_samples.last.thread_id.to_s),
+                  num: 0,
+                  num_unit: 0
+                },
+                {
+                  key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
+                  str: string_id_for(stack_samples.last.trace_id.to_s),
+                  num: 0,
+                  num_unit: 0
+                },
+                {
+                  key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_SPAN_ID),
+                  str: string_id_for(stack_samples.last.span_id.to_s),
+                  num: 0,
+                  num_unit: 0
+                }
+              ]
+            )
+          end
         end
       end
 

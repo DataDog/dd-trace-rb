@@ -104,11 +104,15 @@ module Datadog
           thread_id = thread.respond_to?(:native_thread_id) ? thread.native_thread_id : nil
           thread_id ||= thread.object_id
 
+          trace_id, span_id = get_trace_identifiers(thread)
+
           Events::StackSample.new(
             nil,
             locations,
             stack_size,
             thread_id,
+            trace_id,
+            span_id,
             get_cpu_time_interval!(thread),
             wall_time_interval_ns
           )
@@ -130,9 +134,16 @@ module Datadog
           interval
         end
 
+        def get_trace_identifiers(thread)
+          return unless thread.is_a?(::Thread)
+          return unless Datadog.respond_to?(:tracer) && Datadog.tracer.respond_to?(:active_correlation)
+
+          identifier = Datadog.tracer.active_correlation(thread)
+          [identifier.trace_id, identifier.span_id]
+        end
+
         def compute_wait_time(used_time)
           used_time_ns = used_time * 1e9
-
           interval = (used_time_ns / (max_time_usage_pct / 100.0)) - used_time_ns
           [interval / 1e9, MIN_INTERVAL].max
         end
