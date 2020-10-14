@@ -61,12 +61,28 @@ module Datadog
         end
 
         def build_sample_labels(stack_sample)
-          [
+          labels = [
             Perftools::Profiles::Label.new(
               key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
               str: builder.string_table.fetch(stack_sample.thread_id.to_s)
             )
           ]
+
+          unless stack_sample.trace_id.nil? || stack_sample.trace_id.zero?
+            labels << Perftools::Profiles::Label.new(
+              key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
+              str: builder.string_table.fetch(stack_sample.trace_id.to_s)
+            )
+          end
+
+          unless stack_sample.span_id.nil? || stack_sample.span_id.zero?
+            labels << Perftools::Profiles::Label.new(
+              key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_SPAN_ID),
+              str: builder.string_table.fetch(stack_sample.span_id.to_s)
+            )
+          end
+
+          labels
         end
       end
     end

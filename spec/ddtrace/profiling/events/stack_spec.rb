@@ -9,7 +9,9 @@ RSpec.describe Datadog::Profiling::Events::Stack do
         timestamp,
         frames,
         total_frame_count,
-        thread_id
+        thread_id,
+        trace_id,
+        span_id
       )
     end
 
@@ -17,13 +19,17 @@ RSpec.describe Datadog::Profiling::Events::Stack do
     let(:frames) { double('frames', collect: []) }
     let(:total_frame_count) { double('total_frame_count') }
     let(:thread_id) { double('thread_id') }
+    let(:trace_id) { double('trace_id') }
+    let(:span_id) { double('span_id') }
 
     it do
       is_expected.to have_attributes(
         timestamp: timestamp,
         frames: frames,
         total_frame_count: total_frame_count,
-        thread_id: thread_id
+        thread_id: thread_id,
+        trace_id: trace_id,
+        span_id: span_id
       )
     end
   end
@@ -37,6 +43,8 @@ RSpec.describe Datadog::Profiling::Events::StackSample do
         frames,
         total_frame_count,
         thread_id,
+        trace_id,
+        span_id,
         cpu_time_interval_ns,
         wall_time_interval_ns
       )
@@ -46,6 +54,8 @@ RSpec.describe Datadog::Profiling::Events::StackSample do
     let(:frames) { double('frames', collect: []) }
     let(:total_frame_count) { double('total_frame_count') }
     let(:thread_id) { double('thread_id') }
+    let(:trace_id) { double('trace_id') }
+    let(:span_id) { double('span_id') }
     let(:cpu_time_interval_ns) { double('cpu_time_interval_ns') }
     let(:wall_time_interval_ns) { double('wall_time_interval_ns') }
 
@@ -55,6 +65,8 @@ RSpec.describe Datadog::Profiling::Events::StackSample do
         frames: frames,
         total_frame_count: total_frame_count,
         thread_id: thread_id,
+        trace_id: trace_id,
+        span_id: span_id,
         cpu_time_interval_ns: cpu_time_interval_ns,
         wall_time_interval_ns: wall_time_interval_ns
       )
@@ -70,6 +82,8 @@ RSpec.describe Datadog::Profiling::Events::StackExceptionSample do
         frames,
         total_frame_count,
         thread_id,
+        trace_id,
+        span_id,
         exception
       )
     end
@@ -78,6 +92,8 @@ RSpec.describe Datadog::Profiling::Events::StackExceptionSample do
     let(:frames) { double('frames', collect: []) }
     let(:total_frame_count) { double('total_frame_count') }
     let(:thread_id) { double('thread_id') }
+    let(:trace_id) { double('trace_id') }
+    let(:span_id) { double('span_id') }
     let(:exception) { double('exception') }
 
     it do
@@ -86,6 +102,8 @@ RSpec.describe Datadog::Profiling::Events::StackExceptionSample do
         frames: frames,
         total_frame_count: total_frame_count,
         thread_id: thread_id,
+        trace_id: trace_id,
+        span_id: span_id,
         exception: exception
       )
     end

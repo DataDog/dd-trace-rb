@@ -7,24 +7,32 @@ module Datadog
       class Stack < Event
         attr_reader \
           :frames,
-          :total_frame_count,
+          :hash,
+          :span_id,
           :thread_id,
-          :hash
+          :total_frame_count,
+          :trace_id
 
         def initialize(
           timestamp,
           frames,
           total_frame_count,
-          thread_id
+          thread_id,
+          trace_id,
+          span_id
         )
           super(timestamp)
 
           @frames = frames
           @total_frame_count = total_frame_count
           @thread_id = thread_id
+          @trace_id = trace_id
+          @span_id = span_id
 
           @hash = [
             thread_id,
+            trace_id,
+            span_id,
             [
               frames.collect(&:hash),
               total_frame_count
@@ -44,6 +52,8 @@ module Datadog
           frames,
           total_frame_count,
           thread_id,
+          trace_id,
+          span_id,
           cpu_time_interval_ns,
           wall_time_interval_ns
         )
@@ -51,7 +61,9 @@ module Datadog
             timestamp,
             frames,
             total_frame_count,
-            thread_id
+            thread_id,
+            trace_id,
+            span_id
           )
 
           @cpu_time_interval_ns = cpu_time_interval_ns
@@ -69,6 +81,8 @@ module Datadog
           frames,
           total_frame_count,
           thread_id,
+          trace_id,
+          span_id,
           exception
         )
           super(
@@ -76,6 +90,8 @@ module Datadog
             frames,
             total_frame_count,
             thread_id,
+            trace_id,
+            span_id
           )
 
           @exception = exception
