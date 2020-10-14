@@ -60,9 +60,9 @@ module Datadog
       private
 
       def metadata_for_key(key)
-        # metadata values can be arrays (multiple headers with the same values)
-        return @metadata[key].first if @metadata[key].is_a?(Array)
-        @metadata[key]
+        # metadata values can be arrays (multiple headers with the same key)
+        value = @metadata[key]
+        value.is_a?(Array) ? value.first : value
       end
     end
   end
