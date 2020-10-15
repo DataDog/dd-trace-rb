@@ -1,24 +1,33 @@
 require 'ddtrace/profiling'
 
 module ProfilingFeatureHelpers
+  # Stubs Ruby classes before applying profiling patches.
+  # This allows original, pristine classes to be restored after the test.
   RSpec.shared_context 'with profiling extensions' do
-    around do |example|
-      unmodified_thread_class = ::Thread.dup
-      unmodified_process_class = ::Process.dup
-      unmodified_kernel_class = ::Kernel.dup
+    before do
+      stub_const('Thread', ::Thread.dup)
+      stub_const('Process', ::Process.dup)
+      stub_const('Kernel', ::Kernel.dup)
 
-      # Setup profiling to add
       require 'ddtrace/profiling/tasks/setup'
       Datadog::Profiling::Tasks::Setup.new.run
+    end
+  end
 
-      example.run
-
-      Object.send(:remove_const, :Thread)
-      Object.const_set('Thread', unmodified_thread_class)
-      Object.send(:remove_const, :Process)
-      Object.const_set('Process', unmodified_process_class)
-      Object.send(:remove_const, :Kernel)
-      Object.const_set('Kernel', unmodified_kernel_class)
+  # Helper for running profiling test in fork, e.g.:
+  #
+  #     it { profiling_in_fork { # Test assertions... } }
+  #
+  # This allows "real" profiling to be applied to Ruby classes without
+  # lingering side effects (since patching occurs within a fork.)
+  # Useful for profiling tests involving the main Thread, which cannot
+  # be unpatched after applying profiling extensions.
+  def with_profiling_extensions_in_fork
+    # Apply extensions in a fork so we don't modify the original Thread class
+    expect_in_fork do
+      require 'ddtrace/profiling/tasks/setup'
+      Datadog::Profiling::Tasks::Setup.new.run
+      yield
     end
   end
 end
