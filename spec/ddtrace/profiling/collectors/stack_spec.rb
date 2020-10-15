@@ -12,6 +12,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:buffer) { instance_double(Datadog::Profiling::Buffer) }
   let(:string_table) { Datadog::Utils::StringTable.new }
   let(:backtrace_location_cache) { Datadog::Utils::ObjectSet.new }
+  let(:correlation) { instance_double(Datadog::Correlation::Identifier, trace_id: 0, span_id: 0) }
 
   before do
     allow(recorder)
@@ -27,6 +28,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       .to receive(:cache)
       .with(:backtrace_locations)
       .and_return(backtrace_location_cache)
+
+    if Datadog.respond_to?(:tracer)
+      allow(Datadog.tracer)
+        .to receive(:active_correlation)
+        .and_return(correlation)
+    end
   end
 
   describe '::new' do
@@ -201,10 +208,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe '#collect_thread_event' do
     subject(:collect_events) { collector.collect_thread_event(thread, wall_time_interval_ns) }
-    let(:thread) { instance_double(Thread) }
+    let(:thread) { double('Thread', backtrace_locations: backtrace) }
     let(:wall_time_interval_ns) { double('wall time interval in nanoseconds') }
-
-    before { allow(thread).to receive(:backtrace_locations).and_return(backtrace) }
 
     context 'when the backtrace is empty' do
       let(:backtrace) { nil }
@@ -314,7 +319,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe '#get_cpu_time_interval!' do
     subject(:get_cpu_time_interval!) { collector.get_cpu_time_interval!(thread) }
-    let(:thread) { instance_double(Thread) }
+    let(:thread) { double('Thread') }
 
     context 'when CPU timing is not supported' do
       it { is_expected.to be nil }
