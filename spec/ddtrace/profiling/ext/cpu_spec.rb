@@ -53,14 +53,7 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
   describe '::apply!' do
     subject(:apply!) { described_class.apply! }
 
-    around do |example|
-      unmodified_thread_class = ::Thread.dup
-
-      example.run
-
-      Object.send(:remove_const, :Thread)
-      Object.const_set('Thread', unmodified_thread_class)
-    end
+    before { stub_const('Thread', ::Thread.dup) }
 
     context 'when native CPU time is supported' do
       before { skip 'CPU profiling not supported' unless described_class.supported? }

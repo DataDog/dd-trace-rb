@@ -17,9 +17,15 @@ module Datadog
         attach_function :pthread_getcpuclockid, [:ulong, CClockId], :int
 
         def self.prepended(base)
-          # Be sure to update the current thread too; as it wouldn't have been set.
-          ::Thread.current.class.send(:prepend, CThread) unless base == ::Thread.current.class
-          ::Thread.current.send(:update_native_ids)
+          # Threads that have already been created, will not have resolved
+          # a thread/clock ID. This is because these IDs can only be resolved
+          # from within the thread's execution context, which we do not control.
+          #
+          # We can mitigate this for the current thread via #update_native_ids,
+          # since we are currently running within its execution context. We cannot
+          # do this for any other threads that may have been created already.
+          # (This is why it's important that CThread is applied before anything else runs.)
+          base.current.send(:update_native_ids) if base.current.is_a?(CThread)
         end
 
         attr_reader \
