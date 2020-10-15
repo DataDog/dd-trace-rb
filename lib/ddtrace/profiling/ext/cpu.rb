@@ -15,6 +15,8 @@ module Datadog
         def self.apply!
           return false unless supported?
 
+          # Applying CThread to Thread will ensure any new threads
+          # will provide a thread/clock ID for CPU timing.
           require 'ddtrace/profiling/ext/cthread'
           ::Thread.send(:prepend, Profiling::Ext::CThread)
         end
