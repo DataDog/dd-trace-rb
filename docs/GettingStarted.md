@@ -2046,6 +2046,10 @@ Datadog.configure do |c|
 end
 ```
 
+_Note:_ For `lograge` users who have also defined `lograge.custom_options` in their `initializers/lograge.rb` configuration file, due to the order that Rails loads initializers (alphabetical), automatic trace correlation may not take effect, since `initializers/datadog.rb` would be overwritten by the `initializers/lograge.rb` initializer. To support automatic trace correlation with _existing_ `lograge.custom_options`, either: 
+  - ensure your `initializers/lograge.rb` has a filename that alphabetically precedes `initializers/datadog.rb`, e.g. `initializers/01_lograge.rb`, or 
+  - use the [Manual (Lograge)](#manual-lograge) configuration below.
+
 ##### Manual (Lograge)
 
 After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), manually modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs. 

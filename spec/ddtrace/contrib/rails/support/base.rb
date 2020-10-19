@@ -53,7 +53,8 @@ RSpec.shared_context 'Rails base application' do
           config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS']
         end
 
-        config.lograge.enabled = true
+        config.lograge.enabled = true if ENV['USE_LOGRAGE_NOT_INITIALIZED'].nil?
+
         config.lograge.base_controller_class = 'LogrageTestController'
         config.lograge.logger = logger
       # ensure no test leakage from other tests
