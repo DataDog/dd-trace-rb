@@ -96,7 +96,7 @@ RSpec.describe 'Rails Log Auto Injection' do
         allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
       end
 
-      context 'with lograge initialized' do
+      context 'with lograge enabled' do
         context 'with Lograge setup and no custom_options' do
           it 'should inject trace_id into logs' do
             is_expected.to be_ok
@@ -151,67 +151,16 @@ RSpec.describe 'Rails Log Auto Injection' do
         end
       end
 
-      context 'with lograge not yet initialized' do
+      context 'with lograge disabled' do
         before do
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE_NOT_INITIALIZED').and_return(true)
+          allow(ENV).to receive(:[]).with('LOGRAGE_DISABLED').and_return(true)
         end
 
-        context 'with Lograge setup and no custom_options' do
-          it 'should inject trace_id into logs' do
-            is_expected.to be_ok
+        it 'should not inject trace_id into logs' do
+          is_expected.to be_ok
 
-            expect(logs).to include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
-          end
-        end
-
-        # TODO: Right now our test setup doesn't allow us to test initializer ordering
-        # In practice this may get overridden by a user's custom_option setup.
-        # For now we'll need to note in our documentation that usage of additional custom_options
-        # Along with our auto instrumentation may not succeed, and suggest manual config instead.
-
-        # context 'with Lograge and existing custom_options as a hash' do
-        #   before do
-        #     allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-        #       'some_hash_info' => 'test_hash_value',
-        #       'some_other_hash_info' => 'other_test_hash_value'
-        #     )
-        #   end
-
-        #   it 'should inject trace_id into logs and preserve existing hash' do
-        #     is_expected.to be_ok
-
-        #     expect(logs).to include(spans[0].trace_id.to_s)
-        #     expect(logs).to include('MINASWAN')
-        #     expect(logs).to include('some_hash_info')
-        #     expect(logs).to include('some_other_hash_info')
-        #     expect(logs).to include('test_hash_value')
-        #     expect(logs).to include('other_test_hash_value')
-        #   end
-        # end
-
-        context 'with Lograge and existing custom_options as a lambda' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              lambda do |_event|
-                {
-                  'some_lambda_info' => 'test_lambda_value',
-                  'some_other_lambda_info' => 'other_test_lambda_value'
-                }
-              end
-            )
-          end
-
-          it 'should inject trace_id into logs and preserve existing lambda' do
-            is_expected.to be_ok
-
-            expect(logs).to include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
-            expect(logs).to include('some_lambda_info')
-            expect(logs).to include('some_other_lambda_info')
-            expect(logs).to include('test_lambda_value')
-            expect(logs).to include('other_test_lambda_value')
-          end
+          expect(logs).not_to include(spans[0].trace_id.to_s)
+          expect(logs).to include('MINASWAN')
         end
       end
     end
