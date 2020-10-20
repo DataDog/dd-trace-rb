@@ -539,6 +539,16 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge'
     end
 
+    appraise 'resque2-redis3' do
+      gem 'redis', '< 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
+    appraise 'resque2-redis4' do
+      gem 'redis', '>= 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -626,6 +636,16 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activejob'
       gem 'sprockets', '< 4'
       gem 'lograge'
+    end
+
+    appraise 'resque2-redis3' do
+      gem 'redis', '< 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
+    appraise 'resque2-redis4' do
+      gem 'redis', '>= 4.0'
+      gem 'resque', '>= 2.0'
     end
 
     appraise 'contrib' do
@@ -765,6 +785,16 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge'
     end
 
+    appraise 'resque2-redis3' do
+      gem 'redis', '< 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
+    appraise 'resque2-redis4' do
+      gem 'redis', '>= 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -891,6 +921,16 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activejob'
       gem 'sprockets', '< 4'
       gem 'lograge'
+    end
+
+    appraise 'resque2-redis3' do
+      gem 'redis', '< 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
+    appraise 'resque2-redis4' do
+      gem 'redis', '>= 4.0'
+      gem 'resque', '>= 2.0'
     end
 
     appraise 'contrib' do
