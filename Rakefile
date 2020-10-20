@@ -464,6 +464,10 @@ task :ci do
       declare 'bundle exec appraisal rails4-postgres rake spec:rails'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
+
+      # explicitly test resque-2x compatability
+      declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
+      declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
     end
   elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
@@ -525,6 +529,10 @@ task :ci do
       # Rails specs
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
+
+      # explicitly test resque-2x compatability
+      declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
+      declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
     end
   elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
@@ -594,6 +602,10 @@ task :ci do
     # declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable' # TODO: Hangs CI jobs... fix and re-enable.
     declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails6-postgres rake spec:rails'
+
+    # explicitly test resque-2x compatability
+    declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
+    declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
   elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
     # Main library
@@ -664,6 +676,10 @@ task :ci do
       # declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable' # TODO: Hangs CI jobs... fix and re-enable.
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
+
+      # explicitly test resque-2x compatability
+      declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
+      declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
     end
   elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
     # Main library
@@ -732,6 +748,10 @@ task :ci do
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
+
+      # explicitly test resque-2x compatability
+      declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
+      declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
     end
   end
 end
