@@ -539,6 +539,16 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge'
     end
 
+    appraise 'resque2-redis3' do
+      gem 'redis', '< 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
+    appraise 'resque2-redis4' do
+      gem 'redis', '>= 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -569,7 +579,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
       gem 'rest-client'
-      gem 'resque', '< 2.0'
+      gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'sequel'
       gem 'shoryuken'
@@ -628,6 +638,16 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge'
     end
 
+    appraise 'resque2-redis3' do
+      gem 'redis', '< 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
+    appraise 'resque2-redis4' do
+      gem 'redis', '>= 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -658,7 +678,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
       gem 'rest-client'
-      gem 'resque', '< 2.0'
+      gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'sequel'
       gem 'shoryuken'
@@ -765,6 +785,16 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge'
     end
 
+    appraise 'resque2-redis3' do
+      gem 'redis', '< 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
+    appraise 'resque2-redis4' do
+      gem 'redis', '>= 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -796,7 +826,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
       gem 'rest-client'
-      gem 'resque', '< 2.0'
+      gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'sequel'
       gem 'shoryuken'
@@ -893,6 +923,16 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge'
     end
 
+    appraise 'resque2-redis3' do
+      gem 'redis', '< 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
+    appraise 'resque2-redis4' do
+      gem 'redis', '>= 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -922,7 +962,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
       gem 'rest-client'
-      gem 'resque', '< 2.0'
+      gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'sequel'
       gem 'shoryuken'
@@ -1023,6 +1063,16 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'lograge'
     end
 
+    appraise 'resque2-redis3' do
+      gem 'redis', '< 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
+    appraise 'resque2-redis4' do
+      gem 'redis', '>= 4.0'
+      gem 'resque', '>= 2.0'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -1051,7 +1101,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
       gem 'rest-client'
-      gem 'resque', '< 2.0'
+      gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'sequel'
       gem 'shoryuken'
