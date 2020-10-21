@@ -14,7 +14,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.41.0...v0.42.0
 
 - Improve gRPC Propagator to support metadata array values (#1203) (@mdehoog)
 
-- Add CPU Benchmarks, Diagnostics to tests (#1188, #1198)
+- Add CPU benchmarks, diagnostics to tests (#1188, #1198)
 
 - Access active correlation by Thread (#1200)
 
