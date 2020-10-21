@@ -54,14 +54,25 @@ module Datadog
 
         def add_logger(app)
           # check if lograge key exists
-          if app.config.respond_to?(:lograge) && app.config.lograge.enabled
+          # Note: Rails executes initializers sequentially based on alphabetical order,
+          # and lograge config could occur after dd config.
+          # Checking for `app.config.lograge.enabled` may yield a false negative.
+          # Instead we should naively add custom options if `config.lograge` exists from the lograge Railtie,
+          # since the custom options get ignored without lograge explicitly being enabled.
+          # See: https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lib/lograge/railtie.rb#L7-L12
+          if app.config.respond_to?(:lograge)
             Datadog::Contrib::Rails::LogInjection.add_lograge_logger(app)
-          # if lograge isn't set, check if tagged logged is enabed.
+          end
+
+          # if lograge isn't set, check if tagged logged is enabled.
           # if so, add proc that injects trace identifiers for tagged logging.
-          elsif (logger = app.config.logger) && logger.is_a?(::ActiveSupport::TaggedLogging)
+          if (logger = app.config.logger) &&
+             defined?(::ActiveSupport::TaggedLogging) &&
+             logger.is_a?(::ActiveSupport::TaggedLogging)
+
             Datadog::Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
           else
-            Datadog.logger.warn("Unabe to enable Datadog Trace context, Logger #{logger} is not supported")
+            Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger} is not supported")
           end
         end
 

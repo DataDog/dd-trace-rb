@@ -53,9 +53,13 @@ RSpec.shared_context 'Rails base application' do
           config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS']
         end
 
-        config.lograge.enabled = true
-        config.lograge.base_controller_class = 'LogrageTestController'
-        config.lograge.logger = logger
+        if ENV['LOGRAGE_DISABLED'].nil?
+          config.lograge.enabled = true
+          config.lograge.base_controller_class = 'LogrageTestController'
+          config.lograge.logger = logger
+        else
+          config.lograge.enabled = false
+        end
       # ensure no test leakage from other tests
       elsif config.respond_to?(:lograge)
         config.lograge.enabled = false
