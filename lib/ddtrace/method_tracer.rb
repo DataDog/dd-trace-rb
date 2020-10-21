@@ -95,7 +95,7 @@ module Datadog
       end
 
       def prepend_container(klass)
-        klass.prepend Container
+        klass.send(:prepend, Container)
       end
 
       # Not so private, Container holds all dynamically created methods
