@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+## [0.42.0] - 2020-10-21
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.42.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.41.0...v0.42.0
+
+### Added
+
+- Increase Resque support to include 2.0  (#1213) (@erict-square)
+
+- Improve gRPC Propagator to support metadata array values (#1203) (@mdehoog)
+
+- Add CPU Benchmarks, Diagnostics to tests (#1188, #1198)
+
+- Access active correlation by Thread (#1200)
+
+- Improve delayed_job instrumentation (#1187) (@norbertnytko)
+
+### Changed
+
+### Fixed
+
+- Improve Rails `log_injection` option to support more Lograge formats (#1210) (@Supy)
+
+- Fix Changelog (#1199) (@y-yagi)
+
+### Refactored
+
+- Refactor Trace buffer into multiple components (#1195)
+
 ## [0.41.0] - 2020-09-30
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.41.0
