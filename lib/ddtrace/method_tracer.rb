@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 module Datadog
+  # \MethodTracer adds helpers for unobtrusive methods tracking.
+  #
+  # == Example
+  #
+  #   Datadog::MethodTracer.trace_methods(ExampleClass, :some_instance_method, :other_instance_method)
+  #   Datadog::MethodTracer.trace_singleton_methods(ExampleClass, :some_class_method, :other_class_method)
+  #
   module MethodTracer
-    # \MethodTracer adds helpers for unobtrusive methods tracking.
-    #
-    # == Example
-    #
-    #   Datadog::MethodTracer.trace_methods(ExampleClass, :some_instance_method, :other_instance_method)
-    #   Datadog::MethodTracer.trace_singleton_methods(ExampleClass, :some_class_method, :other_class_method)
-    #
     module_function
 
     def trace_methods(klass, *method_names)
@@ -23,20 +23,21 @@ module Datadog
       @_instrumentation ||= Instrumentation.new
     end
 
+    # \Mixin adds helpers for unobtrusive methods tracking.
+    #
+    # == Example
+    #
+    #   class Foo
+    #     include Datadog::MethodTracer
+    #     trace_methods(:some_instance_method, :other_instance_method)
+    #     trace_singleton_methods(:some_class_method, :other_class_method)
+    #
     module Mixin
-      # \Mixin adds helpers for unobtrusive methods tracking.
-      #
-      # == Example
-      #
-      #   class Foo
-      #     include Datadog::MethodTracer
-      #     trace_methods(:some_instance_method, :other_instance_method)
-      #     trace_singleton_methods(:some_class_method, :other_class_method)
-      #
       def self.included(base)
         base.extend(ClassMethods)
       end
 
+      # Added to extended class
       module ClassMethods
         def trace_methods(*method_names)
           MethodTracer.instrumentation.trace_methods self, *method_names
@@ -48,6 +49,7 @@ module Datadog
       end
     end
 
+    # \Instrumentation for method tracing.
     class Instrumentation
       OPERATION_NAME = 'method.call'.freeze
       private_constant :OPERATION_NAME
@@ -65,7 +67,7 @@ module Datadog
       private
 
       def instrument_method(klass, method)
-        Container.define_method(method) do |*args, &block|
+        Container.create_method(method) do |*args, &block|
           active_span = Datadog.tracer.active_span
           service = active_span ? active_span.service : Datadog.tracer.default_service
 
@@ -79,7 +81,7 @@ module Datadog
       end
 
       def instrument_singleton_method(klass, method)
-        Container::ClassMethods.define_method(method) do |*args, &block|
+        Container::ClassMethods.create_method(method) do |*args, &block|
           active_span = Datadog.tracer.active_span
           service = active_span ? active_span.service : Datadog.tracer.default_service
 
@@ -98,8 +100,18 @@ module Datadog
 
       # Not so private, Container holds all dynamically created methods
       module Container
-        module ClassMethods; end
         # This trick is required in order to work with singleton methods
+        module ClassMethods
+          # Unfortunately is private for ruby 2.4 and below
+          def self.create_method(name, &block)
+            define_method(name, &block)
+          end
+        end
+
+        def self.create_method(name, &block)
+          define_method(name, &block)
+        end
+
         def self.prepended(base)
           class << base
             prepend ClassMethods
