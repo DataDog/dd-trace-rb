@@ -10,6 +10,7 @@ module Datadog
       RUBY_ENGINE =  ::RUBY_ENGINE # e.g. 'ruby', 'jruby', 'truffleruby'
       TRACER_VERSION = Datadog::VERSION::STRING
 
+      TAG_ID = 'runtime-id'.freeze
       TAG_LANG = 'language'.freeze
 
       # Metrics

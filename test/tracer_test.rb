@@ -171,7 +171,7 @@ class TracerTest < Minitest::Test
                  tags: { 'tag1' => 'value1', 'tag2' => 'value2' }) do
     end
 
-    spans = tracer.writer.spans()
+    spans = tracer.writer.spans
     assert_equal(1, spans.length)
     span = spans[0]
     assert_equal('special-service', span.service)
@@ -179,7 +179,7 @@ class TracerTest < Minitest::Test
     assert_equal('my-type', span.span_type)
     # 2 tags from tracer, 2 for span, metrics for PID, and sampling priority,
     # then optionally 1 from runtime metrics if enabled.
-    expected_length = 7 # 4 tags, 3 metrics
+    expected_length = 8 # 5 tags, 3 metrics
     expected_length += 1 if Datadog.configuration.runtime_metrics_enabled
 
     assert_equal(expected_length, span.meta.length + span.metrics.length)
