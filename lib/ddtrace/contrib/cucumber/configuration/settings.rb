@@ -22,9 +22,9 @@ module Datadog
             o.lazy
           end
 
-          # TODO shall we enable the distributed tracing globally?
+          # TODO: shall we enable the distributed tracing globally?
           # option :distributed_tracing, default: true
-          # TODO should it be the current package name?
+          # TODO: should it be the current package name?
           # option :service_name, default: Ext::SERVICE_NAME
         end
       end

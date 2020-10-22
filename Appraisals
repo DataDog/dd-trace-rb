@@ -1080,6 +1080,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'activerecord'
       gem 'aws-sdk'
       gem 'concurrent-ruby'
+      gem 'cucumber'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'

@@ -1,10 +1,8 @@
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/cucumber/events'
-require 'ddtrace/contrib/cucumber/ext'
 
 module Datadog
   module Contrib
@@ -36,10 +34,6 @@ module Datadog
               Datadog::Contrib::Cucumber::Events.new(args[0])
 
               initialize_without_datadog(*args, &block)
-            end
-
-            def datadog_configuration
-              Datadog.configuration[:cucumber]
             end
           end
         end

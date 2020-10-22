@@ -1,9 +1,11 @@
+require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/cucumber/ext'
+
 module Datadog
   module Contrib
     module Cucumber
       # Defines collection of instrumented Cucumber events
       class Events
-
         attr_reader :config, :pin
         private :config, :pin
 
@@ -30,24 +32,24 @@ module Datadog
         end
 
         def on_test_case_started(event)
-          @current_feature_span = @pin.tracer.trace(Datadog::Ext::AppTypes.TEST, { 'resource': event.test_case.name, 'span_type': 'test' })
+          trace_options = { resource: event.test_case.name, span_type: Datadog::Contrib::Cucumber::Ext::STEP_SPAN_TYPE }
+          @current_feature_span = @pin.tracer.trace(Datadog::Ext::AppTypes.TEST, trace_options)
         end
 
         def on_test_case_finished(event)
           return if @current_feature_span.nil?
-          if event.result.failed?
-            @current_feature_span.status = 1
-          end
+          @current_feature_span.status = 1 if event.result.failed?
           @current_feature_span.finish
         end
 
         def on_test_step_started(event)
-          @current_step_span = @pin.tracer.trace('step', { 'resource': event.test_step.to_s, 'span_type': 'step' })
+          trace_options = { resource: event.test_step.to_s, span_type: 'step' }
+          @current_step_span = @pin.tracer.trace('step', trace_options)
         end
 
         def on_test_step_finished(event)
           return if @current_step_span.nil?
-          current_span = pin.tracer.active_span
+          @current_span = pin.tracer.active_span
           unless step.result.passed?
             @current_step_span.set_error event.result.exception
           end
