@@ -33,17 +33,7 @@ module Datadog
             end
 
             def initialize(*args, &block)
-              service = Datadog.configuration[:cucumber][:service_name]
-
-              pin = Datadog::Pin.new(
-                service,
-                app: Datadog::Contrib::Cucumber::Ext::APP,
-                app_type: Datadog::Ext::AppTypes::TEST,
-                tracer: -> { Datadog.configuration[:cucumber][:tracer] }
-              )
-              pin.onto(self)
-
-              Datadog::Contrib::Cucumber::Events.new(args[0], pin)
+              Datadog::Contrib::Cucumber::Events.new(args[0])
 
               initialize_without_datadog(*args, &block)
             end

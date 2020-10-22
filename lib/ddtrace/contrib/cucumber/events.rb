@@ -10,9 +10,14 @@ module Datadog
         attr_reader :current_feature_span, :current_step_span
         private :current_feature_span, :current_step_span
 
-        def initialize(config, pin)
+        def initialize(config)
           @config = config
-          @pin = pin
+          @pin = Datadog::Pin.new(
+            Datadog.configuration[:cucumber][:service_name],
+            app: Datadog::Contrib::Cucumber::Ext::APP,
+            app_type: Datadog::Ext::AppTypes::TEST,
+            tracer: -> { Datadog.configuration[:cucumber][:tracer] }
+          )
 
           bind_events(config)
         end
