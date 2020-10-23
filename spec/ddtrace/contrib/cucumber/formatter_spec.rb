@@ -26,7 +26,7 @@ RSpec.describe 'Cucumber formatter' do
   end
 
   # Cucumber runtime setup
-  let(:existing_runtime) { ::Cucumber::Runtime.new(runtime_options) }
+  let(:existing_runtime) { Cucumber::Runtime.new(runtime_options) }
   let(:runtime_options)  { {} }
 
   # CLI configuration
@@ -35,7 +35,7 @@ RSpec.describe 'Cucumber formatter' do
   let(:stdout) { StringIO.new }
   let(:stderr) { StringIO.new }
   let(:kernel) { double(:kernel) }
-  let(:cli)    { ::Cucumber::Cli::Main.new(args, stdin, stdout, stderr, kernel) }
+  let(:cli)    { Cucumber::Cli::Main.new(args, stdin, stdout, stderr, kernel) }
 
   context 'executing a test suite' do
     let(:args) { ['spec/ddtrace/contrib/cucumber/cucumber.features'] }
