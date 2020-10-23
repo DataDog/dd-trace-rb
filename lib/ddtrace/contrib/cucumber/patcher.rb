@@ -17,7 +17,6 @@ module Datadog
         end
 
         def patch
-          require 'cucumber'
           require 'ddtrace/pin'
 
           Datadog::Pin.new(
@@ -43,6 +42,7 @@ module Datadog
 
             def initialize(*args, &block)
               args[0] = ::Cucumber::Configuration.default if args[0].nil?
+              args[0] = ::Cucumber::Configuration.new args[0]
               @datadog_events = Datadog::Contrib::Cucumber::Events.new(args[0])
 
               initialize_without_datadog(*args, &block)
