@@ -6,20 +6,14 @@ module Datadog
     module Cucumber
       # Defines collection of instrumented Cucumber events
       class Events
-        attr_reader :config, :pin
-        private :config, :pin
+        attr_reader :config
+        private :config
 
         attr_reader :current_feature_span, :current_step_span
         private :current_feature_span, :current_step_span
 
         def initialize(config)
           @config = config
-          @pin = Datadog::Pin.new(
-            Datadog.configuration[:cucumber][:service_name],
-            app: Datadog::Contrib::Cucumber::Ext::APP,
-            app_type: Datadog::Ext::AppTypes::TEST,
-            tracer: -> { Datadog.configuration[:cucumber][:tracer] }
-          )
 
           bind_events(config)
         end
@@ -32,8 +26,9 @@ module Datadog
         end
 
         def on_test_case_started(event)
+          pin = Datadog::Pin.get_from(::Cucumber)
           trace_options = { resource: event.test_case.name, span_type: Datadog::Contrib::Cucumber::Ext::STEP_SPAN_TYPE }
-          @current_feature_span = @pin.tracer.trace(Datadog::Ext::AppTypes.TEST, trace_options)
+          @current_feature_span = pin.tracer.trace(Datadog::Ext::AppTypes.TEST, trace_options)
         end
 
         def on_test_case_finished(event)
@@ -43,8 +38,9 @@ module Datadog
         end
 
         def on_test_step_started(event)
+          pin = Datadog::Pin.get_from(::Cucumber)
           trace_options = { resource: event.test_step.to_s, span_type: 'step' }
-          @current_step_span = @pin.tracer.trace('step', trace_options)
+          @current_step_span = pin.tracer.trace('step', trace_options)
         end
 
         def on_test_step_finished(event)
