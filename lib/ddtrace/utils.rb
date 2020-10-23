@@ -1,8 +1,11 @@
 require 'ddtrace/utils/database'
+require 'ddtrace/utils/forking'
 
 module Datadog
   # Utils contains low-level utilities, typically to provide pseudo-random trace IDs.
   module Utils
+    extend Utils::Forking
+
     EMPTY_STRING = ''.encode(::Encoding::UTF_8).freeze
     # We use a custom random number generator because we want no interference
     # with the default one. Using the default prng, we could break code that
@@ -10,23 +13,19 @@ module Datadog
 
     # Return a span id
     def self.next_id
-      reset! if was_forked?
+      after_fork! { reset! }
+      id_rng.rand(Datadog::Span::RUBY_MAX_ID)
+    end
 
-      @rnd.rand(Datadog::Span::RUBY_MAX_ID)
+    def self.id_rng
+      @id_rng ||= Random.new
     end
 
     def self.reset!
-      @pid = Process.pid
-      @rnd = Random.new
+      @id_rng = Random.new
     end
 
-    def self.was_forked?
-      Process.pid != @pid
-    end
-
-    private_class_method :reset!, :was_forked?
-
-    reset!
+    private_class_method :id_rng, :reset!
 
     def self.truncate(value, size, omission = '...'.freeze)
       string = value.to_s
