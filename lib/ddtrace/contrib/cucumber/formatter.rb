@@ -5,7 +5,7 @@ module Datadog
   module Contrib
     module Cucumber
       # Defines collection of instrumented Cucumber events
-      class Events
+      class Formatter
         attr_reader :config
         private :config
 
@@ -27,8 +27,8 @@ module Datadog
 
         def on_test_case_started(event)
           pin = Datadog::Pin.get_from(::Cucumber)
-          trace_options = { resource: event.test_case.name, span_type: Datadog::Ext::AppTypes.TEST }
-          @current_feature_span = pin.tracer.trace(Datadog::Ext::AppTypes.TEST, trace_options)
+          trace_options = { resource: event.test_case.name, span_type: Datadog::Ext::AppTypes::TEST }
+          @current_feature_span = pin.tracer.trace(Datadog::Ext::AppTypes::TEST, trace_options)
         end
 
         def on_test_case_finished(event)
@@ -45,8 +45,7 @@ module Datadog
 
         def on_test_step_finished(event)
           return if @current_step_span.nil?
-          @current_span = pin.tracer.active_span
-          unless step.result.passed?
+          unless event.result.passed?
             @current_step_span.set_error event.result.exception
           end
           @current_step_span.finish

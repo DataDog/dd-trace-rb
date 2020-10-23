@@ -14,11 +14,12 @@ RSpec.describe Datadog::Contrib::Cucumber::Patcher do
     context 'is patched' do
       let(:handlers) { runtime.configuration.event_bus.instance_variable_get(:'@handlers') }
 
-      it do
-        expect(handlers).to include(&runtime.datadog_events.method(:on_test_case_started))
-        expect(handlers).to include(&runtime.datadog_events.method(:on_test_case_finished))
-        expect(handlers).to include(&runtime.datadog_events.method(:on_test_step_started))
-        expect(handlers).to include(&runtime.datadog_events.method(:on_test_step_finished))
+      it 'has a custom formatter in formatters' do
+        expect(runtime.formatters).to include(runtime.datadog_formatter)
+        expect(handlers).to include(&runtime.datadog_formatter.method(:on_test_case_started))
+        expect(handlers).to include(&runtime.datadog_formatter.method(:on_test_case_finished))
+        expect(handlers).to include(&runtime.datadog_formatter.method(:on_test_step_started))
+        expect(handlers).to include(&runtime.datadog_formatter.method(:on_test_step_finished))
       end
     end
   end

@@ -30,22 +30,19 @@ module Datadog
         end
 
         def patch_cucumber_runtime
-          require 'ddtrace/contrib/cucumber/events'
+          require 'ddtrace/contrib/cucumber/formatter'
 
           ::Cucumber::Runtime.class_eval do
-            attr_reader :datadog_events
+            attr_reader :datadog_formatter
 
-            alias_method :initialize_without_datadog, :initialize
+            alias_method :formatters_without_datadog, :formatters
             Datadog::Patcher.without_warnings do
-              remove_method :initialize
+              remove_method :formatters
             end
 
-            def initialize(*args, &block)
-              args[0] = ::Cucumber::Configuration.default if args[0].nil?
-              args[0] = ::Cucumber::Configuration.new args[0]
-              @datadog_events = Datadog::Contrib::Cucumber::Events.new(args[0])
-
-              initialize_without_datadog(*args, &block)
+            def formatters
+              @datadog_formatter ||= Datadog::Contrib::Cucumber::Formatter.new(@configuration)
+              [@datadog_formatter] + formatters_without_datadog
             end
           end
         end
