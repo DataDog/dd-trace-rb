@@ -4,6 +4,7 @@ module Datadog
       # Cucumber integration constants
       module Ext
         APP = 'cucumber'.freeze
+        SERVICE_NAME = 'delayed_job'.freeze
         STEP_SPAN_TYPE = 'step'.freeze
         ENV_ENABLED = 'DD_TRACE_CUCUMBER_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_CUCUMBER_ANALYTICS_ENABLED'.freeze

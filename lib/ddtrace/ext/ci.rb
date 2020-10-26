@@ -54,7 +54,7 @@ module Datadog
       def self.extract_azure_pipelines(env)
         if env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI'] && env['SYSTEM_TEAMPROJECT'] && env['BUILD_BUILDID']
           pipeline_url = "#{env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI']}#{env['SYSTEM_TEAMPROJECT']}" \
-            "/_build/results?buildId=#{env['BUILD_BUILDID']}&_a: summary"
+            "/_build/results?buildId=#{env['BUILD_BUILDID']}&_a=summary"
         end
         {
           PROVIDER_NAME => 'azurepipelines',
@@ -157,7 +157,7 @@ module Datadog
           PIPELINE_ID => env['BUILD_ID'],
           PIPELINE_NUMBER => env['BUILD_NUMBER'],
           PIPELINE_URL => (
-            env['SERVER_URL'] && env['BUILD_ID'] ? "#{env['SERVER_URL']}/viewLog.html?buildId: #{env['SERVER_URL']}" : nil
+            env['SERVER_URL'] && env['BUILD_ID'] ? "#{env['SERVER_URL']}/viewLog.html?buildId=#{env['SERVER_URL']}" : nil
           )
         }
       end
