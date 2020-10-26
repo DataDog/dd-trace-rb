@@ -2,6 +2,8 @@ require 'ddtrace/ext/git'
 
 module Datadog
   module Ext
+    # Defines constants for CI tags
+    # rubocop:disable Metrics/ModuleLength:
     module CI
       JOB_URL = 'ci.job.url'.freeze
       PIPELINE_ID = 'ci.pipeline.id'.freeze
@@ -43,13 +45,17 @@ module Datadog
           WORKSPACE_PATH => env['APPVEYOR_BUILD_FOLDER'],
           PIPELINE_ID => env['APPVEYOR_BUILD_ID'],
           PIPELINE_NUMBER => env['APPVEYOR_BUILD_NUMBER'],
-          PIPELINE_URL => "https://ci.appveyor.com/project/#{env['APPVEYOR_PROJECT_SLUG']}/builds/#{env['APPVEYOR_BUILD_ID']}",
+          PIPELINE_URL => "https://ci.appveyor.com/project/#{env['APPVEYOR_PROJECT_SLUG']}" \
+            "/builds/#{env['APPVEYOR_BUILD_ID']}",
           Git::BRANCH => (env['APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH'] || env['APPVEYOR_REPO_BRANCH'])
         }
       end
 
       def self.extract_azure_pipelines(env)
-        pipeline_url = "#{env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI']}#{env['SYSTEM_TEAMPROJECT']}/_build/results?buildId: #{env['BUILD_BUILDID']}&_a: summary" if env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI'] && env['SYSTEM_TEAMPROJECT'] && env['BUILD_BUILDID']
+        if env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI'] && env['SYSTEM_TEAMPROJECT'] && env['BUILD_BUILDID']
+          pipeline_url = "#{env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI']}#{env['SYSTEM_TEAMPROJECT']}" \
+            "/_build/results?buildId=#{env['BUILD_BUILDID']}&_a: summary"
+        end
         {
           PROVIDER_NAME => 'azurepipelines',
           WORKSPACE_PATH => env['BUILD_SOURCESDIRECTORY'],
@@ -150,7 +156,9 @@ module Datadog
           WORKSPACE_PATH => env['BUILD_CHECKOUTDIR'],
           PIPELINE_ID => env['BUILD_ID'],
           PIPELINE_NUMBER => env['BUILD_NUMBER'],
-          PIPELINE_URL => env['SERVER_URL'] && env['BUILD_ID'] ? "#{env['SERVER_URL']}/viewLog.html?buildId: #{env['SERVER_URL']}" : nil
+          PIPELINE_URL => (
+            env['SERVER_URL'] && env['BUILD_ID'] ? "#{env['SERVER_URL']}/viewLog.html?buildId: #{env['SERVER_URL']}" : nil
+          )
         }
       end
 

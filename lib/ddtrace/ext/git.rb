@@ -1,5 +1,6 @@
 module Datadog
   module Ext
+    # Defines constants for Git tags
     module Git
       BRANCH = 'git.branch'.freeze
       COMMIT_SHA = 'git.commit.sha'.freeze
