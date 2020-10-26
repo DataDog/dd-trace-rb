@@ -24,7 +24,7 @@ module Datadog
             Datadog.configuration[:cucumber][:service_name],
             app: Datadog::Contrib::Cucumber::Ext::APP,
             app_type: Datadog::Ext::AppTypes::TEST,
-            tags: Datadog::Ext::CI.tags(ENV),
+            tags: Datadog::Ext::CI.tags(ENV).merge(Datadog.configuration.tags),
             tracer: -> { Datadog.configuration[:cucumber][:tracer] }
           ).onto(::Cucumber)
 

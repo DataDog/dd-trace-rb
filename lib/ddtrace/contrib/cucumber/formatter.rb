@@ -28,7 +28,7 @@ module Datadog
         def on_test_case_started(event)
           pin = Datadog::Pin.get_from(::Cucumber)
           trace_options = {
-            service: configuration.service,
+            service: pin.service_name,
             resource: event.test_case.name,
             span_type: Datadog::Ext::AppTypes::TEST,
             tags: pin.tags
@@ -57,10 +57,6 @@ module Datadog
             @current_step_span.set_error event.result.exception
           end
           @current_step_span.finish
-        end
-
-        def configuration
-          Datadog.configuration[:cucumber]
         end
       end
     end
