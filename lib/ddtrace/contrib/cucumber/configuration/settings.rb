@@ -22,9 +22,6 @@ module Datadog
             o.lazy
           end
 
-          # TODO: shall we enable the distributed tracing globally?
-          # option :distributed_tracing, default: true
-
           option :service_name do |o|
             o.default { Datadog.configuration.service || Ext::SERVICE_NAME }
             o.lazy

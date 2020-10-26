@@ -26,7 +26,9 @@ module Datadog
         ['TRAVIS'.freeze, :extract_travis]
       ].freeze
 
-      def self.tags(env)
+      module_function
+
+      def tags(env)
         provider = PROVIDERS.find { |c| env.key? c[0] }
         return {} if provider.nil?
         tags = send(provider[1], env).reject { |_, v| v.nil? }
@@ -37,7 +39,7 @@ module Datadog
 
       # CI providers
 
-      def self.extract_appveyor(env)
+      def extract_appveyor(env)
         {
           PROVIDER_NAME => 'appveyor',
           Git::REPOSITORY_URL => env['APPVEYOR_REPO_NAME'],
@@ -51,7 +53,7 @@ module Datadog
         }
       end
 
-      def self.extract_azure_pipelines(env)
+      def extract_azure_pipelines(env)
         if env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI'] && env['SYSTEM_TEAMPROJECT'] && env['BUILD_BUILDID']
           pipeline_url = "#{env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI']}#{env['SYSTEM_TEAMPROJECT']}" \
             "/_build/results?buildId=#{env['BUILD_BUILDID']}&_a=summary"
@@ -71,7 +73,7 @@ module Datadog
         }
       end
 
-      def self.extract_bitbucket(env)
+      def extract_bitbucket(env)
         {
           PROVIDER_NAME => 'bitbucketpipelines',
           Git::REPOSITORY_URL => env['BITBUCKET_GIT_SSH_ORIGIN'],
@@ -82,7 +84,7 @@ module Datadog
         }
       end
 
-      def self.extract_buildkite(env)
+      def extract_buildkite(env)
         {
           PROVIDER_NAME => 'buildkite',
           Git::REPOSITORY_URL => env['BUILDKITE_REPO'],
@@ -95,7 +97,7 @@ module Datadog
         }
       end
 
-      def self.extract_circle_ci(env)
+      def extract_circle_ci(env)
         {
           PROVIDER_NAME => 'circleci',
           Git::REPOSITORY_URL => env['CIRCLE_REPOSITORY_URL'],
@@ -107,7 +109,7 @@ module Datadog
         }
       end
 
-      def self.extract_github_actions(env)
+      def extract_github_actions(env)
         {
           PROVIDER_NAME => 'github',
           Git::REPOSITORY_URL => env['GITHUB_REPOSITORY'],
@@ -120,7 +122,7 @@ module Datadog
         }
       end
 
-      def self.extract_gitlab(env)
+      def extract_gitlab(env)
         {
           PROVIDER_NAME => 'gitlab',
           Git::REPOSITORY_URL => env['CI_REPOSITORY_URL'],
@@ -134,7 +136,7 @@ module Datadog
         }
       end
 
-      def self.extract_jenkins(env)
+      def extract_jenkins(env)
         {
           PROVIDER_NAME => 'jenkins',
           Git::REPOSITORY_URL => env['GIT_URL'],
@@ -148,7 +150,7 @@ module Datadog
         }
       end
 
-      def self.extract_teamcity(env)
+      def extract_teamcity(env)
         {
           PROVIDER_NAME => 'teamcity',
           Git::REPOSITORY_URL => env['BUILD_VCS_URL'],
@@ -162,7 +164,7 @@ module Datadog
         }
       end
 
-      def self.extract_travis(env)
+      def extract_travis(env)
         {
           PROVIDER_NAME => 'travis',
           Git::REPOSITORY_URL => env['TRAVIS_REPO_SLUG'],

@@ -1,4 +1,5 @@
 require 'ddtrace/ext/app_types'
+require 'ddtrace/ext/test'
 require 'ddtrace/contrib/cucumber/ext'
 
 module Datadog
@@ -34,11 +35,16 @@ module Datadog
             tags: pin.tags
           }
           @current_feature_span = pin.tracer.trace(Datadog::Ext::AppTypes::TEST, trace_options)
+          @current_feature_span.set_tag(Datadog::Ext::Test::FRAMEWORK, Datadog::Contrib::Cucumber::Ext::FRAMEWORK)
+          @current_feature_span.set_tag(Datadog::Ext::Test::NAME, event.test_case.name)
+          @current_feature_span.set_tag(Datadog::Ext::Test::SUITE, event.test_case.location.file)
+          @current_feature_span.set_tag(Datadog::Ext::Test::TYPE, Datadog::Contrib::Cucumber::Ext::TEST_TYPE)
         end
 
         def on_test_case_finished(event)
           return if @current_feature_span.nil?
           @current_feature_span.status = 1 if event.result.failed?
+          @current_feature_span.set_tag(Datadog::Ext::Test::STATUS, status_from_result(event.result))
           @current_feature_span.finish
         end
 
@@ -56,7 +62,19 @@ module Datadog
           unless event.result.passed?
             @current_step_span.set_error event.result.exception
           end
+          @current_step_span.set_tag(Datadog::Ext::Test::STATUS, status_from_result(event.result))
           @current_step_span.finish
+        end
+
+        private
+
+        def status_from_result(result)
+          if result.skipped?
+            return Datadog::Ext::Test::Status::SKIP
+          elsif result.ok?
+            return Datadog::Ext::Test::Status::PASS
+          end
+          Datadog::Ext::Test::Status::FAIL
         end
       end
     end
