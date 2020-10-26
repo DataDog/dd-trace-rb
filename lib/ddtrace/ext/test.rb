@@ -11,6 +11,9 @@ module Datadog
       TRAITS = 'test.traits'.freeze
       TYPE = 'test.type'.freeze
 
+      # TODO: is there a better place for SPAN_KIND?
+      SPAN_KIND = 'span.kind'.freeze
+
       module Status
         PASS = 'pass'.freeze
         FAIL = 'fail'.freeze

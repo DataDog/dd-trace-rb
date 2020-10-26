@@ -39,6 +39,7 @@ module Datadog
           @current_feature_span.set_tag(Datadog::Ext::Test::NAME, event.test_case.name)
           @current_feature_span.set_tag(Datadog::Ext::Test::SUITE, event.test_case.location.file)
           @current_feature_span.set_tag(Datadog::Ext::Test::TYPE, Datadog::Contrib::Cucumber::Ext::TEST_TYPE)
+          @current_feature_span.set_tag(Datadog::Ext::Test::SPAN_KIND, Datadog::Ext::AppTypes::TEST)
         end
 
         def on_test_case_finished(event)
