@@ -20,7 +20,7 @@ RSpec.describe 'Cucumber formatter' do
     subject(:pin) { Datadog::Pin.get_from(Cucumber) }
 
     it 'has the correct attributes' do
-      # expect(pin.service).to eq(service_name)
+      expect(pin.service).to eq(Datadog::Contrib::Cucumber::Ext::SERVICE_NAME)
       expect(pin.app_type).to eq(Datadog::Ext::AppTypes::TEST)
     end
   end

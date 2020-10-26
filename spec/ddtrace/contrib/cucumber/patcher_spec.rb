@@ -1,6 +1,8 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/cucumber/patcher'
 
+require 'cucumber/runtime'
+
 RSpec.describe Datadog::Contrib::Cucumber::Patcher do
   describe '.patch' do
     subject!(:patch) { described_class.patch }
