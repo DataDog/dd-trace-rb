@@ -27,7 +27,7 @@ module Datadog
 
         def on_test_case_started(event)
           pin = Datadog::Pin.get_from(::Cucumber)
-          trace_options = { resource: event.test_case.name, span_type: Datadog::Ext::AppTypes::TEST }
+          trace_options = { resource: event.test_case.name, span_type: Datadog::Ext::AppTypes::TEST, tags: pin.tags }
           @current_feature_span = pin.tracer.trace(Datadog::Ext::AppTypes::TEST, trace_options)
         end
 

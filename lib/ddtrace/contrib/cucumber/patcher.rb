@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/integration'
+require 'ddtrace/ext/ci'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
 
@@ -23,6 +24,7 @@ module Datadog
             Datadog.configuration[:cucumber][:service_name],
             app: Datadog::Contrib::Cucumber::Ext::APP,
             app_type: Datadog::Ext::AppTypes::TEST,
+            tags: Datadog::Ext::CI.tags(ENV),
             tracer: -> { Datadog.configuration[:cucumber][:tracer] }
           ).onto(::Cucumber)
 
