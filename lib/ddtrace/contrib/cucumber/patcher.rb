@@ -1,8 +1,5 @@
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/integration'
-require 'ddtrace/ext/ci'
-require 'ddtrace/ext/net'
-require 'ddtrace/contrib/analytics'
+require 'ddtrace/contrib/cucumber/instrumentation'
 
 module Datadog
   module Contrib
@@ -13,38 +10,32 @@ module Datadog
 
         module_function
 
+        def patched?
+          done?(:cucumber)
+        end
+
         def target_version
           Integration.version
         end
 
+        # patch applies our patch
         def patch
-          require 'ddtrace/pin'
+          do_once(:cucumber) do
+            require 'ddtrace/ext/ci'
+            require 'ddtrace/ext/integration'
 
-          Datadog::Pin.new(
-            Datadog.configuration[:cucumber][:service_name],
-            app: Datadog::Contrib::Cucumber::Ext::APP,
-            app_type: Datadog::Ext::AppTypes::TEST,
-            tags: Datadog::Ext::CI.tags(ENV).merge(Datadog.configuration.tags),
-            tracer: -> { Datadog.configuration[:cucumber][:tracer] }
-          ).onto(::Cucumber)
+            begin
+              Datadog::Pin.new(
+                Datadog.configuration[:cucumber][:service_name],
+                app: Datadog::Contrib::Cucumber::Ext::APP,
+                app_type: Datadog::Ext::AppTypes::TEST,
+                tags: Datadog::Ext::CI.tags(ENV).merge(Datadog.configuration.tags),
+                tracer: -> { Datadog.configuration[:cucumber][:tracer] }
+              ).onto(::Cucumber)
 
-          patch_cucumber_runtime
-        end
-
-        def patch_cucumber_runtime
-          require 'ddtrace/contrib/cucumber/formatter'
-
-          ::Cucumber::Runtime.class_eval do
-            attr_reader :datadog_formatter
-
-            alias_method :formatters_without_datadog, :formatters
-            Datadog::Patcher.without_warnings do
-              remove_method :formatters
-            end
-
-            def formatters
-              @datadog_formatter ||= Datadog::Contrib::Cucumber::Formatter.new(@configuration)
-              [@datadog_formatter] + formatters_without_datadog
+              ::Cucumber::Runtime.send(:include, Instrumentation)
+            rescue StandardError => e
+              Datadog::Logger.error("Unable to apply cucumber integration: #{e}")
             end
           end
         end

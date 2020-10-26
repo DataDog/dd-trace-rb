@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/cucumber/configuration/settings'
 require 'ddtrace/contrib/cucumber/patcher'
+require 'ddtrace/contrib/integration'
 
 module Datadog
   module Contrib
@@ -19,7 +20,7 @@ module Datadog
         end
 
         def self.loaded?
-          !defined?(::Cucumber::Runtime).nil?
+          !defined?(::Cucumber).nil? && !defined?(::Cucumber::Runtime).nil?
         end
 
         def self.compatible?
