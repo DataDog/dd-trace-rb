@@ -24,8 +24,6 @@ module Datadog
 
           # TODO: shall we enable the distributed tracing globally?
           # option :distributed_tracing, default: true
-
-          option :service_name, default: Ext::SERVICE_NAME
         end
       end
     end
