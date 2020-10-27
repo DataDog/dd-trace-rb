@@ -290,7 +290,7 @@ module Datadog
         rescue Exception => e
           valid_error = (options[:on_error] || DEFAULT_ON_ERROR) ## (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
 
-          if valid_error.ancestors.include?(Exception) && valid_error.methods.include?(:call)
+          if valid_error.methods.include?(:call)
             valid_error.call(span, e)
           end
           
