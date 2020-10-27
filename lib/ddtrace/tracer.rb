@@ -288,7 +288,12 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
+          valid_error = (options[:on_error] || DEFAULT_ON_ERROR) ## (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
+
+          if valid_error.ancestors.include?(Exception) && valid_error.methods.include?(:call)
+            valid_error.call(span, e)
+          end
+          
           raise e
         ensure
           span.finish unless span.nil?
