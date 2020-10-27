@@ -64,7 +64,7 @@ module Datadog
             resource: event.test_step.to_s,
             span_type: Ext::STEP_SPAN_TYPE
           }
-          @current_step_span = tracer.trace('step', trace_options)
+          @current_step_span = tracer.trace(Ext::STEP_SPAN_TYPE, trace_options)
         end
 
         def on_test_step_finished(event)
