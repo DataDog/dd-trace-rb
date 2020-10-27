@@ -1,5 +1,6 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/test'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/cucumber/ext'
 
 module Datadog
@@ -35,11 +36,19 @@ module Datadog
             tags: pin.tags
           }
           @current_feature_span = pin.tracer.trace(Datadog::Ext::AppTypes::TEST, trace_options)
-          @current_feature_span.set_tag(Datadog::Ext::Test::FRAMEWORK, Datadog::Contrib::Cucumber::Ext::FRAMEWORK)
+          @current_feature_span.set_tag(Datadog::Ext::Test::FRAMEWORK, Ext::FRAMEWORK)
           @current_feature_span.set_tag(Datadog::Ext::Test::NAME, event.test_case.name)
           @current_feature_span.set_tag(Datadog::Ext::Test::SUITE, event.test_case.location.file)
-          @current_feature_span.set_tag(Datadog::Ext::Test::TYPE, Datadog::Contrib::Cucumber::Ext::TEST_TYPE)
+          @current_feature_span.set_tag(Datadog::Ext::Test::TYPE, Ext::TEST_TYPE)
           @current_feature_span.set_tag(Datadog::Ext::Test::SPAN_KIND, Datadog::Ext::AppTypes::TEST)
+
+          # Set analytics sample rate
+          if Datadog::Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+            Datadog::Contrib::Analytics.set_sample_rate(@current_feature_span, configuration[:analytics_sample_rate])
+          end
+
+          # Measure service stats
+          Contrib::Analytics.set_measured(@current_feature_span)
         end
 
         def on_test_case_finished(event)
@@ -53,7 +62,7 @@ module Datadog
           pin = Datadog::Pin.get_from(::Cucumber)
           trace_options = {
             resource: event.test_step.to_s,
-            span_type: Datadog::Contrib::Cucumber::Ext::STEP_SPAN_TYPE
+            span_type: Ext::STEP_SPAN_TYPE
           }
           @current_step_span = pin.tracer.trace('step', trace_options)
         end
@@ -76,6 +85,10 @@ module Datadog
             return Datadog::Ext::Test::Status::PASS
           end
           Datadog::Ext::Test::Status::FAIL
+        end
+
+        def configuration
+          Datadog.configuration[:cucumber]
         end
       end
     end

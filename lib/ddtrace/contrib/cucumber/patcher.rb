@@ -10,34 +10,23 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:cucumber)
-        end
-
         def target_version
           Integration.version
         end
 
-        # patch applies our patch
         def patch
-          do_once(:cucumber) do
-            require 'ddtrace/ext/ci'
-            require 'ddtrace/ext/integration'
+          require 'ddtrace/ext/ci'
+          require 'ddtrace/ext/integration'
 
-            begin
-              Datadog::Pin.new(
-                Datadog.configuration[:cucumber][:service_name],
-                app: Datadog::Contrib::Cucumber::Ext::APP,
-                app_type: Datadog::Ext::AppTypes::TEST,
-                tags: Datadog::Ext::CI.tags(ENV).merge(Datadog.configuration.tags),
-                tracer: -> { Datadog.configuration[:cucumber][:tracer] }
-              ).onto(::Cucumber)
+          Datadog::Pin.new(
+            Datadog.configuration[:cucumber][:service_name],
+            app: Ext::APP,
+            app_type: Datadog::Ext::AppTypes::TEST,
+            tags: Datadog::Ext::CI.tags(ENV).merge(Datadog.configuration.tags),
+            tracer: -> { Datadog.configuration[:cucumber][:tracer] }
+          ).onto(::Cucumber)
 
-              ::Cucumber::Runtime.send(:include, Instrumentation)
-            rescue StandardError => e
-              Datadog::Logger.error("Unable to apply cucumber integration: #{e}")
-            end
-          end
+          ::Cucumber::Runtime.send(:include, Instrumentation)
         end
       end
     end
