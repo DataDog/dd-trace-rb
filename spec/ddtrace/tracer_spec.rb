@@ -217,6 +217,16 @@ RSpec.describe Datadog::Tracer do
               expect(spans[0]).to_not have_error
             end
           end
+
+          context 'is a block that is not a Proc' do
+            let(:not_a_proc_block) { "not a proc" }
+            it 'should fallback to default error handler and log a debug message' do
+              expect_any_instance_of(Datadog::Logger).to receive(:debug).at_least(:once)
+              expect do
+                tracer.trace(name, on_error: not_a_proc_block, &block)
+              end.to raise_error(error)
+            end
+          end
         end
       end
     end
