@@ -10,6 +10,7 @@ module Datadog
       # Class methods for integrations
       module ClassMethods
         def version
+          pp MINIMUM_VERSION
           nil
         end
 
