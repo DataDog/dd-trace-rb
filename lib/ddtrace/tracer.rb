@@ -289,12 +289,13 @@ module Datadog
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
           valid_error = options[:on_error] || DEFAULT_ON_ERROR
-            begin
-              valid_error.call(span, e) if valid_error.respond_to?(:call) 
-            rescue
-              Datadog.logger.debug("Failed to capture :on_error: #{e}")
-              DEFAULT_ON_ERROR.call(span, e)
+          begin
+            valid_error.call(span, e) if valid_error.respond_to?(:call) 
+          rescue
+            Datadog.logger.debug("Failed to capture :on_error: #{e}")
+            DEFAULT_ON_ERROR.call(span, e)
           end
+
           raise e
         ensure
           span.finish unless span.nil?
