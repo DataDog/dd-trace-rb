@@ -15,17 +15,6 @@ module Datadog
         end
 
         def patch
-          require 'ddtrace/ext/ci'
-          require 'ddtrace/ext/integration'
-
-          Datadog::Pin.new(
-            Datadog.configuration[:cucumber][:service_name],
-            app: Ext::APP,
-            app_type: Datadog::Ext::AppTypes::TEST,
-            tags: Datadog::Ext::CI.tags(ENV).merge(Datadog.configuration.tags),
-            tracer: -> { Datadog.configuration[:cucumber][:tracer] }
-          ).onto(::Cucumber)
-
           ::Cucumber::Runtime.send(:include, Instrumentation)
         end
       end

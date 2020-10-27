@@ -16,15 +16,6 @@ RSpec.describe 'Cucumber formatter' do
     end
   end
 
-  context 'pin' do
-    subject(:pin) { Datadog::Pin.get_from(Cucumber) }
-
-    it 'has the correct attributes' do
-      expect(pin.service).to eq(Datadog::Contrib::Cucumber::Ext::SERVICE_NAME)
-      expect(pin.app_type).to eq(Datadog::Ext::AppTypes::TEST)
-    end
-  end
-
   # Cucumber runtime setup
   let(:existing_runtime) { Cucumber::Runtime.new(runtime_options) }
   let(:runtime_options)  { {} }
@@ -51,6 +42,8 @@ RSpec.describe 'Cucumber formatter' do
 
       expect(spans.length).to eq(2)
       expect(spans[1].resource).to eq('cucumber scenario')
+      expect(spans[1].service).to eq(Datadog::Contrib::Cucumber::Ext::SERVICE_NAME)
+      expect(spans[1].span_type).to eq(Datadog::Ext::AppTypes::TEST)
       expect(spans[0].resource).to eq('datadog')
     end
   end

@@ -1,4 +1,5 @@
 require 'ddtrace/ext/app_types'
+require 'ddtrace/ext/ci'
 require 'ddtrace/ext/test'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/cucumber/ext'
@@ -28,14 +29,14 @@ module Datadog
         end
 
         def on_test_case_started(event)
-          pin = Datadog::Pin.get_from(::Cucumber)
           trace_options = {
-            service: pin.service_name,
+            app: Ext::APP,
             resource: event.test_case.name,
+            service: configuration[:service_name],
             span_type: Datadog::Ext::AppTypes::TEST,
-            tags: pin.tags
+            tags: tags.merge(Datadog.configuration.tags)
           }
-          @current_feature_span = pin.tracer.trace(Datadog::Ext::AppTypes::TEST, trace_options)
+          @current_feature_span = tracer.trace(Datadog::Ext::AppTypes::TEST, trace_options)
           @current_feature_span.set_tag(Datadog::Ext::Test::FRAMEWORK, Ext::FRAMEWORK)
           @current_feature_span.set_tag(Datadog::Ext::Test::NAME, event.test_case.name)
           @current_feature_span.set_tag(Datadog::Ext::Test::SUITE, event.test_case.location.file)
@@ -59,12 +60,11 @@ module Datadog
         end
 
         def on_test_step_started(event)
-          pin = Datadog::Pin.get_from(::Cucumber)
           trace_options = {
             resource: event.test_step.to_s,
             span_type: Ext::STEP_SPAN_TYPE
           }
-          @current_step_span = pin.tracer.trace('step', trace_options)
+          @current_step_span = tracer.trace('step', trace_options)
         end
 
         def on_test_step_finished(event)
@@ -89,6 +89,14 @@ module Datadog
 
         def configuration
           Datadog.configuration[:cucumber]
+        end
+
+        def tracer
+          configuration[:tracer]
+        end
+
+        def tags
+          @tags ||= Datadog::Ext::CI.tags(ENV)
         end
       end
     end
