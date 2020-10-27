@@ -290,7 +290,7 @@ module Datadog
         rescue Exception => e
           valid_error = options[:on_error] || DEFAULT_ON_ERROR ## (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
 
-          if valid_error.respond_to?(:call) && valid_error.method(:call).arity == 2
+          if valid_error.respond_to?(:call) # && valid_error.method(:call).arity == 2 // we can use this to check that 2 and only two arguments are being passed
             valid_error.call(span, e)
           else
             Datadog.logger.debug("Failed to capture :on_error: #{e}")
