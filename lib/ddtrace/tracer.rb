@@ -300,7 +300,6 @@ module Datadog
             Datadog.logger.debug('Custom on_error handler must be a callable, falling back to default') if on_error_handler
             DEFAULT_ON_ERROR.call(span, e)
           end
-
           raise e
         ensure
           span.finish unless span.nil?
