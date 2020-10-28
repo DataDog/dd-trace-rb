@@ -31,56 +31,93 @@ module Datadog
       def tags(env)
         provider = PROVIDERS.find { |c| env.key? c[0] }
         return {} if provider.nil?
+        normalize_branch = %r{^refs/(heads/)?}
+        normalize_origin = %r{^origin/}
+        normalize_tag = %r{^tags/}
         tags = send(provider[1], env).reject { |_, v| v.nil? }
-        tags[Git::TAG_BRANCH] = tags[Git::TAG_BRANCH].gsub(%r{^refs/(heads/)?}, '') if tags.key? Git::TAG_BRANCH
+        unless tags[Git::TAG_TAG].nil?
+          tags[Git::TAG_TAG] = tags[Git::TAG_TAG].gsub(normalize_branch, '').gsub(normalize_origin, '').gsub(normalize_tag, '')
+          tags.delete Git::TAG_BRANCH
+        end
+        tags[Git::TAG_BRANCH] = tags[Git::TAG_BRANCH].gsub(normalize_branch, '').gsub(normalize_origin, '').gsub(normalize_tag, '') if tags.key? Git::TAG_BRANCH
         tags[Git::TAG_DEPRECATED_COMMIT_SHA] = tags[Git::TAG_COMMIT_SHA] if tags.key? Git::TAG_COMMIT_SHA
+
+        # Expand ~
+        workspace_path = tags[TAG_WORKSPACE_PATH]
+        if !workspace_path.nil? && (workspace_path == '~' || workspace_path.start_with?('~/'))
+          tags[TAG_WORKSPACE_PATH] = File.expand_path(workspace_path)
+        end
         tags
       end
 
       # CI providers
 
       def extract_appveyor(env)
+        url = "https://ci.appveyor.com/project/#{env['APPVEYOR_REPO_NAME']}/builds/#{env['APPVEYOR_BUILD_ID']}"
         {
           TAG_PROVIDER_NAME => 'appveyor',
-          Git::TAG_REPOSITORY_URL => env['APPVEYOR_REPO_NAME'],
+          Git::TAG_REPOSITORY_URL =>  "https://github.com/#{env['APPVEYOR_REPO_NAME']}.git",
           Git::TAG_COMMIT_SHA => env['APPVEYOR_REPO_COMMIT'],
-          WORKSPACE_PATH => env['APPVEYOR_BUILD_FOLDER'],
+          TAG_WORKSPACE_PATH => env['APPVEYOR_BUILD_FOLDER'],
           TAG_PIPELINE_ID => env['APPVEYOR_BUILD_ID'],
+          TAG_PIPELINE_NAME => env['APPVEYOR_REPO_NAME'],
           TAG_PIPELINE_NUMBER => env['APPVEYOR_BUILD_NUMBER'],
-          TAG_PIPELINE_URL => "https://ci.appveyor.com/project/#{env['APPVEYOR_PROJECT_SLUG']}" \
-            "/builds/#{env['APPVEYOR_BUILD_ID']}",
-          Git::TAG_BRANCH => (env['APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH'] || env['APPVEYOR_REPO_BRANCH'])
+          TAG_PIPELINE_URL => url,
+          TAG_JOB_URL => url,
+          Git::TAG_BRANCH => (env['APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH'] || env['APPVEYOR_REPO_BRANCH']),
+          Git::TAG_TAG => env['APPVEYOR_REPO_TAG_NAME']
         }
       end
 
       def extract_azure_pipelines(env)
-        if env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI'] && env['SYSTEM_TEAMPROJECT'] && env['BUILD_BUILDID']
-          pipeline_url = "#{env['SYSTEM_TEAMFOUNDATIONCOLLECTIONURI']}#{env['SYSTEM_TEAMPROJECT']}" \
-            "/_build/results?buildId=#{env['BUILD_BUILDID']}&_a=summary"
+        if env['SYSTEM_TEAMFOUNDATIONSERVERURI'] && env['SYSTEM_TEAMPROJECT'] && env['BUILD_BUILDID']
+          base_url = "#{env['SYSTEM_TEAMFOUNDATIONSERVERURI']}#{env['SYSTEM_TEAMPROJECT']}" \
+            "/_build/results?buildId=#{env['BUILD_BUILDID']}"
+          pipeline_url = base_url + '&_a=summary'
+          job_url = base_url + "&view=logs&j=#{env['SYSTEM_JOBID']}&t=#{env['SYSTEM_TASKINSTANCEID']}"
+        else
+          pipeline_url = job_url = nil
+        end
+        branch_or_tag = (
+          env['SYSTEM_PULLREQUEST_SOURCEBRANCH'] || env['BUILD_SOURCEBRANCH'] || env['BUILD_SOURCEBRANCHNAME']
+        )
+        if branch_or_tag.include? 'tags/'
+          branch = nil
+          tag = branch_or_tag
+        else
+          branch = branch_or_tag
+          tag = nil
         end
         {
           TAG_PROVIDER_NAME => 'azurepipelines',
-          WORKSPACE_PATH => env['BUILD_SOURCESDIRECTORY'],
+          TAG_WORKSPACE_PATH => env['BUILD_SOURCESDIRECTORY'],
           TAG_PIPELINE_ID => env['BUILD_BUILDID'],
           TAG_PIPELINE_NAME => env['BUILD_DEFINITIONNAME'],
-          TAG_PIPELINE_NUMBER => env['BUILD_BUILDNUMBER'],
+          TAG_PIPELINE_NUMBER => env['BUILD_BUILDID'],
           TAG_PIPELINE_URL => pipeline_url,
-          Git::TAG_REPOSITORY_URL => env['BUILD_REPOSITORY_URI'],
-          Git::TAG_COMMIT_SHA => env['SYSTEM_PULLREQUEST_SOURCECOMMITID'] || env['BUILD_SOURCEVERSION'],
-          Git::TAG_BRANCH => (
-            env['SYSTEM_PULLREQUEST_SOURCEBRANCH'] || env['BUILD_SOURCEBRANCH'] || env['BUILD_SOURCEBRANCHNAME']
-          )
+          TAG_JOB_URL => job_url,
+          Git::TAG_REPOSITORY_URL => (env['SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI'] || env['BUILD_REPOSITORY_URI']),
+          Git::TAG_COMMIT_SHA => (env['SYSTEM_PULLREQUEST_SOURCECOMMITID'] || env['BUILD_SOURCEVERSION']),
+          Git::TAG_BRANCH => branch,
+          Git::TAG_TAG => tag
         }
       end
 
       def extract_bitbucket(env)
+        url = "https://bitbucket.org/#{env['BITBUCKET_REPO_FULL_NAME']}/addon/pipelines/home#" \
+          "!/results/#{env['BITBUCKET_BUILD_NUMBER']}"
         {
-          TAG_PROVIDER_NAME => 'bitbucketpipelines',
-          Git::TAG_REPOSITORY_URL => env['BITBUCKET_GIT_SSH_ORIGIN'],
+          Git::TAG_BRANCH => env['BITBUCKET_BRANCH'],
           Git::TAG_COMMIT_SHA => env['BITBUCKET_COMMIT'],
-          WORKSPACE_PATH => env['BITBUCKET_CLONE_DIR'],
-          TAG_PIPELINE_ID => env['BITBUCKET_PIPELINE_UUID'],
-          TAG_PIPELINE_NUMBER => env['BITBUCKET_BUILD_NUMBER']
+          Git::TAG_REPOSITORY_URL => env['BITBUCKET_GIT_SSH_ORIGIN'],
+          Git::TAG_TAG => env['BITBUCKET_TAG'],
+          TAG_JOB_URL => url,
+          TAG_PIPELINE_ID => env['BITBUCKET_PIPELINE_UUID'] ? env['BITBUCKET_PIPELINE_UUID'].tr('{}', '') : None,
+          TAG_PIPELINE_NAME => env['BITBUCKET_REPO_FULL_NAME'],
+          TAG_PIPELINE_NUMBER => env['BITBUCKET_BUILD_NUMBER'],
+          TAG_PIPELINE_URL => url,
+          TAG_PROVIDER_NAME => 'bitbucket',
+          TAG_WORKSPACE_PATH => env['BITBUCKET_CLONE_DIR']
         }
       end
 
@@ -89,7 +126,7 @@ module Datadog
           TAG_PROVIDER_NAME => 'buildkite',
           Git::TAG_REPOSITORY_URL => env['BUILDKITE_REPO'],
           Git::TAG_COMMIT_SHA => env['BUILDKITE_COMMIT'],
-          WORKSPACE_PATH => env['BUILDKITE_BUILD_CHECKOUT_PATH'],
+          TAG_WORKSPACE_PATH => env['BUILDKITE_BUILD_CHECKOUT_PATH'],
           TAG_PIPELINE_ID => env['BUILDKITE_BUILD_ID'],
           TAG_PIPELINE_NUMBER => env['BUILDKITE_BUILD_NUMBER'],
           TAG_PIPELINE_URL => env['BUILDKITE_BUILD_URL'],
@@ -102,7 +139,7 @@ module Datadog
           TAG_PROVIDER_NAME => 'circleci',
           Git::TAG_REPOSITORY_URL => env['CIRCLE_REPOSITORY_URL'],
           Git::TAG_COMMIT_SHA => env['CIRCLE_SHA1'],
-          WORKSPACE_PATH => env['CIRCLE_WORKING_DIRECTORY'],
+          TAG_WORKSPACE_PATH => env['CIRCLE_WORKING_DIRECTORY'],
           TAG_PIPELINE_NUMBER => env['CIRCLE_BUILD_NUM'],
           TAG_PIPELINE_URL => env['CIRCLE_BUILD_URL'],
           Git::TAG_BRANCH => env['CIRCLE_BRANCH']
@@ -114,7 +151,7 @@ module Datadog
           TAG_PROVIDER_NAME => 'github',
           Git::TAG_REPOSITORY_URL => env['GITHUB_REPOSITORY'],
           Git::TAG_COMMIT_SHA => env['GITHUB_SHA'],
-          WORKSPACE_PATH => env['GITHUB_WORKSPACE'],
+          TAG_WORKSPACE_PATH => env['GITHUB_WORKSPACE'],
           TAG_PIPELINE_ID => env['GITHUB_RUN_ID'],
           TAG_PIPELINE_NUMBER => env['GITHUB_RUN_NUMBER'],
           TAG_PIPELINE_URL => "#{env['GITHUB_REPOSITORY']}/commit/#{env['GITHUB_SHA']}/checks",
@@ -127,12 +164,12 @@ module Datadog
           TAG_PROVIDER_NAME => 'gitlab',
           Git::TAG_REPOSITORY_URL => env['CI_REPOSITORY_URL'],
           Git::TAG_COMMIT_SHA => env['CI_COMMIT_SHA'],
-          WORKSPACE_PATH => env['CI_PROJECT_DIR'],
+          TAG_WORKSPACE_PATH => env['CI_PROJECT_DIR'],
           TAG_PIPELINE_ID => env['CI_PIPELINE_ID'],
           TAG_PIPELINE_NUMBER => env['CI_PIPELINE_IID'],
           TAG_PIPELINE_URL => env['CI_PIPELINE_URL'],
           TAG_JOB_URL => env['CI_JOB_URL'],
-          Git::TAG_BRANCH => env['CI_COMMIT_BRANCH'] || env['CI_COMMIT_REF_NAME']
+          Git::TAG_BRANCH => (env['CI_COMMIT_BRANCH'] || env['CI_COMMIT_REF_NAME'])
         }
       end
 
@@ -141,12 +178,12 @@ module Datadog
           TAG_PROVIDER_NAME => 'jenkins',
           Git::TAG_REPOSITORY_URL => env['GIT_URL'],
           Git::TAG_COMMIT_SHA => env['GIT_COMMIT'],
-          WORKSPACE_PATH => env['WORKSPACE'],
+          TAG_WORKSPACE_PATH => env['WORKSPACE'],
           TAG_PIPELINE_ID => env['BUILD_ID'],
           TAG_PIPELINE_NUMBER => env['BUILD_NUMBER'],
           TAG_PIPELINE_URL => env['BUILD_URL'],
           TAG_JOB_URL => env['JOB_URL'],
-          Git::TAG_BRANCH => env['GIT_BRANCH'].nil? ? nil : env['GIT_BRANCH'].gsub(%r{^origin/}, '')
+          Git::TAG_BRANCH => env['GIT_BRANCH']
         }
       end
 
@@ -155,7 +192,7 @@ module Datadog
           TAG_PROVIDER_NAME => 'teamcity',
           Git::TAG_REPOSITORY_URL => env['BUILD_VCS_URL'],
           Git::TAG_COMMIT_SHA => env['BUILD_VCS_NUMBER'],
-          WORKSPACE_PATH => env['BUILD_CHECKOUTDIR'],
+          TAG_WORKSPACE_PATH => env['BUILD_CHECKOUTDIR'],
           TAG_PIPELINE_ID => env['BUILD_ID'],
           TAG_PIPELINE_NUMBER => env['BUILD_NUMBER'],
           TAG_PIPELINE_URL => (
@@ -166,15 +203,17 @@ module Datadog
 
       def extract_travis(env)
         {
-          TAG_PROVIDER_NAME => 'travis',
-          Git::TAG_REPOSITORY_URL => env['TRAVIS_REPO_SLUG'],
+          Git::TAG_BRANCH => (env['TRAVIS_PULL_REQUEST_BRANCH'] || env['TRAVIS_BRANCH']),
           Git::TAG_COMMIT_SHA => env['TRAVIS_COMMIT'],
-          WORKSPACE_PATH => env['TRAVIS_BUILD_DIR'],
+          Git::TAG_REPOSITORY_URL =>  "https://github.com/#{env['TRAVIS_REPO_SLUG']}.git",
+          Git::TAG_TAG => env['TRAVIS_TAG'],
+          TAG_JOB_URL => env['TRAVIS_JOB_WEB_URL'],
           TAG_PIPELINE_ID => env['TRAVIS_BUILD_ID'],
+          TAG_PIPELINE_NAME => env['TRAVIS_REPO_SLUG'],
           TAG_PIPELINE_NUMBER => env['TRAVIS_BUILD_NUMBER'],
           TAG_PIPELINE_URL => env['TRAVIS_BUILD_WEB_URL'],
-          TAG_JOB_URL => env['TRAVIS_JOB_WEB_URL'],
-          Git::TAG_BRANCH => env['TRAVIS_PULL_REQUEST_BRANCH'] || env['TRAVIS_BRANCH']
+          TAG_PROVIDER_NAME => 'travisci',
+          TAG_WORKSPACE_PATH => env['TRAVIS_BUILD_DIR']
         }
       end
     end
