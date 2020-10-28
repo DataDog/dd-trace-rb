@@ -289,8 +289,7 @@ module Datadog
         # SignalException::Interrupt would still bubble up.
         # rubocop:disable Metrics/BlockNesting
         rescue Exception => e
-          on_error_handler = options[:on_error] || DEFAULT_ON_ERROR
-          if on_error_handler.respond_to?(:call)
+          if (on_error_handler = options[:on_error] && on_error_handler.respond_to?(:call))
             begin
               on_error_handler.call(span, e)
             rescue
