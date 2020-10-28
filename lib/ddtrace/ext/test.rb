@@ -2,17 +2,17 @@ module Datadog
   module Ext
     # Defines constants for test tags
     module Test
-      ARGUMENTS = 'test.arguments'.freeze
-      FRAMEWORK = 'test.framework'.freeze
-      NAME = 'test.name'.freeze
-      SKIP_REASON = 'test.skip_reason'.freeze
-      STATUS = 'test.status'.freeze
-      SUITE = 'test.suite'.freeze
-      TRAITS = 'test.traits'.freeze
-      TYPE = 'test.type'.freeze
+      TAG_ARGUMENTS = 'test.arguments'.freeze
+      TAG_FRAMEWORK = 'test.framework'.freeze
+      TAG_NAME = 'test.name'.freeze
+      TAG_SKIP_REASON = 'test.skip_reason'.freeze
+      TAG_STATUS = 'test.status'.freeze
+      TAG_SUITE = 'test.suite'.freeze
+      TAG_TRAITS = 'test.traits'.freeze
+      TAG_TYPE = 'test.type'.freeze
 
       # TODO: is there a better place for SPAN_KIND?
-      SPAN_KIND = 'span.kind'.freeze
+      TAG_SPAN_KIND = 'span.kind'.freeze
 
       module Status
         PASS = 'pass'.freeze

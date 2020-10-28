@@ -37,11 +37,11 @@ module Datadog
             tags: tags.merge(Datadog.configuration.tags)
           }
           @current_feature_span = tracer.trace(Datadog::Ext::AppTypes::TEST, trace_options)
-          @current_feature_span.set_tag(Datadog::Ext::Test::FRAMEWORK, Ext::FRAMEWORK)
-          @current_feature_span.set_tag(Datadog::Ext::Test::NAME, event.test_case.name)
-          @current_feature_span.set_tag(Datadog::Ext::Test::SUITE, event.test_case.location.file)
-          @current_feature_span.set_tag(Datadog::Ext::Test::TYPE, Ext::TEST_TYPE)
-          @current_feature_span.set_tag(Datadog::Ext::Test::SPAN_KIND, Datadog::Ext::AppTypes::TEST)
+          @current_feature_span.set_tag(Datadog::Ext::Test::TAG_FRAMEWORK, Ext::FRAMEWORK)
+          @current_feature_span.set_tag(Datadog::Ext::Test::TAG_NAME, event.test_case.name)
+          @current_feature_span.set_tag(Datadog::Ext::Test::TAG_SUITE, event.test_case.location.file)
+          @current_feature_span.set_tag(Datadog::Ext::Test::TAG_TYPE, Ext::TEST_TYPE)
+          @current_feature_span.set_tag(Datadog::Ext::Test::TAG_SPAN_KIND, Datadog::Ext::AppTypes::TEST)
 
           # Set analytics sample rate
           if Datadog::Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -55,7 +55,7 @@ module Datadog
         def on_test_case_finished(event)
           return if @current_feature_span.nil?
           @current_feature_span.status = 1 if event.result.failed?
-          @current_feature_span.set_tag(Datadog::Ext::Test::STATUS, status_from_result(event.result))
+          @current_feature_span.set_tag(Datadog::Ext::Test::TAG_STATUS, status_from_result(event.result))
           @current_feature_span.finish
         end
 
@@ -72,7 +72,7 @@ module Datadog
           unless event.result.passed?
             @current_step_span.set_error event.result.exception
           end
-          @current_step_span.set_tag(Datadog::Ext::Test::STATUS, status_from_result(event.result))
+          @current_step_span.set_tag(Datadog::Ext::Test::TAG_STATUS, status_from_result(event.result))
           @current_step_span.finish
         end
 
