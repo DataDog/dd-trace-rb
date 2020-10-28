@@ -10,7 +10,7 @@ module Datadog
       class Integration
         include Contrib::Integration
 
-        MINIMUM_VERSION = Gem::Version.new('4.0.0')
+        MINIMUM_VERSION = Gem::Version.new('3.0.0')
 
         register_as :cucumber, auto_patch: true
 
