@@ -288,11 +288,16 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          valid_error = options[:on_error] || DEFAULT_ON_ERROR
-          begin
-            valid_error.call(span, e) if valid_error.respond_to?(:call)
-          rescue
-            Datadog.logger.debug("Failed to capture :on_error: #{e}")
+          on_error_handler = options[:on_error] || DEFAULT_ON_ERROR
+          if on_error_handler.respond_to?(:call)
+            begin
+              on_error_handler.call(span, e)
+            rescue
+              Datadog.logger.debug('Custom on_error handler failed, falling back to default')
+              DEFAULT_ON_ERROR.call(span, e)
+            end
+          else
+            Datadog.logger.debug('Custom on_error handler must be a callable, falling back to default') if on_error_handler
             DEFAULT_ON_ERROR.call(span, e)
           end
 
