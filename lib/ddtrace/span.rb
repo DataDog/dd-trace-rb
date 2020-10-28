@@ -180,7 +180,7 @@ module Datadog
       # behavior and so we maintain it for backward compatibility for those
       # who are using async manual instrumentation that may rely on this
 
-      @start_time = start_time || Time.now.utc
+      @start_time = start_time ||  Utils::Time.current_time.utc
       @duration_start = start_time.nil? ? duration_marker : nil
 
       self
@@ -206,7 +206,7 @@ module Datadog
 
       @allocation_count_finish = now_allocations
 
-      now = Time.now.utc
+      now = Utils::Time.current_time.utc
 
       # Provide a default start_time if unset.
       # Using `now` here causes duration to be 0; this is expected
