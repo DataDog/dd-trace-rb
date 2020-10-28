@@ -63,6 +63,11 @@ module Datadog
             o.lazy
           end
         end
+
+        settings :time_provider do
+          o.default :default_time
+          o.lazy
+        end
       end
 
       settings :distributed_tracing do
