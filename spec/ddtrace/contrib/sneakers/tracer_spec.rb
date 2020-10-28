@@ -14,6 +14,16 @@ class MiddlewareWorker
   end
 end
 
+class FailingMiddlewareWorker
+  include Sneakers::Worker
+
+  from_queue 'failing-middleware-demo', ack: false
+
+  def work_with_params(msg, delivery_info, metadata)
+    raise ZeroDivisionError, 'failed'
+  end
+end
+
 RSpec.describe Datadog::Contrib::Sneakers::Tracer do
   let(:sneakers_tracer) { described_class.new }
   let(:configuration_options) { {} }
@@ -63,6 +73,9 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
       allow(delivery_info).to receive(:consumer).and_return(consumer)
       allow(consumer).to receive(:queue).and_return(queue)
       allow(metadata).to receive(:[]).with(:content_type).and_return('application/json')
+    end
+
+    it do
       expect { call }.to_not raise_error
       expect(spans).to have(1).items
       expect(span.resource).to eq('MiddlewareWorker')
@@ -75,6 +88,7 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
       let(:configuration_options) { super().merge(tag_body: true) }
 
       it 'sends to body in the trace' do
+        call
         expect(span.get_tag(Datadog::Contrib::Sneakers::Ext::TAG_JOB_BODY)).to eq('{"foo":"bar"}')
       end
     end
@@ -83,6 +97,7 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
       let(:configuration_options) { super().merge(tag_body: false) }
 
       it 'sends to body in the trace' do
+        call
         expect(span.get_tag(Datadog::Contrib::Sneakers::Ext::TAG_JOB_BODY)).to be_nil
       end
     end
@@ -97,6 +112,19 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
     it_behaves_like 'measured span for integration', true do
       include_context 'Sneakers::Worker'
       before { call }
+    end
+
+    context 'with custom error handler' do
+      let(:configuration_options) { super().merge(error_handler: error_handler) }
+      let(:error_handler) { proc {} }
+
+      let(:worker) { FailingMiddlewareWorker.new(queue, Concurrent::ImmediateExecutor.new) }
+      let(:queue_name) { 'failing-middleware-demo' }
+
+      it 'uses custom error handler' do
+        expect(error_handler).to receive(:call)
+        call
+      end
     end
   end
 end
