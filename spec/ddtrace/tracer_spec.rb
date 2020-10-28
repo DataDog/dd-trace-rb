@@ -214,7 +214,7 @@ RSpec.describe Datadog::Tracer do
               end.to raise_error(error)
 
               expect(spans).to have(1).item
-              expect(spans[0]).to have_error
+              expect(spans[0]).to_not have_error
             end
           end
 
