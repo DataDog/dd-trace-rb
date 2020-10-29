@@ -287,8 +287,19 @@ module Datadog
         # and it is user code which should be executed no matter what.
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
+        # rubocop:disable Metrics/BlockNesting
         rescue Exception => e
-          (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
+          if (on_error_handler = options[:on_error]) && on_error_handler.respond_to?(:call)
+            begin
+              on_error_handler.call(span, e)
+            rescue
+              Datadog.logger.debug('Custom on_error handler failed, falling back to default')
+              DEFAULT_ON_ERROR.call(span, e)
+            end
+          else
+            Datadog.logger.debug('Custom on_error handler must be a callable, falling back to default') if on_error_handler
+            DEFAULT_ON_ERROR.call(span, e)
+          end
           raise e
         ensure
           span.finish unless span.nil?

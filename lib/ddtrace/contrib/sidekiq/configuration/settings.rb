@@ -29,6 +29,7 @@ module Datadog
 
           option :service_name, default: Ext::SERVICE_NAME
           option :client_service_name, default: Ext::CLIENT_SERVICE_NAME
+          option :error_handler, default: Datadog::Tracer::DEFAULT_ON_ERROR
         end
       end
     end

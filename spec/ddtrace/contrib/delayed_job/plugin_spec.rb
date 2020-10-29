@@ -81,6 +81,24 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       end
     end
 
+    context 'when job fails' do
+      let(:configuration_options) { { error_handler: error_handler } }
+      let(:error_handler) { proc {} }
+
+      let(:sample_job_object) do
+        stub_const('SampleJob', Class.new do
+          def perform
+            raise ZeroDivisionError, 'job error'
+          end
+        end)
+      end
+
+      it 'uses custom error handler' do
+        expect(error_handler).to receive(:call)
+        expect { job_run }.to raise_error
+      end
+    end
+
     shared_context 'delayed_job common tags and resource' do
       it 'has resource name equal to job name' do
         expect(span.resource).to eq('SampleJob')

@@ -10,7 +10,9 @@ module Datadog
         def self.instrument_invoke(job, &block)
           return block.call(job) unless tracer && tracer.enabled
 
-          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name(job)) do |span|
+          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name(job),
+                                      on_error: configuration[:error_handler]) do |span|
+
             set_sample_rate(span)
 
             # Measure service stats
