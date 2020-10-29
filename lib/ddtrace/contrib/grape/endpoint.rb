@@ -90,7 +90,9 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
+              puts payload[:exception_object]
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+              
 
               # override the current span with this notification values
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
