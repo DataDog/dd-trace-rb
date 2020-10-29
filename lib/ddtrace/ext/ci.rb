@@ -31,15 +31,13 @@ module Datadog
       def tags(env)
         provider = PROVIDERS.find { |c| env.key? c[0] }
         return {} if provider.nil?
-        normalize_branch = %r{^refs/(heads/)?}
-        normalize_origin = %r{^origin/}
-        normalize_tag = %r{^tags/}
+
         tags = send(provider[1], env).reject { |_, v| v.nil? }
-        unless tags[Git::TAG_TAG].nil?
-          tags[Git::TAG_TAG] = tags[Git::TAG_TAG].gsub(normalize_branch, '').gsub(normalize_origin, '').gsub(normalize_tag, '')
+        if tags.key? Git::TAG_TAG
+          tags[Git::TAG_TAG] = normalize_ref(tags[Git::TAG_TAG])
           tags.delete Git::TAG_BRANCH
         end
-        tags[Git::TAG_BRANCH] = tags[Git::TAG_BRANCH].gsub(normalize_branch, '').gsub(normalize_origin, '').gsub(normalize_tag, '') if tags.key? Git::TAG_BRANCH
+        tags[Git::TAG_BRANCH] = normalize_ref(tags[Git::TAG_BRANCH]) if tags.key? Git::TAG_BRANCH
         tags[Git::TAG_DEPRECATED_COMMIT_SHA] = tags[Git::TAG_COMMIT_SHA] if tags.key? Git::TAG_COMMIT_SHA
 
         # Expand ~
@@ -48,6 +46,13 @@ module Datadog
           tags[TAG_WORKSPACE_PATH] = File.expand_path(workspace_path)
         end
         tags
+      end
+
+      def normalize_ref(name)
+        refs = %r{^refs/(heads/)?}
+        origin = %r{^origin/}
+        tags = %r{^tags/}
+        name.gsub(refs, '').gsub(origin, '').gsub(tags, '')
       end
 
       # CI providers
