@@ -90,7 +90,7 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
-              puts payload[:exception_object]
+              puts payload
               span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
               
 
