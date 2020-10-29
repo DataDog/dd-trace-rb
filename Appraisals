@@ -555,7 +555,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque', '>= 2.0'
     end
 
-    (3..5).each { |v| gem_cucumber(v) }
+    (3..4).each { |v| gem_cucumber(v) }
 
     appraise 'contrib' do
       gem 'actionpack'
@@ -564,7 +564,6 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
       gem 'concurrent-ruby'
-      gem 'cucumber'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -657,7 +656,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque', '>= 2.0'
     end
 
-    (3..5).each { |v| gem_cucumber(v) }
+    (3..4).each { |v| gem_cucumber(v) }
 
     appraise 'contrib' do
       gem 'actionpack'
