@@ -1699,7 +1699,7 @@ Available options are:
  - `sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
  - `diagnostics.startup_logs.enabled`: Startup configuration and diagnostic log. Defaults to `true`. Can be configured through the `DD_TRACE_STARTUP_LOGS` environment variable.
  - `diagnostics.debug`: set to true to enable debug logging. Can be configured through the `DD_TRACE_DEBUG` environment variable. Defaults to `false`.
- - 'time_provider': set to `:realtime_with_timecop` to support accurately measuring wall clock in test environments that use the `Timecop` gem. Defaults to `default_time`.
+ - `time_provider`: set to `:realtime_with_timecop` to support accurately measuring wall clock in test environments that use the `Timecop` gem. Defaults to `default_time`.
 
 #### Custom logging
 
