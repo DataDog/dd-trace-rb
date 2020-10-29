@@ -4,13 +4,13 @@ module Datadog
     module Time
       PROCESS_TIME_SUPPORTED = Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
 
+      # unneeded for now since we want to fallback to default
       DEFAULT_TIME = :default_time
       REALTIME_WITH_TIMECOP = :realtime_with_timecop
       NOW = :now
       NOW_WITHOUT_MOCK_TIME = :now_without_mock_time
 
-      attr_writer :now
-      attr_writer :time_provider
+      attr_accessor :time_provider
 
       module_function
 
@@ -19,18 +19,22 @@ module Datadog
       end
 
       def current_time
-        ::Time.send(now)
+        return ::Time.send(NOW) if (@time_provider ||= DEFAULT_TIME) == DEFAULT_TIME
+
+        ::Time.send(alt_time(@time_provider))
       end
 
-      def now
-        @now ||= begin
-          @time_provider ||= Datadog.configuration.time_provider
+      def time_provider=(time_provider)
+        @time_provider = time_provider
+      end
 
-          if @time_provider == DEFAULT_TIME
-            NOW
-          elsif @time_provider == REALTIME_WITH_TIMECOP
-            (::Time.respond_to?(NOW_WITHOUT_MOCK_TIME) ? NOW_WITHOUT_MOCK_TIME : NOW)
-          end
+      def alt_time(time_provider)
+        # currenty we only have :default or :realtime_with_timecop as options
+        # so we can just have :default act as a general fallback
+        if time_provider == REALTIME_WITH_TIMECOP
+          (::Time.respond_to?(NOW_WITHOUT_MOCK_TIME) ? NOW_WITHOUT_MOCK_TIME : NOW)
+        else
+          NOW
         end
       end
     end

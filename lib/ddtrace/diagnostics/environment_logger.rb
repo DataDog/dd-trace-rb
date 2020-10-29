@@ -213,6 +213,11 @@ module Datadog
         !!Datadog.configuration.diagnostics.health_metrics.enabled
       end
 
+      # @return [String, nil] time_provider enabled in config
+      def time_provider
+        Datadog.configuration.time_provider.to_s
+      end
+
       # TODO: Populate when profiling is implemented
       # def profiling_enabled
       # end
@@ -246,6 +251,7 @@ module Datadog
           partial_flushing_enabled: partial_flushing_enabled,
           priority_sampling_enabled: priority_sampling_enabled,
           health_metrics_enabled: health_metrics_enabled,
+          time_provider: time_provider,
           **instrumented_integrations_settings
         }
       end

@@ -70,5 +70,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'pry', '~> 0.10.4'
   spec.add_development_dependency 'pry-stack_explorer', '~> 0.4.9.2'
   spec.add_development_dependency 'simplecov', '~> 0.17'
+  spec.add_development_dependency 'timecop', '~> 0.9.2'
   spec.add_development_dependency 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 end

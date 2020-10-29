@@ -12,6 +12,14 @@ RSpec.describe Datadog::Span do
   let(:name) { 'my.span' }
   let(:span_options) { {} }
 
+  before(:each) do
+    Datadog.configure
+  end
+
+  after(:each) do
+    Datadog.configuration.reset!
+  end
+
   context 'ids' do
     it do
       expect(span.span_id).to be_nonzero
@@ -183,10 +191,10 @@ RSpec.describe Datadog::Span do
       let(:static_time) { Time.new('2010-09-16 00:03:15 +0200') }
 
       before do
-        # We set the same time no matte what.
+        # We set the same time no matter what.
         # If duration is greater than zero but start_time == end_time, we can
         # be sure we're using the monotonic time.
-        allow(Time).to receive(:now)
+        allow(::Time).to receive(:now)
           .and_return(static_time)
       end
 
@@ -217,7 +225,7 @@ RSpec.describe Datadog::Span do
         sleep(0.0001)
         span.finish
 
-        expect((subject.to_f * 1e9).to_i).to be >= 3600
+        expect((subject.to_f * 1e9).to_i).to be >= 1e9
       end
     end
 
@@ -232,7 +240,54 @@ RSpec.describe Datadog::Span do
         sleep(0.0001)
         span.finish(end_time)
 
-        expect((subject.to_f * 1e9).to_i).to be >= 3600
+        expect((subject.to_f * 1e9).to_i).to be >= 1e9
+      end
+    end
+
+    context 'with time_provider set to :realtime_with_timecop' do
+      before(:each) do
+        Datadog.configure do |c|
+          c.time_provider = :realtime_with_timecop
+        end
+      end
+
+      after(:each) do
+        Datadog.configuration.reset!
+      end
+
+      context 'with timecop frozen time' do
+        require 'timecop'
+
+        it 'should record the correct start and end time when started outside a freeze block' do
+          span.start
+
+          Timecop.freeze(Time.now + (3600 * 24)) do
+            sleep(0.0001)
+            span.finish
+          end
+
+          expect((subject.to_f * 1e9).to_i).to be < 1e9
+          expect((subject.to_f * 1e9).to_i).to be > 0
+
+          # testing that the span end_time wasn't set a day in the future
+          expect(span.end_time - span.start_time).to be < 1e9
+          expect(span.end_time - span.start_time).to be > 0
+        end
+
+        it 'should record the correct start and end time within a freeze block' do
+          Timecop.freeze(Time.now + (3600 * 24)) do
+            span.start
+            sleep(0.0001)
+            span.finish
+          end
+
+          expect((subject.to_f * 1e9).to_i).to be > 0
+          expect((subject.to_f * 1e9).to_i).to be < 1e9
+
+          # testing that the span end_time wasn't set a day in the future
+          expect(span.end_time - span.start_time).to be < 1e9
+          expect(span.end_time - span.start_time).to be > 0
+        end
       end
     end
   end

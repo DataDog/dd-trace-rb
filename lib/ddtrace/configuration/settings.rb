@@ -6,6 +6,8 @@ require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/ext/sampling'
 
+require 'ddtrace/utils/time'
+
 module Datadog
   module Configuration
     # Global configuration settings for the trace library.
@@ -206,7 +208,13 @@ module Datadog
         o.lazy
       end
 
-      option :time_provider, default: DEFAULT_TIME
+      option :time_provider do |o|
+        o.default { DEFAULT_TIME }
+        o.lazy
+        o.on_set do |time_provider|
+          Utils::Time.time_provider = time_provider
+        end
+      end
 
       settings :tracer do
         option :enabled do |o|
