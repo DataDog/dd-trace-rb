@@ -409,7 +409,6 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:active_support'
       declare 'bundle exec appraisal contrib rake spec:aws'
       declare 'bundle exec appraisal contrib rake spec:concurrent_ruby'
-      declare 'bundle exec appraisal contrib rake spec:cucumber'
       declare 'bundle exec appraisal contrib rake spec:dalli'
       declare 'bundle exec appraisal contrib rake spec:delayed_job'
       declare 'bundle exec appraisal contrib rake spec:elasticsearch'
