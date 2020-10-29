@@ -32,27 +32,31 @@ module Datadog
         provider = PROVIDERS.find { |c| env.key? c[0] }
         return {} if provider.nil?
 
-        tags = send(provider[1], env).reject { |_, v| v.nil? }
-        if tags.key? Git::TAG_TAG
-          tags[Git::TAG_TAG] = normalize_ref(tags[Git::TAG_TAG])
-          tags.delete Git::TAG_BRANCH
-        end
-        tags[Git::TAG_BRANCH] = normalize_ref(tags[Git::TAG_BRANCH]) if tags.key? Git::TAG_BRANCH
-        tags[Git::TAG_DEPRECATED_COMMIT_SHA] = tags[Git::TAG_COMMIT_SHA] if tags.key? Git::TAG_COMMIT_SHA
+        tags = send(provider[1], env)
+
+        tags[Git::TAG_TAG] = normalize_ref(tags[Git::TAG_TAG])
+        tags.delete(Git::TAG_BRANCH) unless tags[Git::TAG_TAG].nil?
+        tags[Git::TAG_BRANCH] = normalize_ref(tags[Git::TAG_BRANCH])
+        tags[Git::TAG_DEPRECATED_COMMIT_SHA] = tags[Git::TAG_COMMIT_SHA]
+        tags[Git::TAG_REPOSITORY_URL] = filter_sensitive_info(tags[Git::TAG_REPOSITORY_URL])
 
         # Expand ~
         workspace_path = tags[TAG_WORKSPACE_PATH]
         if !workspace_path.nil? && (workspace_path == '~' || workspace_path.start_with?('~/'))
           tags[TAG_WORKSPACE_PATH] = File.expand_path(workspace_path)
         end
-        tags
+        tags.reject { |_, v| v.nil? }
       end
 
       def normalize_ref(name)
         refs = %r{^refs/(heads/)?}
         origin = %r{^origin/}
         tags = %r{^tags/}
-        name.gsub(refs, '').gsub(origin, '').gsub(tags, '')
+        name.gsub(refs, '').gsub(origin, '').gsub(tags, '') unless name.nil?
+      end
+
+      def filter_sensitive_info(url)
+        url.gsub(%r{(https?://)[^/]*@}, '\1') unless url.nil?
       end
 
       # CI providers
@@ -128,67 +132,102 @@ module Datadog
 
       def extract_buildkite(env)
         {
-          TAG_PROVIDER_NAME => 'buildkite',
-          Git::TAG_REPOSITORY_URL => env['BUILDKITE_REPO'],
+          Git::TAG_BRANCH => env['BUILDKITE_BRANCH'],
           Git::TAG_COMMIT_SHA => env['BUILDKITE_COMMIT'],
-          TAG_WORKSPACE_PATH => env['BUILDKITE_BUILD_CHECKOUT_PATH'],
+          Git::TAG_REPOSITORY_URL => env['BUILDKITE_REPO'],
+          Git::TAG_TAG => env['BUILDKITE_TAG'],
           TAG_PIPELINE_ID => env['BUILDKITE_BUILD_ID'],
+          TAG_PIPELINE_NAME => env['BUILDKITE_PIPELINE_SLUG'],
           TAG_PIPELINE_NUMBER => env['BUILDKITE_BUILD_NUMBER'],
           TAG_PIPELINE_URL => env['BUILDKITE_BUILD_URL'],
-          Git::TAG_BRANCH => env['BUILDKITE_BRANCH']
+          TAG_JOB_URL => "#{env['BUILDKITE_BUILD_URL']}##{env['BUILDKITE_JOB_ID']}",
+          TAG_PROVIDER_NAME => 'buildkite',
+          TAG_WORKSPACE_PATH => env['BUILDKITE_BUILD_CHECKOUT_PATH']
         }
       end
 
       def extract_circle_ci(env)
         {
-          TAG_PROVIDER_NAME => 'circleci',
-          Git::TAG_REPOSITORY_URL => env['CIRCLE_REPOSITORY_URL'],
+          Git::TAG_BRANCH => env['CIRCLE_BRANCH'],
           Git::TAG_COMMIT_SHA => env['CIRCLE_SHA1'],
-          TAG_WORKSPACE_PATH => env['CIRCLE_WORKING_DIRECTORY'],
+          Git::TAG_REPOSITORY_URL => env['CIRCLE_REPOSITORY_URL'],
+          Git::TAG_TAG => env['CIRCLE_TAG'],
+          TAG_PIPELINE_ID => env['CIRCLE_WORKFLOW_ID'],
+          TAG_PIPELINE_NAME => env['CIRCLE_PROJECT_REPONAME'],
           TAG_PIPELINE_NUMBER => env['CIRCLE_BUILD_NUM'],
           TAG_PIPELINE_URL => env['CIRCLE_BUILD_URL'],
-          Git::TAG_BRANCH => env['CIRCLE_BRANCH']
+          TAG_JOB_URL => env['CIRCLE_BUILD_URL'],
+          TAG_PROVIDER_NAME => 'circleci',
+          TAG_WORKSPACE_PATH => env['CIRCLE_WORKING_DIRECTORY']
         }
       end
 
       def extract_github_actions(env)
+        branch_or_tag = (env['GITHUB_HEAD_REF'] || env['GITHUB_REF'])
+        if branch_or_tag.include? 'tags/'
+          branch = nil
+          tag = branch_or_tag
+        else
+          branch = branch_or_tag
+          tag = nil
+        end
         {
-          TAG_PROVIDER_NAME => 'github',
-          Git::TAG_REPOSITORY_URL => env['GITHUB_REPOSITORY'],
+          Git::TAG_BRANCH => branch,
           Git::TAG_COMMIT_SHA => env['GITHUB_SHA'],
-          TAG_WORKSPACE_PATH => env['GITHUB_WORKSPACE'],
+          Git::TAG_REPOSITORY_URL => "https://github.com/#{env['GITHUB_REPOSITORY']}.git",
+          Git::TAG_TAG => tag,
+          TAG_JOB_URL => "https://github.com/#{env['GITHUB_REPOSITORY']}/commit/#{env['GITHUB_SHA']}/checks",
           TAG_PIPELINE_ID => env['GITHUB_RUN_ID'],
+          TAG_PIPELINE_NAME => env['GITHUB_WORKFLOW'],
           TAG_PIPELINE_NUMBER => env['GITHUB_RUN_NUMBER'],
-          TAG_PIPELINE_URL => "#{env['GITHUB_REPOSITORY']}/commit/#{env['GITHUB_SHA']}/checks",
-          Git::TAG_BRANCH => env['GITHUB_REF']
+          TAG_PIPELINE_URL => "https://github.com/#{env['GITHUB_REPOSITORY']}/commit/#{env['GITHUB_SHA']}/checks",
+          TAG_PROVIDER_NAME => 'github',
+          TAG_WORKSPACE_PATH => env['GITHUB_WORKSPACE']
         }
       end
 
       def extract_gitlab(env)
+        url = env['CI_PIPELINE_URL']
+        url = url.gsub(%r{/-/pipelines/}, '/pipelines/') unless url.nil?
         {
-          TAG_PROVIDER_NAME => 'gitlab',
-          Git::TAG_REPOSITORY_URL => env['CI_REPOSITORY_URL'],
+          Git::TAG_BRANCH => env['CI_COMMIT_BRANCH'],
           Git::TAG_COMMIT_SHA => env['CI_COMMIT_SHA'],
-          TAG_WORKSPACE_PATH => env['CI_PROJECT_DIR'],
-          TAG_PIPELINE_ID => env['CI_PIPELINE_ID'],
-          TAG_PIPELINE_NUMBER => env['CI_PIPELINE_IID'],
-          TAG_PIPELINE_URL => env['CI_PIPELINE_URL'],
+          Git::TAG_REPOSITORY_URL => env['CI_REPOSITORY_URL'],
+          Git::TAG_TAG => env['CI_COMMIT_TAG'],
           TAG_JOB_URL => env['CI_JOB_URL'],
-          Git::TAG_BRANCH => (env['CI_COMMIT_BRANCH'] || env['CI_COMMIT_REF_NAME'])
+          TAG_PIPELINE_ID => env['CI_PIPELINE_ID'],
+          TAG_PIPELINE_NAME => env['CI_PROJECT_PATH'],
+          TAG_PIPELINE_NUMBER => env['CI_PIPELINE_IID'],
+          TAG_PIPELINE_URL => url,
+          TAG_PROVIDER_NAME => 'gitlab',
+          TAG_WORKSPACE_PATH => env['CI_PROJECT_DIR']
         }
       end
 
       def extract_jenkins(env)
+        branch_or_tag = env['GIT_BRANCH']
+        if branch_or_tag.include? 'tags/'
+          branch = nil
+          tag = branch_or_tag
+        else
+          branch = branch_or_tag
+          tag = nil
+        end
+        name = env['JOB_NAME']
+        name = name.gsub("/#{normalize_ref(branch)}", '') unless name.nil? || branch.nil?
+        name = name.split('/').reject { |v| v.nil? || v.include?('=') }.join('/') unless name.nil?
         {
-          TAG_PROVIDER_NAME => 'jenkins',
-          Git::TAG_REPOSITORY_URL => env['GIT_URL'],
+          Git::TAG_BRANCH => branch,
           Git::TAG_COMMIT_SHA => env['GIT_COMMIT'],
-          TAG_WORKSPACE_PATH => env['WORKSPACE'],
-          TAG_PIPELINE_ID => env['BUILD_ID'],
+          Git::TAG_REPOSITORY_URL => env['GIT_URL'],
+          Git::TAG_TAG => tag,
+          TAG_JOB_URL => env['JOB_URL'],
+          TAG_PIPELINE_ID => env['BUILD_TAG'],
+          TAG_PIPELINE_NAME => name,
           TAG_PIPELINE_NUMBER => env['BUILD_NUMBER'],
           TAG_PIPELINE_URL => env['BUILD_URL'],
-          TAG_JOB_URL => env['JOB_URL'],
-          Git::TAG_BRANCH => env['GIT_BRANCH']
+          TAG_PROVIDER_NAME => 'jenkins',
+          TAG_WORKSPACE_PATH => env['WORKSPACE']
         }
       end
 
