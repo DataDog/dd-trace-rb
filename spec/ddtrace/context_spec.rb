@@ -408,6 +408,31 @@ RSpec.describe Datadog::Context do
     end
   end
 
+  describe '#fork_clone' do
+    subject(:fork_clone) { context.fork_clone }
+
+    let(:options) do
+      {
+        trace_id: SecureRandom.uuid,
+        span_id: SecureRandom.uuid,
+        sampled: true,
+        sampling_priority: Datadog::Ext::Priority::AUTO_KEEP,
+        origin: 'synthetics'
+      }
+    end
+
+    it do
+      is_expected.to be_a_kind_of(described_class)
+      is_expected.to have_attributes(
+        trace_id: context.trace_id,
+        span_id: context.span_id,
+        sampled?: context.sampled?,
+        sampling_priority: context.sampling_priority,
+        origin: context.origin
+      )
+    end
+  end
+
   describe '#length' do
     subject(:ctx) { context }
     let(:span) { new_span }
