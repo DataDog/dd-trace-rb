@@ -13,6 +13,8 @@ module Datadog
     class Settings
       include Base
 
+      DEFAULT_TIME = :default_time
+
       #
       # Configuration options
       #
@@ -62,11 +64,6 @@ module Datadog
             o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_STARTUP_LOGS, nil) }
             o.lazy
           end
-        end
-
-        settings :time_provider do
-          o.default :default_time
-          o.lazy
         end
       end
 
@@ -208,6 +205,8 @@ module Datadog
 
         o.lazy
       end
+
+      option :time_provider, default: DEFAULT_TIME
 
       settings :tracer do
         option :enabled do |o|
