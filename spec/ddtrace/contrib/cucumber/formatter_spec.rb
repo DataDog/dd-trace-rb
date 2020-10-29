@@ -40,11 +40,14 @@ RSpec.describe 'Cucumber formatter' do
 
       do_execute
 
-      expect(spans.length).to eq(2)
-      expect(spans[1].resource).to eq('cucumber scenario')
-      expect(spans[1].service).to eq(Datadog::Contrib::Cucumber::Ext::SERVICE_NAME)
-      expect(spans[1].span_type).to eq(Datadog::Ext::AppTypes::TEST)
-      expect(spans[0].resource).to eq('datadog')
+      scenario_span = spans.find { |s| s.resource == 'cucumber scenario' }
+      step_span = spans.find { |s| s.resource == 'datadog' }
+
+      expect(scenario_span.resource).to eq('cucumber scenario')
+      expect(scenario_span.service).to eq(Datadog::Contrib::Cucumber::Ext::SERVICE_NAME)
+      expect(scenario_span.span_type).to eq(Datadog::Ext::AppTypes::TEST)
+      expect(scenario_span.name).to eq(Datadog::Contrib::Cucumber::Ext::OPERATION_NAME)
+      expect(step_span.resource).to eq('datadog')
     end
   end
 end

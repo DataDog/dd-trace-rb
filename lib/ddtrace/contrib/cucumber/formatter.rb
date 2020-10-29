@@ -36,7 +36,7 @@ module Datadog
             span_type: Datadog::Ext::AppTypes::TEST,
             tags: tags.merge(Datadog.configuration.tags)
           }
-          @current_feature_span = tracer.trace(Datadog::Ext::AppTypes::TEST, trace_options)
+          @current_feature_span = tracer.trace(configuration[:operation_name], trace_options)
           @current_feature_span.set_tag(Datadog::Ext::Test::TAG_FRAMEWORK, Ext::FRAMEWORK)
           @current_feature_span.set_tag(Datadog::Ext::Test::TAG_NAME, event.test_case.name)
           @current_feature_span.set_tag(Datadog::Ext::Test::TAG_SUITE, event.test_case.location.file)

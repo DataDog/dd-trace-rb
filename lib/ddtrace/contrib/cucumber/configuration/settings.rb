@@ -26,6 +26,11 @@ module Datadog
             o.default { Datadog.configuration.service || Ext::SERVICE_NAME }
             o.lazy
           end
+
+          option :operation_name do |o|
+            o.default { ENV.key?(Ext::ENV_OPERATION_NAME) ? ENV[Ext::ENV_OPERATION_NAME] : Ext::OPERATION_NAME }
+            o.lazy
+          end
         end
       end
     end
