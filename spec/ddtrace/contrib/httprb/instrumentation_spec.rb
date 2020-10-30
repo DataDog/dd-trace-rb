@@ -222,10 +222,15 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
                   httprb.service_name = 'bar'
                   httprb.split_by_domain = false
                 end
+
+                c.use :httprb, describes: /random/ do |httprb|
+                  httprb.service_name = 'barz'
+                  httprb.split_by_domain = false
+                end
               end
             end
 
-            it 'uses the configured service name over the domain name' do
+            it 'uses the configured service name over the domain name and the correct describes block' do
               http_response
               expect(span.service).to eq('bar')
             end

@@ -218,10 +218,15 @@ RSpec.describe 'Faraday middleware' do
             faraday.service_name = 'bar'
             faraday.split_by_domain = false
           end
+
+          c.use :faraday, describes: /badexample\.com/ do |faraday|
+            faraday.service_name = 'bar_bad'
+            faraday.split_by_domain = false
+          end
         end
       end
 
-      it 'uses the configured service name over the domain name' do
+      it 'uses the configured service name over the domain name and the correct describes block' do
         response
         expect(request_span.service).to eq('bar')
       end

@@ -173,14 +173,19 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     context 'and the host matches a specific configuration' do
       before do
         Datadog.configure do |c|
-          c.use :excon, describes: /example\.com/ do |faraday|
-            faraday.service_name = 'bar'
-            faraday.split_by_domain = false
+          c.use :excon, describes: /example\.com/ do |excon|
+            excon.service_name = 'bar'
+            excon.split_by_domain = false
+          end
+
+          c.use :excon, describes: /badexample\.com/ do |excon|
+            excon.service_name = 'bar_bad'
+            excon.split_by_domain = false
           end
         end
       end
 
-      it 'uses the configured service name over the domain name' do
+      it 'uses the configured service name over the domain name and the correct describes block' do
         response
         expect(request_span.service).to eq('bar')
       end

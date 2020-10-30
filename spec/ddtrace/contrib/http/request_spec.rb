@@ -235,10 +235,15 @@ RSpec.describe 'net/http requests' do
             http.service_name = 'bar'
             http.split_by_domain = false
           end
+
+          c.use :http, describes: /badexample\.com/ do |http|
+            http.service_name = 'bar_bad'
+            http.split_by_domain = false
+          end
         end
       end
 
-      it 'uses the configured service name over the domain name' do
+      it 'uses the configured service name over the domain name and the correct describes block' do
         response
         expect(span.service).to eq('bar')
       end
