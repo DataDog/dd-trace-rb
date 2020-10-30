@@ -85,6 +85,7 @@ namespace :spec do
     :active_support,
     :aws,
     :concurrent_ruby,
+    :cucumber,
     :dalli,
     :delayed_job,
     :elasticsearch,
@@ -533,6 +534,10 @@ task :ci do
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
       declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
+
+      # explicitly test cucumber compatibility
+      declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
     end
   elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
@@ -551,6 +556,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:active_support'
     declare 'bundle exec appraisal contrib rake spec:aws'
     declare 'bundle exec appraisal contrib rake spec:concurrent_ruby'
+    declare 'bundle exec appraisal contrib rake spec:cucumber'
     declare 'bundle exec appraisal contrib rake spec:dalli'
     declare 'bundle exec appraisal contrib rake spec:delayed_job'
     declare 'bundle exec appraisal contrib rake spec:elasticsearch'
@@ -606,6 +612,11 @@ task :ci do
     # explicitly test resque-2x compatability
     declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
     declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
+
+    # explicitly test cucumber compatibility
+    declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
+    declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
+    declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
   elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
     # Main library
@@ -625,6 +636,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:active_support'
       declare 'bundle exec appraisal contrib rake spec:aws'
       declare 'bundle exec appraisal contrib rake spec:concurrent_ruby'
+      declare 'bundle exec appraisal contrib rake spec:cucumber'
       declare 'bundle exec appraisal contrib rake spec:dalli'
       declare 'bundle exec appraisal contrib rake spec:delayed_job'
       declare 'bundle exec appraisal contrib rake spec:elasticsearch'
@@ -680,6 +692,11 @@ task :ci do
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
       declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
+
+      # explicitly test cucumber compatibility
+      declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
     end
   elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
     # Main library
@@ -699,6 +716,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:active_support'
       declare 'bundle exec appraisal contrib rake spec:aws'
       declare 'bundle exec appraisal contrib rake spec:concurrent_ruby'
+      declare 'bundle exec appraisal contrib rake spec:cucumber'
       declare 'bundle exec appraisal contrib rake spec:dalli'
       declare 'bundle exec appraisal contrib rake spec:delayed_job'
       declare 'bundle exec appraisal contrib rake spec:elasticsearch'
@@ -752,6 +770,11 @@ task :ci do
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
       declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
+
+      # explicitly test cucumber compatibility
+      declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
     end
   end
 end

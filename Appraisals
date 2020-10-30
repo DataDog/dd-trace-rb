@@ -2,6 +2,12 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ddtrace/version'
 
+def self.gem_cucumber(version)
+  appraise "cucumber#{version}" do
+    gem 'cucumber', ">=#{version}.0.0", "<#{version + 1}.0.0"
+  end
+end
+
 if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
   raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
 elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -549,6 +555,8 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque', '>= 2.0'
     end
 
+    (3..4).each { |v| gem_cucumber(v) }
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -648,6 +656,8 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque', '>= 2.0'
     end
 
+    (3..4).each { |v| gem_cucumber(v) }
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -655,6 +665,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
       gem 'concurrent-ruby'
+      gem 'cucumber'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -795,6 +806,8 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'resque', '>= 2.0'
   end
 
+  (3..5).each { |v| gem_cucumber(v) }
+
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -802,6 +815,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activerecord'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
+    gem 'cucumber'
     gem 'dalli'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
@@ -933,6 +947,8 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque', '>= 2.0'
     end
 
+    (3..5).each { |v| gem_cucumber(v) }
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -940,6 +956,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord'
       gem 'aws-sdk'
       gem 'concurrent-ruby'
+      gem 'cucumber'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -1073,6 +1090,8 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'resque', '>= 2.0'
     end
 
+    (3..5).each { |v| gem_cucumber(v) }
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -1080,6 +1099,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'activerecord'
       gem 'aws-sdk'
       gem 'concurrent-ruby'
+      gem 'cucumber'
       gem 'dalli'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
