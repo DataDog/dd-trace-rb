@@ -67,7 +67,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       context 'and the host matches a specific configuration' do
         before do
           Datadog.configure do |c|
-            c.use :ethon, describe: /example\.com/ do |ethon|
+            c.use :ethon, describes: /example\.com/ do |ethon|
               ethon.service_name = 'baz'
               ethon.split_by_domain = false
             end

@@ -214,7 +214,7 @@ RSpec.describe 'Faraday middleware' do
     context 'and the host matches a specific configuration' do
       before do
         Datadog.configure do |c|
-          c.use :faraday, describe: /example\.com/ do |faraday|
+          c.use :faraday, describes: /example\.com/ do |faraday|
             faraday.service_name = 'bar'
             faraday.split_by_domain = false
           end

@@ -218,7 +218,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           context 'and the host matches a specific configuration' do
             before do
               Datadog.configure do |c|
-                c.use :httprb, describe: /localhost/ do |httprb|
+                c.use :httprb, describes: /localhost/ do |httprb|
                   httprb.service_name = 'bar'
                   httprb.split_by_domain = false
                 end

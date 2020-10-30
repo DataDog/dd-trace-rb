@@ -231,7 +231,7 @@ RSpec.describe 'net/http requests' do
     context 'and the host matches a specific configuration' do
       before do
         Datadog.configure do |c|
-          c.use :http, describe: /example\.com/ do |http|
+          c.use :http, describes: /example\.com/ do |http|
             http.service_name = 'bar'
             http.split_by_domain = false
           end
