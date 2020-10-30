@@ -602,7 +602,7 @@ To activate your integration, use the `Datadog.configure` method:
 require 'cucumber'
 require 'ddtrace'
 
-# Configure default Cucumber intergration
+# Configure default Cucumber integration
 Datadog.configure do |c|
   c.use :cucumber, options
 end
