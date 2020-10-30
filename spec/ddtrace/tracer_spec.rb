@@ -67,6 +67,8 @@ RSpec.describe Datadog::Tracer do
 
     it { is_expected.to be_a_kind_of(Datadog::Span) }
 
+    it { expect(span.get_metric(Datadog::Ext::System::PID)).to eq(Process.pid) }
+
     context 'when :tags are given' do
       let(:options) { super().merge(tags: tags) }
       let(:tags) { { tag_name => tag_value } }

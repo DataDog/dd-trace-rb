@@ -11,6 +11,8 @@ require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
 
+require 'ddtrace/ext/system'
+
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
   # A \Tracer keeps track of the time spent by an application processing a single operation. For
@@ -200,7 +202,7 @@ module Datadog
       if parent.nil?
         # root span
         @sampler.sample!(span)
-        span.set_tag('system.pid', Process.pid)
+        span.set_metric(Ext::System::PID, Process.pid)
 
         if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
