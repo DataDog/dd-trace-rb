@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'ddtrace/ext/forced_tracing'
 require 'ddtrace/span'
+require 'ddtrace/utils'
 
 require 'json'
 require 'msgpack'
@@ -195,6 +196,9 @@ RSpec.describe Datadog::Span do
         # If duration is greater than zero but start_time == end_time, we can
         # be sure we're using the monotonic time.
         allow(::Time).to receive(:now)
+          .and_return(static_time)
+
+        allow(Datadog::Utils::Time).to receive(:current_time)
           .and_return(static_time)
       end
 
