@@ -48,11 +48,7 @@ module Datadog
           # PatternResolvers maintain patterns as a Set so we can naively add
           # This is a bit hacky but otherwise `configuration_for?(key)` always returns true
           # since the resolver.resolve check will always return default
-          config = if resolver.is_a?(Configuration::Resolvers::PatternResolver)
-                     add_configuration(key)
-                   else
-                     configuration_for?(key) ? configuration(key) : add_configuration(key)
-                   end
+          config = configuration_for?(key) ? configuration(key) : add_configuration(key)
 
           # Apply the settings
           config.configure(options, &block)

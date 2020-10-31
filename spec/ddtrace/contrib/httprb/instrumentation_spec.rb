@@ -35,7 +35,6 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
   end
   after(:all) { @server.shutdown }
 
-  # let(:tracer) { get_test_tracer }
   let(:configuration_options) { {} }
 
   before do

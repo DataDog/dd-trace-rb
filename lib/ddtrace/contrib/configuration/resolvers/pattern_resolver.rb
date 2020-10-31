@@ -20,7 +20,7 @@ module Datadog
             end
 
             # Return match or default
-            matching_pattern || :default
+            matching_pattern
           end
 
           def add(pattern)
