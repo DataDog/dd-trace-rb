@@ -17,9 +17,9 @@ module Datadog
               elsif pattern.is_a?(Regexp)
                 if name.is_a?(Regexp)
                   name.to_s === pattern.to_s
-                elsif name.is_a?(String)
-                  pattern.match(name)
-                else
+                elsif name.respond_to?(:to_s)
+                  pattern.match(name.to_s)
+                elsif
                   false
                 end
               else
