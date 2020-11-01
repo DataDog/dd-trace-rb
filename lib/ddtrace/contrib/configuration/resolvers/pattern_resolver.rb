@@ -14,6 +14,14 @@ module Datadog
               # rubocop:disable Style/ConditionalAssignment
               if pattern.is_a?(Proc)
                 pattern === name
+              elsif pattern.is_a?(Regexp)
+                if name.is_a?(Regexp)
+                  name.to_s === pattern.to_s
+                elsif name.is_a?(String)
+                  pattern.match(name)
+                else
+                  false
+                end
               else
                 pattern === name.to_s # Co-erce to string
               end
