@@ -45,7 +45,7 @@ module Datadog
         def configure(key, options = {}, &block)
           key ||= :default
 
-          # Get or add the configurations
+          # Get or add the configuration
           config = configuration_for?(key) ? configuration(key) : add_configuration(key)
 
           # Apply the settings
