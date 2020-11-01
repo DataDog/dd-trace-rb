@@ -10,8 +10,6 @@ module Datadog
           def resolve(name)
             # Try to find a matching pattern
             matching_pattern = patterns.find do |pattern|
-              # Rubocop incorrectly thinks assignment is done here...
-              # rubocop:disable Style/ConditionalAssignment
               if pattern.is_a?(Proc)
                 pattern === name
               elsif pattern.is_a?(Regexp)
@@ -19,7 +17,7 @@ module Datadog
                   name.to_s === pattern.to_s
                 elsif name.respond_to?(:to_s)
                   pattern.match(name.to_s)
-                elsif
+                else
                   false
                 end
               else
