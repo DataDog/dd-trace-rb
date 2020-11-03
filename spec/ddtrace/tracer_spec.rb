@@ -6,6 +6,35 @@ RSpec.describe Datadog::Tracer do
   let(:writer) { FauxWriter.new }
   subject(:tracer) { described_class.new(writer: writer) }
 
+  shared_context 'parent span' do
+    let(:trace_id) { SecureRandom.uuid }
+    let(:span_id) { SecureRandom.uuid }
+    let(:service) { 'test-service' }
+
+    before do
+      allow(context).to receive(:add_span)
+    end
+
+    let(:parent_span) do
+      instance_double(
+        Datadog::Span,
+        context: context,
+        trace_id: trace_id,
+        span_id: span_id,
+        service: service,
+        sampled: true
+      )
+    end
+
+    let(:context) do
+      instance_double(
+        Datadog::Context,
+        trace_id: trace_id,
+        span_id: span_id
+      )
+    end
+  end
+
   describe '#configure' do
     subject!(:configure) { tracer.configure(options) }
     let(:options) { {} }
@@ -96,6 +125,24 @@ RSpec.describe Datadog::Tracer do
         end
       end
     end
+
+    context 'when :child_of' do
+      context 'is not given' do
+        it 'applies a runtime ID tag' do
+          expect(start_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
+        end
+      end
+
+      context 'is given' do
+        include_context 'parent span'
+
+        let(:options) { super().merge(child_of: parent_span) }
+
+        it 'does not apply a runtime ID tag' do
+          expect(start_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to be nil
+        end
+      end
+    end
   end
 
   describe '#trace' do
@@ -150,6 +197,54 @@ RSpec.describe Datadog::Tracer do
             expect(Datadog.logger).to receive(:debug).with(including('Name: span.name'))
 
             subject
+          end
+        end
+
+        it 'adds a runtime ID tag to the span' do
+          tracer.trace(name) do |span|
+            expect(span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
+          end
+        end
+      end
+
+      context 'when nesting spans' do
+        it 'only the top most span has a runtime ID tag' do
+          tracer.trace(name) do |parent_span|
+            expect(parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
+
+            tracer.trace(name) do |child_span|
+              expect(child_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to be nil
+            end
+          end
+        end
+
+        context 'with forking' do
+          before { skip 'Java not supported' if RUBY_PLATFORM == 'java' }
+
+          it 'only the top most span per process has a runtime ID tag' do
+            tracer.trace(name) do |parent_span|
+              parent_process_id = Datadog::Runtime::Identity.id
+              expect(parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(parent_process_id)
+
+              tracer.trace(name) do |child_span|
+                expect(child_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to be nil
+
+                expect_in_fork do
+                  fork_process_id = Datadog::Runtime::Identity.id
+                  expect(fork_process_id).to_not eq(parent_process_id)
+
+                  tracer.trace(name) do |fork_parent_span|
+                    # Tag should be set on the fork's parent span, but not be the same as the parent process runtime ID
+                    expect(fork_parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(fork_process_id)
+                    expect(fork_parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to_not eq(parent_process_id)
+
+                    tracer.trace(name) do |fork_child_span|
+                      expect(fork_child_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to be nil
+                    end
+                  end
+                end
+              end
+            end
           end
         end
       end
