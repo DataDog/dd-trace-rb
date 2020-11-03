@@ -14,7 +14,7 @@ module Datadog
                 (pattern === name)
               else
                 (pattern === name.to_s) ||
-                (pattern == name) # Only required during configuration time.
+                  (pattern == name) # Only required during configuration time.
               end
             end
 
