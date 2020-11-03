@@ -13,7 +13,8 @@ module Datadog
               if pattern.is_a?(Proc)
                 (pattern === name)
               else
-                (pattern === name.to_s) || (pattern == name)
+                (pattern === name.to_s) ||
+                (pattern == name) # Only required during configuration time.
               end
             end
 
