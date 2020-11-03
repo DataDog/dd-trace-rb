@@ -15,7 +15,18 @@ module Datadog
 
     # Return the local context.
     def context(key = nil)
-      key.nil? ? @context.local : @context.local(key)
+      current_context = key.nil? ? @context.local : @context.local(key)
+
+      # Rebuild/reset context after a fork
+      #
+      # We don't want forked processes to copy and retransmit spans
+      # that were generated from the parent process. Reset it such
+      # that it acts like a distributed trace.
+      current_context.after_fork! do
+        current_context = self.context = current_context.fork_clone
+      end
+
+      current_context
     end
   end
 
