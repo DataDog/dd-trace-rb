@@ -10,8 +10,10 @@ module Datadog
           def resolve(name)
             # Try to find a matching pattern
             matching_pattern = patterns.find do |pattern|
-              if pattern.respond_to?(:===)
-                (pattern === name) || (pattern === name.to_s) || (pattern == name)
+              if pattern.is_a?(Proc)
+                (pattern === name)
+              else
+                (pattern === name.to_s) || (pattern == name)
               end
             end
 
