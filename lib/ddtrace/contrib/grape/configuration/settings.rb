@@ -24,6 +24,7 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
+          option :dont_report_4xx, default: false
         end
       end
     end

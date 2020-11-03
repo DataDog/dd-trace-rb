@@ -90,10 +90,11 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
-              puts payload
-              span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
-              
 
+              if exception_is_error?(payload[:exception_object])
+                span.set_error(payload[:exception_object])
+              end
+          
               # override the current span with this notification values
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
               span.set_tag(Ext::TAG_ROUTE_PATH, path)
@@ -135,7 +136,10 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
-              span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+              if exception_is_error?(payload[:exception_object])
+                span.set_error(payload[:exception_object])
+              end
+
             ensure
               span.start(start)
               span.finish(finish)
@@ -170,7 +174,10 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
-              span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+              if exception_is_error?(payload[:exception_object])
+                span.set_error(payload[:exception_object])
+              end
+
               span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
             ensure
               span.start(start)
@@ -196,6 +203,20 @@ module Datadog
 
           def analytics_sample_rate
             datadog_configuration[:analytics_sample_rate]
+          end
+
+          def is_4xx_error?
+            datadog_configuration[:dont_report_4xx]
+          end
+
+          def exception_is_error?(exception)
+            return false unless exception
+            
+            if is_4xx_error? && defined?(::Grape::Exceptions::Base) && exception.class < ::Grape::Exceptions::Base
+              status = exception.status
+            end
+
+            status.nil? || status > 499
           end
 
           def enabled?

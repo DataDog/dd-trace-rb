@@ -194,8 +194,39 @@ RSpec.describe 'Grape instrumentation' do
         end
       end
     end
+    
 
     context 'failure' do
+
+      context 'without filters' do
+        subject(:response) { post '/base/hard_failure' }
+
+        it 'should handle exceptions' do
+          expect(response.body).to eq('405 Not Allowed')
+          expect(spans.length).to eq(1)
+          expect(spans[0].name).to eq('grape.endpoint_run')
+          expect(spans[0].status).to eq(1)
+          expect(spans[0].get_tag('error.stack')).to_not be_nil
+          expect(spans[0].get_tag('error.type')).to_not be_nil
+          expect(spans[0].get_tag('error.msg')).to_not be_nil
+        end
+
+        context 'and dont_report_4xx' do
+          subject(:response) { post '/base/hard_failure' } 
+          let(:configuration_options) { {dont_report_4xx: true} }
+
+          it 'should handle exceptions' do
+            expect(response.body).to eq('405 Not Allowed')
+            expect(spans.length).to eq(1)
+            expect(spans[0].name).to eq('grape.endpoint_run')
+            expect(spans[0].status).to eq(0)
+            expect(spans[0].get_tag('error.stack')).to be_nil
+            expect(spans[0].get_tag('error.type')).to be_nil
+            expect(spans[0].get_tag('error.msg')).to be_nil
+          end
+        end
+      end
+
       context 'without filters' do
         subject(:response) { get '/base/hard_failure' }
 
@@ -333,79 +364,79 @@ RSpec.describe 'Grape instrumentation' do
         expect(rack_span).to_not have_error
         expect(rack_span.parent).to be_nil
       end
+    end
 
-      context 'failure' do
-        subject(:response) { get '/api/hard_failure' }
+    context 'failure' do
+      subject(:response) { get '/api/hard_failure' }
 
-        it_behaves_like 'measured span for integration', true do
-          before do
-            expect { subject }.to raise_error(StandardError, 'Ouch!')
-          end
-        end
-
-        it_behaves_like 'analytics for integration', ignore_global_flag: false do
-          let(:span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
-          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
-          before do
-            expect { subject }.to raise_error(StandardError, 'Ouch!')
-          end
-        end
-
-        it 'should integrate with Racck integration when exception is thrown' do
+      it_behaves_like 'measured span for integration', true do
+        before do
           expect { subject }.to raise_error(StandardError, 'Ouch!')
-          expect(spans.length).to eq(3)
-
-          render_span, run_span, rack_span = spans
-
-          expect(render_span.name).to eq('grape.endpoint_render')
-          expect(render_span.span_type).to eq('template')
-          expect(render_span.service).to eq('grape')
-          expect(render_span.resource).to eq('grape.endpoint_render')
-          expect(render_span).to have_error
-          expect(render_span).to have_error_type('StandardError')
-          expect(render_span).to have_error_message('Ouch!')
-          expect(render_span.get_tag('error.stack')).to include('grape/tracer_spec.rb')
-          expect(render_span.parent).to eq(run_span)
-
-          expect(run_span.name).to eq('grape.endpoint_run')
-          expect(run_span.span_type).to eq('web')
-          expect(run_span.service).to eq('grape')
-          expect(run_span.resource).to eq('RackTestingAPI#hard_failure')
-          expect(run_span).to have_error
-          expect(run_span.parent).to eq(rack_span)
-
-          expect(rack_span.name).to eq('rack.request')
-          expect(rack_span.span_type).to eq('web')
-          expect(rack_span.service).to eq('rack')
-          expect(rack_span.resource).to eq('RackTestingAPI#hard_failure')
-          expect(rack_span).to have_error
-          expect(rack_span.parent).to be_nil
         end
       end
 
-      context 'missing route' do
-        subject(:response) { get '/api/not_existing' }
-
-        it_behaves_like 'measured span for integration', true do
-          before do
-            expect(subject.status).to eq(404)
-          end
+      it_behaves_like 'analytics for integration', ignore_global_flag: false do
+        let(:span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
+        let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        before do
+          expect { subject }.to raise_error(StandardError, 'Ouch!')
         end
+      end
 
-        it 'it should not impact the Rack integration that must work as usual' do
+      it 'should integrate with Rack integration when exception is thrown' do
+        expect { subject }.to raise_error(StandardError, 'Ouch!')
+        expect(spans.length).to eq(3)
+
+        render_span, run_span, rack_span = spans
+
+        expect(render_span.name).to eq('grape.endpoint_render')
+        expect(render_span.span_type).to eq('template')
+        expect(render_span.service).to eq('grape')
+        expect(render_span.resource).to eq('grape.endpoint_render')
+        expect(render_span).to have_error
+        expect(render_span).to have_error_type('StandardError')
+        expect(render_span).to have_error_message('Ouch!')
+        expect(render_span.get_tag('error.stack')).to include('grape/tracer_spec.rb')
+        expect(render_span.parent).to eq(run_span)
+
+        expect(run_span.name).to eq('grape.endpoint_run')
+        expect(run_span.span_type).to eq('web')
+        expect(run_span.service).to eq('grape')
+        expect(run_span.resource).to eq('RackTestingAPI#hard_failure')
+        expect(run_span).to have_error
+        expect(run_span.parent).to eq(rack_span)
+
+        expect(rack_span.name).to eq('rack.request')
+        expect(rack_span.span_type).to eq('web')
+        expect(rack_span.service).to eq('rack')
+        expect(rack_span.resource).to eq('RackTestingAPI#hard_failure')
+        expect(rack_span).to have_error
+        expect(rack_span.parent).to be_nil
+      end
+    end
+
+    context 'missing route' do
+      subject(:response) { get '/api/not_existing' }
+
+      it_behaves_like 'measured span for integration', true do
+        before do
           expect(subject.status).to eq(404)
-          expect(spans.length).to eq(1)
-
-          rack_span = spans[0]
-
-          expect(rack_span.name).to eq('rack.request')
-          expect(rack_span.span_type).to eq('web')
-          expect(rack_span.service).to eq('rack')
-          expect(rack_span.resource).to eq('GET 404')
-          expect(rack_span).to_not have_error
-          expect(rack_span.parent).to be_nil
         end
+      end
+
+      it 'it should not impact the Rack integration that must work as usual' do
+        expect(subject.status).to eq(404)
+        expect(spans.length).to eq(1)
+
+        rack_span = spans[0]
+
+        expect(rack_span.name).to eq('rack.request')
+        expect(rack_span.span_type).to eq('web')
+        expect(rack_span.service).to eq('rack')
+        expect(rack_span.resource).to eq('GET 404')
+        expect(rack_span).to_not have_error
+        expect(rack_span.parent).to be_nil
       end
     end
   end
