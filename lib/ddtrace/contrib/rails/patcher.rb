@@ -53,6 +53,7 @@ module Datadog
         end
 
         def add_logger(app)
+          should_warn = true
           # check if lograge key exists
           # Note: Rails executes initializers sequentially based on alphabetical order,
           # and lograge config could occur after dd config.
@@ -62,6 +63,7 @@ module Datadog
           # See: https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lib/lograge/railtie.rb#L7-L12
           if app.config.respond_to?(:lograge)
             Datadog::Contrib::Rails::LogInjection.add_lograge_logger(app)
+            should_warn = false
           end
 
           # if lograge isn't set, check if tagged logged is enabled.
@@ -71,9 +73,10 @@ module Datadog
              logger.is_a?(::ActiveSupport::TaggedLogging)
 
             Datadog::Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
-          else
-            Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger} is not supported")
+            should_warn = false
           end
+
+          Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger} is not supported") if should_warn
         end
 
         def patch_after_intialize
