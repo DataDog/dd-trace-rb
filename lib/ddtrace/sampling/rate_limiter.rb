@@ -33,6 +33,7 @@ module Datadog
       # @param max_tokens [Numeric] Limit of available tokens
       def initialize(rate, max_tokens = rate)
         @rate = rate
+        @prev_window_rate = nil
         @max_tokens = max_tokens
 
         @tokens = max_tokens
@@ -68,12 +69,29 @@ module Datadog
       end
 
       # Ratio of 'conformance' per 'total messages' checked
-      # on this bucket.
+      # on this bucket. edit: past 2 buckets
       #
       # Returns +1.0+ when no messages have been checked yet.
       #
       # @return [Float] Conformance ratio, between +[0,1]+
       def effective_rate
+        return 0.0 if @rate.zero?
+        return 1.0 if @rate < 0 || @total_messages.zero?
+
+        if @prev_window_rate.nil?
+          return current_window_rate
+
+
+        return (current_window_rate + @prev_window_rate) / 2
+      end
+
+      # Ratio of 'conformance' per 'total messages' checked
+      # on this bucket
+      #
+      # Returns +1.0+ when no messages have been checked yet.
+      #
+      # @return [Float] Conformance ratio, between +[0,1]+
+      def current_window_rate
         return 0.0 if @rate.zero?
         return 1.0 if @rate < 0 || @total_messages.zero?
 
