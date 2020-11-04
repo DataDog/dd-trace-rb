@@ -69,7 +69,7 @@ module Datadog
         option :propagation_extract_style do |o|
           o.default do
             # Look for all headers by default
-            env_to_list([Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV,
+            env_to_list([Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV,
                          Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV_OLD],
                         [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
                          Ext::DistributedTracing::PROPAGATION_STYLE_B3,
@@ -82,7 +82,7 @@ module Datadog
         option :propagation_inject_style do |o|
           o.default do
             # Only inject Datadog headers by default
-            env_to_list([Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV,
+            env_to_list([Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV,
                          Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV_OLD],
                         [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG])
           end

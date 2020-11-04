@@ -200,9 +200,9 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#propagation_extract_style' do
       subject(:propagation_extract_style) { settings.distributed_tracing.propagation_extract_style }
 
-      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV}" do
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV => environment) do
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV => environment) do
             example.run
           end
         end
@@ -270,9 +270,9 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#propagation_inject_style' do
       subject(:propagation_inject_style) { settings.distributed_tracing.propagation_inject_style }
 
-      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV}" do
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV => environment) do
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV => environment) do
             example.run
           end
         end
