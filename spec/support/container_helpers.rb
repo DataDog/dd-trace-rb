@@ -6,6 +6,10 @@ module ContainerHelpers
     let(:cgroup_file) { StringIO.new }
 
     before do
+      expect(File).to receive(:exist?)
+        .with('/proc/self/cgroup')
+        .and_return(true)
+
       allow(File).to receive(:open).and_call_original
       allow(File).to receive(:open)
         .with('/proc/self/cgroup')
