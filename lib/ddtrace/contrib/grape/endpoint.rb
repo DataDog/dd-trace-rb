@@ -94,7 +94,7 @@ module Datadog
               if exception_is_error?(payload[:exception_object])
                 span.set_error(payload[:exception_object])
               end
-          
+
               # override the current span with this notification values
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
               span.set_tag(Ext::TAG_ROUTE_PATH, path)
@@ -139,7 +139,6 @@ module Datadog
               if exception_is_error?(payload[:exception_object])
                 span.set_error(payload[:exception_object])
               end
-
             ensure
               span.start(start)
               span.finish(finish)
@@ -205,17 +204,15 @@ module Datadog
             datadog_configuration[:analytics_sample_rate]
           end
 
-          def is_4xx_error?
+          def handle_4xx_error
             datadog_configuration[:dont_report_4xx]
           end
 
           def exception_is_error?(exception)
             return false unless exception
-            
-            if is_4xx_error? && defined?(::Grape::Exceptions::Base) && exception.class < ::Grape::Exceptions::Base
+            if handle_4xx_error && defined?(::Grape::Exceptions::Base) && exception.class < ::Grape::Exceptions::Base
               status = exception.status
             end
-
             status.nil? || status > 499
           end
 
