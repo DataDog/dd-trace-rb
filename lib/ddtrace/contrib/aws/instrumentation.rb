@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/aws/ext'
+require 'ddtrace/ext/http'
 require 'ddtrace/ext/integration'
 
 module Datadog
@@ -26,7 +27,7 @@ module Datadog
 
         def annotate!(span, context)
           span.service = configuration[:service_name]
-          span.span_type = Datadog::Ext::AppTypes::WEB
+          span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
           span.name = Ext::SPAN_COMMAND
           span.resource = context.safely(:resource)
 
