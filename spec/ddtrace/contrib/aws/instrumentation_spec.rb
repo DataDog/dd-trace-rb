@@ -44,7 +44,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('web')
+        expect(span.span_type).to eq('http')
         expect(span.resource).to eq('s3.list_buckets')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')

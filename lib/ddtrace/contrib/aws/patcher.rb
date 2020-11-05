@@ -1,5 +1,4 @@
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/aws/ext'
 
 module Datadog
