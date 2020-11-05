@@ -18,7 +18,6 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     allow(default_sampler).to receive(:sample?).with(span).and_return(nil)
     allow(rate_limiter).to receive(:effective_rate).and_return(effective_rate)
     allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
-    allow(rate_limiter).to receive(:update_rate_counts).with(allow?).and_return(true)
   end
 
   context '#initialize' do
