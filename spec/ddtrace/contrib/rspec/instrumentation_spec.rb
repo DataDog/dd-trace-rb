@@ -11,7 +11,7 @@ RSpec.describe 'RSpec hooks' do
   let(:configuration_options) { {} }
 
   around do |example|
-    Datadog.configuration.reset!
+    # Datadog.configuration.reset!
 
     old_configuration = ::RSpec.configuration
     ::RSpec.configuration = ::RSpec::Core::Configuration.new
@@ -51,8 +51,11 @@ RSpec.describe 'RSpec hooks' do
 
       expect(group_span.service).to eq(Datadog::Contrib::RSpec::Ext::SERVICE_NAME)
       expect(group_span.span_type).to eq(Datadog::Ext::AppTypes::TEST)
-      expect(foo_span.span_type).to eq(Datadog::Contrib::RSpec::Ext::EXAMPLE_SPAN_TYPE)
-      expect(bar_span.span_type).to eq(Datadog::Contrib::RSpec::Ext::EXAMPLE_SPAN_TYPE)
+      expect(group_span.name).to eq(Datadog::Contrib::RSpec::Ext::EXAMPLE_GROUP_OPERATION_NAME)
+      expect(foo_span.span_type).to eq(Datadog::Ext::AppTypes::TEST)
+      expect(foo_span.name).to eq(Datadog::Contrib::RSpec::Ext::OPERATION_NAME)
+      expect(bar_span.span_type).to eq(Datadog::Ext::AppTypes::TEST)
+      expect(bar_span.name).to eq(Datadog::Contrib::RSpec::Ext::OPERATION_NAME)
     end
   end
 end

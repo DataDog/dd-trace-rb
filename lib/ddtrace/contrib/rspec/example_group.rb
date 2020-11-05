@@ -21,7 +21,7 @@ module Datadog
               tags: tags.merge(Datadog.configuration.tags)
             }
 
-            configuration[:tracer].trace(configuration[:operation_name], trace_options) do |span|
+            configuration[:tracer].trace(Ext::EXAMPLE_GROUP_OPERATION_NAME, trace_options) do |span|
               span.set_tag(Datadog::Ext::Test::TAG_FRAMEWORK, Ext::FRAMEWORK)
               span.set_tag(Datadog::Ext::Test::TAG_NAME, description)
               span.set_tag(Datadog::Ext::Test::TAG_SUITE, file_path)

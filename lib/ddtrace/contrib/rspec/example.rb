@@ -17,10 +17,11 @@ module Datadog
               app: Ext::APP,
               resource: "#{example_group}::#{description}",
               service: configuration[:service_name],
-              span_type: Ext::EXAMPLE_SPAN_TYPE
+              span_type: Datadog::Ext::AppTypes::TEST,
+              tags: example_group.instance_variable_get(:@tags).merge(Datadog.configuration.tags)
             }
 
-            configuration[:tracer].trace(Ext::EXAMPLE_SPAN_TYPE, trace_options) do |span|
+            configuration[:tracer].trace(configuration[:operation_name], trace_options) do |span|
               span.set_tag(Datadog::Ext::Test::TAG_FRAMEWORK, Ext::FRAMEWORK)
               span.set_tag(Datadog::Ext::Test::TAG_NAME, description)
               span.set_tag(Datadog::Ext::Test::TAG_SUITE, example_group)
