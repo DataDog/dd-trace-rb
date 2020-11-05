@@ -38,7 +38,7 @@ module Datadog
         @tokens = max_tokens
         @total_messages = 0
         @conforming_messages = 0
-        @current_window = 0
+        @current_window = nil
         @prev_window_rate = nil
         @last_refill = Utils::Time.get_time
       end
