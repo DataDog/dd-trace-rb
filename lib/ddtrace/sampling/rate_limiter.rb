@@ -18,8 +18,6 @@ module Datadog
       #
       # @return [Float] recent allowance ratio
       def effective_rate; end
-
-      def update_rate_counts(allowed); end
     end
 
     # Implementation of the Token Bucket metering algorithm
@@ -51,24 +49,13 @@ module Datadog
       # If it does, return +true+ and remove +size+
       # tokens from the bucket.
       # If it does not, return +false+ without affecting
-      # the tokens form the bucket.
+      # the tokens from the bucket.
       #
       # @return [Boolean] +true+ if message conforms with current bucket limit
       def allow?(size)
-        # rate limit of 0 blocks everything
-        return false if @rate.zero?
-
-        # negative rate limit disables rate limiting
-        return true if @rate < 0
-
-        refill_since_last_message
-
-        # if tokens < 1 we don't allow?
-        return false if @tokens < size
-
-        @tokens -= size
-
-        true
+        allowed = should_allow?(size)
+        update_rate_counts(allowed)
+        allowed
       end
 
       # Ratio of 'conformance' per 'total messages' checked
@@ -103,28 +90,6 @@ module Datadog
         @tokens
       end
 
-      # Sets and Updates the past two 1 second windows for which 
-      # the rate limiter must compute it's rate over and updates 
-      # the total count, and conforming message count if +allowed+
-      def update_rate_counts(allowed)
-        now = Utils::Time.get_time
-
-        # No tokens have been seen yet, start a new window
-        if @current_window.nil?
-          @current_window = now
-        # If more than 1 second has past since last window, reset
-        elsif now - @current_window >= 1
-          @prev_window_rate = current_window_rate
-          @conforming_messages = 0
-          @total_messages = 0
-          @current_window = now
-        end
-
-        increment_conforming_count if allowed
-
-        increment_total_count
-      end
-
       private
 
       def refill_since_last_message
@@ -150,6 +115,45 @@ module Datadog
       def increment_conforming_count
         @conforming_messages += 1
       end
+
+      def should_allow?(size)
+        # rate limit of 0 blocks everything
+        return false if @rate.zero?
+
+        # negative rate limit disables rate limiting
+        return true if @rate < 0
+
+        refill_since_last_message
+
+        # if tokens < 1 we don't allow?
+        return false if @tokens < size
+
+        @tokens -= size
+
+        true
+      end
+
+      # Sets and Updates the past two 1 second windows for which
+      # the rate limiter must compute it's rate over and updates
+      # the total count, and conforming message count if +allowed+
+      def update_rate_counts(allowed)
+        now = Utils::Time.get_time
+
+        # No tokens have been seen yet, start a new window
+        if @current_window.nil?
+          @current_window = now
+        # If more than 1 second has past since last window, reset
+        elsif now - @current_window >= 1
+          @prev_window_rate = current_window_rate
+          @conforming_messages = 0
+          @total_messages = 0
+          @current_window = now
+        end
+
+        increment_conforming_count if allowed
+
+        increment_total_count
+      end
     end
 
     # \RateLimiter that accepts all resources,
@@ -164,8 +168,6 @@ module Datadog
       def effective_rate
         1.0
       end
-
-      def update_rate_counts(allowed); end
     end
   end
 end
