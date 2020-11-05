@@ -12,8 +12,8 @@ RSpec.describe Datadog::Contrib::RSpec::Patcher do
 
     context 'is patched' do
       it 'has a custom bases' do
-        expect(example.ancestors).to include(Datadog::Contrib::RSpec::Instrumentation::Example::InstanceMethods)
-        expect(example_group.ancestors).to include(Datadog::Contrib::RSpec::Instrumentation::ExampleGroup::ClassMethods)
+        expect(example.ancestors).to include(Datadog::Contrib::RSpec::Example::InstanceMethods)
+        expect(example_group.ancestors).to include(Datadog::Contrib::RSpec::ExampleGroup::ClassMethods)
       end
     end
   end

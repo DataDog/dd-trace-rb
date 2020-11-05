@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/contrib/rspec/instrumentation'
+require 'ddtrace/contrib/rspec/example'
+require 'ddtrace/contrib/rspec/example_group'
 
 module Datadog
   module Contrib
@@ -15,8 +16,8 @@ module Datadog
         end
 
         def patch
-          ::RSpec::Core::Example.send(:include, Instrumentation::Example)
-          ::RSpec::Core::ExampleGroup.send(:include, Instrumentation::ExampleGroup)
+          ::RSpec::Core::Example.send(:include, Example)
+          ::RSpec::Core::ExampleGroup.send(:include, ExampleGroup)
         end
       end
     end
