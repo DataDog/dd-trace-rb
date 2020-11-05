@@ -18,6 +18,8 @@ module Datadog
       #
       # @return [Float] recent allowance ratio
       def effective_rate; end
+
+      def update_rate_counts(allowed); end
     end
 
     # Implementation of the Token Bucket metering algorithm
@@ -33,12 +35,13 @@ module Datadog
       # @param max_tokens [Numeric] Limit of available tokens
       def initialize(rate, max_tokens = rate)
         @rate = rate
-        @prev_window_rate = nil
         @max_tokens = max_tokens
 
         @tokens = max_tokens
         @total_messages = 0
         @conforming_messages = 0
+        @current_window = 0
+        @prev_window_rate = nil
         @last_refill = Utils::Time.get_time
       end
 
@@ -52,16 +55,16 @@ module Datadog
       #
       # @return [Boolean] +true+ if message conforms with current bucket limit
       def allow?(size)
+        # rate limit of 0 blocks everything
         return false if @rate.zero?
+
+        # negative rate limit disables rate limiting
         return true if @rate < 0
 
         refill_since_last_message
 
-        increment_total_count
-
+        # if tokens < 1 we don't allow?
         return false if @tokens < size
-
-        increment_conforming_count
 
         @tokens -= size
 
@@ -69,7 +72,7 @@ module Datadog
       end
 
       # Ratio of 'conformance' per 'total messages' checked
-      # on this bucket. edit: past 2 buckets
+      # averaged for the past 2 buckets
       #
       # Returns +1.0+ when no messages have been checked yet.
       #
@@ -78,11 +81,9 @@ module Datadog
         return 0.0 if @rate.zero?
         return 1.0 if @rate < 0 || @total_messages.zero?
 
-        if @prev_window_rate.nil?
-          return current_window_rate
+        return current_window_rate if @prev_window_rate.nil?
 
-
-        return (current_window_rate + @prev_window_rate) / 2
+        (current_window_rate + @prev_window_rate) / 2
       end
 
       # Ratio of 'conformance' per 'total messages' checked
@@ -92,8 +93,7 @@ module Datadog
       #
       # @return [Float] Conformance ratio, between +[0,1]+
       def current_window_rate
-        return 0.0 if @rate.zero?
-        return 1.0 if @rate < 0 || @total_messages.zero?
+        return 1.0 if @total_messages.zero?
 
         @conforming_messages.to_f / @total_messages
       end
@@ -103,12 +103,36 @@ module Datadog
         @tokens
       end
 
+      # Sets and Updates the past two 1 second windows for which 
+      # the rate limiter must compute it's rate over and updates 
+      # the total count, and conforming message count if +allowed+
+      def update_rate_counts(allowed)
+        now = Utils::Time.get_time
+
+        # No tokens have been seen yet, start a new window
+        if @current_window.nil?
+          @current_window = now
+        # If more than 1 second has past since last window, reset
+        elsif now - @current_window >= 1
+          @prev_window_rate = current_window_rate
+          @conforming_messages = 0
+          @total_messages = 0
+          @current_window = now
+        end
+
+        increment_conforming_count if allowed
+
+        increment_total_count
+      end
+
       private
 
       def refill_since_last_message
         now = Utils::Time.get_time
         elapsed = now - @last_refill
 
+        # Update the number of available tokens, but ensure we do not exceed the max
+        # we return the min of tokens + rate*elapsed, or max tokens
         refill_tokens(@rate * elapsed)
 
         @last_refill = now
@@ -140,6 +164,8 @@ module Datadog
       def effective_rate
         1.0
       end
+
+      def update_rate_counts(allowed); end
     end
   end
 end

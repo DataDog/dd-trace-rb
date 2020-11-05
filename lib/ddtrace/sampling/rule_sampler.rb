@@ -105,7 +105,8 @@ module Datadog
 
         return false unless sampled
 
-        rate_limiter.allow?(1).tap do
+        rate_limiter.allow?(1).tap do |allowed|
+          rate_limiter.update_rate_counts(allowed)
           set_limiter_metrics(span, rate_limiter.effective_rate)
         end
       rescue StandardError => e
