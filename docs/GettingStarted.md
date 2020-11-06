@@ -1174,6 +1174,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `qless` instrumentation | `'qless'` |
+| `tag_job_data` | Enable tagging of job arguments. true for on, false for off. | `false` |
 | `workers` | An array including all worker classes you want to trace (e.g. `[MyJob]`) | All jobs |
 
 ### Que
