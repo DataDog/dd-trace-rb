@@ -1,7 +1,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/qless/integration'
-require_relative 'job'
+require_relative 'support/job'
 
 require 'ddtrace'
 
