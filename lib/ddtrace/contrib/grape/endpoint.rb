@@ -1,4 +1,4 @@
-
+require 'set'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 require 'ddtrace/contrib/analytics'
@@ -204,30 +204,42 @@ module Datadog
             datadog_configuration[:analytics_sample_rate]
           end
 
-          def handle_statuses(status_string)
+          def handle_statuses
             # This method handles capturing the error codes from the configuration options and validates them.
             # Expected to return an array of only validated parameters while logging for invalid configuration options
-            if status_string.instanceof?(String)
-              status_string.gsub(/\s+/, "").split(",").select do |code|
+            if datadog_configuration[:error_responses].instanceof?(String)
+              datadog_configuration[:error_responses].gsub(/\s+/, "").split(",").select do |code|
                 if !code.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
-                  Datadog.logger.debug("Invalid configuration provided: #{s}. Must be formatted like '400-403,405,410-499'.")
+                  Datadog.logger.debug("Invalid configuration provided: #{code}. Must be formatted like '400-403,405,410-499'.")
+                  next
                 else
-                  code.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
+                  true
                 end
               end
             else
-              Datadog.logger.debug("No valid configuration was provided for configuration option: :error_responses")
+              Datadog.logger.debug("No valid configuration was provided for configuration option: :error_responses - falling back to default.")
             end
           end
 
-          def valid_configuration
-            return false unless datadog_configuration
-
+          def set_range
+            set = Set.new
+            for statuses in handle_statuses
+              status = statuses.split("-")
+              if status.length == 1
+                set.add(status[0].to_i)
+              elsif status.length == 2
+                min, max = status.minmax
+                for i in min..max
+                  set.add(i.to_i);
+                end
+              end
+            end
+            return set
           end
 
           def exception_is_error?(exception)
             return false unless exception
-            if handle_4xx_error && defined?(::Grape::Exceptions::Base) && exception.class < ::Grape::Exceptions::Base
+            if error_responses && defined?(::Grape::Exceptions::Base) && exception.class < ::Grape::Exceptions::Base
               status = exception.status
             end
             status.nil? || status > 499
