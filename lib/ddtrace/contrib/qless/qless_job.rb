@@ -12,6 +12,20 @@ module Datadog
           tracer.trace(Ext::SPAN_JOB, span_options) do |span|
             span.resource = job.klass_name
             span.span_type = Datadog::Ext::AppTypes::WORKER
+            span.set_tag(Ext::TAG_JOB_ID, job.jid)
+            span.set_tag(Ext::TAG_JOB_QUEUE, job.queue_name)
+            span.set_tag(Ext::TAG_JOB_TAGS, job.tags)
+
+            tag_job_data = datadog_configuration[:tag_job_data]
+            if tag_job_data && !job.data.empty?
+              job_data = job.data.with_indifferent_access
+              formatted_data = job_data.except(:tags).map do |key, value|
+                "#{key}:#{value}".underscore
+              end
+
+              span.set_tag(Ext::TAG_JOB_DATA, formatted_data)
+            end
+
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
