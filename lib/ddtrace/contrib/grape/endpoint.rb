@@ -207,7 +207,7 @@ module Datadog
           def handle_statuses
             # This method handles capturing the error codes from the configuration options and validates them.
             # Expected to return an array of only validated parameters while logging for invalid configuration options
-            if datadog_configuration[:error_responses].instanceof?(String)
+            if datadog_configuration[:error_responses].instance_of?(String)
               datadog_configuration[:error_responses].gsub(/\s+/, "").split(",").select do |code|
                 if !code.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
                   Datadog.logger.debug("Invalid configuration provided: #{code}. Must be formatted like '400-403,405,410-499'.")
@@ -218,6 +218,7 @@ module Datadog
               end
             else
               Datadog.logger.debug("No valid configuration was provided for configuration option: :error_responses - falling back to default.")
+              []
             end
           end
 
@@ -226,11 +227,11 @@ module Datadog
             for statuses in handle_statuses
               status = statuses.split("-")
               if status.length == 1
-                set.add(status[0].to_i)
+                set.add(Integer(status[0]))
               elsif status.length == 2
                 min, max = status.minmax
                 for i in min..max
-                  set.add(i.to_i);
+                  set.add(Integer(i));
                 end
               end
             end
@@ -238,11 +239,14 @@ module Datadog
           end
 
           def exception_is_error?(exception)
+            status = nil
             return false unless exception
-            if error_responses && defined?(::Grape::Exceptions::Base) && exception.class < ::Grape::Exceptions::Base
+            if exception.respond_to?("status") && set_range.include?(exception.status)
               status = exception.status
+            else
+              return true
             end
-            status.nil? || status > 499
+            !status.nil?
           end
 
           def enabled?

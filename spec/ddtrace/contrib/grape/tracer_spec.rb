@@ -198,6 +198,7 @@ RSpec.describe 'Grape instrumentation' do
     context 'failure' do
       context 'without filters' do
         subject(:response) { post '/base/hard_failure' }
+        let(:configuration_options) { { error_responses: '400-499' } }
 
         it 'should handle exceptions' do
           expect(response.body).to eq('405 Not Allowed')
@@ -209,17 +210,17 @@ RSpec.describe 'Grape instrumentation' do
           expect(spans[0].get_tag('error.msg')).to_not be_nil
         end
 
-        context 'and dont_report_4xx' do
+        context 'and error_responses' do
           subject(:response) { post '/base/hard_failure' }
-          let(:configuration_options) { { dont_report_4xx: true } }
+          let(:configuration_options) { { error_responses: '400-499' } }
           it 'should handle exceptions' do
             expect(response.body).to eq('405 Not Allowed')
             expect(spans.length).to eq(1)
             expect(spans[0].name).to eq('grape.endpoint_run')
-            expect(spans[0].status).to eq(0)
-            expect(spans[0].get_tag('error.stack')).to be_nil
-            expect(spans[0].get_tag('error.type')).to be_nil
-            expect(spans[0].get_tag('error.msg')).to be_nil
+            expect(spans[0].status).to eq(1)
+            expect(spans[0].get_tag('error.stack')).to_not be_nil
+            expect(spans[0].get_tag('error.type')).to_not be_nil
+            expect(spans[0].get_tag('error.msg')).to_not be_nil
           end
         end
       end
