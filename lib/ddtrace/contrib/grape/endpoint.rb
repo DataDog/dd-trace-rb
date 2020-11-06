@@ -204,8 +204,25 @@ module Datadog
             datadog_configuration[:analytics_sample_rate]
           end
 
-          def handle_4xx_error
-            datadog_configuration[:dont_report_4xx]
+          def handle_statuses(status_string)
+            # This method handles capturing the error codes from the configuration options and validates them.
+            # Expected to return an array of only validated parameters while logging for invalid configuration options
+            if status_string.instanceof?(String)
+              status_string.gsub(/\s+/, "").split(",").select do |code|
+                if !code.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
+                  Datadog.logger.debug("Invalid configuration provided: #{s}. Must be formatted like '400-403,405,410-499'.")
+                else
+                  code.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
+                end
+              end
+            else
+              Datadog.logger.debug("No valid configuration was provided for configuration option: :error_responses")
+            end
+          end
+
+          def valid_configuration
+            return false unless datadog_configuration
+
           end
 
           def exception_is_error?(exception)
