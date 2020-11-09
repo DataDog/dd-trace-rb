@@ -208,40 +208,40 @@ module Datadog
             # This method handles capturing the error codes from the configuration options and validates them.
             # Expected to return an array of only validated parameters while logging for invalid configuration options
             if datadog_configuration[:error_responses].instance_of?(String)
-              datadog_configuration[:error_responses].gsub(/\s+/, "").split(",").select do |code|
+              datadog_configuration[:error_responses].gsub(/\s+/, '').split(',').select do |code|
                 if !code.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
-                  Datadog.logger.debug("Invalid configuration provided: #{code}. Must be formatted like '400-403,405,410-499'.")
+                  Datadog.logger.debug("Invalid config provided: #{code}. Must be formatted like '400-403,405,410-499'.")
                   next
                 else
                   true
                 end
               end
             else
-              Datadog.logger.debug("No valid configuration was provided for configuration option: :error_responses - falling back to default.")
-              []
+              Datadog.logger.debug('No valid config was provided for :error_responses - falling back to default.')
+              ['500-599'] # Rather than returning an empty array, we need to fallback to default config.
             end
           end
 
           def set_range
             set = Set.new
-            for statuses in handle_statuses
-              status = statuses.split("-")
+            handle_statuses.each do |statuses|
+              status = statuses.split('-')
               if status.length == 1
                 set.add(Integer(status[0]))
               elsif status.length == 2
                 min, max = status.minmax
-                for i in min..max
-                  set.add(Integer(i));
+                Array(min..max).each do |i|
+                  set.add(Integer(i))
                 end
               end
             end
-            return set
+            set
           end
 
           def exception_is_error?(exception)
             status = nil
             return false unless exception
-            if exception.respond_to?("status") && set_range.include?(exception.status)
+            if exception.respond_to?('status') && set_range.include?(exception.status)
               status = exception.status
             else
               return true

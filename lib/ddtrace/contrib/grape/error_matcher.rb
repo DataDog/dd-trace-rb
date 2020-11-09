@@ -6,7 +6,6 @@ module Datadog
   module Contrib
     module Grape
       class ErrorMatcher
-        
       end
     end
   end
