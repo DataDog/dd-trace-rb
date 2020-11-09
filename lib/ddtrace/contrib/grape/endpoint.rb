@@ -205,14 +205,13 @@ module Datadog
           end
 
           def error_responses
-            return datadog_configuration[:error_responses] if datadog_configuration[:error_responses].kind_of?(String)
-            datadog_configuration[:error_responses].join(',') 
+            return datadog_configuration[:error_responses] if datadog_configuration[:error_responses].is_a?(String)
+            datadog_configuration[:error_responses].join(',')
           end
 
           def handle_statuses
-
-            if datadog_configuration[:error_responses].kind_of?(String)
-              datadog_configuration[:error_responses].gsub(/\s+/, '').split(',').select do |code|
+            if error_responses
+              error_responses.gsub(/\s+/, '').split(',').select do |code|
                 if !code.to_s.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
                   Datadog.logger.debug("Invalid config provided: #{code}. Must be formatted like '400-403,405,410-499'.")
                   next

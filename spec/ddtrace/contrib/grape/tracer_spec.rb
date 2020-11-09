@@ -227,7 +227,7 @@ RSpec.describe 'Grape instrumentation' do
 
         context 'and error_responses with arrays' do
           subject(:response) { post '/base/hard_failure' }
-          let(:configuration_options) { { error_responses: ['300-399','xxx-xxx',1111, 405] } }
+          let(:configuration_options) { { error_responses: ['300-399', 'xxx-xxx', 1111, 405] } }
 
           it 'should handle exceptions' do
             expect(response.body).to eq('405 Not Allowed')
