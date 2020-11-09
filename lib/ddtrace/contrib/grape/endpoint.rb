@@ -204,12 +204,16 @@ module Datadog
             datadog_configuration[:analytics_sample_rate]
           end
 
+          def error_responses
+            return datadog_configuration[:error_responses] if datadog_configuration[:error_responses].kind_of?(String)
+            datadog_configuration[:error_responses].join(',') 
+          end
+
           def handle_statuses
-            # This method handles capturing the error codes from the configuration options and validates them.
-            # Expected to return an array of only validated parameters while logging for invalid configuration options
-            if datadog_configuration[:error_responses].instance_of?(String)
+
+            if datadog_configuration[:error_responses].kind_of?(String)
               datadog_configuration[:error_responses].gsub(/\s+/, '').split(',').select do |code|
-                if !code.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
+                if !code.to_s.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
                   Datadog.logger.debug("Invalid config provided: #{code}. Must be formatted like '400-403,405,410-499'.")
                   next
                 else
@@ -225,7 +229,7 @@ module Datadog
           def set_range
             set = Set.new
             handle_statuses.each do |statuses|
-              status = statuses.split('-')
+              status = statuses.to_s.split('-')
               if status.length == 1
                 set.add(Integer(status[0]))
               elsif status.length == 2

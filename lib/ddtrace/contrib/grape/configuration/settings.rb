@@ -24,8 +24,7 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
-          option :error_responses, default: '500-599' # quite possible we may be able to use Datadog::Ext::HTTP::ERROR_RANGE
-          # similarly to how the Faraday integration uses it. Need to inquire more here.
+          option :error_responses, default: '500-599' # quite possible we may be able to use Datadog::Ext::HTTP::ERROR_RANGE, similarly to how the Faraday integration uses it. Need to inquire more here.
         end
       end
     end
