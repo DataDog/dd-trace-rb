@@ -121,18 +121,19 @@ module Datadog
 
         settings :exporter do
           option :instances
-
-          option :timeout do |o|
-            o.setter { |value| value.nil? ? 30.0 : value.to_f }
-            o.default { env_to_float(Ext::Profiling::ENV_UPLOAD_TIMEOUT, 30.0) }
-            o.lazy
-          end
-
           option :transport
           option :transport_options, default: ->(_o) { {} }, lazy: true
         end
 
         option :max_events, default: 32768
+
+        settings :upload do
+          option :timeout do |o|
+            o.setter { |value| value.nil? ? 30.0 : value.to_f }
+            o.default { env_to_float(Ext::Profiling::ENV_UPLOAD_TIMEOUT, 30.0) }
+            o.lazy
+          end
+        end
       end
 
       option :report_hostname do |o|
