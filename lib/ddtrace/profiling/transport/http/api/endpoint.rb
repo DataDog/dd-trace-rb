@@ -38,11 +38,13 @@ module Datadog
               pprof_file, types = build_pprof(flush)
 
               form = {
+                # NOTE: Redundant w/ 'runtime-id' tag below; may want to remove this later.
                 FORM_FIELD_RUNTIME_ID => flush.runtime_id,
                 FORM_FIELD_RECORDING_START => flush.start.utc.iso8601,
                 FORM_FIELD_RECORDING_END => flush.finish.utc.iso8601,
                 FORM_FIELD_TAGS => [
                   "#{FORM_FIELD_TAG_RUNTIME}:#{flush.language}",
+                  "#{FORM_FIELD_TAG_RUNTIME_ID}:#{flush.runtime_id}",
                   "#{FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
                   "#{FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
                   "#{FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
