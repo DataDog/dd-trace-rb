@@ -66,6 +66,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
           Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_RUNTIME_ID => flush.runtime_id,
           Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS => array_including(
             "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{flush.language}",
+            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ID}:#{flush.runtime_id}",
             "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
             "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
             "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
