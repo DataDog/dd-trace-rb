@@ -469,45 +469,6 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
-      describe '#timeout' do
-        subject(:timeout) { settings.profiling.exporter.timeout }
-
-        context "when #{Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT}" do
-          around do |example|
-            ClimateControl.modify(Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-            it { is_expected.to eq(30.0) }
-          end
-
-          context 'is defined' do
-            let(:environment) { '10.0' }
-            it { is_expected.to eq(10.0) }
-          end
-        end
-      end
-
-      describe '#timeout=' do
-        it 'updates the #timeout setting' do
-          expect { settings.profiling.exporter.timeout = 10 }
-            .to change { settings.profiling.exporter.timeout }
-            .from(30.0)
-            .to(10.0)
-        end
-
-        context 'given nil' do
-          it 'uses the default setting' do
-            expect { settings.profiling.exporter.timeout = nil }
-              .to_not change { settings.profiling.exporter.timeout }
-              .from(30.0)
-          end
-        end
-      end
-
       describe '#transport' do
         subject(:transport) { settings.profiling.exporter.transport }
         it { is_expected.to be nil }
@@ -552,6 +513,47 @@ RSpec.describe Datadog::Configuration::Settings do
           .to change { settings.profiling.max_events }
           .from(32768)
           .to(1234)
+      end
+    end
+
+    describe '#upload' do
+      describe '#timeout' do
+        subject(:timeout) { settings.profiling.upload.timeout }
+
+        context "when #{Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT}" do
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+            it { is_expected.to eq(30.0) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '10.0' }
+            it { is_expected.to eq(10.0) }
+          end
+        end
+      end
+
+      describe '#timeout=' do
+        it 'updates the #timeout setting' do
+          expect { settings.profiling.upload.timeout = 10 }
+            .to change { settings.profiling.upload.timeout }
+            .from(30.0)
+            .to(10.0)
+        end
+
+        context 'given nil' do
+          it 'uses the default setting' do
+            expect { settings.profiling.upload.timeout = nil }
+              .to_not change { settings.profiling.upload.timeout }
+              .from(30.0)
+          end
+        end
       end
     end
   end
