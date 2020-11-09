@@ -137,7 +137,7 @@ module Datadog
                           transport_options = settings.profiling.exporter.transport_options.dup
                           transport_options[:site] ||= settings.site if settings.site
                           transport_options[:api_key] ||= settings.api_key if settings.api_key
-                          transport_options[:timeout] ||= settings.profiling.exporter.timeout
+                          transport_options[:timeout] ||= settings.profiling.upload.timeout
                           Datadog::Profiling::Transport::HTTP.default(transport_options)
                         end
 
