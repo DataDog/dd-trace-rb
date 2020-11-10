@@ -205,8 +205,8 @@ module Datadog
           end
 
           def error_responses
-            return datadog_configuration[:error_responses] if datadog_configuration[:error_responses].is_a?(String)
-            datadog_configuration[:error_responses].join(',')
+            return datadog_configuration[:error_responses] if datadog_configuration[:error_responses].is_a?(String) && !status.nil?
+            datadog_configuration[:error_responses].join(',') if status.is_a?(Array) && !status.empty?
           end
 
           def handle_statuses
