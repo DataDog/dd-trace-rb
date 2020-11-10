@@ -67,14 +67,19 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       context 'and the host matches a specific configuration' do
         before do
           Datadog.configure do |c|
-            c.use :ethon, describe: /example\.com/ do |ethon|
+            c.use :ethon, describes: /example\.com/ do |ethon|
               ethon.service_name = 'baz'
+              ethon.split_by_domain = false
+            end
+
+            c.use :ethon, describes: /badexample\.com/ do |ethon|
+              ethon.service_name = 'baz_bad'
               ethon.split_by_domain = false
             end
           end
         end
 
-        it 'uses the configured service name over the domain name' do
+        it 'uses the configured service name over the domain name and the correct describes block' do
           subject
           expect(span.service).to eq('baz')
         end

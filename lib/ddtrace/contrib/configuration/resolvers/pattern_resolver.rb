@@ -10,17 +10,16 @@ module Datadog
           def resolve(name)
             # Try to find a matching pattern
             matching_pattern = patterns.find do |pattern|
-              # Rubocop incorrectly thinks assignment is done here...
-              # rubocop:disable Style/ConditionalAssignment
               if pattern.is_a?(Proc)
-                pattern === name
+                (pattern === name)
               else
-                pattern === name.to_s # Co-erce to string
+                (pattern === name.to_s) ||
+                  (pattern == name) # Only required during configuration time.
               end
             end
 
             # Return match or default
-            matching_pattern || :default
+            matching_pattern
           end
 
           def add(pattern)

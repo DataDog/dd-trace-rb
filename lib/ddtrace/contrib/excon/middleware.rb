@@ -63,6 +63,12 @@ module Datadog
               @options
             end
 
+            # default_options in this case contains our specific middleware options
+            # so we want it to take precedence in build_request_options
+            def build_request_options!(datum)
+              datadog_configuration(datum[:host]).options_hash.merge(@default_options)
+            end
+
             def initialize(stack)
               super(stack, self.class.options)
             end
@@ -149,7 +155,7 @@ module Datadog
         end
 
         def build_request_options!(datum)
-          datadog_configuration(datum[:host]).options_hash.merge(@default_options)
+          @default_options.merge(datadog_configuration(datum[:host]).options_hash)
         end
 
         def datadog_configuration(host = :default)
