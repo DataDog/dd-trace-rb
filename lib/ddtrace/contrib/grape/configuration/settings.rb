@@ -24,7 +24,12 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
-          option :error_responses, default: '500-599' # quite possible we may be able to use Datadog::Ext::HTTP::ERROR_RANGE
+          option :error_responses, default: '500-599' do |o|
+            o.default { '500-599' }
+            o.setter do |new_value, _old_value|
+              Datadog::Contrib::StatusCodeMatcher.new(new_value)
+            end
+          end
         end
       end
     end

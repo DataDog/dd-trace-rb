@@ -3,6 +3,7 @@ require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
+require 'ddtrace/contrib/status_code_matcher'
 
 module Datadog
   module Contrib
@@ -204,47 +205,10 @@ module Datadog
             datadog_configuration[:analytics_sample_rate]
           end
 
-          def error_responses
-            return datadog_configuration[:error_responses] if datadog_configuration[:error_responses].is_a?(String) && !status.nil?
-            datadog_configuration[:error_responses].join(',') if status.is_a?(Array) && !status.empty?
-          end
-
-          def handle_statuses
-            if error_responses
-              error_responses.gsub(/\s+/, '').split(',').select do |code|
-                if !code.to_s.match(/^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/)
-                  Datadog.logger.debug("Invalid config provided: #{code}. Must be formatted like '400-403,405,410-499'.")
-                  next
-                else
-                  true
-                end
-              end
-            else
-              Datadog.logger.debug('No valid config was provided for :error_responses - falling back to default.')
-              ['500-599'] # Rather than returning an empty array, we need to fallback to default config.
-            end
-          end
-
-          def set_range
-            set = Set.new
-            handle_statuses.each do |statuses|
-              status = statuses.to_s.split('-')
-              if status.length == 1
-                set.add(Integer(status[0]))
-              elsif status.length == 2
-                min, max = status.minmax
-                Array(min..max).each do |i|
-                  set.add(Integer(i))
-                end
-              end
-            end
-            set
-          end
-
           def exception_is_error?(exception)
-            status = nil
+            matcher = datadog_configuration[:error_responses]
             return false unless exception
-            if exception.respond_to?('status') && set_range.include?(exception.status)
+            if exception.respond_to?('status') && matcher.set_range.include?(exception.status) && matcher
               status = exception.status
             else
               return true
