@@ -9,7 +9,14 @@ module Datadog
       # `MongoCommandSubscriber` listens to all events from the `Monitoring`
       # system available in the Mongo driver.
       class MongoCommandSubscriber
+        END_SESSIONS_EVENT = 'endSessions'.freeze
+
         def started(event)
+          # workaround for https://github.com/DataDog/dd-trace-rb/issues/1235
+          # This event gets emmitted on disconnect
+          # https://github.com/mongodb/mongo-ruby-driver/blob/20748bbf1d1c69ee97833098bb2ff959beceb0dd/lib/mongo/cluster.rb#L486
+          return if event.command_name == END_SESSIONS_EVENT
+
           pin = Datadog::Pin.get_from(event.address)
           return unless pin && pin.enabled?
 
