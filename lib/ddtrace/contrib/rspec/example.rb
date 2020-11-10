@@ -13,9 +13,10 @@ module Datadog
             configuration = Datadog.configuration[:rspec]
             return super unless configuration[:enabled]
 
+            test_name = "#{example_group.description}::#{description}"
             trace_options = {
               app: Ext::APP,
-              resource: "#{example_group}::#{description}",
+              resource: test_name,
               service: configuration[:service_name],
               span_type: Datadog::Ext::AppTypes::TEST,
               tags: example_group.instance_variable_get(:@tags).merge(Datadog.configuration.tags)
@@ -23,8 +24,8 @@ module Datadog
 
             configuration[:tracer].trace(configuration[:operation_name], trace_options) do |span|
               span.set_tag(Datadog::Ext::Test::TAG_FRAMEWORK, Ext::FRAMEWORK)
-              span.set_tag(Datadog::Ext::Test::TAG_NAME, description)
-              span.set_tag(Datadog::Ext::Test::TAG_SUITE, example_group)
+              span.set_tag(Datadog::Ext::Test::TAG_NAME, test_name)
+              span.set_tag(Datadog::Ext::Test::TAG_SUITE, example_group.file_path)
               span.set_tag(Datadog::Ext::Test::TAG_TYPE, Ext::TEST_TYPE)
               span.set_tag(Datadog::Ext::Test::TAG_SPAN_KIND, Datadog::Ext::AppTypes::TEST)
 
