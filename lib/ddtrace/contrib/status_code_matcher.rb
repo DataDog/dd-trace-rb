@@ -12,19 +12,19 @@ module Datadog
 
       def set_range
         @datadog_set ||= begin
-            set = Set.new
-            handle_statuses.each do |statuses|
+          set = Set.new
+          handle_statuses.each do |statuses|
             status = statuses.to_s.split('-')
             if status.length == 1
-                set.add(Integer(status[0]))
+              set.add(Integer(status[0]))
             elsif status.length == 2
-                min, max = status.minmax
-                Array(min..max).each do |i|
+              min, max = status.minmax
+              Array(min..max).each do |i|
                 set.add(Integer(i))
-                end
+              end
             end
-            end
-            set
+          end
+          set
         end
         @datadog_set
       end

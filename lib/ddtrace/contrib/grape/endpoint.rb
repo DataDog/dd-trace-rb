@@ -1,4 +1,3 @@
-require 'set'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 require 'ddtrace/contrib/analytics'
@@ -208,7 +207,7 @@ module Datadog
           def exception_is_error?(exception)
             matcher = datadog_configuration[:error_responses]
             return false unless exception
-            if exception.respond_to?('status') && matcher.set_range.include?(exception.status) && matcher
+            if exception.respond_to?('status') && matcher && matcher.set_range.include?(exception.status)
               status = exception.status
             else
               return true
