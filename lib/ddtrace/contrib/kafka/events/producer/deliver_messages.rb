@@ -16,6 +16,7 @@ module Datadog
               super
 
               span.set_tag(Ext::TAG_ATTEMPTS, payload[:attempts]) if payload.key?(:attempts)
+              span.set_tag(Ext::TAG_TOPIC, payload[:topic]) if payload.key?(:topic)
               span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
               if payload.key?(:delivered_message_count)
                 span.set_tag(Ext::TAG_DELIVERED_MESSAGE_COUNT, payload[:delivered_message_count])

@@ -587,12 +587,14 @@ RSpec.describe 'Kafka patcher' do
 
   describe 'producer.deliver_messages' do
     let(:attempts) { rand(1..10) }
+    let(:topic) { 'my-topic' }
     let(:message_count) { rand(10..100) }
     let(:delivered_message_count) { rand(1..message_count) }
     let(:payload) do
       {
         client_id: client_id,
         attempts: attempts,
+        topic: topic,
         message_count: message_count,
         delivered_message_count: delivered_message_count
       }
@@ -610,6 +612,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.resource).to eq(span.name)
           expect(span.get_tag('kafka.client')).to eq(client_id)
           expect(span.get_tag('kafka.attempts')).to eq(attempts)
+          expect(span.get_tag('kafka.topic')).to eq(topic)
           expect(span.get_tag('kafka.message_count')).to eq(message_count)
           expect(span.get_tag('kafka.delivered_message_count')).to eq(delivered_message_count)
           expect(span).to_not have_error
