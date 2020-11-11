@@ -15,6 +15,7 @@ module Datadog
             def self.process(span, _event, _id, payload)
               super
 
+              span.set_tag(Ext::TAG_TOPIC, payload[:topic]) if payload.key?(:topic)
               span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
               span.set_tag(Ext::TAG_SENT_MESSAGE_COUNT, payload[:sent_message_count]) if payload.key?(:sent_message_count)
             end
