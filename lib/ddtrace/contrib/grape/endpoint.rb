@@ -1,4 +1,3 @@
-
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 require 'ddtrace/contrib/analytics'
@@ -90,7 +89,10 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
-              span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+
+              if exception_is_error?(payload[:exception_object])
+                span.set_error(payload[:exception_object])
+              end
 
               # override the current span with this notification values
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
@@ -133,7 +135,9 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
-              span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+              if exception_is_error?(payload[:exception_object])
+                span.set_error(payload[:exception_object])
+              end
             ensure
               span.start(start)
               span.finish(finish)
@@ -168,7 +172,10 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
-              span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+              if exception_is_error?(payload[:exception_object])
+                span.set_error(payload[:exception_object])
+              end
+
               span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
             ensure
               span.start(start)
@@ -194,6 +201,14 @@ module Datadog
 
           def analytics_sample_rate
             datadog_configuration[:analytics_sample_rate]
+          end
+
+          def exception_is_error?(exception)
+            matcher = datadog_configuration[:error_statuses]
+            return false unless exception
+            return true unless matcher
+            return true unless exception.respond_to?('status')
+            matcher.include?(exception.status)
           end
 
           def enabled?
