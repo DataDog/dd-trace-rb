@@ -203,10 +203,10 @@ RSpec.describe 'Grape instrumentation' do
           expect(response.body).to eq('405 Not Allowed')
           expect(spans.length).to eq(1)
           expect(spans[0].name).to eq('grape.endpoint_run')
-          expect(spans[0].status).to eq(1)
-          expect(spans[0].get_tag('error.stack')).to_not be_nil
-          expect(spans[0].get_tag('error.type')).to_not be_nil
-          expect(spans[0].get_tag('error.msg')).to_not be_nil
+          expect(spans[0]).to_not have_error
+          expect(spans[0]).to_not have_error_stack
+          expect(spans[0]).to_not have_error_type
+          expect(spans[0]).to_not have_error_message
         end
 
         context 'and error_responses' do
