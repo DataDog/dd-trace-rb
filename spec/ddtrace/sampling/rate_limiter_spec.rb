@@ -119,6 +119,41 @@ RSpec.describe Datadog::Sampling::TokenBucket do
       end
     end
 
+    context 'after multiple buckets elapse' do
+      let(:size) { max_tokens }
+
+      before do
+        # get time is called multiple times so we increment it on each call
+        # to simulate passage of time
+        allow(Datadog::Utils::Time).to receive(:get_time).and_return(0, 2, 4, 6, 8, 10)
+      end
+
+      context 'after 2 buckets' do
+        before do
+          bucket.allow?(max_tokens)
+          bucket.allow?(max_tokens + 1)
+        end
+
+        it 'computes the average of the last two buckets' do
+          subject
+          is_expected.to eq(0.5)
+        end
+      end
+
+      context 'after 3 buckets' do
+        before do
+          bucket.allow?(max_tokens)
+          bucket.allow?(max_tokens + 1)
+          bucket.allow?(max_tokens + 1)
+        end
+
+        it 'computes the average of the last two buckets' do
+          subject
+          is_expected.to eq(0.0)
+        end
+      end
+    end
+
     context 'with negative rate' do
       let(:rate) { -1 }
 
