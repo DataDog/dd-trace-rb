@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/ext/http'
 require 'ddtrace/contrib/grape/ext'
+require 'ddtrace/contrib/status_code_matcher'
 
 module Datadog
   module Contrib
@@ -24,8 +25,9 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
-          option :error_responses, default: '500-599' do |o|
-            o.default { '500-599' }
+
+          option :error_statuses do |o|
+            o.default { Datadog::Contrib::StatusCodeMatcher.new(Datadog::Ext::HTTP::ERROR_RANGE.to_a) }
             o.setter do |new_value, _old_value|
               Datadog::Contrib::StatusCodeMatcher.new(new_value)
             end

@@ -1,4 +1,5 @@
 require 'set'
+require 'ddtrace/ext/http'
 
 module Datadog
   module Contrib
@@ -9,6 +10,16 @@ module Datadog
       def initialize(range)
         @error_response_range = range
       end
+
+      def include?(exception_status)
+        set_range.include?(exception_status)
+      end
+
+      def to_s
+        @error_response_range.to_s
+      end
+
+      private
 
       def set_range
         @datadog_set ||= begin
@@ -29,12 +40,6 @@ module Datadog
         @datadog_set
       end
 
-      def to_s
-        @@error_response_range.to_s
-      end
-
-      private
-
       def error_responses
         return @error_response_range if @error_response_range.is_a?(String) && !@error_response_range.nil?
         @error_response_range.join(',') if @error_response_range.is_a?(Array) && !@error_response_range.empty?
@@ -51,8 +56,8 @@ module Datadog
             end
           end
         else
-          Datadog.logger.debug('No valid config was provided for :error_responses - falling back to default.')
-          ['500-599'] # Rather than returning an empty array, we need to fallback to default config.
+          Datadog.logger.debug('No valid config was provided for :error_statuses- falling back to default.')
+          Datadog::Ext::HTTP::ERROR_RANGE.to_a
         end
       end
     end

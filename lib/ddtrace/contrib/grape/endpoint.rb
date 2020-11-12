@@ -2,7 +2,6 @@ require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
-require 'ddtrace/contrib/status_code_matcher'
 
 module Datadog
   module Contrib
@@ -205,9 +204,9 @@ module Datadog
           end
 
           def exception_is_error?(exception)
-            matcher = datadog_configuration[:error_responses]
+            matcher = datadog_configuration[:error_statuses]
             return false unless exception
-            if exception.respond_to?('status') && matcher && matcher.set_range.include?(exception.status)
+            if exception.respond_to?('status') && matcher.include?(exception.status)
               status = exception.status
             else
               return true
