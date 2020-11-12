@@ -15,7 +15,6 @@ module Datadog
 
       def include?(exception_status)
         set_range.include?(exception_status)
-        # binding.pry
       end
 
       def to_s
