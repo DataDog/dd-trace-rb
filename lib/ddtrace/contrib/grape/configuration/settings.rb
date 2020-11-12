@@ -27,7 +27,7 @@ module Datadog
           option :service_name, default: Ext::SERVICE_NAME
 
           option :error_statuses do |o|
-            o.default { Datadog::Contrib::StatusCodeMatcher.new(Datadog::Ext::HTTP::ERROR_RANGE.to_a) }
+            o.default { Datadog::Ext::HTTP::ERROR_RANGE.to_a }
             o.setter do |new_value, _old_value|
               Datadog::Contrib::StatusCodeMatcher.new(new_value)
             end
