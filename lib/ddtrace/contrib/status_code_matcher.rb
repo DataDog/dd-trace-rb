@@ -10,10 +10,12 @@ module Datadog
       def initialize(range)
         @error_response_range = range
         set_range
+        # binding.pry
       end
 
       def include?(exception_status)
         set_range.include?(exception_status)
+        # binding.pry
       end
 
       def to_s
@@ -48,7 +50,7 @@ module Datadog
 
       def handle_statuses
         if error_responses
-          error_responses.gsub(/\s+/, '').split(',').select do |code|
+          filter_error_responses = error_responses.gsub(/\s+/, '').split(',').select do |code|
             if !code.to_s.match(REGEX_PARSER)
               Datadog.logger.debug("Invalid config provided: #{code}. Must be formatted like '400-403,405,410-499'.")
               next
@@ -56,8 +58,9 @@ module Datadog
               true
             end
           end
+          filter_error_responses.empty? ? Datadog::Ext::HTTP::ERROR_RANGE.to_a : filter_error_responses
         else
-          Datadog.logger.debug('No valid config was provided for :error_statuses- falling back to default.')
+          Datadog.logger.debug('No valid config was provided for :error_statuses - falling back to default.')
           Datadog::Ext::HTTP::ERROR_RANGE.to_a
         end
       end

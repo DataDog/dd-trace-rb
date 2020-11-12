@@ -206,12 +206,9 @@ module Datadog
           def exception_is_error?(exception)
             matcher = datadog_configuration[:error_statuses]
             return false unless exception
-            if exception.respond_to?('status') && matcher.include?(exception.status)
-              status = exception.status
-            else
-              return true
-            end
-            !status.nil?
+            return true unless matcher
+            return true unless exception.respond_to?('status')
+            matcher.include?(exception.status)
           end
 
           def enabled?
