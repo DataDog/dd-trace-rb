@@ -10,7 +10,6 @@ module Datadog
       def initialize(range)
         @error_response_range = range
         set_range
-        # binding.pry
       end
 
       def include?(exception_status)
