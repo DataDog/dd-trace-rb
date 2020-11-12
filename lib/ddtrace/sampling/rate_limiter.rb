@@ -38,8 +38,10 @@ module Datadog
         @tokens = max_tokens
         @total_messages = 0
         @conforming_messages = 0
+        @prev_conforming_messages = nil
+        @prev_total_messages = nil
         @current_window = nil
-        @prev_window_rate = nil
+
         @last_refill = Utils::Time.get_time
       end
 
@@ -68,9 +70,9 @@ module Datadog
         return 0.0 if @rate.zero?
         return 1.0 if @rate < 0 || @total_messages.zero?
 
-        return current_window_rate if @prev_window_rate.nil?
+        return current_window_rate if @prev_conforming_messages.nil? || @prev_total_messages.nil?
 
-        (current_window_rate + @prev_window_rate) / 2
+        (@conforming_messages.to_f + @prev_conforming_messages.to_f) / (@total_messages + @prev_total_messages)
       end
 
       # Ratio of 'conformance' per 'total messages' checked
@@ -144,7 +146,8 @@ module Datadog
           @current_window = now
         # If more than 1 second has past since last window, reset
         elsif now - @current_window >= 1
-          @prev_window_rate = current_window_rate
+          @prev_conforming_messages = @conforming_messages
+          @prev_total_messages = @total_messages
           @conforming_messages = 0
           @total_messages = 0
           @current_window = now
