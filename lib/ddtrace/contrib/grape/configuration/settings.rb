@@ -27,8 +27,8 @@ module Datadog
           option :service_name, default: Ext::SERVICE_NAME
 
           option :error_statuses do |o|
-              o.default { nil }
-              o.setter do |new_value, _old_value|
+            o.default { nil }
+            o.setter do |new_value, _old_value|
               Datadog::Contrib::StatusCodeMatcher.new(new_value) unless new_value.nil?
             end
           end
