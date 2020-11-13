@@ -108,6 +108,7 @@ namespace :spec do
     :redis,
     :resque,
     :rest_client,
+    :rspec,
     :sequel,
     :shoryuken,
     :sidekiq,
@@ -235,6 +236,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:redis'
       declare 'bundle exec appraisal contrib-old rake spec:resque'
       declare 'bundle exec appraisal contrib-old rake spec:rest_client'
+      declare 'bundle exec appraisal contrib-old rake spec:rspec'
       declare 'bundle exec appraisal contrib-old rake spec:sequel'
       declare 'bundle exec appraisal contrib-old rake spec:sidekiq'
       declare 'bundle exec appraisal contrib-old rake spec:sinatra'
@@ -290,6 +292,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:redis'
       declare 'bundle exec appraisal contrib-old rake spec:resque'
       declare 'bundle exec appraisal contrib-old rake spec:rest_client'
+      declare 'bundle exec appraisal contrib-old rake spec:rspec'
       declare 'bundle exec appraisal contrib-old rake spec:sequel'
       declare 'bundle exec appraisal contrib-old rake spec:sidekiq'
       declare 'bundle exec appraisal contrib-old rake spec:sinatra'
@@ -357,6 +360,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -430,6 +434,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -510,6 +515,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -578,6 +584,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:redis'
     declare 'bundle exec appraisal contrib rake spec:resque'
     declare 'bundle exec appraisal contrib rake spec:rest_client'
+    declare 'bundle exec appraisal contrib rake spec:rspec'
     declare 'bundle exec appraisal contrib rake spec:sequel'
     declare 'bundle exec appraisal contrib rake spec:shoryuken'
     declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -658,6 +665,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -738,6 +746,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
