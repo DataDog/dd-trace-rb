@@ -37,20 +37,35 @@ module Datadog
           FORK_STAGES = [:prepare, :parent, :child].freeze
 
           def fork
-            wrapped_block = proc do
-              # Trigger :child callback
-              at_fork_blocks[:child].each(&:call) if at_fork_blocks.key?(:child)
-              yield
-            end
+            # If a block is provided, it must be wrapped to trigger callbacks.
+            child_block = if block_given?
+                            proc do
+                              # Trigger :child callback
+                              at_fork_blocks[:child].each(&:call) if at_fork_blocks.key?(:child)
+                              yield
+                            end
+                          end
 
             # Trigger :prepare callback
             at_fork_blocks[:prepare].each(&:call) if at_fork_blocks.key?(:prepare)
 
             # Start fork
-            result = super(&wrapped_block)
+            # If a block is provided, use the wrapped version.
+            result = child_block.nil? ? super : super(&child_block)
 
-            # Trigger :parent callback and return
-            at_fork_blocks[:parent].each(&:call) if at_fork_blocks.key?(:parent)
+            # Trigger correct callbacks depending on whether we're in the parent or child.
+            # If we're in the fork, result = nil: trigger child callbacks.
+            # If we're in the parent, result = fork PID: trigger parent callbacks.
+            # rubocop:disable Style/IfInsideElse
+            if result.nil?
+              # Trigger :child callback
+              at_fork_blocks[:child].each(&:call) if at_fork_blocks.key?(:child)
+            else
+              # Trigger :parent callback
+              at_fork_blocks[:parent].each(&:call) if at_fork_blocks.key?(:parent)
+            end
+
+            # Return PID from #fork
             result
           end
 
