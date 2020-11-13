@@ -110,13 +110,14 @@ RSpec.describe Datadog::Profiling::Ext::Forking::Kernel do
     end
 
     subject(:fork_class) { new_fork_class }
+    let(:fork_result) { :fork_result }
 
     before do
       # Stub out actual forking, return mock result.
       # This also makes callback order deterministic.
       allow(Kernel).to receive(:fork) do |*_args, &b|
-        b.call
-        :fork_result
+        b.call unless b.nil?
+        fork_result
       end
     end
 
@@ -157,25 +158,61 @@ RSpec.describe Datadog::Profiling::Ext::Forking::Kernel do
     end
 
     describe '#fork' do
-      subject(:fork) { fork_class.fork(&block) }
-      let(:block) { proc {} }
+      context 'when a block is not provided' do
+        include_context 'at_fork callbacks'
 
-      context 'when no callbacks are configured' do
-        it 'passes through to original #fork' do
-          expect { |b| fork_class.fork(&b) }.to yield_control
-          is_expected.to be :fork_result
+        subject(:fork) { fork_class.fork }
+
+        context 'and returns from the parent context' do
+          # By setting the fork result = integer, we're
+          # simulating #fork running in the parent process.
+          let(:fork_result) { rand(100) }
+
+          it do
+            expect(prepare).to receive(:call).ordered
+            expect(child).to_not receive(:call)
+            expect(parent).to receive(:call).ordered
+
+            is_expected.to be fork_result
+          end
+        end
+
+        context 'and returns from the child context' do
+          # By setting the fork result = nil, we're
+          # simulating #fork running in the child process.
+          let(:fork_result) { nil }
+
+          it do
+            expect(prepare).to receive(:call).ordered
+            expect(child).to receive(:call).ordered
+            expect(parent).to_not receive(:call)
+
+            is_expected.to be nil
+          end
         end
       end
 
-      context 'when callbacks are configured' do
-        include_context 'at_fork callbacks'
+      context 'when a block is provided' do
+        subject(:fork) { fork_class.fork(&block) }
+        let(:block) { proc {} }
 
-        it 'invokes all the callbacks in order' do
-          expect(prepare).to receive(:call).ordered
-          expect(child).to receive(:call).ordered
-          expect(parent).to receive(:call).ordered
+        context 'when no callbacks are configured' do
+          it 'passes through to original #fork' do
+            expect { |b| fork_class.fork(&b) }.to yield_control
+            is_expected.to be fork_result
+          end
+        end
 
-          is_expected.to be :fork_result
+        context 'when callbacks are configured' do
+          include_context 'at_fork callbacks'
+
+          it 'invokes all the callbacks in order' do
+            expect(prepare).to receive(:call).ordered
+            expect(child).to receive(:call).ordered
+            expect(parent).to receive(:call).ordered
+
+            is_expected.to be fork_result
+          end
         end
       end
     end
