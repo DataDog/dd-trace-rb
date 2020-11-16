@@ -257,17 +257,15 @@ RSpec.describe Datadog::Writer do
         let(:trace) { instance_double(Array) }
         let(:services) { nil }
 
-        before do
-          allow_any_instance_of(Datadog::Workers::AsyncTransport)
-            .to receive(:start)
-
-          expect_any_instance_of(Datadog::Workers::AsyncTransport)
-            .to receive(:enqueue_trace)
-            .with(trace)
-        end
-
         context 'when runtime metrics are enabled' do
           before do
+            allow_any_instance_of(Datadog::Workers::AsyncTransport)
+              .to receive(:start)
+
+            expect_any_instance_of(Datadog::Workers::AsyncTransport)
+              .to receive(:enqueue_trace)
+              .with(trace)
+
             allow(Datadog.configuration.runtime_metrics)
               .to receive(:enabled)
               .and_return(true)
@@ -289,6 +287,20 @@ RSpec.describe Datadog::Writer do
                 .to have_received(:associate_with_span)
                 .with(root_span)
             end
+          end
+        end
+
+        context 'when tracer has been stopped' do
+          before { writer.stop }
+
+          it 'should not try to record traces' do
+            expect_any_instance_of(Datadog::Workers::AsyncTransport).to_not receive(:enqueue_trace)
+
+            # Ensure clean output, as failing to start the
+            # worker in this situation is not an error.
+            expect(Datadog.logger).to_not receive(:debug)
+
+            write
           end
         end
       end
