@@ -257,6 +257,11 @@ RSpec.describe Datadog::Writer do
         let(:trace) { instance_double(Array) }
         let(:services) { nil }
 
+        before do
+          allow(Datadog.configuration.runtime_metrics)
+            .to receive(:enabled).and_return(false)
+        end
+
         context 'when runtime metrics are enabled' do
           before do
             allow_any_instance_of(Datadog::Workers::AsyncTransport)
