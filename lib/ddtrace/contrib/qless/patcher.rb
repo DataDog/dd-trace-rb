@@ -18,21 +18,11 @@ module Datadog
           require_relative 'qless_job'
           require_relative 'tracer_cleaner'
 
-          workers_to_instrument = get_option(:workers)
-          if workers_to_instrument.empty?
-            # Instrument all Qless Workers
-            ::Qless::Workers::BaseWorker.class_eval do
-              # These are executed in inverse order of listing here
-              include TracerCleaner
-              include QlessJob
-            end
-          else
-            # Instrument only select Qless Workers
-            workers_to_instrument.each do |worker|
-              worker.extend(::Qless::Job::SupportsMiddleware)
-              worker.extend(TracerCleaner)
-              worker.extend(QlessJob)
-            end
+          # Instrument all Qless Workers
+          ::Qless::Workers::BaseWorker.class_eval do
+            # These are executed in inverse order of listing here
+            include TracerCleaner
+            include QlessJob
           end
         end
 

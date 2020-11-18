@@ -88,25 +88,11 @@ RSpec.describe 'Qless instrumentation' do
     it 'ensures worker is not using forking' do
       expect(worker.class).to eq(Qless::Workers::SerialWorker)
     end
-  end
 
-  describe 'patching for workers' do
-    let(:worker_class_1) { Class.new }
-    let(:worker_class_2) { Class.new }
-
-    before(:each) do
-      # Remove the patch so it applies new patch
-      remove_patch!(:qless)
-
-      # Re-apply patch, to workers
-      Datadog.configure do |c|
-        c.use(:qless, workers: [worker_class_1, worker_class_2])
+    describe 'patching for workers' do
+      it 'adds the instrumentation module' do
+        expect(worker.singleton_class.included_modules).to include(Datadog::Contrib::Qless::QlessJob)
       end
-    end
-
-    it 'adds the instrumentation module' do
-      expect(worker_class_1.singleton_class.included_modules).to include(Datadog::Contrib::Qless::QlessJob)
-      expect(worker_class_2.singleton_class.included_modules).to include(Datadog::Contrib::Qless::QlessJob)
     end
   end
 end

@@ -1176,7 +1176,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `service_name` | Service name used for `qless` instrumentation | `'qless'` |
 | `tag_job_data` | Enable tagging with job arguments. true for on, false for off. | `false` |
 | `tag_job_tags` | Enable tagging with job tags. true for on, false for off. | `false` |
-| `workers` | An array including all worker classes you want to trace (e.g. `[MyJob]`) | All jobs |
 
 ### Que
 
