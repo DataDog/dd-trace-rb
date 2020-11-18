@@ -2138,6 +2138,7 @@ config.lograge.custom_options = lambda do |event|
       :version => correlation.version.to_s
     },
     :ddsource => ["ruby"],
+    :status => event.payload[:status]
   }
 end
 ```
