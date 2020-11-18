@@ -12,6 +12,11 @@ unless RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/
   SimpleCov.start do
     formatter SimpleCov::Formatter::SimpleFormatter
   end
+
+  if ENV['CI'] == 'true'
+    require 'codecov'
+    SimpleCov.formatters = SimpleCov.formatters << SimpleCov::Formatter::Codecov
+  end
 end
 
 require 'ddtrace/encoding'
