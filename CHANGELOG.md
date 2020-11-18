@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+## [0.43.0] - 2020-11-18
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.43.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.42.0...v0.43.0
+
+### Added
+
+- Background job custom error handlers (#1212) (@norbertnytko)
+- Add "multi" methods instrumentation for Rails cache (#1217) (@michaelkl)
+- Support custom error status codes for Grape (#1238)
+- Cucumber integration (#1216)
+- RSpec integration (#1234)
+- Validation to `:on_error` argument on `Datadog::Tracer#trace` (#1220)
+
+### Changed
+
+- Update `TokenBucket#effective_rate` calculation (#1236)
+
+### Fixed
+
+- Avoid writer reinitialization during shutdown (#1235, #1248)
+- Fix configuration multiplexing (#1204, #1227)
+- Fix misnamed B3 distributed headers (#1226, #1229)
+- Correct span type for AWS SDK (#1233)
+- Correct span type for internal Pin on HTTP clients (#1239)
+- Reset trace context after fork (#1225)
+
+### Refactored
+
+- Improvements to test suite (#1232, #1244)
+- Improvements to documentation (#1243, #1218) (@cjford)
+
+### Removed
+
 ## [0.42.0] - 2020-10-21
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.42.0
@@ -1458,6 +1493,7 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 [Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.41.0...master
+[0.43.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.42.0...v0.43.0
 [0.41.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.40.0...v0.41.0
 [0.40.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.39.0...v0.40.0
 [0.39.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.38.0...v0.39.0
