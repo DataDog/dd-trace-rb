@@ -2138,7 +2138,6 @@ config.lograge.custom_options = lambda do |event|
       :version => correlation.version.to_s
     },
     :ddsource => ["ruby"],
-    :params => event.payload[:params].reject { |k| %w(controller action).include? k }
   }
 end
 ```
