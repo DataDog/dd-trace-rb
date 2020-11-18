@@ -16,9 +16,7 @@ module Datadog
             span.set_tag(Ext::TAG_JOB_QUEUE, job.queue_name)
 
             tag_job_tags = datadog_configuration[:tag_job_tags]
-            if tag_job_tags
-              span.set_tag(Ext::TAG_JOB_TAGS, job.tags)
-            end
+            span.set_tag(Ext::TAG_JOB_TAGS, job.tags) if tag_job_tags
 
             tag_job_data = datadog_configuration[:tag_job_data]
             if tag_job_data && !job.data.empty?
