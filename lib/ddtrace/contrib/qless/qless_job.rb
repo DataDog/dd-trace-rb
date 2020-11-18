@@ -14,7 +14,11 @@ module Datadog
             span.span_type = Datadog::Ext::AppTypes::WORKER
             span.set_tag(Ext::TAG_JOB_ID, job.jid)
             span.set_tag(Ext::TAG_JOB_QUEUE, job.queue_name)
-            span.set_tag(Ext::TAG_JOB_TAGS, job.tags)
+
+            tag_job_tags = datadog_configuration[:tag_job_tags]
+            if tag_job_tags
+              span.set_tag(Ext::TAG_JOB_TAGS, job.tags)
+            end
 
             tag_job_data = datadog_configuration[:tag_job_data]
             if tag_job_data && !job.data.empty?

@@ -22,6 +22,11 @@ module Datadog
             o.lazy
           end
 
+          option :tag_job_tags do |o|
+            o.default { env_to_bool(Ext::ENV_TAG_JOB_TAGS, false) }
+            o.lazy
+          end
+
           option :service_name, default: Ext::SERVICE_NAME
           option :workers, default: []
         end
