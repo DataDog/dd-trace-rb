@@ -28,7 +28,6 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
-          option :workers, default: []
         end
       end
     end
