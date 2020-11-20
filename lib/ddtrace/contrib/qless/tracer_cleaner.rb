@@ -6,8 +6,9 @@ module Datadog
         def around_perform(job)
           return super unless datadog_configuration && tracer
 
-          tracer.shutdown! if forked?
-          super
+          super.tap do
+            tracer.shutdown! if forked?
+          end
         end
 
         private

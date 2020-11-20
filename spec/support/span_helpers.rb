@@ -36,4 +36,17 @@ module SpanHelpers
   define_have_error_tag(:message, Datadog::Ext::Errors::MSG)
   define_have_error_tag(:stack, Datadog::Ext::Errors::STACK)
   define_have_error_tag(:type, Datadog::Ext::Errors::TYPE)
+
+  # Distributed traces have the same trace_id and parent_id as upstream parent
+  # span, but don't actually share the same Context with the parent.
+  RSpec::Matchers.define :have_distributed_parent do |parent|
+    match do |actual|
+      @matcher = have_attributes(parent_id: parent.span_id, trace_id: parent.trace_id)
+      @matcher.matches? actual
+    end
+
+    failure_message do
+      @matcher.failure_message
+    end
+  end
 end

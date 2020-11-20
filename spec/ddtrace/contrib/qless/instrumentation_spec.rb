@@ -95,4 +95,50 @@ RSpec.describe 'Qless instrumentation' do
       end
     end
   end
+
+  context 'with forking' do
+    before do
+      # Ensures worker is using forking
+      expect(worker.class).to eq(Qless::Workers::ForkingWorker)
+    end
+
+    context 'trace context' do
+      subject(:perform) do
+        tracer.trace('parent.process') do |span|
+          @parent_span = span
+          perform_job(job_class)
+        end
+
+        expect(failed_jobs.count).to eq(0)
+      end
+
+      context 'on main process' do
+        it 'only contains parent process spans' do
+          perform
+
+          expect(span.name).to eq('parent.process')
+        end
+      end
+
+      context 'on child process' do
+        it 'does not include parent process spans' do
+          expect(job_class).to receive(:perform) do
+            # Mock #shutdown! in fork only
+            expect(tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
+              m.call(*args)
+
+              expect(span.name).to eq('qless.job')
+              expect(span).to have_distributed_parent(@parent_span)
+            end
+          end
+
+          perform
+
+          # Remove hard-expectation from parent process,
+          # as `job_class#perform` won't be called in this process.
+          RSpec::Mocks.space.proxy_for(job_class).reset
+        end
+      end
+    end
+  end
 end

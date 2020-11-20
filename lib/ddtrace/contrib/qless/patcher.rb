@@ -21,8 +21,8 @@ module Datadog
           # Instrument all Qless Workers
           ::Qless::Workers::BaseWorker.class_eval do
             # These are executed in inverse order of listing here
-            include TracerCleaner
             include QlessJob
+            include TracerCleaner
           end
         end
 
