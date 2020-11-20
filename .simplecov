@@ -2,6 +2,9 @@ SimpleCov.add_group 'contrib', '/lib/ddtrace/contrib'
 SimpleCov.add_group 'transport', '/lib/ddtrace/transport'
 SimpleCov.add_group 'spec', '/spec/'
 
+# Exclude code not maintained by this project
+SimpleCov.add_filter %r{/vendor/}
+
 SimpleCov.coverage_dir ENV.fetch('COVERAGE_DIR', 'coverage')
 
 # Each test run requires its own unique command_name.

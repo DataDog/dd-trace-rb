@@ -42,7 +42,7 @@ module Datadog
             # Measure service stats
             Contrib::Analytics.set_measured(span)
 
-            span.set_error(payload[:exception_object]) if payload[:exception_object]
+            report_if_exception(span, payload)
           end
         end
       end

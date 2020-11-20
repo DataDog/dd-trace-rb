@@ -109,6 +109,7 @@ namespace :spec do
     :redis,
     :resque,
     :rest_client,
+    :rspec,
     :sequel,
     :shoryuken,
     :sidekiq,
@@ -236,6 +237,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:redis'
       declare 'bundle exec appraisal contrib-old rake spec:resque'
       declare 'bundle exec appraisal contrib-old rake spec:rest_client'
+      declare 'bundle exec appraisal contrib-old rake spec:rspec'
       declare 'bundle exec appraisal contrib-old rake spec:sequel'
       declare 'bundle exec appraisal contrib-old rake spec:sidekiq'
       declare 'bundle exec appraisal contrib-old rake spec:sinatra'
@@ -283,6 +285,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       declare 'bundle exec appraisal contrib-old rake spec:http'
       declare 'bundle exec appraisal contrib-old rake spec:httprb'
+      declare 'bundle exec appraisal contrib-old rake spec:kafka'
       declare 'bundle exec appraisal contrib-old rake spec:mongodb'
       declare 'bundle exec appraisal contrib-old rake spec:mysql2'
       declare 'bundle exec appraisal contrib-old rake spec:presto'
@@ -291,6 +294,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:redis'
       declare 'bundle exec appraisal contrib-old rake spec:resque'
       declare 'bundle exec appraisal contrib-old rake spec:rest_client'
+      declare 'bundle exec appraisal contrib-old rake spec:rspec'
       declare 'bundle exec appraisal contrib-old rake spec:sequel'
       declare 'bundle exec appraisal contrib-old rake spec:sidekiq'
       declare 'bundle exec appraisal contrib-old rake spec:sinatra'
@@ -348,6 +352,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
@@ -359,6 +364,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -422,6 +428,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
@@ -432,6 +439,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -502,6 +510,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
@@ -512,6 +521,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -570,6 +580,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:grpc' if RUBY_PLATFORM != 'java' # protobuf not supported
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2' if RUBY_PLATFORM != 'java' # built-in jdbc is used instead
     declare 'bundle exec appraisal contrib rake spec:presto'
@@ -581,6 +592,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:redis'
     declare 'bundle exec appraisal contrib rake spec:resque'
     declare 'bundle exec appraisal contrib rake spec:rest_client'
+    declare 'bundle exec appraisal contrib rake spec:rspec'
     declare 'bundle exec appraisal contrib rake spec:sequel'
     declare 'bundle exec appraisal contrib rake spec:shoryuken'
     declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -651,6 +663,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
@@ -662,6 +675,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -733,6 +747,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
@@ -744,6 +759,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'

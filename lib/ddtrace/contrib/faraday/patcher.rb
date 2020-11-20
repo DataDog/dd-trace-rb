@@ -30,7 +30,7 @@ module Datadog
             .new(
               get_option(:service_name),
               app: Ext::APP,
-              app_type: Datadog::Ext::AppTypes::WEB,
+              app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
               tracer: -> { get_option(:tracer) }
             ).onto(::Faraday)
         end

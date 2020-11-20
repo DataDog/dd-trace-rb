@@ -6,15 +6,10 @@ require 'active_support'
 require 'ddtrace'
 
 RSpec.describe 'Kafka patcher' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
   let(:client_id) { SecureRandom.uuid }
   let(:span) do
-    all_spans.select { |s| s.name == span_name }.first
-  end
-
-  def all_spans
-    tracer.writer.spans(:keep)
+    spans.select { |s| s.name == span_name }.first
   end
 
   before(:each) do

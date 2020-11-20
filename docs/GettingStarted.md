@@ -857,6 +857,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `enabled` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `grape` instrumentation | `'grape'` |
+| `error_statuses`| Defines a status code or range of status codes which should be marked as errors. `'404,405,500-599'` or `[404,405,'500-599']` | `nil` |
 
 ### GraphQL
 
@@ -1523,6 +1524,31 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `rest_client` instrumentation. | `'rest_client'` |
+
+## RSpec
+
+RSpec integration will trace all executions of example groups and examples when using `rspec` test framework.
+
+To activate your integration, use the `Datadog.configure` method:
+
+```ruby
+require 'rspec'
+require 'ddtrace'
+
+# Configure default RSpec integration
+Datadog.configure do |c|
+  c.use :rspec, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `true` |
+| `enabled` | Defines whether RSpec tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
+| `service_name` | Service name used for `rspec` instrumentation. | `'rspec'` |
+| `operation_name` | Operation name used for `rspec` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'rspec.example'` |
 
 ### Sequel
 

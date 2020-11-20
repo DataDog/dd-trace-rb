@@ -55,11 +55,27 @@ module Datadog
       end
     end
 
+    # Gracefully shuts down all components.
+    #
+    # Components will still respond to method calls as usual,
+    # but might not internally perform their work after shutdown.
+    #
+    # This avoids errors being raised across the host application
+    # during shutdown, while allowing for graceful decommission of resources.
+    #
+    # Components won't be automatically reinitialized after a shutdown.
     def shutdown!
-      if instance_variable_defined?(:@components) && @components
-        components.shutdown!
-        @components = nil
-      end
+      components.shutdown! if instance_variable_defined?(:@components) && @components
+    end
+
+    # Gracefully shuts down the tracer and disposes of component references,
+    # allowing execution to start anew.
+    #
+    # In contrast with +#shutdown!+, components will be automatically
+    # reinitialized after a reset.
+    def reset!
+      shutdown!
+      @components = nil
     end
 
     protected
