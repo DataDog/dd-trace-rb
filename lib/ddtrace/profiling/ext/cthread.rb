@@ -65,6 +65,9 @@ module Datadog
         end
 
         def update_native_ids
+          # Can only resolve if invoked from same thread.
+          return unless ::Thread.current == self
+
           @pid = ::Process.pid
           @native_thread_id = get_native_thread_id
           @clock_id = get_clock_id(@native_thread_id)
