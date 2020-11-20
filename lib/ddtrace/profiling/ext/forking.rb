@@ -39,6 +39,11 @@ module Datadog
             # If a block is provided, it must be wrapped to trigger callbacks.
             child_block = if block_given?
                             proc do
+                              # Update current thread clock, if available.
+                              if Thread.current.respond_to?(:update_native_ids, true)
+                                Thread.current.send(:update_native_ids)
+                              end
+
                               # Trigger :child callback
                               at_fork_blocks[:child].each(&:call) if at_fork_blocks.key?(:child)
                               yield
@@ -57,6 +62,11 @@ module Datadog
             # If we're in the parent, result = fork PID: trigger parent callbacks.
             # rubocop:disable Style/IfInsideElse
             if result.nil?
+              # Update current thread clock, if available.
+              if Thread.current.respond_to?(:update_native_ids, true)
+                Thread.current.send(:update_native_ids)
+              end
+
               # Trigger :child callback
               at_fork_blocks[:child].each(&:call) if at_fork_blocks.key?(:child)
             else
