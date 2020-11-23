@@ -21,14 +21,14 @@ module Datadog
 
       # Configuration methods for Datadog module.
       module Configuration
-        def configure(target = configuration, opts = {})
+        def configure(target = configuration, opts = {}, silence_logs: false)
           # Reconfigure core settings
           super
 
           # Activate integrations
           if target.respond_to?(:integrations_pending_activation)
             target.integrations_pending_activation.each do |integration|
-              integration.patch if integration.respond_to?(:patch)
+              integration.patch(silence_logs) if integration.respond_to?(:patch)
             end
 
             target.integrations_pending_activation.clear

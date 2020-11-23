@@ -40,8 +40,10 @@ module Datadog
           nil
         end
 
-        def patch
+        def patch(silence_logs = false)
           if !self.class.patchable? || patcher.nil?
+            return if silence_logs
+
             desc = "Available?: #{self.class.available?}"
             desc += ", Loaded? #{self.class.loaded?}"
             desc += ", Compatible? #{self.class.compatible?}"
