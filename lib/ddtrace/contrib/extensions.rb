@@ -90,7 +90,7 @@ module Datadog
 
           def silence_logs?
             @silence_logs
-          end          
+          end
 
           def silence_patching_logs
             @silence_logs ||= true

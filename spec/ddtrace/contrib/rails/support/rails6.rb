@@ -1,8 +1,6 @@
 require 'rails/all'
 
-if ENV['TEST_AUTO_INSTRUMENT'] == true
-  require 'ddtrace'
-end
+require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
@@ -61,7 +59,7 @@ RSpec.shared_context 'Rails 6 base application' do
     klass.send(:define_method, :test_initialize!) do
       # we want to disable explicit instrumentation
       # when testing auto patching
-      if ENV['TEST_AUTO_INSTRUMENT'] != true   
+      if ENV['TEST_AUTO_INSTRUMENT'] != true
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|
           c.use :rails
