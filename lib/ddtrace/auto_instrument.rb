@@ -15,7 +15,8 @@ module Datadog
         integrations << integration.name
       end
 
-      Datadog.configure(silence_logs: true) do |c|
+      Datadog.configure do |c|
+        c.silence_patching_logs
         # This will activate auto-instrumentation for Rails
         integrations.each do |integration_name|
           c.use integration_name

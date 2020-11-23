@@ -132,6 +132,28 @@ Before downloading tracing on your application, install the Datadog Agent. The R
 
 ### Quickstart for Rails applications
 
+#### Rails Auto Instrument all Integrations
+
+1. Add the `ddtrace` gem to your Gemfile:
+
+    ```ruby
+    source 'https://rubygems.org'
+    gem 'ddtrace'
+    ```
+
+2. Install the gem with `bundle install`
+
+3. Add `require 'ddtrace/auto_instrument'` to your application startup sequence. This can be done in your `config/application.rb` file.
+
+    ```ruby
+      require 'rails/all'
+      require 'ddtrace/patch_all'
+    ```
+
+    You can configure, override, or disable any specific integration settings by also adding a [Rails Manual Configuration](#rails-manual-configuration) file.
+
+#### Rails Manual Configuration
+
 1. Add the `ddtrace` gem to your Gemfile:
 
     ```ruby
@@ -152,6 +174,20 @@ Before downloading tracing on your application, install the Datadog Agent. The R
     You can also activate additional integrations here (see [Integration instrumentation](#integration-instrumentation))
 
 ### Quickstart for Ruby applications
+
+#### Ruby Auto Instrument all Integrations
+
+1. Install the gem with `gem install ddtrace`
+2. Add `require 'ddtrace/auto_instrument'` to your application startup sequence. This must be done _after_ requiring any libraries or frameworks that should be instrumented. 
+
+    ```ruby
+      require 'sinatra'
+      require 'ddtrace/patch_all'
+    ```
+
+    You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).
+
+#### Ruby Manual Configuration
 
 1. Install the gem with `gem install ddtrace`
 2. Add a configuration block to your Ruby application:

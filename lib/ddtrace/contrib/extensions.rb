@@ -21,12 +21,13 @@ module Datadog
 
       # Configuration methods for Datadog module.
       module Configuration
-        def configure(target = configuration, opts = {}, silence_logs: false)
+        def configure(target = configuration, opts = {})
           # Reconfigure core settings
           super
 
           # Activate integrations
           if target.respond_to?(:integrations_pending_activation)
+            silence_logs = target.respond_to?(:silence_logs?) ? target.silence_logs? : false
             target.integrations_pending_activation.each do |integration|
               integration.patch(silence_logs) if integration.respond_to?(:patch)
             end
@@ -85,6 +86,14 @@ module Datadog
           def fetch_integration(name)
             registry[name] ||
               raise(InvalidIntegrationError, "'#{name}' is not a valid integration.")
+          end
+
+          def silence_logs?
+            @silence_logs
+          end          
+
+          def silence_patching_logs
+            @silence_logs ||= true
           end
         end
       end
