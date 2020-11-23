@@ -24,8 +24,8 @@ RSpec.describe Datadog::Contrib::Rake::Integration do
   describe '.loaded?' do
     subject(:loaded?) { described_class.loaded? }
 
-    context 'when Rake is defined' do
-      before { stub_const('Rake', Class.new) }
+    context 'when Rake::Task is defined' do
+      before { stub_const('Rake::Task', Class.new) }
       it { is_expected.to be true }
     end
 
