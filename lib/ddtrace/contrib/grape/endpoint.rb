@@ -70,8 +70,9 @@ module Datadog
                            api.to_s
                          end
 
+              request_method = payload[:endpoint].options[:method].first
               path = payload[:endpoint].options[:path].join('/')
-              resource = "#{api_view}##{path}"
+              resource = "#{request_method}##{api_view}##{path}"
               span.resource = resource
 
               # set the request span resource if it's a `rack.request` span
@@ -97,6 +98,7 @@ module Datadog
               # override the current span with this notification values
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
               span.set_tag(Ext::TAG_ROUTE_PATH, path)
+              span.set_tag(Ext::TAG_ROUTE_METHOD, request_method)
             ensure
               span.start(start)
               span.finish(finish)
