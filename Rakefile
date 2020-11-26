@@ -101,6 +101,7 @@ namespace :spec do
     :mongodb,
     :mysql2,
     :presto,
+    :qless,
     :que,
     :racecar,
     :rack,
@@ -355,6 +356,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
+      declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
       declare 'bundle exec appraisal contrib rake spec:racecar'
       declare 'bundle exec appraisal contrib rake spec:rack'
@@ -582,6 +584,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2' if RUBY_PLATFORM != 'java' # built-in jdbc is used instead
     declare 'bundle exec appraisal contrib rake spec:presto'
+    declare 'bundle exec appraisal contrib rake spec:qless'
     declare 'bundle exec appraisal contrib rake spec:que'
     declare 'bundle exec appraisal contrib rake spec:racecar'
     declare 'bundle exec appraisal contrib rake spec:rack'
@@ -664,6 +667,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
+      declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
       declare 'bundle exec appraisal contrib rake spec:racecar'
       declare 'bundle exec appraisal contrib rake spec:rack'
@@ -679,6 +683,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:sneakers'
       declare 'bundle exec appraisal contrib rake spec:sucker_punch'
       declare 'bundle exec appraisal contrib rake spec:suite'
+
       # Contrib specs with old gem versions
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -746,6 +751,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
+      declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
       declare 'bundle exec appraisal contrib rake spec:racecar'
       declare 'bundle exec appraisal contrib rake spec:rack'
@@ -761,6 +767,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:sneakers'
       declare 'bundle exec appraisal contrib rake spec:sucker_punch'
       declare 'bundle exec appraisal contrib rake spec:suite'
+
       # Contrib specs with old gem versions
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
