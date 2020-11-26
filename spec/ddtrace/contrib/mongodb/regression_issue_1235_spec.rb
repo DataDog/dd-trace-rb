@@ -41,7 +41,7 @@ RSpec.describe 'Mongo crash regression #1235' do
   end
 
   it 'does not crash on exit' do
-    expect { subject }.to_not output.to_stderr_from_any_process
+    expect { subject }.to_not output(/^\[BUG\] /).to_stderr_from_any_process
 
     expect(subject.success?).to be_truthy
   end
