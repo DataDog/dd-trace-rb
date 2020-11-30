@@ -18,10 +18,6 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
   let(:options) { {} }
 
   before do
-    # Datadog.configure do |c|
-    #   c.use :sinatra, options
-    #   c.use :active_record, options
-    # end
   end
 
   after { Datadog.registry[:sinatra].reset_configuration! }
@@ -83,7 +79,7 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
     let(:adapter_host) { Datadog::Contrib::ActiveRecord::Utils.adapter_host }
     let(:adapter_port) { Datadog::Contrib::ActiveRecord::Utils.adapter_port }
 
-    it do
+    it 'should auto_instrument all relevant gems automatically' do
       is_expected.to be_ok
       expect(spans).to have_at_least(2).items
 

@@ -32,7 +32,7 @@ module Datadog
               next unless integration.respond_to?(:patch)
               # integration.patch returns either true or a hash of details on why patching failed
               patch_results = integration.patch
-              next unless patch_results.is_a?(Hash)
+              next if patch_results == true
               # if patching failed, only log output if verbosity is unset
               # or if patching failure is due to compatibility or integration specific reasons
               next unless !reduce_verbosity ||

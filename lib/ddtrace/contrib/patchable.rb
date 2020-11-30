@@ -52,6 +52,7 @@ module Datadog
           end
 
           patcher.patch
+          true
         end
       end
     end

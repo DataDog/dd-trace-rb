@@ -6,15 +6,17 @@ RSpec.describe 'Datadog::AutoInstrument' do
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
     Datadog.configuration.reset!
-    example.run
+
+    ClimateControl.modify('TEST_AUTO_INSTRUMENT' => true) do
+      example.run
+    end
+
     Datadog.configuration.reset!
   end
 
   context 'when auto patching is included' do
     before do
-      skip 'Java not supported' if RUBY_PLATFORM == 'java'
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('TEST_AUTO_INSTRUMENT').and_return(true)
+      skip if PlatformHelpers.jruby?
     end
 
     let(:config) { Datadog.configuration[:rails] }
