@@ -110,10 +110,8 @@ RSpec.describe Datadog::Contrib::Patchable do
         subject(:patch) { patchable_object.patch }
 
         context 'when the patchable object' do
-          let(:unpatched_warnings) do
-            [
-              /.*Unable to patch*/
-            ]
+          let(:unpatched_warning_keys) do
+            [:name, :available, :loaded, :compatible, :patchable]
           end
 
           context 'is patchable' do
@@ -131,16 +129,20 @@ RSpec.describe Datadog::Contrib::Patchable do
 
             context 'and the patcher is nil' do
               it 'does not applies the patch' do
-                is_expected.to be nil
-                expect(log_buffer).to contain_line_with(*unpatched_warnings)
+                is_expected.to be_a(Hash)
+                unpatched_warning_keys.each do |key|
+                  is_expected.to have_key(key)
+                end
               end
             end
           end
 
           context 'is not compatible' do
             it 'does not applies the patch' do
-              is_expected.to be nil
-              expect(log_buffer).to contain_line_with(*unpatched_warnings)
+              is_expected.to be_a(Hash)
+              unpatched_warning_keys.each do |key|
+                is_expected.to have_key(key)
+              end
             end
           end
         end
