@@ -13,7 +13,6 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
     it do
       expect(task).to receive(:activate_main_extensions).ordered
-      expect(task).to receive(:activate_cpu_extensions).ordered
       expect(task).to receive(:autostart_profiler).ordered
       run
     end
@@ -21,6 +20,60 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
   describe '#activate_main_extensions' do
     subject(:activate_main_extensions) { task.activate_main_extensions }
+
+    before do
+      expect(task).to receive(:activate_forking_extensions).ordered
+      expect(task).to receive(:activate_cpu_extensions).ordered
+    end
+
+    context 'and Process' do
+      context 'responds to #at_fork' do
+        it do
+          without_partial_double_verification do
+            allow(Process)
+              .to receive(:respond_to?)
+              .and_call_original
+
+            allow(Process)
+              .to receive(:respond_to?)
+              .with(:at_fork)
+              .and_return(true)
+
+            expect(Process).to receive(:at_fork) do |stage, &block|
+              expect(stage).to eq(:child)
+              # Might be better to assert it attempts to update native IDs here
+              expect(block).to_not be nil
+            end
+
+            activate_main_extensions
+          end
+        end
+      end
+
+      context 'does not respond to #at_fork' do
+        before do
+          allow(Process)
+            .to receive(:respond_to?)
+            .and_call_original
+
+          allow(Process)
+            .to receive(:respond_to?)
+            .with(:at_fork, any_args)
+            .and_return(false)
+        end
+
+        it do
+          without_partial_double_verification do
+            expect(Process).to_not receive(:at_fork)
+            activate_main_extensions
+          end
+        end
+      end
+    end
+  end
+
+  describe '#activate_forking_extensions' do
+    subject(:activate_forking_extensions) { task.activate_forking_extensions }
 
     context 'when forking extensions are supported' do
       before do
@@ -33,7 +86,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
         it 'applies forking extensions' do
           expect(Datadog::Profiling::Ext::Forking).to receive(:apply!)
           expect(STDOUT).to_not receive(:puts)
-          activate_main_extensions
+          activate_forking_extensions
         end
       end
 
@@ -49,7 +102,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
             expect(message).to include('Forking extensions unavailable')
           end
 
-          activate_main_extensions
+          activate_forking_extensions
         end
       end
     end
@@ -74,7 +127,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
             expect(message).to include('Forking extensions skipped')
           end
 
-          activate_main_extensions
+          activate_forking_extensions
         end
       end
 
@@ -88,7 +141,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
         it 'skips forking extensions without warning' do
           expect(Datadog::Profiling::Ext::Forking).to_not receive(:apply!)
           expect(STDOUT).to_not receive(:puts)
-          activate_main_extensions
+          activate_forking_extensions
         end
       end
     end
