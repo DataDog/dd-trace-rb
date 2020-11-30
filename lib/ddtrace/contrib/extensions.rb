@@ -27,9 +27,24 @@ module Datadog
 
           # Activate integrations
           if target.respond_to?(:integrations_pending_activation)
-            silence_logs = target.respond_to?(:silence_logs?) ? target.silence_logs? : false
+            reduce_verbosity = target.respond_to?(:reduce_verbosity?) ? target.reduce_verbosity? : false
             target.integrations_pending_activation.each do |integration|
-              integration.patch(silence_logs) if integration.respond_to?(:patch)
+              next unless integration.respond_to?(:patch)
+              # integration.patch returns either true or a hash of details on why patching failed
+              patch_results = integration.patch
+              next unless patch_results.is_a?(Hash)
+              # if patching failed, only log output if verbosity is unset
+              # or if patching failure is due to compatibility or integration specific reasons
+              if !reduce_verbosity ||
+                 ((patch_results['available'] && patch_results['loaded']) &&
+                  (!patch_results['compatible'] || !patch_results['patchable']))
+                desc = "Available?: #{patch_results['available']}"
+                desc += ", Loaded? #{patch_results['loaded']}"
+                desc += ", Compatible? #{patch_results['compatible']}"
+                desc += ", Patchable? #{patch_results['patchable']}"
+
+                Datadog.logger.warn("Unable to patch #{patch_results['name']} (#{desc})")
+              end
             end
 
             target.integrations_pending_activation.clear
@@ -88,12 +103,12 @@ module Datadog
               raise(InvalidIntegrationError, "'#{name}' is not a valid integration.")
           end
 
-          def silence_logs?
-            @silence_logs
+          def reduce_verbosity?
+            @reduce_verbosity
           end
 
-          def silence_patching_logs
-            @silence_logs ||= true
+          def reduce_log_verbosity
+            @reduce_verbosity ||= true
           end
         end
       end

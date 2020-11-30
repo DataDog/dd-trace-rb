@@ -16,7 +16,7 @@ module Datadog
       end
 
       Datadog.configure do |c|
-        c.silence_patching_logs
+        c.reduce_log_verbosity
         # This will activate auto-instrumentation for Rails
         integrations.each do |integration_name|
           c.use integration_name
@@ -24,9 +24,7 @@ module Datadog
       end
     end
 
-    if defined?(Rails) && defined?(Rails::VERSION) && defined?(Rails::VERSION::MAJOR) &&
-       Rails::VERSION::MAJOR >= 3 &&
-       defined?(Rails::Railtie)
+    if defined?(Rails::VERSION::MAJOR) && Rails::VERSION::MAJOR >= 3 && defined?(Rails::Railtie)
       # Railtie to include AutoInstrumentation in rails loading
       class Railtie < Rails::Railtie
         # we want to load before config initializers so that any user supplied config

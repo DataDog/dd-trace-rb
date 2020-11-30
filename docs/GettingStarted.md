@@ -147,7 +147,7 @@ Before downloading tracing on your application, install the Datadog Agent. The R
 
     ```ruby
       require 'rails/all'
-      require 'ddtrace/patch_all'
+      require 'ddtrace/auto_instrument'
     ```
 
     You can configure, override, or disable any specific integration settings by also adding a [Rails Manual Configuration](#rails-manual-configuration) file.
@@ -182,7 +182,7 @@ Before downloading tracing on your application, install the Datadog Agent. The R
 
     ```ruby
       require 'sinatra'
-      require 'ddtrace/patch_all'
+      require 'ddtrace/auto_instrument'
     ```
 
     You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).

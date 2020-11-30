@@ -40,17 +40,15 @@ module Datadog
           nil
         end
 
-        def patch(silence_logs = false)
+        def patch
           if !self.class.patchable? || patcher.nil?
-            return if silence_logs
-
-            desc = "Available?: #{self.class.available?}"
-            desc += ", Loaded? #{self.class.loaded?}"
-            desc += ", Compatible? #{self.class.compatible?}"
-            desc += ", Patchable? #{self.class.patchable?}"
-
-            Datadog.logger.warn("Unable to patch #{self.class.name} (#{desc})")
-            return
+            return {
+              name: self.class.name,
+              available: self.class.available?,
+              loaded: self.class.loaded?,
+              compatible: self.class.compatible?,
+              patchable: self.class.patchable?
+            }
           end
 
           patcher.patch
