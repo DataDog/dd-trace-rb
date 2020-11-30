@@ -35,16 +35,16 @@ module Datadog
               next unless patch_results.is_a?(Hash)
               # if patching failed, only log output if verbosity is unset
               # or if patching failure is due to compatibility or integration specific reasons
-              if !reduce_verbosity ||
-                 ((patch_results['available'] && patch_results['loaded']) &&
-                  (!patch_results['compatible'] || !patch_results['patchable']))
-                desc = "Available?: #{patch_results['available']}"
-                desc += ", Loaded? #{patch_results['loaded']}"
-                desc += ", Compatible? #{patch_results['compatible']}"
-                desc += ", Patchable? #{patch_results['patchable']}"
+              next unless !reduce_verbosity ||
+                          ((patch_results['available'] && patch_results['loaded']) &&
+                           (!patch_results['compatible'] || !patch_results['patchable']))
 
-                Datadog.logger.warn("Unable to patch #{patch_results['name']} (#{desc})")
-              end
+              desc = "Available?: #{patch_results['available']}"
+              desc += ", Loaded? #{patch_results['loaded']}"
+              desc += ", Compatible? #{patch_results['compatible']}"
+              desc += ", Patchable? #{patch_results['patchable']}"
+
+              Datadog.logger.warn("Unable to patch #{patch_results['name']} (#{desc})")
             end
 
             target.integrations_pending_activation.clear
