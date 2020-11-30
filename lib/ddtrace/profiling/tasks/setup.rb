@@ -10,11 +10,34 @@ module Datadog
       class Setup
         def run
           activate_main_extensions
-          activate_cpu_extensions
           autostart_profiler
         end
 
         def activate_main_extensions
+          # Activate extensions first
+          activate_forking_extensions
+          activate_cpu_extensions
+
+          # Setup at_fork hook:
+          # When Ruby forks, clock IDs for each of the threads
+          # will change. We can only update these IDs from the
+          # execution context of the thread that owns it.
+          # This hook will update the IDs for the main thread
+          # after a fork occurs.
+          if Process.respond_to?(:at_fork)
+            Process.at_fork(:child) do
+              # Update current thread clock, if available.
+              # (Be careful not to raise an error here.)
+              if Thread.current.respond_to?(:update_native_ids, true)
+                Thread.current.send(:update_native_ids)
+              end
+            end
+          end
+        rescue StandardError, ScriptError => e
+          log "[DDTRACE] Main extensions unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
+        end
+
+        def activate_forking_extensions
           if Ext::Forking.supported?
             Ext::Forking.apply!
           elsif Datadog.configuration.profiling.enabled
