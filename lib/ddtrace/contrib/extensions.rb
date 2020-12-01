@@ -32,17 +32,19 @@ module Datadog
               next unless integration.respond_to?(:patch)
               # integration.patch returns either true or a hash of details on why patching failed
               patch_results = integration.patch
+
               next if patch_results == true
+
               # if patching failed, only log output if verbosity is unset
               # or if patching failure is due to compatibility or integration specific reasons
               next unless !reduce_verbosity ||
-                          ((patch_results['available'] && patch_results['loaded']) &&
-                           (!patch_results['compatible'] || !patch_results['patchable']))
+                          ((patch_results[:available] && patch_results[:loaded]) &&
+                           (!patch_results[:compatible] || !patch_results[:patchable]))
 
-              desc = "Available?: #{patch_results['available']}"
-              desc += ", Loaded? #{patch_results['loaded']}"
-              desc += ", Compatible? #{patch_results['compatible']}"
-              desc += ", Patchable? #{patch_results['patchable']}"
+              desc = "Available?: #{patch_results[:available]}"
+              desc += ", Loaded? #{patch_results[:loaded]}"
+              desc += ", Compatible? #{patch_results[:compatible]}"
+              desc += ", Patchable? #{patch_results[:patchable]}"
 
               Datadog.logger.warn("Unable to patch #{patch_results['name']} (#{desc})")
             end
