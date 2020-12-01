@@ -7,7 +7,7 @@ RSpec.describe 'Datadog::AutoInstrument' do
     # Reset before and after each example; don't allow global state to linger.
     Datadog.configuration.reset!
 
-    ClimateControl.modify('TEST_AUTO_INSTRUMENT' => true) do
+    ClimateControl.modify('TEST_AUTO_INSTRUMENT' => 'true') do
       example.run
     end
 
