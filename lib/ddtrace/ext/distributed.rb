@@ -20,8 +20,14 @@ module Datadog
       PROPAGATION_STYLE_DATADOG = 'Datadog'.freeze
       PROPAGATION_STYLE_B3 = 'B3'.freeze
       PROPAGATION_STYLE_B3_SINGLE_HEADER = 'B3 single header'.freeze
-      PROPAGATION_INJECT_STYLE_ENV = 'DD_PROPAGATION_INJECT_STYLE'.freeze
-      PROPAGATION_EXTRACT_STYLE_ENV = 'DD_PROPAGATION_EXTRACT_STYLE'.freeze
+      PROPAGATION_STYLE_INJECT_ENV = 'DD_PROPAGATION_STYLE_INJECT'.freeze
+      PROPAGATION_STYLE_EXTRACT_ENV = 'DD_PROPAGATION_STYLE_EXTRACT'.freeze
+      # Note: the below inject/extract values are deprecated and were defined erronously
+      # they were never part of the datadog language client standard or documentation
+      # some users may already be relying on them, but we should look to remove these in the future
+      # or before 1.0.
+      PROPAGATION_INJECT_STYLE_ENV_OLD = 'DD_PROPAGATION_INJECT_STYLE'.freeze
+      PROPAGATION_EXTRACT_STYLE_ENV_OLD = 'DD_PROPAGATION_EXTRACT_STYLE'.freeze
 
       # gRPC metadata keys for distributed tracing. https://github.com/grpc/grpc-go/blob/v1.10.x/Documentation/grpc-metadata.md
       GRPC_METADATA_TRACE_ID = 'x-datadog-trace-id'.freeze

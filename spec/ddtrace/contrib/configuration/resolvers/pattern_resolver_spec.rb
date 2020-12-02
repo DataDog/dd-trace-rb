@@ -27,7 +27,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
     context 'when non-matching Regexp has been added' do
       let(:name) { 'my-name' }
       before { resolver.add(/not_found/) }
-      it { is_expected.to be :default }
+      it { is_expected.to be nil }
     end
 
     context 'when matching Proc has been added' do
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
     context 'when non-matching Proc has been added' do
       let(:name) { 'my-name' }
       before { resolver.add(proc { |n| n == 'not_found' }) }
-      it { is_expected.to be :default }
+      it { is_expected.to be nil }
     end
 
     context 'when a matching String has been added' do
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
     context 'when a non-matching String has been added' do
       let(:name) { 'name' }
       before { resolver.add('my-name') }
-      it { is_expected.to be :default }
+      it { is_expected.to be nil }
     end
   end
 
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
 
       it 'allows any string matching the pattern to resolve' do
         expect { add }.to change { resolver.resolve('my-name') }
-          .from(:default)
+          .from(nil)
           .to(pattern)
       end
     end
@@ -94,7 +94,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
 
       it 'allows any string matching the pattern to resolve' do
         expect { add }.to change { resolver.resolve('my-name') }
-          .from(:default)
+          .from(nil)
           .to(pattern)
       end
     end
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
 
       it 'allows identical strings to resolve' do
         expect { add }.to change { resolver.resolve(pattern) }
-          .from(:default)
+          .from(nil)
           .to(pattern)
       end
     end
@@ -115,7 +115,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
       it 'allows its #to_s value to match identical strings when resolved' do
         expect(pattern).to respond_to(:to_s)
         expect { add }.to change { resolver.resolve('http://localhost') }
-          .from(:default)
+          .from(nil)
           .to('http://localhost')
       end
     end

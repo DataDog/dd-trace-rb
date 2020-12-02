@@ -34,6 +34,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Active Support](#active-support)
      - [AWS](#aws)
      - [Concurrent Ruby](#concurrent-ruby)
+     - [Cucumber](#cucumber)
      - [Dalli](#dalli)
      - [DelayedJob](#delayedjob)
      - [Elasticsearch](#elasticsearch)
@@ -48,6 +49,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [MySQL2](#mysql2)
      - [Net/HTTP](#net-http)
      - [Presto](#presto)
+     - [Qless](#qless)
      - [Que](#que)
      - [Racecar](#racecar)
      - [Rack](#rack)
@@ -56,6 +58,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Redis](#redis)
      - [Rest Client](#rest-client)
      - [Resque](#resque)
+     - [RSpec](#rspec)
      - [Shoryuken](#shoryuken)
      - [Sequel](#sequel)
      - [Sidekiq](#sidekiq)
@@ -338,6 +341,7 @@ For a list of available integrations, and their configuration options, please re
 | Active Support           | `active_support`           | `>= 3.0`                 | `>= 3.0`                  | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | `>= 0.9`                  | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
+| Cucumber                 | `cucumber`                 | `>= 3.0`                 | `>= 1.7.16`               | *[Link](#cucumber)*                | *[Link](https://github.com/cucumber/cucumber-ruby)*                            |
 | Dalli                    | `dalli`                    | `>= 2.0`                 | `>= 2.0`                  | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
 | DelayedJob               | `delayed_job`              | `>= 4.1`                 | `>= 4.1`                  | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
 | Elasticsearch            | `elasticsearch`            | `>= 1.0`                 | `>= 1.0`                  | *[Link](#elasticsearch)*            | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
@@ -353,6 +357,7 @@ For a list of available integrations, and their configuration options, please re
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *(Any supported Ruby)*    | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
 | Presto                   | `presto`                   | `>= 0.5.14`              | `>= 0.5.14`               | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
+| Qless                    | `qless`                    | `>= 0.10.0`              | `>= 0.10.0`               | *[Link](#qless)*                    | *[Link](https://github.com/seomoz/qless)*                                      |
 | Que                      | `que`                      | `>= 1.0.0.beta2`         | `>= 1.0.0.beta2`          | *[Link](#que)*                      | *[Link](https://github.com/que-rb/que)*                                        |
 | Racecar                  | `racecar`                  | `>= 0.3.5`               | `>= 0.3.5`                | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
 | Rack                     | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
@@ -361,6 +366,7 @@ For a list of available integrations, and their configuration options, please re
 | Redis                    | `redis`                    | `>= 3.2`                 | `>= 3.2`                  | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Resque                   | `resque`                   | `>= 1.0`                 | `>= 1.0`                  | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
 | Rest Client              | `rest-client`              | `>= 1.8`                 | `>= 1.8`                  | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
+| RSpec                    | `rspec`.                   | `>= 3.0.0`               | `>= 3.0.0`                | *[Link](#rspec)*.                   | *[Link](https://github.com/rspec/rspec)*                                       |
 | Sequel                   | `sequel`                   | `>= 3.41`                | `>= 3.41`                 | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
 | Shoryuken                | `shoryuken`                | `>= 3.2`                 | `>= 3.2`                  | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
 | Sidekiq                  | `sidekiq`                  | `>= 3.5.4`               | `>= 3.5.4`                | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
@@ -590,6 +596,42 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `concurrent-ruby` instrumentation | `'concurrent-ruby'` |
 
+### Cucumber
+
+Cucumber integration will trace all executions of scenarios and steps when using `cucumber` framework.
+
+To activate your integration, use the `Datadog.configure` method:
+
+```ruby
+require 'cucumber'
+require 'ddtrace'
+
+# Configure default Cucumber integration
+Datadog.configure do |c|
+  c.use :cucumber, options
+end
+
+# Example of how to attach tags from scenario to active span
+Around do |scenario, block|
+  active_span = Datadog.configuration[:cucumber][:tracer].active_span
+  unless active_span.nil?
+    scenario.tags.filter { |tag| tag.include? ':' }.each do |tag|
+      active_span.set_tag(*tag.name.split(':', 2))
+    end
+  end
+  block.call
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `true` |
+| `enabled` | Defines whether Cucumber tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
+| `service_name` | Service name used for `cucumber` instrumentation. | `'cucumber'` |
+| `operation_name` | Operation name used for `cucumber` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'cucumber.test'` |
+
 ### Dalli
 
 Dalli integration will trace all calls to your `memcached` server:
@@ -817,6 +859,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `enabled` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `grape` instrumentation | `'grape'` |
+| `error_statuses`| Defines a status code or range of status codes which should be marked as errors. `'404,405,500-599'` or `[404,405,'500-599']` | `nil` |
 
 ### GraphQL
 
@@ -1114,6 +1157,29 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `presto` instrumentation | `'presto'` |
 
+### Qless
+
+The Qless integration uses lifecycle hooks to trace job executions.
+
+To add tracing to a Qless job:
+
+```ruby
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :qless, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `qless` instrumentation | `'qless'` |
+| `tag_job_data` | Enable tagging with job arguments. true for on, false for off. | `false` |
+| `tag_job_tags` | Enable tagging with job tags. true for on, false for off. | `false` |
+
 ### Que
 
 The Que integration is a middleware which will trace job executions.
@@ -1191,7 +1257,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `application` | Your Rack application. Required for `middleware_names`. | `nil` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `headers` | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
-| `middleware_names` | Enable this if you want to use the middleware classes as the resource names for `rack` spans. Requires `application` option to use. | `false` |
+| `middleware_names` | Enable this if you want to use the last executed middleware class as the resource name for the `rack` span. If enabled alongside the `rails` instrumention, `rails` takes precedence by setting the `rack` resource name to the active `rails` controller when applicable. Requires `application` option to use. | `false` |
 | `quantize` | Hash containing options for quantization. May include `:query` or `:fragment`. | `{}` |
 | `quantize.query` | Hash containing options for query portion of URL quantization. May include `:show` or `:exclude`. See options below. Option must be nested inside the `quantize` option. | `{}` |
 | `quantize.query.show` | Defines which values should always be shown. Shows no values by default. May be an Array of strings, or `:all` to show all values. Option must be nested inside the `query` option. | `nil` |
@@ -1460,6 +1526,31 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `rest_client` instrumentation. | `'rest_client'` |
+
+### RSpec
+
+RSpec integration will trace all executions of example groups and examples when using `rspec` test framework.
+
+To activate your integration, use the `Datadog.configure` method:
+
+```ruby
+require 'rspec'
+require 'ddtrace'
+
+# Configure default RSpec integration
+Datadog.configure do |c|
+  c.use :rspec, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `true` |
+| `enabled` | Defines whether RSpec tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
+| `service_name` | Service name used for `rspec` instrumentation. | `'rspec'` |
+| `operation_name` | Operation name used for `rspec` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'rspec.example'` |
 
 ### Sequel
 
@@ -2057,7 +2148,7 @@ _Note:_ For `lograge` users who have also defined `lograge.custom_options` in an
 
 ##### Manual (Lograge)
 
-After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), manually modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs. 
+After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), manually modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs.
 
 ```ruby
 config.lograge.custom_options = lambda do |event|

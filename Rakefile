@@ -85,6 +85,7 @@ namespace :spec do
     :active_support,
     :aws,
     :concurrent_ruby,
+    :cucumber,
     :dalli,
     :delayed_job,
     :elasticsearch,
@@ -100,6 +101,7 @@ namespace :spec do
     :mongodb,
     :mysql2,
     :presto,
+    :qless,
     :que,
     :racecar,
     :rack,
@@ -107,6 +109,7 @@ namespace :spec do
     :redis,
     :resque,
     :rest_client,
+    :rspec,
     :sequel,
     :shoryuken,
     :sidekiq,
@@ -234,6 +237,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:redis'
       declare 'bundle exec appraisal contrib-old rake spec:resque'
       declare 'bundle exec appraisal contrib-old rake spec:rest_client'
+      declare 'bundle exec appraisal contrib-old rake spec:rspec'
       declare 'bundle exec appraisal contrib-old rake spec:sequel'
       declare 'bundle exec appraisal contrib-old rake spec:sidekiq'
       declare 'bundle exec appraisal contrib-old rake spec:sinatra'
@@ -281,6 +285,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       declare 'bundle exec appraisal contrib-old rake spec:http'
       declare 'bundle exec appraisal contrib-old rake spec:httprb'
+      declare 'bundle exec appraisal contrib-old rake spec:kafka'
       declare 'bundle exec appraisal contrib-old rake spec:mongodb'
       declare 'bundle exec appraisal contrib-old rake spec:mysql2'
       declare 'bundle exec appraisal contrib-old rake spec:presto'
@@ -289,6 +294,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:redis'
       declare 'bundle exec appraisal contrib-old rake spec:resque'
       declare 'bundle exec appraisal contrib-old rake spec:rest_client'
+      declare 'bundle exec appraisal contrib-old rake spec:rspec'
       declare 'bundle exec appraisal contrib-old rake spec:sequel'
       declare 'bundle exec appraisal contrib-old rake spec:sidekiq'
       declare 'bundle exec appraisal contrib-old rake spec:sinatra'
@@ -346,9 +352,11 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
+      declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
       declare 'bundle exec appraisal contrib rake spec:racecar'
       declare 'bundle exec appraisal contrib rake spec:rack'
@@ -356,6 +364,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -419,6 +428,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
@@ -429,6 +439,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -499,6 +510,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
@@ -509,6 +521,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -533,6 +546,10 @@ task :ci do
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
       declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
+
+      # explicitly test cucumber compatibility
+      declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
     end
   elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
@@ -551,6 +568,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:active_support'
     declare 'bundle exec appraisal contrib rake spec:aws'
     declare 'bundle exec appraisal contrib rake spec:concurrent_ruby'
+    declare 'bundle exec appraisal contrib rake spec:cucumber'
     declare 'bundle exec appraisal contrib rake spec:dalli'
     declare 'bundle exec appraisal contrib rake spec:delayed_job'
     declare 'bundle exec appraisal contrib rake spec:elasticsearch'
@@ -562,9 +580,11 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:grpc' if RUBY_PLATFORM != 'java' # protobuf not supported
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2' if RUBY_PLATFORM != 'java' # built-in jdbc is used instead
     declare 'bundle exec appraisal contrib rake spec:presto'
+    declare 'bundle exec appraisal contrib rake spec:qless'
     declare 'bundle exec appraisal contrib rake spec:que'
     declare 'bundle exec appraisal contrib rake spec:racecar'
     declare 'bundle exec appraisal contrib rake spec:rack'
@@ -572,6 +592,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:redis'
     declare 'bundle exec appraisal contrib rake spec:resque'
     declare 'bundle exec appraisal contrib rake spec:rest_client'
+    declare 'bundle exec appraisal contrib rake spec:rspec'
     declare 'bundle exec appraisal contrib rake spec:sequel'
     declare 'bundle exec appraisal contrib rake spec:shoryuken'
     declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -606,6 +627,11 @@ task :ci do
     # explicitly test resque-2x compatability
     declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
     declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
+
+    # explicitly test cucumber compatibility
+    declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
+    declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
+    declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
   elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
     # Main library
@@ -625,6 +651,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:active_support'
       declare 'bundle exec appraisal contrib rake spec:aws'
       declare 'bundle exec appraisal contrib rake spec:concurrent_ruby'
+      declare 'bundle exec appraisal contrib rake spec:cucumber'
       declare 'bundle exec appraisal contrib rake spec:dalli'
       declare 'bundle exec appraisal contrib rake spec:delayed_job'
       declare 'bundle exec appraisal contrib rake spec:elasticsearch'
@@ -636,9 +663,11 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
+      declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
       declare 'bundle exec appraisal contrib rake spec:racecar'
       declare 'bundle exec appraisal contrib rake spec:rack'
@@ -646,6 +675,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -653,6 +683,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:sneakers'
       declare 'bundle exec appraisal contrib rake spec:sucker_punch'
       declare 'bundle exec appraisal contrib rake spec:suite'
+
       # Contrib specs with old gem versions
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -680,6 +711,11 @@ task :ci do
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
       declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
+
+      # explicitly test cucumber compatibility
+      declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
     end
   elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
     # Main library
@@ -699,6 +735,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:active_support'
       declare 'bundle exec appraisal contrib rake spec:aws'
       declare 'bundle exec appraisal contrib rake spec:concurrent_ruby'
+      declare 'bundle exec appraisal contrib rake spec:cucumber'
       declare 'bundle exec appraisal contrib rake spec:dalli'
       declare 'bundle exec appraisal contrib rake spec:delayed_job'
       declare 'bundle exec appraisal contrib rake spec:elasticsearch'
@@ -710,9 +747,11 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
+      declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
       declare 'bundle exec appraisal contrib rake spec:racecar'
       declare 'bundle exec appraisal contrib rake spec:rack'
@@ -720,6 +759,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:redis'
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
+      declare 'bundle exec appraisal contrib rake spec:rspec'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -727,6 +767,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:sneakers'
       declare 'bundle exec appraisal contrib rake spec:sucker_punch'
       declare 'bundle exec appraisal contrib rake spec:suite'
+
       # Contrib specs with old gem versions
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -752,6 +793,11 @@ task :ci do
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
       declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
+
+      # explicitly test cucumber compatibility
+      declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
+      declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
     end
   end
 end

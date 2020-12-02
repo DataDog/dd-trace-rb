@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/ext/http'
 require 'ddtrace/contrib/grape/ext'
+require 'ddtrace/contrib/status_code_matcher'
 
 module Datadog
   module Contrib
@@ -24,6 +25,12 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
+
+          option :error_statuses, default: nil do |o|
+            o.setter do |new_value, _old_value|
+              Datadog::Contrib::StatusCodeMatcher.new(new_value) unless new_value.nil?
+            end
+          end
         end
       end
     end

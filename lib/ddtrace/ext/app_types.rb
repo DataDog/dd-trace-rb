@@ -6,6 +6,7 @@ module Datadog
       CACHE = 'cache'.freeze
       WORKER = 'worker'.freeze
       CUSTOM = 'custom'.freeze
+      TEST = 'test'.freeze
     end
   end
 end

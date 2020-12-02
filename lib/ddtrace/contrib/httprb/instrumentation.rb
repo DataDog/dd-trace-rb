@@ -103,7 +103,7 @@ module Datadog
               Datadog::Pin.new(
                 service,
                 app: Ext::APP,
-                app_type: Datadog::Ext::AppTypes::WEB,
+                app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
                 tracer: -> { config[:tracer] }
               )
             end
@@ -126,7 +126,7 @@ module Datadog
               Datadog::Pin.new(
                 service,
                 app: Ext::APP,
-                app_type: Datadog::Ext::AppTypes::WEB,
+                app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
                 tracer: -> { config[:tracer] }
               )
             end

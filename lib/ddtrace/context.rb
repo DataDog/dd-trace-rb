@@ -3,6 +3,7 @@ require 'ddtrace/diagnostics/health'
 
 require 'ddtrace/context_flush'
 require 'ddtrace/context_provider'
+require 'ddtrace/utils/forking'
 
 module Datadog
   # \Context is used to keep track of a hierarchy of spans for the current
@@ -19,6 +20,8 @@ module Datadog
   # This data structure is thread-safe.
   # rubocop:disable Metrics/ClassLength
   class Context
+    include Datadog::Utils::Forking
+
     # 100k spans is about a 100Mb footprint
     DEFAULT_MAX_LENGTH = 100_000
 
@@ -230,6 +233,21 @@ module Datadog
         # rubocop:disable Metrics/LineLength
         "Context(trace.length:#{@trace.length},sampled:#{@sampled},finished_spans:#{@finished_spans},current_span:#{@current_span})"
       end
+    end
+
+    # Generates equivalent context for forked processes.
+    #
+    # When Context from parent process is forked, child process
+    # should have a Context belonging to the same trace but not
+    # have the parent process spans.
+    def fork_clone
+      self.class.new(
+        trace_id: trace_id,
+        span_id: span_id,
+        sampled: sampled?,
+        sampling_priority: sampling_priority,
+        origin: origin
+      )
     end
 
     private

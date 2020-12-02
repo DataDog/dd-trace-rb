@@ -200,9 +200,42 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#propagation_extract_style' do
       subject(:propagation_extract_style) { settings.distributed_tracing.propagation_extract_style }
 
-      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV}" do
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV => environment) do
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+          it do
+            is_expected.to eq(
+              [
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3,
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER
+              ]
+            )
+          end
+        end
+
+        context 'is defined' do
+          let(:environment) { 'B3,B3 single header' }
+          it do
+            is_expected.to eq(
+              [
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3,
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER
+              ]
+            )
+          end
+        end
+      end
+
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV_OLD}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV_OLD => environment) do
             example.run
           end
         end
@@ -237,9 +270,34 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#propagation_inject_style' do
       subject(:propagation_inject_style) { settings.distributed_tracing.propagation_inject_style }
 
-      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV}" do
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV => environment) do
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+          it { is_expected.to eq([Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG]) }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'Datadog,B3' }
+          it do
+            is_expected.to eq(
+              [
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3
+              ]
+            )
+          end
+        end
+      end
+
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV_OLD}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV_OLD => environment) do
             example.run
           end
         end

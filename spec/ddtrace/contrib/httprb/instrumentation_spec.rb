@@ -35,7 +35,6 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
   end
   after(:all) { @server.shutdown }
 
-  # let(:tracer) { get_test_tracer }
   let(:configuration_options) { {} }
 
   before do
@@ -218,14 +217,19 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           context 'and the host matches a specific configuration' do
             before do
               Datadog.configure do |c|
-                c.use :httprb, describe: /localhost/ do |httprb|
+                c.use :httprb, describes: /localhost/ do |httprb|
                   httprb.service_name = 'bar'
+                  httprb.split_by_domain = false
+                end
+
+                c.use :httprb, describes: /random/ do |httprb|
+                  httprb.service_name = 'barz'
                   httprb.split_by_domain = false
                 end
               end
             end
 
-            it 'uses the configured service name over the domain name' do
+            it 'uses the configured service name over the domain name and the correct describes block' do
               http_response
               expect(span.service).to eq('bar')
             end
