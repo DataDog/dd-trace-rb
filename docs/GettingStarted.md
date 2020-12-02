@@ -229,7 +229,7 @@ And `options` is an optional `Hash` that accepts the following parameters:
 | `resource`    | `String` | Name of the resource or action being operated on. Traces with the same resource value will be grouped together for the purpose of metrics (but still independently viewable.) Usually domain specific, such as a URL, query, request, etc. (e.g. `'Article#submit'`, `http://example.com/articles/list`.) | `name` of Span. |
 | `span_type`   | `String` | The type of the span (such as `'http'`, `'db'`, etc.) | `nil` |
 | `child_of`    | `Datadog::Span` / `Datadog::Context` | Parent for this span. If not provided, will automatically become current active span. | `nil` |
-| `start_time`  | `Integer` | When the span actually starts. Useful when tracing events that have already happened. | `Time.now.utc` |
+| `start_time`  | `Time` | When the span actually starts. Useful when tracing events that have already happened. | `Time.now` |
 | `tags`        | `Hash` | Extra tags which should be added to the span. | `{}` |
 | `on_error`    | `Proc` | Handler invoked when a block is provided to trace, and it raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
