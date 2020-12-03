@@ -104,6 +104,7 @@ module Datadog
         States
         StorageGateway
         Support
+        Textract
         WAF
         WAFRegional
         WorkDocs
