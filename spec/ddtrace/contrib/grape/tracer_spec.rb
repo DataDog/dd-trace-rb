@@ -587,7 +587,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.service).to eq('grape')
         expect(run_span.resource).to eq('RackTestingAPI GET /hard_failure')
         expect(run_span).to have_error
-        expect(run_span.parent).to eq(rack_span)        
+        expect(run_span.parent).to eq(rack_span)
 
         expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/hard_failure')
@@ -601,7 +601,6 @@ RSpec.describe 'Grape instrumentation' do
         expect(rack_span.resource).to eq('RackTestingAPI GET /hard_failure')
         expect(rack_span).to have_error
         expect(rack_span.parent).to be_nil
-
       end
     end
 

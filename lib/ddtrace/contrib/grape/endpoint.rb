@@ -61,14 +61,8 @@ module Datadog
             begin
               # collect endpoint details
               api = payload[:endpoint].options[:for]
-              # If the API inherits from Grape::API in version >= 1.2.0
-              # then the API will be an instance and the name must be derived from the base.
-              # See https://github.com/ruby-grape/grape/issues/1825
-              api_view = if defined?(::Grape::API::Instance) && api <= ::Grape::API::Instance
-                           api.base.to_s
-                         else
-                           api.to_s
-                         end
+
+              api_view = api_view(api)
 
               request_method = payload[:endpoint].options[:method].first
               path = endpoint_expand_path(payload[:endpoint])
@@ -193,10 +187,21 @@ module Datadog
 
           private
 
+          def api_view(api)
+            # If the API inherits from Grape::API in version >= 1.2.0
+            # then the API will be an instance and the name must be derived from the base.
+            # See https://github.com/ruby-grape/grape/issues/1825
+            if defined?(::Grape::API::Instance) && api <= ::Grape::API::Instance
+              api.base.to_s
+            else
+              api.to_s
+            end
+          end
+
           def endpoint_expand_path(endpoint)
             route_path = endpoint.options[:path]
- 
-            parts = (endpoint.routes.first.namespace.split('/') + route_path).reject{ |p| p.blank? || p.eql?('/') }
+
+            parts = (endpoint.routes.first.namespace.split('/') + route_path).reject { |p| p.blank? || p.eql?('/') }
             parts.join('/').prepend('/')
           end
 
