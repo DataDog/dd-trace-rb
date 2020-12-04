@@ -274,6 +274,38 @@ orbs:
           - store_artifacts:
               path: /tmp/workspace/coverage/report/
               destination: coverage
+      changelog:
+        <<: *job_defaults
+        parameters:
+          ruby_version:
+            description: Ruby version
+            type: string
+          image:
+            description: Docker image location
+            type: string
+        docker:
+          - <<: *container_base
+            image: <<parameters.image>>
+            environment:
+              - BUNDLE_GEMFILE: /app/Gemfile
+        steps:
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+          - attach_workspace:
+              at: /tmp/workspace
+          - run:
+              name: Format changelog
+              command: bundle exec rake changelog:format
+          - run:
+              name: Check if changelog was unformatted
+              command: |
+                if ! git diff-files --quiet; then
+                  echo "Please run 'bundle exec rake changelog:format' and commit the results."
+                fi
     commands:
     executors:
 
@@ -395,6 +427,14 @@ workflows:
             - test-2.6
             - test-2.7
             - test-jruby-9.2
+      - orb/changelog:
+          <<: *config-2_7
+          name: changelog
+          requires:
+            - build-2.7
+          filters:
+            branches:
+              only: /bump_to_version_.*/
       # MRI
       - orb/checkout:
           <<: *config-2_0

@@ -50,6 +50,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'minitest', '= 5.10.1'
   spec.add_development_dependency 'minitest-around', '0.5.0'
   spec.add_development_dependency 'minitest-stub_any_instance', '1.0.2'
+  spec.add_development_dependency 'pimpmychangelog', '>= 0.1.2'
   spec.add_development_dependency 'appraisal', '~> 2.2'
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'webmock', '~> 2.0'
