@@ -59,8 +59,8 @@ RSpec.describe 'Grape instrumentation' do
         end
       end
 
-      namespace :shared_paths do
-        desc 'Returns a list'
+      resource :widgets do
+        desc 'Returns a list of widgets'
         get do
           '[]'
         end
@@ -68,6 +68,15 @@ RSpec.describe 'Grape instrumentation' do
         desc 'creates a widget'
         post do
           '{}'
+        end
+      end
+
+      namespace :nested do
+        resource :widgets do
+          desc 'Returns a list of widgets'
+          get do
+            '[]'
+          end
         end
       end
     end)
@@ -148,7 +157,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
           expect(run_span.service).to eq('grape')
-          expect(run_span.resource).to eq('GET#TestingAPI#success')
+          expect(run_span.resource).to eq('TestingAPI GET /base/success')
           expect(run_span).to_not have_error
           expect(run_span.parent).to be_nil
         end
@@ -200,7 +209,7 @@ RSpec.describe 'Grape instrumentation' do
           expect('grape.endpoint_run').to eq(run_span.name)
           expect('web').to eq(run_span.span_type)
           expect('grape').to eq(run_span.service)
-          expect('GET#TestingAPI#before_after').to eq(run_span.resource)
+          expect('TestingAPI GET /filtered/before_after').to eq(run_span.resource)
           expect(0).to eq(run_span.status)
           expect(run_span.parent).to be_nil
         end
@@ -318,7 +327,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
           expect(run_span.service).to eq('grape')
-          expect(run_span.resource).to eq('GET#TestingAPI#hard_failure')
+          expect(run_span.resource).to eq('TestingAPI GET /base/hard_failure')
           expect(run_span).to have_error
 
           expect(run_span).to have_error_type('StandardError')
@@ -365,7 +374,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
           expect(run_span.service).to eq('grape')
-          expect(run_span.resource).to eq('GET#TestingAPI#before')
+          expect(run_span.resource).to eq('TestingAPI GET /filtered_exception/before')
           expect(run_span).to have_error
           expect(run_span.parent).to be_nil
         end
@@ -374,7 +383,7 @@ RSpec.describe 'Grape instrumentation' do
 
     context 'shared paths' do
       context 'get method' do
-        subject(:response) { get '/shared_paths' }
+        subject(:response) { get '/widgets' }
 
         it_behaves_like 'measured span for integration', true do
           before { is_expected.to be_ok }
@@ -401,14 +410,20 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
           expect(run_span.service).to eq('grape')
-          expect(run_span.resource).to eq('GET#TestingAPI#/')
+          expect(run_span.resource).to eq('TestingAPI GET /widgets')
           expect(run_span).to_not have_error
           expect(run_span.parent).to be_nil
+
+          expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
+          expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/widgets')
+
+          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/widgets')
+          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
         end
       end
 
       context 'post method' do
-        subject(:response) { post '/shared_paths' }
+        subject(:response) { post '/widgets' }
 
         it_behaves_like 'measured span for integration', true do
           before { expect(response.status).to eq(201) }
@@ -435,9 +450,45 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
           expect(run_span.service).to eq('grape')
-          expect(run_span.resource).to eq('POST#TestingAPI#/')
+          expect(run_span.resource).to eq('TestingAPI POST /widgets')
           expect(run_span).to_not have_error
           expect(run_span.parent).to be_nil
+
+          expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
+          expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/widgets')
+
+          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/widgets')
+          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('POST')
+        end
+      end
+
+      context 'deeply nested' do
+        subject(:response) { get '/nested/widgets' }
+
+        it 'should trace the endpoint body' do
+          is_expected.to be_ok
+          expect(response.body).to eq('[]')
+          expect(spans.length).to eq(2)
+
+          expect(render_span.name).to eq('grape.endpoint_render')
+          expect(render_span.span_type).to eq('template')
+          expect(render_span.service).to eq('grape')
+          expect(render_span.resource).to eq('grape.endpoint_render')
+          expect(render_span).to_not have_error
+          expect(render_span.parent).to eq(run_span)
+
+          expect(run_span.name).to eq('grape.endpoint_run')
+          expect(run_span.span_type).to eq('web')
+          expect(run_span.service).to eq('grape')
+          expect(run_span.resource).to eq('TestingAPI GET /nested/widgets')
+          expect(run_span).to_not have_error
+          expect(run_span.parent).to be_nil
+
+          expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
+          expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/nested/widgets')
+
+          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/nested/widgets')
+          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
         end
       end
     end
@@ -478,14 +529,20 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.name).to eq('grape.endpoint_run')
         expect(run_span.span_type).to eq('web')
         expect(run_span.service).to eq('grape')
-        expect(run_span.resource).to eq('GET#RackTestingAPI#success')
+        expect(run_span.resource).to eq('RackTestingAPI GET /success')
         expect(run_span).to_not have_error
         expect(run_span.parent).to eq(rack_span)
+
+        expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
+        expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
+
+        expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/success')
+        expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
 
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
         expect(rack_span.service).to eq('rack')
-        expect(rack_span.resource).to eq('GET#RackTestingAPI#success')
+        expect(rack_span.resource).to eq('RackTestingAPI GET /success')
         expect(rack_span).to_not have_error
         expect(rack_span.parent).to be_nil
       end
@@ -528,16 +585,23 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.name).to eq('grape.endpoint_run')
         expect(run_span.span_type).to eq('web')
         expect(run_span.service).to eq('grape')
-        expect(run_span.resource).to eq('GET#RackTestingAPI#hard_failure')
+        expect(run_span.resource).to eq('RackTestingAPI GET /hard_failure')
         expect(run_span).to have_error
-        expect(run_span.parent).to eq(rack_span)
+        expect(run_span.parent).to eq(rack_span)        
+
+        expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
+        expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/hard_failure')
+
+        expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/hard_failure')
+        expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
 
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
         expect(rack_span.service).to eq('rack')
-        expect(rack_span.resource).to eq('GET#RackTestingAPI#hard_failure')
+        expect(rack_span.resource).to eq('RackTestingAPI GET /hard_failure')
         expect(rack_span).to have_error
         expect(rack_span.parent).to be_nil
+
       end
     end
 

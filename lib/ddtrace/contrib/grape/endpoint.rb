@@ -71,8 +71,9 @@ module Datadog
                          end
 
               request_method = payload[:endpoint].options[:method].first
-              path = payload[:endpoint].options[:path].join('/')
-              resource = "#{request_method}##{api_view}##{path}"
+              path = endpoint_expand_path(payload[:endpoint])
+              # binding.pry if payload[:endpoint].routes.first.namespace.include? 'nested'
+              resource = "#{api_view} #{request_method} #{path}"
               span.resource = resource
 
               # set the request span resource if it's a `rack.request` span
@@ -99,6 +100,9 @@ module Datadog
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
               span.set_tag(Ext::TAG_ROUTE_PATH, path)
               span.set_tag(Ext::TAG_ROUTE_METHOD, request_method)
+
+              span.set_tag(Datadog::Ext::HTTP::METHOD, request_method)
+              span.set_tag(Datadog::Ext::HTTP::URL, path)
             ensure
               span.start(start)
               span.finish(finish)
@@ -188,6 +192,13 @@ module Datadog
           end
 
           private
+
+          def endpoint_expand_path(endpoint)
+            route_path = endpoint.options[:path]
+ 
+            parts = (endpoint.routes.first.namespace.split('/') + route_path).reject{ |p| p.blank? || p.eql?('/') }
+            parts.join('/').prepend('/')
+          end
 
           def tracer
             datadog_configuration[:tracer]
