@@ -1020,7 +1020,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.13.2...v0.14.0
 ### Added
 
 - RestClient integration ([#422][], [#460][])
-- DelayedJob integration ([#393][] #444)
+- DelayedJob integration ([#393][] [#444][])
 - Version information to integrations ([#483][])
 - Tracer#active_root_span helper ([#503][])
 
@@ -1080,7 +1080,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.13.1...v0.14.0.beta1
 
 ### Added
 
-- DelayedJob integration ([#393][] #444)
+- DelayedJob integration ([#393][] [#444][])
 - Version information to integrations ([#483][])
 
 ## [0.13.2] - 2018-08-07
