@@ -137,7 +137,7 @@ RSpec.describe 'Redis test' do
         subject(:span) { spans[-1] }
 
         it do
-          expect(span.resource).to be_nil
+          expect(span.resource).to eq('redis.command')
           expect(span.get_tag('redis.raw_command')).to be_nil
         end
       end
