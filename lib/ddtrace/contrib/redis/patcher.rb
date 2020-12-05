@@ -40,7 +40,9 @@ module Datadog
               pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.service = pin.service
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
-                span.resource = Datadog::Contrib::Redis::Quantize.format_command_args(*args)
+                if datadog_configuration[:show_command_args]
+                  span.resource = Datadog::Contrib::Redis::Quantize.format_command_args(*args)
+                end
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
                 response = call_without_datadog(*args, &block)
@@ -59,8 +61,10 @@ module Datadog
               pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.service = pin.service
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
-                commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
-                span.resource = commands.join("\n")
+                if datadog_configuration[:show_command_args]
+                  commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
+                  span.resource = commands.join("\n")
+                end
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
                 span.set_metric Datadog::Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
 

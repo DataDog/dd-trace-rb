@@ -1427,6 +1427,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `redis` instrumentation | `'redis'` |
+| `show_command_args` | Show the command args (e.g. `GET key`) as a resource & tag | true |
 
 You can also set *per-instance* configuration as it follows:
 

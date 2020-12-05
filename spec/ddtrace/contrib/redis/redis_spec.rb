@@ -125,6 +125,24 @@ RSpec.describe 'Redis test' do
       end
     end
 
+    context 'show_command_args disabled' do
+      let(:configuration_options) { { show_command_args: false } }
+      before(:each) do
+        expect(redis.call([:set, 'FOO', 'bar'])).to eq('OK')
+      end
+
+      it { expect(spans).to have(1).item }
+
+      describe 'span' do
+        subject(:span) { spans[-1] }
+
+        it do
+          expect(span.resource).to be_nil
+          expect(span.get_tag('redis.raw_command')).to be_nil
+        end
+      end
+    end
+
     context 'pipeline' do
       before(:each) do
         redis.pipelined do
