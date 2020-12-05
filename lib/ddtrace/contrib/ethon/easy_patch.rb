@@ -99,7 +99,7 @@ module Datadog
 
           def datadog_tag_request
             span = @datadog_span
-            method = 'N/A'
+            method = Ext::NOT_APPLICABLE_METHOD
             if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
               method = @datadog_method.to_s
             end
