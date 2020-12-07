@@ -37,7 +37,7 @@ module Datadog
           end
 
           def show_command_args?
-            datadog_configuration[:show_command_args]
+            datadog_configuration[:command_args]
           end
         end
       end

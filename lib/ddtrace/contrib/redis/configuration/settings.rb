@@ -22,8 +22,8 @@ module Datadog
             o.lazy
           end
 
-          option :show_command_args do |o|
-            o.default { env_to_bool(Ext::ENV_SHOW_COMMAND_ARGS, true) }
+          option :command_args do |o|
+            o.default { env_to_bool(Ext::ENV_COMMAND_ARGS, true) }
             o.lazy
           end
 

@@ -125,8 +125,8 @@ RSpec.describe 'Redis test' do
       end
     end
 
-    context 'show_command_args disabled' do
-      let(:configuration_options) { { show_command_args: false } }
+    context 'command_args disabled' do
+      let(:configuration_options) { { command_args: false } }
       before(:each) do
         expect(redis.call([:set, 'FOO', 'bar'])).to eq('OK')
       end
@@ -137,7 +137,7 @@ RSpec.describe 'Redis test' do
         subject(:span) { spans[-1] }
 
         it do
-          expect(span.resource).to eq('redis.command')
+          expect(span.resource).to eq('SET')
           expect(span.get_tag('redis.raw_command')).to be_nil
         end
       end
