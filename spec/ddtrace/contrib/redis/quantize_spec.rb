@@ -95,7 +95,7 @@ RSpec.describe Datadog::Contrib::Redis::Quantize do
     end
 
     context 'given an multi verb commands' do
-      let(:args) { [:acl, "HELP"] }
+      let(:args) { [:acl, 'HELP'] }
       it { is_expected.to eq('ACL HELP') }
     end
 

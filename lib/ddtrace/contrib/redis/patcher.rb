@@ -40,11 +40,11 @@ module Datadog
               pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.service = pin.service
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
-                if datadog_configuration[:command_args]
-                  span.resource = Datadog::Contrib::Redis::Quantize.format_command_args(*args)
-                else
-                  span.resource = Datadog::Contrib::Redis::Quantize.get_verb(*args)
-                end
+                span.resource = if datadog_configuration[:command_args]
+                                  Datadog::Contrib::Redis::Quantize.format_command_args(*args)
+                                else
+                                  Datadog::Contrib::Redis::Quantize.get_verb(*args)
+                                end
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
                 response = call_without_datadog(*args, &block)

@@ -10,16 +10,18 @@ module Datadog
         VALUE_MAX_LEN = 50
         CMD_MAX_LEN = 500
 
-        MULTI_VERB_COMMANDS = Set.new(%w[
-          ACL
-          CLIENT
-          CLUSTER
-          COMMAND
-          CONFIG
-          DEBUG
-          LATENCY
-          MEMORY
-        ]).freeze
+        MULTI_VERB_COMMANDS = Set.new(
+          %w[
+            ACL
+            CLIENT
+            CLUSTER
+            COMMAND
+            CONFIG
+            DEBUG
+            LATENCY
+            MEMORY
+          ]
+        ).freeze
 
         module_function
 
