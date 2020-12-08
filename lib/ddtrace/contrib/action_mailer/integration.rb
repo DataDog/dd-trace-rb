@@ -22,7 +22,7 @@ module Datadog
         end
 
         def self.compatible?
-          super && version >= MINIMUM_VERSION && defined?(::ActiveSupport::Notifications)
+          super && version >= MINIMUM_VERSION && !defined?(::ActiveSupport::Notifications).nil?
         end
 
         def default_configuration

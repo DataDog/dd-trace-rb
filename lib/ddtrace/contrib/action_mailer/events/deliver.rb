@@ -25,6 +25,13 @@ module Datadog
             # ActionMailer creates emails like a controller
             Datadog::Ext::AppTypes::Worker
           end
+
+          def process(span, event, _id, payload)
+            super
+
+            span.set_tag(Ext::TAG_MAILER, payload[:mailer])
+            span.set_tag(Ext::TAG_MSG_ID, payload[:message_id])
+          end
         end
       end
     end

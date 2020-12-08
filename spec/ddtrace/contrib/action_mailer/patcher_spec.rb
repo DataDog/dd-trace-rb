@@ -1,8 +1,9 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'rails'
 require 'active_support'
 require 'spec/ddtrace/contrib/action_mailer/helpers'
+require 'ddtrace/contrib/action_mailer/integration'
 require 'ddtrace'
 
 begin
@@ -15,10 +16,6 @@ RSpec.describe 'ActionMailer patcher' do
   include_context 'ActionMailer helpers'
 
   let(:configuration_options) { {} }
-
-  def all_spans
-    tracer.writer.spans(:keep)
-  end
 
   before(:each) do
     if Datadog::Contrib::ActionMailer::Integration.compatible?
@@ -45,27 +42,45 @@ RSpec.describe 'ActionMailer patcher' do
     end
 
     let(:span) do
-      puts 'spans are'
-      puts spans.length
       spans.select { |s| s.name == Datadog::Contrib::ActionMailer::Ext::SPAN_PROCESS }.first
     end
 
-    before do
+    let(:deliver_span) do
+      spans.select { |s| s.name == Datadog::Contrib::ActionMailer::Ext::SPAN_DELIVER }.first
+    end
+
+    before(:each) do
       UserMailer.test_mail(1).deliver_now
     end
 
     context 'that doesn\'t raise an error' do
-      it 'is expected to send a span' do
-        span.tap do |span|
-          expect(span).to_not be nil
-          expect(span.service).to eq('action_mailer')
-          expect(span.name).to eq('action_mailer.process')
-          expect(span.resource).to eq(mailer)
-          expect(span.get_tag('action_mailer.action')).to eq(action)
-          expect(span.get_tag('action_mailer.mailer')).to eq(mailer)
-          expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
-        end
+      it 'is expected to send a process span' do
+        expect(span).to_not be nil
+        expect(span.service).to eq('action_mailer')
+        expect(span.name).to eq('action_mailer.process')
+        expect(span.resource).to eq(mailer)
+        expect(span.get_tag('action_mailer.action')).to eq(action)
+        expect(span.get_tag('action_mailer.mailer')).to eq(mailer)
+        expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
       end
+
+      it 'is expected to send a deliver span' do
+        expect(deliver_span).to_not be nil
+        expect(deliver_span.service).to eq('action_mailer')
+        expect(deliver_span.name).to eq('action_mailer.deliver')
+        expect(deliver_span.resource).to eq(mailer)
+        expect(deliver_span.get_tag('action_mailer.mailer')).to eq(mailer)
+        expect(deliver_span.get_tag('action_mailer.message_id')).to_not be nil
+        expect(deliver_span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+      end
+
+      it_behaves_like 'analytics for integration' do
+        before { UserMailer.test_mail(1).deliver_now }
+        let(:analytics_enabled_var) { Datadog::Contrib::ActionMailer::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Contrib::ActionMailer::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+
+      it_behaves_like 'measured span for integration', true
     end
 
     # context 'that raises an error' do
@@ -92,11 +107,5 @@ RSpec.describe 'ActionMailer patcher' do
     #     end
     #   end
     # end
-
-    it_behaves_like 'analytics for integration' do
-
-      let(:analytics_enabled_var) { Datadog::Contrib::ActionMailer::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::ActionMailer::Ext::ENV_ANALYTICS_SAMPLE_RATE }
-    end
   end
 end

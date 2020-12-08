@@ -38,9 +38,6 @@ module Datadog
             # Measure service stats
             Contrib::Analytics.set_measured(span)
 
-            span.set_tag(Ext::TAG_ACTION, payload[:action])
-            span.set_tag(Ext::TAG_MAILER, payload[:mailer])
-            
             report_if_exception(span, payload)
           rescue StandardError => e
             Datadog.logger.debug(e.message)
