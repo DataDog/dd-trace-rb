@@ -66,11 +66,11 @@ module Datadog
                 if datadog_configuration[:command_args]
                   commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
                   span.resource = commands.join("\n")
+                  span.set_metric Datadog::Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
                 else
                   span.resource = Ext::PIPELINE_RESOURCE
                 end
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
-                span.set_metric Datadog::Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
 
                 response = call_pipeline_without_datadog(*args, &block)
               end
