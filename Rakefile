@@ -622,7 +622,7 @@ task :ci do
     declare 'bundle exec appraisal rails5-mysql2 rake spec:action_mailer'
     declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails5-postgres rake spec:rails'
-    # declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable' # TODO: Hangs CI jobs... fix and re-enable.
+    declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
     declare 'bundle exec appraisal rails6-mysql2 rake spec:action_mailer'
     declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails6-postgres rake spec:rails'
@@ -708,7 +708,7 @@ task :ci do
       declare 'bundle exec appraisal rails5-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
-      # declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable' # TODO: Hangs CI jobs... fix and re-enable.
+      declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
@@ -792,6 +792,7 @@ task :ci do
       # Rails specs
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
+      declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
@@ -835,6 +836,14 @@ namespace :coverage do
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
+  end
+end
+
+namespace :changelog do
+  task :format do
+    require 'pimpmychangelog'
+
+    PimpMyChangelog::CLI.run!
   end
 end
 
