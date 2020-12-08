@@ -8,6 +8,8 @@ module Datadog
         # Matches strings against Regexps.
         class PatternResolver < Datadog::Contrib::Configuration::Resolver
           def resolve(name)
+            return if patterns.empty?
+
             # Try to find a matching pattern
             matching_pattern = patterns.find do |pattern|
               if pattern.is_a?(Proc)
