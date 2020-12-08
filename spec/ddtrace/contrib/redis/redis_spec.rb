@@ -175,6 +175,19 @@ RSpec.describe 'Redis test' do
         it_behaves_like 'a span with common tags'
         it_behaves_like 'a peer service span'
       end
+
+      describe 'command_args disabled' do
+        subject(:span) { spans[-1] }
+        let(:configuration_options) { { command_args: false } }
+
+        it 'hides the sensitive params' do
+          expect(span.get_metric('redis.pipeline_length')).to eq(5)
+          expect(span.name).to eq('redis.command')
+          expect(span.service).to eq('redis')
+          expect(span.resource).to eq("SET\nSET\nINCR\nINCR\nINCR")
+          expect(span.get_tag('redis.raw_command')).to be_nil
+        end
+      end
     end
 
     context 'error' do

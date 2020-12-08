@@ -40,11 +40,7 @@ module Datadog
               pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.service = pin.service
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
-                span.resource = if datadog_configuration[:command_args]
-                                  Datadog::Contrib::Redis::Quantize.format_command_args(*args)
-                                else
-                                  Datadog::Contrib::Redis::Quantize.get_verb(*args)
-                                end
+                span.resource = get_command(args)
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
                 response = call_without_datadog(*args, &block)
@@ -63,13 +59,9 @@ module Datadog
               pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.service = pin.service
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
-                if datadog_configuration[:command_args]
-                  commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
-                  span.resource = commands.join("\n")
-                  span.set_metric Datadog::Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
-                else
-                  commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.get_verb(c) }
-                end
+                commands = get_pipeline_commands(args)
+                span.resource = commands.join("\n")
+                span.set_metric Datadog::Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
                 response = call_pipeline_without_datadog(*args, &block)
@@ -91,6 +83,22 @@ module Datadog
             end
 
             private
+
+            def get_command(args)
+              if datadog_configuration[:command_args]
+                Datadog::Contrib::Redis::Quantize.format_command_args(*args)
+              else
+                Datadog::Contrib::Redis::Quantize.get_verb(*args)
+              end
+            end
+
+            def get_pipeline_commands(args)
+              if datadog_configuration[:command_args]
+                args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
+              else
+                args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.get_verb(c) }
+              end
+            end
 
             def datadog_configuration
               Datadog.configuration[:redis, options]
