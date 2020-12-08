@@ -68,7 +68,7 @@ module Datadog
                   span.resource = commands.join("\n")
                   span.set_metric Datadog::Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
                 else
-                  span.resource = Ext::PIPELINE_RESOURCE
+                  commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.get_verb(c) }
                 end
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
 
