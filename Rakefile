@@ -78,6 +78,7 @@ namespace :spec do
 
   [
     :action_cable,
+    :action_mailer,
     :action_pack,
     :action_view,
     :active_model_serializers,
@@ -618,9 +619,11 @@ task :ci do
     declare 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
     # Rails specs
     declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
+    declare 'bundle exec appraisal rails5-mysql2 rake spec:action_mailer'
     declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails5-postgres rake spec:rails'
     # declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable' # TODO: Hangs CI jobs... fix and re-enable.
+    declare 'bundle exec appraisal rails6-mysql2 rake spec:action_mailer'
     declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails6-postgres rake spec:rails'
 
@@ -702,9 +705,11 @@ task :ci do
       declare 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
       # Rails specs
       declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
+      declare 'bundle exec appraisal rails5-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
       # declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable' # TODO: Hangs CI jobs... fix and re-enable.
+      declare 'bundle exec appraisal rails6-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
 
@@ -787,8 +792,10 @@ task :ci do
       # Rails specs
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
+      declare 'bundle exec appraisal rails5-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
+      declare 'bundle exec appraisal rails6-mysql2 rake spec:action_mailer'
 
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'

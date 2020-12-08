@@ -4,6 +4,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/active_record/integration'
 require 'ddtrace/contrib/active_support/integration'
 require 'ddtrace/contrib/action_cable/integration'
+require 'ddtrace/contrib/action_mailer/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/grape/endpoint'
@@ -42,6 +43,7 @@ module Datadog
 
             activate_rack!(datadog_config, rails_config)
             activate_action_cable!(datadog_config, rails_config)
+            activate_action_mailer!(datadog_config, rails_config)
             activate_active_support!(datadog_config, rails_config)
             activate_action_pack!(datadog_config, rails_config)
             activate_action_view!(datadog_config, rails_config)
@@ -85,6 +87,15 @@ module Datadog
           datadog_config.use(
             :action_cable,
             service_name: "#{rails_config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}"
+          )
+        end
+
+        def self.activate_action_mailer!(datadog_config, rails_config)
+          return unless defined?(::ActionMailer)
+
+          datadog_config.use(
+            :action_mailer,
+            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionMailer::Ext::SERVICE_NAME}"
           )
         end
 
