@@ -82,30 +82,5 @@ RSpec.describe 'ActionMailer patcher' do
 
       it_behaves_like 'measured span for integration', true
     end
-
-    # context 'that raises an error' do
-    #   let(:error_class) { Class.new(StandardError) }
-
-    #   it 'is expected to send a span' do
-    #     # Emulate failure
-    #     begin
-    #       ActiveSupport::Notifications.instrument('process.action_mailer', payload) do
-    #         raise error_class
-    #       end
-    #     rescue error_class
-    #       nil
-    #     end
-
-    #     span.tap do |span|
-    #       expect(span).to_not be nil
-    #       expect(span.service).to eq('action_mailer')
-    #       expect(span.name).to eq('process.action_mailer')
-    #       expect(span.resource).to eq(mailer)
-    #       expect(span.get_tag('action_mailer.process')).to eq(action)
-    #       expect(span.get_tag('action_mailer.mailer')).to eq(mailer)
-    #       expect(span.status).to eq(Datadog::Ext::Errors::STATUS)
-    #     end
-    #   end
-    # end
   end
 end
