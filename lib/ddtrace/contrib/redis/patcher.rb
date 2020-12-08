@@ -60,7 +60,7 @@ module Datadog
                 span.service = pin.service
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
                 commands = args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
-                span.resource = commands.join("\n")
+                span.resource = commands.any? ? commands.join("\n") : '(none)'
                 Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
                 span.set_metric Datadog::Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
 
