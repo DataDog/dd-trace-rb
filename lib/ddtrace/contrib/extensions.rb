@@ -106,7 +106,7 @@ module Datadog
           end
 
           def reduce_verbosity?
-            @reduce_verbosity
+            defined?(@reduce_verbosity) ? @reduce_verbosity : false
           end
 
           def reduce_log_verbosity
