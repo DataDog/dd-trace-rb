@@ -58,7 +58,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Integration do
 
   describe '#auto_instrument?' do
     subject(:auto_instrument?) { integration.auto_instrument? }
-    it { is_expected.to be(false) }
+    it { is_expected.to be(true) }
 
     context 'when within a rails application' do
       before do
