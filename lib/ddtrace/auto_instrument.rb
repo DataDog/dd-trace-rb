@@ -3,7 +3,6 @@ require 'ddtrace'
 module Datadog
   # AutoInstrumentation enables all integrations
   module AutoInstrument
-
     module_function
 
     def patch_all

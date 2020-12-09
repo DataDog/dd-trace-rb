@@ -59,7 +59,7 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Integration do
   describe '#auto_instrument?' do
     subject(:auto_instrument?) { integration.auto_instrument? }
     it { is_expected.to be(true) }
-    
+
     context 'when within a rails application' do
       before do
         stub_const('Rails::VERSION::MAJOR', 3)

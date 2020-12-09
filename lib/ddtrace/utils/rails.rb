@@ -2,7 +2,6 @@ module Datadog
   module Utils
     # Common rails-related utility functions.
     module Rails
-
       module_function
 
       def railtie_supported?
