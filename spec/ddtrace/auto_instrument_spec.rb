@@ -15,11 +15,6 @@ require 'ddtrace/auto_instrument'
 RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
   include Rack::Test::Methods
 
-  let(:options) { {} }
-
-  before do
-  end
-
   after { Datadog.registry[:sinatra].reset_configuration! }
 
   shared_context 'ActiveRecord database' do

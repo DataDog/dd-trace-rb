@@ -178,6 +178,7 @@ Before downloading tracing on your application, install the Datadog Agent. The R
     require 'ddtrace/auto_instrument'
     ```
 
+    *Please note:* In the above code snippet, `sinatra` is just an example library/framework. This would apply to any library or framework listed in the [integration instrumentation](#integration-instrumentation) section. 
     You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).
 
 #### Ruby Manual Configuration
