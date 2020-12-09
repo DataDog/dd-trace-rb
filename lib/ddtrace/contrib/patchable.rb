@@ -54,6 +54,16 @@ module Datadog
           patcher.patch
           true
         end
+
+        # Can the patch for this integration be applied automatically?
+        # For example: test integrations should only be applied
+        # by the user explicitly setting `c.use :rspec`
+        # and rails sub-modules are auto-instrumented by enabling rails
+        # so auto-instrumenting them on their own will cause changes in
+        # service naming behavior
+        def auto_instrument?
+          true
+        end
       end
     end
   end

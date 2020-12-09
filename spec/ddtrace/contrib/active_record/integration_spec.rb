@@ -56,6 +56,20 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Integration do
     end
   end
 
+  describe '#auto_instrument?' do
+    subject(:auto_instrument?) { integration.auto_instrument? }
+    it { is_expected.to be(true) }
+    
+    context 'when within a rails application' do
+      before do
+        stub_const('Rails::VERSION::MAJOR', 3)
+        stub_const('Rails::Railtie', Class.new)
+      end
+
+      it { is_expected.to be(false) }
+    end
+  end
+
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
     it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveRecord::Configuration::Settings) }

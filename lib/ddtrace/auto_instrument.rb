@@ -3,15 +3,13 @@ require 'ddtrace'
 module Datadog
   # AutoInstrumentation enables all integrations
   module AutoInstrument
-    EXCLUDED_RAILS_INTEGRATIONS = [:rack, :action_cable, :active_support, :action_pack, :action_view, :active_record].freeze
-    EXCLUDED_TEST_INTEGRATIONS = [:cucumber, :rspec].freeze
 
     module_function
 
-    def patch_all(excluded_integratons = [])
+    def patch_all
       integrations = []
       Datadog.registry.each do |integration|
-        next if excluded_integratons.include?(integration.name)
+        next unless integration.klass.auto_instrument?
         integrations << integration.name
       end
 
@@ -24,7 +22,7 @@ module Datadog
       end
     end
 
-    if defined?(Rails::VERSION::MAJOR) && Rails::VERSION::MAJOR >= 3 && defined?(Rails::Railtie)
+    if Datadog::Utils::Rails.railtie_supported?
       # Railtie to include AutoInstrumentation in rails loading
       class Railtie < Rails::Railtie
         # we want to load before config initializers so that any user supplied config
@@ -35,12 +33,12 @@ module Datadog
           # rails integration context would cause their service name
           # details not to be set correctly, so we exclude them
           # we also don't want to mix rspec/cucumber integration in as rspec is env we run tests in
-          AutoInstrument.patch_all(EXCLUDED_RAILS_INTEGRATIONS + EXCLUDED_TEST_INTEGRATIONS)
+          AutoInstrument.patch_all
         end
       end
     else
       # we don't want to mix rspec/cucumber integration in as rspec is framework we run tests in
-      patch_all(EXCLUDED_TEST_INTEGRATIONS)
+      patch_all
     end
   end
 end

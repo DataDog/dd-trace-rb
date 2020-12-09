@@ -147,6 +147,11 @@ RSpec.describe Datadog::Contrib::Patchable do
           end
         end
       end
+
+      describe '#auto_instrument?' do
+        subject(:auto_instrument) { patchable_object.auto_instrument }
+        it { is_expected.to be true }
+      end
     end
   end
 end

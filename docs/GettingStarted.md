@@ -138,19 +138,12 @@ Before downloading tracing on your application, install the Datadog Agent. The R
 
     ```ruby
     source 'https://rubygems.org'
-    gem 'ddtrace'
+    gem 'ddtrace', require: 'ddtrace/auto_instrument'
     ```
 
 2. Install the gem with `bundle install`
 
-3. Add `require 'ddtrace/auto_instrument'` to your application startup sequence. This can be done in your `config/application.rb` file.
-
-    ```ruby
-    require 'rails/all'
-    require 'ddtrace/auto_instrument'
-    ```
-
-    You can configure, override, or disable any specific integration settings by also adding a [Rails Manual Configuration](#rails-manual-configuration) file.
+3. You can configure, override, or disable any specific integration settings by also adding a [Rails Manual Configuration](#rails-manual-configuration) file.
 
 #### Rails Manual Configuration
 
