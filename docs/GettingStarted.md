@@ -171,14 +171,17 @@ Before downloading tracing on your application, install the Datadog Agent. The R
 #### Ruby Auto Instrument all Integrations
 
 1. Install the gem with `gem install ddtrace`
-2. Add `require 'ddtrace/auto_instrument'` to your application startup sequence. This must be done _after_ requiring any libraries or frameworks that should be instrumented. 
+2. Add `require 'ddtrace/auto_instrument'` to your application startup sequence. This must be done _after_ requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented. 
 
     ```ruby
+    # Example frameworks and libraries
     require 'sinatra'
+    require 'faraday'
+    require 'redis'
+
     require 'ddtrace/auto_instrument'
     ```
-
-    *Please note:* In the above code snippet, `sinatra` is just an example library/framework. This would apply to any library or framework listed in the [integration instrumentation](#integration-instrumentation) section. 
+ 
     You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).
 
 #### Ruby Manual Configuration
