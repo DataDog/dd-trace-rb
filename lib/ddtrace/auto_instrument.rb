@@ -21,7 +21,7 @@ module Datadog
       end
     end
 
-    if Datadog::Utils::Rails.railtie_supported?
+    if Datadog::Contrib::Rails::Utils.railtie_supported?
       # Railtie to include AutoInstrumentation in rails loading
       class Railtie < Rails::Railtie
         # we want to load before config initializers so that any user supplied config

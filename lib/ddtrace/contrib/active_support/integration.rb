@@ -2,7 +2,7 @@ require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/active_support/configuration/settings'
 require 'ddtrace/contrib/active_support/patcher'
 require 'ddtrace/contrib/active_support/cache/redis'
-require 'ddtrace/utils/rails'
+require 'ddtrace/contrib/rails/utils'
 
 module Datadog
   module Contrib
@@ -30,7 +30,7 @@ module Datadog
         # enabled by rails integration so should only auto instrument
         # if detected that it is being used without rails
         def auto_instrument?
-          !Datadog::Utils::Rails.railtie_supported?
+          !Datadog::Contrib::Rails::Utils.railtie_supported?
         end
 
         def default_configuration

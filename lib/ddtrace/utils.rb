@@ -1,6 +1,5 @@
 require 'ddtrace/utils/database'
 require 'ddtrace/utils/forking'
-require 'ddtrace/utils/rails'
 
 module Datadog
   # Utils contains low-level utilities, typically to provide pseudo-random trace IDs.

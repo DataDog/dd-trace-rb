@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/support/spec_helper'
+require 'ddtrace/contrib/auto_instrument_examples'
 
 require 'ddtrace/contrib/action_pack/integration'
 
@@ -57,23 +58,7 @@ RSpec.describe Datadog::Contrib::ActionPack::Integration do
   end
 
   describe '#auto_instrument?' do
-    subject(:auto_instrument?) { integration.auto_instrument? }
-
-    context 'outside of a rails application' do
-      before do
-        allow(Datadog::Utils::Rails).to receive(:railtie_supported?).and_return(false)
-      end
-
-      it { is_expected.to be(true) }
-    end
-
-    context 'when within a rails application' do
-      before do
-        allow(Datadog::Utils::Rails).to receive(:railtie_supported?).and_return(true)
-      end
-
-      it { is_expected.to be(false) }
-    end
+    it_behaves_like 'rails sub-gem auto_instrument?'
   end
 
   describe '#default_configuration' do
