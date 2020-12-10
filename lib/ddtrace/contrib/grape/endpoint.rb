@@ -199,8 +199,9 @@ module Datadog
 
           def endpoint_expand_path(endpoint)
             route_path = endpoint.options[:path]
+            namespace = endpoint.routes.first && endpoint.routes.first.namespace || ''
 
-            parts = (endpoint.routes.first.namespace.split('/') + route_path).reject { |p| p.blank? || p.eql?('/') }
+            parts = (namespace.split('/') + route_path).reject { |p| p.blank? || p.eql?('/') }
             parts.join('/').prepend('/')
           end
 
