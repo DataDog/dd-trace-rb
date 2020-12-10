@@ -1,4 +1,4 @@
-# RSpec.shared_examples 'rails sub-gem auto_instrument?' do
+RSpec.shared_examples 'rails sub-gem auto_instrument?' do
 #   context 'auto_instrument?' do
 #     subject(:auto_instrument?) { integration.auto_instrument? }
 
@@ -18,4 +18,4 @@
 #       it { is_expected.to be(false) }
 #     end
 #   end
-# end
+end
