@@ -1,4 +1,5 @@
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/integration'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'
 
@@ -7,7 +8,7 @@ module Datadog
     module GRPC
       module DatadogInterceptor
         # The DatadogInterceptor::Client implements the tracing strategy
-        # for gRPC client-side endpoitns. This middleware compoent will
+        # for gRPC client-side endpoints. This middleware component will
         # inject trace context information into gRPC metadata prior to
         # sending the request to the server.
         class Client < Base
@@ -30,9 +31,10 @@ module Datadog
           private
 
           def annotate!(span, metadata)
-            metadata.each do |header, value|
-              span.set_tag(header, value)
-            end
+            span.set_tags(metadata)
+
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?

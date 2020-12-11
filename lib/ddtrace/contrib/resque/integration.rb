@@ -11,7 +11,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('1.0')
         # Maximum is first version it's NOT compatible with (not inclusive)
-        MAXIMUM_VERSION = Gem::Version.new('2.0')
+        MAXIMUM_VERSION = Gem::Version.new('3.0')
 
         register_as :resque, auto_patch: true
 

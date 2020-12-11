@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace'
 
 require_relative 'app'
@@ -33,6 +34,8 @@ RSpec.describe 'ActiveRecord instrumentation' do
       let(:analytics_enabled_var) { Datadog::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
+
+    it_behaves_like 'a peer service span'
 
     it_behaves_like 'measured span for integration', false
 

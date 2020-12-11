@@ -42,6 +42,23 @@ RSpec.describe Datadog::Context do
       let(:sampled) { double('sampled') }
       it { expect(context.sampled?).to eq(sampled) }
     end
+
+    context 'given a sampling_priority' do
+      [Datadog::Ext::Priority::USER_REJECT,
+       Datadog::Ext::Priority::AUTO_REJECT,
+       Datadog::Ext::Priority::AUTO_KEEP,
+       Datadog::Ext::Priority::USER_KEEP,
+       nil, 999].each do |sampling_priority|
+        context ": #{sampling_priority} sampling_priority" do
+          let(:options) { { sampling_priority: sampling_priority } }
+          if sampling_priority
+            it { expect(context.sampling_priority).to eq(sampling_priority) }
+          else
+            it { expect(context.sampling_priority).to be nil }
+          end
+        end
+      end
+    end
   end
 
   describe '#add_span' do
@@ -387,6 +404,141 @@ RSpec.describe Datadog::Context do
 
       it do
         expect(root_span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority)
+      end
+    end
+  end
+
+  describe '#fork_clone' do
+    subject(:fork_clone) { context.fork_clone }
+
+    let(:options) do
+      {
+        trace_id: SecureRandom.uuid,
+        span_id: SecureRandom.uuid,
+        sampled: true,
+        sampling_priority: Datadog::Ext::Priority::AUTO_KEEP,
+        origin: 'synthetics'
+      }
+    end
+
+    it do
+      is_expected.to be_a_kind_of(described_class)
+      is_expected.to have_attributes(
+        trace_id: context.trace_id,
+        span_id: context.span_id,
+        sampled?: context.sampled?,
+        sampling_priority: context.sampling_priority,
+        origin: context.origin
+      )
+    end
+  end
+
+  describe '#length' do
+    subject(:ctx) { context }
+    let(:span) { new_span }
+
+    def new_span(name = nil)
+      Datadog::Span.new(get_test_tracer, name)
+    end
+
+    context 'with many spans' do
+      it 'should track the number of spans added to the trace' do
+        10.times do |i|
+          span_to_add = span
+          expect(ctx.send(:length)).to eq(i)
+          ctx.add_span(span_to_add)
+          expect(ctx.send(:length)).to eq(i + 1)
+          ctx.close_span(span_to_add)
+          expect(ctx.send(:length)).to eq(i + 1)
+        end
+
+        ctx.get
+        expect(ctx.send(:length)).to eq(0)
+      end
+    end
+  end
+
+  describe '#start_time' do
+    subject(:ctx) { tracer.call_context }
+    let(:tracer) { get_test_tracer }
+
+    context 'with no active spans' do
+      it 'should not have a start time' do
+        expect(ctx.send(:start_time)).to be nil
+      end
+    end
+
+    context 'with a span in the trace' do
+      it 'should track start time of the span when trace is active' do
+        expect(ctx.send(:start_time)).to be nil
+
+        tracer.trace('test.op') do |span|
+          expect(ctx.send(:start_time)).to eq(span.start_time)
+          expect(ctx.send(:start_time)).to_not be nil
+        end
+
+        expect(ctx.send(:start_time)).to be nil
+      end
+    end
+  end
+
+  describe '#each_span' do
+    subject(:ctx) { context }
+
+    def new_span(name = nil)
+      Datadog::Span.new(get_test_tracer, name)
+    end
+
+    context 'with a span in the trace' do
+      it 'should iterate over all the spans available' do
+        test_name = 'op.test'
+        new_span(test_name)
+
+        ctx.send(:each_span) do |span|
+          expect(span.name).to eq(test_name)
+        end
+      end
+    end
+  end
+
+  describe 'thread safe behavior' do
+    def new_span(name = nil)
+      Datadog::Span.new(get_test_tracer, name)
+    end
+
+    context 'with many threads' do
+      it 'should be threadsafe' do
+        n = 100
+        threads = []
+        spans = []
+        mutex = Mutex.new
+
+        n.times do |i|
+          threads << Thread.new do
+            span = new_span("test.op#{i}")
+            context.add_span(span)
+            mutex.synchronize do
+              spans << span
+            end
+          end
+        end
+        threads.each(&:join)
+
+        threads = []
+        spans.each do |span|
+          threads << Thread.new do
+            context.close_span(span)
+          end
+        end
+        threads.each(&:join)
+
+        trace, sampled = context.get
+
+        expect(trace.length).to eq(n)
+        expect(sampled).to be true
+        expect(context.finished_span_count).to eq(0)
+        expect(context.current_span).to be nil
+        expect(context.sampled?).to be false
       end
     end
   end

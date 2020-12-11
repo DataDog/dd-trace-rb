@@ -1,4 +1,3 @@
-require 'pp'
 require 'thread'
 require 'logger'
 require 'pathname'
@@ -8,6 +7,7 @@ require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
+require 'ddtrace/runtime/identity'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
@@ -60,8 +60,8 @@ module Datadog
     #
     # This method makes use of a \ContextProvider that is automatically set during the tracer
     # initialization, or while using a library instrumentation.
-    def call_context
-      @provider.context
+    def call_context(key = nil)
+      @provider.context(key)
     end
 
     # Initialize a new \Tracer used to create, sample and submit spans that measure the
@@ -186,8 +186,7 @@ module Datadog
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
-      start_time = options.fetch(:start_time, Time.now.utc)
-
+      start_time = options[:start_time]
       tags = options.fetch(:tags, {})
 
       span_options = options.select do |k, _v|
@@ -203,6 +202,7 @@ module Datadog
         # root span
         @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
+        span.set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Runtime::Identity.id)
 
         if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
@@ -212,9 +212,10 @@ module Datadog
         # child span
         span.parent = parent # sets service, trace_id, parent_id, sampled
       end
-      @tags.each { |k, v| span.set_tag(k, v) } unless @tags.empty?
-      tags.each { |k, v| span.set_tag(k, v) } unless tags.empty?
-      span.start_time = start_time
+
+      span.set_tags(@tags) unless @tags.empty?
+      span.set_tags(tags) unless tags.empty?
+      span.start(start_time)
 
       # this could at some point be optional (start_active_span vs start_manual_span)
       ctx.add_span(span) unless ctx.nil?
@@ -255,9 +256,11 @@ module Datadog
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or \name if it's missing
     # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
+    #   If not set, defaults to Tracer.call_context
     # * +tags+: extra tags which should be added to the span.
     def trace(name, options = {})
-      options[:child_of] = call_context
+      options[:child_of] ||= call_context
 
       # call the finish only if a block is given; this ensures
       # that a call to tracer.trace() without a block, returns
@@ -269,11 +272,16 @@ module Datadog
         begin
           begin
             span = start_span(name, options)
-          # rubocop:disable Lint/UselessAssignment
           rescue StandardError => e
-            Datadog.logger.debug('Failed to start span: #{e}')
+            Datadog.logger.debug("Failed to start span: #{e}")
           ensure
-            return_value = yield(span)
+            # We should yield to the provided block when possible, as this
+            # block is application code that we don't want to hinder. We call:
+            # * `yield(span)` during normal execution.
+            # * `yield(nil)` if `start_span` fails with a runtime error.
+            # * We don't yield during a fatal error, as the application is likely trying to
+            #   end its execution (either due to a system error or graceful shutdown).
+            return_value = yield(span) if span || e.is_a?(StandardError)
           end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -281,8 +289,19 @@ module Datadog
         # and it is user code which should be executed no matter what.
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
+        # rubocop:disable Metrics/BlockNesting
         rescue Exception => e
-          (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
+          if (on_error_handler = options[:on_error]) && on_error_handler.respond_to?(:call)
+            begin
+              on_error_handler.call(span, e)
+            rescue
+              Datadog.logger.debug('Custom on_error handler failed, falling back to default')
+              DEFAULT_ON_ERROR.call(span, e)
+            end
+          else
+            Datadog.logger.debug('Custom on_error handler must be a callable, falling back to default') if on_error_handler
+            DEFAULT_ON_ERROR.call(span, e)
+          end
           raise e
         ensure
           span.finish unless span.nil?
@@ -318,18 +337,18 @@ module Datadog
     end
 
     # Return the current active span or +nil+.
-    def active_span
-      call_context.current_span
+    def active_span(key = nil)
+      call_context(key).current_span
     end
 
     # Return the current active root span or +nil+.
-    def active_root_span
-      call_context.current_root_span
+    def active_root_span(key = nil)
+      call_context(key).current_root_span
     end
 
     # Return a CorrelationIdentifier for active span
-    def active_correlation
-      Datadog::Correlation.identifier_from_context(call_context)
+    def active_correlation(key = nil)
+      Datadog::Correlation.identifier_from_context(call_context(key))
     end
 
     # Send the trace to the writer to enqueue the spans list in the agent

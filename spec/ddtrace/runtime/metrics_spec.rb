@@ -24,21 +24,31 @@ RSpec.describe Datadog::Runtime::Metrics do
 
   describe '#associate_with_span' do
     subject(:associate_with_span) { runtime_metrics.associate_with_span(span) }
-    let(:span) { instance_double(Datadog::Span, service: service) }
+    let(:span) { Datadog::Span.new(nil, 'dummy', service: service) }
     let(:service) { 'parser' }
 
     context 'when enabled' do
       before do
         runtime_metrics.enabled = true
 
-        expect(span).to receive(:set_tag)
-          .with(Datadog::Ext::Runtime::TAG_LANG, Datadog::Runtime::Identity.lang)
-
         associate_with_span
       end
 
-      it 'registers the span\'s service' do
-        expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
+      context 'with internal span' do
+        it 'registers the span\'s service' do
+          expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
+          expect(span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq(Datadog::Runtime::Identity.lang)
+        end
+      end
+
+      context 'with external resource span' do
+        let(:span) do
+          super().tap { |s| s.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, 'peer-service-name') }
+        end
+
+        it "doesn't tag as an internal language span" do
+          expect(span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to be nil
+        end
       end
     end
 
@@ -167,14 +177,29 @@ RSpec.describe Datadog::Runtime::Metrics do
   describe '#gc_metrics' do
     subject(:gc_metrics) { runtime_metrics.gc_metrics }
 
-    let(:nested_gc_keys) { PlatformHelpers.jruby? ? 2 : 0 }
+    context 'on MRI' do
+      before { skip unless PlatformHelpers.mri? }
 
-    it 'has a metric for each value in GC.stat' do
-      is_expected.to have(GC.stat.keys.count - nested_gc_keys).items
+      it 'has a metric for each value in GC.stat' do
+        is_expected.to have(GC.stat.keys.size).items
 
-      gc_metrics.each do |metric, value|
-        expect(metric).to start_with(Datadog::Ext::Runtime::Metrics::METRIC_GC_PREFIX)
-        expect(value).to be_a_kind_of(Numeric)
+        gc_metrics.each do |metric, value|
+          expect(metric).to start_with(Datadog::Ext::Runtime::Metrics::METRIC_GC_PREFIX)
+          expect(value).to be_a_kind_of(Numeric)
+        end
+      end
+    end
+
+    context 'on JRuby' do
+      before { skip unless PlatformHelpers.jruby? }
+
+      it 'has a metric for each value in GC.stat' do
+        is_expected.to have_at_least(GC.stat.keys.count).items
+
+        gc_metrics.each do |metric, value|
+          expect(metric).to start_with(Datadog::Ext::Runtime::Metrics::METRIC_GC_PREFIX)
+          expect(value).to be_a_kind_of(Numeric)
+        end
       end
     end
   end

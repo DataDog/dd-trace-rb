@@ -53,6 +53,14 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
       expect { |b| adapter.open(&b) }.to yield_with_args(http_connection)
     end
   end
+
+  describe '#url' do
+    subject(:url) { adapter.url }
+
+    let(:filepath) { '/tmp/trace.sock' }
+    let(:timeout) { 7 }
+    it { is_expected.to eq('http+unix:///tmp/trace.sock?timeout=7') }
+  end
 end
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket::HTTP do

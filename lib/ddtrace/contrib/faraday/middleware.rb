@@ -1,5 +1,6 @@
 require 'faraday'
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/analytics'
@@ -16,7 +17,7 @@ module Datadog
 
         def initialize(app, options = {})
           super(app)
-          @options = datadog_configuration.options_hash.merge(options)
+          @options = options
         end
 
         def call(env)
@@ -33,13 +34,16 @@ module Datadog
 
         private
 
-        attr_reader :app, :options
+        attr_reader :app
 
         def annotate!(span, env, options)
           span.resource = resource_name(env)
           service_name(env[:url].host, options)
           span.service = options[:split_by_domain] ? env[:url].host : options[:service_name]
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
+
+          # Tag as an external peer service
+          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(options[:analytics_enabled])
@@ -69,7 +73,9 @@ module Datadog
         end
 
         def build_request_options!(env)
-          datadog_configuration(env[:url].host).options_hash.merge(options)
+          datadog_configuration.options_hash # integration level settings
+                               .merge(datadog_configuration(env[:url].host).options_hash) # per-host override
+                               .merge(@options) # middleware instance override
         end
 
         def datadog_configuration(host = :default)

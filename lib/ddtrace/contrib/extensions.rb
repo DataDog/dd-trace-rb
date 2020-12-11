@@ -56,10 +56,11 @@ module Datadog
           def instrument(integration_name, options = {}, &block)
             integration = fetch_integration(integration_name)
 
-            unless integration.nil?
+            unless integration.nil? || !integration.default_configuration.enabled
               configuration_name = options[:describes] || :default
               filtered_options = options.reject { |k, _v| k == :describes }
               integration.configure(configuration_name, filtered_options, &block)
+              instrumented_integrations[integration_name] = integration
 
               # Add to activation list
               integrations_pending_activation << integration
@@ -70,6 +71,15 @@ module Datadog
 
           def integrations_pending_activation
             @integrations_pending_activation ||= Set.new
+          end
+
+          def instrumented_integrations
+            @instrumented_integrations ||= {}
+          end
+
+          def reset!
+            instrumented_integrations.clear
+            super
           end
 
           def fetch_integration(name)

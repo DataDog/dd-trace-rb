@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -88,6 +89,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             let(:analytics_sample_rate_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
 
+          it_behaves_like 'a peer service span'
+
           it_behaves_like 'measured span for integration', false
         end
 
@@ -126,6 +129,19 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
           it 'error is not set' do
             expect(span).to_not have_error_message
+          end
+        end
+
+        context 'with fatal error' do
+          let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
+
+          before do
+            # Raise error at first line of #datadog_trace_request
+            expect(tracer).to receive(:trace).and_raise(fatal_error)
+          end
+
+          it 'reraises exception' do
+            expect { request }.to raise_error(fatal_error)
           end
         end
       end
@@ -184,6 +200,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             it 'has correct service name' do
               expect(span.service).to eq('rest_client')
             end
+
+            it_behaves_like 'a peer service span'
           end
         end
       end

@@ -36,21 +36,32 @@ module Datadog
         end
 
         def self.registered(app)
-          app.use TracerMiddleware
+          app.use TracerMiddleware, app_instance: app
 
           app.after do
             configuration = Datadog.configuration[:sinatra]
             next unless configuration[:tracer].enabled
 
-            # Ensures we only create a span for the top-most Sinatra middleware.
-            #
-            # If we traced all Sinatra middleware apps, we would have a chain
-            # of nested spans that were not responsible for handling this request,
-            # adding little value to users.
-            next if Sinatra::Env.middleware_traced?(env)
+            span = Sinatra::Env.datadog_span(env, app)
 
-            span = Sinatra::Env.datadog_span(env) || Sinatra::Tracer.create_middleware_span(env, configuration)
-
+            # TODO: `route` should *only* be populated if @datadog_route is defined.
+            # TODO: If @datadog_route is not defined, then this Sinatra app is not responsible
+            # TODO: for handling this request.
+            # TODO:
+            # TODO: This change would be BREAKING for any Sinatra app (classic or modular),
+            # TODO: as it affects the `resource` value for requests not handled by the Sinatra app.
+            # TODO: Currently we use "#{method} #{path}" in such aces, but `path` is the raw,
+            # TODO: high-cardinality HTTP path, and can contain PII.
+            # TODO:
+            # TODO: The value we should use as the `resource` when the Sinatra app is not
+            # TODO: responsible for the request is a tricky subject.
+            # TODO: The best option is a value that clearly communicates that this app did not
+            # TODO: handle this request. It's important to keep in mind that an unhandled request
+            # TODO: by this Sinatra app might still be handled by another Rack middleware (which can
+            # TODO: be a Sinatra app itself) or it might just 404 if not handled at all.
+            # TODO:
+            # TODO: A possible value for `resource` could set a high level description, e.g.
+            # TODO: `request.request_method`, given we don't have the response object available yet.
             route = if defined?(@datadog_route)
                       @datadog_route
                     else
@@ -59,34 +70,8 @@ module Datadog
                     end
 
             span.resource = "#{request.request_method} #{route}"
-
-            span.set_tag(Datadog::Ext::HTTP::URL, request.path)
-            span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
-            span.set_tag(Ext::TAG_APP_NAME, app.settings.name)
             span.set_tag(Ext::TAG_ROUTE_PATH, route)
-            if request.script_name && !request.script_name.empty?
-              span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)
-            end
-
-            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
-            span.set_error(env['sinatra.error']) if response.server_error?
-
-            Sinatra::Env.set_middleware_traced(env, true)
           end
-        end
-
-        # Initializes a span for the top-most Sinatra middleware.
-        def self.create_middleware_span(env, configuration)
-          tracer = configuration[:tracer]
-          span = tracer.trace(
-            Ext::SPAN_REQUEST,
-            service: configuration[:service_name],
-            span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
-            start_time: Sinatra::Env.middleware_start_time(env)
-          )
-
-          Sinatra::Env.set_datadog_span(env, span)
-          span
         end
 
         # Method overrides for Sinatra::Base
@@ -114,13 +99,7 @@ module Datadog
           def route_eval
             configuration = Datadog.configuration[:sinatra]
             tracer = configuration[:tracer]
-
             return super unless tracer.enabled
-
-            # For initialization of Sinatra middleware span in order
-            # guarantee that the Ext::SPAN_ROUTE span being created below
-            # has the middleware span as its parent.
-            Sinatra::Tracer.create_middleware_span(env, configuration) unless Sinatra::Env.datadog_span(env)
 
             tracer.trace(
               Ext::SPAN_ROUTE,

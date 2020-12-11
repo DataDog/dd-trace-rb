@@ -69,7 +69,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
         ['-100', -100 + (2**64)],
 
         # Allowed values
-        [Datadog::Span::MAX_ID.to_s, Datadog::Span::MAX_ID],
+        [Datadog::Span::RUBY_MAX_ID.to_s, Datadog::Span::RUBY_MAX_ID],
         [Datadog::Span::EXTERNAL_MAX_ID.to_s, Datadog::Span::EXTERNAL_MAX_ID],
         ['1', 1],
         ['100', 100],
@@ -88,7 +88,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
         [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s(16), 1],
         [Datadog::Span::EXTERNAL_MAX_ID.to_s(16), nil],
 
-        [Datadog::Span::MAX_ID.to_s(16), Datadog::Span::MAX_ID],
+        [Datadog::Span::RUBY_MAX_ID.to_s(16), Datadog::Span::RUBY_MAX_ID],
         [(Datadog::Span::EXTERNAL_MAX_ID - 1).to_s(16), Datadog::Span::EXTERNAL_MAX_ID - 1],
 
         ['3e8', 1000],
@@ -123,8 +123,8 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
         ['2', 2],
 
         # Allowed values
-        [Datadog::Span::MAX_ID.to_s, Datadog::Span::MAX_ID],
-        [(Datadog::Span::MAX_ID + 1).to_s, Datadog::Span::MAX_ID + 1],
+        [Datadog::Span::RUBY_MAX_ID.to_s, Datadog::Span::RUBY_MAX_ID],
+        [(Datadog::Span::RUBY_MAX_ID + 1).to_s, Datadog::Span::RUBY_MAX_ID + 1],
         [Datadog::Span::EXTERNAL_MAX_ID.to_s, Datadog::Span::EXTERNAL_MAX_ID],
         [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s, Datadog::Span::EXTERNAL_MAX_ID + 1],
         ['-100', -100],
@@ -144,8 +144,8 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
         [Datadog::Span::EXTERNAL_MAX_ID.to_s(16), 0],
         [(Datadog::Span::EXTERNAL_MAX_ID + 1).to_s(16), 1],
 
-        [Datadog::Span::MAX_ID.to_s(16), Datadog::Span::MAX_ID],
-        [(Datadog::Span::MAX_ID + 1).to_s(16), Datadog::Span::MAX_ID + 1],
+        [Datadog::Span::RUBY_MAX_ID.to_s(16), Datadog::Span::RUBY_MAX_ID],
+        [(Datadog::Span::RUBY_MAX_ID + 1).to_s(16), Datadog::Span::RUBY_MAX_ID + 1],
 
         ['3e8', 1000],
         ['3E8', 1000],

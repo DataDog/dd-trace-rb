@@ -98,6 +98,22 @@ $ bundle exec appraisal contrib rake spec:redis'[--seed,1234]'
 
 This can be useful for replicating conditions from CI or isolating certain tests.
 
+**Checking test coverage**
+
+You can check test code coverage by creating a report _after_ running a test suite:
+```
+# Run the desired test suite
+$ bundle exec appraisal contrib rake spec:redis
+# Generate report for the suite executed
+$ bundle exec rake coverage:report
+```
+
+A webpage will be generated at `coverage/report/index.html` with the resulting report.
+
+Because you are likely not running all tests locally, your report will contain partial coverage results.
+You *must* check the CI step `coverage` for the complete test coverage report, ensuring coverage is not
+decreased.
+
 ### Checking code quality
 
 **Linting**
@@ -107,6 +123,16 @@ The trace library uses Rubocop to enforce [code style](https://github.com/bbatso
 ```
 $ bundle exec rake rubocop
 ```
+
+### Running benchmarks
+
+If your changes can have a measurable performance impact, we recommend running our benchmark suite:
+
+```
+$ bundle exec rake spec:benchmark
+```
+
+Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
 
 ## Appendix
 
@@ -125,9 +151,9 @@ To get started quickly, it's perfectly fine to copy-paste an existing integratio
 
 Once you have it working in your application, you can [add unit tests](#writing-tests), [run them locally](#running-tests), and [check for code quality](#checking-code-quality) using Docker Compose.
 
-Then [open a pull request](https://github.com/DataDog/dd-trace-rb/CONTRIBUTING.md#have-a-patch) and be sure to add the following to the description:
+Then [open a pull request](../CONTRIBUTING.md#have-a-patch) and be sure to add the following to the description:
 
- - [Documentation](https://github.com/DataDog/dd-trace-rb/docs/GettingStarted.md) for the integration, including versions supported.
+ - [Documentation](./GettingStarted.md) for the integration, including versions supported.
  - Links to the repository/website of the library being integrated
  - Screenshots showing a sample trace
  - Any additional code snippets, sample apps, benchmarks, or other resources that demonstrate its implementation are a huge plus!

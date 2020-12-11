@@ -1,3 +1,4 @@
+require 'ddtrace/ext/integration'
 require 'ddtrace/ext/runtime'
 
 require 'ddtrace/metrics'
@@ -25,8 +26,11 @@ module Datadog
         # Register service as associated with metrics
         register_service(span.service) unless span.service.nil?
 
-        # Tag span with language and runtime ID for association with metrics
-        span.set_tag(Ext::Runtime::TAG_LANG, Runtime::Identity.lang)
+        # Tag span with language and runtime ID for association with metrics.
+        # We only tag spans that performed internal application work.
+        unless span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)
+          span.set_tag(Ext::Runtime::TAG_LANG, Runtime::Identity.lang)
+        end
       end
 
       # Associate service with runtime metrics
@@ -55,10 +59,8 @@ module Datadog
 
       def gc_metrics
         Hash[
-          GC.stat.map do |k, v|
-            next if v.is_a?(Hash) # TODO: JRuby supports additional nested metrics
-
-            ["#{Ext::Runtime::Metrics::METRIC_GC_PREFIX}.#{k}", v]
+          GC.stat.flat_map do |k, v|
+            nested_gc_metric(Ext::Runtime::Metrics::METRIC_GC_PREFIX, k, v)
           end
         ]
       end
@@ -90,6 +92,22 @@ module Datadog
         @service_tags = services.to_a.collect do |service|
           "#{Ext::Runtime::Metrics::TAG_SERVICE}:#{service}".freeze
         end
+      end
+
+      def nested_gc_metric(prefix, k, v)
+        path = "#{prefix}.#{k}"
+
+        if v.is_a?(Hash)
+          v.flat_map do |key, value|
+            nested_gc_metric(path, key, value)
+          end
+        else
+          [[to_metric_name(path), v]]
+        end
+      end
+
+      def to_metric_name(str)
+        str.downcase.gsub(/[-\s]/, '_')
       end
     end
   end

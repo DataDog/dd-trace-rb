@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/rails/utils'
 require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
+require 'ddtrace/contrib/rails/log_injection'
 require 'ddtrace/contrib/rack/middlewares'
 
 module Datadog
@@ -33,6 +34,7 @@ module Datadog
             # Otherwise the middleware stack will be frozen.
             # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
             add_middleware(app) if Datadog.configuration[:rails][:middleware]
+            add_logger(app) if Datadog.configuration[:rails][:log_injection]
           end
         end
 
@@ -48,6 +50,33 @@ module Datadog
             ActionDispatch::ShowExceptions,
             Datadog::Contrib::Rails::ExceptionMiddleware
           )
+        end
+
+        def add_logger(app)
+          should_warn = true
+          # check if lograge key exists
+          # Note: Rails executes initializers sequentially based on alphabetical order,
+          # and lograge config could occur after dd config.
+          # Checking for `app.config.lograge.enabled` may yield a false negative.
+          # Instead we should naively add custom options if `config.lograge` exists from the lograge Railtie,
+          # since the custom options get ignored without lograge explicitly being enabled.
+          # See: https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lib/lograge/railtie.rb#L7-L12
+          if app.config.respond_to?(:lograge)
+            Datadog::Contrib::Rails::LogInjection.add_lograge_logger(app)
+            should_warn = false
+          end
+
+          # if lograge isn't set, check if tagged logged is enabled.
+          # if so, add proc that injects trace identifiers for tagged logging.
+          if (logger = app.config.logger) &&
+             defined?(::ActiveSupport::TaggedLogging) &&
+             logger.is_a?(::ActiveSupport::TaggedLogging)
+
+            Datadog::Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
+            should_warn = false
+          end
+
+          Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger} is not supported") if should_warn
         end
 
         def patch_after_intialize

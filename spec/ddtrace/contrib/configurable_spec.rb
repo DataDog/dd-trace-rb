@@ -16,6 +16,10 @@ RSpec.describe Datadog::Contrib::Configurable do
       describe '#default_configuration' do
         subject(:configuration) { configurable_object.default_configuration }
         it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
+
+        it 'defaults to being enabled' do
+          expect(configuration[:enabled]).to be true
+        end
       end
 
       describe '#reset_configuration!' do

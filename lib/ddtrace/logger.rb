@@ -10,7 +10,7 @@ module Datadog
     def initialize(*args, &block)
       super
       self.progname = PREFIX
-      self.level = ::Logger::WARN
+      self.level = ::Logger::INFO
     end
 
     def add(severity, message = nil, progname = nil, &block)

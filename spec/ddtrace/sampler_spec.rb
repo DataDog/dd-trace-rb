@@ -81,7 +81,11 @@ RSpec.describe Datadog::RateSampler do
       let(:span_count) { 1000 }
       let(:rng) { Random.new(123) }
 
-      let(:spans) { Array.new(span_count) { Datadog::Span.new(nil, '', trace_id: rng.rand(Datadog::Span::MAX_ID)) } }
+      let(:spans) do
+        Array.new(span_count) do
+          Datadog::Span.new(nil, '', trace_id: rng.rand(Datadog::Span::EXTERNAL_MAX_ID))
+        end
+      end
       let(:expected_num_of_sampled_spans) { span_count * sample_rate }
 
       it 'samples an appropriate proportion of spans' do

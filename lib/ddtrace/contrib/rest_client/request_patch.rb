@@ -1,5 +1,6 @@
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/ext/integration'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/rest_client/ext'
 
@@ -30,6 +31,9 @@ module Datadog
 
           def datadog_tag_request(uri, span)
             span.resource = method.to_s.upcase
+
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -62,11 +66,11 @@ module Datadog
             # rubocop:disable Lint/RescueException
           rescue Exception => e
             # rubocop:enable Lint/RescueException
-            span.set_error(e)
+            span.set_error(e) if span
 
             raise e
           ensure
-            span.finish
+            span.finish if span
           end
 
           private

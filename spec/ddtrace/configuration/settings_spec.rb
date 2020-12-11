@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'securerandom'
 
 require 'ddtrace'
 require 'ddtrace/configuration/settings'
@@ -59,18 +60,89 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#api_key' do
+    subject(:api_key) { settings.api_key }
+
+    context "when #{Datadog::Ext::Environment::ENV_API_KEY}" do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_API_KEY => api_key_env) do
+          example.run
+        end
+      end
+
+      context 'is not defined' do
+        let(:api_key_env) { nil }
+        it { is_expected.to be nil }
+      end
+
+      context 'is defined' do
+        let(:api_key_env) { SecureRandom.uuid.delete('-') }
+        it { is_expected.to eq(api_key_env) }
+      end
+    end
+  end
+
+  describe '#api_key=' do
+    subject(:set_api_key) { settings.api_key = api_key }
+
+    context 'when given a value' do
+      let(:api_key) { SecureRandom.uuid.delete('-') }
+      before { set_api_key }
+      it { expect(settings.api_key).to eq(api_key) }
+    end
+  end
+
   describe '#diagnostics' do
     describe '#debug' do
       subject(:debug) { settings.diagnostics.debug }
       it { is_expected.to be false }
+
+      context "when #{Datadog::Ext::Diagnostics::DD_TRACE_DEBUG}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+          it { is_expected.to be false }
+        end
+
+        context 'is set to true' do
+          let(:environment) { 'true' }
+          it { is_expected.to be true }
+        end
+
+        context 'is set to false' do
+          let(:environment) { 'false' }
+          it { is_expected.to be false }
+        end
+      end
     end
 
     describe '#debug=' do
-      it 'updates the #debug setting' do
-        expect { settings.diagnostics.debug = true }
-          .to change { settings.diagnostics.debug }
-          .from(false)
-          .to(true)
+      context 'enabled' do
+        subject(:set_debug) { settings.diagnostics.debug = true }
+        after { settings.diagnostics.debug = false }
+
+        it 'updates the #debug setting' do
+          expect { set_debug }.to change { settings.diagnostics.debug }.from(false).to(true)
+        end
+
+        it 'requires debug dependencies' do
+          expect_any_instance_of(Object).to receive(:require).with('pp')
+          set_debug
+        end
+      end
+
+      context 'disabled' do
+        subject(:set_debug) { settings.diagnostics.debug = false }
+
+        it 'does not require debug dependencies' do
+          expect_any_instance_of(Object).to_not receive(:require)
+          set_debug
+        end
       end
     end
 
@@ -128,9 +200,42 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#propagation_extract_style' do
       subject(:propagation_extract_style) { settings.distributed_tracing.propagation_extract_style }
 
-      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV}" do
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV => environment) do
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+          it do
+            is_expected.to eq(
+              [
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3,
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER
+              ]
+            )
+          end
+        end
+
+        context 'is defined' do
+          let(:environment) { 'B3,B3 single header' }
+          it do
+            is_expected.to eq(
+              [
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3,
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER
+              ]
+            )
+          end
+        end
+      end
+
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV_OLD}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_EXTRACT_STYLE_ENV_OLD => environment) do
             example.run
           end
         end
@@ -165,9 +270,34 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#propagation_inject_style' do
       subject(:propagation_inject_style) { settings.distributed_tracing.propagation_inject_style }
 
-      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV}" do
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV => environment) do
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+          it { is_expected.to eq([Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG]) }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'Datadog,B3' }
+          it do
+            is_expected.to eq(
+              [
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
+                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3
+              ]
+            )
+          end
+        end
+      end
+
+      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV_OLD}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_INJECT_STYLE_ENV_OLD => environment) do
             example.run
           end
         end
@@ -230,7 +360,14 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     describe '#instance=' do
-      let(:logger) { Datadog::Logger.new(STDOUT) }
+      let(:logger) do
+        double(:logger,
+               debug: true,
+               info: true,
+               warn: true,
+               error: true,
+               level: true)
+      end
 
       it 'updates the #instance setting' do
         expect { settings.logger.instance = logger }
@@ -242,16 +379,16 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#level' do
       subject(:level) { settings.logger.level }
-      it { is_expected.to be ::Logger::WARN }
+      it { is_expected.to be ::Logger::INFO }
     end
 
     describe 'level=' do
-      let(:level) { ::Logger::INFO }
+      let(:level) { ::Logger::DEBUG }
 
       it 'changes the #statsd setting' do
         expect { settings.logger.level = level }
           .to change { settings.logger.level }
-          .from(::Logger::WARN)
+          .from(::Logger::INFO)
           .to(level)
       end
     end
@@ -420,7 +557,7 @@ RSpec.describe Datadog::Configuration::Settings do
       subject(:rate_limit) { settings.sampling.rate_limit }
 
       context 'default' do
-        it { is_expected.to be 100 }
+        it { is_expected.to eq(100) }
       end
 
       context 'when ENV is provided' do
@@ -481,6 +618,38 @@ RSpec.describe Datadog::Configuration::Settings do
       let(:service) { 'custom-service' }
       before { set_service }
       it { expect(settings.service).to eq(service) }
+    end
+  end
+
+  describe '#site' do
+    subject(:site) { settings.site }
+
+    context "when #{Datadog::Ext::Environment::ENV_SITE}" do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SITE => site_env) do
+          example.run
+        end
+      end
+
+      context 'is not defined' do
+        let(:site_env) { nil }
+        it { is_expected.to be nil }
+      end
+
+      context 'is defined' do
+        let(:site_env) { 'datadoghq.com' }
+        it { is_expected.to eq(site_env) }
+      end
+    end
+  end
+
+  describe '#site=' do
+    subject(:set_site) { settings.site = site }
+
+    context 'when given a value' do
+      let(:site) { 'datadoghq.com' }
+      before { set_site }
+      it { expect(settings.site).to eq(site) }
     end
   end
 
@@ -755,6 +924,29 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#enabled' do
       subject(:enabled) { settings.tracer.enabled }
       it { is_expected.to be true }
+
+      context "when #{Datadog::Ext::Diagnostics::DD_TRACE_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED => enable) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:enable) { nil }
+          it { is_expected.to be true }
+        end
+
+        context 'is set to true' do
+          let(:enable) { 'true' }
+          it { is_expected.to be true }
+        end
+
+        context 'is set to false' do
+          let(:enable) { 'false' }
+          it { is_expected.to be false }
+        end
+      end
     end
 
     describe '#enabled=' do

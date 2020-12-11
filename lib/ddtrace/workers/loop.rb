@@ -33,7 +33,7 @@ module Datadog
       end
 
       def run_loop?
-        @run_loop = false unless instance_variable_defined?(:@run_loop)
+        return false unless instance_variable_defined?(:@run_loop)
         @run_loop == true
       end
 

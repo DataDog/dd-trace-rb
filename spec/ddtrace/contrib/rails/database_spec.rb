@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/rails/rails_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -17,7 +18,19 @@ RSpec.describe 'Rails database' do
   before do
     stub_const('Article', Class.new(ActiveRecord::Base))
 
-    Article.count # Ensure warm up queries are executed before tests
+    begin
+      Article.count
+    rescue ActiveRecord::StatementInvalid
+      ActiveRecord::Schema.define(version: 20161003090450) do
+        create_table 'articles', force: :cascade do |t|
+          t.string   'title'
+          t.datetime 'created_at', null: false
+          t.datetime 'updated_at', null: false
+        end
+      end
+      Article.count # Ensure warm up queries are executed before tests
+    end
+
     clear_spans!
   end
 
@@ -39,6 +52,8 @@ RSpec.describe 'Rails database' do
       # ensure that the sql.query tag is not set
       expect(span.get_tag('sql.query')).to be_nil
     end
+
+    it_behaves_like 'a peer service span'
   end
 
   context 'on record creation' do
@@ -111,12 +126,14 @@ RSpec.describe 'Rails database' do
   end
 
   context 'with custom database_service' do
+    subject(:query) { Article.count }
     let(:database_service) { 'customer-db' }
 
     it 'doing a database call uses the proper service name if it is changed' do
-      Article.count
-
+      subject
       expect(span.service).to eq('customer-db')
     end
+
+    it_behaves_like 'a peer service span'
   end
 end

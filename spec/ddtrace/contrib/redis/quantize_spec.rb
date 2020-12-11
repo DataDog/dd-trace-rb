@@ -80,4 +80,28 @@ RSpec.describe Datadog::Contrib::Redis::Quantize do
       it { is_expected.to eq('SET KEY VALUE') }
     end
   end
+
+  describe '#get_verb' do
+    subject(:output) { described_class.get_verb(args) }
+
+    context 'given an array' do
+      let(:args) { [:set, 'KEY', 'VALUE'] }
+      it { is_expected.to eq('SET') }
+    end
+
+    context 'given an multi verb commands' do
+      let(:args) { [:acl, 'CAT', 'categoryname'] }
+      it { is_expected.to eq('ACL CAT') }
+    end
+
+    context 'given an multi verb commands' do
+      let(:args) { [:acl, 'HELP'] }
+      it { is_expected.to eq('ACL HELP') }
+    end
+
+    context 'given a nested array' do
+      let(:args) { [[:set, 'KEY', 'VALUE']] }
+      it { is_expected.to eq('SET') }
+    end
+  end
 end

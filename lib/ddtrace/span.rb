@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'time'
 require 'thread'
 
@@ -8,6 +10,7 @@ require 'ddtrace/environment'
 require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
 require 'ddtrace/diagnostics/health'
+require 'ddtrace/utils/time'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -24,24 +27,26 @@ module Datadog
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
     #
-    # Limited to 63-bit positive integers, as some other languages might be limited to this,
-    # and IDs need to be easy to port across various languages and platforms.
-    MAX_ID = 2**63
+    # Limited to +2<<62-1+ positive integers, as Ruby is able to represent such numbers "inline",
+    # inside a +VALUE+ scalar, thus not requiring memory allocation.
+    #
+    # The range of IDs also has to consider portability across different languages and platforms.
+    RUBY_MAX_ID = (1 << 62) - 1
 
     # While we only generate 63-bit integers due to limitations in other languages, we support
     # parsing 64-bit integers for distributed tracing since an upstream system may generate one
-    EXTERNAL_MAX_ID = 2**64
+    EXTERNAL_MAX_ID = 1 << 64
 
     # This limit is for numeric tags because uint64 could end up rounded.
-    NUMERIC_TAG_SIZE_RANGE = (-2**53..2**53)
+    NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53)
 
     attr_accessor :name, :service, :resource, :span_type,
-                  :start_time, :end_time,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
-                  :tracer, :context
+                  :tracer, :context, :duration, :start_time, :end_time
 
     attr_reader :parent
+
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
     # and then <tt>finish()</tt> once the tracer operation is over.
     #
@@ -72,11 +77,20 @@ module Datadog
       @parent = nil
       @sampled = true
 
-      @start_time = nil # set by Tracer.start_span
-      @end_time = nil # set by Span.finish
-
       @allocation_count_start = now_allocations
       @allocation_count_finish = @allocation_count_start
+
+      # start_time and end_time track wall clock. In Ruby, wall clock
+      # has less accuracy than monotonic clock, so if possible we look to only use wall clock
+      # to measure duration when a time is supplied by the user, or if monotonic clock
+      # is unsupported.
+      @start_time = nil
+      @end_time = nil
+
+      # duration_start and duration_end track monotonic clock, and may remain nil in cases where it
+      # is known that we have to use wall clock to measure duration.
+      @duration_start = nil
+      @duration_end = nil
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -105,6 +119,16 @@ module Datadog
       end
     rescue StandardError => e
       Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+    end
+
+    # Sets tags from given hash, for each key in hash it sets the tag with that key
+    # and associated value from the hash. It is shortcut for `set_tag`. Keys and values
+    # of the hash must be strings. Note that nested hashes are not supported.
+    # A valid example is:
+    #
+    #   span.set_tags({ "http.method" => "GET", "user.id" => "234" })
+    def set_tags(tags)
+      tags.each { |k, v| set_tag(k, v) }
     end
 
     # This method removes a tag for the given key.
@@ -150,6 +174,28 @@ module Datadog
       set_tag(Ext::Errors::STACK, e.backtrace) unless e.backtrace.empty?
     end
 
+    # Mark the span started at the current time.
+    def start(start_time = nil)
+      # A span should not be started twice. However, this is existing
+      # behavior and so we maintain it for backward compatibility for those
+      # who are using async manual instrumentation that may rely on this
+
+      @start_time = start_time || Time.now.utc
+      @duration_start = start_time.nil? ? duration_marker : nil
+
+      self
+    end
+
+    # for backwards compatibility
+    def start_time=(time)
+      time.tap { start(time) }
+    end
+
+    # for backwards compatibility
+    def end_time=(time)
+      time.tap { finish(time) }
+    end
+
     # Mark the span finished at the current time and submit it.
     def finish(finish_time = nil)
       # A span should not be finished twice. Note that this is not thread-safe,
@@ -160,12 +206,15 @@ module Datadog
 
       @allocation_count_finish = now_allocations
 
-      # Provide a default start_time if unset, but this should have been set by start_span.
-      # Using now here causes 0-duration spans, still, this is expected, as we never
-      # explicitely say when it started.
-      @start_time ||= Time.now.utc
+      now = Time.now.utc
 
-      @end_time = finish_time.nil? ? Time.now.utc : finish_time # finish this
+      # Provide a default start_time if unset.
+      # Using `now` here causes duration to be 0; this is expected
+      # behavior when start_time is unknown.
+      start(finish_time || now) unless started?
+
+      @end_time = finish_time || now
+      @duration_end = finish_time.nil? ? duration_marker : nil
 
       # Finish does not really do anything if the span is not bound to a tracer and a context.
       return self if @tracer.nil? || @context.nil?
@@ -183,11 +232,6 @@ module Datadog
         Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
       self
-    end
-
-    # Return whether the span is finished or not.
-    def finished?
-      !@end_time.nil?
     end
 
     # Return a string representation of the span.
@@ -236,19 +280,76 @@ module Datadog
         error: @status
       }
 
-      if !@start_time.nil? && !@end_time.nil?
-        h[:start] = (@start_time.to_f * 1e9).to_i
-        h[:duration] = ((@end_time - @start_time) * 1e9).to_i
+      if finished?
+        h[:start] = start_time_nano
+        h[:duration] = duration_nano
       end
 
       h
     end
 
+    # MessagePack serializer interface. Making this object
+    # respond to `#to_msgpack` allows it to be automatically
+    # serialized by MessagePack.
+    #
+    # This is more efficient than doing +MessagePack.pack(span.to_hash)+
+    # as we don't have to create an intermediate Hash.
+    #
+    # @param packer [MessagePack::Packer] serialization buffer, can be +nil+ with JRuby
+    def to_msgpack(packer = nil)
+      # As of 1.3.3, JRuby implementation doesn't pass an existing packer
+      packer ||= MessagePack::Packer.new
+
+      if finished?
+        packer.write_map_header(13) # Set header with how many elements in the map
+
+        packer.write('start')
+        packer.write(start_time_nano)
+
+        packer.write('duration')
+        packer.write(duration_nano)
+      else
+        packer.write_map_header(11) # Set header with how many elements in the map
+      end
+
+      # DEV: We use strings as keys here, instead of symbols, as
+      # DEV: MessagePack will ultimately convert them to strings.
+      # DEV: By providing strings directly, we skip this indirection operation.
+      packer.write('span_id')
+      packer.write(@span_id)
+      packer.write('parent_id')
+      packer.write(@parent_id)
+      packer.write('trace_id')
+      packer.write(@trace_id)
+      packer.write('name')
+      packer.write(@name)
+      packer.write('service')
+      packer.write(@service)
+      packer.write('resource')
+      packer.write(@resource)
+      packer.write('type')
+      packer.write(@span_type)
+      packer.write('meta')
+      packer.write(@meta)
+      packer.write('metrics')
+      packer.write(@metrics)
+      packer.write('allocations')
+      packer.write(allocations)
+      packer.write('error')
+      packer.write(@status)
+      packer
+    end
+
+    # JSON serializer interface.
+    # Used by older version of the transport.
+    def to_json(*args)
+      to_hash.to_json(*args)
+    end
+
     # Return a human readable version of the span
     def pretty_print(q)
-      start_time = (@start_time.to_f * 1e9).to_i rescue '-'
-      end_time = (@end_time.to_f * 1e9).to_i rescue '-'
-      duration = ((@end_time - @start_time) * 1e9).to_i rescue 0
+      start_time = (self.start_time.to_f * 1e9).to_i
+      end_time = (self.end_time.to_f * 1e9).to_i
       q.group 0 do
         q.breakable
         q.text "Name: #{@name}\n"
@@ -261,7 +362,7 @@ module Datadog
         q.text "Error: #{@status}\n"
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
-        q.text "Duration: #{duration}\n"
+        q.text "Duration: #{duration.to_f if finished?}\n"
         q.text "Allocations: #{allocations}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
@@ -278,7 +379,29 @@ module Datadog
       end
     end
 
+    # Return whether the duration is started or not
+    def started?
+      !@start_time.nil?
+    end
+
+    # Return whether the duration is finished or not.
+    def finished?
+      !@end_time.nil?
+    end
+
+    def duration
+      if @duration_end.nil? || @duration_start.nil?
+        @end_time - @start_time
+      else
+        @duration_end - @duration_start
+      end
+    end
+
     private
+
+    def duration_marker
+      Utils::Time.get_time
+    end
 
     if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION) < Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION)
       def now_allocations
@@ -292,6 +415,18 @@ module Datadog
       def now_allocations
         GC.stat(:total_allocated_objects)
       end
+    end
+
+    # Used for serialization
+    # @return [Integer] in nanoseconds since Epoch
+    def start_time_nano
+      @start_time.to_i * 1000000000 + @start_time.nsec
+    end
+
+    # Used for serialization
+    # @return [Integer] in nanoseconds since Epoch
+    def duration_nano
+      (duration * 1e9).to_i
     end
   end
 end

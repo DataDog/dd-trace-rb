@@ -1,5 +1,10 @@
 require 'active_record'
-require 'mysql2'
+
+if PlatformHelpers.jruby?
+  require 'activerecord-jdbc-adapter'
+else
+  require 'mysql2'
+end
 
 logger = Logger.new(STDOUT)
 logger.level = Logger::INFO

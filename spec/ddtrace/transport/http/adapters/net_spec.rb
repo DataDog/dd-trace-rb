@@ -9,20 +9,23 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
   let(:port) { double('port') }
   let(:timeout) { double('timeout') }
   let(:options) { { timeout: timeout } }
+  let(:proxy_addr) { nil } # We currently disable proxy for transport HTTP requests
 
   shared_context 'HTTP connection stub' do
     let(:http_connection) { instance_double(::Net::HTTP) }
 
     before do
-      allow(::Net::HTTP).to receive(:start)
+      allow(::Net::HTTP).to receive(:new)
         .with(
           adapter.hostname,
           adapter.port,
-          open_timeout: adapter.timeout,
-          read_timeout: adapter.timeout
-        ) do |*_args, &block|
-          block.call(http_connection)
-        end
+          proxy_addr
+        ).and_return(http_connection)
+
+      allow(http_connection).to receive(:open_timeout=).with(adapter.timeout)
+      allow(http_connection).to receive(:read_timeout=).with(adapter.timeout)
+
+      allow(http_connection).to receive(:start).and_yield(http_connection)
     end
   end
 
@@ -102,6 +105,15 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
       expect(post.http_response).to be(http_response)
     end
   end
+
+  describe '#url' do
+    subject(:url) { adapter.url }
+
+    let(:hostname) { 'local.test' }
+    let(:port) { '345' }
+    let(:timeout) { 7 }
+    it { is_expected.to eq('http://local.test:345?timeout=7') }
+  end
 end
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::Net::Response do
@@ -121,7 +133,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net::Response do
   describe '#code' do
     subject(:code) { response.code }
     let(:http_response) { instance_double(::Net::HTTPResponse, code: '200') }
-    it { is_expected.to be(200) }
+    it { is_expected.to eq(200) }
   end
 
   describe '#ok?' do

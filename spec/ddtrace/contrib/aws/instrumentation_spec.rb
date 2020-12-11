@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
+require 'ddtrace/contrib/integration_examples'
 
 require 'aws-sdk'
 require 'ddtrace'
@@ -43,7 +44,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('web')
+        expect(span.span_type).to eq('http')
         expect(span.resource).to eq('s3.list_buckets')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -54,6 +55,8 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('http.status_code')).to eq('200')
       end
+
+      it_behaves_like 'a peer service span'
 
       it 'returns the correct response' do
         expect(list_buckets.buckets.map(&:name)).to eq(['bucket1'])

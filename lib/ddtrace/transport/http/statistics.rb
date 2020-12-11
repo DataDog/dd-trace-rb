@@ -18,9 +18,22 @@ module Datadog
               # Add status code tag to api.responses metric
               if metrics.key?(:api_responses)
                 (metrics[:api_responses].options[:tags] ||= []).tap do |tags|
-                  tags << "status_code:#{response.code}"
+                  tags << metrics_tag_value(response.code)
                 end
               end
+            end
+          end
+
+          private
+
+          # The most common status code on a healthy tracer
+          STATUS_CODE_200 = 'status_code:200'.freeze
+
+          def metrics_tag_value(status_code)
+            if status_code == 200
+              STATUS_CODE_200 # DEV Saves string concatenation/creation for common case
+            else
+              "status_code:#{status_code}"
             end
           end
         end

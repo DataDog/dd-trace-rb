@@ -5,6 +5,15 @@ require 'rspec/collection_matchers'
 require 'webmock/rspec'
 require 'climate_control'
 
+# Skip for benchmarks, as coverage collection slows them down.
+unless RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/') }
+  # +SimpleCov.start+ must be invoked before any application code is loaded
+  require 'simplecov'
+  SimpleCov.start do
+    formatter SimpleCov::Formatter::SimpleFormatter
+  end
+end
+
 require 'ddtrace/encoding'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
@@ -22,6 +31,7 @@ require 'support/platform_helpers'
 require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
+require 'support/test_helpers'
 require 'support/tracer_helpers'
 
 begin
@@ -45,7 +55,10 @@ RSpec.configure do |config|
   config.include NetworkHelpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
+  config.include TestHelpers
   config.include TracerHelpers
+
+  config.include TestHelpers::RSpec::Integration, :integration
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
@@ -59,4 +72,9 @@ RSpec.configure do |config|
   config.disable_monkey_patching!
   config.warnings = true
   config.order = :random
+  config.filter_run focus: true
+  config.run_all_when_everything_filtered = true
 end
+
+# Helper matchers
+RSpec::Matchers.define_negated_matcher :not_be, :be

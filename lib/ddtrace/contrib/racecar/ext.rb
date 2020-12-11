@@ -4,9 +4,13 @@ module Datadog
       # Racecar integration constants
       module Ext
         APP = 'racecar'.freeze
-        ENV_ANALYTICS_ENABLED = 'DD_RACECAR_ANALYTICS_ENABLED'.freeze
-        ENV_ANALYTICS_SAMPLE_RATE = 'DD_RACECAR_ANALYTICS_SAMPLE_RATE'.freeze
+        ENV_ENABLED = 'DD_TRACE_RACECAR_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED = 'DD_TRACE_RACECAR_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_ENABLED_OLD = 'DD_RACECAR_ANALYTICS_ENABLED'.freeze
+        ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_RACECAR_ANALYTICS_SAMPLE_RATE'.freeze
+        ENV_ANALYTICS_SAMPLE_RATE_OLD = 'DD_RACECAR_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'racecar'.freeze
+        SPAN_CONSUME = 'racecar.consume'.freeze
         SPAN_BATCH = 'racecar.batch'.freeze
         SPAN_MESSAGE = 'racecar.message'.freeze
         TAG_CONSUMER = 'kafka.consumer'.freeze

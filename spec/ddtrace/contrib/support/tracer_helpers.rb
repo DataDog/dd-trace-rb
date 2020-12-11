@@ -50,24 +50,32 @@ module Contrib
     RSpec.configure do |config|
       # Capture spans from the global tracer
       config.before(:each) do
-        clear_spans!
+        Datadog.reset!
 
-        # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
-        write_lock = Mutex.new
-        allow_any_instance_of(Datadog::Tracer).to receive(:write) do |tracer, trace|
-          tracer.instance_exec do
-            write_lock.synchronize do
-              @spans ||= []
-              @spans << trace
+        # DEV `*_any_instance_of` has concurrency issues when running with parallelism (e.g. JRuby).
+        # DEV Single object `allow` and `expect` work as intended with parallelism.
+        allow(Datadog::Tracer).to receive(:new).and_wrap_original do |method, *args, &block|
+          instance = method.call(*args, &block)
+
+          # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
+          write_lock = Mutex.new
+          allow(instance).to receive(:write) do |trace|
+            instance.instance_exec do
+              write_lock.synchronize do
+                @spans ||= []
+                @spans << trace
+              end
             end
           end
+
+          instance
         end
       end
     end
 
     # Useful for integration testing.
     def use_real_tracer!
-      allow_any_instance_of(Datadog::Tracer).to receive(:write).and_call_original
+      allow(Datadog::Tracer).to receive(:new).and_call_original
     end
   end
 end

@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace/transport/http'
+require 'uri'
 
 RSpec.describe Datadog::Transport::HTTP do
   describe '.new' do
@@ -179,6 +180,18 @@ RSpec.describe Datadog::Transport::HTTP do
 
         it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_HOST) }
       end
+
+      context 'set via url' do
+        let(:value) { 'http://my-hostname:8125' }
+
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL => value) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(URI.parse(value).hostname) }
+      end
     end
   end
 
@@ -206,6 +219,18 @@ RSpec.describe Datadog::Transport::HTTP do
         end
 
         it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_PORT) }
+      end
+
+      context 'set via url' do
+        let(:value) { 'http://my-hostname:8125' }
+
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL => value) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(URI.parse(value).port) }
       end
     end
   end

@@ -1,3 +1,4 @@
+require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/redis/ext'
@@ -9,13 +10,16 @@ module Datadog
       module Tags
         class << self
           def set_common_tags(client, span)
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
             span.set_tag Datadog::Ext::NET::TARGET_HOST, client.host
             span.set_tag Datadog::Ext::NET::TARGET_PORT, client.port
             span.set_tag Ext::TAG_DB, client.db
-            span.set_tag Ext::TAG_RAW_COMMAND, span.resource
+            span.set_tag Ext::TAG_RAW_COMMAND, span.resource if show_command_args?
           end
 
           private
@@ -30,6 +34,10 @@ module Datadog
 
           def analytics_sample_rate
             datadog_configuration[:analytics_sample_rate]
+          end
+
+          def show_command_args?
+            datadog_configuration[:command_args]
           end
         end
       end

@@ -37,7 +37,7 @@ RSpec.describe 'Resque instrumentation' do
 
       it 'is traced' do
         expect(spans).to have(1).items
-        expect(Resque::Failure.count).to be(0)
+        expect(Resque::Failure.count).to eq(0)
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
@@ -59,7 +59,7 @@ RSpec.describe 'Resque instrumentation' do
 
         it 'sets the resource to underlying job class' do
           expect(spans).to have(1).items
-          expect(Resque::Failure.count).to be(0)
+          expect(Resque::Failure.count).to eq(0)
           expect(span.resource).to eq('UnderlyingTestJob')
         end
       end
@@ -71,9 +71,6 @@ RSpec.describe 'Resque instrumentation' do
         expect(job_class).to receive(:perform) do
           raise error_class, error_message
         end
-
-        # Perform it
-        perform_job(job_class)
       end
 
       let(:error_class_name) { 'TestJobFailError' }
@@ -81,8 +78,9 @@ RSpec.describe 'Resque instrumentation' do
       let(:error_message) { 'TestJob failed' }
 
       it 'is traced' do
+        perform_job(job_class)
         expect(spans).to have(1).items
-        expect(Resque::Failure.count).to be(1)
+        expect(Resque::Failure.count).to eq(1)
         expect(Resque::Failure.all['error']).to eq(error_message)
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
@@ -91,6 +89,16 @@ RSpec.describe 'Resque instrumentation' do
         expect(span).to have_error_message(error_message)
         expect(span).to have_error
         expect(span).to have_error_type(error_class_name)
+      end
+
+      context 'with custom error handler' do
+        let(:configuration_options) { { error_handler: error_handler } }
+        let(:error_handler) { proc {} }
+
+        it 'uses custom error handler' do
+          expect(error_handler).to receive(:call)
+          perform_job(job_class)
+        end
       end
     end
   end
@@ -116,6 +124,8 @@ RSpec.describe 'Resque instrumentation' do
   context 'with forking' do
     it_should_behave_like 'job execution tracing'
 
+    before { skip unless PlatformHelpers.supports_fork? }
+
     context 'trace context' do
       before(:each) do
         expect(job_class).to receive(:perform) do
@@ -136,7 +146,7 @@ RSpec.describe 'Resque instrumentation' do
 
       it 'is clean' do
         expect(spans).to have(2).items
-        expect(Resque::Failure.count).to be(0)
+        expect(Resque::Failure.count).to eq(0)
         expect(main_span.name).to eq('main.process')
         expect(job_span.name).to eq('resque.job')
         expect(main_span.trace_id).to_not eq(job_span.trace_id)

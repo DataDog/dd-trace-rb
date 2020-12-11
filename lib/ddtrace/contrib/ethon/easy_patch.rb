@@ -1,5 +1,6 @@
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/ext/integration'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/ethon/ext'
 require 'ddtrace/contrib/http_annotation_helper'
@@ -12,8 +13,8 @@ module Datadog
         def self.included(base)
           base.send(:prepend, InstanceMethods)
         end
-
         # InstanceMethods - implementing instrumentation
+        # rubocop:disable Metrics/ModuleLength
         module InstanceMethods
           include Datadog::Contrib::HttpAnnotationHelper
 
@@ -98,12 +99,13 @@ module Datadog
 
           def datadog_tag_request
             span = @datadog_span
-            method = 'N/A'
+            method = Ext::NOT_APPLICABLE_METHOD
             if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
               method = @datadog_method.to_s
             end
             span.resource = method
-
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 

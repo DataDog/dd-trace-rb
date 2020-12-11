@@ -89,7 +89,7 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
         end
 
         context 'a Datadog Net::HTTP transport' do
-          before { expect(::Net::HTTP).to receive(:start) }
+          before { expect(::Net::HTTP).to receive(:new) }
 
           let(:transport) { Datadog::Transport::HTTP.default }
           it { is_expected.to be true }

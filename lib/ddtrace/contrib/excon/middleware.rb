@@ -1,5 +1,6 @@
 require 'excon'
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/http_propagator'
@@ -62,6 +63,12 @@ module Datadog
               @options
             end
 
+            # default_options in this case contains our specific middleware options
+            # so we want it to take precedence in build_request_options
+            def build_request_options!(datum)
+              datadog_configuration(datum[:host]).options_hash.merge(@default_options)
+            end
+
             def initialize(stack)
               super(stack, self.class.options)
             end
@@ -108,6 +115,9 @@ module Datadog
           span.service = service_name(datum[:host], @options)
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
+          # Tag as an external peer service
+          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+
           # Set analytics sample rate
           if analytics_enabled?
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
@@ -145,7 +155,7 @@ module Datadog
         end
 
         def build_request_options!(datum)
-          datadog_configuration(datum[:host]).options_hash.merge(@default_options)
+          @default_options.merge(datadog_configuration(datum[:host]).options_hash)
         end
 
         def datadog_configuration(host = :default)

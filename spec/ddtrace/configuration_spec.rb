@@ -5,16 +5,97 @@ require 'ddtrace/patcher'
 require 'ddtrace/configuration'
 
 RSpec.describe Datadog::Configuration do
+  let(:default_log_level) { ::Logger::INFO }
+
   context 'when extended by a class' do
     subject(:test_class) { stub_const('TestClass', Class.new { extend Datadog::Configuration }) }
 
     describe '#configure' do
       subject(:configure) { test_class.configure }
 
+      context 'when Settings are configured' do
+        before do
+          allow(Datadog::Configuration::Components).to receive(:new)
+            .and_wrap_original do |m, *args|
+            new_components = m.call(*args)
+            allow(new_components).to receive(:shutdown!)
+            allow(new_components).to receive(:startup!)
+            new_components
+          end
+        end
+
+        context 'and components have been initialized' do
+          before do
+            @original_components = test_class.send(:components)
+          end
+
+          it do
+            # Components should have changed
+            expect { configure }
+              .to change { test_class.send(:components) }
+              .from(@original_components)
+
+            new_components = test_class.send(:components)
+            expect(new_components).to_not be(@original_components)
+
+            # Old components should shutdown, new components should startup
+            expect(@original_components)
+              .to have_received(:shutdown!)
+              .with(new_components)
+              .ordered
+
+            expect(new_components)
+              .to have_received(:startup!)
+              .with(test_class.configuration)
+              .ordered
+
+            expect(new_components).to_not have_received(:shutdown!)
+          end
+        end
+
+        context 'and components have not been initialized' do
+          it do
+            expect_any_instance_of(Datadog::Configuration::Components)
+              .to_not receive(:shutdown!)
+
+            configure
+
+            # Components should have changed
+            new_components = test_class.send(:components)
+
+            # New components should startup
+            expect(new_components)
+              .to have_received(:startup!)
+              .with(test_class.configuration)
+
+            expect(new_components).to_not have_received(:shutdown!)
+          end
+        end
+      end
+
+      context 'when an object is configured' do
+        subject(:configure) { test_class.configure(object, options) }
+        let(:object) { double('object') }
+        let(:options) { {} }
+
+        let(:pin_setup) { instance_double(Datadog::Configuration::PinSetup) }
+
+        it 'attaches a pin to the object' do
+          expect(Datadog::Configuration::PinSetup)
+            .to receive(:new)
+            .with(object, options)
+            .and_return(pin_setup)
+
+          expect(pin_setup).to receive(:call)
+
+          configure
+        end
+      end
+
       context 'when debug mode' do
         it 'is toggled with default settings' do
           # Assert initial state
-          expect(test_class.logger.level).to be ::Logger::WARN
+          expect(test_class.logger.level).to be default_log_level
 
           # Enable
           test_class.configure do |c|
@@ -30,7 +111,7 @@ RSpec.describe Datadog::Configuration do
           end
 
           # Assert final state
-          expect(test_class.logger.level).to be ::Logger::WARN
+          expect(test_class.logger.level).to be default_log_level
         end
 
         context 'is disabled with a custom logger in use' do
@@ -276,7 +357,7 @@ RSpec.describe Datadog::Configuration do
     describe '#logger' do
       subject(:logger) { test_class.logger }
       it { is_expected.to be_a_kind_of(Datadog::Logger) }
-      it { expect(logger.level).to be ::Logger::WARN }
+      it { expect(logger.level).to be default_log_level }
     end
 
     describe '#runtime_metrics' do
@@ -290,6 +371,42 @@ RSpec.describe Datadog::Configuration do
       subject(:tracer) { test_class.tracer }
       it { is_expected.to be_a_kind_of(Datadog::Tracer) }
       it { expect(tracer.context_flush).to be_a_kind_of(Datadog::ContextFlush::Finished) }
+    end
+
+    describe '#shutdown!' do
+      subject(:shutdown!) { test_class.shutdown! }
+
+      let!(:original_components) { test_class.send(:components) }
+
+      it 'gracefully shuts down components' do
+        expect(original_components).to receive(:shutdown!)
+
+        shutdown!
+      end
+
+      it 'does not attempt to recreate components' do
+        shutdown!
+
+        expect(test_class.send(:components)).to be(original_components)
+      end
+    end
+
+    describe '#reset!' do
+      subject(:reset!) { test_class.reset! }
+
+      let!(:original_components) { test_class.send(:components) }
+
+      it 'gracefully shuts down components' do
+        expect(test_class).to receive(:shutdown!)
+
+        reset!
+      end
+
+      it 'allows for component re-creation' do
+        reset!
+
+        expect(test_class.send(:components)).to_not be(original_components)
+      end
     end
   end
 end

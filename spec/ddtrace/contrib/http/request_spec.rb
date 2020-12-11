@@ -1,3 +1,4 @@
+require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -64,6 +65,8 @@ RSpec.describe 'net/http requests' do
       it_behaves_like 'measured span for integration', false do
         before { response }
       end
+
+      it_behaves_like 'a peer service span'
     end
 
     context 'that returns 404' do
@@ -86,6 +89,8 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
         expect(span.get_tag('error.msg')).to be nil
       end
+
+      it_behaves_like 'a peer service span'
 
       context 'when configured with #after_request hook' do
         before { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
@@ -149,6 +154,8 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.status).to eq(0)
       end
+
+      it_behaves_like 'a peer service span'
     end
   end
 
@@ -178,6 +185,8 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.status).to eq(0)
       end
+
+      it_behaves_like 'a peer service span'
     end
   end
 
@@ -200,6 +209,8 @@ RSpec.describe 'net/http requests' do
         expect(span.name).to eq('http.request')
         expect(span.service).to eq(service_name)
       end
+
+      it_behaves_like 'a peer service span'
     end
   end
 
@@ -220,14 +231,20 @@ RSpec.describe 'net/http requests' do
     context 'and the host matches a specific configuration' do
       before do
         Datadog.configure do |c|
-          c.use :http, describe: /example\.com/ do |http|
+          c.use :http, configuration_options
+          c.use :http, describes: /127.0.0.1/ do |http|
             http.service_name = 'bar'
+            http.split_by_domain = false
+          end
+
+          c.use :http, describes: /badexample\.com/ do |http|
+            http.service_name = 'bar_bad'
             http.split_by_domain = false
           end
         end
       end
 
-      it 'uses the configured service name over the domain name' do
+      it 'uses the configured service name over the domain name and the correct describes block' do
         response
         expect(span.service).to eq('bar')
       end

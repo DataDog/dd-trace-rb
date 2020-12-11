@@ -2,8 +2,13 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'rack/test'
 
 require 'sinatra/base'
-require 'sqlite3'
 require 'active_record'
+
+if PlatformHelpers.jruby?
+  require 'activerecord-jdbc-adapter'
+else
+  require 'sqlite3'
+end
 
 require 'ddtrace'
 require 'ddtrace/contrib/sinatra/tracer'

@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
+require 'ddtrace/contrib/integration_examples'
 
 require 'dalli'
 require 'ddtrace'
@@ -49,6 +50,8 @@ RSpec.describe 'Dalli instrumentation' do
       expect(span.get_tag('out.host')).to eq(test_host)
       expect(span.get_tag('out.port')).to eq(test_port.to_f)
     end
+
+    it_behaves_like 'a peer service span'
   end
 
   describe 'when multiplexed configuration is provided' do
@@ -76,6 +79,8 @@ RSpec.describe 'Dalli instrumentation' do
         expect(span.get_tag('out.host')).to eq(test_host)
         expect(span.get_tag('out.port')).to eq(test_port.to_f)
       end
+
+      it_behaves_like 'a peer service span'
     end
   end
 end

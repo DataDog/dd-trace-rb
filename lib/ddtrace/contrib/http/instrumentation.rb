@@ -2,6 +2,7 @@ require 'uri'
 require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/contrib/analytics'
@@ -83,6 +84,9 @@ module Datadog
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, host)
             span.set_tag(Datadog::Ext::NET::TARGET_PORT, port.to_s)
 
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+
             # Set analytics sample rate
             set_analytics_sample_rate(span, request_options)
           end
@@ -114,7 +118,7 @@ module Datadog
             @datadog_pin ||= Datadog::Pin.new(
               service,
               app: Ext::APP,
-              app_type: Datadog::Ext::AppTypes::WEB,
+              app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
               tracer: -> { config[:tracer] }
             )
 
@@ -142,7 +146,7 @@ module Datadog
             @default_datadog_pin ||= Datadog::Pin.new(
               service,
               app: Ext::APP,
-              app_type: Datadog::Ext::AppTypes::WEB,
+              app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
               tracer: -> { config[:tracer] }
             )
           end

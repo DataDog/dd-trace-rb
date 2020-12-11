@@ -7,6 +7,7 @@ require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
+require 'ddtrace/diagnostics/environment_logger'
 
 module Datadog
   # Processor that sends traces and metadata to the agent
@@ -41,13 +42,22 @@ module Datadog
 
       # one worker for traces
       @worker = nil
+
+      # Once stopped, this writer instance cannot be restarted.
+      # This allow for graceful shutdown, while preventing
+      # the host application from inadvertently start new
+      # threads during shutdown.
+      @stopped = false
     end
 
     def start
       @mutex_after_fork.synchronize do
+        return false if @stopped
+
         pid = Process.pid
         return if @worker && pid == @pid
         @pid = pid
+
         start_worker
         true
       end
@@ -66,14 +76,23 @@ module Datadog
       @worker.start
     end
 
+    # Gracefully shuts down this writer.
+    #
+    # Once stopped methods calls won't fail, but
+    # no internal work will be performed.
+    #
+    # It is not possible to restart a stopped writer instance.
     def stop
       @mutex_after_fork.synchronize { stop_worker }
     end
 
     def stop_worker
+      @stopped = true
+
       return if @worker.nil?
       @worker.stop
       @worker = nil
+
       true
     end
 
@@ -96,6 +115,8 @@ module Datadog
 
       # Update priority sampler
       update_priority_sampler(responses.last)
+
+      record_environment_information!(responses)
 
       # Return if server error occurred.
       !responses.find(&:server_error?)
@@ -133,7 +154,7 @@ module Datadog
 
       if worker_local
         worker_local.enqueue_trace(trace)
-      else
+      elsif !@stopped
         Datadog.logger.debug('Writer either failed to start or was stopped before #write could complete')
       end
     end
@@ -163,6 +184,10 @@ module Datadog
       return unless response && !response.internal_error? && priority_sampler && response.service_rates
 
       priority_sampler.update(response.service_rates)
+    end
+
+    def record_environment_information!(responses)
+      Diagnostics::EnvironmentLogger.log!(responses)
     end
   end
 end

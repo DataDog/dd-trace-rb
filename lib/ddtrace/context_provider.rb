@@ -13,9 +13,20 @@ module Datadog
       @context.local = ctx
     end
 
-    # Return the current context.
-    def context
-      @context.local
+    # Return the local context.
+    def context(key = nil)
+      current_context = key.nil? ? @context.local : @context.local(key)
+
+      # Rebuild/reset context after a fork
+      #
+      # We don't want forked processes to copy and retransmit spans
+      # that were generated from the parent process. Reset it such
+      # that it acts like a distributed trace.
+      current_context.after_fork! do
+        current_context = self.context = current_context.fork_clone
+      end
+
+      current_context
     end
   end
 
@@ -43,8 +54,9 @@ module Datadog
     end
 
     # Return the thread-local context.
-    def local
-      Thread.current[@key] ||= Datadog::Context.new
+    def local(thread = Thread.current)
+      raise ArgumentError, '\'thread\' must be a Thread.' unless thread.is_a?(Thread)
+      thread[@key] ||= Datadog::Context.new
     end
   end
 end

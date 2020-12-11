@@ -15,14 +15,21 @@ module Datadog
 
         def patch
           require 'ddtrace/contrib/sidekiq/client_tracer'
+          require 'ddtrace/contrib/sidekiq/server_tracer'
+
           ::Sidekiq.configure_client do |config|
             config.client_middleware do |chain|
               chain.add(Sidekiq::ClientTracer)
             end
           end
 
-          require 'ddtrace/contrib/sidekiq/server_tracer'
           ::Sidekiq.configure_server do |config|
+            # If a job enqueues another job, make sure it has the same client
+            # middleware.
+            config.client_middleware do |chain|
+              chain.add(Sidekiq::ClientTracer)
+            end
+
             config.server_middleware do |chain|
               chain.add(Sidekiq::ServerTracer)
             end
