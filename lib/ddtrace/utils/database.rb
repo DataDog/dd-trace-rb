@@ -9,6 +9,7 @@ module Datadog
       module_function
 
       def normalize_vendor(vendor)
+        puts "vendor is #{vendor}"
         case vendor
         when nil
           VENDOR_DEFAULT
