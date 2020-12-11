@@ -81,7 +81,7 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
       expect(sqlite_span.name).to eq('sqlite.query')
       expect(sqlite_span.service).to eq('sqlite')
       expect(sqlite_span.resource).to eq('SELECT 42')
-      expect(sqlite_span.get_tag('active_record.db.vendor')).to eq(adapter_name)
+      expect(sqlite_span.get_tag('active_record.db.vendor')).to eq('sqlite3')
       expect(sqlite_span.get_tag('active_record.db.name')).to eq(database_name)
       expect(sqlite_span.get_tag('out.host')).to eq(adapter_host.to_s) unless adapter_host.nil?
       expect(sqlite_span.get_tag('out.port')).to eq(adapter_port.to_s) unless adapter_port.nil?
