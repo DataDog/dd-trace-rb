@@ -9,7 +9,7 @@ module Datadog
       integrations = []
       Datadog.registry.each do |integration|
         # some instrumentations are automatically enabled when the `rails` instrumentation is enabled,
-        # patching them on their own automatically outside of the rails integration context would 
+        # patching them on their own automatically outside of the rails integration context would
         # cause undesirable service naming, so we exclude them based their auto_instrument? setting.
         # we also don't want to mix rspec/cucumber integration in as rspec is env we run tests in.
         next unless integration.klass.auto_instrument?
