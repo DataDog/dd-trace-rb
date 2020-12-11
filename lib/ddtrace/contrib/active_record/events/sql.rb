@@ -53,7 +53,7 @@ module Datadog
             # is simply cached from memory, so the notification is fired with start == finish.
             cached = payload[:cached] || (payload[:name] == PAYLOAD_CACHE)
 
-            console.log("when setting tag config is #{config}")
+            puts "when setting tag config is #{config}"
             span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
             span.set_tag(Ext::TAG_DB_NAME, config[:database])
             span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
