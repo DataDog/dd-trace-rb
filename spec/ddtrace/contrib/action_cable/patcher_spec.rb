@@ -42,7 +42,7 @@ RSpec.describe 'ActionCable patcher' do
     let(:server) do
       ActionCable::Server::Base.new.tap do |s|
         s.config.cable = { adapter: 'inline' }.with_indifferent_access
-        s.config.logger = Logger.new(nil)
+        s.config.logger = Logger.new(STDOUT)
       end
     end
 
@@ -81,7 +81,7 @@ RSpec.describe 'ActionCable patcher' do
     end
 
     let(:channel_instance) { channel_class.new(connection, '{id: 1}', id: 1) }
-    let(:connection) { double('connection', logger: Logger.new(nil), transmit: nil, identifiers: []) }
+    let(:connection) { double('connection', logger: Logger.new(STDOUT), transmit: nil, identifiers: []) }
 
     context 'on perform action' do
       subject(:perform) { channel_instance.perform_action(data) }

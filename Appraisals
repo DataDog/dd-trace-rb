@@ -391,6 +391,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'http'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'qless'
       gem 'racecar', '>= 0.3.5'
       gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
       gem 'rack-test'
@@ -584,6 +585,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
+      gem 'qless'
       gem 'racecar', '>= 0.3.5'
       gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
       gem 'rack-test'
@@ -687,6 +689,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
+      gem 'qless'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-test'
@@ -834,11 +837,12 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'hiredis'
     gem 'http'
     gem 'mongo', '>= 2.8.0'
-    gem 'mysql2', '< 0.5', platform: :ruby
+    gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', platform: :jruby
     gem 'pg', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
     gem 'presto-client', '>=  0.5.14'
+    gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-test'
@@ -976,9 +980,10 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'mongo', '>= 2.8.0'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
+      gem 'qless'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-test'
@@ -1007,7 +1012,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
   if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge'
     end
@@ -1048,7 +1053,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
 
     appraise 'rails6-mysql2' do
       gem 'rails', '~> 6.0.0'
-      gem 'mysql2', '< 0.6', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge'
     end
@@ -1119,9 +1124,10 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'hiredis'
       gem 'http'
       gem 'mongo', '>= 2.8.0'
-      gem 'mysql2', '< 0.5', platform: :ruby
+      gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
+      gem 'qless'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-test'

@@ -12,6 +12,10 @@ module Datadog
       extend Forwardable
       include Workers::Polling
 
+      # In seconds
+      DEFAULT_FLUSH_INTERVAL = 10
+      DEFAULT_BACK_OFF_MAX = 30
+
       attr_reader \
         :metrics
 
@@ -22,9 +26,9 @@ module Datadog
         self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)
 
         # Workers::IntervalLoop settings
-        self.interval = options[:interval] if options.key?(:interval)
-        self.back_off_ratio = options[:back_off_ratio] if options.key?(:back_off_ratio)
-        self.back_off_max = options[:back_off_max] if options.key?(:back_off_max)
+        self.loop_base_interval = options.fetch(:interval, DEFAULT_FLUSH_INTERVAL)
+        self.loop_back_off_ratio = options[:back_off_ratio] if options.key?(:back_off_ratio)
+        self.loop_back_off_max = options.fetch(:back_off_max, DEFAULT_BACK_OFF_MAX)
 
         self.enabled = options.fetch(:enabled, false)
       end

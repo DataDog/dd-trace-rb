@@ -101,6 +101,7 @@ namespace :spec do
     :mongodb,
     :mysql2,
     :presto,
+    :qless,
     :que,
     :racecar,
     :rack,
@@ -355,6 +356,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
+      declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
       declare 'bundle exec appraisal contrib rake spec:racecar'
       declare 'bundle exec appraisal contrib rake spec:rack'
@@ -582,6 +584,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2' if RUBY_PLATFORM != 'java' # built-in jdbc is used instead
     declare 'bundle exec appraisal contrib rake spec:presto'
+    declare 'bundle exec appraisal contrib rake spec:qless'
     declare 'bundle exec appraisal contrib rake spec:que'
     declare 'bundle exec appraisal contrib rake spec:racecar'
     declare 'bundle exec appraisal contrib rake spec:rack'
@@ -617,7 +620,7 @@ task :ci do
     declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
     declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails5-postgres rake spec:rails'
-    # declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable' # TODO: Hangs CI jobs... fix and re-enable.
+    declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
     declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails6-postgres rake spec:rails'
 
@@ -664,6 +667,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
+      declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
       declare 'bundle exec appraisal contrib rake spec:racecar'
       declare 'bundle exec appraisal contrib rake spec:rack'
@@ -679,6 +683,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:sneakers'
       declare 'bundle exec appraisal contrib rake spec:sucker_punch'
       declare 'bundle exec appraisal contrib rake spec:suite'
+
       # Contrib specs with old gem versions
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -699,7 +704,7 @@ task :ci do
       declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
-      # declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable' # TODO: Hangs CI jobs... fix and re-enable.
+      declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
 
@@ -746,6 +751,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
       declare 'bundle exec appraisal contrib rake spec:presto'
+      declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
       declare 'bundle exec appraisal contrib rake spec:racecar'
       declare 'bundle exec appraisal contrib rake spec:rack'
@@ -761,6 +767,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:sneakers'
       declare 'bundle exec appraisal contrib rake spec:sucker_punch'
       declare 'bundle exec appraisal contrib rake spec:suite'
+
       # Contrib specs with old gem versions
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       # Rails minitests
@@ -780,6 +787,7 @@ task :ci do
       # Rails specs
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
+      declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
 
@@ -821,6 +829,14 @@ namespace :coverage do
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
+  end
+end
+
+namespace :changelog do
+  task :format do
+    require 'pimpmychangelog'
+
+    PimpMyChangelog::CLI.run!
   end
 end
 

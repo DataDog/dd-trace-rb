@@ -17,6 +17,9 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     context 'by default' do
       subject(:worker) { described_class.new }
       it { expect(worker.enabled?).to be false }
+      it { expect(worker.loop_base_interval).to eq 10 }
+      it { expect(worker.loop_back_off_ratio).to eq 1.2 }
+      it { expect(worker.loop_back_off_max).to eq 30 }
     end
 
     context 'when :enabled is given' do
@@ -27,6 +30,24 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     context 'when :enabled is not given' do
       before { options.delete(:enabled) }
       it { expect(worker.enabled?).to be false }
+    end
+
+    context 'when :interval is given' do
+      let(:value) { double }
+      let(:options) { super().merge(interval: value) }
+      it { expect(worker.loop_base_interval).to be value }
+    end
+
+    context 'when :back_off_ratio is given' do
+      let(:value) { double }
+      let(:options) { super().merge(back_off_ratio: value) }
+      it { expect(worker.loop_back_off_ratio).to be value }
+    end
+
+    context 'when :back_off_max is given' do
+      let(:value) { double }
+      let(:options) { super().merge(back_off_max: value) }
+      it { expect(worker.loop_back_off_max).to be value }
     end
   end
 
@@ -187,17 +208,31 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     end
   end
 
-  describe 'integration tests' do
-    let(:options) do
-      {
-        metrics: metrics,
-        fork_policy: fork_policy,
-        enabled: true
-      }
+  describe 'integration tests', :integration do
+    describe 'interval' do
+      after { worker.stop }
+
+      it 'produces metrics every 10 seconds' do
+        worker.perform
+
+        sleep 10.1
+
+        # Metrics are produced once right away
+        # and again after 10 seconds.
+        expect(metrics).to have_received(:flush).twice
+      end
     end
 
     describe 'forking' do
       before { skip unless PlatformHelpers.supports_fork? }
+
+      let(:options) do
+        {
+          metrics: metrics,
+          fork_policy: fork_policy,
+          enabled: true
+        }
+      end
 
       context 'when the process forks' do
         before { allow(metrics).to receive(:flush) }
