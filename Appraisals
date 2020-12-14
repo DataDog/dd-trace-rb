@@ -205,7 +205,6 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
       gem 'presto-client', '>=  0.5.14'
-      gem 'qless'
       gem 'ethon'
       gem 'excon'
       gem 'hiredis'
@@ -382,7 +381,6 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'elasticsearch-transport'
       gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
-      gem 'qless'
       gem 'ethon'
       gem 'excon'
       gem 'faraday'
