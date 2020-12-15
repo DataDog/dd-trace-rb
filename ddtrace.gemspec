@@ -55,11 +55,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'webmock', '>= 3.10.0'
   spec.add_development_dependency 'builder'
-  if RUBY_PLATFORM != 'java'
-    spec.add_development_dependency 'sqlite3', '>= 1.4.2'
-  else
-    spec.add_development_dependency 'jdbc-sqlite3', '~> 3'
-  end
   spec.add_development_dependency 'climate_control', '~> 0.2.0'
 
   # locking transitive dependency of webmock
