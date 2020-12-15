@@ -39,6 +39,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord-mysql-adapter', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'rack-cache', '1.7.1'
+      gem 'sqlite3', '~> 1.3.5'
       gem 'lograge', '< 0.4'
     end
 
@@ -135,6 +136,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord-mysql-adapter', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'rack-cache', '1.7.1'
+      gem 'sqlite3', '~> 1.3.5'
       gem 'lograge', '< 0.4'
     end
 
@@ -260,6 +262,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord-mysql-adapter', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'rack-cache', '1.7.1'
+      gem 'sqlite3', '~> 1.3.5'
       gem 'lograge', '< 0.4'
     end
 
@@ -441,6 +444,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activerecord-mysql-adapter', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'rack-cache', '1.7.1'
+      gem 'sqlite3', '~> 1.3.5'
       gem 'lograge', '< 0.4'
     end
 
