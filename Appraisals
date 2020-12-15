@@ -1273,7 +1273,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'hiredis'
     gem 'http'
     gem 'mongo', '>= 2.8.0'
-    gem 'mysql2', '< 0.5', platform: :ruby
+    gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'pg', platform: :ruby
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'

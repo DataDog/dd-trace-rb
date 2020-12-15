@@ -744,7 +744,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:faraday'
       declare 'bundle exec appraisal contrib rake spec:grape'
       declare 'bundle exec appraisal contrib rake spec:graphql'
-      declare 'bundle exec appraisal contrib rake spec:grpc'
+      declare 'bundle exec appraisal contrib rake spec:grpc' unless RUBY_VERSION >= '3' # Pending https://github.com/protocolbuffers/protobuf/issues/7922
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httprb'
       declare 'bundle exec appraisal contrib rake spec:kafka'
