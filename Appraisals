@@ -1154,10 +1154,6 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
     end
   end
 elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
-  # TODO Use release gem when 'crack' releases version > 0.4.4, as we require
-  # TODO https://github.com/jnunemaker/crack/pull/62 for Ruby 3.0 to work.
-  gem 'crack', git: 'https://github.com/jnunemaker/crack.git', ref: 'c61172bf32e1769748fded156c2f2fc03dac69c1'
-
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 0.5', platform: :ruby
@@ -1290,7 +1286,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'sidekiq'
     gem 'sinatra'
     gem 'sneakers', '>= 2.12.0'
-    gem 'sqlite3', '~> 1.4.1'
+    gem 'sqlite3', '>= 1.4.2'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'

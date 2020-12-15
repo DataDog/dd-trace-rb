@@ -56,7 +56,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'webmock', '>= 3.10.0'
   spec.add_development_dependency 'builder'
   if RUBY_PLATFORM != 'java'
-    spec.add_development_dependency 'sqlite3', '~> 1.3.6'
+    spec.add_development_dependency 'sqlite3', '>= 1.4.2'
   else
     spec.add_development_dependency 'jdbc-sqlite3', '~> 3'
   end
