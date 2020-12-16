@@ -1274,7 +1274,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'http'
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '>= 0.5.3', platform: :ruby
-    gem 'pg', platform: :ruby
+    gem 'pg', '>= 1.1', platform: :ruby
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     # gem 'racecar', '>= 0.3.5' # rdkafka currently fails to compile with Ruby 3.0
