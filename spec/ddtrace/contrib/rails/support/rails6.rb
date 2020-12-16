@@ -102,8 +102,11 @@ RSpec.shared_context 'Rails 6 base application' do
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
     reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
+
     # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
-    ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
+    if Rails::VERSION::MINOR < 1
+      ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
+    end
 
     reset_class_variable(ActiveSupport::Dependencies, :@@autoload_paths)
     reset_class_variable(ActiveSupport::Dependencies, :@@autoload_once_paths)
