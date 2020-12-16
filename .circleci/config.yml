@@ -127,7 +127,7 @@ orbs:
               keys:
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}
+#                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}
           - *step_init_bundle_checksum
           - restore_cache:
               keys:
