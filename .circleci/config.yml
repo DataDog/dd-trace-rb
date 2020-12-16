@@ -99,7 +99,7 @@ orbs:
             type: string
         docker:
           - <<: *container_base
-            image: cimg/base:2020.12
+            image: <<parameters.image>>
         steps:
           - checkout
           - save_cache:
