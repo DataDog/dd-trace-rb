@@ -1296,8 +1296,4 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'
   end
-
-  appraise 'contrib-old' do
-    gem 'faraday', '0.17'
-  end
 end

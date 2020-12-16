@@ -769,7 +769,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:suite'
 
       # Contrib specs with old gem versions
-      declare 'bundle exec appraisal contrib-old rake spec:faraday'
+      declare 'bundle exec appraisal contrib-old rake spec:faraday' if RUBY_VERSION < '3'
       # Rails minitests
       # We only test Rails 5+ because older versions require Bundler < 2.0
       declare 'bundle exec appraisal rails5-mysql2 rake test:rails'
