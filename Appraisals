@@ -1277,7 +1277,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'
-    # gem 'racecar', '>= 0.3.5' # rdkafka currently fails to compile with Ruby 3.0
+    # gem 'racecar', '>= 0.3.5' # rdkafka 0.8.1 currently fails to compile with Ruby 3.0
     gem 'rack'
     gem 'rack-test'
     gem 'rake', '>= 12.3'

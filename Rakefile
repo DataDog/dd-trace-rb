@@ -754,7 +754,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:presto'
       declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
-      declare 'bundle exec appraisal contrib rake spec:racecar'
+      # declare 'bundle exec appraisal contrib rake spec:racecar' # rdkafka 0.8.1 currently fails to compile with Ruby 3.0
       declare 'bundle exec appraisal contrib rake spec:rack'
       declare 'bundle exec appraisal contrib rake spec:rake'
       declare 'bundle exec appraisal contrib rake spec:redis'
