@@ -8,9 +8,9 @@ module Datadog
     module Sinatra
       # Middleware used for automatically tagging configured headers and handle request span
       class TracerMiddleware
-        def initialize(app, app_instance: nil)
+        def initialize(app, opt = {})
           @app = app
-          @app_instance = app_instance
+          @app_instance = opt[:app_instance]
         end
 
         # rubocop:disable Metrics/AbcSize
