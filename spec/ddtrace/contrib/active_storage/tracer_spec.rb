@@ -5,6 +5,7 @@ require 'ddtrace/contrib/rails/rails_helper'
 require 'ddtrace'
 require 'sidekiq/testing'
 
+# we use these classes to help mock active storage
 require 'active_storage/engine'
 require 'active_storage/attached'
 
@@ -48,9 +49,18 @@ RSpec.describe 'ActiveStorage instrumentation' do
     end)
 
     stub_const('Article', Class.new(ApplicationRecord) do
-      include ActiveStorage::Attached::Model
-      include ActiveStorage::Reflection::ActiveRecordExtensions
-      ActiveRecord::Reflection.singleton_class.prepend(ActiveStorage::Reflection::ReflectionExtension)
+      # active storage initializers have changed from 5 => 6 so we need to mimic both approaches
+      if Rails.version >= '6.0'
+        # https://github.com/rails/rails/blob/901f12212c488f6edfcf6f8ad3230bce6b3d5792/activestorage/lib/active_storage/engine.rb#L87
+        include ActiveStorage::Attached::Model
+        include ActiveStorage::Reflection::ActiveRecordExtensions
+        # https://github.com/rails/rails/blob/901f12212c488f6edfcf6f8ad3230bce6b3d5792/activestorage/lib/active_storage/engine.rb#L142
+        ActiveRecord::Reflection.singleton_class.prepend(ActiveStorage::Reflection::ReflectionExtension)
+      else
+        # https://github.com/rails/rails/blob/2a3f8a29e5d7d17a0448fa47fd756c8d11b175b1/activestorage/lib/active_storage/engine.rb#L71
+        extend ActiveStorage::Attached::Macros
+      end
+
       has_one_attached :image
     end)
 
