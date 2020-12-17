@@ -66,7 +66,6 @@ RSpec.shared_context 'Rails base application' do
         config.lograge.keep_original_rails_log = true
       end
 
-
       config.middleware.insert_after ActionDispatch::ShowExceptions, debug_mw
       middleware.each { |m| config.middleware.use m }
     end

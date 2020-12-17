@@ -49,7 +49,7 @@ module Datadog
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
             end
 
-            span.set_tag(Ext::TAG_KEY, as_key)            
+            span.set_tag(Ext::TAG_KEY, as_key)
           end
         end
       end

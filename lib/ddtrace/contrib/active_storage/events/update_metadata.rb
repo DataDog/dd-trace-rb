@@ -38,7 +38,7 @@ module Datadog
             as_key = payload[:key]
             as_service = payload[:service]
             as_content_type = payload[:content_type]
-            as_disposition   = payload[:disposition]
+            as_disposition = payload[:disposition]
 
             span.service = configuration[:service_name]
             span.resource = "#{resource_prefix} #{as_service}"

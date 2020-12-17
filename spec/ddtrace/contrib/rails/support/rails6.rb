@@ -36,11 +36,10 @@ RSpec.shared_context 'Rails 6 base application' do
       config.consider_all_requests_local = true
       config.hosts.clear # Allow requests for any hostname during tests
 
-      config.active_job.queue_adapter = :inline
-      config.active_storage.service = :local
-
-      puts config.active_storage
-
+      if ENV['USE_ACTIVE_STORAGE']
+        config.active_job.queue_adapter = :inline
+        config.active_storage.service = :local
+      end
 
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
       config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)
@@ -93,7 +92,6 @@ RSpec.shared_context 'Rails 6 base application' do
     ActiveSupport.on_load(:action_text_content) do
       example.stub_const('ApplicationController', Class.new(ActionController::Base))
     end
-
   end
 
   def append_controllers!
