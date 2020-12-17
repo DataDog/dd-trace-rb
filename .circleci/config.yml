@@ -267,7 +267,7 @@ orbs:
               at: /tmp/workspace
           - run:
               name: Install codecov
-              command: bundle exec gem install codecov
+              command: bundle add codecov
           - run:
               name: Generate coverage report artifact "coverage/index.html"
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
