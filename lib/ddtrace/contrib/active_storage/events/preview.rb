@@ -8,8 +8,7 @@ module Datadog
     module ActiveStorage
       module Events
         # Defines instrumentation for 'preview.active_storage' event.
-        #
-        # TODO: Define
+        # From: https://edgeguides.rubyonrails.org/active_support_instrumentation.html#active-storage
         module Preview
           include ActiveStorage::Event
 

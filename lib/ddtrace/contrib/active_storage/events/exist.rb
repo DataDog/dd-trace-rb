@@ -8,8 +8,7 @@ module Datadog
     module ActiveStorage
       module Events
         # Defines instrumentation for 'service_exist.active_storage' event.
-        #
-        # TODO: Define
+        # From: https://edgeguides.rubyonrails.org/active_support_instrumentation.html#active-storage
         module Exist
           include ActiveStorage::Event
 
