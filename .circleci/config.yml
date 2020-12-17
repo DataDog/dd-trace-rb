@@ -108,7 +108,6 @@ orbs:
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
