@@ -807,6 +807,7 @@ namespace :coverage do
   # Generates one global report for all tracer tests
   task :report do
     require 'simplecov'
+    require 'codecov'
 
     resultset_files = Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/.resultset.json"] +
                       Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/**/.resultset.json"]
@@ -814,6 +815,7 @@ namespace :coverage do
     SimpleCov.collate resultset_files do
       coverage_dir "#{ENV.fetch('COVERAGE_DIR', 'coverage')}/report"
       formatter SimpleCov::Formatter::HTMLFormatter
+      formatter SimpleCov::Formatter::Codecov
     end
   end
 

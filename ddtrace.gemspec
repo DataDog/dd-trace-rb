@@ -72,5 +72,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'pry-nav', '~> 0.3.0'
   spec.add_development_dependency 'pry-stack_explorer', '~> 0.4.9' if RUBY_PLATFORM != 'java'
   spec.add_development_dependency 'simplecov', '~> 0.17'
+  spec.add_development_dependency 'codecov', '~> 0.18'
   spec.add_development_dependency 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 end
