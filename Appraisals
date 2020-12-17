@@ -838,9 +838,9 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'http'
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '< 1', platform: :ruby
-    gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+    gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
     gem 'pg', platform: :ruby
-    gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+    gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
