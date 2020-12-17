@@ -336,15 +336,6 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge'
     end
 
-    appraise 'rails5-mysql2-sidekiq' do
-      gem 'rails', '~> 5.2.3'
-      gem 'mysql2', '< 1', platform: :ruby
-      gem 'sprockets', '< 4'
-      gem 'lograge'
-      gem 'sidekiq'
-      gem 'activejob'
-    end
-
     appraise 'rails5-postgres' do
       gem 'rails', '5.2.3'
       gem 'pg', '< 1.0', platform: :ruby
@@ -526,15 +517,6 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge'
     end
 
-    appraise 'rails5-mysql2-sidekiq' do
-      gem 'rails', '~> 5.2.1'
-      gem 'mysql2', '< 1', platform: :ruby
-      gem 'sprockets', '< 4'
-      gem 'lograge'
-      gem 'sidekiq'
-      gem 'activejob'
-    end
-
     appraise 'rails5-postgres' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
@@ -636,15 +618,6 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge'
-    end
-
-    appraise 'rails5-mysql2-sidekiq' do
-      gem 'rails', '~> 5.2.1'
-      gem 'mysql2', '< 1', platform: :ruby
-      gem 'sprockets', '< 4'
-      gem 'lograge'
-      gem 'sidekiq'
-      gem 'activejob'
     end
 
     appraise 'rails5-postgres' do
@@ -751,7 +724,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'lograge'
   end
 
-  appraise 'rails5-mysql2-siidekq' do
+  appraise 'rails5-mysql2-sidekq' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', platform: :jruby
