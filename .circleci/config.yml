@@ -91,18 +91,6 @@ filters_only_release_tags: &filters_only_release_tags
 orbs:
   orb:
     jobs:
-      checkout:
-        <<: *job_defaults
-        docker:
-          - image: alpine/git:v2.26.2 # Minimal image with git available
-            user: root # We currently require root to write to `/app`
-        resource_class: small
-        steps:
-          - checkout
-          - save_cache:
-              key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-{{ .Environment.CIRCLE_SHA1 }}'
-              paths:
-                - /app
       build:
         <<: *job_defaults
         parameters:
@@ -116,6 +104,7 @@ orbs:
           - <<: *container_base
             image: <<parameters.image>>
         steps:
+          - checkout
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
@@ -406,9 +395,6 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - orb/checkout:
-          <<: *filters_all_branches_and_tags
-          name: checkout
       - orb/lint:
           <<: *config-2_6
           name: lint
@@ -439,8 +425,6 @@ workflows:
       - orb/build:
           <<: *config-2_0
           name: build-2.0
-          requires:
-            - checkout
       - orb/test:
           <<: *config-2_0
           name: test-2.0
@@ -449,8 +433,6 @@ workflows:
       - orb/build:
           <<: *config-2_1
           name: build-2.1
-          requires:
-            - checkout
       - orb/test:
           <<: *config-2_1
           name: test-2.1
@@ -459,8 +441,6 @@ workflows:
       - orb/build:
           <<: *config-2_2
           name: build-2.2
-          requires:
-            - checkout
       - orb/test:
           <<: *config-2_2
           name: test-2.2
@@ -469,8 +449,6 @@ workflows:
       - orb/build:
           <<: *config-2_3
           name: build-2.3
-          requires:
-            - checkout
       - orb/test:
           <<: *config-2_3
           name: test-2.3
@@ -484,8 +462,6 @@ workflows:
       - orb/build:
           <<: *config-2_4
           name: build-2.4
-          requires:
-            - checkout
       - orb/test:
           <<: *config-2_4
           name: test-2.4
@@ -494,8 +470,6 @@ workflows:
       - orb/build:
           <<: *config-2_5
           name: build-2.5
-          requires:
-            - checkout
       - orb/test:
           <<: *config-2_5
           name: test-2.5
@@ -504,8 +478,6 @@ workflows:
       - orb/build:
           <<: *config-2_6
           name: build-2.6
-          requires:
-            - checkout
       - orb/test:
           <<: *config-2_6
           name: test-2.6
@@ -514,8 +486,6 @@ workflows:
       - orb/build:
           <<: *config-2_7
           name: build-2.7
-          requires:
-            - checkout
       - orb/test:
           <<: *config-2_7
           name: test-2.7
@@ -525,8 +495,6 @@ workflows:
       - orb/build:
           <<: *config-jruby-9_2
           name: build-jruby-9.2
-          requires:
-            - checkout
       - orb/test:
           <<: *config-jruby-9_2
           name: test-jruby-9.2
