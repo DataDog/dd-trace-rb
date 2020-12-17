@@ -39,6 +39,13 @@ RSpec.shared_context 'Rails 6 base application' do
       if ENV['USE_ACTIVE_STORAGE']
         config.active_job.queue_adapter = :inline
         config.active_storage.service = :local
+
+        config.active_storage.service_configurations ||= {
+          local: {
+            service: 'Disk',
+            root: '/tmp/dd-trace-rb/storage'
+          }
+        }
       end
 
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization

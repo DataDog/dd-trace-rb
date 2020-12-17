@@ -49,6 +49,9 @@ module Datadog
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
             end
 
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
             span.set_tag(Ext::TAG_SERVICE, as_service)
             span.set_tag(Ext::TAG_KEY, as_key)
             span.set_tag(Ext::TAG_CONTENT_TYPE, as_content_type)

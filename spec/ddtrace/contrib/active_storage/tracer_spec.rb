@@ -47,18 +47,18 @@ RSpec.describe 'ActiveStorage instrumentation' do
       self.abstract_class = true
     end)
 
-    class Article < ApplicationRecord
+    stub_const('Article', Class.new(ApplicationRecord) do
       include ActiveStorage::Attached::Model
       include ActiveStorage::Reflection::ActiveRecordExtensions
       ActiveRecord::Reflection.singleton_class.prepend(ActiveStorage::Reflection::ReflectionExtension)
       has_one_attached :image
-    end
+    end)
 
     # This is needed to ensure tests write to disk and not make http requests
     Rails.configuration.active_storage.service_configurations = {
       local: {
         service: 'Disk',
-        root: '/dev/null'
+        root: '/tmp/dd-trace-rb/storage'
       }
     }
 
@@ -109,6 +109,14 @@ RSpec.describe 'ActiveStorage instrumentation' do
 
   before(:each) do
     # Prevent extra spans during tests
+    # This is needed to ensure tests write to disk and not make http requests
+    # Rails.configuration.active_storage.service_configurations = {
+    #   local: {
+    #     service: 'Disk',
+    #     root: '/tmp/dd-trace-rb/storage'
+    #   }
+    # }
+
     Datadog.configure do |c|
       c.use :active_storage, configuration_options
     end
@@ -117,9 +125,9 @@ RSpec.describe 'ActiveStorage instrumentation' do
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
     ClimateControl.modify('USE_ACTIVE_STORAGE' => 'true') do
-      Datadog.registry[:active_record].reset_configuration!
+      Datadog.registry[:active_storage].reset_configuration!
       example.run
-      Datadog.registry[:active_record].reset_configuration!
+      Datadog.registry[:active_storage].reset_configuration!
     end
   end
 
@@ -159,14 +167,13 @@ RSpec.describe 'ActiveStorage instrumentation' do
     end
 
     it_behaves_like 'analytics for integration' do
-      let(:analytics_enabled_var) { Datadog::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Contrib::ActiveStorage::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Contrib::ActiveStorage::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-    it_behaves_like 'measured span for integration', false
+    it_behaves_like 'measured span for integration'
 
-    it 'calls the instrumentation when is used standalone' do
-      # A.count
+    it 'calls the instrumentation when used standalone' do
       expect(span.service).to eq('active_storage')
       expect(span.name).to eq('active_storage.action')
       expect(span.span_type).to eq('http')

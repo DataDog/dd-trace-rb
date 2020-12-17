@@ -16,7 +16,6 @@ module Datadog
         end
 
         def patch
-          puts 'oh?'
           Events.subscribe!
         end
       end
