@@ -1201,22 +1201,22 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
   # end
 
   appraise 'rails6-mysql2' do
-    gem 'rails', '~> 6.0.0'
-    gem 'mysql2', '< 0.6', platform: :ruby
+    gem 'rails', '~> 6.1.0'
+    gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'sprockets', '< 4'
     gem 'lograge'
   end
 
   appraise 'rails6-postgres' do
-    gem 'rails', '~> 6.0.0'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
     gem 'sprockets', '< 4'
     gem 'lograge'
   end
 
   appraise 'rails6-postgres-redis' do
-    gem 'rails', '~> 6.0.0'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
     gem 'redis-rails'
     gem 'redis'
     gem 'sprockets', '< 4'
@@ -1224,8 +1224,8 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
   end
 
   appraise 'rails6-postgres-redis-activesupport' do
-    gem 'rails', '~> 6.0.0'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
     gem 'redis-rails'
     gem 'redis'
     gem 'sprockets', '< 4'
@@ -1233,8 +1233,8 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
   end
 
   appraise 'rails6-postgres-sidekiq' do
-    gem 'rails', '~> 6.0.0'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
     gem 'sidekiq'
     gem 'activejob'
     gem 'sprockets', '< 4'
