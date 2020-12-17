@@ -619,11 +619,11 @@ task :ci do
     declare 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
     # Rails specs
     declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
-    declare 'bundle exec appraisal rails5-mysql2 rake spec:active_storage'
+    declare 'bundle exec appraisal rails5-mysql2-sidekiq rake spec:active_storage'
     declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails5-postgres rake spec:rails'
     declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
-    declare 'bundle exec appraisal rails6-mysql2 rake spec:active_storage'
+    declare 'bundle exec appraisal rails6-mysql2-sidekiq rake spec:active_storage'
     declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails6-postgres rake spec:rails'
 
@@ -705,11 +705,11 @@ task :ci do
       declare 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
       # Rails specs
       declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
-      declare 'bundle exec appraisal rails5-mysql2 rake spec:active_storage'
+      declare 'bundle exec appraisal rails5-mysql2-sidekiq rake spec:active_storage'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
-      declare 'bundle exec appraisal rails6-mysql2 rake spec:active_storage'
+      declare 'bundle exec appraisal rails6-mysql2-sidekiq rake spec:active_storage'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
 
@@ -793,7 +793,7 @@ task :ci do
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
-      declare 'bundle exec appraisal rails6-mysql2 rake spec:active_storage'
+      declare 'bundle exec appraisal rails6-mysql2-sidekiq rake spec:active_storage'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
 
