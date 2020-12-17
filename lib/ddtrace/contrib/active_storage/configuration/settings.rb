@@ -3,7 +3,7 @@ require 'ddtrace/contrib/active_storage/ext'
 
 module Datadog
   module Contrib
-    module ActiveStorge
+    module ActiveStorage
       module Configuration
         # Custom settings for the ActiveStorge integration
         class Settings < Contrib::Configuration::Settings

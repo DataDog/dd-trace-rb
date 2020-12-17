@@ -1056,6 +1056,8 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION)
       gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'sidekiq'
+      gem 'activejob'      
     end
 
     appraise 'rails6-postgres' do

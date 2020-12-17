@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/active_storage/events'
+require 'ddtrace/contrib/active_storage/ext'
 
 module Datadog
   module Contrib
@@ -15,6 +16,7 @@ module Datadog
         end
 
         def patch
+          puts 'oh?'
           Events.subscribe!
         end
       end

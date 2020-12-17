@@ -5,7 +5,7 @@ require 'ddtrace/contrib/active_storage/patcher'
 module Datadog
   module Contrib
     module ActiveStorage
-      # Description of ActivveStorage integration
+      # Description of ActiveStorage integration
       class Integration
         include Contrib::Integration
 
@@ -18,7 +18,7 @@ module Datadog
         end
 
         def self.loaded?
-          !defined?(::ActionCable).nil?
+          !defined?(::ActiveStorage).nil?
         end
 
         def self.compatible?

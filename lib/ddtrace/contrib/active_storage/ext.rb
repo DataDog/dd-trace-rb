@@ -1,8 +1,9 @@
 module Datadog
   module Contrib
-    module ActionCable
-      # ActionCable integration constants
+    module ActiveStorage
+      # ActiveStorage integration constants
       module Ext
+        puts 'ok'
         APP = 'active_storage'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTIVE_STORAGE_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_STORAGE_ANALYTICS_ENABLED'.freeze
