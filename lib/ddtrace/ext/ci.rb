@@ -63,24 +63,32 @@ module Datadog
 
       def extract_appveyor(env)
         url = "https://ci.appveyor.com/project/#{env['APPVEYOR_REPO_NAME']}/builds/#{env['APPVEYOR_BUILD_ID']}"
+
+        if !env['APPVEYOR_REPO_PROVIDER'].nil? && env['APPVEYOR_REPO_PROVIDER'] == "github"
+          repository = "https://github.com/#{env['APPVEYOR_REPO_NAME']}.git"
+          commit = env['APPVEYOR_REPO_COMMIT']
+          branch = (env['APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH'] || env['APPVEYOR_REPO_BRANCH'])
+          tag = env['APPVEYOR_REPO_TAG_NAME']
+        end
+
         {
           TAG_PROVIDER_NAME => 'appveyor',
-          Git::TAG_REPOSITORY_URL =>  "https://github.com/#{env['APPVEYOR_REPO_NAME']}.git",
-          Git::TAG_COMMIT_SHA => env['APPVEYOR_REPO_COMMIT'],
+          Git::TAG_REPOSITORY_URL =>  repository,
+          Git::TAG_COMMIT_SHA => commit,
           TAG_WORKSPACE_PATH => env['APPVEYOR_BUILD_FOLDER'],
           TAG_PIPELINE_ID => env['APPVEYOR_BUILD_ID'],
           TAG_PIPELINE_NAME => env['APPVEYOR_REPO_NAME'],
           TAG_PIPELINE_NUMBER => env['APPVEYOR_BUILD_NUMBER'],
           TAG_PIPELINE_URL => url,
           TAG_JOB_URL => url,
-          Git::TAG_BRANCH => (env['APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH'] || env['APPVEYOR_REPO_BRANCH']),
-          Git::TAG_TAG => env['APPVEYOR_REPO_TAG_NAME']
+          Git::TAG_BRANCH => branch,
+          Git::TAG_TAG => tag
         }
       end
 
       def extract_azure_pipelines(env)
-        if env['SYSTEM_TEAMFOUNDATIONSERVERURI'] && env['SYSTEM_TEAMPROJECT'] && env['BUILD_BUILDID']
-          base_url = "#{env['SYSTEM_TEAMFOUNDATIONSERVERURI']}#{env['SYSTEM_TEAMPROJECT']}" \
+        if env['SYSTEM_TEAMFOUNDATIONSERVERURI'] && env['SYSTEM_TEAMPROJECTID'] && env['BUILD_BUILDID']
+          base_url = "#{env['SYSTEM_TEAMFOUNDATIONSERVERURI']}#{env['SYSTEM_TEAMPROJECTID']}" \
             "/_build/results?buildId=#{env['BUILD_BUILDID']}"
           pipeline_url = base_url + '&_a=summary'
           job_url = base_url + "&view=logs&j=#{env['SYSTEM_JOBID']}&t=#{env['SYSTEM_TASKINSTANCEID']}"
