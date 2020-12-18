@@ -1162,6 +1162,9 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
   #
   # TODO: Pending ddtrace Rails 6.1 support
   #
+  # Since https://github.com/rails/rails/commit/3f27aa8cdf8 was first released in Rails 6.1,
+  # any version of Rails older than 6.1 will fail in Ruby 3.0.
+  #
   # appraise 'rails6-mysql2' do
   #   gem 'rails', '~> 6.1'
   #   gem 'mysql2', '>= 0.5.3', platform: :ruby
@@ -1239,7 +1242,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'
-    # gem 'racecar', '>= 0.3.5' # rdkafka 0.8.1 currently fails to compile with Ruby 3.0
+    # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
     gem 'rack'
     gem 'rack-test'
     gem 'rake', '>= 12.3'

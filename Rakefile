@@ -837,7 +837,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:presto'
       declare 'bundle exec appraisal contrib rake spec:qless'
       declare 'bundle exec appraisal contrib rake spec:que'
-      # declare 'bundle exec appraisal contrib rake spec:racecar' # rdkafka 0.8.1 currently fails to compile with Ruby 3.0
+      # declare 'bundle exec appraisal contrib rake spec:racecar' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
       declare 'bundle exec appraisal contrib rake spec:rack'
       declare 'bundle exec appraisal contrib rake spec:rake'
       declare 'bundle exec appraisal contrib rake spec:redis'
@@ -855,6 +855,9 @@ task :ci do
       # Rails minitests
       #
       # TODO: Pending ddtrace Rails 6.1 support
+      #
+      # Since https://github.com/rails/rails/commit/3f27aa8cdf8 was first released in Rails 6.1,
+      # any version of Rails older than 6.1 will fail in Ruby 3.0.
       #
       # declare 'bundle exec appraisal rails6-mysql2 rake test:rails'
       # declare 'bundle exec appraisal rails6-postgres rake test:rails'
