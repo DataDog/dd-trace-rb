@@ -461,27 +461,17 @@ workflows:
           name: test-2.7
           requires:
             - build-2.7
-      - orb/checkout:
-          <<: *config-3_0
-          name: checkout-3.0
       - orb/build:
           <<: *config-3_0
           name: build-3.0
-          requires:
-            - checkout-3.0
       - orb/test:
           <<: *config-3_0
           name: test-3.0
           requires:
             - build-3.0
-      - orb/checkout:
-          <<: *config-3_0-jit
-          name: checkout-3.0-jit
       - orb/build:
           <<: *config-3_0-jit
           name: build-3.0-jit
-          requires:
-            - checkout-3.0-jit
       - orb/test:
           <<: *config-3_0-jit
           name: test-3.0-jit
