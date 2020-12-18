@@ -62,7 +62,7 @@ RSpec.shared_context 'Rails 6 base application' do
         c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
       end
 
-      Rails.application.config.active_job.queue_adapter = :sidekiq
+      Rails.application.config.active_job.queue_adapter = :sidekiq if ENV['USE_SIDEKIQ']
 
       before_test_init.call
       initialize!
