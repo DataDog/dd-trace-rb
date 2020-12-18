@@ -2,6 +2,9 @@ version: 2.1
 
 # Common variables, containers, jobs and steps.
 job_defaults: &job_defaults
+  # TODO: We should move away from using a directory
+  # TODO: that requires root permission to be created.
+  # TODO: Changing this requires rebuilding all docker images.
   working_directory: /app
   shell: /bin/bash --login
 
@@ -113,22 +116,13 @@ filters_only_release_tags: &filters_only_release_tags
 orbs:
   orb:
     jobs:
-      checkout:
-        <<: *test_job_default
-        resource_class: small # We are only performing a git-checkout here
-        steps:
-          - checkout
-          - save_cache:
-              key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
-              paths:
-                - /app
       build:
         <<: *test_job_default
         steps:
+          - checkout
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
@@ -224,6 +218,9 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
           - attach_workspace:
               at: /tmp/workspace
+          - run:
+              name: Install codecov
+              command: bundle add codecov
           - run:
               name: Generate coverage report artifact "coverage/index.html"
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
@@ -395,53 +392,33 @@ workflows:
             branches:
               only: /bump_to_version_.*/
       # MRI
-      - orb/checkout:
-          <<: *config-2_0
-          name: checkout-2.0
       - orb/build:
           <<: *config-2_0
           name: build-2.0
-          requires:
-            - checkout-2.0
       - orb/test:
           <<: *config-2_0
           name: test-2.0
           requires:
             - build-2.0
-      - orb/checkout:
-          <<: *config-2_1
-          name: checkout-2.1
       - orb/build:
           <<: *config-2_1
           name: build-2.1
-          requires:
-            - checkout-2.1
       - orb/test:
           <<: *config-2_1
           name: test-2.1
           requires:
             - build-2.1
-      - orb/checkout:
-          <<: *config-2_2
-          name: checkout-2.2
       - orb/build:
           <<: *config-2_2
           name: build-2.2
-          requires:
-            - checkout-2.2
       - orb/test:
           <<: *config-2_2
           name: test-2.2
           requires:
             - build-2.2
-      - orb/checkout:
-          <<: *config-2_3
-          name: checkout-2.3
       - orb/build:
           <<: *config-2_3
           name: build-2.3
-          requires:
-            - checkout-2.3
       - orb/test:
           <<: *config-2_3
           name: test-2.3
@@ -452,53 +429,33 @@ workflows:
           name: benchmark-2.3
           requires:
             - build-2.3
-      - orb/checkout:
-          <<: *config-2_4
-          name: checkout-2.4
       - orb/build:
           <<: *config-2_4
           name: build-2.4
-          requires:
-            - checkout-2.4
       - orb/test:
           <<: *config-2_4
           name: test-2.4
           requires:
             - build-2.4
-      - orb/checkout:
-          <<: *config-2_5
-          name: checkout-2.5
       - orb/build:
           <<: *config-2_5
           name: build-2.5
-          requires:
-            - checkout-2.5
       - orb/test:
           <<: *config-2_5
           name: test-2.5
           requires:
             - build-2.5
-      - orb/checkout:
-          <<: *config-2_6
-          name: checkout-2.6
       - orb/build:
           <<: *config-2_6
           name: build-2.6
-          requires:
-            - checkout-2.6
       - orb/test:
           <<: *config-2_6
           name: test-2.6
           requires:
             - build-2.6
-      - orb/checkout:
-          <<: *config-2_7
-          name: checkout-2.7
       - orb/build:
           <<: *config-2_7
           name: build-2.7
-          requires:
-            - checkout-2.7
       - orb/test:
           <<: *config-2_7
           name: test-2.7
@@ -531,14 +488,9 @@ workflows:
           requires:
             - build-3.0-jit
       # JRuby
-      - orb/checkout:
-          <<: *config-jruby-9_2
-          name: checkout-jruby-9.2
       - orb/build:
           <<: *config-jruby-9_2
           name: build-jruby-9.2
-          requires:
-            - checkout-jruby-9.2
       - orb/test:
           <<: *config-jruby-9_2
           name: test-jruby-9.2
