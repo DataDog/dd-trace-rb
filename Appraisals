@@ -1159,87 +1159,49 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
     end
   end
 elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
-  # appraise 'rails5-mysql2' do
-  #   gem 'rails', '~> 5.2.1'
-  #   gem 'mysql2', '< 0.5', platform: :ruby
+  #
+  # TODO: Pending ddtrace Rails 6.1 support
+  #
+  # appraise 'rails6-mysql2' do
+  #   gem 'rails', '~> 6.1'
+  #   gem 'mysql2', '>= 0.5.3', platform: :ruby
   #   gem 'sprockets', '< 4'
   #   gem 'lograge'
   # end
   #
-  # appraise 'rails5-postgres' do
-  #   gem 'rails', '~> 5.2.1'
-  #   gem 'pg', '< 1.0', platform: :ruby
+  # appraise 'rails6-postgres' do
+  #   gem 'rails', '~> 6.1'
+  #   gem 'pg', '>= 1.1', platform: :ruby
   #   gem 'sprockets', '< 4'
   #   gem 'lograge'
   # end
   #
-  # appraise 'rails5-postgres-redis' do
-  #   gem 'rails', '~> 5.2.1'
-  #   gem 'pg', '< 1.0', platform: :ruby
+  # appraise 'rails6-postgres-redis' do
+  #   gem 'rails', '~> 6.1'
+  #   gem 'pg', '>= 1.1', platform: :ruby
   #   gem 'redis-rails'
   #   gem 'redis'
   #   gem 'sprockets', '< 4'
   #   gem 'lograge'
   # end
   #
-  # appraise 'rails5-postgres-redis-activesupport' do
-  #   gem 'rails', '~> 5.2.1'
-  #   gem 'pg', '< 1.0', platform: :ruby
+  # appraise 'rails6-postgres-redis-activesupport' do
+  #   gem 'rails', '~> 6.1'
+  #   gem 'pg', '>= 1.1', platform: :ruby
   #   gem 'redis-rails'
   #   gem 'redis'
   #   gem 'sprockets', '< 4'
   #   gem 'lograge'
   # end
   #
-  # appraise 'rails5-postgres-sidekiq' do
-  #   gem 'rails', '~> 5.2.1'
-  #   gem 'pg', '< 1.0', platform: :ruby
+  # appraise 'rails6-postgres-sidekiq' do
+  #   gem 'rails', '~> 6.1'
+  #   gem 'pg', '>= 1.1', platform: :ruby
   #   gem 'sidekiq'
   #   gem 'activejob'
   #   gem 'sprockets', '< 4'
   #   gem 'lograge'
   # end
-
-  appraise 'rails6-mysql2' do
-    gem 'rails', '~> 6.0.3'
-    gem 'mysql2', '>= 0.5.3', platform: :ruby
-    gem 'sprockets', '< 4'
-    gem 'lograge'
-  end
-
-  appraise 'rails6-postgres' do
-    gem 'rails', '~> 6.0.3'
-    gem 'pg', '>= 1.1', platform: :ruby
-    gem 'sprockets', '< 4'
-    gem 'lograge'
-  end
-
-  appraise 'rails6-postgres-redis' do
-    gem 'rails', '~> 6.0.3'
-    gem 'pg', '>= 1.1', platform: :ruby
-    gem 'redis-rails'
-    gem 'redis'
-    gem 'sprockets', '< 4'
-    gem 'lograge'
-  end
-
-  appraise 'rails6-postgres-redis-activesupport' do
-    gem 'rails', '~> 6.0.3'
-    gem 'pg', '>= 1.1', platform: :ruby
-    gem 'redis-rails'
-    gem 'redis'
-    gem 'sprockets', '< 4'
-    gem 'lograge'
-  end
-
-  appraise 'rails6-postgres-sidekiq' do
-    gem 'rails', '~> 6.0.3'
-    gem 'pg', '>= 1.1', platform: :ruby
-    gem 'sidekiq'
-    gem 'activejob'
-    gem 'sprockets', '< 4'
-    gem 'lograge'
-  end
 
   appraise 'resque2-redis3' do
     gem 'redis', '< 4.0'
