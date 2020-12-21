@@ -785,12 +785,21 @@ task :ci do
       declare 'bundle exec appraisal rails6-postgres-redis-activesupport rake spec:railsredis'
       declare 'bundle exec appraisal rails6-postgres-sidekiq rake spec:railsactivejob'
       declare 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
+      declare 'bundle exec appraisal rails61-mysql2 rake test:rails'
+      declare 'bundle exec appraisal rails61-postgres rake test:rails'
+      declare 'bundle exec appraisal rails61-postgres-redis rake spec:railsredis'
+      declare 'bundle exec appraisal rails61-postgres-redis-activesupport rake spec:railsredis'
+      declare 'bundle exec appraisal rails61-postgres-sidekiq rake spec:railsactivejob'
+      declare 'bundle exec appraisal rails61-postgres rake spec:railsdisableenv'
       # Rails specs
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
+      declare 'bundle exec appraisal rails61-mysql2 rake spec:action_cable'
+      declare 'bundle exec appraisal rails61-mysql2 rake spec:rails'
+      declare 'bundle exec appraisal rails61-postgres rake spec:rails'
 
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
