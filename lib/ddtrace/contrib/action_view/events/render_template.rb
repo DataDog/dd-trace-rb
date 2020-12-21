@@ -24,6 +24,7 @@ module Datadog
           end
 
           def process(span, _event, _id, payload)
+            span.service = configuration[:service_name]
             span.span_type = Datadog::Ext::HTTP::TEMPLATE
 
             if (template_name = Utils.normalize_template_name(payload[:identifier]))

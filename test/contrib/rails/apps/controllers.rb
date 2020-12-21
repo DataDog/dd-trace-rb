@@ -16,16 +16,15 @@ class TracingController < ActionController::Base
     ActionView::FixtureResolver.new(
       'layouts/application.html.erb' => '<%= yield %>',
       'views/tracing/index.html.erb' => 'Hello from index.html.erb',
-      'views/tracing/partial.html.erb' => 'Hello from <%= render "views/tracing/body.html.erb" %>',
+      'views/tracing/partial.html.erb' => 'Hello from <%= render "views/tracing/body" %>',
       'views/tracing/full.html.erb' => '<% Article.all.each do |article| %><% end %>',
       'views/tracing/error.html.erb' => '<%= 1/0 %>',
       'views/tracing/missing_partial.html.erb' => '<%= render "ouch.html.erb" %>',
-      'views/tracing/sub_error.html.erb' => '<%= 1/0 %>',
       'views/tracing/soft_error.html.erb' => 'nothing',
       'views/tracing/not_found.html.erb' => 'nothing',
-      'views/tracing/error_partial.html.erb' => 'Hello from <%= render "views/tracing/inner_error.html.erb" %>',
-      'views/tracing/nested_partial.html.erb' => 'Server says (<%= render "views/tracing/outer_partial.html.erb" %>)',
-      'views/tracing/_outer_partial.html.erb' => 'Outer partial: (<%= render "views/tracing/inner_partial.html.erb" %>)',
+      'views/tracing/error_partial.html.erb' => 'Hello from <%= render "views/tracing/inner_error" %>',
+      'views/tracing/nested_partial.html.erb' => 'Server says (<%= render "views/tracing/outer_partial" %>)',
+      'views/tracing/_outer_partial.html.erb' => 'Outer partial: (<%= render "views/tracing/inner_partial" %>)',
       'views/tracing/_inner_partial.html.erb' => 'Inner partial',
       'views/tracing/_body.html.erb' => '_body.html.erb partial',
       'views/tracing/_inner_error.html.erb' => '<%= 1/0 %>'
@@ -33,19 +32,15 @@ class TracingController < ActionController::Base
   ]
 
   def index
-    render 'views/tracing/index.html.erb'
-  end
-
-  def index_with_rescue_from
-    raise ActionController::RenderError
+    render 'views/tracing/index'
   end
 
   def partial
-    render 'views/tracing/partial.html.erb'
+    render 'views/tracing/partial'
   end
 
   def nested_partial
-    render 'views/tracing/nested_partial.html.erb'
+    render 'views/tracing/nested_partial'
   end
 
   def error
@@ -60,18 +55,6 @@ class TracingController < ActionController::Base
     end
   end
 
-  def sub_error
-    a_nested_error_call
-  end
-
-  def a_nested_error_call
-    another_nested_error_call
-  end
-
-  def another_nested_error_call
-    error
-  end
-
   def not_found
     # Here we raise manually a 'Not Found' exception.
     # The conversion is by default done by Rack::Utils.status_code using
@@ -80,24 +63,24 @@ class TracingController < ActionController::Base
   end
 
   def error_template
-    render 'views/tracing/error.html.erb'
+    render 'views/tracing/error'
   end
 
   def missing_template
-    render 'views/tracing/ouch.not.here'
+    render 'views/tracing/ouch_not_here'
   end
 
   def missing_partial
-    render 'views/tracing/missing_partial.html.erb'
+    render 'views/tracing/missing_partial'
   end
 
   def error_partial
-    render 'views/tracing/error_partial.html.erb'
+    render 'views/tracing/error_partial'
   end
 
   def full
     @value = Rails.cache.write('empty-key', 50)
-    render 'views/tracing/full.html.erb'
+    render 'views/tracing/full'
   end
 
   def custom_resource
@@ -111,11 +94,5 @@ class TracingController < ActionController::Base
     tracer.active_span.set_tag('custom-tag', 'custom-tag-value')
 
     head :ok
-  end
-end
-
-class ErrorsController < ActionController::Base
-  def internal_server_error
-    head :internal_server_error
   end
 end

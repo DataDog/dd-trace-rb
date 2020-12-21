@@ -64,7 +64,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_request.get_tag('rails.route.action'), 'missing_template')
     assert_equal(span_request.get_tag('rails.route.controller'), 'TracingController')
     assert_equal(span_request.get_tag('error.type'), 'ActionView::MissingTemplate')
-    assert_includes(span_request.get_tag('error.msg'), 'Missing template views/tracing/ouch.not.here')
+    assert_includes(span_request.get_tag('error.msg'), 'Missing template views/tracing/ouch_not_here')
 
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_template.status, 1)
@@ -73,7 +73,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_nil(span_template.get_tag('rails.template_name'))
     assert_nil(span_template.get_tag('rails.layout'))
     assert_equal(span_template.get_tag('error.type'), 'ActionView::MissingTemplate')
-    assert_includes(span_template.get_tag('error.msg'), 'Missing template views/tracing/ouch.not.here')
+    assert_includes(span_template.get_tag('error.msg'), 'Missing template views/tracing/ouch_not_here')
   end
 
   test 'missing partial rendering should close the template Span' do
