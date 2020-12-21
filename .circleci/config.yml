@@ -9,9 +9,34 @@ job_defaults: &job_defaults
   shell: /bin/bash --login
 
 test_containers:
+  - &job_parameters
+    parameters:
+      ruby_version:
+        description: Ruby version
+        type: string
+      image:
+        description: Docker image location
+        type: string
+      jit:
+        description: Jit enabled?
+        type: boolean
+        default: false
+  - &container_base_environment
+    BUNDLE_GEMFILE: /app/Gemfile
+  - &container_parameters_environment
+    - *container_base_environment
+    - RUBY_OPT: <<# parameters.jit >>--jit<</ parameters.jit >>
+    - TEST_DATADOG_INTEGRATION: 1
+    - COVERAGE_BASE_DIR: coverage
   - &container_base
+    image: <<parameters.image>>
     environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
+      *container_parameters_environment
+  - &test_job_default
+    <<: *job_defaults
+    <<: *job_parameters
+    docker:
+      - *container_base
   - &container_postgres
     image: postgres:9.6
     environment:
@@ -92,17 +117,7 @@ orbs:
   orb:
     jobs:
       build:
-        <<: *job_defaults
-        parameters:
-          ruby_version:
-            description: Ruby version
-            type: string
-          image:
-            description: Docker image location
-            type: string
-        docker:
-          - <<: *container_base
-            image: <<parameters.image>>
+        <<: *test_job_default
         steps:
           - checkout
           - restore_cache:
@@ -133,21 +148,9 @@ orbs:
               paths:
                 - /usr/local/bundle
       test:
-        <<: *job_defaults
-        parameters:
-          ruby_version:
-            description: Ruby version
-            type: string
-          image:
-            description: Docker image location
-            type: string
+        <<: *test_job_default
         docker:
           - <<: *container_base
-            image: <<parameters.image>>
-            environment:
-              - BUNDLE_GEMFILE: /app/Gemfile
-              - TEST_DATADOG_INTEGRATION: 1
-              - COVERAGE_BASE_DIR: coverage
           - *container_postgres
           - *container_presto
           - *container_mysql
@@ -175,20 +178,9 @@ orbs:
               paths:
                 - coverage
       benchmark:
-        <<: *job_defaults
-        parameters:
-          ruby_version:
-            description: Ruby version
-            type: string
-          image:
-            description: Docker image location
-            type: string
+        <<: *test_job_default
         docker:
           - <<: *container_base
-            image: <<parameters.image>>
-            environment:
-              - BUNDLE_GEMFILE: /app/Gemfile
-              - TEST_DATADOG_INTEGRATION: 1
           - *container_postgres
           - *container_redis
           - *container_agent
@@ -206,19 +198,7 @@ orbs:
               name: Run Benchmark without ddtracer
               command: rm -f lib/ddtrace.rb && bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
       lint:
-        <<: *job_defaults
-        parameters:
-          ruby_version:
-            description: Ruby version
-            type: string
-          image:
-            description: Docker image location
-            type: string
-        docker:
-          - <<: *container_base
-            image: <<parameters.image>>
-            environment:
-              - BUNDLE_GEMFILE: /app/Gemfile
+        <<: *test_job_default
         steps:
           - restore_cache:
               keys:
@@ -228,19 +208,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
           - *step_rubocop
       coverage:
-        <<: *job_defaults
-        parameters:
-          ruby_version:
-            description: Ruby version
-            type: string
-          image:
-            description: Docker image location
-            type: string
-        docker:
-          - <<: *container_base
-            image: <<parameters.image>>
-            environment:
-              - BUNDLE_GEMFILE: /app/Gemfile
+        <<: *test_job_default
         steps:
           - restore_cache:
               keys:
@@ -263,19 +231,7 @@ orbs:
               path: /tmp/workspace/coverage/report/
               destination: coverage
       changelog:
-        <<: *job_defaults
-        parameters:
-          ruby_version:
-            description: Ruby version
-            type: string
-          image:
-            description: Docker image location
-            type: string
-        docker:
-          - <<: *container_base
-            image: <<parameters.image>>
-            environment:
-              - BUNDLE_GEMFILE: /app/Gemfile
+        <<: *test_job_default
         steps:
           - restore_cache:
               keys:
@@ -301,7 +257,8 @@ jobs:
   "deploy release":
     <<: *job_defaults
     docker:
-      - <<: *container_base
+      - environment:
+          *container_base_environment
         image: marcotc/docker-library:ddtrace_rb_2_5_6
     steps:
       - checkout
@@ -321,7 +278,8 @@ jobs:
   "deploy prerelease Gem":
     <<: *job_defaults
     docker:
-      - <<: *container_base
+      - environment:
+          *container_base_environment
         image: marcotc/docker-library:ddtrace_rb_2_5_6
     steps:
       - run:
@@ -387,6 +345,15 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: '2.7'
     image: marcotc/docker-library:ddtrace_rb_2_7_0
+  - &config-3_0
+    <<: *filters_all_branches_and_tags
+    ruby_version: '3.0'
+    image: marcotc/docker-library:ddtrace_rb_3.0.0-preview2
+  - &config-3_0-jit
+    <<: *filters_all_branches_and_tags
+    ruby_version: '3.0'
+    image: marcotc/docker-library:ddtrace_rb_3.0.0-preview2
+    jit: true
   # JRuby
   - &config-jruby-9_2
     <<: *filters_all_branches_and_tags
@@ -414,6 +381,7 @@ workflows:
             - test-2.5
             - test-2.6
             - test-2.7
+            - test-3.0
             - test-jruby-9.2
       - orb/changelog:
           <<: *config-2_7
@@ -493,6 +461,22 @@ workflows:
           name: test-2.7
           requires:
             - build-2.7
+      - orb/build:
+          <<: *config-3_0
+          name: build-3.0
+      - orb/test:
+          <<: *config-3_0
+          name: test-3.0
+          requires:
+            - build-3.0
+      - orb/build:
+          <<: *config-3_0-jit
+          name: build-3.0-jit
+      - orb/test:
+          <<: *config-3_0-jit
+          name: test-3.0-jit
+          requires:
+            - build-3.0-jit
       # JRuby
       - orb/build:
           <<: *config-jruby-9_2
@@ -515,6 +499,8 @@ workflows:
             - test-2.5
             - test-2.6
             - test-2.7
+            - test-3.0
+            - test-3.0-jit
             - test-jruby-9.2
       - "deploy release":
           <<: *filters_only_release_tags
@@ -528,4 +514,6 @@ workflows:
             - test-2.5
             - test-2.6
             - test-2.7
+            - test-3.0
+            - test-3.0-jit
             - test-jruby-9.2
