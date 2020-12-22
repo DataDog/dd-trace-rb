@@ -18,10 +18,25 @@ module SpanHelpers
         @tag_name = tag_name
         @actual = span.get_tag(tag)
 
+        if args.empty? && @actual
+          # This condition enables the default matcher:
+          # expect(foo).to have_error_tag
+          return true
+        end
+
+        values_match? expected, @actual
+      end
+
+      match_when_negated do |span|
+        expected = args.first
+
+        @tag_name = tag_name
+        @actual = span.get_tag(tag)
+
         if args.empty? && @actual.nil?
-          # This condition enables the negative matcher:
+          # This condition enables the default matcher:
           # expect(foo).to_not have_error_tag
-          return false
+          return true
         end
 
         values_match? expected, @actual
