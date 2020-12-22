@@ -808,6 +808,36 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'lograge'
   end
 
+  appraise 'rails61-mysql2' do
+    gem 'rails', '~> 6.1.0'
+    gem 'mysql2', '~> 0.5', platform: :ruby
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+  end
+
+  appraise 'rails61-postgres' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+  end
+
+  appraise 'rails61-postgres-redis' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'redis', '>= 4.2.5'
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+  end
+
+  appraise 'rails61-postgres-sidekiq' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'sidekiq', '>= 6.1.2'
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+  end
+
   appraise 'resque2-redis3' do
     gem 'redis', '< 4.0'
     gem 'resque', '>= 2.0'
@@ -950,6 +980,36 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activejob'
       gem 'sprockets', '< 4'
       gem 'lograge'
+    end
+
+    appraise 'rails61-mysql2' do
+      gem 'rails', '~> 6.1.0'
+      gem 'mysql2', '~> 0.5', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'lograge', '~> 0.11'
+    end
+
+    appraise 'rails61-postgres' do
+      gem 'rails', '~> 6.1.0'
+      gem 'pg', '>= 1.1', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'lograge', '~> 0.11'
+    end
+
+    appraise 'rails61-postgres-redis' do
+      gem 'rails', '~> 6.1.0'
+      gem 'pg', '>= 1.1', platform: :ruby
+      gem 'redis', '>= 4.2.5'
+      gem 'sprockets', '< 4'
+      gem 'lograge', '~> 0.11'
+    end
+
+    appraise 'rails61-postgres-sidekiq' do
+      gem 'rails', '~> 6.1.0'
+      gem 'pg', '>= 1.1', platform: :ruby
+      gem 'sidekiq', '>= 6.1.2'
+      gem 'sprockets', '< 4'
+      gem 'lograge', '~> 0.11'
     end
 
     appraise 'resque2-redis3' do
@@ -1189,52 +1249,35 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
     end
   end
 elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
-  #
-  # TODO: Pending ddtrace Rails 6.1 support
-  #
-  # Since https://github.com/rails/rails/commit/3f27aa8cdf8 was first released in Rails 6.1,
-  # any version of Rails older than 6.1 will fail in Ruby 3.0.
-  #
-  # appraise 'rails6-mysql2' do
-  #   gem 'rails', '~> 6.1'
-  #   gem 'mysql2', '>= 0.5.3', platform: :ruby
-  #   gem 'sprockets', '< 4'
-  #   gem 'lograge'
-  # end
-  #
-  # appraise 'rails6-postgres' do
-  #   gem 'rails', '~> 6.1'
-  #   gem 'pg', '>= 1.1', platform: :ruby
-  #   gem 'sprockets', '< 4'
-  #   gem 'lograge'
-  # end
-  #
-  # appraise 'rails6-postgres-redis' do
-  #   gem 'rails', '~> 6.1'
-  #   gem 'pg', '>= 1.1', platform: :ruby
-  #   gem 'redis-rails'
-  #   gem 'redis'
-  #   gem 'sprockets', '< 4'
-  #   gem 'lograge'
-  # end
-  #
-  # appraise 'rails6-postgres-redis-activesupport' do
-  #   gem 'rails', '~> 6.1'
-  #   gem 'pg', '>= 1.1', platform: :ruby
-  #   gem 'redis-rails'
-  #   gem 'redis'
-  #   gem 'sprockets', '< 4'
-  #   gem 'lograge'
-  # end
-  #
-  # appraise 'rails6-postgres-sidekiq' do
-  #   gem 'rails', '~> 6.1'
-  #   gem 'pg', '>= 1.1', platform: :ruby
-  #   gem 'sidekiq'
-  #   gem 'activejob'
-  #   gem 'sprockets', '< 4'
-  #   gem 'lograge'
-  # end
+  appraise 'rails61-mysql2' do
+    gem 'rails', '~> 6.1.0'
+    gem 'mysql2', '~> 0.5', platform: :ruby
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+  end
+
+  appraise 'rails61-postgres' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+  end
+
+  appraise 'rails61-postgres-redis' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'redis', '>= 4.2.5'
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+  end
+
+  appraise 'rails61-postgres-sidekiq' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'sidekiq', '>= 6.1.2'
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+  end
 
   appraise 'resque2-redis3' do
     gem 'redis', '< 4.0'
