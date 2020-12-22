@@ -788,7 +788,6 @@ task :ci do
       declare 'bundle exec appraisal rails61-mysql2 rake test:rails'
       declare 'bundle exec appraisal rails61-postgres rake test:rails'
       declare 'bundle exec appraisal rails61-postgres-redis rake spec:railsredis'
-      declare 'bundle exec appraisal rails61-postgres-redis-activesupport rake spec:railsredis'
       declare 'bundle exec appraisal rails61-postgres-sidekiq rake spec:railsactivejob'
       declare 'bundle exec appraisal rails61-postgres rake spec:railsdisableenv'
       # Rails specs

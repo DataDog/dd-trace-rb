@@ -1100,43 +1100,32 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'rails61-mysql2' do
       gem 'rails', '~> 6.1.0'
-      gem 'mysql2', '< 1', platform: :ruby
+      gem 'mysql2', '~> 0.5', platform: :ruby
       gem 'sprockets', '< 4'
-      gem 'lograge'
+      gem 'lograge', '~> 0.11'
     end
 
     appraise 'rails61-postgres' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'sprockets', '< 4'
-      gem 'lograge'
+      gem 'lograge', '~> 0.11'
     end
 
     appraise 'rails61-postgres-redis' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
-      gem 'redis-rails'
-      gem 'redis'
+      gem 'redis', '>= 4.2.5'
       gem 'sprockets', '< 4'
-      gem 'lograge'
-    end
-
-    appraise 'rails61-postgres-redis-activesupport' do
-      gem 'rails', '~> 6.1.0'
-      gem 'pg', '>= 1.1', platform: :ruby
-      gem 'redis-rails'
-      gem 'redis'
-      gem 'sprockets', '< 4'
-      gem 'lograge'
+      gem 'lograge', '~> 0.11'
     end
 
     appraise 'rails61-postgres-sidekiq' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
-      gem 'sidekiq'
-      gem 'activejob'
+      gem 'sidekiq', '>= 6.1.2'
       gem 'sprockets', '< 4'
-      gem 'lograge'
+      gem 'lograge', '~> 0.11'
     end
 
     appraise 'resque2-redis3' do
