@@ -28,6 +28,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
  - [Integration instrumentation](#integration-instrumentation)
      - [Action Cable](#action-cable)
      - [Action View](#action-view)
+     - [Action Mailer](#action-mailer)
      - [Active Model Serializers](#active-model-serializers)
      - [Action Pack](#action-pack)
      - [Active Record](#active-record)
@@ -334,6 +335,7 @@ For a list of available integrations, and their configuration options, please re
 | Name                     | Key                        | Versions Supported: MRI  | Versions Supported: JRuby | How to configure                    | Gem source                                                                     |
 | ------------------------ | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
 | Action Cable             | `action_cable`             | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
+| Action Mailer            | `action_mailer`            | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-mailer)*            | *[Link](https://github.com/rails/rails/tree/master/actionmailer)*              |
 | Action View              | `action_view`              | `>= 3.0`                 | `>= 3.0`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Action Pack              | `action_pack`              | `>= 3.0`                 | `>= 3.0`                  | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
@@ -341,7 +343,7 @@ For a list of available integrations, and their configuration options, please re
 | Active Support           | `active_support`           | `>= 3.0`                 | `>= 3.0`                  | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | `>= 0.9`                  | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
-| Cucumber                 | `cucumber`                 | `>= 3.0`                 | `>= 1.7.16`               | *[Link](#cucumber)*                | *[Link](https://github.com/cucumber/cucumber-ruby)*                            |
+| Cucumber                 | `cucumber`                 | `>= 3.0`                 | `>= 1.7.16`               | *[Link](#cucumber)*                 | *[Link](https://github.com/cucumber/cucumber-ruby)*                            |
 | Dalli                    | `dalli`                    | `>= 2.0`                 | `>= 2.0`                  | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
 | DelayedJob               | `delayed_job`              | `>= 4.1`                 | `>= 4.1`                  | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
 | Elasticsearch            | `elasticsearch`            | `>= 1.0`                 | `>= 1.0`                  | *[Link](#elasticsearch)*            | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
@@ -415,6 +417,26 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for rendering instrumentation. | `action_view` |
 | `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
+
+### Action Mailer
+
+The Action Mailer integration provides tracing for Rails 5 ActionMailer actions.
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'ddtrace'
+ Datadog.configure do |c|
+  c.use :action_mailer, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `action_mailer` instrumentation | `'action_mailer'` |
 
 ### Active Model Serializers
 
