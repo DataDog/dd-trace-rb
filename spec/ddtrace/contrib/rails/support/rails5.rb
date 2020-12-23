@@ -34,6 +34,18 @@ RSpec.shared_context 'Rails 5 base application' do
       config.eager_load = false
       config.consider_all_requests_local = true
 
+      if ENV['USE_ACTIVE_STORAGE']
+        config.active_job.queue_adapter = :inline
+        config.active_storage.service = :local
+
+        config.active_storage.service_configurations ||= {
+          local: {
+            service: 'Disk',
+            root: '/tmp/dd-trace-rb/storage'
+          }
+        }
+      end
+
       config.middleware.delete ActionDispatch::DebugExceptions
       instance_eval(&during_init)
 

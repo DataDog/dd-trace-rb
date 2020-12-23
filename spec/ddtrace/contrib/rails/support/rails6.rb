@@ -36,6 +36,18 @@ RSpec.shared_context 'Rails 6 base application' do
       config.consider_all_requests_local = true
       config.hosts.clear # Allow requests for any hostname during tests
 
+      if ENV['USE_ACTIVE_STORAGE']
+        config.active_job.queue_adapter = :inline
+        config.active_storage.service = :local
+
+        config.active_storage.service_configurations ||= {
+          local: {
+            service: 'Disk',
+            root: '/tmp/dd-trace-rb/storage'
+          }
+        }
+      end
+
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
       config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)
 
