@@ -19,12 +19,12 @@ module Datadog
             # to avoid any kind of issue.
             current_span = tracer.active_span
             return if current_span.try(:name) == Ext::SPAN_CACHE &&
-                      (
-                        payload[:action] == Ext::RESOURCE_CACHE_GET &&
-                        current_span.try(:resource) == Ext::RESOURCE_CACHE_GET ||
-                        payload[:action] == Ext::RESOURCE_CACHE_MGET &&
-                        current_span.try(:resource) == Ext::RESOURCE_CACHE_MGET
-                      )
+              (
+                payload[:action] == Ext::RESOURCE_CACHE_GET &&
+                  current_span.try(:resource) == Ext::RESOURCE_CACHE_GET ||
+                  payload[:action] == Ext::RESOURCE_CACHE_MGET &&
+                    current_span.try(:resource) == Ext::RESOURCE_CACHE_MGET
+              )
 
             tracing_context = payload.fetch(:tracing_context)
 
@@ -89,169 +89,200 @@ module Datadog
             Datadog.logger.debug(e.message)
           end
 
+          module SingleCache
+            attr_reader :cache_method
+
+            def define(method, &payload_provider)
+              @cache_method = method
+
+              define_method(method) do |*args, &block|
+                payload = payload_provider.(args)
+                payload.merge!(tracing_context: {})
+
+                begin
+                  # process and catch cache exceptions
+                  Instrumentation.start_trace_cache(payload)
+                  super(*args, &block)
+                rescue Exception => e
+                  payload[:exception] = [e.class.name, e.message]
+                  payload[:exception_object] = e
+                  raise e
+                end
+              ensure
+                Instrumentation.finish_trace_cache(payload)
+              end
+            end
+          end
+
+          module MultiCache
+            attr_reader :cache_method
+
+            def define(method, &payload_provider)
+              @cache_method = method
+
+              define_method(method) do |*args, &block|
+                payload = payload_provider.(args)
+                payload.merge!(tracing_context: {})
+
+                begin
+                  # process and catch cache exceptions
+                  Instrumentation.start_trace_cache(payload)
+                  super(*args, &block)
+                rescue Exception => e
+                  payload[:exception] = [e.class.name, e.message]
+                  payload[:exception_object] = e
+                  raise e
+                end
+              ensure
+                Instrumentation.finish_trace_cache_multi(payload)
+              end
+            end
+          end
+
           # Defines instrumentation for ActiveSupport cache reading
           module Read
-            def read(*args, &block)
-              payload = {
-                action: Ext::RESOURCE_CACHE_GET,
-                key: args[0],
-                tracing_context: {}
-              }
+            extend SingleCache
 
-              begin
-                # process and catch cache exceptions
-                Instrumentation.start_trace_cache(payload)
-                super
-              rescue Exception => e
-                payload[:exception] = [e.class.name, e.message]
-                payload[:exception_object] = e
-                raise e
-              end
-            ensure
-              Instrumentation.finish_trace_cache(payload)
+            define :read do |args|
+              {
+                action: Ext::RESOURCE_CACHE_GET,
+                key: args[0]
+              }
             end
           end
 
           # Defines instrumentation for ActiveSupport cache reading of multiple keys
           module ReadMulti
-            def read_multi(*keys, &block)
-              payload = {
-                action: Ext::RESOURCE_CACHE_MGET,
-                keys: keys,
-                tracing_context: {}
-              }
+            extend MultiCache
 
-              begin
-                # process and catch cache exceptions
-                Instrumentation.start_trace_cache(payload)
-                super
-              rescue Exception => e
-                payload[:exception] = [e.class.name, e.message]
-                payload[:exception_object] = e
-                raise e
-              end
-            ensure
-              Instrumentation.finish_trace_cache_multi(payload)
+            define :read_multi do |args|
+              {
+                action: Ext::RESOURCE_CACHE_MGET,
+                key: args
+              }
             end
           end
 
           # Defines instrumentation for ActiveSupport cache fetching
           module Fetch
-            def fetch(*args, &block)
-              payload = {
-                action: Ext::RESOURCE_CACHE_GET,
-                key: args[0],
-                tracing_context: {}
-              }
+            extend SingleCache
 
-              begin
-                # process and catch cache exceptions
-                Instrumentation.start_trace_cache(payload)
-                super
-              rescue Exception => e
-                payload[:exception] = [e.class.name, e.message]
-                payload[:exception_object] = e
-                raise e
-              end
-            ensure
-              Instrumentation.finish_trace_cache(payload)
+            define :fetch do |args|
+              {
+                action: Ext::RESOURCE_CACHE_GET,
+                key: args[0]
+              }
             end
           end
 
           # Defines instrumentation for ActiveSupport cache fetching of multiple keys
           module FetchMulti
-            def fetch_multi(*args, &block)
-              # extract options hash
-              keys = args[-1].instance_of?(Hash) ? args[0..-2] : args
-              payload = {
-                action: Ext::RESOURCE_CACHE_MGET,
-                keys: keys,
-                tracing_context: {}
-              }
+            extend MultiCache
 
-              begin
-                # process and catch cache exceptions
-                Instrumentation.start_trace_cache(payload)
-                super
-              rescue Exception => e
-                payload[:exception] = [e.class.name, e.message]
-                payload[:exception_object] = e
-                raise e
-              end
-            ensure
-              Instrumentation.finish_trace_cache_multi(payload)
+            define :fetch_multi do |args|
+              keys = args[-1].instance_of?(Hash) ? args[0..-2] : args
+
+              {
+                action: Ext::RESOURCE_CACHE_MGET,
+                key: keys
+              }
             end
           end
 
           # Defines instrumentation for ActiveSupport cache writing
           module Write
-            def write(*args, &block)
-              payload = {
-                action: Ext::RESOURCE_CACHE_SET,
-                key: args[0],
-                tracing_context: {}
-              }
+            extend SingleCache
 
-              begin
-                # process and catch cache exceptions
-                Instrumentation.start_trace_cache(payload)
-                super
-              rescue Exception => e
-                payload[:exception] = [e.class.name, e.message]
-                payload[:exception_object] = e
-                raise e
-              end
-            ensure
-              Instrumentation.finish_trace_cache(payload)
+            define :write do |args|
+              {
+                action: Ext::RESOURCE_CACHE_SET,
+                key: args[0]
+              }
             end
           end
 
           # Defines instrumentation for ActiveSupport cache writing of multiple keys
           module WriteMulti
-            def write_multi(hash, options = nil)
-              payload = {
-                action: Ext::RESOURCE_CACHE_MSET,
-                keys: hash.keys,
-                tracing_context: {}
-              }
+            extend MultiCache
 
-              begin
-                # process and catch cache exceptions
-                Instrumentation.start_trace_cache(payload)
-                super
-              rescue Exception => e
-                payload[:exception] = [e.class.name, e.message]
-                payload[:exception_object] = e
-                raise e
-              end
-            ensure
-              Instrumentation.finish_trace_cache_multi(payload)
+            define :write_multi do |args|
+              {
+                action: Ext::RESOURCE_CACHE_MDELETE,
+                key: args[keys]
+              }
             end
           end
 
           # Defines instrumentation for ActiveSupport cache deleting
           module Delete
-            def delete(*args, &block)
-              payload = {
-                action: Ext::RESOURCE_CACHE_DELETE,
-                key: args[0],
-                tracing_context: {}
-              }
+            extend SingleCache
 
-              begin
-                # process and catch cache exceptions
-                Instrumentation.start_trace_cache(payload)
-                super
-              rescue Exception => e
-                payload[:exception] = [e.class.name, e.message]
-                payload[:exception_object] = e
-                raise e
-              end
-            ensure
-              Instrumentation.finish_trace_cache(payload)
+            define :delete do |args|
+              {
+                action: Ext::RESOURCE_CACHE_DELETE,
+                key: args[0]
+              }
+            end
+          end
+
+          # Defines instrumentation for ActiveSupport cache deleting of multiple keys
+          module DeleteMulti
+            extend MultiCache
+
+            define :delete_multi do |args|
+              {
+                action: Ext::RESOURCE_CACHE_MDELETE,
+                key: args
+              }
+            end
+          end
+
+          # Defines instrumentation for ActiveSupport cache decrementing
+          module Decrement
+            extend SingleCache
+
+            define :decrement do |args|
+              {
+                action: Ext::RESOURCE_CACHE_DECREMENT,
+                key: args[0]
+              }
             end
           end
         end
+
+        # :decrement
+        # :increment
+        #
+        # # Defines instrumentation for ActiveSupport cache cleanup
+        # module Cleanup
+        #   def cleanup(*args, &block)
+        #     payload = {
+        #       action: Ext::RESOURCE_CACHE_CLEANUP,
+        #       options: args[0],
+        #       tracing_context: {}
+        #     }
+        #
+        #     begin
+        #       # process and catch cache exceptions
+        #       Instrumentation.start_trace_cache(payload)
+        #       super
+        #     rescue Exception => e
+        #       payload[:exception] = [e.class.name, e.message]
+        #       payload[:exception_object] = e
+        #       raise e
+        #     end
+        #   ensure
+        #     Instrumentation.finish_trace_cache(payload)
+        #   end
+        # end
+        #
+        # # clear TODO: same as above
+        #
+        # :decrement
+        # :increment
+        # :delete_matched
+        # :exist?
+
       end
     end
   end

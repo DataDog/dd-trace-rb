@@ -266,6 +266,42 @@ RSpec.describe 'Rails cache' do
     end
   end
 
+  context '#decrement' do
+    subject(:decrement) { cache.decrement(key) }
+
+    it 'abc' do
+      # decrement
+
+      class X < ::ActiveSupport::Cache::Store
+        prepend ::ActiveSupport::Cache::Strategy::LocalCache
+      end
+
+      X.new.decrement('key')
+
+    end
+
+    it_behaves_like 'measured span for integration', false do
+      before { decrement }
+    end
+
+    context 'with exception' do
+      subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
+
+      it do
+        expect { decrement }.to raise_error(StandardError)
+
+        expect(span.name).to eq('rails.cache')
+        expect(span.span_type).to eq('cache')
+        expect(span.resource).to eq('GET')
+        expect(span.service).to eq('rails-cache')
+        expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
+        expect(span.get_tag('rails.cache.key')).to eq('exception')
+        expect(span.get_tag('error.type')).to eq('RuntimeError')
+        expect(span.get_tag('error.msg')).to eq('oops')
+      end
+    end
+  end
+
   context 'with very large cache key' do
     it 'truncates key too large' do
       max_key_size = Datadog::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
