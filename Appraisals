@@ -1239,7 +1239,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'http'
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '>= 0.5.3', platform: :ruby
-    gem 'pg', '>= 1.1', '<= 1.2.0', platform: :ruby # rb_cData has been made internal https://discuss.circleci.com/t/38649
+    gem 'pg', '>= 1.1', platform: :ruby
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
