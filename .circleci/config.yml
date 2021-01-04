@@ -348,11 +348,11 @@ job_configuration:
   - &config-3_0
     <<: *filters_all_branches_and_tags
     ruby_version: '3.0'
-    image: marcotc/docker-library:ddtrace_rb_3.0.0-preview2
+    image: marcotc/docker-library:ddtrace_rb_3.0.0
   - &config-3_0-jit
     <<: *filters_all_branches_and_tags
     ruby_version: '3.0'
-    image: marcotc/docker-library:ddtrace_rb_3.0.0-preview2
+    image: marcotc/docker-library:ddtrace_rb_3.0.0
     jit: true
   # JRuby
   - &config-jruby-9_2
