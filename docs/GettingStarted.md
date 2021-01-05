@@ -126,11 +126,20 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 The following steps will help you quickly start tracing your Ruby application.
 
-### Setup the Datadog Agent
+### Configure the Datadog Agent for APM
 
 Before downloading tracing on your application, install the Datadog Agent. The Ruby APM tracer sends trace data through the Datadog Agent.
 
-[Install and configure the Datadog Agent](https://docs.datadoghq.com/tracing/setup), see additional documentation for [tracing Docker applications](https://docs.datadoghq.com/tracing/setup/docker/).
+Install and configure the Datadog Agent to receive traces from your now instrumented application. By default the Datadog Agent is enabled in your `datadog.yaml` file under `apm_enabled: true` and listens for trace traffic at `localhost:8126`. For containerized environments, follow the steps below to enable trace collection within the Datadog Agent.
+
+#### Containers
+
+1. Set `apm_non_local_traffic: true` in your main [`datadog.yaml` configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/#agent-main-configuration-file).
+
+2. See the specific setup instructions for [Docker](https://docs.datadoghq.com/agent/docker/apm/?tab=ruby), [Kubernetes](https://docs.datadoghq.com/agent/kubernetes/apm/?tab=helm), [Amazon ECS](https://docs.datadoghq.com/agent/amazon_ecs/apm/?tab=ruby) or [Fargate](https://docs.datadoghq.com/integrations/ecs_fargate/#trace-collection) to ensure that the Agent is configured to receive traces in a containerized environment:
+
+3. After having instrumented your application, the tracing client sends traces to `localhost:8126` by default.  If this is not the correct host and port change it by setting the env variables `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT`.
+
 
 ### Quickstart for Rails applications
 
