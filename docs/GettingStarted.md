@@ -126,11 +126,64 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 The following steps will help you quickly start tracing your Ruby application.
 
-### Setup the Datadog Agent
+### Configure the Datadog Agent for APM
 
 Before downloading tracing on your application, install the Datadog Agent. The Ruby APM tracer sends trace data through the Datadog Agent.
 
-[Install and configure the Datadog Agent](https://docs.datadoghq.com/tracing/setup), see additional documentation for [tracing Docker applications](https://docs.datadoghq.com/tracing/setup/docker/).
+Install and configure the Datadog Agent to receive traces from your now instrumented application. By default the Datadog Agent is enabled in your `datadog.yaml` file under `apm_enabled: true` and listens for trace traffic at `localhost:8126`. For containerized environments, follow the links below to enable trace collection within the Datadog Agent.
+
+{{< tabs >}}
+{{% tab "Containers" %}}
+
+1. Set `apm_non_local_traffic: true` in your main [`datadog.yaml` configuration file][1]
+
+2. See the specific setup instructions to ensure that the Agent is configured to receive traces in a containerized environment:
+
+{{< partial name="apm/apm-containers.html" >}}
+</br>
+
+3. After having instrumented your application, the tracing client sends traces to `localhost:8126` by default.  If this is not the correct host and port change it by setting the below env variables:
+
+`DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT`.
+
+```bash
+java -javaagent:<DD-JAVA-AGENT-PATH>.jar -jar <YOUR_APPLICATION_PATH>.jar
+```
+
+You can also use system properties:
+
+```bash
+java -javaagent:<DD-JAVA-AGENT-PATH>.jar \
+     -Ddd.agent.host=$DD_AGENT_HOST \
+     -Ddd.agent.port=$DD_TRACE_AGENT_PORT \
+     -jar <YOUR_APPLICATION_PATH>.jar
+```
+
+
+[1]: https://docs.datadoghq.com/agent/guide/agent-configuration-files/#agent-main-configuration-file
+{{% /tab %}}
+{{% tab "AWS Lambda" %}}
+
+To set up Datadog APM in AWS Lambda, see the [Tracing Serverless Functions][1] documentation.
+
+
+[1]: https://docs.datadoghq.com/tracing/serverless_functions/
+{{% /tab %}}
+{{% tab "Other Environments" %}}
+
+Tracing is available for a number of other environments, such as  [Heroku][1], [Cloud Foundry][2], [AWS Elastic Beanstalk][3], and [Azure App Services Extension][4].
+
+For other environments, please refer to the [Integrations][5] documentation for that environment and [contact support][6] if you are encountering any setup issues.
+
+[1]: https://docs.datadoghq.com/agent/basic_agent_usage/heroku/#installation
+[2]: https://docs.datadoghq.com/integrations/cloud_foundry/#trace-collection
+[3]: https://docs.datadoghq.com/integrations/amazon_elasticbeanstalk/
+[4]: https://docs.datadoghq.com/infrastructure/serverless/azure_app_services/#overview
+[5]: https://docs.datadoghq.com/integrations/
+[6]: https://docs.datadoghq.com/help/
+{{% /tab %}}
+{{< /tabs >}}
+
 
 ### Quickstart for Rails applications
 
