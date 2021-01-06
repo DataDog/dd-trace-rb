@@ -68,6 +68,11 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  RSpec::Core::RakeTask.new(:rollbar) do |t, args|
+    t.pattern = 'spec/ddtrace/profiling/tasks/setup_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
   RSpec::Core::RakeTask.new(:contrib) do |t, args|
     contrib_paths = [
       'analytics',
@@ -259,6 +264,10 @@ task :ci do
       declare 'bundle exec appraisal rails32-postgres rake spec:action_view'
       declare 'bundle exec appraisal rails32-mysql2 rake spec:active_record'
       declare 'bundle exec appraisal rails32-postgres rake spec:active_support'
+
+      declare 'bundle exec appraisal rollbar-incompatible rake spec:rollbar'
+      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
+      # declare 'bundle exec appraisal rollbar-compatible rake spec:rollbar'
     end
   elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
@@ -325,6 +334,10 @@ task :ci do
       declare 'bundle exec appraisal rails32-postgres rake spec:action_view'
       declare 'bundle exec appraisal rails32-mysql2 rake spec:active_record'
       declare 'bundle exec appraisal rails32-postgres rake spec:active_support'
+
+      declare 'bundle exec appraisal rollbar-incompatible rake spec:rollbar'
+      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
+      # declare 'bundle exec appraisal rollbar-compatible rake spec:rollbar'
     end
   elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION)\
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
@@ -407,6 +420,10 @@ task :ci do
       declare 'bundle exec appraisal rails4-postgres rake spec:rails'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
+
+      declare 'bundle exec appraisal rollbar-incompatible rake spec:rollbar'
+      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
+      # declare 'bundle exec appraisal rollbar-compatible rake spec:rollbar'
     end
   elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
@@ -494,6 +511,10 @@ task :ci do
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
       declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
+
+      declare 'bundle exec appraisal rollbar-incompatible rake spec:rollbar'
+      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
+      # declare 'bundle exec appraisal rollbar-compatible rake spec:rollbar'
     end
   elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
@@ -568,6 +589,10 @@ task :ci do
       # explicitly test cucumber compatibility
       declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
+
+      declare 'bundle exec appraisal rollbar-incompatible rake spec:rollbar'
+      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
+      # declare 'bundle exec appraisal rollbar-compatible rake spec:rollbar'
     end
   elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
@@ -662,6 +687,10 @@ task :ci do
     declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
     declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
     declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
+
+    declare 'bundle exec appraisal rollbar-incompatible rake spec:rollbar'
+    # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
+    # declare 'bundle exec appraisal rollbar-compatible rake spec:rollbar'
   elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
     # Main library
@@ -758,6 +787,10 @@ task :ci do
       declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
+
+      declare 'bundle exec appraisal rollbar-incompatible rake spec:rollbar'
+      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
+      # declare 'bundle exec appraisal rollbar-compatible rake spec:rollbar'
     end
   elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.0.0')
@@ -925,6 +958,10 @@ task :ci do
       declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
+
+      declare 'bundle exec appraisal rollbar-incompatible rake spec:rollbar'
+      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
+      # declare 'bundle exec appraisal rollbar-compatible rake spec:rollbar'
     end
   end
 end
