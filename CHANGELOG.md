@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+## [0.44.0] - 2021-01-06
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.44.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.43.0...v0.44.0
+
+### Added
+
+- Ruby 3.0 support ([#1281][], [#1296][], [#1298][])
+- Rails 6.1 support ([#1295][])
+- Qless integration ([#1237][]) ([@sco11morgan][])
+- AWS Textract service to AWS integration ([#1270][]) ([@Sticksword][])
+- Ability to disable Redis argument capture ([#1276][]) ([@callumj][])
+- Upload coverage report to Codecov ([#1289][])
+
+### Changed
+
+- Reduce Runtime Metrics frequency to every 10 seconds ([#1269][])
+
+### Fixed
+
+- Disambiguate resource names for Grape endpoints with shared paths ([#1279][]) ([@pzaich][])
+- Remove invalid Jenkins URL from CI integration ([#1283][])
+
+### Refactored
+
+- Reduce memory allocation when unnecessary ([#1273][], [#1275][]) ([@callumj][])
+- Improvements to test suite & CI ([#847][], [#1256][], [#1257][], [#1266][], [#1272][], [#1277][], [#1278][], [#1284][], [#1286][], [#1287][], [#1293][], [#1299][])
+- Improvements to documentation ([#1262][], [#1263][], [#1264][], [#1267][], [#1268][], [#1297][])
+
 ## [0.43.0] - 2020-11-18
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.43.0
@@ -1493,6 +1523,7 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 [Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.41.0...master
+[0.44.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.43.0...v0.44.0
 [0.43.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.42.0...v0.43.0
 [0.41.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.40.0...v0.41.0
 [0.40.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.39.0...v0.40.0
@@ -1825,6 +1856,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#844]: https://github.com/DataDog/dd-trace-rb/issues/844
 [#845]: https://github.com/DataDog/dd-trace-rb/issues/845
 [#846]: https://github.com/DataDog/dd-trace-rb/issues/846
+[#847]: https://github.com/DataDog/dd-trace-rb/issues/847
 [#851]: https://github.com/DataDog/dd-trace-rb/issues/851
 [#853]: https://github.com/DataDog/dd-trace-rb/issues/853
 [#854]: https://github.com/DataDog/dd-trace-rb/issues/854
@@ -2049,11 +2081,41 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1234]: https://github.com/DataDog/dd-trace-rb/issues/1234
 [#1235]: https://github.com/DataDog/dd-trace-rb/issues/1235
 [#1236]: https://github.com/DataDog/dd-trace-rb/issues/1236
+[#1237]: https://github.com/DataDog/dd-trace-rb/issues/1237
 [#1238]: https://github.com/DataDog/dd-trace-rb/issues/1238
 [#1239]: https://github.com/DataDog/dd-trace-rb/issues/1239
 [#1243]: https://github.com/DataDog/dd-trace-rb/issues/1243
 [#1244]: https://github.com/DataDog/dd-trace-rb/issues/1244
 [#1248]: https://github.com/DataDog/dd-trace-rb/issues/1248
+[#1256]: https://github.com/DataDog/dd-trace-rb/issues/1256
+[#1257]: https://github.com/DataDog/dd-trace-rb/issues/1257
+[#1262]: https://github.com/DataDog/dd-trace-rb/issues/1262
+[#1263]: https://github.com/DataDog/dd-trace-rb/issues/1263
+[#1264]: https://github.com/DataDog/dd-trace-rb/issues/1264
+[#1266]: https://github.com/DataDog/dd-trace-rb/issues/1266
+[#1267]: https://github.com/DataDog/dd-trace-rb/issues/1267
+[#1268]: https://github.com/DataDog/dd-trace-rb/issues/1268
+[#1269]: https://github.com/DataDog/dd-trace-rb/issues/1269
+[#1270]: https://github.com/DataDog/dd-trace-rb/issues/1270
+[#1272]: https://github.com/DataDog/dd-trace-rb/issues/1272
+[#1273]: https://github.com/DataDog/dd-trace-rb/issues/1273
+[#1275]: https://github.com/DataDog/dd-trace-rb/issues/1275
+[#1276]: https://github.com/DataDog/dd-trace-rb/issues/1276
+[#1277]: https://github.com/DataDog/dd-trace-rb/issues/1277
+[#1278]: https://github.com/DataDog/dd-trace-rb/issues/1278
+[#1279]: https://github.com/DataDog/dd-trace-rb/issues/1279
+[#1281]: https://github.com/DataDog/dd-trace-rb/issues/1281
+[#1283]: https://github.com/DataDog/dd-trace-rb/issues/1283
+[#1284]: https://github.com/DataDog/dd-trace-rb/issues/1284
+[#1286]: https://github.com/DataDog/dd-trace-rb/issues/1286
+[#1287]: https://github.com/DataDog/dd-trace-rb/issues/1287
+[#1289]: https://github.com/DataDog/dd-trace-rb/issues/1289
+[#1293]: https://github.com/DataDog/dd-trace-rb/issues/1293
+[#1295]: https://github.com/DataDog/dd-trace-rb/issues/1295
+[#1296]: https://github.com/DataDog/dd-trace-rb/issues/1296
+[#1297]: https://github.com/DataDog/dd-trace-rb/issues/1297
+[#1298]: https://github.com/DataDog/dd-trace-rb/issues/1298
+[#1299]: https://github.com/DataDog/dd-trace-rb/issues/1299
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
 [@DocX]: https://github.com/DocX
@@ -2065,6 +2127,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@MMartyn]: https://github.com/MMartyn
 [@NobodysNightmare]: https://github.com/NobodysNightmare
 [@Redapted]: https://github.com/Redapted
+[@Sticksword]: https://github.com/Sticksword
 [@Supy]: https://github.com/Supy
 [@Yurokle]: https://github.com/Yurokle
 [@ZimbiX]: https://github.com/ZimbiX
@@ -2081,6 +2144,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@blaines]: https://github.com/blaines
 [@brafales]: https://github.com/brafales
 [@bzf]: https://github.com/bzf
+[@callumj]: https://github.com/callumj
 [@cjford]: https://github.com/cjford
 [@ck3g]: https://github.com/ck3g
 [@cswatt]: https://github.com/cswatt
@@ -2131,11 +2195,13 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@palin]: https://github.com/palin
 [@pj0tr]: https://github.com/pj0tr
 [@psycholein]: https://github.com/psycholein
+[@pzaich]: https://github.com/pzaich
 [@rahul342]: https://github.com/rahul342
 [@randy-girard]: https://github.com/randy-girard
 [@renchap]: https://github.com/renchap
 [@ricbartm]: https://github.com/ricbartm
 [@roccoblues]: https://github.com/roccoblues
+[@sco11morgan]: https://github.com/sco11morgan
 [@senny]: https://github.com/senny
 [@shayonj]: https://github.com/shayonj
 [@sinsoku]: https://github.com/sinsoku
