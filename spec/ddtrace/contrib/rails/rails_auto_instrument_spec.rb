@@ -1,6 +1,6 @@
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'Datadog::AutoInstrument' do
+RSpec.describe 'Datadog::Contrib::AutoInstrument' do
   include_context 'Rails test application'
 
   around do |example|

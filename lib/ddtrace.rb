@@ -31,6 +31,10 @@ module Datadog
   require 'ddtrace/opentelemetry/extensions'
   extend OpenTelemetry::Extensions
 
+  # Load and extend AutoInstrument
+  require 'ddtrace/contrib/auto_instrument'
+  extend Contrib::AutoInstrument
+
   # Add shutdown hook:
   # Ensures the tracer has an opportunity to flush traces
   # and cleanup before terminating the process.
