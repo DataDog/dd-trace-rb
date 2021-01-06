@@ -9,6 +9,7 @@ module Datadog
         base.send(:extend, Patch)
       end
 
+      # Patch adds method for invoking auto_instrumentation
       module Patch
         def add_auto_instrument
           if Datadog::Contrib::Rails::Utils.railtie_supported?
@@ -21,7 +22,7 @@ module Datadog
 
       def self.patch_all
         integrations = []
-        puts 'i run'
+
         Datadog.registry.each do |integration|
           # some instrumentations are automatically enabled when the `rails` instrumentation is enabled,
           # patching them on their own automatically outside of the rails integration context would
