@@ -12,6 +12,7 @@ module Datadog
         SERVICE_NAME = 'ethon'.freeze
         SPAN_REQUEST = 'ethon.request'.freeze
         SPAN_MULTI_REQUEST = 'ethon.multi.request'.freeze
+        NOT_APPLICABLE_METHOD = 'N/A'.freeze
       end
     end
   end

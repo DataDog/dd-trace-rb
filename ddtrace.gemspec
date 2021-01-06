@@ -50,15 +50,11 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'minitest', '= 5.10.1'
   spec.add_development_dependency 'minitest-around', '0.5.0'
   spec.add_development_dependency 'minitest-stub_any_instance', '1.0.2'
+  spec.add_development_dependency 'pimpmychangelog', '>= 0.1.2'
   spec.add_development_dependency 'appraisal', '~> 2.2'
   spec.add_development_dependency 'yard', '~> 0.9'
-  spec.add_development_dependency 'webmock', '~> 2.0'
+  spec.add_development_dependency 'webmock', '>= 3.10.0'
   spec.add_development_dependency 'builder'
-  if RUBY_PLATFORM != 'java'
-    spec.add_development_dependency 'sqlite3', '~> 1.3.6'
-  else
-    spec.add_development_dependency 'jdbc-sqlite3', '~> 3'
-  end
   spec.add_development_dependency 'climate_control', '~> 0.2.0'
 
   # locking transitive dependency of webmock
@@ -67,8 +63,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'benchmark-memory', '~> 0.1'
   spec.add_development_dependency 'memory_profiler', '~> 0.9'
   spec.add_development_dependency 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
-  spec.add_development_dependency 'pry', '~> 0.10.4'
-  spec.add_development_dependency 'pry-stack_explorer', '~> 0.4.9.2'
+  spec.add_development_dependency 'pry', '~> 0.12.2'
+  spec.add_development_dependency 'pry-nav', '~> 0.3.0'
+  spec.add_development_dependency 'pry-stack_explorer', '~> 0.4.9' if RUBY_PLATFORM != 'java'
   spec.add_development_dependency 'simplecov', '~> 0.17'
   spec.add_development_dependency 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 end

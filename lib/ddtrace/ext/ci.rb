@@ -221,7 +221,6 @@ module Datadog
           Git::TAG_COMMIT_SHA => env['GIT_COMMIT'],
           Git::TAG_REPOSITORY_URL => env['GIT_URL'],
           Git::TAG_TAG => tag,
-          TAG_JOB_URL => env['JOB_URL'],
           TAG_PIPELINE_ID => env['BUILD_TAG'],
           TAG_PIPELINE_NAME => name,
           TAG_PIPELINE_NUMBER => env['BUILD_NUMBER'],

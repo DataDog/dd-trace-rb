@@ -149,8 +149,17 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
             expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(code.to_s)
           end
 
-          it 'has no error set' do
-            expect(span).to_not have_error_message
+          it 'has error set' do
+            expect(span).to have_error
+          end
+
+          it 'has error type set' do
+            expect(span).to have_error_type('Error 404')
+          end
+
+          # default error message to `Error` from https://github.com/DataDog/dd-trace-rb/issues/1116
+          it 'has error message' do
+            expect(span).to have_error_message('Error')
           end
         end
 

@@ -40,7 +40,7 @@ module Datadog
                 # Add additional request specific tags to the span.
                 annotate_span_with_request!(span, req, request_options)
               rescue StandardError => e
-                logger.error("error preparing span for http.rb request: #{e}, Soure: #{e.backtrace}")
+                logger.error("error preparing span for http.rb request: #{e}, Source: #{e.backtrace}")
               ensure
                 res = super(req, options)
               end

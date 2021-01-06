@@ -57,6 +57,7 @@ module Datadog
           end
         end
 
+        # @return [Hash]
         def self.default_connection_config
           return @default_connection_config if instance_variable_defined?(:@default_connection_config)
           current_connection_name = if ::ActiveRecord::Base.respond_to?(:connection_specification_name)
@@ -66,9 +67,18 @@ module Datadog
                                     end
 
           connection_pool = ::ActiveRecord::Base.connection_handler.retrieve_connection_pool(current_connection_name)
-          connection_pool.nil? ? EMPTY_CONFIG : (@default_connection_config = connection_pool.spec.config)
+          connection_pool.nil? ? EMPTY_CONFIG : (@default_connection_config = db_config(connection_pool))
         rescue StandardError
           EMPTY_CONFIG
+        end
+
+        # @return [Hash]
+        def self.db_config(connection_pool)
+          if ::Rails::VERSION::MAJOR >= 6 && ::Rails::VERSION::MINOR >= 1
+            connection_pool.db_config.configuration_hash
+          else
+            connection_pool.spec.config
+          end
         end
       end
     end
