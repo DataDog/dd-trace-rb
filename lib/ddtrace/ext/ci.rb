@@ -64,7 +64,7 @@ module Datadog
       def extract_appveyor(env)
         url = "https://ci.appveyor.com/project/#{env['APPVEYOR_REPO_NAME']}/builds/#{env['APPVEYOR_BUILD_ID']}"
 
-        if !env['APPVEYOR_REPO_PROVIDER'].nil? && env['APPVEYOR_REPO_PROVIDER'] == 'github'
+        if env['APPVEYOR_REPO_PROVIDER'] == 'github'
           repository = "https://github.com/#{env['APPVEYOR_REPO_NAME']}.git"
           commit = env['APPVEYOR_REPO_COMMIT']
           branch = (env['APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH'] || env['APPVEYOR_REPO_BRANCH'])
