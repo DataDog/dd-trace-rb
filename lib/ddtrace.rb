@@ -23,7 +23,7 @@ require 'ddtrace/auto_instrument_base'
 module Datadog
   extend Augmentation
   extend Configuration
-  include AutoInstrumentBase
+  extend AutoInstrumentBase
 
   # Load and extend Contrib by default
   require 'ddtrace/contrib/extensions'
