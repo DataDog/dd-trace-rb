@@ -13,6 +13,12 @@ module Datadog
       module Patch
         def add_auto_instrument
           super
+
+          if Datadog::Contrib::Rails::Utils.railtie_supported?
+            require 'ddtrace/contrib/rails/auto_instrument_railtie'
+          else
+            AutoInstrument.patch_all
+          end
           AutoInstrument.patch_all
         end
       end
