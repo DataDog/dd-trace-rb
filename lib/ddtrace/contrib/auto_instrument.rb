@@ -12,6 +12,8 @@ module Datadog
       # Patch adds method for invoking auto_instrumentation
       module Patch
         def add_auto_instrument
+          super
+
           if Datadog::Contrib::Rails::Utils.railtie_supported?
             require 'ddtrace/contrib/rails/auto_instrument_railtie'
           else
