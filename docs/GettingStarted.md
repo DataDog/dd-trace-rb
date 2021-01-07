@@ -183,7 +183,8 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 #### Ruby Auto Instrument all Integrations
 
 1. Install the gem with `gem install ddtrace`
-2. Add `require 'ddtrace/auto_instrument'` to your application startup sequence. This must be done _after_ requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented. 
+2. Requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented. 
+3. Add `require 'ddtrace/auto_instrument'` to your application. _Note:_ This must be done _after_ requiring any supported libraries or frameworks.
 
     ```ruby
     # Example frameworks and libraries
