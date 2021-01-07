@@ -123,7 +123,7 @@ module Datadog
           end
 
           def uri
-            URI.parse(url)
+            @uri ||= URI.parse(url)
           # rubocop:disable Lint/HandleExceptions
           rescue URI::InvalidURIError
           end
