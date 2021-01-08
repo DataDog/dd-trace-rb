@@ -23,7 +23,8 @@ module Datadog
         ['GITLAB_CI'.freeze, :extract_gitlab],
         ['JENKINS_URL'.freeze, :extract_jenkins],
         ['TEAMCITY_VERSION'.freeze, :extract_teamcity],
-        ['TRAVIS'.freeze, :extract_travis]
+        ['TRAVIS'.freeze, :extract_travis],
+        ['BITRISE_BUILD_SLUG'.freeze, :extract_bitrise]
       ].freeze
 
       module_function
@@ -90,7 +91,7 @@ module Datadog
         if env['SYSTEM_TEAMFOUNDATIONSERVERURI'] && env['SYSTEM_TEAMPROJECTID'] && env['BUILD_BUILDID']
           base_url = "#{env['SYSTEM_TEAMFOUNDATIONSERVERURI']}#{env['SYSTEM_TEAMPROJECTID']}" \
             "/_build/results?buildId=#{env['BUILD_BUILDID']}"
-          pipeline_url = base_url + '&_a=summary'
+          pipeline_url = base_url
           job_url = base_url + "&view=logs&j=#{env['SYSTEM_JOBID']}&t=#{env['SYSTEM_TASKINSTANCEID']}"
         else
           pipeline_url = job_url = nil
@@ -265,6 +266,27 @@ module Datadog
           TAG_PIPELINE_URL => env['TRAVIS_BUILD_WEB_URL'],
           TAG_PROVIDER_NAME => 'travisci',
           TAG_WORKSPACE_PATH => env['TRAVIS_BUILD_DIR']
+        }
+      end
+
+      def extract_bitrise(env)
+        commit = (
+          env['BITRISE_GIT_COMMIT'] || env['GIT_CLONE_COMMIT_HASH']
+        )
+        branch = (
+          env['BITRISEIO_GIT_BRANCH_DEST'] || env['BITRISE_GIT_BRANCH']
+        )
+        {
+          TAG_PROVIDER_NAME => 'bitrise',
+          TAG_PIPELINE_ID => env['BITRISE_BUILD_SLUG'],
+          TAG_PIPELINE_NAME => env['BITRISE_APP_TITLE'],
+          TAG_PIPELINE_NUMBER => env['BITRISE_BUILD_NUMBER'],
+          TAG_PIPELINE_URL => env['BITRISE_BUILD_URL'],
+          TAG_WORKSPACE_PATH => env['BITRISE_SOURCE_DIR'],
+          Git::TAG_REPOSITORY_URL => env['GIT_REPOSITORY_URL'],
+          Git::TAG_COMMIT_SHA => commit,
+          Git::TAG_BRANCH => branch,
+          Git::TAG_TAG => env['BITRISE_GIT_TAG']
         }
       end
     end
