@@ -361,26 +361,19 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
   describe '#warn_if_incompatible_rollbar_gem_detected' do
     subject(:warn_if_incompatible_rollbar_gem_detected) { task.warn_if_incompatible_rollbar_gem_detected }
 
-    # Testing this code is slightly awkward for two reasons:
-    # 1. We want to avoid using exactly the same code (gem apis) in the tests than we have for production.
-    # 2. A given Ruby installation can only be in one of the possible states (no rollbar installed, old rollbar
-    #    installed, etc)
-    #
-    # To address this, we:
-    # 1. Shell out to gem to detect if rollbar is installed or not (rather than using the same gem apis we want to test)
-    # 2. Rely on the Appraisal gem test setup to be able to check the multiple cases in different runs
+    let(:last_version_of_rollbar_affected) { '3.1.1' }
 
-    before(:context) do
-      @rollbar_versions_installed =
-        `gem list`.each_line.select { |it| it.start_with?('rollbar ') }.sort.map(&:strip)
+    before do
+      # Simulate the result of the gem apis, so that we can check different combinations of having or not having the
+      # rollbar gem and affected versions
+      expect(Gem::Specification)
+        .to receive(:find_all_by_name)
+        .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
+        .and_return(rollbar_versions_found)
     end
 
     context 'when rollbar gem is not installed' do
-      before do
-        if @rollbar_versions_installed.any?
-          skip "Current gem environment (#{@rollbar_versions_installed}) not setup for this test"
-        end
-      end
+      let(:rollbar_versions_found) { [] }
 
       it 'does not display a warning to STDOUT' do
         expect(STDOUT).to_not receive(:puts)
@@ -390,19 +383,9 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     end
 
     context 'when compatible version of rollbar gem is installed' do
-      before do
-        skip %q(FIXME NEW ROLLBAR NEEDED: This test cannot be enabled until a new version of rollbar (> 3.1.1) including
-        "https://github.com/rollbar/rollbar-gem/pull/1018" is released.
-
-        Once this new version is released, we need to:
-        1. Remove this skip
-        2. Update the `Appraisals` file to enable the new version in the 'compatible-rollbar' appraisals~
-        3. Enable the 'compatible-rollbar' validations in the `Rakefile`.)
-
-        if @rollbar_versions_installed != ['rollbar (3.1.2)']
-          skip "Current gem environment (#{@rollbar_versions_installed}) not setup for this test"
-        end
-      end
+      # same as "no gem installed" because we use a version requirement when
+      # calling find_all_by_name, so only incompatible versions get returned
+      let(:rollbar_versions_found) { [] }
 
       it 'does not display a warning to STDOUT' do
         expect(STDOUT).to_not receive(:puts)
@@ -412,15 +395,10 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     end
 
     context 'when incompatible version of rollbar gem is installed' do
-      before do
-        if @rollbar_versions_installed != ['rollbar (3.1.1)']
-          skip "Current gem environment (#{@rollbar_versions_installed}) not setup for this test"
-        end
-      end
+      let(:rollbar_versions_found) { [instance_double(Gem::Specification), instance_double(Gem::Specification)] }
 
       it 'displays a warning to STDOUT' do
         expect(STDOUT).to receive(:puts) do |message|
-          STDERR.puts(message)
           expect(message).to include('Incompatible version of the rollbar')
         end
 
