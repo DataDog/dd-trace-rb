@@ -26,7 +26,14 @@ module Datadog
       # Inject all configured propagation styles
       ::Datadog.configuration.distributed_tracing.propagation_inject_style.each do |style|
         propagator = PROPAGATION_STYLES[style]
-        propagator.inject!(context, env) unless propagator.nil?
+        begin
+          propagator.inject!(context, env) unless propagator.nil?
+        rescue => e
+          Datadog.logger.error(
+            'Error injecting propagated context into the environment. ' \
+            "Cause: #{e} Location: #{e.backtrace.first}"
+          )
+        end
       end
     end
 
@@ -42,7 +49,15 @@ module Datadog
 
         # Extract context
         # DEV: `propagator.extract` will return `nil`, where `HTTPPropagator#extract` will not
-        extracted_context = propagator.extract(env)
+        begin
+          extracted_context = propagator.extract(env)
+        rescue => e
+          Datadog.logger.error(
+            'Error extracting propagated context from the environment. ' \
+            "Cause: #{e} Location: #{e.backtrace.first}"
+          )
+        end
+
         # Skip this style if no valid headers were found
         next if extracted_context.nil?
 
