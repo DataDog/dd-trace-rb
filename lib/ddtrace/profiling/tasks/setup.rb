@@ -84,6 +84,7 @@ module Datadog
           warn_if_incompatible_rollbar_gem_detected
         end
 
+        # See https://github.com/rollbar/rollbar-gem/pull/1018 for details on the incompatibility
         def warn_if_incompatible_rollbar_gem_detected
           incompatible_rollbar_versions = Gem::Requirement.new('<= 3.1.1')
 

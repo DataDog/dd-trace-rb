@@ -73,15 +73,6 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge', '< 0.4'
     end
 
-    appraise 'rollbar-incompatible' do
-      gem 'rollbar', '= 3.1.1'
-    end
-
-    appraise 'rollbar-compatible' do
-      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
-      #gem 'rollbar', '= 3.1.2'
-    end
-
     appraise 'contrib-old' do
       gem 'active_model_serializers', '~> 0.9.0'
       gem 'activerecord', '3.2.22.5'
@@ -204,15 +195,6 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'redis', '< 4.0'
       gem 'sprockets', '< 4'
       gem 'lograge'
-    end
-
-    appraise 'rollbar-incompatible' do
-      gem 'rollbar', '= 3.1.1'
-    end
-
-    appraise 'rollbar-compatible' do
-      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
-      #gem 'rollbar', '= 3.1.2'
     end
 
     appraise 'contrib-old' do
@@ -389,15 +371,6 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activejob'
       gem 'sprockets', '< 4'
       gem 'lograge'
-    end
-
-    appraise 'rollbar-incompatible' do
-      gem 'rollbar', '= 3.1.1'
-    end
-
-    appraise 'rollbar-compatible' do
-      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
-      #gem 'rollbar', '= 3.1.2'
     end
 
     appraise 'contrib' do
@@ -595,15 +568,6 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
 
     (3..4).each { |v| gem_cucumber(v) }
 
-    appraise 'rollbar-incompatible' do
-      gem 'rollbar', '= 3.1.1'
-    end
-
-    appraise 'rollbar-compatible' do
-      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
-      #gem 'rollbar', '= 3.1.2'
-    end
-
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -707,15 +671,6 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     (3..4).each { |v| gem_cucumber(v) }
-
-    appraise 'rollbar-incompatible' do
-      gem 'rollbar', '= 3.1.1'
-    end
-
-    appraise 'rollbar-compatible' do
-      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
-      #gem 'rollbar', '= 3.1.2'
-    end
 
     appraise 'contrib' do
       gem 'actionpack'
@@ -918,15 +873,6 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
 
   (3..5).each { |v| gem_cucumber(v) }
 
-  appraise 'rollbar-incompatible' do
-    gem 'rollbar', '= 3.1.1'
-  end
-
-  appraise 'rollbar-compatible' do
-    # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
-    #gem 'rollbar', '= 3.1.2'
-  end
-
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -1102,15 +1048,6 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     (3..5).each { |v| gem_cucumber(v) }
-
-    appraise 'rollbar-incompatible' do
-      gem 'rollbar', '= 3.1.1'
-    end
-
-    appraise 'rollbar-compatible' do
-      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
-      #gem 'rollbar', '= 3.1.2'
-    end
 
     appraise 'contrib' do
       gem 'actionpack'
@@ -1288,15 +1225,6 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
     end
 
     (3..5).each { |v| gem_cucumber(v) }
-
-    appraise 'rollbar-incompatible' do
-      gem 'rollbar', '= 3.1.1'
-    end
-
-    appraise 'rollbar-compatible' do
-      # FIXME: See note under "FIXME NEW ROLLBAR NEEDED" in setup_spec.rb for details
-      #gem 'rollbar', '= 3.1.2'
-    end
 
     appraise 'contrib' do
       gem 'actionpack'
