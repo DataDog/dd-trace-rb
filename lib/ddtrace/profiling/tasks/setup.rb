@@ -9,6 +9,7 @@ module Datadog
       # Sets up profiling for the application
       class Setup
         def run
+          check_warnings!
           activate_main_extensions
           autostart_profiler
         end
@@ -77,6 +78,22 @@ module Datadog
           end
         rescue StandardError => e
           log "[DDTRACE] Could not autostart profiling. Cause: #{e.message} Location: #{e.backtrace.first}"
+        end
+
+        def check_warnings!
+          warn_if_incompatible_rollbar_gem_detected
+        end
+
+        # See https://github.com/rollbar/rollbar-gem/pull/1018 for details on the incompatibility
+        def warn_if_incompatible_rollbar_gem_detected
+          incompatible_rollbar_versions = Gem::Requirement.new('<= 3.1.1')
+
+          if Gem::Specification.find_all_by_name('rollbar', incompatible_rollbar_versions).any?
+            log "[DDTRACE] Incompatible version of the rollbar gem is installed (#{incompatible_rollbar_versions}). " \
+              'Loading this version of the rollbar gem will disable ddtrace\'s CPU profiling. ' \
+              'Please upgrade to the latest rollbar version. ' \
+              'See https://github.com/rollbar/rollbar-gem/pull/1018 for details.'
+          end
         end
 
         private

@@ -12,6 +12,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     subject(:run) { task.run }
 
     it do
+      expect(task).to receive(:check_warnings!).ordered
       expect(task).to receive(:activate_main_extensions).ordered
       expect(task).to receive(:autostart_profiler).ordered
       run
@@ -343,6 +344,65 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
             autostart_profiler
           end
         end
+      end
+    end
+  end
+
+  describe '#check_warnings!' do
+    subject(:check_warnings!) { task.check_warnings! }
+
+    it do
+      expect(task).to receive(:warn_if_incompatible_rollbar_gem_detected)
+
+      check_warnings!
+    end
+  end
+
+  describe '#warn_if_incompatible_rollbar_gem_detected' do
+    subject(:warn_if_incompatible_rollbar_gem_detected) { task.warn_if_incompatible_rollbar_gem_detected }
+
+    let(:last_version_of_rollbar_affected) { '3.1.1' }
+
+    before do
+      # Simulate the result of the gem apis, so that we can check different combinations of having or not having the
+      # rollbar gem and affected versions
+      expect(Gem::Specification)
+        .to receive(:find_all_by_name)
+        .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
+        .and_return(rollbar_versions_found)
+    end
+
+    context 'when rollbar gem is not installed' do
+      let(:rollbar_versions_found) { [] }
+
+      it 'does not display a warning to STDOUT' do
+        expect(STDOUT).to_not receive(:puts)
+
+        warn_if_incompatible_rollbar_gem_detected
+      end
+    end
+
+    context 'when compatible version of rollbar gem is installed' do
+      # same as "no gem installed" because we use a version requirement when
+      # calling find_all_by_name, so only incompatible versions get returned
+      let(:rollbar_versions_found) { [] }
+
+      it 'does not display a warning to STDOUT' do
+        expect(STDOUT).to_not receive(:puts)
+
+        warn_if_incompatible_rollbar_gem_detected
+      end
+    end
+
+    context 'when incompatible version of rollbar gem is installed' do
+      let(:rollbar_versions_found) { [instance_double(Gem::Specification), instance_double(Gem::Specification)] }
+
+      it 'displays a warning to STDOUT' do
+        expect(STDOUT).to receive(:puts) do |message|
+          expect(message).to include('Incompatible version of the rollbar')
+        end
+
+        warn_if_incompatible_rollbar_gem_detected
       end
     end
   end
