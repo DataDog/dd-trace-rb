@@ -38,7 +38,6 @@ module Datadog
         tags[Git::TAG_TAG] = normalize_ref(tags[Git::TAG_TAG])
         tags.delete(Git::TAG_BRANCH) unless tags[Git::TAG_TAG].nil?
         tags[Git::TAG_BRANCH] = normalize_ref(tags[Git::TAG_BRANCH])
-        tags[Git::TAG_DEPRECATED_COMMIT_SHA] = tags[Git::TAG_COMMIT_SHA]
         tags[Git::TAG_REPOSITORY_URL] = filter_sensitive_info(tags[Git::TAG_REPOSITORY_URL])
 
         # Expand ~
