@@ -8,45 +8,78 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
   describe '::supported?' do
     subject(:supported?) { described_class.supported? }
 
-    context 'when MRI Ruby is used' do
-      before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
+    context 'when there is an unsupported_reason' do
+      before { allow(described_class).to receive(:unsupported_reason).and_return('Unsupported, sorry :(') }
+      it { is_expected.to be false }
+    end
 
-      context 'of version < 2.1' do
-        before { stub_const('RUBY_VERSION', '2.0') }
-        it { is_expected.to be false }
+    context 'when there is no unsupported_reason' do
+      before { allow(described_class).to receive(:unsupported_reason).and_return(nil) }
+      it { is_expected.to be true }
+    end
+  end
+
+  describe '::unsupported_reason' do
+    subject(:unsupported_reason) { described_class.unsupported_reason }
+
+    context 'when JRuby is used' do
+      before { stub_const('RUBY_ENGINE', 'jruby') }
+      it { is_expected.to include 'JRuby' }
+    end
+
+    context 'when using MRI Ruby' do
+      before { stub_const('RUBY_ENGINE', 'ruby') }
+
+      context 'when running on macOS' do
+        before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
+        it { is_expected.to include 'macOS' }
       end
 
-      context 'of version >= 2.1' do
-        before { stub_const('RUBY_VERSION', '2.1') }
+      context 'when running on Windows' do
+        before { stub_const('RUBY_PLATFORM', 'mswin') }
+        it { is_expected.to include 'Windows' }
+      end
 
-        context 'and \'ffi\'' do
-          context 'is not available' do
-            include_context 'loaded gems', ffi: nil
-            it { is_expected.to be false }
-          end
+      context 'when running on a non-Linux platform' do
+        before { stub_const('RUBY_PLATFORM', 'my-homegrown-os') }
+        it { is_expected.to include 'my-homegrown-os' }
+      end
 
-          context 'is available' do
-            context 'and meeting the minimum version' do
-              include_context 'loaded gems',
-                              ffi: described_class::FFI_MINIMUM_VERSION
+      context 'when running on Linux' do
+        before { stub_const('RUBY_PLATFORM', 'x86_64-linux-gnu') }
 
-              it { is_expected.to be true }
+        context 'when running on MRI < 2.1' do
+          before { stub_const('RUBY_VERSION', '2.0.0') }
+          it { is_expected.to include 'Ruby >= 2.1' }
+        end
+
+        context 'when running on MRI >= 2.1' do
+          before { stub_const('RUBY_VERSION', '2.1.0') }
+
+          context 'and \'ffi\'' do
+            context 'is not available' do
+              include_context 'loaded gems', ffi: nil
+              it { is_expected.to include 'Missing ffi' }
             end
 
-            context 'but is below the minimum version' do
-              include_context 'loaded gems',
-                              ffi: decrement_gem_version(described_class::FFI_MINIMUM_VERSION)
+            context 'is available' do
+              context 'but is below the minimum version' do
+                include_context 'loaded gems',
+                                ffi: decrement_gem_version(described_class::FFI_MINIMUM_VERSION)
 
-              it { is_expected.to be false }
+                it { is_expected.to include 'ffi >= 1.0' }
+              end
+
+              context 'and meeting the minimum version' do
+                include_context 'loaded gems',
+                                ffi: described_class::FFI_MINIMUM_VERSION
+
+                it { is_expected.to be nil }
+              end
             end
           end
         end
       end
-    end
-
-    context 'when JRuby is used' do
-      before { stub_const('RUBY_PLATFORM', 'java') }
-      it { is_expected.to be false }
     end
   end
 
