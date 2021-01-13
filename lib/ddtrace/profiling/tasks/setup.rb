@@ -54,7 +54,7 @@ module Datadog
             Ext::CPU.apply!
           elsif Datadog.configuration.profiling.enabled
             # Log warning if profiling was supposed to be activated.
-            log '[DDTRACE] CPU profiling skipped; native CPU time is not supported.'
+            log "[DDTRACE] CPU profiling skipped because native CPU time is not supported: #{Ext::CPU.unsupported_reason}."
           end
         rescue StandardError, ScriptError => e
           log "[DDTRACE] CPU profiling unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
