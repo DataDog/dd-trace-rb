@@ -5,6 +5,8 @@ module Datadog
     # Defines constants for CI tags
     # rubocop:disable Metrics/ModuleLength:
     module CI
+      TAG_STAGE_NAME = 'ci.stage.name'.freeze
+      TAG_JOB_NAME = 'ci.job.name'.freeze
       TAG_JOB_URL = 'ci.job.url'.freeze
       TAG_PIPELINE_ID = 'ci.pipeline.id'.freeze
       TAG_PIPELINE_NAME = 'ci.pipeline.name'.freeze
@@ -38,7 +40,6 @@ module Datadog
         tags[Git::TAG_TAG] = normalize_ref(tags[Git::TAG_TAG])
         tags.delete(Git::TAG_BRANCH) unless tags[Git::TAG_TAG].nil?
         tags[Git::TAG_BRANCH] = normalize_ref(tags[Git::TAG_BRANCH])
-        tags[Git::TAG_DEPRECATED_COMMIT_SHA] = tags[Git::TAG_COMMIT_SHA]
         tags[Git::TAG_REPOSITORY_URL] = filter_sensitive_info(tags[Git::TAG_REPOSITORY_URL])
 
         # Expand ~
@@ -203,6 +204,8 @@ module Datadog
           Git::TAG_COMMIT_SHA => env['CI_COMMIT_SHA'],
           Git::TAG_REPOSITORY_URL => env['CI_REPOSITORY_URL'],
           Git::TAG_TAG => env['CI_COMMIT_TAG'],
+          TAG_STAGE_NAME => env['CI_JOB_STAGE'],
+          TAG_JOB_NAME => env['CI_JOB_NAME'],
           TAG_JOB_URL => env['CI_JOB_URL'],
           TAG_PIPELINE_ID => env['CI_PIPELINE_ID'],
           TAG_PIPELINE_NAME => env['CI_PROJECT_PATH'],
