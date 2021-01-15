@@ -254,10 +254,14 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           let(:current_cpu_time) { last_cpu_time + cpu_interval }
           let(:last_cpu_time) { rand(1e4) }
           let(:cpu_interval) { 1000 }
+          let(:options) { { cpu_time_expected_to_work: true, **super() } }
 
           include_context 'with profiling extensions'
 
           before do
+            allow(thread)
+              .to receive(:cpu_time_instrumentation_installed?)
+              .and_return(true)
             allow(thread)
               .to receive(:cpu_time)
               .with(:nanosecond)
@@ -323,20 +327,61 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     context 'when CPU timing is not supported' do
       it { is_expected.to be nil }
+
+      it 'does not log any warnings' do
+        expect(Datadog).to_not receive(:logger)
+
+        get_cpu_time_interval!
+      end
     end
 
     if Datadog::Profiling.native_cpu_time_supported?
       context 'when CPU timing is supported' do
+        let(:options) { { cpu_time_expected_to_work: true, **super() } }
+
         include_context 'with profiling extensions'
+
+        context 'but thread is not properly instrumented' do
+          before do
+            allow(thread)
+              .to receive(:cpu_time_instrumentation_installed?)
+              .and_return(false)
+            allow(Datadog.logger).to receive(:warn)
+          end
+
+          it { is_expected.to be nil }
+
+          it 'logs a warning' do
+            expect(Datadog.logger).to receive(:warn).with(/missing CPU profiling instrumentation/)
+
+            get_cpu_time_interval!
+          end
+
+          it 'logs a warning only once' do
+            expect(Datadog.logger).to receive(:warn).once
+
+            get_cpu_time_interval!
+            get_cpu_time_interval!
+          end
+        end
 
         context 'but yields nil' do
           before do
+            allow(thread)
+              .to receive(:cpu_time_instrumentation_installed?)
+              .and_return(true)
             allow(thread)
               .to receive(:cpu_time)
               .and_return(nil)
           end
 
           it { is_expected.to be nil }
+
+          it 'does not log any warnings' do
+            expect(Datadog).to_not receive(:logger)
+
+            get_cpu_time_interval!
+          end
         end
 
         context 'and returns time' do
@@ -345,6 +390,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           let(:cpu_interval) { 1000 }
 
           before do
+            allow(thread)
+              .to receive(:cpu_time_instrumentation_installed?)
+              .and_return(true)
             allow(thread)
               .to receive(:cpu_time)
               .with(:nanosecond)
