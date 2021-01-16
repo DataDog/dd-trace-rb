@@ -87,6 +87,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'excon'
       gem 'hiredis'
       gem 'http'
+      gem 'httpclient'
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'pg', '< 1.0', platform: :ruby
@@ -211,6 +212,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'excon'
       gem 'hiredis'
       gem 'http'
+      gem 'httpclient'
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'pg', '< 1.0', platform: :ruby
@@ -392,6 +394,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'grpc', '~> 1.21.0' # Last version to support Ruby < 2.3
       gem 'hiredis'
       gem 'http'
+      gem 'httpclient'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'qless'
@@ -585,6 +588,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
       gem 'hiredis'
       gem 'http'
+      gem 'httpclient'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'pg', platform: :ruby
@@ -689,6 +693,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
       gem 'hiredis'
       gem 'http'
+      gem 'httpclient'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'pg', platform: :ruby
@@ -874,6 +879,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'grpc', platform: :ruby
     gem 'hiredis'
     gem 'http'
+    gem 'httpclient'
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
@@ -1048,6 +1054,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'grpc'
       gem 'hiredis'
       gem 'http'
+      gem 'httpclient'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
@@ -1223,6 +1230,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'grpc'
       gem 'hiredis'
       gem 'http'
+      gem 'httpclient'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
@@ -1314,6 +1322,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     # gem 'grpc' # Pending 3.0 support by transient protobuf dependency https://github.com/protocolbuffers/protobuf/issues/7922
     gem 'hiredis'
     gem 'http'
+    gem 'httpclient'
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'pg', '>= 1.1', platform: :ruby

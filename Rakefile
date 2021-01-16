@@ -96,6 +96,7 @@ namespace :spec do
     :graphql,
     :grpc,
     :http,
+    :httpclient,
     :httprb,
     :kafka,
     :mongodb,
@@ -229,6 +230,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:excon'
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       declare 'bundle exec appraisal contrib-old rake spec:http'
+      declare 'bundle exec appraisal contrib-old rake spec:httpclient'
       declare 'bundle exec appraisal contrib-old rake spec:httprb'
       declare 'bundle exec appraisal contrib-old rake spec:mongodb'
       declare 'bundle exec appraisal contrib-old rake spec:mysql2'
@@ -284,6 +286,7 @@ task :ci do
       declare 'bundle exec appraisal contrib-old rake spec:excon'
       declare 'bundle exec appraisal contrib-old rake spec:faraday'
       declare 'bundle exec appraisal contrib-old rake spec:http'
+      declare 'bundle exec appraisal contrib-old rake spec:httpclient'
       declare 'bundle exec appraisal contrib-old rake spec:httprb'
       declare 'bundle exec appraisal contrib-old rake spec:kafka'
       declare 'bundle exec appraisal contrib-old rake spec:mongodb'
@@ -351,6 +354,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:graphql'
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
+      declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
@@ -427,6 +431,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:graphql'
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
+      declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
@@ -509,6 +514,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:graphql'
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
+      declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
@@ -579,6 +585,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:graphql'
     declare 'bundle exec appraisal contrib rake spec:grpc' if RUBY_PLATFORM != 'java' # protobuf not supported
     declare 'bundle exec appraisal contrib rake spec:http'
+    declare 'bundle exec appraisal contrib rake spec:httpclient'
     declare 'bundle exec appraisal contrib rake spec:httprb'
     declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
@@ -670,6 +677,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:graphql'
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
+      declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
@@ -763,6 +771,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:graphql'
       declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
+      declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
@@ -854,6 +863,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:graphql'
       # declare 'bundle exec appraisal contrib rake spec:grpc' # Pending https://github.com/protocolbuffers/protobuf/issues/7922
       declare 'bundle exec appraisal contrib rake spec:http'
+      declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
