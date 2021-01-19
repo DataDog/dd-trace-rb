@@ -16,8 +16,8 @@ RSpec.describe 'profiling integration test' do
   end
 
   shared_context 'StackSample events' do
-    let(:stack_one) { Thread.current.backtrace_locations.first(3) }
-    let(:stack_two) { Thread.current.backtrace_locations.first(3) }
+    let(:stack_one) { Thread.current.backtrace_locations[1..3] }
+    let(:stack_two) { Thread.current.backtrace_locations[1..3] }
 
     let(:trace_id) { 0 }
     let(:span_id) { 0 }
@@ -319,7 +319,7 @@ RSpec.describe 'profiling integration test' do
 
         it 'is well formed' do
           is_expected.to be_kind_of(Google::Protobuf::RepeatedField)
-          is_expected.to have(5).items
+          is_expected.to have(4).items # both stack_one and stack_two share 2 frames, and have 1 unique frame each
 
           unique_locations = (stack_one + stack_two).uniq
 
