@@ -4,119 +4,140 @@ require 'ddtrace'
 RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
   subject(:resolver) { described_class.new }
 
+  let(:config) { double('config') }
+
   describe '#resolve' do
-    subject(:resolve) { resolver.resolve(name) }
+    subject(:resolve) { resolver.resolve(value) }
 
     context 'when matching Regexp has been added' do
-      let(:name) { 'my-name' }
-      let(:pattern) { /name/ }
+      let(:value) { 'my-value' }
+      let(:matcher) { /value/ }
 
-      before { resolver.add(pattern) }
-      it { is_expected.to eq(pattern) }
+      before { resolver.add(matcher, config) }
+      it { is_expected.to eq(config) }
 
-      context 'then given a name that isn\'t a String but is case equal' do
-        let(:name) { URI('http://localhost') }
-        let(:pattern) { /#{Regexp.escape('http://localhost')}/ }
+      context 'then given a value that isn\'t a String but is case equal' do
+        let(:value) { URI('http://localhost') }
+        let(:matcher) { /#{Regexp.escape('http://localhost')}/ }
 
-        it 'coerces the name to a String' do
-          is_expected.to eq(pattern)
+        it 'coerces the value to a String' do
+          is_expected.to eq(config)
         end
       end
     end
 
     context 'when non-matching Regexp has been added' do
-      let(:name) { 'my-name' }
-      before { resolver.add(/not_found/) }
+      let(:value) { 'my-value' }
+      before { resolver.add(/not_found/, config) }
       it { is_expected.to be nil }
     end
 
     context 'when matching Proc has been added' do
-      let(:name) { 'my-name' }
-      let(:pattern_proc) { proc { |n| n == name } }
-      before { resolver.add(pattern_proc) }
-      it { is_expected.to eq(pattern_proc) }
+      let(:value) { 'my-value' }
+      let(:matcher_proc) { proc { |n| n == value } }
+      before { resolver.add(matcher_proc, config) }
+      it { is_expected.to eq(config) }
 
-      context 'then given a name that isn\'t a String but is case equal' do
-        let(:name) { URI('http://localhost') }
-        let(:pattern_proc) { proc { |uri| uri.is_a?(URI) } }
+      context 'then given a value that isn\'t a String but is case equal' do
+        let(:value) { URI('http://localhost') }
+        let(:matcher_proc) { proc { |uri| uri.is_a?(URI) } }
 
-        it 'does not coerce the name' do
-          is_expected.to eq(pattern_proc)
+        it 'does not coerce the value' do
+          is_expected.to eq(config)
         end
       end
     end
 
     context 'when non-matching Proc has been added' do
-      let(:name) { 'my-name' }
-      before { resolver.add(proc { |n| n == 'not_found' }) }
+      let(:value) { 'my-value' }
+      before { resolver.add(proc { |n| n == 'not_found' }, config) }
       it { is_expected.to be nil }
     end
 
     context 'when a matching String has been added' do
-      let(:name) { 'my-name' }
-      let(:pattern) { name }
+      let(:value) { 'my-value' }
+      let(:matcher) { value }
 
-      before { resolver.add(pattern) }
-      it { is_expected.to eq(pattern) }
+      before { resolver.add(matcher, config) }
+      it { is_expected.to eq(config) }
 
-      context 'then given a name that isn\'t a String but is case equal' do
-        let(:name) { URI('http://localhost') }
-        let(:pattern) { name.to_s }
+      context 'then given a value that isn\'t a String but is case equal' do
+        let(:value) { URI('http://localhost') }
+        let(:matcher) { value.to_s }
 
-        it 'coerces the name to a String' do
-          is_expected.to eq(pattern)
+        it 'coerces the value to a String' do
+          is_expected.to eq(config)
         end
       end
     end
 
     context 'when a non-matching String has been added' do
-      let(:name) { 'name' }
-      before { resolver.add('my-name') }
+      let(:value) { 'value' }
+      before { resolver.add('my-value', config) }
       it { is_expected.to be nil }
+    end
+
+    context 'with two matching patterns' do
+      let(:value) { 'value' }
+
+      let(:first_matcher) { 'value' }
+      let(:second_matcher) { /value/ }
+
+      let(:first_config) { double('first config') }
+      let(:second_config) { double('second config') }
+
+      before do
+        resolver.add(first_matcher, first_config)
+        resolver.add(second_matcher, second_config)
+      end
+
+      it 'returns the latest added one' do
+        is_expected.to eq(second_config)
+      end
     end
   end
 
   describe '#add' do
-    subject(:add) { resolver.add(pattern) }
+    subject(:add) { resolver.add(matcher, config) }
 
     context 'when given a Regexp' do
-      let(:pattern) { /name/ }
+      let(:matcher) { /value/ }
 
-      it 'allows any string matching the pattern to resolve' do
-        expect { add }.to change { resolver.resolve('my-name') }
+      it 'allows any string matching the matcher to resolve' do
+        expect { add }.to change { resolver.resolve('my-value') }
           .from(nil)
-          .to(pattern)
+          .to(config)
       end
     end
 
     context 'when given a Proc' do
-      let(:pattern) { proc { |n| n == 'my-name' } }
+      let(:matcher) { proc { |n| n == 'my-value' } }
 
-      it 'allows any string matching the pattern to resolve' do
-        expect { add }.to change { resolver.resolve('my-name') }
+      it 'allows any string matching the matcher to resolve' do
+        expect { add }.to change { resolver.resolve('my-value') }
           .from(nil)
-          .to(pattern)
+          .to(config)
       end
     end
 
     context 'when given a string' do
-      let(:pattern) { 'my-name' }
+      let(:matcher) { 'my-value' }
 
       it 'allows identical strings to resolve' do
-        expect { add }.to change { resolver.resolve(pattern) }
+        expect { add }.to change { resolver.resolve(matcher) }
           .from(nil)
-          .to(pattern)
+          .to(config)
       end
     end
 
     context 'when given some object that responds to #to_s' do
-      let(:pattern) { URI('http://localhost') }
+      let(:matcher) { URI('http://localhost') }
 
       it 'allows its #to_s value to match identical strings when resolved' do
-        expect(pattern).to respond_to(:to_s)
+        expect(matcher).to respond_to(:to_s)
         expect { add }.to change { resolver.resolve('http://localhost') }
           .from(nil)
-          .to('http://localhost')
+          .to(config)
       end
     end
   end

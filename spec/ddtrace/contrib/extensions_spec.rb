@@ -82,6 +82,33 @@ RSpec.describe Datadog::Contrib::Extensions do
         end
       end
 
+      describe '#configuration' do
+        include_context 'registry with integration'
+
+        subject(:configuration) { settings.configuration(integration_name, matcher) }
+        let(:matcher) { double('matcher') }
+
+        before { settings.use(integration_name, options) }
+        let(:options) { {} }
+
+        let(:default_settings) { settings.configuration(integration_name) }
+
+        context 'with a matching described configuration' do
+          let(:options) { { describes: matcher } }
+
+          it 'retrieves the described configuration' do
+            is_expected.to_not eq(default_settings)
+            is_expected.to be_a(Datadog::Contrib::Configuration::Settings)
+          end
+        end
+
+        context 'with no matching described configuration' do
+          it 'retrieves the default configuration' do
+            is_expected.to eq(default_settings)
+          end
+        end
+      end
+
       describe '#use' do
         subject(:result) { settings.use(integration_name, options) }
         let(:options) { {} }

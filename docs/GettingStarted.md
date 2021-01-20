@@ -546,17 +546,20 @@ Datadog.configure do |c|
   # Symbol matching your database connection in config/database.yml
   # Only available if you are using Rails with ActiveRecord.
   c.use :active_record, describes: :secondary_database, service_name: 'secondary-db'
-
+  
+  # Block configuration pattern.
   c.use :active_record, describes: :secondary_database do |second_db|
     second_db.service_name = 'secondary-db'
   end
 
   # Connection string with the following connection settings:
-  # Adapter, user, host, port, database
+  # adapter, username, host, port, database
+  # Other fields are ignored.
   c.use :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', service_name: 'secondary-db'
 
-  # Hash with following connection settings
-  # Adapter, user, host, port, database
+  # Hash with following connection settings:
+  # adapter, username, host, port, database
+  # Other fields are ignored.
   c.use :active_record, describes: {
       adapter:  'mysql2',
       host:     '127.0.0.1',
@@ -567,6 +570,27 @@ Datadog.configure do |c|
     service_name: 'secondary-db'
 end
 ```
+
+You can also create configurations based on partial matching of database connection fields:
+
+```ruby
+Datadog.configure do |c|
+  # Matches any connection on host `127.0.0.1`.
+  c.use :active_record, describes: { host:  '127.0.0.1' }, service_name: 'local-db'
+
+  # Matches any `mysql2` connection.
+  c.use :active_record, describes: { adapter: 'mysql2'}, service_name: 'mysql-db'
+  
+  # Matches any `mysql2` connection to the `reports` database.
+  #
+  # In case of multiple matching `describe` configurations, the latest one applies.
+  # In this case a connection with both adapter `mysql` and database `reports`
+  # will be configured `service_name: 'reports-db'`, not `service_name: 'mysql-db'`.
+  c.use :active_record, describes: { adapter: 'mysql2', database:  'reports'}, service_name: 'reports-db'
+end
+```
+
+When multiple `describes` configurations match a connection, the latest configured rule that matches will be applied.
 
 If ActiveRecord traces an event that uses a connection that matches a key defined by `describes`, it will use the trace settings assigned to that connection. If the connection does not match any of the described connections, it will use default settings defined by `c.use :active_record` instead.
 
@@ -1538,18 +1562,25 @@ Datadog.configure do |c|
   # The default configuration for any redis client
   c.use :redis, service_name: 'redis-default'
 
-  # The configuration matching a given unix socket
+  # The configuration matching a given unix socket.
   c.use :redis, describes: { url: 'unix://path/to/file' }, service_name: 'redis-unix'
 
-  # Connection string
-  c.use :redis, describes: { url: 'redis://127.0.0.1:6379/0' }, service_name: 'redis-connection-string'
-  # Client host, port, db, scheme
+  # For network connections, only these fields are considered during matching:
+  # scheme, host, port, db
+  # Other fields are ignored.
+  
+  # Network connection string
+  c.use :redis, describes: 'redis://127.0.0.1:6379/0', service_name: 'redis-connection-string'
+  c.use :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, service_name: 'redis-connection-url'
+  # Network client hash
   c.use :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, service_name: 'redis-connection-hash'
   # Only a subset of the connection hash
   c.use :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, service_name: 'redis-cache'
   c.use :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, service_name: 'redis-sidekiq'
 end
 ```
+
+When multiple `describes` configurations match a connection, the latest configured rule that matches will be applied.
 
 ### Resque
 
