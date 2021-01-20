@@ -20,14 +20,14 @@ RSpec.describe Datadog::Tasks::Exec do
       ENV['RUBYOPT'] = original_opts
     end
 
-    before do
-      # Must stub the call out or test will prematurely terminate.
-      expect(Kernel).to receive(:exec)
-        .with(*args)
-        .and_return(result)
-    end
-
     context 'when RUBOPT is not defined' do
+      before do
+        # Must stub the call out or test will prematurely terminate.
+        expect(Kernel).to receive(:exec)
+          .with(*args)
+          .and_return(result)
+      end
+
       it 'runs the task with preloads' do
         is_expected.to be(result)
 
@@ -39,7 +39,14 @@ RSpec.describe Datadog::Tasks::Exec do
     end
 
     context 'when RUBYOPT is defined' do
-      before { ENV['RUBYOPT'] = start_opts }
+      before do
+        # Must stub the call out or test will prematurely terminate.
+        expect(Kernel).to receive(:exec)
+          .with(*args)
+          .and_return(result)
+
+        ENV['RUBYOPT'] = start_opts
+      end
       let(:start_opts) { 'start_opts' }
 
       it 'runs the task with additional preloads' do
@@ -51,6 +58,57 @@ RSpec.describe Datadog::Tasks::Exec do
         # Expect preloading to have been attached
         task.rubyopts.each do |opt|
           expect(ENV['RUBYOPT']).to include(opt)
+        end
+      end
+    end
+
+    context 'when exec fails' do
+      before do
+        allow(Kernel).to receive(:exit)
+        allow(STDERR).to receive(:puts)
+      end
+
+      context 'when command does not exist' do
+        before do
+          allow(Kernel).to receive(:exec).and_raise(Errno::ENOENT)
+        end
+
+        it 'triggers a VM exit with error code 127' do
+          expect(Kernel).to receive(:exit).with(127)
+
+          run
+        end
+
+        it 'logs an error message to stderr' do
+          expect(STDERR).to receive(:puts) do |message|
+            expect(message).to include('ddtracerb exec failed')
+          end
+
+          run
+        end
+      end
+
+      context 'when command is not executable' do
+        [Errno::EACCES, Errno::ENOEXEC].each do |error|
+          context "when exec fails with #{error}" do
+            before do
+              allow(Kernel).to receive(:exec).and_raise(error)
+            end
+
+            it 'triggers a VM exit with error code 126' do
+              expect(Kernel).to receive(:exit).with(126)
+
+              run
+            end
+
+            it 'logs an error message to stderr' do
+              expect(STDERR).to receive(:puts) do |message|
+                expect(message).to include('ddtracerb exec failed')
+              end
+
+              run
+            end
+          end
         end
       end
     end
