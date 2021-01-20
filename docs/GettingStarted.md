@@ -45,6 +45,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [GraphQL](#graphql)
      - [gRPC](#grpc)
      - [http.rb](#http-rb)
+     - [httpclient](#httpclient)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#net-http)
@@ -362,6 +363,7 @@ For a list of available integrations, and their configuration options, please re
 | GraphQL                  | `graphql`                  | `>= 1.7.9`               | `>= 1.7.9`                | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | gRPC                     | `grpc`                     | `>= 1.7`                 | *gem not available*       | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
 | http.rb                  | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#http-rb)*                  | *[Link](https://github.com/httprb/http)*                                       |
+| httpclient                | `httpclient`              | `>= 2.2`                 | `>= 2.2`                  | *[Link](#httpclient)*               | *[Link](https://github.com/nahi/httpclient)*                                     |
 | Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | `>= 0.7.10`               | *[Link](#kafka)*                    | *[Link](https://github.com/zendesk/ruby-kafka)*                                |
 | MongoDB                  | `mongo`                    | `>= 2.1`                 | `>= 2.1`                  | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
@@ -1015,6 +1017,32 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `httprb` instrumentation. | `'httprb'` |
+| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+
+### httpclient
+
+The httpclient integration will trace any HTTP call using the httpclient gem.
+
+```ruby
+require 'http'
+require 'ddtrace'
+Datadog.configure do |c|
+  c.use :httpclient, options
+  # optionally, specify a different service name for hostnames matching a regex
+  c.use :httpclient, describes: /user-[^.]+\.example\.com/ do |httpclient|
+    httpclient.service_name = 'user.example.com'
+    httpclient.split_by_domain = false # Only necessary if split_by_domain is true by default
+  end
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
+| `service_name` | Service name for `httpclient` instrumentation. | `'httpclient'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
 
 ### Kafka
@@ -2025,6 +2053,7 @@ For more details on how to activate distributed tracing for integrations, see th
 - [Rails](#rails)
 - [Sinatra](#sinatra)
 - [http.rb](#http-rb)
+- [httpclient](#httpclient)
 
 **Using the HTTP propagator**
 
