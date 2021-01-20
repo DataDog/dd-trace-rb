@@ -149,8 +149,7 @@ module Datadog
           Datadog::Profiling::Scheduler.new(
             recorder,
             exporters,
-            enabled: settings.profiling.enabled,
-            interval: 60
+            enabled: settings.profiling.enabled
           )
         end
       end
