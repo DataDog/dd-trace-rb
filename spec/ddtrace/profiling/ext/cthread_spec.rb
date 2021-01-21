@@ -16,7 +16,15 @@ if Datadog::Profiling::Ext::CPU.supported?
 
     let(:block) { proc { loop { sleep(1) } } }
 
-    let(:thread_class) do
+    let(:thread_class_with_instrumentation) do
+      expect(::Thread.ancestors).to_not include(described_class)
+
+      klass = ::Thread.dup
+      klass.send(:prepend, described_class)
+      klass
+    end
+
+    let(:thread_class_missing_instrumentation) do
       expect(::Thread.ancestors).to_not include(described_class)
 
       klass = ::Thread.dup
@@ -25,26 +33,24 @@ if Datadog::Profiling::Ext::CPU.supported?
       # been initialized (e.g. a thread created before the extension was added)
       klass.send(:alias_method, :original_initialize, :initialize)
 
+      # Add the module under test (Ext::CThread)
       klass.send(:prepend, described_class)
-      klass
-    end
 
-    # Leave Thread class in a clean state before and after tests
-    before do
-      stub_const('Thread', thread_class)
-    end
-
-    # Kill any spawned threads
-    after { thread.kill if instance_variable_defined?(:@thread_started) && @thread_started }
-
-    def simulate_missing_instrumentation
+      # Add a module that skips over the module under test's initialize changes
       skip_instrumentation = Module.new do
         def initialize(*args, &block)
           original_initialize(*args, &block) # directly call original initialize, skipping the one in Ext::CThread
         end
       end
-      thread_class.send(:prepend, skip_instrumentation)
+      klass.send(:prepend, skip_instrumentation)
+
+      klass
     end
+
+    let(:thread_class) { thread_class_with_instrumentation }
+
+    # Kill any spawned threads
+    after { thread.kill if instance_variable_defined?(:@thread_started) && @thread_started }
 
     shared_context 'with main thread' do
       let(:thread_class) { ::Thread }
@@ -149,9 +155,7 @@ if Datadog::Profiling::Ext::CPU.supported?
 
       context 'when clock ID' do
         context 'is not available' do
-          before do
-            simulate_missing_instrumentation
-          end
+          let(:thread_class) { thread_class_missing_instrumentation }
 
           it { is_expected.to be nil }
 
@@ -225,9 +229,7 @@ if Datadog::Profiling::Ext::CPU.supported?
       end
 
       context 'when our custom initialize block did not run' do
-        before do
-          simulate_missing_instrumentation
-        end
+        let(:thread_class) { thread_class_missing_instrumentation }
 
         it do
           expect(thread.cpu_time_instrumentation_installed?).to be false
