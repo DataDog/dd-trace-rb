@@ -583,7 +583,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'excon'
       gem 'faraday'
       gem 'grape'
-      gem 'graphql'
+      gem 'graphql', '< 1.12.0' # TODO: Pending ddtrace support for breaking changes in >= 1.12.0
       gem 'grpc'
       gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
       gem 'hiredis'
@@ -688,7 +688,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'excon'
       gem 'faraday'
       gem 'grape'
-      gem 'graphql'
+      gem 'graphql', '< 1.12.0' # TODO: Pending ddtrace support for breaking changes in >= 1.12.0
       gem 'grpc'
       gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
       gem 'hiredis'
@@ -875,7 +875,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'excon'
     gem 'faraday'
     gem 'grape'
-    gem 'graphql'
+    gem 'graphql', '< 1.12.0' # TODO: Pending ddtrace support for breaking changes in >= 1.12.0
     gem 'grpc', platform: :ruby
     gem 'hiredis'
     gem 'http'
@@ -1050,7 +1050,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'excon'
       gem 'faraday'
       gem 'grape'
-      gem 'graphql'
+      gem 'graphql', '< 1.12.0' # TODO: Pending ddtrace support for breaking changes in >= 1.12.0
       gem 'grpc'
       gem 'hiredis'
       gem 'http'
@@ -1226,7 +1226,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'ethon'
       gem 'excon'
       gem 'grape'
-      gem 'graphql'
+      gem 'graphql', '< 1.12.0' # TODO: Pending ddtrace support for breaking changes in >= 1.12.0
       gem 'grpc'
       gem 'hiredis'
       gem 'http'
@@ -1318,7 +1318,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'ethon'
     gem 'excon'
     gem 'grape'
-    gem 'graphql'
+    gem 'graphql', '< 1.12.0' # TODO: Pending ddtrace support for breaking changes in >= 1.12.0
     # gem 'grpc' # Pending 3.0 support by transient protobuf dependency https://github.com/protocolbuffers/protobuf/issues/7922
     gem 'hiredis'
     gem 'http'
