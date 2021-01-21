@@ -10,20 +10,10 @@ else
   require 'sqlite3'
 end
 
-require 'ddtrace'
-require 'ddtrace/contrib/sinatra/tracer'
+require 'ddtrace/auto_instrument'
 
-RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
+RSpec.describe 'Auto Instrumentation of non Rails' do
   include Rack::Test::Methods
-
-  let(:options) { {} }
-
-  before do
-    Datadog.configure do |c|
-      c.use :sinatra, options
-      c.use :active_record, options
-    end
-  end
 
   after { Datadog.registry[:sinatra].reset_configuration! }
 
@@ -84,14 +74,13 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
     let(:adapter_host) { Datadog::Contrib::ActiveRecord::Utils.adapter_host }
     let(:adapter_port) { Datadog::Contrib::ActiveRecord::Utils.adapter_port }
 
-    it do
+    it 'should auto_instrument all relevant gems automatically' do
       is_expected.to be_ok
       expect(spans).to have_at_least(2).items
 
       expect(sqlite_span.name).to eq('sqlite.query')
       expect(sqlite_span.service).to eq('sqlite')
       expect(sqlite_span.resource).to eq('SELECT 42')
-
       expect(sqlite_span.get_tag('active_record.db.vendor')).to eq('sqlite')
       expect(sqlite_span.get_tag('active_record.db.name')).to eq(':memory:')
       expect(sqlite_span.get_tag('out.host')).to eq(adapter_host.to_s) unless adapter_host.nil?

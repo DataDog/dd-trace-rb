@@ -56,6 +56,11 @@ RSpec.describe Datadog::Contrib::Cucumber::Integration do
     end
   end
 
+  describe '#auto_instrument?' do
+    subject(:auto_instrument?) { integration.auto_instrument? }
+    it { is_expected.to be(false) }
+  end
+
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
     it { is_expected.to be_a_kind_of(Datadog::Contrib::Cucumber::Configuration::Settings) }

@@ -17,11 +17,13 @@ require 'ddtrace/configuration'
 require 'ddtrace/patcher'
 require 'ddtrace/augmentation'
 require 'ddtrace/metrics'
+require 'ddtrace/auto_instrument_base'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
   extend Augmentation
   extend Configuration
+  extend AutoInstrumentBase
 
   # Load and extend Contrib by default
   require 'ddtrace/contrib/extensions'
@@ -30,6 +32,10 @@ module Datadog
   # Load and extend OpenTelemetry compatibility by default
   require 'ddtrace/opentelemetry/extensions'
   extend OpenTelemetry::Extensions
+
+  # Load and extend AutoInstrument
+  require 'ddtrace/contrib/auto_instrument'
+  extend Contrib::AutoInstrument
 
   # Add shutdown hook:
   # Ensures the tracer has an opportunity to flush traces

@@ -66,6 +66,11 @@ RSpec.describe Datadog::Contrib::Resque::Integration do
     it { expect(described_class).to respond_to(:sync_writer=) }
   end
 
+  describe '#auto_instrument?' do
+    subject(:auto_instrument?) { integration.auto_instrument? }
+    it { is_expected.to be(true) }
+  end
+
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
     it { is_expected.to be_a_kind_of(Datadog::Contrib::Resque::Configuration::Settings) }
