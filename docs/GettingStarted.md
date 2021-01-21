@@ -2116,9 +2116,7 @@ end
 
 Traces that originate from HTTP requests can be configured to include the time spent in a frontend web server or load balancer queue before the request reaches the Ruby application.
 
-This functionality is **experimental** and deactivated by default.
-
-To activate this feature, you must add an `X-Request-Start` or `X-Queue-Start` header from your web server (i.e., Nginx). The following is an Nginx configuration example:
+This feature is disabled by default. To activate it, you must add an `X-Request-Start` or `X-Queue-Start` header from your web server (i.e., Nginx). The following is an Nginx configuration example:
 
 ```
 # /etc/nginx/conf.d/ruby_service.conf
@@ -2132,9 +2130,7 @@ server {
 }
 ```
 
-Then you must enable the request queuing feature in the integration handling the request.
-
-For Rack-based applications, see the [documentation](#rack) for details for enabling this feature.
+Then you must enable the request queuing feature, by setting `request_queuing: true`, in the integration handling the request. For Rack-based applications, see the [documentation](#rack) for details.
 
 ### Processing Pipeline
 
