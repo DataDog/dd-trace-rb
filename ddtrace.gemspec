@@ -56,6 +56,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'webmock', '>= 3.10.0'
   spec.add_development_dependency 'builder'
   spec.add_development_dependency 'climate_control', '~> 0.2.0'
+  spec.add_development_dependency 'rspec_junit_formatter', '>= 0.4.1'
 
   # locking transitive dependency of webmock
   spec.add_development_dependency 'addressable', '~> 2.4.0'

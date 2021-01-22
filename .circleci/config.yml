@@ -96,7 +96,13 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
-    command: bundle exec rake ci
+    command: |
+        echo "
+        --format=progress
+        --format=RspecJunitFormatter
+        --out='/tmp/rspec/-<%= ARGV.join.gsub('/', '-') %>.xml'
+        " > .rspec-local # Configure RSpec metadata exporter
+        bundle exec rake ci
 step_release_docs: &step_release_docs
   run:
     name: Upload release docs
@@ -173,6 +179,8 @@ orbs:
                 # Create a unique coverage directory for this job, to avoid conflicts when merging all results
                 echo 'export COVERAGE_DIR="$COVERAGE_BASE_DIR/versions/$CIRCLE_JOB/$CIRCLE_NODE_INDEX"' >> $BASH_ENV
           - *step_run_all_tests
+          - store_test_results:
+              path: /tmp/rspec
           - persist_to_workspace:
               root: .
               paths:
