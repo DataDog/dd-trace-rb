@@ -43,28 +43,36 @@ test_containers:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+  - &postgres_port 5432
   - &container_presto
     image: prestosql/presto
+  - &presto_port 8080
   - &container_mysql
     image: mysql:5.6
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_PASSWORD=mysql
       - MYSQL_USER=mysql
+  - &mysql_port 3306
   - &container_elasticsearch
     image: elasticsearch:2.4
+  - &elasticsearch_port 9200
   - &container_redis
     image: redis:3.0
+  - &redis_port 6379
   - &container_mongo
     image: mongo:3.5
+  - &mongo_port 27017
   - &container_memcached
     image: memcached:1.5-alpine
+  - &memcached_port 11211
   - &container_agent
     image: datadog/docker-dd-agent
     environment:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
       - DD_API_KEY=invalid_key_but_this_is_fine
+  - &agent_port 8126
 
 step_init_bundle_checksum: &step_init_bundle_checksum
   run:
@@ -178,6 +186,23 @@ orbs:
               command: |
                 # Create a unique coverage directory for this job, to avoid conflicts when merging all results
                 echo 'export COVERAGE_DIR="$COVERAGE_BASE_DIR/versions/$CIRCLE_JOB/$CIRCLE_NODE_INDEX"' >> $BASH_ENV
+          # Wait for containers to start
+          - docker-wait:
+              port: *postgres_port
+          - docker-wait:
+              port: *presto_port
+          - docker-wait:
+              port: *mysql_port
+          - docker-wait:
+              port: *elasticsearch_port
+          - docker-wait:
+              port: *redis_port
+          - docker-wait:
+              port: *mongo_port
+          - docker-wait:
+              port: *memcached_port
+          - docker-wait:
+              port: *agent_port
           - *step_run_all_tests
           - store_test_results:
               path: /tmp/rspec
@@ -259,6 +284,20 @@ orbs:
                   echo "Please run 'bundle exec rake changelog:format' and commit the results."
                 fi
     commands:
+      docker-wait:
+        description: Wait for containers to listen on a TCP port.
+        parameters:
+          port:
+            description: TCP port the container is listening on.
+            type: integer
+          timeout:
+            description: How long to wait for the port to be responsive.
+            type: string
+            default: 1m
+        steps:
+          - run:
+              name: Wait for container on port <<parameters.port>>
+              command: dockerize -wait 'tcp://localhost:<<parameters.port>>' -timeout '<<parameters.timeout>>'
     executors:
 
 jobs:
