@@ -91,8 +91,7 @@ step_appraisal_install: &step_appraisal_install
   run:
     name: Install Appraisal gems
     command: |
-      bundle exec appraisal clean # Ensure we fetch the latest version of dependencies
-      bundle exec appraisal install
+      bundle exec appraisal update
 step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
