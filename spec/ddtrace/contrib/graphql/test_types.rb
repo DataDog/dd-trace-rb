@@ -55,6 +55,8 @@ RSpec.shared_context 'GraphQL class-based schema' do
   end
 end
 
+#  .define-style schema is deprecated and will be removed in
+# `graphql` 2.0: https://graphql-ruby.org/schema/class_based_api.html
 RSpec.shared_context 'GraphQL .define-style schema' do
   include_context 'GraphQL base schema types'
 
@@ -75,7 +77,7 @@ RSpec.shared_context 'GraphQL .define-style schema' do
       name qtn
       field ot.name.downcase do
         type ot
-        argument :id, !types.ID
+        argument :id, !GraphQL::Types::ID.graphql_definition
         description 'Find an object by ID'
         resolve ->(_obj, args, _ctx) { oc.new(args['id']) }
       end
@@ -87,10 +89,10 @@ RSpec.shared_context 'GraphQL .define-style schema' do
 
     ::GraphQL::ObjectType.define do
       name otn
-      field :id, !types.ID
-      field :name, types.String
-      field :created_at, !types.String
-      field :updated_at, !types.String
+      field :id, !GraphQL::Types::ID.graphql_definition
+      field :name, GraphQL::Types::String.graphql_definition
+      field :created_at, !GraphQL::Types::String.graphql_definition
+      field :updated_at, !GraphQL::Types::String.graphql_definition
     end
   end
 end
