@@ -358,6 +358,14 @@ RSpec.describe Datadog::Configuration do
       subject(:logger) { test_class.logger }
       it { is_expected.to be_a_kind_of(Datadog::Logger) }
       it { expect(logger.level).to be default_log_level }
+
+      context 'when components are not initialized' do
+        it 'does not cause them to be initialized' do
+          logger
+
+          expect(test_class.send(:components?)).to be false
+        end
+      end
     end
 
     describe '#runtime_metrics' do
@@ -397,7 +405,7 @@ RSpec.describe Datadog::Configuration do
       let!(:original_components) { test_class.send(:components) }
 
       it 'gracefully shuts down components' do
-        expect(test_class).to receive(:shutdown!)
+        expect(original_components).to receive(:shutdown!)
 
         reset!
       end
