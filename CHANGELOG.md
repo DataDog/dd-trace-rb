@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## [0.45.0] - 2021-01-26
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.45.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.44.0...v0.45.0
+
+### Added
+
+- Option to auto enable all instrumentations ([#1260][])
+- httpclient support ([#1311][]) ([@agrobbin][])
+
+### Changed
+
+- Promote request_queuing out of experimental ([#1320][])
+- Safeguards around distributed HTTP propagator ([#1304][])
+- Improvements to test integrations ([#1291][], [#1303][], [#1307][])
+
+### Refactored
+
+- Direct object_id lookup for ActiveRecord connections ([#1317][])
+- Avoid multiple parsing of Ethon URIs ([#1302][]) ([@callumj][])
+- Improvements to test suite & CI ([#1309][], [#1318][], [#1321][], [#1323][], [#1325][], [#1331][])
+- Improvements to documentation ([#1326][])
+
 ## [0.44.0] - 2021-01-06
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.44.0
@@ -1522,7 +1546,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.41.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.45.0...master
+[0.45.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.44.0...v0.45.0
 [0.44.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.43.0...v0.44.0
 [0.43.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.42.0...v0.43.0
 [0.41.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.40.0...v0.41.0
@@ -2089,6 +2114,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1248]: https://github.com/DataDog/dd-trace-rb/issues/1248
 [#1256]: https://github.com/DataDog/dd-trace-rb/issues/1256
 [#1257]: https://github.com/DataDog/dd-trace-rb/issues/1257
+[#1260]: https://github.com/DataDog/dd-trace-rb/issues/1260
 [#1262]: https://github.com/DataDog/dd-trace-rb/issues/1262
 [#1263]: https://github.com/DataDog/dd-trace-rb/issues/1263
 [#1264]: https://github.com/DataDog/dd-trace-rb/issues/1264
@@ -2110,12 +2136,27 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1286]: https://github.com/DataDog/dd-trace-rb/issues/1286
 [#1287]: https://github.com/DataDog/dd-trace-rb/issues/1287
 [#1289]: https://github.com/DataDog/dd-trace-rb/issues/1289
+[#1291]: https://github.com/DataDog/dd-trace-rb/issues/1291
 [#1293]: https://github.com/DataDog/dd-trace-rb/issues/1293
 [#1295]: https://github.com/DataDog/dd-trace-rb/issues/1295
 [#1296]: https://github.com/DataDog/dd-trace-rb/issues/1296
 [#1297]: https://github.com/DataDog/dd-trace-rb/issues/1297
 [#1298]: https://github.com/DataDog/dd-trace-rb/issues/1298
 [#1299]: https://github.com/DataDog/dd-trace-rb/issues/1299
+[#1302]: https://github.com/DataDog/dd-trace-rb/issues/1302
+[#1303]: https://github.com/DataDog/dd-trace-rb/issues/1303
+[#1304]: https://github.com/DataDog/dd-trace-rb/issues/1304
+[#1307]: https://github.com/DataDog/dd-trace-rb/issues/1307
+[#1309]: https://github.com/DataDog/dd-trace-rb/issues/1309
+[#1311]: https://github.com/DataDog/dd-trace-rb/issues/1311
+[#1317]: https://github.com/DataDog/dd-trace-rb/issues/1317
+[#1318]: https://github.com/DataDog/dd-trace-rb/issues/1318
+[#1320]: https://github.com/DataDog/dd-trace-rb/issues/1320
+[#1321]: https://github.com/DataDog/dd-trace-rb/issues/1321
+[#1323]: https://github.com/DataDog/dd-trace-rb/issues/1323
+[#1325]: https://github.com/DataDog/dd-trace-rb/issues/1325
+[#1326]: https://github.com/DataDog/dd-trace-rb/issues/1326
+[#1331]: https://github.com/DataDog/dd-trace-rb/issues/1331
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
 [@DocX]: https://github.com/DocX
@@ -2132,6 +2173,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@Yurokle]: https://github.com/Yurokle
 [@ZimbiX]: https://github.com/ZimbiX
 [@agirlnamedsophia]: https://github.com/agirlnamedsophia
+[@agrobbin]: https://github.com/agrobbin
 [@ahammel]: https://github.com/ahammel
 [@al-kudryavtsev]: https://github.com/al-kudryavtsev
 [@alksl]: https://github.com/alksl
