@@ -34,6 +34,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'msgpack'
+  spec.add_dependency 'concurrent-ruby'
 
   # Optional extensions
   # TODO: Move this to Appraisals?
