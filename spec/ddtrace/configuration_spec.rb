@@ -421,5 +421,44 @@ RSpec.describe Datadog::Configuration do
         expect(test_class.send(:components)).to_not be(original_components)
       end
     end
+
+    describe '#safely_synchronize' do
+      it 'runs the given block while holding the COMPONENTS_LOCK' do
+        block_ran = false
+
+        test_class.send(:safely_synchronize) do
+          block_ran = true
+          expect(described_class.const_get(:COMPONENTS_LOCK)).to be_owned
+        end
+
+        expect(block_ran).to be true
+      end
+
+      it 'returns the value of the given block' do
+        expect(test_class.send(:safely_synchronize) { :returned_value }).to be :returned_value
+      end
+
+      context 'when recursive execution triggers a deadlock' do
+        subject(:safely_synchronize) { test_class.send(:safely_synchronize) { test_class.send(:safely_synchronize) } }
+
+        before do
+          allow(test_class.send(:logger_without_components)).to receive(:warn)
+        end
+
+        it 'logs an error' do
+          expect(test_class.send(:logger_without_components)).to receive(:warn).with(/Detected deadlock/)
+
+          safely_synchronize
+        end
+
+        it 'does not let the exception propagate' do
+          expect { safely_synchronize }.to_not raise_error
+        end
+
+        it 'returns nil' do
+          expect(safely_synchronize).to be nil
+        end
+      end
+    end
   end
 end
