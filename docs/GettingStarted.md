@@ -145,7 +145,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
 ### Quickstart for Rails applications
 
-#### Rails Auto Instrument all Integrations
+#### Automatic instrumentation
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -158,7 +158,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
 3. You can configure, override, or disable any specific integration settings by also adding a [Rails Manual Configuration](#rails-manual-configuration) file.
 
-#### Rails Manual Configuration
+#### Manual instrumentation
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -181,7 +181,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
 ### Quickstart for Ruby applications
 
-#### Ruby Auto Instrument all Integrations
+#### Automatic instrumentation
 
 1. Install the gem with `gem install ddtrace`
 2. Requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented. 
@@ -198,7 +198,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
  
     You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).
 
-#### Ruby Manual Configuration
+#### Manual instrumentation
 
 1. Install the gem with `gem install ddtrace`
 2. Add a configuration block to your Ruby application:
