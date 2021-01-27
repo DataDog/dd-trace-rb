@@ -12,21 +12,10 @@ module Datadog
       # the thread ID, clock ID, and CPU time.
       module CThread
         extend FFI::Library
+
         ffi_lib 'ruby', 'pthread'
         attach_function :rb_nativethread_self, [], :ulong
         attach_function :pthread_getcpuclockid, [:ulong, CClockId], :int
-
-        def self.prepended(base)
-          # Threads that have already been created, will not have resolved
-          # a thread/clock ID. This is because these IDs can only be resolved
-          # from within the thread's execution context, which we do not control.
-          #
-          # We can mitigate this for the current thread via #update_native_ids,
-          # since we are currently running within its execution context. We cannot
-          # do this for any other threads that may have been created already.
-          # (This is why it's important that CThread is applied before anything else runs.)
-          base.current.send(:update_native_ids) if base.current.is_a?(CThread)
-        end
 
         attr_reader \
           :native_thread_id
