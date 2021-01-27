@@ -18,7 +18,8 @@ module Datadog
     # Note that a Mutex **IS NOT** reentrant: the same thread cannot grab the same Mutex more than once.
     # This means below we are careful not to nest calls to methods that grab the lock.
     #
-    # Every method that directly or indirectly accesses/mutates @components should be holding the lock while doing so.
+    # Every method that directly or indirectly accesses/mutates @components should be holding the lock (through
+    # #safely_synchronize) while doing so.
     COMPONENTS_LOCK = Mutex.new
     private_constant :COMPONENTS_LOCK
 
@@ -32,7 +33,7 @@ module Datadog
       if target.is_a?(Settings)
         yield(target) if block_given?
 
-        COMPONENTS_LOCK.synchronize do
+        safely_synchronize do
           # Build immutable components from settings
           @components ||= nil
           @components = if @components
@@ -63,14 +64,7 @@ module Datadog
         @temp_logger = nil
         current_components.logger
       else
-        # Use default logger without initializing components.
-        # This prevents recursive loops while initializing.
-        # e.g. Get logger --> Build components --> Log message --> Repeat...
-        @temp_logger ||= begin
-          logger = configuration.logger.instance || Datadog::Logger.new(STDOUT)
-          logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
-          logger
-        end
+        logger_without_components
       end
     end
 
@@ -84,7 +78,7 @@ module Datadog
     #
     # Components won't be automatically reinitialized after a shutdown.
     def shutdown!
-      COMPONENTS_LOCK.synchronize do
+      safely_synchronize do
         @components.shutdown! if components?
       end
     end
@@ -95,7 +89,7 @@ module Datadog
     # In contrast with +#shutdown!+, components will be automatically
     # reinitialized after a reset.
     def reset!
-      COMPONENTS_LOCK.synchronize do
+      safely_synchronize do
         @components.shutdown! if components?
         @components = nil
       end
@@ -104,12 +98,27 @@ module Datadog
     protected
 
     def components
-      COMPONENTS_LOCK.synchronize do
+      safely_synchronize do
         @components ||= build_components(configuration)
       end
     end
 
     private
+
+    def safely_synchronize
+      COMPONENTS_LOCK.synchronize do
+        begin
+          yield
+        rescue ThreadError => e
+          logger_without_components.warn(
+            'Detected deadlock during ddtrace initialization. ' \
+            'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
+            "\n\tSource:\n\t#{e.backtrace.join("\n\t")}"
+          )
+          nil
+        end
+      end
+    end
 
     def components?
       # This does not need to grab the COMPONENTS_LOCK because it's not returning the components
@@ -128,6 +137,17 @@ module Datadog
       old.shutdown!(components)
       components.startup!(settings)
       components
+    end
+
+    def logger_without_components
+      # Use default logger without initializing components.
+      # This prevents recursive loops while initializing.
+      # e.g. Get logger --> Build components --> Log message --> Repeat...
+      @temp_logger ||= begin
+        logger = configuration.logger.instance || Datadog::Logger.new(STDOUT)
+        logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
+        logger
+      end
     end
   end
 end
