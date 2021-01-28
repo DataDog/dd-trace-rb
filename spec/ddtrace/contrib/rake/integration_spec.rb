@@ -24,8 +24,8 @@ RSpec.describe Datadog::Contrib::Rake::Integration do
   describe '.loaded?' do
     subject(:loaded?) { described_class.loaded? }
 
-    context 'when Rake is defined' do
-      before { stub_const('Rake', Class.new) }
+    context 'when Rake::Task is defined' do
+      before { stub_const('Rake::Task', Class.new) }
       it { is_expected.to be true }
     end
 
@@ -54,6 +54,11 @@ RSpec.describe Datadog::Contrib::Rake::Integration do
       include_context 'loaded gems', rake: nil
       it { is_expected.to be false }
     end
+  end
+
+  describe '#auto_instrument?' do
+    subject(:auto_instrument?) { integration.auto_instrument? }
+    it { is_expected.to be(true) }
   end
 
   describe '#default_configuration' do

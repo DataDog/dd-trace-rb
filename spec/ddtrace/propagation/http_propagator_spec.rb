@@ -17,18 +17,22 @@ RSpec.describe Datadog::HTTPPropagator do
     let(:context) { nil }
     let(:env) { { 'something' => 'alien' } }
 
-    before(:each) { described_class.inject!(context, env) }
+    subject(:inject!) { described_class.inject!(context, env) }
 
     context 'with default settings' do
       context 'given a nil context' do
-        it { expect(env).to eq('something' => 'alien') }
+        it do
+          inject!
+          expect(env).to eq('something' => 'alien')
+        end
       end
 
       context 'given a context and env' do
-        context 'without any explicit sampling priority or origin' do
-          let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000) }
+        let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000) }
 
+        context 'without any explicit sampling priority or origin' do
           it do
+            inject!
             expect(env).to eq('something' => 'alien',
                               'x-datadog-trace-id' => '1000',
                               'x-datadog-parent-id' => '2000')
@@ -36,6 +40,8 @@ RSpec.describe Datadog::HTTPPropagator do
         end
 
         context 'with a sampling priority' do
+          before { inject! }
+
           context 'of 0' do
             let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, sampling_priority: 0) }
 
@@ -59,6 +65,8 @@ RSpec.describe Datadog::HTTPPropagator do
         end
 
         context 'with an origin' do
+          before { inject! }
+
           context 'of "synthetics"' do
             let(:context) { Datadog::Context.new(trace_id: 1000, span_id: 2000, origin: 'synthetics') }
 
@@ -78,6 +86,22 @@ RSpec.describe Datadog::HTTPPropagator do
                                 'x-datadog-trace-id' => '1000',
                                 'x-datadog-parent-id' => '2000')
             end
+          end
+        end
+
+        context 'with a failing propagator' do
+          let(:error) { StandardError.new('test_err').tap { |e| e.set_backtrace('caller:1') } }
+
+          before do
+            allow(::Datadog::DistributedTracing::Headers::Datadog).to receive(:inject!).and_raise(error)
+            allow(Datadog.logger).to receive(:error)
+          end
+
+          it do
+            inject!
+
+            expect(env).to_not include('x-datadog-trace-id' => '1000', 'x-datadog-parent-id' => '2000')
+            expect(Datadog.logger).to have_received(:error).with(/Cause: test_err Location: caller:1/)
           end
         end
       end
@@ -250,7 +274,7 @@ RSpec.describe Datadog::HTTPPropagator do
               'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '1',
               'HTTP_X_B3_TRACEID' => '00ef01',
               'HTTP_X_B3_SPANID' => '011ef0',
-              'HTTP_X_B3_SAMPLED' => '1'
+              'HTTP_X_B3_SAMPLED' => '0'
             }
           end
 
@@ -258,6 +282,26 @@ RSpec.describe Datadog::HTTPPropagator do
             expect(context.trace_id).to eq(61185)
             expect(context.span_id).to eq(73456)
             expect(context.sampling_priority).to eq(1)
+          end
+
+          context 'with a failing propagator (Datadog)' do
+            let(:error) { StandardError.new('test_err').tap { |e| e.set_backtrace('caller:1') } }
+
+            before do
+              allow(::Datadog::DistributedTracing::Headers::Datadog).to receive(:extract).and_raise(error)
+              allow(Datadog.logger).to receive(:error)
+            end
+
+            it 'does not propagate error to caller' do
+              context
+              expect(Datadog.logger).to have_received(:error).with(/Cause: test_err Location: caller:1/)
+            end
+
+            it 'extracts values from non-failing propagator (B3)' do
+              expect(context.trace_id).to eq(61185)
+              expect(context.span_id).to eq(73456)
+              expect(context.sampling_priority).to eq(0)
+            end
           end
         end
 

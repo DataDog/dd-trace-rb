@@ -166,6 +166,7 @@ RSpec.describe Datadog::Buffer do
     end
   end
 
+  # :nocov:
   describe 'performance' do
     require 'benchmark'
     let(:n) { 10_000 }
@@ -279,6 +280,7 @@ RSpec.describe Datadog::Buffer do
       end
     end
   end
+  # :nocov:
 end
 
 RSpec.describe Datadog::TraceBuffer do
@@ -593,6 +595,7 @@ RSpec.shared_examples 'trace buffer' do
   end
 end
 
+# :nocov:
 RSpec.shared_examples 'performance' do
   subject(:buffer) { described_class.new(max_size) }
   let(:max_size) { 0 }
@@ -713,6 +716,7 @@ RSpec.shared_examples 'performance' do
     end
   end
 end
+# :nocov:
 
 RSpec.describe Datadog::ThreadSafeBuffer do
   it_behaves_like 'thread-safe buffer'

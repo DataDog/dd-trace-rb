@@ -151,9 +151,9 @@ To get started quickly, it's perfectly fine to copy-paste an existing integratio
 
 Once you have it working in your application, you can [add unit tests](#writing-tests), [run them locally](#running-tests), and [check for code quality](#checking-code-quality) using Docker Compose.
 
-Then [open a pull request](https://github.com/DataDog/dd-trace-rb/CONTRIBUTING.md#have-a-patch) and be sure to add the following to the description:
+Then [open a pull request](../CONTRIBUTING.md#have-a-patch) and be sure to add the following to the description:
 
- - [Documentation](https://github.com/DataDog/dd-trace-rb/docs/GettingStarted.md) for the integration, including versions supported.
+ - [Documentation](./GettingStarted.md) for the integration, including versions supported.
  - Links to the repository/website of the library being integrated
  - Screenshots showing a sample trace
  - Any additional code snippets, sample apps, benchmarks, or other resources that demonstrate its implementation are a huge plus!

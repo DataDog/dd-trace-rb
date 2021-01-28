@@ -42,16 +42,27 @@ module Datadog
 
         def patch
           if !self.class.patchable? || patcher.nil?
-            desc = "Available?: #{self.class.available?}"
-            desc += ", Loaded? #{self.class.loaded?}"
-            desc += ", Compatible? #{self.class.compatible?}"
-            desc += ", Patchable? #{self.class.patchable?}"
-
-            Datadog.logger.warn("Unable to patch #{self.class.name} (#{desc})")
-            return
+            return {
+              name: self.class.name,
+              available: self.class.available?,
+              loaded: self.class.loaded?,
+              compatible: self.class.compatible?,
+              patchable: self.class.patchable?
+            }
           end
 
           patcher.patch
+          true
+        end
+
+        # Can the patch for this integration be applied automatically?
+        # For example: test integrations should only be applied
+        # by the user explicitly setting `c.use :rspec`
+        # and rails sub-modules are auto-instrumented by enabling rails
+        # so auto-instrumenting them on their own will cause changes in
+        # service naming behavior
+        def auto_instrument?
+          true
         end
       end
     end

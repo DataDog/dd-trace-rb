@@ -41,7 +41,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
             it 'configures & patches the integration' do
               expect(integration).to receive(:configure).with(:default, any_args)
-              expect(integration).to receive(:patch)
+              expect(integration).to receive(:patch).and_call_original
               configure
             end
           end
@@ -51,7 +51,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
             it 'configures & patches the integration' do
               expect(integration).to receive(:configure).with(:default, any_args)
-              expect(integration).to receive(:patch)
+              expect(integration).to receive(:patch).and_call_original
               configure
             end
           end

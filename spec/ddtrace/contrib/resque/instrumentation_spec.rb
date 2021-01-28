@@ -71,9 +71,6 @@ RSpec.describe 'Resque instrumentation' do
         expect(job_class).to receive(:perform) do
           raise error_class, error_message
         end
-
-        # Perform it
-        perform_job(job_class)
       end
 
       let(:error_class_name) { 'TestJobFailError' }
@@ -81,6 +78,7 @@ RSpec.describe 'Resque instrumentation' do
       let(:error_message) { 'TestJob failed' }
 
       it 'is traced' do
+        perform_job(job_class)
         expect(spans).to have(1).items
         expect(Resque::Failure.count).to eq(1)
         expect(Resque::Failure.all['error']).to eq(error_message)
@@ -91,6 +89,16 @@ RSpec.describe 'Resque instrumentation' do
         expect(span).to have_error_message(error_message)
         expect(span).to have_error
         expect(span).to have_error_type(error_class_name)
+      end
+
+      context 'with custom error handler' do
+        let(:configuration_options) { { error_handler: error_handler } }
+        let(:error_handler) { proc {} }
+
+        it 'uses custom error handler' do
+          expect(error_handler).to receive(:call)
+          perform_job(job_class)
+        end
       end
     end
   end

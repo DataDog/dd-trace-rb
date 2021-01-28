@@ -18,7 +18,7 @@ module Datadog
         end
 
         def self.loaded?
-          !defined?(::Rake).nil?
+          !defined?(::Rake::Task).nil?
         end
 
         def self.compatible?

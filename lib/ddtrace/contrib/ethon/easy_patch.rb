@@ -99,7 +99,7 @@ module Datadog
 
           def datadog_tag_request
             span = @datadog_span
-            method = 'N/A'
+            method = Ext::NOT_APPLICABLE_METHOD
             if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
               method = @datadog_method.to_s
             end
@@ -109,11 +109,12 @@ module Datadog
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-            return unless uri
-            span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
+            this_uri = uri
+            return unless this_uri
+            span.set_tag(Datadog::Ext::HTTP::URL, this_uri.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, method)
-            span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
-            span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
+            span.set_tag(Datadog::Ext::NET::TARGET_HOST, this_uri.host)
+            span.set_tag(Datadog::Ext::NET::TARGET_PORT, this_uri.port)
           end
 
           def set_span_error_message(message)
