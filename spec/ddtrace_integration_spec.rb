@@ -21,7 +21,7 @@ RSpec.describe 'ddtrace integration' do
         Thread.list.count
       end
 
-      it 'closes tracer file descriptors' do
+      it 'closes tracer threads' do
         try_wait_until { thread_count > original_thread_count }
 
         shutdown
