@@ -33,7 +33,12 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'msgpack'
+  if RUBY_VERSION >= '2.2.0'
+    spec.add_dependency 'msgpack'
+  else
+    # msgpack 1.4 fails for Ruby 2.0 and 2.1: https://github.com/msgpack/msgpack-ruby/issues/205
+    spec.add_dependency 'msgpack', '< 1.4'
+  end
 
   # Optional extensions
   # TODO: Move this to Appraisals?
