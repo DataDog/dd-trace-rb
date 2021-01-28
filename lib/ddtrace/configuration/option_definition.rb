@@ -71,8 +71,6 @@ module Datadog
           @helpers[name] = block
         end
 
-        # rubocop:disable Style/TrivialAccessors
-        # (Rubocop erroneously thinks #lazy == #lazy= )
         def lazy(value = true)
           @lazy = value
         end
