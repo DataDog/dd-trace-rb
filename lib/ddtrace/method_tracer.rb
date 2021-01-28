@@ -55,19 +55,21 @@ module Datadog
       private_constant :OPERATION_NAME
 
       def trace_methods(klass, *method_names)
-        method_names.each { |method_name| instrument_method(klass, method_name) }
+        method_names.each { |method_name| instrument_method(method_name) }
         prepend_container(klass)
       end
 
       def trace_singleton_methods(klass, *method_names)
-        method_names.each { |method_name| instrument_singleton_method(klass, method_name) }
+        method_names.each { |method_name| instrument_singleton_method(method_name) }
         prepend_container(klass)
       end
 
       private
 
-      def instrument_method(klass, method)
-        Container.create_method(method) do |*args, &block|
+      def instrument_method(method)
+        return if Container.method_defined? method
+
+        Container.send(:define_method, method) do |*args, &block|
           active_span = Datadog.tracer.active_span
           service = active_span ? active_span.service : Datadog.tracer.default_service
 
@@ -80,8 +82,10 @@ module Datadog
         end
       end
 
-      def instrument_singleton_method(klass, method)
-        Container::ClassMethods.create_method(method) do |*args, &block|
+      def instrument_singleton_method(method)
+        return if Container::ClassMethods.method_defined? method
+
+        Container::ClassMethods.send(:define_method, method) do |*args, &block|
           active_span = Datadog.tracer.active_span
           service = active_span ? active_span.service : Datadog.tracer.default_service
 
@@ -100,17 +104,7 @@ module Datadog
 
       # Not so private, Container holds all dynamically created methods
       module Container
-        # This trick is required in order to work with singleton methods
-        module ClassMethods
-          # Unfortunately is private for ruby 2.4 and below
-          def self.create_method(name, &block)
-            define_method(name, &block)
-          end
-        end
-
-        def self.create_method(name, &block)
-          define_method(name, &block)
-        end
+        module ClassMethods; end
 
         def self.prepended(base)
           class << base
