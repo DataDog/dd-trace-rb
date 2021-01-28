@@ -442,11 +442,11 @@ RSpec.describe Datadog::Configuration do
         subject(:safely_synchronize) { test_class.send(:safely_synchronize) { test_class.send(:safely_synchronize) } }
 
         before do
-          allow(test_class.send(:logger_without_components)).to receive(:warn)
+          allow(test_class.send(:logger_without_components)).to receive(:error)
         end
 
         it 'logs an error' do
-          expect(test_class.send(:logger_without_components)).to receive(:warn).with(/Detected deadlock/)
+          expect(test_class.send(:logger_without_components)).to receive(:error).with(/Detected deadlock/)
 
           safely_synchronize
         end
