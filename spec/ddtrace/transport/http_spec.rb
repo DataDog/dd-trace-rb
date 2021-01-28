@@ -41,7 +41,7 @@ RSpec.describe Datadog::Transport::HTTP do
         ]
       )
 
-      default.apis.each do |_key, api|
+      default.apis.each_value do |api|
         expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
         expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
         expect(api.adapter.hostname).to eq(described_class.default_hostname)
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Transport::HTTP do
             ]
           )
 
-          default.apis.each do |_key, api|
+          default.apis.each_value do |api|
             expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
             expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(described_class.default_hostname)
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Transport::HTTP do
         let(:port) { double('port') }
 
         it 'returns an HTTP transport with default configuration' do
-          default.apis.each do |_key, api|
+          default.apis.each_value do |api|
             expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(hostname)
             expect(api.adapter.port).to eq(port)
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Transport::HTTP do
         let(:headers) { { 'Test-Header' => 'foo' } }
 
         it do
-          default.apis.each do |_key, api|
+          default.apis.each_value do |api|
             expect(api.headers).to include(described_class.default_headers)
             expect(api.headers).to include(headers)
           end

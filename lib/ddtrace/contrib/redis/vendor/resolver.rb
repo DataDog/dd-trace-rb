@@ -56,7 +56,7 @@ module Datadog
             defaults = DEFAULTS.dup
             options = options.dup
 
-            defaults.keys.each do |key|
+            defaults.each_key do |key|
               # Fill in defaults if needed
               if defaults[key].respond_to?(:call)
                 defaults[key] = defaults[key].call
@@ -90,7 +90,7 @@ module Datadog
             end
 
             # Use default when option is not specified or nil
-            defaults.keys.each do |key|
+            defaults.each_key do |key|
               options[key] = defaults[key] if options[key].nil?
             end
 

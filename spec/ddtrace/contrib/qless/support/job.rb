@@ -52,7 +52,7 @@ RSpec.shared_context 'Qless job' do
   end
 
   def delete_all_redis_keys
-    client.redis.keys.each { |k| client.redis.del k }
+    client.redis.each_key { |k| client.redis.del k }
   end
 
   let(:job_class) do
