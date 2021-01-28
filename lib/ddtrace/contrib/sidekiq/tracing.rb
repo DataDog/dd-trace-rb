@@ -25,6 +25,7 @@ module Datadog
           else
             job['class'].to_s
           end
+        # rubocop:disable Lint/RescueWithoutErrorClass
         rescue => e
           Datadog.logger.debug { "Error retrieving Sidekiq job class name (jid:#{job['jid']}): #{e}" }
 

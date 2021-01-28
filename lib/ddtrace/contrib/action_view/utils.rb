@@ -23,6 +23,7 @@ module Datadog
           else
             sections_view[-1]
           end
+        # rubocop:disable Lint/RescueWithoutErrorClass
         rescue
           return name.to_s
         end

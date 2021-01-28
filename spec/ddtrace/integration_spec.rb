@@ -265,6 +265,7 @@ RSpec.describe 'Tracer integration tests' do
 
         # Kill the process
         write.close
+        # rubocop:disable Lint/RescueWithoutErrorClass
         Process.kill('TERM', fork_id) rescue nil
 
         # Read and return any output

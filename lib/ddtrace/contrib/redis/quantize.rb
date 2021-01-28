@@ -29,6 +29,7 @@ module Datadog
           str = arg.is_a?(Symbol) ? arg.to_s.upcase : arg.to_s
           str = Utils.utf8_encode(str, binary: true, placeholder: PLACEHOLDER)
           Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
+        # rubocop:disable Lint/RescueWithoutErrorClass
         rescue => e
           Datadog.logger.debug("non formattable Redis arg #{str}: #{e}")
           PLACEHOLDER

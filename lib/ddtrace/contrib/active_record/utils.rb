@@ -66,6 +66,7 @@ module Datadog
             # extensions that might have their own connection
             # pool (e.g. https://rubygems.org/gems/makara).
             ObjectSpace._id2ref(connection_id)
+          # rubocop:disable Lint/RescueWithoutErrorClass
           rescue => e
             # Because `connection_id` references a live connection
             # present in the current stack, it is very unlikely that
