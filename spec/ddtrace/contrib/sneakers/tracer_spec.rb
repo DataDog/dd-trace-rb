@@ -27,8 +27,8 @@ end
 RSpec.describe Datadog::Contrib::Sneakers::Tracer do
   let(:sneakers_tracer) { described_class.new }
   let(:configuration_options) { {} }
-  let(:queue) { double() }
-  let(:exchange) { double() }
+  let(:queue) { double }
+  let(:exchange) { double }
 
   before do
     allow(queue).to receive(:name).and_return(queue_name)
@@ -59,10 +59,10 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
       worker.do_work(delivery_info, metadata, message, handler)
     end
 
-    let(:delivery_info) { double() }
+    let(:delivery_info) { double }
     let(:message) { Sneakers::ContentType.deserialize('{"foo":"bar"}', 'application/json') }
     let(:handler) { Object.new }
-    let(:metadata) { double() }
+    let(:metadata) { double }
     let(:routing_key) { 'something' }
     let(:consumer) { double('Consumer') }
 

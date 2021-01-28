@@ -27,7 +27,7 @@ end
 # MySQL JDBC drivers require that, otherwise we get a
 # "Table '?' already exists" error
 begin
-  Article.count()
+  Article.count
 rescue ActiveRecord::StatementInvalid
   logger.info 'Executing database migrations'
   ActiveRecord::Schema.define(version: 20161003090450) do
@@ -42,4 +42,4 @@ else
 end
 
 # force an access to prevent extra spans during tests
-Article.count()
+Article.count

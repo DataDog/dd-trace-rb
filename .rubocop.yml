@@ -37,9 +37,6 @@ Performance/Casecmp:
 Style/AccessorMethodName:
   Enabled: false
 
-Style/MethodCallWithoutArgsParentheses:
-  Enabled: false
-
 Style/RescueModifier:
   Enabled: false
 
