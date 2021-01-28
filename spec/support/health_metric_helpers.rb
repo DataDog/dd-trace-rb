@@ -44,7 +44,7 @@ module HealthMetricHelpers
     include_context 'metrics'
 
     let(:health_metrics) { Datadog.health_metrics }
-    before { METRICS.eack_key { |metric| allow(health_metrics).to receive(metric) } }
+    before { METRICS.each_key { |metric| allow(health_metrics).to receive(metric) } }
 
     def have_received_lazy_health_metric(metric, *expected_args)
       have_received(metric) do |&block|
