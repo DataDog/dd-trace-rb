@@ -179,7 +179,12 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      subject { client.get('/error') rescue nil }
+      subject do
+        begin
+          client.get('/error')
+        rescue Faraday::ConnectionFailed
+        end
+      end
     end
   end
 
