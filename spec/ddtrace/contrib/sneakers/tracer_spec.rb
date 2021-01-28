@@ -9,7 +9,7 @@ class MiddlewareWorker
 
   from_queue 'middleware-demo', ack: false
 
-  def work_with_params(msg, delivery_info, metadata)
+  def work_with_params(msg, _delivery_info, _metadata)
     msg
   end
 end
@@ -19,7 +19,7 @@ class FailingMiddlewareWorker
 
   from_queue 'failing-middleware-demo', ack: false
 
-  def work_with_params(msg, delivery_info, metadata)
+  def work_with_params(_msg, _delivery_info, _metadata)
     raise ZeroDivisionError, 'failed'
   end
 end

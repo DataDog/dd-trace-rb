@@ -112,7 +112,7 @@ RSpec.describe Datadog::Pin do
             @custom_attribute
           end
 
-          def datadog_pin=(pin)
+          def datadog_pin=(_pin)
             @custom_attribute = 'The PIN is set!'
           end
         end

@@ -162,7 +162,7 @@ end
 require 'active_support/ordered_options'
 module ActiveSupport
   class OrderedOptions
-    def respond_to?(*args)
+    def respond_to?(*_args)
       true
     end
   end
