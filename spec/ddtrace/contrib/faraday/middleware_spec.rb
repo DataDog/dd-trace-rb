@@ -183,6 +183,7 @@ RSpec.describe 'Faraday middleware' do
         begin
           client.get('/error')
         rescue Faraday::ConnectionFailed
+          nil
         end
       end
     end
