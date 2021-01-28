@@ -109,7 +109,7 @@ module Datadog
         begin
           yield
         rescue ThreadError => e
-          logger_without_components.warn(
+          logger_without_components.error(
             'Detected deadlock during ddtrace initialization. ' \
             'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
             "\n\tSource:\n\t#{e.backtrace.join("\n\t")}"
