@@ -20,7 +20,7 @@ module Datadog
     end
 
     def instrumentation
-      @_instrumentation ||= Instrumentation.new
+      @dd_instrumentation ||= Instrumentation.new
     end
 
     # \Mixin adds helpers for unobtrusive methods tracking.
