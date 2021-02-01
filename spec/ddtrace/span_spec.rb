@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'ddtrace/ext/forced_tracing'
 require 'ddtrace/span'
+require 'ddtrace/utils'
 
 require 'json'
 require 'msgpack'
@@ -11,6 +12,14 @@ RSpec.describe Datadog::Span do
   let(:context) { Datadog::Context.new }
   let(:name) { 'my.span' }
   let(:span_options) { {} }
+
+  before(:each) do
+    Datadog.configure
+  end
+
+  after(:each) do
+    Datadog.configuration.reset!
+  end
 
   context 'ids' do
     it do
@@ -178,15 +187,16 @@ RSpec.describe Datadog::Span do
 
   describe '#duration' do
     subject(:duration) { span.duration }
+    let(:duration_wall_time) { 0.0001 }
 
     context 'without start or end time provided' do
       let(:static_time) { Time.new('2010-09-16 00:03:15 +0200') }
 
       before do
-        # We set the same time no matte what.
+        # We set the same time no matter what.
         # If duration is greater than zero but start_time == end_time, we can
         # be sure we're using the monotonic time.
-        allow(Time).to receive(:now)
+        allow(Datadog::Utils::Time).to receive(:now)
           .and_return(static_time)
       end
 
@@ -210,14 +220,26 @@ RSpec.describe Datadog::Span do
       # set a start time considerably longer than span duration
       # set a day in the past and then measure duration is longer than
       # amount of time slept, which would represent monotonic
-      let(:start_time) { Time.now - (3600 * 24) }
+      let!(:start_time) { Time.now - (duration_wall_time * 1e9) }
 
       it 'does not use monotonic time' do
         span.start(start_time)
-        sleep(0.0001)
+        sleep(duration_wall_time)
         span.finish
 
-        expect((subject.to_f * 1e9).to_i).to be >= 3600
+        expect(subject).to be_within(1).of(duration_wall_time * 1e9)
+      end
+
+      context 'and end_time provided' do
+        let(:end_time) { start_time + 123.456 }
+
+        it 'respects the exact times provided' do
+          span.start(start_time)
+          sleep(duration_wall_time)
+          span.finish(end_time)
+
+          expect(subject).to eq(123.456)
+        end
       end
     end
 
@@ -225,14 +247,34 @@ RSpec.describe Datadog::Span do
       # set an end time considerably ahead of than span duration
       # set a day in the future and then measure duration is longer than
       # amount of time slept, which would represent monotonic
-      let(:end_time) { Time.now + (3600 * 24) }
+      let!(:end_time) { Time.now + (duration_wall_time * 1e9) }
 
       it 'does not use monotonic time' do
         span.start
-        sleep(0.0001)
+        sleep(duration_wall_time)
         span.finish(end_time)
 
-        expect((subject.to_f * 1e9).to_i).to be >= 3600
+        expect(subject).to be_within(1).of(duration_wall_time * 1e9)
+      end
+    end
+
+    context 'with time_provider set' do
+      before(:each) do
+        now = time_now # Expose variable to closure
+        Datadog.configure do |c|
+          c.time_now_provider = -> { now }
+        end
+      end
+
+      after(:each) { Datadog.configuration.reset! }
+
+      let(:time_now) { ::Time.new(2020, 1, 1) }
+
+      it 'sets the start time to the provider time' do
+        span.start
+        span.finish
+
+        expect(span.start_time).to eq(time_now)
       end
     end
   end

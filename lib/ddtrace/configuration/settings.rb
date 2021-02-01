@@ -206,6 +206,22 @@ module Datadog
         o.lazy
       end
 
+      option :time_now_provider do |o|
+        o.default { ::Time.now }
+
+        o.on_set do |time_provider|
+          Utils::Time.now_provider = time_provider
+        end
+
+        o.resetter do |_value|
+          # TODO: Resetter needs access to the default value
+          # TODO: to help reduce duplication.
+          -> { ::Time.now }.tap do |default|
+            Utils::Time.now_provider = default
+          end
+        end
+      end
+
       settings :tracer do
         option :enabled do |o|
           o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED, true) }
