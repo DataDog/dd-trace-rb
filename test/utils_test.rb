@@ -13,7 +13,7 @@ class UtilsTest < Minitest::Test
     threads = []
     n.times do |_i|
       thread = Thread.new do
-        r = Datadog::Utils.next_id()
+        r = Datadog::Utils.next_id
         mutex.synchronize do
           @numbers[r] = true
         end
@@ -28,7 +28,7 @@ class UtilsTest < Minitest::Test
   end
 
   def test_rand_no_side_effect
-    tracer = get_test_tracer()
+    tracer = get_test_tracer
 
     srand 1234
     tracer.trace('random') do # this creates span, so calls our PRNG

@@ -18,7 +18,7 @@ RSpec.describe 'Grape instrumentation' do
 
   let(:testing_api) do
     # patch Grape before the application
-    Datadog::Contrib::Grape::Patcher.patch()
+    Datadog::Contrib::Grape::Patcher.patch
 
     stub_const('TestingAPI', Class.new(Grape::API) do
       namespace :base do
@@ -84,7 +84,7 @@ RSpec.describe 'Grape instrumentation' do
 
   let(:rack_testing_api) do
     # patch Grape before the application
-    Datadog::Contrib::Grape::Patcher.patch()
+    Datadog::Contrib::Grape::Patcher.patch
 
     stub_const('RackTestingAPI', Class.new(Grape::API) do
       desc 'Returns a success message'

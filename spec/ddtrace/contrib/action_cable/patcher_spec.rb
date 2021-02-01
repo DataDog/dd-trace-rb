@@ -126,7 +126,7 @@ RSpec.describe 'ActionCable patcher' do
       let(:data) { { 'action' => 'foo', 'extra' => 'data' } }
       let(:channel_class) do
         stub_const('ChatChannel', Class.new(ActionCable::Channel::Base) do
-          def foo(data)
+          def foo(_data)
             transmit({ mock: 'data' }, via: 'streamed from chat_channel')
           end
         end)

@@ -294,6 +294,7 @@ module Datadog
           if (on_error_handler = options[:on_error]) && on_error_handler.respond_to?(:call)
             begin
               on_error_handler.call(span, e)
+            # rubocop:disable Lint/RescueWithoutErrorClass
             rescue
               Datadog.logger.debug('Custom on_error handler failed, falling back to default')
               DEFAULT_ON_ERROR.call(span, e)

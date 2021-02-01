@@ -33,6 +33,7 @@ module Datadog
 
         def patch_middleware_names
           retain_middleware_name(get_option(:application))
+        # rubocop:disable Lint/RescueWithoutErrorClass
         rescue => e
           # We can safely ignore these exceptions since they happen only in the
           # context of middleware patching outside a Rails server process (eg. a

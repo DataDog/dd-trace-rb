@@ -19,7 +19,7 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   end
   let(:error_job_class) do
     stub_const('ErrorJobClass', Class.new(::Que::Job) do
-      def run(*args)
+      def run(*_args)
         raise StandardError, 'with some error'
       end
     end)

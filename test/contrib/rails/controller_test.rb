@@ -181,7 +181,7 @@ class TracingControllerTest < ActionController::TestCase
     err = false
     begin
       get :error
-    rescue
+    rescue ZeroDivisionError
       err = true
     end
     assert_equal(true, err, 'should have raised an error')
@@ -198,7 +198,7 @@ class TracingControllerTest < ActionController::TestCase
     err = false
     begin
       get :not_found
-    rescue
+    rescue ActionController::RoutingError
       err = true
     end
     assert_equal(true, err, 'should have raised an error')

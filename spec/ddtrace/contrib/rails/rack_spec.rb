@@ -33,8 +33,6 @@ RSpec.describe 'Rails Rack' do
       def full
         @value = ::Rails.cache.write('empty-key', 50)
         render 'full'
-      rescue => e
-        puts e
       end
 
       def error

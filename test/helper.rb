@@ -94,8 +94,8 @@ def get_test_traces(n)
   }
 
   n.times do
-    span1 = Datadog::Span.new(nil, 'client.testing', defaults).finish()
-    span2 = Datadog::Span.new(nil, 'client.testing', defaults).finish()
+    span1 = Datadog::Span.new(nil, 'client.testing', defaults).finish
+    span2 = Datadog::Span.new(nil, 'client.testing', defaults).finish
     span2.set_parent(span1)
     traces << [span1, span2]
   end

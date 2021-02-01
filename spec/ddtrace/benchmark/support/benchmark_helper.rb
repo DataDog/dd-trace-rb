@@ -295,6 +295,7 @@ RSpec.shared_context 'minimal agent' do
 
   after do
     if PlatformHelpers.supports_fork?
+      # rubocop:disable Lint/RescueWithoutErrorClass
       Process.kill('TERM', @agent_runner) rescue nil
       Process.wait(@agent_runner)
     else

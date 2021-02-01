@@ -229,7 +229,7 @@ RSpec.describe 'Presto::Client instrumentation' do
           begin
             client.run('SELECT banana')
           # rubocop:disable Lint/HandleExceptions
-          rescue
+          rescue Presto::Client::PrestoQueryError
             # do nothing
           end
           # rubocop:enable Lint/HandleExceptions
