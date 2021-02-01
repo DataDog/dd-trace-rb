@@ -60,7 +60,7 @@ module Datadog
 
           def unsubscribe_all
             return false if subscribers.empty?
-            subscribers.keys.each { |pattern| unsubscribe(pattern) }
+            subscribers.each_key { |pattern| unsubscribe(pattern) }
             true
           end
 

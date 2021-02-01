@@ -38,6 +38,10 @@ module Datadog
         @tokens = max_tokens
         @total_messages = 0
         @conforming_messages = 0
+        @prev_conforming_messages = nil
+        @prev_total_messages = nil
+        @current_window = nil
+
         @last_refill = Utils::Time.get_time
       end
 
@@ -47,28 +51,17 @@ module Datadog
       # If it does, return +true+ and remove +size+
       # tokens from the bucket.
       # If it does not, return +false+ without affecting
-      # the tokens form the bucket.
+      # the tokens from the bucket.
       #
       # @return [Boolean] +true+ if message conforms with current bucket limit
       def allow?(size)
-        return false if @rate.zero?
-        return true if @rate < 0
-
-        refill_since_last_message
-
-        increment_total_count
-
-        return false if @tokens < size
-
-        increment_conforming_count
-
-        @tokens -= size
-
-        true
+        allowed = should_allow?(size)
+        update_rate_counts(allowed)
+        allowed
       end
 
       # Ratio of 'conformance' per 'total messages' checked
-      # on this bucket.
+      # averaged for the past 2 buckets
       #
       # Returns +1.0+ when no messages have been checked yet.
       #
@@ -76,6 +69,20 @@ module Datadog
       def effective_rate
         return 0.0 if @rate.zero?
         return 1.0 if @rate < 0 || @total_messages.zero?
+
+        return current_window_rate if @prev_conforming_messages.nil? || @prev_total_messages.nil?
+
+        (@conforming_messages.to_f + @prev_conforming_messages.to_f) / (@total_messages + @prev_total_messages)
+      end
+
+      # Ratio of 'conformance' per 'total messages' checked
+      # on this bucket
+      #
+      # Returns +1.0+ when no messages have been checked yet.
+      #
+      # @return [Float] Conformance ratio, between +[0,1]+
+      def current_window_rate
+        return 1.0 if @total_messages.zero?
 
         @conforming_messages.to_f / @total_messages
       end
@@ -91,6 +98,8 @@ module Datadog
         now = Utils::Time.get_time
         elapsed = now - @last_refill
 
+        # Update the number of available tokens, but ensure we do not exceed the max
+        # we return the min of tokens + rate*elapsed, or max tokens
         refill_tokens(@rate * elapsed)
 
         @last_refill = now
@@ -107,6 +116,46 @@ module Datadog
 
       def increment_conforming_count
         @conforming_messages += 1
+      end
+
+      def should_allow?(size)
+        # rate limit of 0 blocks everything
+        return false if @rate.zero?
+
+        # negative rate limit disables rate limiting
+        return true if @rate < 0
+
+        refill_since_last_message
+
+        # if tokens < 1 we don't allow?
+        return false if @tokens < size
+
+        @tokens -= size
+
+        true
+      end
+
+      # Sets and Updates the past two 1 second windows for which
+      # the rate limiter must compute it's rate over and updates
+      # the total count, and conforming message count if +allowed+
+      def update_rate_counts(allowed)
+        now = Utils::Time.get_time
+
+        # No tokens have been seen yet, start a new window
+        if @current_window.nil?
+          @current_window = now
+        # If more than 1 second has past since last window, reset
+        elsif now - @current_window >= 1
+          @prev_conforming_messages = @conforming_messages
+          @prev_total_messages = @total_messages
+          @conforming_messages = 0
+          @total_messages = 0
+          @current_window = now
+        end
+
+        increment_conforming_count if allowed
+
+        increment_total_count
       end
     end
 

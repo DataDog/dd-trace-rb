@@ -17,11 +17,11 @@ RSpec.describe Datadog::Configuration do
         before do
           allow(Datadog::Configuration::Components).to receive(:new)
             .and_wrap_original do |m, *args|
-              new_components = m.call(*args)
-              allow(new_components).to receive(:shutdown!)
-              allow(new_components).to receive(:startup!)
-              new_components
-            end
+            new_components = m.call(*args)
+            allow(new_components).to receive(:shutdown!)
+            allow(new_components).to receive(:startup!)
+            new_components
+          end
         end
 
         context 'and components have been initialized' do
@@ -376,10 +376,34 @@ RSpec.describe Datadog::Configuration do
     describe '#shutdown!' do
       subject(:shutdown!) { test_class.shutdown! }
 
-      it 'allows for a clean component restart' do
-        original_components = test_class.send(:components)
+      let!(:original_components) { test_class.send(:components) }
+
+      it 'gracefully shuts down components' do
+        expect(original_components).to receive(:shutdown!)
 
         shutdown!
+      end
+
+      it 'does not attempt to recreate components' do
+        shutdown!
+
+        expect(test_class.send(:components)).to be(original_components)
+      end
+    end
+
+    describe '#reset!' do
+      subject(:reset!) { test_class.reset! }
+
+      let!(:original_components) { test_class.send(:components) }
+
+      it 'gracefully shuts down components' do
+        expect(test_class).to receive(:shutdown!)
+
+        reset!
+      end
+
+      it 'allows for component re-creation' do
+        reset!
 
         expect(test_class.send(:components)).to_not be(original_components)
       end

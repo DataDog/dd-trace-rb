@@ -31,6 +31,7 @@ module Datadog
       private
 
       def drop_it?(span)
+        # rubocop:disable Lint/RescueWithoutErrorClass
         @criteria.call(span) rescue false
       end
     end

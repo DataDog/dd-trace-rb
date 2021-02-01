@@ -1,4 +1,3 @@
-
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 require 'ddtrace/contrib/analytics'
@@ -62,17 +61,12 @@ module Datadog
             begin
               # collect endpoint details
               api = payload[:endpoint].options[:for]
-              # If the API inherits from Grape::API in version >= 1.2.0
-              # then the API will be an instance and the name must be derived from the base.
-              # See https://github.com/ruby-grape/grape/issues/1825
-              api_view = if defined?(::Grape::API::Instance) && api <= ::Grape::API::Instance
-                           api.base.to_s
-                         else
-                           api.to_s
-                         end
 
-              path = payload[:endpoint].options[:path].join('/')
-              resource = "#{api_view}##{path}"
+              api_view = api_view(api)
+
+              request_method = payload[:endpoint].options[:method].first
+              path = endpoint_expand_path(payload[:endpoint])
+              resource = "#{api_view} #{request_method} #{path}"
               span.resource = resource
 
               # set the request span resource if it's a `rack.request` span
@@ -90,11 +84,18 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
-              span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+
+              if exception_is_error?(payload[:exception_object])
+                span.set_error(payload[:exception_object])
+              end
 
               # override the current span with this notification values
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
               span.set_tag(Ext::TAG_ROUTE_PATH, path)
+              span.set_tag(Ext::TAG_ROUTE_METHOD, request_method)
+
+              span.set_tag(Datadog::Ext::HTTP::METHOD, request_method)
+              span.set_tag(Datadog::Ext::HTTP::URL, path)
             ensure
               span.start(start)
               span.finish(finish)
@@ -133,7 +134,9 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
-              span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+              if exception_is_error?(payload[:exception_object])
+                span.set_error(payload[:exception_object])
+              end
             ensure
               span.start(start)
               span.finish(finish)
@@ -168,7 +171,10 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
-              span.set_error(payload[:exception_object]) unless payload[:exception_object].nil?
+              if exception_is_error?(payload[:exception_object])
+                span.set_error(payload[:exception_object])
+              end
+
               span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
             ensure
               span.start(start)
@@ -179,6 +185,25 @@ module Datadog
           end
 
           private
+
+          def api_view(api)
+            # If the API inherits from Grape::API in version >= 1.2.0
+            # then the API will be an instance and the name must be derived from the base.
+            # See https://github.com/ruby-grape/grape/issues/1825
+            if defined?(::Grape::API::Instance) && api <= ::Grape::API::Instance
+              api.base.to_s
+            else
+              api.to_s
+            end
+          end
+
+          def endpoint_expand_path(endpoint)
+            route_path = endpoint.options[:path]
+            namespace = endpoint.routes.first && endpoint.routes.first.namespace || ''
+
+            parts = (namespace.split('/') + route_path).reject { |p| p.blank? || p.eql?('/') }
+            parts.join('/').prepend('/')
+          end
 
           def tracer
             datadog_configuration[:tracer]
@@ -194,6 +219,14 @@ module Datadog
 
           def analytics_sample_rate
             datadog_configuration[:analytics_sample_rate]
+          end
+
+          def exception_is_error?(exception)
+            matcher = datadog_configuration[:error_statuses]
+            return false unless exception
+            return true unless matcher
+            return true unless exception.respond_to?('status')
+            matcher.include?(exception.status)
           end
 
           def enabled?

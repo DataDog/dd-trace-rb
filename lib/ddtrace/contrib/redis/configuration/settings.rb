@@ -22,6 +22,11 @@ module Datadog
             o.lazy
           end
 
+          option :command_args do |o|
+            o.default { env_to_bool(Ext::ENV_COMMAND_ARGS, true) }
+            o.lazy
+          end
+
           option :service_name, default: Ext::SERVICE_NAME
         end
       end

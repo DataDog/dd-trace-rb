@@ -56,6 +56,16 @@ module Datadog
             def tracer
               DEFAULT_TRACER
             end
+
+            def report_if_exception(span, payload)
+              exception = payload_exception(payload)
+              span.set_error(payload[:exception]) if exception
+            end
+
+            def payload_exception(payload)
+              payload[:exception_object] ||
+                payload[:exception] # Fallback for ActiveSupport < 5.0
+            end
           end
         end
       end

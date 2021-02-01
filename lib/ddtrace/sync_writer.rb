@@ -32,6 +32,7 @@ module Datadog
       perform_concurrently(
         proc { flush_trace(trace) }
       )
+    # rubocop:disable Lint/RescueWithoutErrorClass
     rescue => e
       Datadog.logger.debug(e)
     end

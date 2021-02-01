@@ -581,7 +581,6 @@ RSpec.describe 'Sinatra instrumentation' do
   end
 
   RSpec::Matchers.define :be_request_span do |opts = {}|
-    # rubocop:disable Style/RedundantSelf
     match(notify_expectation_failures: true) do |span|
       app_name = opts[:app_name] || self.app_name
       expect(span.service).to eq(Datadog::Contrib::Sinatra::Ext::SERVICE_NAME)

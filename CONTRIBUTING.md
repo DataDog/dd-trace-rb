@@ -76,7 +76,7 @@ We also recommend that you share in your description:
 
 Pull requests will be reviewed and added to [our Community project](https://github.com/DataDog/dd-trace-rb/projects/2).
 
-For more information on common topics such as debugging locally, or how to write new integrations, check out [our development guide](https://github.com/DataDog/dd-trace-rb/docs/DevelopmentGuide.md). If at any point you have a question or need assistance with your pull request, feel free to mention a project member! We're always happy to help contributors with their pull requests.
+For more information on common topics such as debugging locally, or how to write new integrations, check out [our development guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md). If at any point you have a question or need assistance with your pull request, feel free to mention a project member! We're always happy to help contributors with their pull requests.
 
 ## Final word
 

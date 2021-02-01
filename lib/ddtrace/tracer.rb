@@ -7,6 +7,7 @@ require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
+require 'ddtrace/runtime/identity'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
@@ -201,6 +202,7 @@ module Datadog
         # root span
         @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
+        span.set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Runtime::Identity.id)
 
         if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
@@ -287,8 +289,20 @@ module Datadog
         # and it is user code which should be executed no matter what.
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
+        # rubocop:disable Metrics/BlockNesting
         rescue Exception => e
-          (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
+          if (on_error_handler = options[:on_error]) && on_error_handler.respond_to?(:call)
+            begin
+              on_error_handler.call(span, e)
+            # rubocop:disable Lint/RescueWithoutErrorClass
+            rescue
+              Datadog.logger.debug('Custom on_error handler failed, falling back to default')
+              DEFAULT_ON_ERROR.call(span, e)
+            end
+          else
+            Datadog.logger.debug('Custom on_error handler must be a callable, falling back to default') if on_error_handler
+            DEFAULT_ON_ERROR.call(span, e)
+          end
           raise e
         ensure
           span.finish unless span.nil?

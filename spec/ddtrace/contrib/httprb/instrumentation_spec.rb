@@ -35,7 +35,6 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
   end
   after(:all) { @server.shutdown }
 
-  # let(:tracer) { get_test_tracer }
   let(:configuration_options) { {} }
 
   before do
@@ -150,8 +149,17 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
             expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(code.to_s)
           end
 
-          it 'has no error set' do
-            expect(span).to_not have_error_message
+          it 'has error set' do
+            expect(span).to have_error
+          end
+
+          it 'has error type set' do
+            expect(span).to have_error_type('Error 404')
+          end
+
+          # default error message to `Error` from https://github.com/DataDog/dd-trace-rb/issues/1116
+          it 'has error message' do
+            expect(span).to have_error_message('Error')
           end
         end
 
@@ -218,14 +226,19 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           context 'and the host matches a specific configuration' do
             before do
               Datadog.configure do |c|
-                c.use :httprb, describe: /localhost/ do |httprb|
+                c.use :httprb, describes: /localhost/ do |httprb|
                   httprb.service_name = 'bar'
+                  httprb.split_by_domain = false
+                end
+
+                c.use :httprb, describes: /random/ do |httprb|
+                  httprb.service_name = 'barz'
                   httprb.split_by_domain = false
                 end
               end
             end
 
-            it 'uses the configured service name over the domain name' do
+            it 'uses the configured service name over the domain name and the correct describes block' do
               http_response
               expect(span.service).to eq('bar')
             end

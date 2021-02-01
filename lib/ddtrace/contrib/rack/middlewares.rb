@@ -53,7 +53,7 @@ module Datadog
             tracer.provider.context = context if context.trace_id
           end
 
-          # [experimental] create a root Span to keep track of frontend web servers
+          # Create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
           frontend_span = compute_queue_time(env, tracer)
 

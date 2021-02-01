@@ -1,5 +1,4 @@
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/aws/ext'
 
 module Datadog
@@ -36,6 +35,7 @@ module Datadog
 
           available_services.each_with_object([]) do |service, constants|
             next if ::Aws.autoload?(service)
+            # rubocop:disable Lint/RescueWithoutErrorClass
             constants << ::Aws.const_get(service, false).const_get(:Client, false) rescue next
           end
         end

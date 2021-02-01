@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 require 'spec_helper'
 require 'ddtrace/runtime/identity'
 
@@ -25,12 +23,9 @@ RSpec.describe Datadog::Runtime::Identity do
         expect(before_fork_id).to be_a_kind_of(String)
 
         # Invoke in fork, make sure expectations run before continuing.
-        Timeout.timeout(1) do
-          fork do
-            expect(inside_fork_id).to be_a_kind_of(String)
-            expect(inside_fork_id).to_not eq(before_fork_id)
-          end
-          Process.wait
+        expect_in_fork do
+          expect(inside_fork_id).to be_a_kind_of(String)
+          expect(inside_fork_id).to_not eq(before_fork_id)
         end
 
         # Check after forking

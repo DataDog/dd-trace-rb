@@ -112,7 +112,7 @@ RSpec.describe Datadog::Event do
       it 'calls both subscribers' do
         publish
 
-        subscriptions.values.each do |block|
+        subscriptions.each_value do |block|
           expect(block).to have_received(:call).with(*args).ordered
         end
       end

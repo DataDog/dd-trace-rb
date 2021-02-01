@@ -5,6 +5,7 @@ require 'ddtrace/context_provider'
 RSpec.describe Datadog::DefaultContextProvider do
   let(:provider) { described_class.new }
   let(:local_context) { instance_double(Datadog::ThreadLocalContext) }
+  let(:trace_context) { Datadog::Context.new }
 
   context '#context=' do
     subject(:context=) { provider.context = ctx }
@@ -25,7 +26,10 @@ RSpec.describe Datadog::DefaultContextProvider do
 
     context 'when given no arguments' do
       it do
-        expect(local_context).to receive(:local)
+        expect(local_context)
+          .to receive(:local)
+          .and_return(trace_context)
+
         subject
       end
     end
@@ -38,8 +42,31 @@ RSpec.describe Datadog::DefaultContextProvider do
         expect(local_context)
           .to receive(:local)
           .with(key)
+          .and_return(trace_context)
 
         subject
+      end
+    end
+  end
+
+  context 'when fork occurs' do
+    before { skip 'Java not supported' if RUBY_PLATFORM == 'java' }
+
+    it 'clones the context and returns the clone' do
+      # Initialize a context for the current process
+      parent_context = provider.context
+      expect(parent_context.forked?).to be false
+
+      # Fork the process, clone context.
+      expect_in_fork do
+        expect(parent_context).to receive(:fork_clone).and_call_original
+        child_context = provider.context
+
+        # Check context changed
+        expect(child_context).to_not be parent_context
+
+        # Check context doesn't change again
+        expect(provider.context).to be(child_context)
       end
     end
   end
@@ -49,11 +76,11 @@ RSpec.describe Datadog::DefaultContextProvider do
       provider1 = described_class.new
       provider2 = described_class.new
 
-      ctx1 = provider1.context = double
+      ctx1 = provider1.context = Datadog::Context.new
       expect(provider1.context).to be(ctx1)
       expect(provider2.context).to_not be(ctx1)
 
-      ctx2 = provider2.context = double
+      ctx2 = provider2.context = Datadog::Context.new
       expect(provider1.context).to be(ctx1)
       expect(provider2.context).to be(ctx2)
     end

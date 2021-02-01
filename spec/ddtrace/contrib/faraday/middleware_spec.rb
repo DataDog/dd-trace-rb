@@ -179,7 +179,13 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      subject { client.get('/error') rescue nil }
+      subject do
+        begin
+          client.get('/error')
+        rescue Faraday::ConnectionFailed
+          nil
+        end
+      end
     end
   end
 
@@ -214,14 +220,19 @@ RSpec.describe 'Faraday middleware' do
     context 'and the host matches a specific configuration' do
       before do
         Datadog.configure do |c|
-          c.use :faraday, describe: /example\.com/ do |faraday|
+          c.use :faraday, describes: /example\.com/ do |faraday|
             faraday.service_name = 'bar'
+            faraday.split_by_domain = false
+          end
+
+          c.use :faraday, describes: /badexample\.com/ do |faraday|
+            faraday.service_name = 'bar_bad'
             faraday.split_by_domain = false
           end
         end
       end
 
-      it 'uses the configured service name over the domain name' do
+      it 'uses the configured service name over the domain name and the correct describes block' do
         response
         expect(request_span.service).to eq('bar')
       end

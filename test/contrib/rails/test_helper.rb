@@ -82,7 +82,7 @@ ENV['DATABASE_URL'] = connector
 logger.info "Testing against Rails #{Rails.version} with connector '#{connector}'"
 
 case Rails.version
-when /^6\.0/
+when /^6\./
   require 'contrib/rails/apps/rails6'
 when /^5\.2/
   require 'contrib/rails/apps/rails5'

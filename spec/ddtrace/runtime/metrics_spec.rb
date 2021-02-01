@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/runtime/metrics'
@@ -162,7 +160,7 @@ RSpec.describe Datadog::Runtime::Metrics do
         it do
           flush
 
-          runtime_metrics.gc_metrics.each do |metric_name, _metric_value|
+          runtime_metrics.gc_metrics.each_key do |metric_name|
             expect(runtime_metrics).to have_received(:gauge)
               .with(metric_name, kind_of(Numeric))
               .once

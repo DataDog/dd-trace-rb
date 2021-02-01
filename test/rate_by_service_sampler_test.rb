@@ -22,7 +22,7 @@ module Datadog
     def test_sampling
       counter = Hash.new(0)
 
-      @rates.each do |service_key, _|
+      @rates.each_key do |service_key|
         ITERATIONS_PER_SERVICE.times do
           span = span_for(service_key)
           @sampler.sample!(span)

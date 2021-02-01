@@ -18,7 +18,6 @@ module Datadog
     attr_accessor :name
     attr_accessor :service_name
     attr_accessor :tags
-    attr_reader :tracer
     attr_accessor :writer
 
     alias service= service_name=

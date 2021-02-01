@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/support/spec_helper'
+require 'ddtrace/contrib/auto_instrument_examples'
 
 require 'ddtrace/contrib/active_support/integration'
 
@@ -54,6 +55,10 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Integration do
       include_context 'loaded gems', activesupport: nil
       it { is_expected.to be false }
     end
+  end
+
+  describe '#auto_instrument?' do
+    it_behaves_like 'rails sub-gem auto_instrument?'
   end
 
   describe '#default_configuration' do

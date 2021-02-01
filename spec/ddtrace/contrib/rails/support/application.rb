@@ -4,12 +4,12 @@ RSpec.shared_context 'Rails test application' do
   include_context 'Rails base application'
 
   before do
-    Datadog.configuration[:rails].reset_options!
-
     reset_rails_configuration!
   end
 
   after do
+    reset_rails_configuration!
+
     # Reset references stored in the Rails class
     Rails.application = nil
     Rails.logger = nil
@@ -18,6 +18,11 @@ RSpec.shared_context 'Rails test application' do
       Rails.app_class = nil
       Rails.cache = nil
     end
+
+    Datadog.configuration.reset!
+    Datadog.configuration[:rails].reset_options!
+    Datadog.configuration[:rack].reset_options!
+    Datadog.configuration[:redis].reset_options!
   end
 
   let(:app) do
