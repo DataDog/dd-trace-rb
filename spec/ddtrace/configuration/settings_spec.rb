@@ -1173,4 +1173,50 @@ RSpec.describe Datadog::Configuration::Settings do
       it { expect(settings.version).to eq(version) }
     end
   end
+
+  describe '#time_now_provider=' do
+    subject(:set_time_now_provider) { settings.time_now_provider = time_now_provider }
+    after { settings.reset! }
+
+    let(:time_now) { double('time') }
+    let(:time_now_provider) do
+      now = time_now # Capture for closure
+      -> { now }
+    end
+
+    context 'when default' do
+      before { allow(Time).to receive(:now).and_return(time_now) }
+
+      it 'delegates to Time.now' do
+        expect(settings.time_now_provider.call).to be(time_now)
+        expect(Datadog::Utils::Time.now).to be(time_now)
+      end
+    end
+
+    context 'when given a value' do
+      before { set_time_now_provider }
+
+      it 'returns the provided time' do
+        expect(settings.time_now_provider.call).to be(time_now)
+        expect(Datadog::Utils::Time.now).to be(time_now)
+      end
+    end
+
+    context 'then reset' do
+      before { set_time_now_provider }
+
+      let(:original_time_now) { double('original time') }
+      before { allow(Time).to receive(:now).and_return(original_time_now) }
+
+      it 'returns the provided time' do
+        expect(settings.time_now_provider.call).to be(time_now)
+        expect(Datadog::Utils::Time.now).to be(time_now)
+
+        settings.reset!
+
+        expect(settings.time_now_provider.call).to be(original_time_now)
+        expect(Datadog::Utils::Time.now).to be(original_time_now)
+      end
+    end
+  end
 end

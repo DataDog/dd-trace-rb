@@ -6,16 +6,12 @@ require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/ext/sampling'
 
-require 'ddtrace/utils/time'
-
 module Datadog
   module Configuration
     # Global configuration settings for the trace library.
     # rubocop:disable Metrics/ClassLength
     class Settings
       include Base
-
-      DEFAULT_TIME = :default_time
 
       #
       # Configuration options
@@ -210,11 +206,19 @@ module Datadog
         o.lazy
       end
 
-      option :time_provider do |o|
-        o.default { DEFAULT_TIME }
-        o.lazy
+      option :time_now_provider do |o|
+        o.default { ::Time.now }
+
         o.on_set do |time_provider|
-          Utils::Time.time_provider = time_provider
+          Utils::Time.now_provider = time_provider
+        end
+
+        o.resetter do |_value|
+          # TODO: Resetter needs access to the default value
+          # TODO: to help reduce duplication.
+          -> { ::Time.now }.tap do |default|
+            Utils::Time.now_provider = default
+          end
         end
       end
 

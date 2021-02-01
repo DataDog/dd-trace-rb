@@ -4,38 +4,34 @@ module Datadog
     module Time
       PROCESS_TIME_SUPPORTED = Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
 
-      # unneeded for now since we want to fallback to default
-      DEFAULT_TIME = :default_time
-      REALTIME_WITH_TIMECOP = :realtime_with_timecop
-      NOW = :now
-      NOW_WITHOUT_MOCK_TIME = :now_without_mock_time
-
-      attr_accessor :time_provider
-
       module_function
 
+      # Current monotonic time.
+      # Falls back to `now` if monotonic clock
+      # is not available.
+      #
+      # @return [Float] in seconds, since some unspecified starting point
       def get_time
-        PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : current_time.to_f
+        PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : now.to_f
       end
 
-      def current_time
-        return ::Time.send(NOW) if (@time_provider ||= DEFAULT_TIME) == DEFAULT_TIME
-
-        ::Time.send(alt_time(@time_provider))
+      # Current wall time.
+      #
+      # @return [Time] current time object
+      def now
+        ::Time.now
       end
 
-      def time_provider=(time_provider)
-        @time_provider = time_provider
-      end
-
-      def alt_time(time_provider)
-        # currenty we only have :default or :realtime_with_timecop as options
-        # so we can just have :default act as a general fallback
-        if time_provider == REALTIME_WITH_TIMECOP
-          (::Time.respond_to?(NOW_WITHOUT_MOCK_TIME) ? NOW_WITHOUT_MOCK_TIME : NOW)
-        else
-          NOW
-        end
+      # Overrides the implementation of `#now
+      # with the provided callable.
+      #
+      # Overriding the method `#now` instead of
+      # indirectly calling `block` removes
+      # one level of method call overhead.
+      #
+      # @param block [Proc] block that returns a `Time` object representing the current wall time
+      def now_provider=(block)
+        define_singleton_method(:now, &block)
       end
     end
   end
