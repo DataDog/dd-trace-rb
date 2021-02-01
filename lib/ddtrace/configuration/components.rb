@@ -71,6 +71,8 @@ module Datadog
         def build_profiler(settings)
           return unless Datadog::Profiling.supported?
 
+          # Note: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
+
           recorder = build_profiler_recorder(settings)
           collectors = build_profiler_collectors(settings, recorder)
           exporters = build_profiler_exporters(settings)
