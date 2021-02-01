@@ -602,13 +602,59 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
     end
   end
 
+  describe '#thread_cpu_time_diff' do
+    def subject
+      writer.send(:thread_cpu_time_diff)
+    end
+
+    it 'calculates difference since last measurement' do
+      expect(Datadog::Utils::Time).to receive(:get_thread_cpu_time).and_return(1, 10)
+
+      is_expected.to eq(1)
+      is_expected.to eq(9)
+    end
+  end
+
   describe 'integration tests' do
-    let(:options) { { transport: transport, fork_policy: fork_policy } }
+    let(:options) { { transport: transport } }
     let(:transport) { Datadog::Transport::HTTP.default { |t| t.adapter :test, output } }
     let(:output) { [] }
 
+    describe 'health metrics' do
+      include_context 'health metrics'
+
+      let(:trace) { get_test_traces(1).first }
+      let(:writer_cpu_time) { double }
+
+      before do
+        allow(writer).to receive(:thread_cpu_time_diff).and_return(writer_cpu_time)
+      end
+
+      after do
+        if Datadog::Utils::Time::THREAD_CPU_TIME_SUPPORTED
+          # TODO: There could be leaky background worker threads (created by other tests) that
+          # TODO: might be sending metrics to `Datadog.health_metrics`.
+          # TODO: We do our best here to assert that metric we expect was recorded.
+          # TODO: Ideally we should clean up threads created on every unit test.
+          actual = []
+          expect(health_metrics).to have_received(:writer_cpu_time) { |&block| actual << block.call }.at_least(:once)
+          expect(actual).to include(writer_cpu_time)
+        else
+          expect(health_metrics).to_not have_received(:writer_cpu_time)
+        end
+      end
+
+      it 'records health metrics' do
+        writer.perform
+        writer.write(trace) # write a trace to force #perform to run
+        writer.stop
+      end
+    end
+
     describe 'forking' do
       before { skip unless PlatformHelpers.supports_fork? }
+
+      let(:options) { super().merge(fork_policy: fork_policy) }
 
       context 'when the process forks and a trace is written' do
         let(:traces) { get_test_traces(3) }

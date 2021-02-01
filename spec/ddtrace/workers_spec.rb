@@ -23,4 +23,19 @@ RSpec.describe Datadog::Workers::AsyncTransport do
       end
     end
   end
+
+  describe '#thread_cpu_time_diff' do
+    def subject
+      transport.send(:thread_cpu_time_diff)
+    end
+
+    let(:transport) { described_class.new }
+
+    it 'calculates difference since last measurement' do
+      expect(Datadog::Utils::Time).to receive(:get_thread_cpu_time).and_return(1, 10)
+
+      is_expected.to eq(1)
+      is_expected.to eq(9)
+    end
+  end
 end

@@ -5,6 +5,7 @@ require 'ddtrace/workers/runtime_metrics'
 
 require 'ddtrace/buffer'
 require 'ddtrace/runtime/metrics'
+require 'ddtrace/utils/time'
 
 module Datadog
   module Workers
@@ -106,11 +107,27 @@ module Datadog
         loop do
           @back_off = flush_data ? @flush_interval : [@back_off * BACK_OFF_RATIO, BACK_OFF_MAX].min
 
+          record_metrics
+
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty?
             @shutdown.wait(@mutex, @back_off) if @run # do not wait when shutting down
           end
         end
+      end
+
+      def record_metrics
+        if Utils::Time::THREAD_CPU_TIME_SUPPORTED
+          Datadog.health_metrics.writer_cpu_time { thread_cpu_time_diff }
+        end
+      end
+
+      # Difference in seconds of CPU time since last measurement
+      def thread_cpu_time_diff
+        new_time = Utils::Time.get_thread_cpu_time
+        diff = new_time - (@last_thread_cpu_time || 0)
+        @last_thread_cpu_time = new_time
+        diff
       end
     end
   end
