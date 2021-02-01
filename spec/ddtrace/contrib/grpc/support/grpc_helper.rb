@@ -68,7 +68,7 @@ module GRPCHelper
     end
 
     # provide implementations for each registered rpc interface
-    def basic(request, call)
+    def basic(_request, call)
       call.output_metadata.update(@trailing_metadata)
       @received_metadata << call.metadata unless call.metadata.nil?
       TestMessage.new
@@ -85,7 +85,7 @@ module GRPCHelper
       [TestMessage.new, TestMessage.new]
     end
 
-    def stream_both_ways(requests, call)
+    def stream_both_ways(_requests, call)
       call.output_metadata.update(@trailing_metadata)
       call.each_remote_read.each { |r| r }
       [TestMessage.new, TestMessage.new]
