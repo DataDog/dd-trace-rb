@@ -2535,8 +2535,16 @@ In addition, CPU time measurements require:
     end
     ```
 
-3. Start your application with preloader:
+3. Start your application with the preloader:
 
     ```sh
     bundle exec ddtracerb exec rails s
+    ```
+
+    Manual alternative: If starting the application via `ddtracerb exec` is not an option (for instance, when using the
+    Phusion Passenger web server), you can alternatively start the profiler by adding the following to your application
+    entry point (such as `config.ru` for a web application):
+
+    ```ruby
+    require 'ddtrace/profiling/preload'
     ```
