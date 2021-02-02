@@ -12,14 +12,14 @@ module Datadog
     module_function
 
     def trace_methods(klass, *method_names)
-      instrumentation.trace_methods klass, *method_names
+      dd_instrumentation.trace_methods klass, *method_names
     end
 
     def trace_singleton_methods(klass, *method_names)
-      instrumentation.trace_singleton_methods klass, *method_names
+      dd_instrumentation.trace_singleton_methods klass, *method_names
     end
 
-    def instrumentation
+    def dd_instrumentation
       @dd_instrumentation ||= Instrumentation.new
     end
 
@@ -40,11 +40,11 @@ module Datadog
       # Added to extended class
       module ClassMethods
         def trace_methods(*method_names)
-          MethodTracer.instrumentation.trace_methods self, *method_names
+          MethodTracer.dd_instrumentation.trace_methods self, *method_names
         end
 
         def trace_singleton_methods(*method_names)
-          MethodTracer.instrumentation.trace_singleton_methods self, *method_names
+          MethodTracer.dd_instrumentation.trace_singleton_methods self, *method_names
         end
       end
     end
