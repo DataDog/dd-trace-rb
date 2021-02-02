@@ -188,6 +188,9 @@ module Datadog
 
         private
 
+        # FIXME: Threads started with `start`/`fork` can wrongly trigger this warning, because unlike with Thread#new
+        # we can't distinguish between missing instrumentation and "thread was just started and hasn't had time to
+        # run update_native_ids"
         def warn_about_missing_cpu_time_instrumentation(thread)
           return if @warned_about_missing_cpu_time_instrumentation
 
