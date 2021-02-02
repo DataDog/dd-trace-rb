@@ -139,16 +139,14 @@ end
 
 namespace :test do
   task all: [:main,
-             :rails,
-             :monkey]
+             :rails]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w[test lib]
     t.test_files = FileList['test/**/*_test.rb'].reject do |path|
       path.include?('contrib') ||
         path.include?('benchmark') ||
-        path.include?('redis') ||
-        path.include?('monkey_test.rb')
+        path.include?('redis')
     end
   end
 
@@ -163,11 +161,6 @@ namespace :test do
       t.libs << %w[test lib]
       t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
     end
-  end
-
-  Rake::TestTask.new(:monkey) do |t|
-    t.libs << %w[test lib]
-    t.test_files = FileList['test/monkey_test.rb']
   end
 end
 
@@ -226,8 +219,6 @@ task :ci do
     declare 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
-      # Contrib minitests
-      declare 'bundle exec appraisal contrib-old rake test:monkey'
       # Contrib specs
       declare 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       declare 'bundle exec appraisal contrib-old rake spec:active_record'
@@ -285,8 +276,6 @@ task :ci do
     declare 'bundle exec rake spec:opentracer'
 
     if RUBY_PLATFORM != 'java'
-      # Contrib minitests
-      declare 'bundle exec appraisal contrib-old rake test:monkey'
       # Contrib specs
       declare 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       declare 'bundle exec appraisal contrib-old rake spec:active_record'
