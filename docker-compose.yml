@@ -230,6 +230,7 @@ services:
       - presto
       - redis
       - toxiproxy
+      - hello
     env_file: ./.env
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
@@ -387,6 +388,12 @@ services:
     ports:
       - "${TEST_TOXIPROXY_CONFIG_PORT}:8474"
       - "${TEST_TOXIPROXY_PORT}:8475"
+  hello:
+    image: tutum/hello-world
+    expose:
+      - "80"
+    ports:
+      - "8000:80"
 volumes:
   bundle-2.0:
   bundle-2.1:

@@ -124,54 +124,84 @@ RSpec.describe 'Datadog::Transport::HTTP::Adapters::Net integration' do
     # skip unless ENV['TEST_DATADOG_INTEGRATION']
 
     Toxiproxy.populate(
-      name: "agent",
-      listen: "#{hostname}:#{port}",
-      upstream: "agent:#{Datadog::Transport::HTTP.default_port}",
+      name: :ddagent,
+      listen: "toxiproxy:#{port}",
+      upstream: "ddagent:#{Datadog::Transport::HTTP.default_port}",
+      # upstream: "hello:80",
     )
+  end
+
+  after do
+    Toxiproxy[:ddagent].destroy
   end
 
   let(:hostname) { ENV['TEST_TOXIPROXY_HOST'] }
   let(:port) { ENV['TEST_TOXIPROXY_PORT'] }
+  # let(:port) { 8126 }
   let(:timeout) { 0.1 }
   let(:options) { { timeout: timeout } }
   let(:proxy_addr) { nil } # We currently disable proxy for transport HTTP requests
 
   describe '#call' do
-    subject(:call) {
+    subject(:call) do
       adapter.call(env)
-    }
+    end
     let(:env) { instance_double(Datadog::Transport::HTTP::Env, path: path, body: body, headers: headers, verb: :post) }
-    let(:path) { '/foo' }
+    let(:path) { '/v0.4/traces' }
     let(:body) { '{}' }
     let(:headers) { {} }
 
+    def run_in_proxy
+      Toxiproxy[:ddagent].toxic(*toxic).apply do
+        yield
+      end
+    end
+
     context 'with high latency' do
+      let(:toxic) { [:latency, latency: 1] }
       it do
-        call
-        # Toxiproxy[:agent].toxic(:latency, latency: 10000).apply do
-        #   call
-        # end
+        run_in_proxy do
+          response = call
+          expect(response.code).to eq(400)
+          expect(response.payload).to include('could not decode')
+        end
       end
     end
 
     context 'with agent down' do
-
     end
 
     context 'with limited bandwidth' do
-
+      let(:toxic) { [:bandwidth, rate: 0.1] }
+      it do
+        run_in_proxy do
+          response = call
+          expect(response.code).to eq(400)
+          expect(response.payload).to include('could not decode')
+        end
+      end
     end
 
     context 'with slow closing connection' do
-
+      let(:toxic) { [:slow_close, delay: 1] }
+      it do
+        run_in_proxy do
+          response = call
+          expect(response.code).to eq(400)
+          expect(response.payload).to include('could not decode')
+        end
+      end
     end
 
     context 'with agent-side timeout' do
-
-    end
-
-    context 'with agent-side timeout' do
-
+      let(:toxic) { [:timeout, timeout: 0] }
+      it do
+        run_in_proxy do
+          response = call
+          expect(response.code).to eq(400)
+          expect(response.payload).to include('could not decode')
+        end
+      end
     end
   end
 end
