@@ -229,6 +229,7 @@ services:
       - postgres
       - presto
       - redis
+      - toxiproxy
     env_file: ./.env
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
@@ -242,6 +243,7 @@ services:
       - TEST_PRESTO_HOST=presto
       - TEST_PRESTO_PORT=8080
       - TEST_REDIS_HOST=redis
+      - TEST_TOXIPROXY_HOST=toxiproxy
     stdin_open: true
     tty: true
     volumes:
@@ -377,6 +379,14 @@ services:
       - "6379"
     ports:
       - "${TEST_REDIS_PORT}:6379"
+  toxiproxy:
+    image: shopify/toxiproxy:2.1.4
+    expose:
+      - "8474"
+      - "8475"
+    ports:
+      - "${TEST_TOXIPROXY_CONFIG_PORT}:8474"
+      - "${TEST_TOXIPROXY_PORT}:8475"
 volumes:
   bundle-2.0:
   bundle-2.1:

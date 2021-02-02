@@ -1,5 +1,9 @@
 $LOAD_PATH.unshift File.expand_path('../../', __FILE__)
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+
+# Load .env environment variables
+require 'dotenv/load'
+
 require 'pry'
 require 'rspec/collection_matchers'
 require 'webmock/rspec'

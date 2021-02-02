@@ -73,6 +73,9 @@ test_containers:
       - DD_BIND_HOST=0.0.0.0
       - DD_API_KEY=invalid_key_but_this_is_fine
   - &agent_port 8126
+  - &container_toxiproxy
+    image: shopify/toxiproxy:2.1.4
+  - &toxiproxy_port 6379
 
 step_init_bundle_checksum: &step_init_bundle_checksum
   run:
@@ -203,6 +206,8 @@ orbs:
               port: *memcached_port
           - docker-wait:
               port: *agent_port
+          - docker-wait:
+              port: *toxiproxy_port
           - *step_run_all_tests
           - store_test_results:
               path: /tmp/rspec

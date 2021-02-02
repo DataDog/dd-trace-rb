@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace/transport/http/adapters/net'
+require 'toxiproxy'
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
   subject(:adapter) { described_class.new(hostname, port, options) }
@@ -113,6 +114,65 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
     let(:port) { '345' }
     let(:timeout) { 7 }
     it { is_expected.to eq('http://local.test:345?timeout=7') }
+  end
+end
+
+RSpec.describe 'Datadog::Transport::HTTP::Adapters::Net integration' do
+  subject(:adapter) { Datadog::Transport::HTTP::Adapters::Net.new(hostname, port, options) }
+
+  before do
+    # skip unless ENV['TEST_DATADOG_INTEGRATION']
+
+    Toxiproxy.populate(
+      name: "agent",
+      listen: "#{hostname}:#{port}",
+      upstream: "agent:#{Datadog::Transport::HTTP.default_port}",
+    )
+  end
+
+  let(:hostname) { ENV['TEST_TOXIPROXY_HOST'] }
+  let(:port) { ENV['TEST_TOXIPROXY_PORT'] }
+  let(:timeout) { 0.1 }
+  let(:options) { { timeout: timeout } }
+  let(:proxy_addr) { nil } # We currently disable proxy for transport HTTP requests
+
+  describe '#call' do
+    subject(:call) {
+      adapter.call(env)
+    }
+    let(:env) { instance_double(Datadog::Transport::HTTP::Env, path: path, body: body, headers: headers, verb: :post) }
+    let(:path) { '/foo' }
+    let(:body) { '{}' }
+    let(:headers) { {} }
+
+    context 'with high latency' do
+      it do
+        call
+        # Toxiproxy[:agent].toxic(:latency, latency: 10000).apply do
+        #   call
+        # end
+      end
+    end
+
+    context 'with agent down' do
+
+    end
+
+    context 'with limited bandwidth' do
+
+    end
+
+    context 'with slow closing connection' do
+
+    end
+
+    context 'with agent-side timeout' do
+
+    end
+
+    context 'with agent-side timeout' do
+
+    end
   end
 end
 
