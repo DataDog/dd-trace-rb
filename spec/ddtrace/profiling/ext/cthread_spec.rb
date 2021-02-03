@@ -69,6 +69,19 @@ if Datadog::Profiling::Ext::CPU.supported?
           cpu_time: kind_of(Float)
         )
       end
+
+      it 'correctly forwards all received arguments to the passed proc' do
+        received_args = nil
+        received_kwargs = nil
+
+        thread_class.new(1, 2, 3, four: 4, five: 5) do |*args, **kwargs|
+          received_args = args
+          received_kwargs = kwargs
+        end.join
+
+        expect(received_args).to eq [1, 2, 3]
+        expect(received_kwargs).to eq(four: 4, five: 5)
+      end
     end
 
     describe '#native_thread_id' do
