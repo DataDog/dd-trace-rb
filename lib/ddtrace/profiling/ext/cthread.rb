@@ -1,4 +1,5 @@
 require 'ffi'
+require 'ruby2_keywords'
 
 module Datadog
   module Profiling
@@ -31,7 +32,7 @@ module Datadog
         attr_reader \
           :native_thread_id
 
-        def initialize(*args)
+        ruby2_keywords def initialize(*args)
           @pid = ::Process.pid
           @native_thread_id = nil
           @clock_id = nil
@@ -42,7 +43,7 @@ module Datadog
             # Set native thread ID & clock ID
             update_native_ids
             yield(*t_args)
-          end
+          end.ruby2_keywords
 
           super(*args, &wrapped_block)
         end
