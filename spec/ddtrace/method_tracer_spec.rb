@@ -52,7 +52,7 @@ end
 
 RSpec.describe Datadog::MethodTracer::Mixin do
   class TestClassWithMixin
-    include Datadog::MethodTracer::Mixin
+    include Datadog::MethodTracer
 
     trace_singleton_methods :example_method
     trace_methods :example_method

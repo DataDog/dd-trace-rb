@@ -1,14 +1,44 @@
 # frozen_string_literal: true
 
+# TODO: Maintain original method visibility.
+# TODO: A global way to toggle between parent span service vs Datadog.tracer.default_service.
+# TODO: A way to configure span options.
+# TODO: Shorter names for `trace_methods` and `trace_singleton_methods` mixin?
+# TODO: GettingStarted.md Documentation.
 module Datadog
-  # \MethodTracer adds helpers for unobtrusive methods tracking.
+  # \MethodTracer adds helpers for tracing application methods.
+  #
+  # operation_name:
+  # resource:
+  # service_name:
   #
   # == Example
   #
   #   Datadog::MethodTracer.trace_methods(ExampleClass, :some_instance_method, :other_instance_method)
   #   Datadog::MethodTracer.trace_singleton_methods(ExampleClass, :some_class_method, :other_class_method)
   #
+  #   class Foo
+  #     include Datadog::MethodTracer
+  #
+  #     # Trace at definition time.
+  #     trace_method def bar
+  #     end
+  #
+  #     # Trace singleton methods.
+  #     trace_singleton_method def self.bar
+  #     end
+  #
+  #     # Trace methods by name.
+  #     # Methods can be defined before or after
+  #     # `trace_methods` is called.
+  #     trace_methods :to_s, :inspect
+  #   end
+  #
   module MethodTracer
+    def self.included(base)
+      base.include(Mixin)
+    end
+
     module_function
 
     def trace_methods(klass, *method_names)
@@ -43,9 +73,13 @@ module Datadog
           MethodTracer.dd_instrumentation.trace_methods self, *method_names
         end
 
+        alias trace_method trace_methods
+
         def trace_singleton_methods(*method_names)
           MethodTracer.dd_instrumentation.trace_singleton_methods self, *method_names
         end
+
+        alias trace_singleton_method trace_singleton_methods
       end
     end
 
