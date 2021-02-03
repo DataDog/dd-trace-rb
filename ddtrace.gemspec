@@ -39,6 +39,10 @@ Gem::Specification.new do |spec|
     spec.add_dependency 'msgpack', '< 1.4'
   end
 
+  # Support correct forwarding of arguments for both Ruby <= 2.6 and Ruby >= 3, see
+  # https://www.ruby-lang.org/en/news/2019/12/12/separation-of-positional-and-keyword-arguments-in-ruby-3-0/#a-compatible-delegation
+  spec.add_dependency 'ruby2_keywords'
+
   # Optional extensions
   spec.add_development_dependency 'ffi', '~> 1.0'
 
