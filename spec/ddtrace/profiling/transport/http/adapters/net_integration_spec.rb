@@ -44,11 +44,14 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
 
     before do
       server.mount_proc('/', &server_proc)
-      Thread.new { server.start }
+      @server_thread = Thread.new { server.start }
       init_signal.pop
     end
 
-    after { server.shutdown }
+    after do
+      server.shutdown
+      @server_thread.join
+    end
   end
 
   describe 'when sending profiles through Net::HTTP adapter' do
