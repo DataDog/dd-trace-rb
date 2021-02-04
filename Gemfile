@@ -2,6 +2,10 @@ source 'https://rubygems.org'
 
 gemspec
 
+# FIXME: We need to wait for https://github.com/ruby/ruby2_keywords/pull/14 to be merged before we can remove this and
+# release a version with this new dependency
+gem 'ruby2_keywords', git: 'https://github.com/DataDog/ruby2_keywords.git', branch: 'fix-support-for-old-rubies'
+
 # Development dependencies
 gem 'addressable', '~> 2.4.0' # locking transitive dependency of webmock
 gem 'appraisal', '~> 2.2'
