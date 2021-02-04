@@ -731,6 +731,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activerecord-jdbcmysql-adapter', platform: :jruby
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails5-postgres' do
@@ -739,6 +740,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails5-postgres-redis' do
@@ -748,6 +750,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails5-postgres-redis-activesupport' do
@@ -757,6 +760,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails5-postgres-sidekiq' do
@@ -767,6 +771,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activejob'
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails6-mysql2' do
@@ -775,6 +780,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activerecord-jdbcmysql-adapter', '>= 60', platform: :jruby # try remove >= 60
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails6-postgres' do
@@ -783,6 +789,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails6-postgres-redis' do
@@ -792,6 +799,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails6-postgres-redis-activesupport' do
@@ -801,6 +809,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails6-postgres-sidekiq' do
@@ -811,6 +820,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activejob'
     gem 'sprockets', '< 4'
     gem 'lograge'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails61-mysql2' do
@@ -819,6 +829,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activerecord-jdbcmysql-adapter', '>= 61', platform: :jruby
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails61-postgres' do
@@ -827,6 +838,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails61-postgres-redis' do
@@ -836,6 +848,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'redis', '>= 4.2.5'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'rails61-postgres-sidekiq' do
@@ -845,6 +858,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'sidekiq', '>= 6.1.2'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
   appraise 'resque2-redis3' do
@@ -880,6 +894,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'hiredis'
     gem 'http'
     gem 'httpclient'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
