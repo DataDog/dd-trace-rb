@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/support/spec_helper'
+require 'spec/ddtrace/contrib/rails/support/deprecation.rb'
 
 require 'ddtrace'
 require 'ddtrace/contrib/analytics_examples'
@@ -21,6 +22,8 @@ RSpec.describe 'ActionCable patcher' do
     Datadog.configure do |c|
       c.use :action_cable, configuration_options
     end
+
+    raise_on_rails_deprecation!
   end
 
   around do |example|
