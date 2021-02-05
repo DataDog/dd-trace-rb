@@ -9,6 +9,10 @@ RSpec.describe Datadog::Tracer do
   subject(:tracer) { described_class.new(writer: FauxWriter.new) }
   let(:spans) { tracer.writer.spans(:keep) }
 
+  after do
+    tracer.shutdown! # Ensure no state gets left behind
+  end
+
   def sampling_priority_metric(span)
     span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)
   end
