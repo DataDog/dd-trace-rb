@@ -28,7 +28,7 @@ test_containers:
       integration_container:
         description: Container to be added for integration testing
         type: string
-        default: tianon/true
+        default: alpine:3
   - &container_base_environment
     BUNDLE_GEMFILE: /app/Gemfile
   - &container_parameters_environment
