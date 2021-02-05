@@ -21,6 +21,14 @@ test_containers:
         description: Jit enabled?
         type: boolean
         default: false
+      except:
+        description: Tests to skip
+        type: string
+        default: ''
+      integration_container:
+        description: Container to be added for integration testing
+        type: string
+        default: rwgrim/docker-noop
   - &container_base_environment
     BUNDLE_GEMFILE: /app/Gemfile
   - &container_parameters_environment
@@ -166,13 +174,10 @@ orbs:
         docker:
           - <<: *container_base
           - *container_postgres
-          - *container_presto
           - *container_mysql
-          - *container_elasticsearch
           - *container_redis
-          - *container_mongo
-          - *container_memcached
           - *container_agent
+          - image: << parameters.integration_container >>
         parallelism: 22
         steps:
           - restore_cache:
@@ -190,17 +195,9 @@ orbs:
           - docker-wait:
               port: *postgres_port
           - docker-wait:
-              port: *presto_port
-          - docker-wait:
               port: *mysql_port
           - docker-wait:
-              port: *elasticsearch_port
-          - docker-wait:
               port: *redis_port
-          - docker-wait:
-              port: *mongo_port
-          - docker-wait:
-              port: *memcached_port
           - docker-wait:
               port: *agent_port
           - *step_run_all_tests
