@@ -71,10 +71,17 @@ module Contrib
           instance
         end
       end
+
+      config.around(:each) do |example|
+        example.run.tap do
+          Datadog.tracer.shutdown!
+        end
+      end
     end
 
     # Useful for integration testing.
     def use_real_tracer!
+      @use_real_tracer = true
       allow(Datadog::Tracer).to receive(:new).and_call_original
     end
   end

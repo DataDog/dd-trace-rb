@@ -199,7 +199,7 @@ module Datadog
         # reconfigure the worker accordingly.
         # NOTE: It's important we do this before queuing or it will drop the current trace,
         #       because #after_fork resets the buffer.
-        perform
+        perform if async?
 
         # Queue the trace if running asynchronously, otherwise short-circuit and write it directly.
         async? ? enqueue(trace) : write_traces([trace])

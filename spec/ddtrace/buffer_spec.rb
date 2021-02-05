@@ -375,7 +375,7 @@ RSpec.shared_examples 'thread-safe buffer' do
             sleep 0
           end
 
-          threads.each(&:kill)
+          threads.each(&:join)
 
           push
         end
@@ -455,7 +455,7 @@ RSpec.shared_examples 'thread-safe buffer' do
             sleep 0
           end
 
-          threads.each(&:kill)
+          threads.each(&:join)
 
           concat
         end

@@ -5,6 +5,7 @@ require 'ddtrace'
 RSpec.describe Datadog::Tracer do
   let(:writer) { FauxWriter.new }
   subject(:tracer) { described_class.new(writer: writer) }
+  after { tracer.shutdown! }
 
   shared_context 'parent span' do
     let(:trace_id) { SecureRandom.uuid }

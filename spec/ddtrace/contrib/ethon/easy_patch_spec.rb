@@ -5,6 +5,8 @@ require 'ddtrace/contrib/ethon/easy_patch'
 require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/analytics_examples'
 
+require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
   let(:configuration_options) { {} }
 
@@ -21,7 +23,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     Datadog.registry[:ethon].reset_configuration!
   end
 
-  let(:easy) { ::Ethon::Easy.new }
+  let(:easy) { ethon_easy_new }
 
   describe '#http_request' do
     it 'preserves HTTP request method on easy instance' do

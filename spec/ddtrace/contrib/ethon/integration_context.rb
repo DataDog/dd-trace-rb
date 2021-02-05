@@ -2,6 +2,7 @@ require 'webrick'
 
 RSpec.shared_context 'integration context' do
   before(:all) do
+    # TODO: Consolidate mock webserver code
     @log_buffer = StringIO.new # set to $stderr to debug
     log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
     access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
@@ -27,13 +28,17 @@ RSpec.shared_context 'integration context' do
         res.body = 'response'
       end
     end
-    Thread.new { server.start }
+    @thread = Thread.new { server.start }
     init_signal.pop
 
     @server = server
     @port = server[:Port]
   end
-  after(:all) { @server.shutdown }
+
+  after(:all) do
+    @server.shutdown
+    @thread.join
+  end
 
   let(:host) { 'localhost' }
   let(:status) { '200' }

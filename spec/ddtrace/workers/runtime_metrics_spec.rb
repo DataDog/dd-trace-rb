@@ -9,7 +9,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
   let(:options) { { metrics: metrics, enabled: true } }
 
   before { allow(metrics).to receive(:flush) }
-  after { worker.stop(true, 0) }
+  after { worker.stop(true, 5) }
 
   describe '#initialize' do
     it { expect(worker).to be_a_kind_of(Datadog::Workers::Polling) }
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
   describe '#perform' do
     subject(:perform) { worker.perform }
-    after { worker.stop(true, 0) }
+    after { worker.stop(true, 5) }
 
     context 'when #enabled? is true' do
       before { allow(worker).to receive(:enabled?).and_return(true) }
@@ -75,7 +75,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
   describe '#enabled=' do
     subject(:set_enabled_value) { worker.enabled = value }
-    after { worker.stop(true, 0) }
+    after { worker.stop(true, 5) }
 
     context 'when not running' do
       before do

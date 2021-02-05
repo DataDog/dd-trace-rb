@@ -5,6 +5,8 @@ require 'ddtrace/contrib/integration_examples'
 require 'ddtrace'
 require 'elasticsearch-transport'
 
+require 'spec/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
   let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').to_i }
@@ -16,6 +18,13 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
   before do
     Datadog.configure do |c|
       c.use :elasticsearch, configuration_options
+    end
+
+    # LibCurl native thread
+    allow(::Ethon::Easy).to receive(:new).and_wrap_original do |method, *args, &block|
+      ThreadHelpers.with_leaky_thread_creation(:elasticsearch) do
+        method.call(*args, &block)
+      end
     end
 
     wait_http_server(server, 60)

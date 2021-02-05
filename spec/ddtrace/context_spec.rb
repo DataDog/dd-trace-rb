@@ -5,7 +5,6 @@ require 'ddtrace'
 RSpec.describe Datadog::Context do
   subject(:context) { described_class.new(options) }
   let(:options) { {} }
-  let(:tracer) { get_test_tracer }
 
   describe '#initialize' do
     context 'with defaults' do
@@ -438,7 +437,7 @@ RSpec.describe Datadog::Context do
     let(:span) { new_span }
 
     def new_span(name = nil)
-      Datadog::Span.new(get_test_tracer, name)
+      Datadog::Span.new(tracer, name)
     end
 
     context 'with many spans' do
@@ -460,7 +459,6 @@ RSpec.describe Datadog::Context do
 
   describe '#start_time' do
     subject(:ctx) { tracer.call_context }
-    let(:tracer) { get_test_tracer }
 
     context 'with no active spans' do
       it 'should not have a start time' do
@@ -479,6 +477,8 @@ RSpec.describe Datadog::Context do
 
         expect(ctx.send(:start_time)).to be nil
       end
+
+      after { tracer_shutdown! }
     end
   end
 
@@ -486,7 +486,7 @@ RSpec.describe Datadog::Context do
     subject(:ctx) { context }
 
     def new_span(name = nil)
-      Datadog::Span.new(get_test_tracer, name)
+      Datadog::Span.new(tracer, name)
     end
 
     context 'with a span in the trace' do
@@ -503,7 +503,7 @@ RSpec.describe Datadog::Context do
 
   describe 'thread safe behavior' do
     def new_span(name = nil)
-      Datadog::Span.new(get_test_tracer, name)
+      Datadog::Span.new(tracer, name)
     end
 
     context 'with many threads' do

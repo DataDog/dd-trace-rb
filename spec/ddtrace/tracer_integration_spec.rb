@@ -7,6 +7,7 @@ require 'ddtrace/propagation/http_propagator'
 
 RSpec.describe Datadog::Tracer do
   subject(:tracer) { described_class.new(writer: FauxWriter.new) }
+  after { tracer.shutdown! }
   let(:spans) { tracer.writer.spans(:keep) }
 
   after do

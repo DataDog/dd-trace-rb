@@ -9,11 +9,12 @@ RSpec.describe 'sucker_punch instrumentation' do
       c.use :sucker_punch
     end
 
-    SuckerPunch::Queue.clear
     SuckerPunch::RUNNING.make_true
   end
 
   after do
+    SuckerPunch::RUNNING.make_false
+    SuckerPunch::Queue.all.each(&:shutdown)
     SuckerPunch::Queue.clear
   end
 

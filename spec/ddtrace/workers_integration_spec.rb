@@ -22,6 +22,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     end
   end
 
+  after { tracer.shutdown! }
+
   let(:writer) do
     Datadog::Writer.new.tap do |w|
       # write some stuff to trigger a #start
@@ -211,6 +213,14 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         on_service: service_task,
         interval: interval
       )
+    end
+
+    after do
+      thread = worker.instance_variable_get(:@worker)
+      if thread
+        thread.terminate
+        thread.join
+      end
     end
 
     let(:interval) { 10 }

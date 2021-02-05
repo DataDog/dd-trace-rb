@@ -5,6 +5,8 @@ require 'ddtrace/contrib/ethon/multi_patch'
 require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/analytics_examples'
 
+require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   let(:configuration_options) { {} }
 
@@ -22,7 +24,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   end
 
   describe '#add' do
-    let(:easy) { ::Ethon::Easy.new }
+    let(:easy) { ethon_easy_new }
     let(:multi) { ::Ethon::Multi.new }
     subject { multi.add easy }
 
@@ -57,7 +59,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   end
 
   describe '#perform' do
-    let(:easy) { ::Ethon::Easy.new }
+    let(:easy) { ethon_easy_new }
     let(:multi) { ::Ethon::Multi.new }
     subject { multi.perform }
 

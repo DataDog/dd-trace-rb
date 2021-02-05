@@ -4,8 +4,6 @@ require 'ddtrace'
 require 'ddtrace/propagation/http_propagator'
 
 RSpec.describe 'Context propagation' do
-  let(:tracer) { get_test_tracer }
-
   describe 'when max context size is exceeded' do
     let(:max_size) { 3 }
 

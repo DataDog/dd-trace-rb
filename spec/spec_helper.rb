@@ -81,7 +81,80 @@ RSpec.configure do |config|
     # (e.g. via a command-line flag).
     config.default_formatter = 'doc'
   end
+
+  # Check for leaky test resources
+  config.after(:all) do
+    # Exclude acceptable background threads
+    background_threads = Thread.list.reject do |t|
+      group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
+      backtrace = t.backtrace || []
+
+      # Current thread
+      t == Thread.current ||
+        # Thread has shut down, but we caught it right as it was still alive
+        !t.alive? ||
+        # Internal JRuby thread
+        defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
+        # WEBrick singleton thread for handling timeouts
+        backtrace.find { |b| b.include?('/webrick/utils.rb') } ||
+        # Rails connection reaper
+        backtrace.find { |b| b.include?('lib/active_record/connection_adapters/abstract/connection_pool.rb') } ||
+        # Ruby JetBrains debugger
+        t.class.name.include?('DebugThread') ||
+        # Categorized as a known leaky thread
+        !group_name.nil?
+    end
+
+    unless background_threads.empty?
+      info = background_threads.flat_map do |t|
+        caller = t.instance_variable_get(:@caller) || '(not recorded)'
+        [
+          "#{t} (#{t.class.name})",
+          ' == Caller ==',
+          caller,
+          ' == Backtrace ==',
+          t.backtrace,
+          "\n"
+        ]
+      end.join("\n")
+
+      # We cannot fail tests gracefully in an `after(:all)` block.
+      # The test results have already been decided by RSpec.
+      # We resort to a more "blunt approach.
+      STDERR.puts RSpec::Core::Formatters::ConsoleCodes.wrap(
+        "#{self.class.description}: Test leaked threads! Ensure all threads are terminated when test finishes:",
+        :red
+      )
+      STDERR.puts info
+      Kernel.exit!(1) unless ENV.key?('CI')
+    end
+  end
+
+  config.around(:each) do |example|
+    example.run.tap do
+      tracer_shutdown!
+    end
+  end
 end
+
+# Stores the caller thread backtrace,
+# To allow for leaky threads to be traced
+# back to their creation point.
+module DatadogThreadDebugger
+  def initialize(*args)
+    caller_ = caller
+    wrapped = lambda do |*thread_args|
+      Thread.current.instance_variable_set(:@caller, caller_)
+      yield(*thread_args)
+    end
+
+    super(*args, &wrapped)
+  end
+
+  ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
+end
+
+Thread.send(:prepend, DatadogThreadDebugger)
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be

@@ -42,7 +42,10 @@ RSpec.describe Datadog::Workers::IntervalLoop do
         sleep(0.1)
       end
 
-      after { @thread.kill }
+      after do
+        @thread.kill
+        @thread.join
+      end
     end
 
     describe '#perform' do
@@ -64,7 +67,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
 
       context 'when the worker is not running' do
         before { worker.stop_loop }
-        it { is_expected.to be false }
+        it { is_expected.to be true }
       end
 
       context 'when the worker is running' do
@@ -201,12 +204,12 @@ RSpec.describe Datadog::Workers::IntervalLoop do
           expect { loop_back_off! }
             .to change { worker.loop_wait_time }
             .from(described_class::BASE_INTERVAL)
-            .to(described_class::BACK_OFF_RATIO)
+            .to(described_class::BASE_INTERVAL * described_class::BACK_OFF_RATIO)
 
           expect { worker.loop_back_off! }
             .to change { worker.loop_wait_time }
-            .from(described_class::BACK_OFF_RATIO)
-            .to(described_class::BACK_OFF_RATIO * described_class::BACK_OFF_RATIO)
+            .from(described_class::BASE_INTERVAL * described_class::BACK_OFF_RATIO)
+            .to(described_class::BASE_INTERVAL * described_class::BACK_OFF_RATIO * described_class::BACK_OFF_RATIO)
         end
       end
 

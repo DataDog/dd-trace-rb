@@ -2,9 +2,24 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/ethon/integration_context'
+require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
 
 RSpec.describe Datadog::Contrib::Ethon do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+
+  before do
+    # Ethon will lazily initialize LibCurl,
+    # which spans a leaky native thread.
+    #
+    # We initialize LibCurl eagerly here, to allow us
+    # to tag only the offending thread in isolation.
+    # The simplest way to trigger the thread creation
+    # is to create a new Ethon::Easy object.
+    #
+    # This allows us to still ensure that the integration
+    # itself is leak-free.
+    ethon_easy_new
+  end
 
   context 'with Typhoeus request' do
     subject(:request) { Typhoeus::Request.new(url, timeout: timeout).run }

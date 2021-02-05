@@ -27,6 +27,11 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     outer_span.finish
   end
 
+  after(:all) do
+    Concurrent.global_io_executor.shutdown
+    Concurrent.global_io_executor.wait_for_termination(5)
+  end
+
   let(:outer_span) { spans.find { |s| s.name == 'outer_span' } }
   let(:inner_span) { spans.find { |s| s.name == 'inner_span' } }
 

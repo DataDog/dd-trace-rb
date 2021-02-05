@@ -28,6 +28,8 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  after { tracer.shutdown! }
+
   describe 'agent receives span' do
     include_context 'agent-based test'
 
@@ -442,6 +444,7 @@ RSpec.describe 'Tracer integration tests' do
       expect(tracer.sampler).to receive(:update)
         .with(kind_of(Hash))
         .and_call_original
+        .at_least(1).time
     end
 
     it do
@@ -572,6 +575,7 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'with another tracer instance' do
       let(:tracer2) { new_tracer }
+      after { tracer2.shutdown! }
 
       it 'create one thread-local context per tracer' do
         span = tracer.trace('test')

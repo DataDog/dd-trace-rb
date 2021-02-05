@@ -337,6 +337,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
     context 'when in async mode' do
       before { allow(writer).to receive(:async?).and_return true }
+      after { writer.stop }
 
       context 'and given a trace' do
         before do
@@ -581,6 +582,8 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
       before { expect(writer.async?).to be true }
 
       context 'is true' do
+        after { expect(writer.stop).to be_truthy }
+
         it 'starts a worker thread & queues the trace' do
           expect(writer.buffer).to receive(:push)
             .with(trace)
@@ -622,7 +625,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
             .and_call_original
         end
 
-        after { writer.stop }
+        after { expect(writer.stop).to be_truthy }
 
         context 'with :sync fork policy' do
           let(:fork_policy) { :sync }
