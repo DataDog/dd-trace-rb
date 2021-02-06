@@ -78,9 +78,31 @@ module Datadog
       exception = StandardError.new("\xC2".force_encoding(::Encoding::ASCII_8BIT))
       error = Error.build_from(exception)
 
-      assert_equal('StandardError', @error.type)
+      assert_equal('StandardError', error.type)
       assert_empty(error.message)
       assert_empty(error.backtrace)
+    end
+
+    def test_sanitize_backtrace
+      exception = StandardError.new
+      exception.set_backtrace(Thread.current.backtrace)
+      error = Error.build_from(exception)
+
+      refute_includes(error.backtrace, Bundler.bundle_path.to_s)
+    end
+
+    def test_sanitize_backtrace_no_config
+      Datadog.configure do |c|
+        c.tracer.error_backtrace_strip = nil
+      end
+
+      exception = StandardError.new
+      exception.set_backtrace(Thread.current.backtrace)
+      error = Error.build_from(exception)
+
+      assert_includes(error.backtrace, Bundler.bundle_path.to_s)
+    ensure
+      Datadog.configuration.reset!
     end
   end
 end

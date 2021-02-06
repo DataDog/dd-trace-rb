@@ -1865,6 +1865,7 @@ Available options are:
  - `diagnostics.startup_logs.enabled`: Startup configuration and diagnostic log. Defaults to `true`. Can be configured through the `DD_TRACE_STARTUP_LOGS` environment variable.
  - `diagnostics.debug`: set to true to enable debug logging. Can be configured through the `DD_TRACE_DEBUG` environment variable. Defaults to `false`.
  - `time_now_provider`: when testing, it might be helpful to use a different time provider. For Timecop, for example, `->{ Time.now_without_mock_time }` allows the tracer to use the real wall time. Span duration calculation will still use the system monotonic clock when available, thus not being affected by this setting. Defaults to `->{ Time.now }`.
+ - `error_backtrace_strip`: to avoid verbose error backtraces including long Rails install or Bundler path names you can provide a String or Regexp to have removed. This defaults to removing the Rails root path and the Bundler bundle path (`/(Rails.root|Bundler.bundle_path)/`). Set to `nil` to disable.
 
 #### Custom logging
 

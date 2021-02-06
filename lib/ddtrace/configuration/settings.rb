@@ -241,6 +241,24 @@ module Datadog
         option :transport_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
         option :writer # TODO: Deprecate
         option :writer_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
+
+        option :error_backtrace_strip do |o|
+          o.default do
+            paths = []
+            if defined?(Rails) && Rails.respond_to?(:root)
+              paths << Rails.root.to_s
+            end
+            if defined?(Bundler) && Bundler.respond_to?(:bundle_path)
+              paths << Bundler.bundle_path.to_s
+            end
+
+            next if paths.empty?
+
+            group = paths.map { |p| Regexp.escape(p) }.join("|")
+            /(#{group})\/?/
+          end
+          o.lazy
+        end
       end
 
       # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
