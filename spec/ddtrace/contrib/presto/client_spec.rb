@@ -1,3 +1,5 @@
+require 'rspec/wait'
+
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
@@ -33,6 +35,28 @@ RSpec.describe 'Presto::Client instrumentation' do
   let(:model_version) { '0.205' }
 
   let(:presto_client_gem_version) { Gem.loaded_specs['presto-client'].version }
+
+  before(:each) do
+    timeout_seconds = 10
+    wait(timeout_seconds).for { is_presto_online }.to be true
+  end
+
+  def is_presto_online
+    # rubocop:disable Style/GlobalVars
+    return true if $presto_is_online
+
+    begin
+      client.run('SELECT 1')
+      $presto_is_online = true
+    rescue Presto::Client::PrestoQueryError => e
+      if e.message.include?('Presto server is still initializing')
+        # puts 'Presto not online yet'
+        false
+      else
+        raise
+      end
+    end
+  end
 
   before(:each) do
     Datadog.configure do |c|
