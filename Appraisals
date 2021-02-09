@@ -379,6 +379,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord', '< 5.1.5'
       gem 'aws-sdk'
+      gem 'aws-partitions', '< 1.424.0' # TODO: Locked until https://github.com/aws/aws-sdk-ruby/pull/2474 gets released (1.425.0 is broken)
       gem 'concurrent-ruby'
       gem 'dalli'
       gem 'delayed_job'
