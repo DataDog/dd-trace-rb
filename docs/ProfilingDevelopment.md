@@ -1,7 +1,5 @@
 # Profiling Development
 
-## What?
-
 This file contains development notes specific to the profiling feature.
 
 For a more practical view of getting started with development of `ddtrace`, see <DevelopmentGuide.md>.
