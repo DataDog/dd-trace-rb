@@ -1,6 +1,7 @@
 module Datadog
   module Profiling
-    # A simplified struct version of Thread::Backtrace::Location
+    # Entity class used to represent an entry in a stack trace.
+    # Its fields are a simplified struct version of `Thread::Backtrace::Location`.
     class BacktraceLocation
       attr_reader \
         :base_label,
