@@ -9,8 +9,7 @@ module Datadog
         layout :value, :int
       end
 
-      # Extensions for pthread-backed Ruby threads, to retrieve
-      # the thread ID, clock ID, and CPU time.
+      # Extension used to enable CPU-time profiling via use of Pthread's `getcpuclockid`.
       module CThread
         extend FFI::Library
         ffi_lib 'ruby', 'pthread'

@@ -7,7 +7,8 @@ require 'ddtrace/workers/polling'
 module Datadog
   module Profiling
     module Collectors
-      # Pulls and exports profiling data on an async interval basis
+      # Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
+      # Runs on its own background thread.
       class Stack < Worker
         include Workers::Polling
 

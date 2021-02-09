@@ -10,12 +10,12 @@ Components below live inside <../lib/ddtrace/profiling>:
 
 * `Collectors::Stack`: Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
   Runs on its own background thread.
-* `Encoding::Profiler`: Encodes gathered data into the pprof format.
+* `Encoding::Profile`: Encodes gathered data into the pprof format.
 * `Events::Stack`, `Events::StackSample`, `Events::StackExceptionSample`: Entity classes used to represent stacks.
 * `Ext::CPU`: Monkey patches Ruby's `Thread` with our `Ext::CThread` to enable CPU-time profiling.
 * `Ext::CThread`: Extension used to enable CPU-time profiling via use of Pthread's `getcpuclockid`.
 * `Ext::Forking`: Monkey patches `Kernel#fork`, adding a `Kernel#at_fork` callback mechanism which is used to restore
-  profiling abilities after the VM forks (re-instrument main thread, restart profiler threads).
+  profiling abilities after the VM forks (such as re-instrumenting the main thread, and restarting profiler threads).
 * `Pprof::*` (in <../lib/ddtrace/profiling/pprof>): Converts samples captured in the `Recorder` into the pprof format.
 * `Tasks::Setup`: Takes care of loading our extensions/monkey patches and starting up profiler. See initialization
   section below for more details.
@@ -26,9 +26,9 @@ Components below live inside <../lib/ddtrace/profiling>:
 * `Exporter`: Writes profiling data to a given transport.
 * `Flush`: Entity class used to represent metadata for a given profile.
 * `Profiler`: Profiling entry point, which coordinates collectors and a scheduler.
-* `Recorder`: Stores profiling events gathered by `Collectors`.
+* `Recorder`: Stores profiling events gathered by `Collector`s.
 * `Scheduler`: Periodically (every 1 minute) takes data from the `Recorder` and pushes them to all configured
-  `Exporter`s.
+  `Exporter`s. Runs on its own background thread.
 
 ## Initialization
 

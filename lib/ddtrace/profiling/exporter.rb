@@ -2,7 +2,7 @@ require 'ddtrace/profiling/transport/io/client'
 
 module Datadog
   module Profiling
-    # Writes profiling data to transport
+    # Writes profiling data to a given transport
     class Exporter
       attr_reader \
         :transport

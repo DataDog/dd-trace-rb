@@ -1,7 +1,7 @@
 module Datadog
   module Profiling
     module Ext
-      # Extensions for CPU
+      # Monkey patches Ruby's `Thread` with our `Ext::CThread` to enable CPU-time profiling
       module CPU
         FFI_MINIMUM_VERSION = Gem::Version.new('1.0')
 

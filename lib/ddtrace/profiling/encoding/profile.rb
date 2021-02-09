@@ -7,7 +7,7 @@ module Datadog
   module Profiling
     module Encoding
       module Profile
-        # Encodes events to pprof
+        # Encodes gathered data into the pprof format
         module Protobuf
           module_function
 
