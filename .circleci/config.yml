@@ -390,7 +390,9 @@ jobs:
             sed lib/ddtrace/version.rb -i -e "s/^\([\t ]*PRE\) *=*/\1 = \'${PRE}\' #/g"
       - run:
           name: Upload prereleas Gem and rebuild index
-          command: S3_DIR=prerelease bundle exec rake release:gem
+          # TODO: Temporarily changed as a workaround (see commit message for more details). Should be undone before we merge
+          # the profiling feature back into master.
+          command: S3_DIR=profiling-prerelease bundle exec rake release:gem
       - store_artifacts:
           path: pkg/
           destination: gem
