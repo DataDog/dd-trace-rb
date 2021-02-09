@@ -19,7 +19,7 @@ Components below live inside <../lib/ddtrace/profiling>:
 * `Pprof::*` (in <../lib/ddtrace/profiling/pprof>): Converts samples captured in the `Recorder` into the pprof format.
 * `Tasks::Setup`: Takes care of loading our extensions/monkey patches and starting up profiler. See initialization
   section below for more details.
-* `Transport::*` (in <../lib/ddtrace/profiling/transport>): Implements reporting of pprof payloads to the datadog agent
+* `Transport::*` (in <../lib/ddtrace/profiling/transport>): Implements transmission of profiling payloads to the Datadog agent
   or backend.
 * `BacktraceLocation`: Entity class used to represent an entry in a stack trace.
 * `Buffer`: Bounded buffer used to store profiling events.
@@ -81,7 +81,7 @@ The `Collectors::Stack` samples stack traces of threads, capturing both CPU-time
 them in the `Recorder`.
 
 The `Scheduler` wakes up every 1 minute to flush the results of the `Recorder` into one or more `exporter`s.
-Usually only one exporter is in use. The `Exporter` delegates to the default `Transport::HTTP` transport, which
+Usually only one exporter is in use. By default, the `Exporter` delegates to the default `Transport::HTTP` transport, which
 takes care of encoding the data and reporting it to the datadog agent (or to the API, when running without an agent).
 
 ## How CPU-time profiling works
