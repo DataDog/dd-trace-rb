@@ -5,7 +5,8 @@ require 'ddtrace/workers/polling'
 
 module Datadog
   module Profiling
-    # Pulls and exports profiling data on an async interval basis
+    # Periodically (every DEFAULT_INTERVAL seconds) takes data from the `Recorder` and pushes them to all configured
+    # `Exporter`s. Runs on its own background thread.
     class Scheduler < Worker
       include Workers::Polling
 

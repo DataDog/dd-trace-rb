@@ -1,7 +1,8 @@
 module Datadog
   module Profiling
     module Ext
-      # Extensions for forking.
+      # Monkey patches `Kernel#fork`, adding a `Kernel#at_fork` callback mechanism which is used to restore
+      # profiling abilities after the VM forks.
       module Forking
         def self.supported?
           RUBY_PLATFORM != 'java'

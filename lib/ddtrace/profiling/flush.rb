@@ -3,7 +3,7 @@ require 'ddtrace/runtime/socket'
 
 module Datadog
   module Profiling
-    # Represents a flush of all profiling events
+    # Entity class used to represent metadata for a given profile
     Flush = Struct.new(
       :start,
       :finish,
