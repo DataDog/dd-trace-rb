@@ -1,5 +1,3 @@
-require 'rspec/wait'
-
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
@@ -36,25 +34,24 @@ RSpec.describe 'Presto::Client instrumentation' do
 
   let(:presto_client_gem_version) { Gem.loaded_specs['presto-client'].version }
 
+  # Using a global here so that after presto is online we don't keep repeating this check for other tests
+  # rubocop:disable Style/GlobalVars
   before(:each) do
-    timeout_seconds = 10
-    wait(timeout_seconds).for { is_presto_online }.to be true
+    unless $presto_is_online
+      try_wait_until(attempts: 100, backoff: 0.1) { presto_online? }
+      $presto_is_online = true
+    end
   end
 
-  def is_presto_online
-    # rubocop:disable Style/GlobalVars
-    return true if $presto_is_online
-
-    begin
-      client.run('SELECT 1')
-      $presto_is_online = true
-    rescue Presto::Client::PrestoQueryError => e
-      if e.message.include?('Presto server is still initializing')
-        # puts 'Presto not online yet'
-        false
-      else
-        raise
-      end
+  def presto_online?
+    client.run('SELECT 1')
+    true
+  rescue Presto::Client::PrestoQueryError => e
+    if e.message.include?('Presto server is still initializing')
+      puts 'Presto not online yet'
+      false
+    else
+      raise
     end
   end
 
