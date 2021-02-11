@@ -202,8 +202,6 @@ module Datadog
               'CPU Profiling results will be inaccurate. ' \
               'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug'
             )
-          else
-            # Skip warning -- CPU time instrumentation does not seem to be available
           end
 
           nil
