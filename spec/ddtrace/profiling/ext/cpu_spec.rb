@@ -84,15 +84,17 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
                       .and_return([instance_double(Gem::Specification), instance_double(Gem::Specification)])
                   end
 
-                  it { is_expected.to include 'rollbar >= 3.1.2'}
+                  it { is_expected.to include 'rollbar >= 3.1.2' }
                 end
 
                 context 'when compatible rollbar gem is installed or no version at all is installed' do
                   before do
+                    # Because we search with a <= requirement, both not installed as well as only compatible versions
+                    # installed show up in the API in the same way -- an empty return
                     expect(Gem::Specification)
                       .to receive(:find_all_by_name)
                       .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
-                      .and_return([]) # Because we search with a <= requirement, not installed/compatible version installed both lead to empty return here
+                      .and_return([])
                   end
 
                   it { is_expected.to be nil }
