@@ -49,12 +49,22 @@ module Datadog
 
         def clock_id
           update_native_ids if forked?
-          @clock_id ||= nil
+          defined?(@clock_id) && @clock_id
         end
 
         def cpu_time(unit = :float_second)
           return unless clock_id && ::Process.respond_to?(:clock_gettime)
           ::Process.clock_gettime(clock_id, unit)
+        end
+
+        def cpu_time_instrumentation_installed?
+          # If this thread was started before this module was added to Thread OR if something caused the initialize
+          # method above not to be properly called on new threads, this instance variable is never defined (never set to
+          # any value at all, including nil).
+          #
+          # Thus, we can use @clock_id as a canary to detect a thread that has missing instrumentation, because we
+          # know that in initialize above we always set this variable to nil.
+          defined?(@clock_id) != nil
         end
 
         private

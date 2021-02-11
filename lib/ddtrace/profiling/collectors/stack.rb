@@ -38,6 +38,8 @@ module Datadog
 
           # Workers::Polling settings
           self.enabled = options[:enabled] == true
+
+          @warned_about_missing_cpu_time_instrumentation = false
         end
 
         def start
@@ -120,8 +122,16 @@ module Datadog
 
         def get_cpu_time_interval!(thread)
           # Return if we can't get the current CPU time
-          return unless thread.respond_to?(:cpu_time)
+          unless thread.respond_to?(:cpu_time_instrumentation_installed?) && thread.cpu_time_instrumentation_installed?
+            warn_about_missing_cpu_time_instrumentation(thread)
+            return
+          end
+
           current_cpu_time_ns = thread.cpu_time(:nanosecond)
+
+          # Note: This can still be nil even when all of the checks above passed because of a race: there's a bit of
+          # initialization that needs to be done by the thread itself, and it's possible for us to try to sample
+          # *before* the thread had time to finish the initialization
           return unless current_cpu_time_ns
 
           last_cpu_time_ns = (thread[THREAD_LAST_CPU_TIME_KEY] || current_cpu_time_ns)
@@ -174,6 +184,27 @@ module Datadog
             lineno,
             string_table.fetch_string(path)
           )
+        end
+
+        private
+
+        def warn_about_missing_cpu_time_instrumentation(thread)
+          return if @warned_about_missing_cpu_time_instrumentation
+
+          # make sure we warn only once
+          @warned_about_missing_cpu_time_instrumentation = true
+
+          # Is the profiler thread instrumented? If it is, then we know instrumentation is available, just missing in
+          # the thread being sampled
+          if Thread.current.respond_to?(:cpu_time) && Thread.current.cpu_time
+            Datadog.logger.warn(
+              "Detected thread ('#{thread}') with missing CPU profiling instrumentation. " \
+              'CPU Profiling results will be inaccurate. ' \
+              'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug'
+            )
+          end
+
+          nil
         end
       end
     end
