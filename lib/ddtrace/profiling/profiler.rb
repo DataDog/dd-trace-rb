@@ -1,5 +1,5 @@
 module Datadog
-  # Generates profiles and transmits them to Datadog
+  # Profiling entry point, which coordinates collectors and a scheduler
   class Profiler
     attr_reader \
       :collectors,

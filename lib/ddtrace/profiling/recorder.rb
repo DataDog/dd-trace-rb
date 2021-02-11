@@ -3,8 +3,7 @@ require 'ddtrace/profiling/flush'
 
 module Datadog
   module Profiling
-    # Profiling buffer that stores profiling events. The buffer has a maximum size and when
-    # the buffer is full, a random event is discarded. This class is thread-safe.
+    # Stores profiling events gathered by `Collector`s
     class Recorder
       attr_reader :max_size
 
