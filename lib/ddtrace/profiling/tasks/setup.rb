@@ -6,7 +6,7 @@ require 'ddtrace/profiling/ext/forking'
 module Datadog
   module Profiling
     module Tasks
-      # Sets up profiling for the application
+      # Takes care of loading our extensions/monkey patches and starting up profiler
       class Setup
         def run
           check_warnings!
