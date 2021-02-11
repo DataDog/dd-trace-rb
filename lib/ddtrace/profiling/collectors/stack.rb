@@ -39,8 +39,6 @@ module Datadog
           # Workers::Polling settings
           self.enabled = options[:enabled] == true
 
-          @cpu_time_expected_to_work =
-            options[:cpu_time_expected_to_work] || (Thread.current.respond_to?(:cpu_time) && Thread.current.cpu_time)
           @warned_about_missing_cpu_time_instrumentation = false
         end
 
@@ -196,7 +194,9 @@ module Datadog
           # make sure we warn only once
           @warned_about_missing_cpu_time_instrumentation = true
 
-          if @cpu_time_expected_to_work
+          # Is the profiler thread instrumented? If it is, then we know instrumentation is available, just missing in
+          # the thread being sampled
+          if Thread.current.respond_to?(:cpu_time) && Thread.current.cpu_time
             Datadog.logger.warn(
               "Detected thread ('#{thread}') with missing CPU profiling instrumentation. " \
               'CPU Profiling results will be inaccurate. ' \

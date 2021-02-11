@@ -253,11 +253,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:current_cpu_time) { last_cpu_time + cpu_interval }
         let(:last_cpu_time) { rand(1e4) }
         let(:cpu_interval) { 1000 }
-        let(:options) { { cpu_time_expected_to_work: true, **super() } }
 
         include_context 'with profiling extensions'
 
         before do
+          allow(Thread).to receive(:current).and_return(double('Current thread', cpu_time: true))
+
           allow(thread)
             .to receive(:cpu_time_instrumentation_installed?)
             .and_return(true)
@@ -334,7 +335,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     context 'when CPU timing is supported' do
-      let(:options) { { cpu_time_expected_to_work: true, **super() } }
+      before do
+        allow(Thread).to receive(:current).and_return(double('Current thread', cpu_time: true))
+      end
 
       include_context 'with profiling extensions'
 
