@@ -124,8 +124,10 @@ module Datadog
 
         def get_cpu_time_interval!(thread)
           # Return if we can't get the current CPU time
-          return unless @cpu_time_expected_to_work
-          return warn_about_missing_cpu_time_instrumentation(thread) unless thread.cpu_time_instrumentation_installed?
+          unless thread.respond_to?(:cpu_time_instrumentation_installed?) && thread.cpu_time_instrumentation_installed?
+            warn_about_missing_cpu_time_instrumentation(thread)
+            return
+          end
 
           current_cpu_time_ns = thread.cpu_time(:nanosecond)
 
@@ -194,11 +196,15 @@ module Datadog
           # make sure we warn only once
           @warned_about_missing_cpu_time_instrumentation = true
 
-          Datadog.logger.warn(
-            "Detected thread ('#{thread}') with missing CPU profiling instrumentation. " \
-            'CPU Profiling results will be inaccurate. ' \
-            'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug'
-          )
+          if @cpu_time_expected_to_work
+            Datadog.logger.warn(
+              "Detected thread ('#{thread}') with missing CPU profiling instrumentation. " \
+              'CPU Profiling results will be inaccurate. ' \
+              'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug'
+            )
+          else
+            # Skip warning -- CPU time instrumentation does not seem to be available
+          end
 
           nil
         end
