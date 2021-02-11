@@ -16,7 +16,7 @@ if Datadog::Profiling::Ext::CPU.supported?
 
     let(:block) { proc { loop { sleep(1) } } }
 
-    let(:thread_class) do
+    let(:thread_class_with_instrumentation) do
       expect(::Thread.ancestors).to_not include(described_class)
 
       klass = ::Thread.dup
@@ -24,10 +24,30 @@ if Datadog::Profiling::Ext::CPU.supported?
       klass
     end
 
-    # Leave Thread class in a clean state before and after tests
-    before do
-      stub_const('Thread', thread_class)
+    let(:thread_class_missing_instrumentation) do
+      expect(::Thread.ancestors).to_not include(described_class)
+
+      klass = ::Thread.dup
+
+      # keep copy of original initialize method, useful when we want to simulate a thread where our extension hasn't
+      # been initialized (e.g. a thread created before the extension was added)
+      klass.send(:alias_method, :original_initialize, :initialize)
+
+      # Add the module under test (Ext::CThread)
+      klass.send(:prepend, described_class)
+
+      # Add a module that skips over the module under test's initialize changes
+      skip_instrumentation = Module.new do
+        def initialize(*args, &block)
+          original_initialize(*args, &block) # directly call original initialize, skipping the one in Ext::CThread
+        end
+      end
+      klass.send(:prepend, skip_instrumentation)
+
+      klass
     end
+
+    let(:thread_class) { thread_class_with_instrumentation }
 
     # Kill any spawned threads
     after { thread.kill if instance_variable_defined?(:@thread_started) && @thread_started }
@@ -134,15 +154,22 @@ if Datadog::Profiling::Ext::CPU.supported?
       subject(:cpu_time) { thread.cpu_time }
 
       context 'when clock ID' do
-        before { allow(thread).to receive(:clock_id).and_return(clock_id) }
-
         context 'is not available' do
-          let(:clock_id) { nil }
+          let(:thread_class) { thread_class_missing_instrumentation }
+
           it { is_expected.to be nil }
+
+          it 'does not define the @clock_id instance variable' do
+            cpu_time
+
+            expect(thread.instance_variable_defined?(:@clock_id)).to be false
+          end
         end
 
         context 'is available' do
           let(:clock_id) { double('clock ID') }
+
+          before { allow(thread).to receive(:clock_id).and_return(clock_id) }
 
           if Process.respond_to?(:clock_gettime)
             let(:cpu_time_measurement) { double('cpu time measurement') }
@@ -192,6 +219,20 @@ if Datadog::Profiling::Ext::CPU.supported?
               end
             end
           end
+        end
+      end
+    end
+
+    describe '#cpu_time_instrumentation_installed?' do
+      it do
+        expect(thread.cpu_time_instrumentation_installed?).to be true
+      end
+
+      context 'when our custom initialize block did not run' do
+        let(:thread_class) { thread_class_missing_instrumentation }
+
+        it do
+          expect(thread.cpu_time_instrumentation_installed?).to be false
         end
       end
     end
