@@ -70,7 +70,7 @@ module Datadog
           @run = true
           Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
           @worker = Thread.new { perform }
-          @worker.name = self.class.name
+          @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
 
           nil
         end

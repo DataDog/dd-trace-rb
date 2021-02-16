@@ -439,17 +439,42 @@ RSpec.describe Datadog::Workers::Async::Thread do
     end
 
     describe 'thread naming' do
-      before { worker.perform }
       after { worker.terminate }
 
-      class Datadog::AsyncSpecThreadNaming < Datadog::Worker
-        include Datadog::Workers::Async::Thread
+      context 'on Ruby < 2.3' do
+        before do
+          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
+            skip 'Only applies to old Rubies'
+          end
+        end
+
+        it 'does not try to set a thread name' do
+          without_partial_double_verification do
+            expect_any_instance_of(Thread).not_to receive(:name=)
+          end
+
+          worker.perform
+        end
       end
 
-      let(:worker_class) { Datadog::AsyncSpecThreadNaming }
+      context 'on Ruby >= 2.3' do
+        before do
+          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+            skip 'Not supported on old Rubies'
+          end
+        end
 
-      it 'sets the name of the created thread to match the worker class name' do
-        expect(worker.send(:worker).name).to eq worker_class.to_s
+        class AsyncSpecThreadNaming < Datadog::Worker
+          include Datadog::Workers::Async::Thread
+        end
+
+        let(:worker_class) { AsyncSpecThreadNaming }
+
+        it 'sets the name of the created thread to match the worker class name' do
+          worker.perform
+
+          expect(worker.send(:worker).name).to eq worker_class.to_s
+        end
       end
     end
   end
