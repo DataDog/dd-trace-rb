@@ -33,9 +33,7 @@ module Datadog
         end
       end
 
-      perform_concurrently(
-        proc { flush_trace(trace) }
-      )
+      flush_trace(trace)
     # rubocop:disable Lint/RescueWithoutErrorClass
     rescue => e
       Datadog.logger.debug(e)
@@ -48,10 +46,6 @@ module Datadog
     end
 
     private
-
-    def perform_concurrently(*tasks)
-      tasks.map { |task| Thread.new(&task) }.each(&:join)
-    end
 
     def flush_trace(trace)
       processed_traces = Pipeline.process!([trace])
