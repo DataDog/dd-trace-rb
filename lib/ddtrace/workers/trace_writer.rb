@@ -127,10 +127,15 @@ module Datadog
 
       # NOTE: #perform is wrapped by other modules:
       #       Polling --> Async --> IntervalLoop --> AsyncTraceWriter --> TraceWriter
+      #
+      # WARNING: This method breaks the Liskov Substitution Principle -- TraceWriter#perform is spec'd to return the
+      # result from the writer, whereas this method always returns nil.
       def perform(traces)
         super(traces).tap do |responses|
           loop_back_off! if responses.find(&:server_error?)
         end
+
+        nil
       end
 
       def stop(*args)
@@ -187,6 +192,8 @@ module Datadog
         @async = false if @writer_fork_policy == FORK_POLICY_SYNC
       end
 
+      # WARNING: This method breaks the Liskov Substitution Principle -- TraceWriter#write is spec'd to return the
+      # result from the writer, whereas this method returns something else when running in async mode.
       def write(trace)
         # Start worker thread. If the process has forked, it will trigger #after_fork to
         # reconfigure the worker accordingly.
