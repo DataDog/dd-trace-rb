@@ -1058,7 +1058,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 The httpclient integration will trace any HTTP call using the httpclient gem.
 
 ```ruby
-require 'http'
+require 'httpclient'
 require 'ddtrace'
 Datadog.configure do |c|
   c.use :httpclient, options
