@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe Datadog::Workers::AsyncTransport do
+  let(:task) { proc { true } }
   let(:worker) do
     Datadog::Workers::AsyncTransport.new(
       transport: nil,
@@ -8,6 +9,10 @@ RSpec.describe Datadog::Workers::AsyncTransport do
       on_trace: task,
       interval: 0.5
     )
+  end
+
+  after do
+    worker.stop
   end
 
   describe 'callbacks' do
@@ -29,12 +34,6 @@ RSpec.describe Datadog::Workers::AsyncTransport do
   end
 
   describe 'thread naming' do
-    let(:task) { proc { true } }
-
-    after do
-      worker.stop
-    end
-
     context 'on Ruby < 2.3' do
       before do
         if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
@@ -63,6 +62,12 @@ RSpec.describe Datadog::Workers::AsyncTransport do
 
         expect(worker.instance_variable_get(:@worker).name).to eq described_class.name
       end
+    end
+  end
+
+  describe '#start' do
+    it 'returns nil' do
+      expect(worker.start).to be nil
     end
   end
 end

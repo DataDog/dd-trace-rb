@@ -78,6 +78,10 @@ RSpec.describe Datadog::Workers::Async::Thread do
             run_async?: true
           )
         end
+
+        it 'returns nil' do
+          expect(perform).to be nil
+        end
       end
     end
 
