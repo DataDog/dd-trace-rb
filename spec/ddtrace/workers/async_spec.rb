@@ -437,5 +437,20 @@ RSpec.describe Datadog::Workers::Async::Thread do
         end
       end
     end
+
+    describe 'thread naming' do
+      before { worker.perform }
+      after { worker.terminate }
+
+      class Datadog::AsyncSpecThreadNaming < Datadog::Worker
+        include Datadog::Workers::Async::Thread
+      end
+
+      let(:worker_class) { Datadog::AsyncSpecThreadNaming }
+
+      it 'sets the name of the created thread to match the worker class name' do
+        expect(worker.send(:worker).name).to eq worker_class.to_s
+      end
+    end
   end
 end

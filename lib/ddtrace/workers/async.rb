@@ -133,6 +133,9 @@ module Datadog
               raise
             end
           end
+          @worker.name = self.class.name
+
+          nil
         end
 
         def stop_fork

@@ -70,6 +70,9 @@ module Datadog
           @run = true
           Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
           @worker = Thread.new { perform }
+          @worker.name = self.class.name
+
+          nil
         end
       end
 
