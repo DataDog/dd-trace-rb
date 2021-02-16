@@ -23,6 +23,7 @@ test_containers:
         default: false
   - &container_base_environment
     BUNDLE_GEMFILE: /app/Gemfile
+    JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
   - &container_parameters_environment
     - *container_base_environment
     - RUBY_OPT: <<# parameters.jit >>--jit<</ parameters.jit >>
