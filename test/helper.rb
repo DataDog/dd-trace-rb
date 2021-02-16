@@ -221,10 +221,7 @@ def test_repeat
 end
 
 # Defaults to 5 second timeout
-def try_wait_until(options = {})
-  attempts = options.fetch(:attempts, 50)
-  backoff = options.fetch(:backoff, 0.1)
-
+def try_wait_until(attempts: 50, backoff: 0.1)
   loop do
     break if yield
     sleep(backoff)
