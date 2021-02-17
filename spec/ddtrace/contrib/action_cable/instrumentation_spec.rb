@@ -1,5 +1,5 @@
 require 'ddtrace/contrib/support/spec_helper'
-require 'spec/ddtrace/contrib/rails/support/deprecation.rb'
+require 'spec/ddtrace/contrib/rails/support/deprecation'
 
 require 'ddtrace'
 
