@@ -2,9 +2,6 @@ source 'https://rubygems.org'
 
 gemspec
 
-# FIXME: Use release from git until 0.0.5 is released. See more details in ddtrace.gemspec
-gem 'ruby2_keywords', git: 'https://github.com/ruby/ruby2_keywords.git'
-
 # Development dependencies
 gem 'addressable', '~> 2.4.0' # locking transitive dependency of webmock
 gem 'appraisal', '~> 2.2'
