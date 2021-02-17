@@ -21,6 +21,14 @@ test_containers:
         description: Jit enabled?
         type: boolean
         default: false
+      parallelism:
+        description: Number of parallel containers for test execution
+        type: integer
+        default: 22
+      integration_parallelism:
+        description: Number of parallel containers for integration test execution
+        type: integer
+        default: 4
   - &container_base_environment
     BUNDLE_GEMFILE: /app/Gemfile
     JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
@@ -208,7 +216,7 @@ orbs:
           - *container_mysql
           - *container_redis
           - *container_agent
-        parallelism: 22
+        parallelism: <<parameters.parallelism>>
         steps:
           - restore_cache:
               keys:
@@ -246,7 +254,7 @@ orbs:
           - *container_mongo
           - *container_memcached
           - *container_agent
-        parallelism: 4
+        parallelism: <<parameters.integration_parallelism>>
         steps:
           - restore_cache:
               keys:
@@ -581,6 +589,7 @@ workflows:
             - build-2.0
       - orb/test-integration:
           <<: *config-2_0
+          integration_parallelism: 3 # Not enough tests to use all containers in 2.0
           name: test-integration-2.0
           requires:
             - build-2.0
