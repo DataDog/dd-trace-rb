@@ -29,6 +29,14 @@ test_containers:
         description: Container to be added for integration testing
         type: string
         default: busybox:1.32.1-uclibc
+      integration_port:
+        description: Container TCP port, to wait until responding
+        type: integer
+        default: 8126 # Agent port, known to connect successfully
+      parallelism:
+        description: Number of parallel containers for test execution
+        type: integer
+        default: 22
   - &container_base_environment
     BUNDLE_GEMFILE: /app/Gemfile
   - &container_parameters_environment
@@ -178,7 +186,7 @@ orbs:
           - *container_redis
           - *container_agent
           - image: << parameters.integration_container >>
-        parallelism: 22
+        parallelism: << parameters.parallelism >>
         steps:
           - restore_cache:
               keys:
@@ -200,6 +208,8 @@ orbs:
               port: *redis_port
           - docker-wait:
               port: *agent_port
+          - docker-wait:
+              port: << parameters.integration_port >>
           - *step_run_all_tests
           - store_test_results:
               path: /tmp/rspec
@@ -442,6 +452,14 @@ workflows:
       - orb/test:
           <<: *config-2_0
           name: test-2.0
+          requires:
+            - build-2.0
+      - orb/test:
+          <<: *config-2_0
+          name: test-elasticsearch-2.0
+          parallelism: 1
+          integration_container: elasticsearch:2.4
+          integration_port: 9200
           requires:
             - build-2.0
       - orb/build:
