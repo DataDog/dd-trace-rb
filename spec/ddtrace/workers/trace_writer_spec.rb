@@ -317,7 +317,9 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
     after { writer.stop }
 
     it 'starts a worker thread' do
-      is_expected.to be_a_kind_of(Thread)
+      perform
+
+      expect(writer.send(:worker)).to be_a_kind_of(Thread)
       expect(writer).to have_attributes(
         run_async?: true,
         running?: true,

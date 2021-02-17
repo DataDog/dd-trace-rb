@@ -34,6 +34,27 @@ RSpec.describe 'Presto::Client instrumentation' do
 
   let(:presto_client_gem_version) { Gem.loaded_specs['presto-client'].version }
 
+  # Using a global here so that after presto is online we don't keep repeating this check for other tests
+  # rubocop:disable Style/GlobalVars
+  before(:each) do
+    unless $presto_is_online
+      try_wait_until(attempts: 100, backoff: 0.1) { presto_online? }
+      $presto_is_online = true
+    end
+  end
+
+  def presto_online?
+    client.run('SELECT 1')
+    true
+  rescue Presto::Client::PrestoQueryError => e
+    if e.message.include?('Presto server is still initializing')
+      puts 'Presto not online yet'
+      false
+    else
+      raise
+    end
+  end
+
   before(:each) do
     Datadog.configure do |c|
       c.use :presto, configuration_options

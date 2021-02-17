@@ -29,7 +29,7 @@ RSpec.describe Datadog::SyncWriter do
         before { Datadog.configuration.report_hostname = true }
         after { Datadog.configuration.reset! }
 
-        it do
+        it 'reports the hostname as part of the root span' do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|
             root_span = traces.first.first
             expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to eq(hostname)
@@ -46,7 +46,7 @@ RSpec.describe Datadog::SyncWriter do
         before { Datadog.configuration.report_hostname = false }
         after { Datadog.configuration.reset! }
 
-        it do
+        it 'does not report the hostname' do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|
             root_span = traces.first.first
             expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to be nil
@@ -77,7 +77,7 @@ RSpec.describe Datadog::SyncWriter do
 
       after { Datadog::Pipeline.processors = [] }
 
-      it do
+      it 'only sends the unfiltered traces' do
         expect(transport).to_not have_received(:send_traces)
           .with([filtered_trace])
 

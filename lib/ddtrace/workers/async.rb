@@ -133,6 +133,9 @@ module Datadog
               raise
             end
           end
+          @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+
+          nil
         end
 
         def stop_fork
