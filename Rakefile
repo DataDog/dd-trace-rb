@@ -210,6 +210,12 @@ def declare(command, group: :main)
 end
 
 namespace :ci do
+  # Declaration and execution of all library tests.
+  #
+  # rubocop:disable Metrics/AbcSize
+  # rubocop:disable Metrics/CyclomaticComplexity
+  # rubocop:disable Metrics/MethodLength
+  # rubocop:disable Metrics/PerceivedComplexity
   def run_tests(*groups)
     @group_filter = groups
 
