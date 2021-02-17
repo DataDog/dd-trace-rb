@@ -74,7 +74,31 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
                 include_context 'loaded gems',
                                 ffi: described_class::FFI_MINIMUM_VERSION
 
-                it { is_expected.to be nil }
+                let(:last_version_of_rollbar_affected) { '3.1.1' }
+
+                context 'when incompatible rollbar gem is installed' do
+                  before do
+                    expect(Gem::Specification)
+                      .to receive(:find_all_by_name)
+                      .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
+                      .and_return([instance_double(Gem::Specification), instance_double(Gem::Specification)])
+                  end
+
+                  it { is_expected.to include 'rollbar >= 3.1.2' }
+                end
+
+                context 'when compatible rollbar gem is installed or no version at all is installed' do
+                  before do
+                    # Because we search with a <= requirement, both not installed as well as only compatible versions
+                    # installed show up in the API in the same way -- an empty return
+                    expect(Gem::Specification)
+                      .to receive(:find_all_by_name)
+                      .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
+                      .and_return([])
+                  end
+
+                  it { is_expected.to be nil }
+                end
               end
             end
           end
@@ -89,7 +113,7 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
     before { stub_const('Thread', ::Thread.dup) }
 
     context 'when native CPU time is supported' do
-      before { skip 'CPU profiling not supported' unless described_class.supported? }
+      before { skip 'CPU profiling not supported on current platform' unless described_class.supported? }
 
       it 'adds Thread extensions' do
         apply!
