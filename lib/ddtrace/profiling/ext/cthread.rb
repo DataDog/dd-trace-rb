@@ -1,5 +1,4 @@
 require 'ffi'
-require 'ruby2_keywords'
 
 module Datadog
   module Profiling
@@ -31,7 +30,7 @@ module Datadog
         attr_reader \
           :native_thread_id
 
-        ruby2_keywords def initialize(*args)
+        def initialize(*args)
           @pid = ::Process.pid
           @native_thread_id = nil
           @clock_id = nil
@@ -42,10 +41,12 @@ module Datadog
             # Set native thread ID & clock ID
             update_native_ids
             yield(*t_args)
-          end.ruby2_keywords
+          end
+          wrapped_block.ruby2_keywords if wrapped_block.respond_to?(:ruby2_keywords, true)
 
           super(*args, &wrapped_block)
         end
+        ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
 
         def clock_id
           update_native_ids if forked?
