@@ -17,6 +17,12 @@ module Datadog
 
         # Methods that must be prepended
         module PrependedMethods
+          def initialize(*args, &block)
+            super
+
+            @mutex = Mutex.new
+          end
+
           def perform(*args)
             start { self.result = super(*args) } unless started?
           end
@@ -80,10 +86,6 @@ module Datadog
         attr_writer \
           :result
 
-        def mutex
-          @mutex ||= Mutex.new
-        end
-
         def after_fork
           # Do nothing by default
         end
@@ -91,7 +93,7 @@ module Datadog
         private
 
         attr_reader \
-          :pid
+          :mutex, :pid
 
         def mutex_after_fork
           @mutex_after_fork ||= Mutex.new
