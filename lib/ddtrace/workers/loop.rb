@@ -78,7 +78,9 @@ module Datadog
 
       def perform_loop
         mutex.synchronize do
-          return if instance_variable_defined?(:@run_loop) && @run_loop == false # Loop has been stopped before it even started
+          # Loop has been stopped before it even started?
+          return if instance_variable_defined?(:@run_loop) && @run_loop == false
+
           @run_loop = true
         end
 
