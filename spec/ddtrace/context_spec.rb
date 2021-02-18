@@ -477,8 +477,6 @@ RSpec.describe Datadog::Context do
 
         expect(ctx.send(:start_time)).to be nil
       end
-
-      after { tracer_shutdown! }
     end
   end
 
