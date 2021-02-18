@@ -6,8 +6,6 @@ require 'faraday'
 
 require 'ddtrace'
 
-require 'spec/support/thread_helpers'
-
 RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   before(:each) do
     WebMock.enable!
@@ -24,19 +22,12 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '1234').to_i }
   let(:server) { "http://#{host}:#{port}" }
 
-  let(:client) { Elasticsearch::Client.new(url: server) }
+  let(:client) { Elasticsearch::Client.new(url: server, adapter: :net_http) }
   let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
       c.use :elasticsearch, configuration_options
-    end
-
-    # LibCurl native thread
-    allow(::Ethon::Easy).to receive(:new).and_wrap_original do |method, *args, &block|
-      ThreadHelpers.with_leaky_thread_creation(:elasticsearch) do
-        method.call(*args, &block)
-      end
     end
   end
 
