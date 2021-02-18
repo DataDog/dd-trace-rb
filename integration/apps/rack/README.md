@@ -38,7 +38,6 @@ Within the container, run `bin/run <process>` where `<process>` is one of the fo
 
  - `puma`: Puma web server
  - `unicorn`: Unicorn web server
- - `console`: Rails console
  - `irb`: IRB session
 
  Alternatively, set `DD_DEMO_ENV_PROCESS` to run a particular process by default when `bin/run` is run.
