@@ -1,6 +1,6 @@
-# Rack: Demo application for Datadog APM
+# Ruby: Demo application for Datadog APM
 
-A generic Rack web application with some common use scenarios.
+A generic Ruby application with some common use scenarios.
 
 For generating Datadog APM traces and profiles.
 
@@ -20,14 +20,14 @@ Install [direnv](https://github.com/direnv/direnv) for applying local settings.
 docker run --rm --name dd-agent  -v /var/run/docker.sock:/var/run/docker.sock:ro -v /proc/:/host/proc/:ro -v /sys/fs/cgroup/:/host/sys/fs/cgroup:ro -e API_KEY=$DD_API_KEY datadog/docker-dd-agent:latest
 ```
 
-### Starting the web server
+### Starting the application
 
-Run `docker-compose up` to auto-start the webserver. It should bind to `localhost:80`.
+Run `docker-compose up` to auto-start the application.
 
 Alternatively, you can run it manually with:
 
 ```sh
-docker-compose run --rm -p 80:80 app bin/run <process>
+docker-compose run --rm app bin/run <process>
 ```
 
 The `<process>` argument is optional, and will default to `DD_DEMO_ENV_PROCESS` if not provided. See [Processes](#processes) for more details.
@@ -36,8 +36,7 @@ The `<process>` argument is optional, and will default to `DD_DEMO_ENV_PROCESS` 
 
 Within the container, run `bin/run <process>` where `<process>` is one of the following values:
 
- - `puma`: Puma web server
- - `unicorn`: Unicorn web server
+ - `fibonacci`: Fibonacci number generator
  - `irb`: IRB session
 
  Alternatively, set `DD_DEMO_ENV_PROCESS` to run a particular process by default when `bin/run` is run.
@@ -54,28 +53,6 @@ Set `DD_DEMO_ENV_PROCESS` to a comma-delimited list of any of the following valu
  - `pprof_to_file`: Dump profiling pprof to file instead of agent.
 
 e.g. `DD_DEMO_ENV_PROCESS=tracing,profiling`
-
-##### Routes
-
-```sh
-# Health check
-curl -v localhost/health
-
-# Basic demo scenarios
-curl -v localhost/basic/fibonacci
-curl -v -XPOST localhost/basic/default
-
-# Job demo scenarios
-curl -v -XPOST localhost/jobs
-```
-
-### Load tester
-
-Docker configuration automatically creates and runs [Wrk](https://github.com/wg/wrk) load testing containers. By default it runs the `basic/default` scenario described in the `wrk` image to give a baseload.
-
-You can modify the `load-tester` container in `docker-compose.yml` to change the load type or scenario run. Set the container's `command` to any set of arguments `wrk` accepts.
-
-You can also define your own custom scenario by creating a LUA file, mounting it into the container, and passing it as an argument via `command`.
 
 ### Running integration tests
 
