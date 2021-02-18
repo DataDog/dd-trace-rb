@@ -1,0 +1,11 @@
+require 'datadog/demo_env'
+
+source 'https://rubygems.org' do
+  gem 'ffi'
+  gem 'google-protobuf'
+
+  # Choose correct specs for 'ddtrace' demo environment
+  gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
+
+  gem 'byebug'
+end
