@@ -90,7 +90,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
             error: nil,
             completed?: true,
             started?: true,
-            run_async?: true
+            async?: true
           )
         end
 
@@ -229,16 +229,16 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
         it do
           is_expected.to be true
-          expect(worker.run_async?).to be false
+          expect(worker.async?).to be false
         end
       end
     end
 
-    describe '#run_async?' do
-      subject(:run_async?) { worker.run_async? }
+    describe '#async?' do
+      subject(:async?) { worker.async? }
 
       context 'by default' do
-        it { is_expected.to be false }
+        it { is_expected.to be true }
       end
 
       context 'when started' do
@@ -401,7 +401,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
                 end
 
                 # Attempt restart of worker & verify it stops.
-                expect { worker.perform }.to change { worker.run_async? }
+                expect { worker.perform }.to change { worker.async? }
                   .from(true)
                   .to(false)
               end

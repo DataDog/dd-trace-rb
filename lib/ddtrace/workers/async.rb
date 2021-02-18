@@ -21,6 +21,7 @@ module Datadog
             super
 
             @mutex = Mutex.new
+            @async = true
           end
 
           def perform(*args)
@@ -33,7 +34,7 @@ module Datadog
           :result
 
         attr_writer \
-          :fork_policy
+          :async, :fork_policy
 
         def join(timeout = nil)
           return true unless running?
@@ -42,14 +43,13 @@ module Datadog
 
         def terminate
           return false unless running?
-          @run_async = false
+          @async = false
           worker.terminate
           true
         end
 
-        def run_async?
-          return false unless instance_variable_defined?(:@run_async)
-          @run_async == true
+        def async?
+          @async == true
         end
 
         def started?
@@ -113,14 +113,14 @@ module Datadog
               when FORK_POLICY_RESTART
                 restart_after_fork(&block)
               end
-            elsif !run_async?
+            elsif async?
               start_worker(&block)
             end
           end
         end
 
         def start_worker
-          @run_async = true
+          @async = true
           @pid = Process.pid
           @error = nil
           Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
@@ -148,7 +148,7 @@ module Datadog
 
               # Reset and turn off
               @pid = Process.pid
-              @run_async = false
+              @async = false
             end
           end
         end

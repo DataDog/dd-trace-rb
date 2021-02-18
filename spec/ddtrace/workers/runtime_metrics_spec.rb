@@ -62,7 +62,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
         perform
         expect(worker).to have_attributes(
           metrics: metrics,
-          run_async?: true,
+          async?: true,
           running?: true,
           started?: true,
           forked?: false,
@@ -253,7 +253,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
               end
 
               # Attempt restart of worker & verify it stops.
-              expect { worker.perform }.to change { worker.run_async? }
+              expect { worker.perform }.to change { worker.async? }
                 .from(true)
                 .to(false)
             end

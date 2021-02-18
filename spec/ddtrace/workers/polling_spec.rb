@@ -115,7 +115,7 @@ RSpec.describe Datadog::Workers::Polling do
               # Give thread time to be terminated
               try_wait_until { !worker.running? }
 
-              expect(worker.run_async?).to be false
+              expect(worker.async?).to be false
               expect(worker.running?).to be false
             end
           end

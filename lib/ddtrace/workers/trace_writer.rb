@@ -101,9 +101,6 @@ module Datadog
       FORK_POLICY_ASYNC = :async
       FORK_POLICY_SYNC = :sync
 
-      attr_writer \
-        :async
-
       def initialize(options = {})
         # Workers::TraceWriter settings
         super
@@ -112,7 +109,6 @@ module Datadog
         self.enabled = options.fetch(:enabled, true)
 
         # Workers::Async::Thread settings
-        @async = true
         self.fork_policy = options.fetch(:fork_policy, FORK_POLICY_ASYNC)
 
         # Workers::IntervalLoop settings
@@ -157,10 +153,6 @@ module Datadog
         !buffer.empty?
       end
 
-      def async?
-        @async == true
-      end
-
       def fork_policy=(policy)
         # Translate to Workers::Async::Thread policy
         thread_fork_policy = case policy
@@ -195,19 +187,17 @@ module Datadog
       # WARNING: This method breaks the Liskov Substitution Principle -- TraceWriter#write is spec'd to return the
       # result from the writer, whereas this method returns something else when running in async mode.
       def write(trace)
-        if async?
-          # Start worker thread. If the process has forked, it will trigger #after_fork to
-          # reconfigure the worker accordingly.
-          # NOTE: It's important we do this before queuing or it will drop the current trace,
-          #       because #after_fork resets the buffer.
-          perform
+        # Start worker thread. If the process has forked, it will trigger #after_fork to
+        # reconfigure the worker accordingly.
+        #
+        # `perform` can change the result of `async?` during a fork.
+        #
+        # NOTE: It's important we do this before queuing or it will drop the current trace,
+        #       because #after_fork resets the buffer.
+        perform
 
-          # Queue the trace for asynchronous processing
-          enqueue(trace)
-        else
-          # Write the trace directly
-          write_traces([trace])
-        end
+        # Queue the trace if running asynchronously, otherwise short-circuit and write it directly.
+        async? ? enqueue(trace) : write_traces([trace])
       end
     end
   end
