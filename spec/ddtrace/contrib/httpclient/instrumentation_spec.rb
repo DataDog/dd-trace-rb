@@ -7,6 +7,8 @@ require 'httpclient'
 require 'webrick'
 require 'json'
 
+require 'spec/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
   before(:all) do
     # TODO: Consolidate mock webserver code
