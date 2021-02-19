@@ -1,4 +1,5 @@
 require 'webrick'
+require 'spec/support/thread_helpers'
 
 RSpec.shared_context 'integration context' do
   before(:all) do
@@ -28,7 +29,11 @@ RSpec.shared_context 'integration context' do
         res.body = 'response'
       end
     end
-    @thread = Thread.new { server.start }
+
+    ThreadHelpers.with_leaky_thread_creation(:ethon_test_server) do
+      @thread = Thread.new { server.start }
+    end
+
     init_signal.pop
 
     @server = server

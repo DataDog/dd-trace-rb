@@ -32,7 +32,10 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
       res.body = req.body
     end
 
-    @thread = Thread.new { server.start }
+    ThreadHelpers.with_leaky_thread_creation(:httprb_test_server) do
+      @thread = Thread.new { server.start }
+    end
+
     @server = server
     @port = server[:Port]
   end

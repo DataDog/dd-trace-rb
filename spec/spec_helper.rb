@@ -105,6 +105,8 @@ RSpec.configure do |config|
           defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
           # WEBrick singleton thread for handling timeouts
           backtrace.find { |b| b.include?('/webrick/utils.rb') } ||
+          # WEBrick server thread
+          t[:WEBrickSocket] ||
           # Rails connection reaper
           backtrace.find { |b| b.include?('lib/active_record/connection_adapters/abstract/connection_pool.rb') } ||
           # Ruby JetBrains debugger
@@ -115,7 +117,7 @@ RSpec.configure do |config|
 
       unless background_threads.empty?
         info = background_threads.each_with_index.flat_map do |t, idx|
-          caller = t.instance_variable_get(:@caller) || '(not recorded)'
+          caller = t.instance_variable_get(:@caller) || ['(not recorded)']
           [
             "#{idx + 1}: #{t} (#{t.class.name})",
             'Thread Creation Site:',
