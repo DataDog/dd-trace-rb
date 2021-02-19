@@ -116,9 +116,9 @@ RSpec.configure do |config|
         caller = t.instance_variable_get(:@caller) || '(not recorded)'
         [
           "#{idx + 1}: #{t} (#{t.class.name})",
-          "Thread Creation Site:",
+          'Thread Creation Site:',
           caller.map { |l| "\t#{l}" }.join("\n"),
-          "Thread Backtrace:",
+          'Thread Backtrace:',
           t.backtrace.map { |l| "\t#{l}" }.join("\n"),
           "\n"
         ]
@@ -128,7 +128,7 @@ RSpec.configure do |config|
       # The test results have already been decided by RSpec.
       # We resort to a more "blunt approach.
       STDERR.puts RSpec::Core::Formatters::ConsoleCodes.wrap(
-        "Test leaked #{background_threads.size} threads: \"#{self.class.description}\"\n" +
+        "Test leaked #{background_threads.size} threads: \"#{self.class.description}\"\n" \
           "Ensure all threads are terminated when test finishes:\n#{info}",
         :red
       )
