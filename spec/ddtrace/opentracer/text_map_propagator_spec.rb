@@ -38,7 +38,7 @@ if Datadog::OpenTracer.supported?
       let(:carrier) { instance_double(Datadog::OpenTracer::Carrier) }
 
       # Expect carrier to be set with Datadog trace properties
-      before(:each) do
+      before do
         expect(carrier).to receive(:[]=)
           .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_TRACE_ID, trace_id)
         expect(carrier).to receive(:[]=)
@@ -50,7 +50,7 @@ if Datadog::OpenTracer.supported?
       end
 
       # Expect carrier to be set with OpenTracing baggage
-      before(:each) do
+      before do
         baggage.each do |key, value|
           expect(carrier).to receive(:[]=)
             .with(described_class::BAGGAGE_PREFIX + key, value)
@@ -62,16 +62,17 @@ if Datadog::OpenTracer.supported?
 
     describe '#extract' do
       subject(:span_context) { described_class.extract(carrier) }
+
       let(:carrier) { instance_double(Datadog::OpenTracer::Carrier) }
       let(:items) { {} }
       let(:datadog_context) { span_context.datadog_context }
 
-      before(:each) do
+      before do
         allow(carrier).to receive(:each) { |&block| items.each(&block) }
       end
 
       context 'when the carrier contains' do
-        before(:each) do
+        before do
           allow(Datadog::OpenTracer::DistributedHeaders).to receive(:new)
             .with(carrier)
             .and_return(headers)
@@ -84,11 +85,13 @@ if Datadog::OpenTracer.supported?
           context 'with a symbol' do
             context 'that does not have a proper prefix' do
               let(:key) { :my_baggage_item }
+
               it { expect(span_context.baggage).to be_empty }
             end
 
             context 'that has a proper prefix' do
               let(:key) { :"#{described_class::BAGGAGE_PREFIX}account_name" }
+
               it { expect(span_context.baggage).to have(1).items }
               it { expect(span_context.baggage).to include('account_name' => value) }
             end
@@ -97,11 +100,13 @@ if Datadog::OpenTracer.supported?
           context 'with a string' do
             context 'that does not have a proper prefix' do
               let(:key) { 'HTTP_ACCOUNT_NAME' }
+
               it { expect(span_context.baggage).to be_empty }
             end
 
             context 'that has a proper prefix' do
               let(:key) { "#{described_class::BAGGAGE_PREFIX}account_name" }
+
               it { expect(span_context.baggage).to have(1).items }
               it { expect(span_context.baggage).to include('account_name' => value) }
             end

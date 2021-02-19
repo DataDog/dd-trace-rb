@@ -4,7 +4,7 @@ require 'ddtrace/contrib/active_record/utils'
 
 RSpec.describe Datadog::Contrib::ActiveRecord::Utils do
   describe 'regression: retrieving database without an active connection does not raise an error' do
-    before(:each) do
+    before do
       root_pw = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')
       host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
       port = ENV.fetch('TEST_MYSQL_PORT', '3306')
@@ -13,7 +13,7 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Utils do
       ActiveRecord::Base.remove_connection
     end
 
-    after(:each) do
+    after do
       root_pw = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')
       host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
       port = ENV.fetch('TEST_MYSQL_PORT', '3306')

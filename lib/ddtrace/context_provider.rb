@@ -56,6 +56,7 @@ module Datadog
     # Return the thread-local context.
     def local(thread = Thread.current)
       raise ArgumentError, '\'thread\' must be a Thread.' unless thread.is_a?(Thread)
+
       thread[@key] ||= Datadog::Context.new
     end
   end

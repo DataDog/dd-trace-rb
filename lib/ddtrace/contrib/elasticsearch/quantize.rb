@@ -17,7 +17,7 @@ module Datadog
 
         def format_url(url)
           sanitize_fragment_with_id(url)
-            .gsub(/(?:[\d]+)/, PLACEHOLDER)
+            .gsub(/(?:\d+)/, PLACEHOLDER)
         end
 
         def format_body(body, options = {})
@@ -60,6 +60,7 @@ module Datadog
         # If JSON parsing fails, it prints fail_value.
         def reserialize_json(string, fail_value = PLACEHOLDER)
           return string unless block_given?
+
           begin
             JSON.dump(yield(JSON.parse(string)))
           rescue JSON::ParserError
@@ -72,7 +73,7 @@ module Datadog
         # This is meant as simple heuristic that attempts to detect if particular fragment
         # represents document Id. This is meant to reduce the cardinality in most frequent cases.
         def sanitize_fragment_with_id(url)
-          url.gsub(%r{^(/?[^/]*/[^/]*/)(?:[^\?/\d]*[\d]+[^\?/]*)}, ID_PLACEHOLDER)
+          url.gsub(%r{^(/?[^/]*/[^/]*/)(?:[^?/\d]*\d+[^?/]*)}, ID_PLACEHOLDER)
         end
       end
     end

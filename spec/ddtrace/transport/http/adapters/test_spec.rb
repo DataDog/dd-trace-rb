@@ -4,11 +4,13 @@ require 'ddtrace/transport/http/adapters/test'
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::Test do
   subject(:adapter) { described_class.new(buffer) }
+
   let(:buffer) { nil }
 
   describe '#initialize' do
     context 'given no options' do
       subject(:adapter) { described_class.new }
+
       let(:options) { {} }
 
       it do
@@ -21,13 +23,16 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test do
 
     context 'given a buffer' do
       subject(:adapter) { described_class.new(buffer) }
+
       let(:buffer) { double('buffer') }
+
       it { is_expected.to have_attributes(buffer: buffer) }
     end
   end
 
   describe '#call' do
     subject(:call) { adapter.call(env) }
+
     let(:env) { instance_double(Datadog::Transport::HTTP::Env) }
 
     it 'returns a response with correct attributes' do
@@ -79,6 +84,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test do
 
   describe '#add_request' do
     subject(:call) { adapter.add_request(env) }
+
     let(:env) { instance_double(Datadog::Transport::HTTP::Env) }
 
     context 'when buffer' do
@@ -102,6 +108,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test do
 
   describe '#set_status!' do
     subject(:set_status!) { adapter.set_status!(status) }
+
     let(:status) { double('status') }
 
     it do
@@ -121,6 +128,7 @@ end
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::Test::Response do
   subject(:response) { described_class.new(code, body) }
+
   let(:code) { double('code') }
   let(:body) { double('body') }
 
@@ -130,6 +138,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test::Response do
 
   describe '#payload' do
     subject(:payload) { response.payload }
+
     it { is_expected.to be(body) }
   end
 
@@ -138,21 +147,25 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test::Response do
 
     context do
       let(:code) { 199 }
+
       it { is_expected.to be false }
     end
 
     context do
       let(:code) { 200 }
+
       it { is_expected.to be true }
     end
 
     context do
       let(:code) { 299 }
+
       it { is_expected.to be true }
     end
 
     context do
       let(:code) { 300 }
+
       it { is_expected.to be false }
     end
   end
@@ -162,11 +175,13 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test::Response do
 
     context do
       let(:code) { 400 }
+
       it { is_expected.to be false }
     end
 
     context do
       let(:code) { 415 }
+
       it { is_expected.to be true }
     end
   end
@@ -176,11 +191,13 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test::Response do
 
     context do
       let(:code) { 400 }
+
       it { is_expected.to be false }
     end
 
     context do
       let(:code) { 404 }
+
       it { is_expected.to be true }
     end
   end
@@ -190,21 +207,25 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test::Response do
 
     context do
       let(:code) { 399 }
+
       it { is_expected.to be false }
     end
 
     context do
       let(:code) { 400 }
+
       it { is_expected.to be true }
     end
 
     context do
       let(:code) { 499 }
+
       it { is_expected.to be true }
     end
 
     context do
       let(:code) { 500 }
+
       it { is_expected.to be false }
     end
   end
@@ -214,21 +235,25 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test::Response do
 
     context do
       let(:code) { 499 }
+
       it { is_expected.to be false }
     end
 
     context do
       let(:code) { 500 }
+
       it { is_expected.to be true }
     end
 
     context do
       let(:code) { 599 }
+
       it { is_expected.to be true }
     end
 
     context do
       let(:code) { 600 }
+
       it { is_expected.to be false }
     end
   end

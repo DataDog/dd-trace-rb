@@ -17,9 +17,9 @@ module Datadog
         end
       end
 
-      def each
+      def each(&block)
         @mutex.synchronize do
-          @data.each_value { |entry| yield(entry) }
+          @data.each_value(&block)
         end
       end
 

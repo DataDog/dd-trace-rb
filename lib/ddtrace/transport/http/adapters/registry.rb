@@ -15,6 +15,7 @@ module Datadog
           def set(klass, name = nil)
             name ||= klass.to_s
             return if name.nil?
+
             @adapters[name] = klass
           end
         end

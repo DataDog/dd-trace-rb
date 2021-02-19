@@ -8,6 +8,7 @@ RSpec.describe Datadog::Writer do
 
   describe 'instance' do
     subject(:writer) { described_class.new(options) }
+
     let(:options) { { transport: transport } }
     let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
 
@@ -46,6 +47,7 @@ RSpec.describe Datadog::Writer do
 
       describe '#send_spans' do
         subject(:send_spans) { writer.send_spans(traces, writer.transport) }
+
         let(:traces) { get_test_traces(1) }
         let(:transport_stats) { instance_double(Datadog::Transport::Statistics) }
         let(:responses) { [response] }
@@ -91,6 +93,7 @@ RSpec.describe Datadog::Writer do
 
             context 'is not configured' do
               let(:options) { super().merge(priority_sampler: nil) }
+
               it { expectations.call }
             end
           end
@@ -152,6 +155,7 @@ RSpec.describe Datadog::Writer do
               context 'is configured' do
                 let(:options) { super().merge(priority_sampler: priority_sampler) }
                 let(:priority_sampler) { instance_double(Datadog::PrioritySampler) }
+
                 before { expect(priority_sampler).to_not receive(:update) }
 
                 it do
@@ -222,6 +226,7 @@ RSpec.describe Datadog::Writer do
 
           context 'enabled' do
             before { Datadog.configuration.report_hostname = true }
+
             after { Datadog.configuration.reset! }
 
             it do
@@ -237,6 +242,7 @@ RSpec.describe Datadog::Writer do
 
           context 'disabled' do
             before { Datadog.configuration.report_hostname = false }
+
             after { Datadog.configuration.reset! }
 
             it do
@@ -254,6 +260,7 @@ RSpec.describe Datadog::Writer do
 
       describe '#write' do
         subject(:write) { writer.write(trace, services) }
+
         let(:trace) { instance_double(Array) }
         let(:services) { nil }
 
@@ -298,7 +305,7 @@ RSpec.describe Datadog::Writer do
         context 'when tracer has been stopped' do
           before { writer.stop }
 
-          it 'should not try to record traces' do
+          it 'does not try to record traces' do
             expect_any_instance_of(Datadog::Workers::AsyncTransport).to_not receive(:enqueue_trace)
 
             # Ensure clean output, as failing to start the

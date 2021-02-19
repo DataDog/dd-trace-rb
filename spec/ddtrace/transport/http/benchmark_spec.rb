@@ -7,7 +7,7 @@ require 'ddtrace/transport/http'
 RSpec.describe 'Transport::HTTP benchmarks' do
   let(:iterations) { 100 }
 
-  before(:each) { skip('Performance test does not run in CI.') }
+  before { skip('Performance test does not run in CI.') }
 
   describe '#send' do
     let!(:default_transport) { Datadog::Transport::HTTP.default }

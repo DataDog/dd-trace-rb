@@ -13,7 +13,7 @@ RSpec.describe Datadog::Pipeline::SpanProcessor do
   context 'with no processing behavior' do
     subject(:span_processor) { described_class.new { |_| } }
 
-    it 'should not modify any spans' do
+    it 'does not modify any spans' do
       expect(subject.call(span_list)).to eq(span_list)
     end
   end
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Pipeline::SpanProcessor do
   context 'with processing behavior that returns falsey value' do
     subject(:span_processor) { described_class.new { |_| false } }
 
-    it 'should not drop any spans' do
+    it 'does not drop any spans' do
       expect(subject.call(span_list)).to eq(span_list)
     end
   end
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Pipeline::SpanProcessor do
       end
     end
 
-    it 'should modify spans according to processor criteria' do
+    it 'modifies spans according to processor criteria' do
       expect(subject.call(span_list).map(&:name)).to eq(['a!', 'b!', 'c!'])
     end
   end
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Pipeline::SpanProcessor do
       end
     end
 
-    it 'should modify spans according to processor criteria and catch exceptions' do
+    it 'modifies spans according to processor criteria and catch exceptions' do
       expect(subject.call(span_list).map(&:name)).to eq(['a!', 'b!', 'c!'])
     end
   end

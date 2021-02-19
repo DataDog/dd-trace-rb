@@ -66,7 +66,6 @@ module Datadog
             # extensions that might have their own connection
             # pool (e.g. https://rubygems.org/gems/makara).
             ObjectSpace._id2ref(connection_id)
-          # rubocop:disable Lint/RescueWithoutErrorClass
           rescue => e
             # Because `connection_id` references a live connection
             # present in the current stack, it is very unlikely that
@@ -97,6 +96,7 @@ module Datadog
         # @return [Hash]
         def self.default_connection_config
           return @default_connection_config if instance_variable_defined?(:@default_connection_config)
+
           current_connection_name = if ::ActiveRecord::Base.respond_to?(:connection_specification_name)
                                       ::ActiveRecord::Base.connection_specification_name
                                     else

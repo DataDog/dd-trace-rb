@@ -9,10 +9,8 @@ module Datadog
     module Cucumber
       # Defines collection of instrumented Cucumber events
       class Formatter
-        attr_reader :config
+        attr_reader :config, :current_feature_span, :current_step_span
         private :config
-
-        attr_reader :current_feature_span, :current_step_span
         private :current_feature_span, :current_step_span
 
         def initialize(config)
@@ -54,6 +52,7 @@ module Datadog
 
         def on_test_case_finished(event)
           return if @current_feature_span.nil?
+
           @current_feature_span.status = 1 if event.result.failed?
           @current_feature_span.set_tag(Datadog::Ext::Test::TAG_STATUS, status_from_result(event.result))
           @current_feature_span.finish
@@ -69,9 +68,8 @@ module Datadog
 
         def on_test_step_finished(event)
           return if @current_step_span.nil?
-          unless event.result.passed?
-            @current_step_span.set_error event.result.exception
-          end
+
+          @current_step_span.set_error event.result.exception unless event.result.passed?
           @current_step_span.set_tag(Datadog::Ext::Test::TAG_STATUS, status_from_result(event.result))
           @current_step_span.finish
         end
@@ -84,6 +82,7 @@ module Datadog
           elsif result.ok?
             return Datadog::Ext::Test::Status::PASS
           end
+
           Datadog::Ext::Test::Status::FAIL
         end
 

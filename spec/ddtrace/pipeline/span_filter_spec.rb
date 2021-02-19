@@ -13,16 +13,17 @@ RSpec.describe Datadog::Pipeline::SpanFilter do
   context 'with no filtering behavior' do
     subject(:span_filter) { described_class.new { |_| false } }
 
-    it 'should not filter any spans by default' do
+    it 'does not filter any spans by default' do
       expect(subject.call(span_list)).to eq(span_list)
     end
   end
 
   context 'with a filter applied to spans' do
     let(:filter_regex) { /a|b/ }
+
     subject(:span_filter) { described_class.new { |span| span.name[filter_regex] } }
 
-    it 'should filter out spans that match the filtering criteria' do
+    it 'filters out spans that match the filtering criteria' do
       expect(subject.call(span_list)).to eq([span_c])
     end
 
@@ -33,14 +34,14 @@ RSpec.describe Datadog::Pipeline::SpanFilter do
       let(:span_d) { generate_span('d') }
       let(:span_list) { [span_a, span_b, span_c, span_d] }
 
-      it 'should filter out any child spans of a span that matches the criteria' do
+      it 'filters out any child spans of a span that matches the criteria' do
         expect(subject.call(span_list)).to eq([span_d])
       end
 
       context 'with spans that have a parent span that doesnt match filtering criteria' do
         let(:filter_regex) { /b/ }
 
-        it 'should not filter out parent spans of child spans that matches the criteria' do
+        it 'does not filter out parent spans of child spans that matches the criteria' do
           expect(subject.call(span_list)).to eq([span_a, span_d])
         end
       end
@@ -54,7 +55,7 @@ RSpec.describe Datadog::Pipeline::SpanFilter do
       end
     end
 
-    it 'should not filter spans that raise an exception' do
+    it 'does not filter spans that raise an exception' do
       expect(subject.call(span_list)).to eq([span_a, span_c])
     end
   end

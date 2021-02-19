@@ -69,9 +69,7 @@ module Datadog
         }.tap do |headers|
           # Add container ID, if present.
           container_id = Datadog::Runtime::Container.container_id
-          unless container_id.nil?
-            headers[Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID] = container_id
-          end
+          headers[Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
         end
       end
 

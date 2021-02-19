@@ -18,7 +18,7 @@ module Datadog
             @timeout = options.fetch(:timeout, DEFAULT_TIMEOUT)
           end
 
-          def open
+          def open(&block)
             # Open connection
             connection = HTTP.new(
               filepath,
@@ -26,9 +26,7 @@ module Datadog
               continue_timeout: timeout
             )
 
-            connection.start do |http|
-              yield(http)
-            end
+            connection.start(&block)
           end
 
           def url

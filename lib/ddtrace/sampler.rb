@@ -81,7 +81,7 @@ module Datadog
       :default_key
 
     def initialize(default_key, default_rate = 1.0, &block)
-      raise ArgumentError, 'No resolver given!' unless block_given?
+      raise ArgumentError, 'No resolver given!' unless block
 
       @default_key = default_key
       @resolver = block

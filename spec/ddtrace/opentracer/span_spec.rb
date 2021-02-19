@@ -8,19 +8,23 @@ if Datadog::OpenTracer.supported?
     include_context 'OpenTracing helpers'
 
     subject(:span) { described_class.new(datadog_span: datadog_span, span_context: span_context) }
+
     let(:datadog_span) { instance_double(Datadog::Span) }
     let(:span_context) { instance_double(Datadog::OpenTracer::SpanContext) }
 
     describe '#operation_name=' do
       subject(:result) { span.operation_name = name }
+
       let(:name) { 'execute_job' }
 
-      before(:each) { expect(datadog_span).to receive(:name=).with(name).and_return(name) }
+      before { expect(datadog_span).to receive(:name=).with(name).and_return(name) }
+
       it { expect(result).to eq(name) }
     end
 
     describe '#context' do
       subject(:context) { span.context }
+
       it { is_expected.to be(span_context) }
     end
 
@@ -31,7 +35,7 @@ if Datadog::OpenTracer.supported?
         let(:key) { 'account_id' }
         let(:value) { '1234' }
 
-        before(:each) { expect(datadog_span).to receive(:set_tag).with(key, value) }
+        before { expect(datadog_span).to receive(:set_tag).with(key, value) }
 
         it { is_expected.to be(span) }
       end
@@ -40,8 +44,9 @@ if Datadog::OpenTracer.supported?
         let(:key) { 'error' }
         let(:value) { true }
 
-        before(:each) { expect(datadog_span).to receive(:set_tag).with(key, value) }
-        before(:each) { expect(datadog_span).to receive(:'status=').with(Datadog::Ext::Errors::STATUS) }
+        before { expect(datadog_span).to receive(:set_tag).with(key, value) }
+
+        before { expect(datadog_span).to receive(:'status=').with(Datadog::Ext::Errors::STATUS) }
 
         it { is_expected.to be(span) }
       end
@@ -50,8 +55,9 @@ if Datadog::OpenTracer.supported?
         let(:key) { 'error' }
         let(:value) { false }
 
-        before(:each) { expect(datadog_span).to receive(:set_tag).with(key, value) }
-        before(:each) { expect(datadog_span).to receive(:'status=').with(0) }
+        before { expect(datadog_span).to receive(:set_tag).with(key, value) }
+
+        before { expect(datadog_span).to receive(:'status=').with(0) }
 
         it { is_expected.to be(span) }
       end
@@ -59,6 +65,7 @@ if Datadog::OpenTracer.supported?
 
     describe '#set_baggage_item' do
       subject(:result) { span.set_baggage_item(key, value) }
+
       let(:key) { 'account_id' }
       let(:value) { '1234' }
       let(:new_span_context) { instance_double(Datadog::OpenTracer::SpanContext) }
@@ -75,15 +82,19 @@ if Datadog::OpenTracer.supported?
 
     describe '#get_baggage_item' do
       subject(:result) { span.get_baggage_item(key) }
+
       let(:key) { 'account_id' }
       let(:value) { '1234' }
       let(:baggage) { { key => value } }
-      before(:each) { allow(span_context).to receive(:baggage).and_return(baggage) }
+
+      before { allow(span_context).to receive(:baggage).and_return(baggage) }
+
       it { is_expected.to be(value) }
     end
 
     describe '#log' do
       subject(:log) { span.log(event: event, timestamp: timestamp, **fields) }
+
       let(:event) { 'job_finished' }
       let(:timestamp) { Time.now }
       let(:fields) { { time_started: Time.now, account_id: '1234' } }
@@ -96,11 +107,13 @@ if Datadog::OpenTracer.supported?
 
     describe '#log_kv' do
       subject(:log_kv) { span.log_kv(timestamp: timestamp, **fields) }
+
       let(:timestamp) { Time.now }
 
       context 'when given arbitrary key/value pairs' do
         let(:fields) { { time_started: Time.now, account_id: '1234' } }
         # We don't expect this to do anything right now.
+
         it { is_expected.to be nil }
       end
 
@@ -108,7 +121,7 @@ if Datadog::OpenTracer.supported?
         let(:fields) { { :'error.object' => error_object } }
         let(:error_object) { instance_double(StandardError) }
 
-        before(:each) { expect(datadog_span).to receive(:set_error).with(error_object) }
+        before { expect(datadog_span).to receive(:set_error).with(error_object) }
 
         it { is_expected.to be nil }
       end

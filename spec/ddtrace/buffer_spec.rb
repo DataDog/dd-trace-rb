@@ -7,6 +7,7 @@ require 'concurrent'
 
 RSpec.describe Datadog::Buffer do
   subject(:buffer) { described_class.new(max_size) }
+
   let(:max_size) { 0 }
 
   def get_test_items(n = 1)
@@ -110,6 +111,7 @@ RSpec.describe Datadog::Buffer do
 
     context 'given an item' do
       before { buffer.push([1]) }
+
       it { is_expected.to eq(1) }
     end
   end
@@ -123,12 +125,14 @@ RSpec.describe Datadog::Buffer do
 
     context 'given an item' do
       before { buffer.push([1]) }
+
       it { is_expected.to be false }
     end
   end
 
   describe '#pop' do
     subject(:pop) { buffer.pop }
+
     let(:items) { get_test_items(2) }
 
     before do
@@ -162,6 +166,7 @@ RSpec.describe Datadog::Buffer do
 
     context 'when the buffer is closed' do
       before { buffer.close }
+
       it { is_expected.to be true }
     end
   end
@@ -288,11 +293,13 @@ RSpec.describe Datadog::TraceBuffer do
 
   context 'with CRuby' do
     before { skip unless PlatformHelpers.mri? }
+
     it { is_expected.to eq Datadog::CRubyTraceBuffer }
   end
 
   context 'with JRuby' do
     before { skip unless PlatformHelpers.jruby? }
+
     it { is_expected.to eq Datadog::ThreadSafeTraceBuffer }
   end
 end
@@ -308,9 +315,6 @@ RSpec.shared_examples 'thread-safe buffer' do
 
   describe '#push' do
     let(:output) { buffer.pop }
-
-    subject(:push) { threads.each(&:join) }
-
     let(:max_size) { 500 }
     let(:thread_count) { 100 }
     let(:threads) do
@@ -324,8 +328,9 @@ RSpec.shared_examples 'thread-safe buffer' do
         end
       end
     end
-
     let(:output) { buffer.pop }
+
+    subject(:push) { threads.each(&:join) }
 
     it 'does not have collisions' do
       push
@@ -385,11 +390,7 @@ RSpec.shared_examples 'thread-safe buffer' do
 
   describe '#concat' do
     let(:output) { buffer.pop }
-
-    subject(:concat) { threads.each { |t| t.join(5000) } }
-
     let(:bulk_items) { Array.new(10, items) }
-
     let(:max_size) { 5000 }
     let(:thread_count) { 100 }
     let(:threads) do
@@ -403,8 +404,9 @@ RSpec.shared_examples 'thread-safe buffer' do
         end
       end
     end
-
     let(:output) { buffer.pop }
+
+    subject(:concat) { threads.each { |t| t.join(5000) } }
 
     xit 'does not have collisions' do
       concat
@@ -465,6 +467,7 @@ RSpec.shared_examples 'thread-safe buffer' do
 
   describe '#pop' do
     subject(:pop) { buffer.pop }
+
     let(:traces) { get_test_traces(2) }
 
     before do
@@ -477,6 +480,7 @@ RSpec.shared_examples 'trace buffer' do
   include_context 'health metrics'
 
   subject(:buffer) { described_class.new(max_size) }
+
   let(:max_size) { 0 }
 
   def measure_traces_size(traces)
@@ -565,6 +569,7 @@ RSpec.shared_examples 'trace buffer' do
 
   describe '#pop' do
     subject(:pop) { buffer.pop }
+
     let(:traces) { get_test_traces(2) }
 
     before { traces.each { |t| buffer.push(t) } }
@@ -598,6 +603,7 @@ end
 # :nocov:
 RSpec.shared_examples 'performance' do
   subject(:buffer) { described_class.new(max_size) }
+
   let(:max_size) { 0 }
 
   require 'benchmark'
@@ -733,21 +739,21 @@ RSpec.describe Datadog::CRubyBuffer do
 end
 
 RSpec.describe Datadog::ThreadSafeTraceBuffer do
+  let(:items) { get_test_traces(items_count) }
+
   it_behaves_like 'trace buffer'
   it_behaves_like 'thread-safe buffer'
   it_behaves_like 'performance'
-
-  let(:items) { get_test_traces(items_count) }
 end
 
 RSpec.describe Datadog::CRubyTraceBuffer do
   before { skip unless PlatformHelpers.mri? }
+
+  let(:items) { get_test_traces(items_count) }
 
   it_behaves_like 'trace buffer'
   it_behaves_like 'thread-safe buffer' do
     let(:max_size_leniency) { 1.04 } # 4%
   end
   it_behaves_like 'performance'
-
-  let(:items) { get_test_traces(items_count) }
 end

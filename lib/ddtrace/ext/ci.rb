@@ -75,7 +75,7 @@ module Datadog
 
         {
           TAG_PROVIDER_NAME => 'appveyor',
-          Git::TAG_REPOSITORY_URL =>  repository,
+          Git::TAG_REPOSITORY_URL => repository,
           Git::TAG_COMMIT_SHA => commit,
           TAG_WORKSPACE_PATH => env['APPVEYOR_BUILD_FOLDER'],
           TAG_PIPELINE_ID => env['APPVEYOR_BUILD_ID'],
@@ -260,7 +260,7 @@ module Datadog
         {
           Git::TAG_BRANCH => (env['TRAVIS_PULL_REQUEST_BRANCH'] || env['TRAVIS_BRANCH']),
           Git::TAG_COMMIT_SHA => env['TRAVIS_COMMIT'],
-          Git::TAG_REPOSITORY_URL =>  "https://github.com/#{env['TRAVIS_REPO_SLUG']}.git",
+          Git::TAG_REPOSITORY_URL => "https://github.com/#{env['TRAVIS_REPO_SLUG']}.git",
           Git::TAG_TAG => env['TRAVIS_TAG'],
           TAG_JOB_URL => env['TRAVIS_JOB_WEB_URL'],
           TAG_PIPELINE_ID => env['TRAVIS_BUILD_ID'],

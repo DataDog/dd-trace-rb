@@ -139,6 +139,7 @@ RSpec.describe Datadog::Contrib::Patcher do
 
           context 'and patch has been applied' do
             before { patcher.patch }
+
             it { expect(patched?).to be false }
           end
         end
@@ -160,6 +161,7 @@ RSpec.describe Datadog::Contrib::Patcher do
 
           context 'and patch has been applied' do
             before { patcher.patch }
+
             it { expect(patched?).to be true }
           end
         end
@@ -214,6 +216,7 @@ RSpec.describe Datadog::Contrib::Patcher do
 
     describe 'instance behavior' do
       subject(:patcher) { patcher_class.new }
+
       let(:patcher_class) do
         stub_const('TestPatcher', Class.new do
           include Datadog::Contrib::Patcher
@@ -418,6 +421,7 @@ RSpec.describe Datadog::Contrib::Patcher do
 
           context 'and patch has been applied' do
             before { patcher.patch }
+
             it { expect(patched?).to be false }
           end
         end
@@ -439,6 +443,7 @@ RSpec.describe Datadog::Contrib::Patcher do
 
           context 'and patch has been applied' do
             before { patcher.patch }
+
             it { expect(patched?).to be true }
           end
         end

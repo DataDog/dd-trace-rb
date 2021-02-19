@@ -33,6 +33,7 @@ RSpec.shared_context 'integration context' do
     @server = server
     @port = server[:Port]
   end
+
   after(:all) { @server.shutdown }
 
   let(:host) { 'localhost' }

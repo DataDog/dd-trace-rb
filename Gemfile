@@ -25,13 +25,18 @@ gem 'rspec', '~> 3.10'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec_junit_formatter', '>= 0.4.1'
 gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.3.0'
-gem 'rubocop', '= 0.50.0' if RUBY_VERSION >= '2.1.0'
 gem 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java' && RUBY_VERSION >= '2.4.0'
 gem 'simplecov', '~> 0.17'
 gem 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
 gem 'yard', '~> 0.9'
+
+if RUBY_VERSION >= '2.4.0'
+  gem 'rubocop', '~> 1.10', require: false
+  gem 'rubocop-performance', '~> 1.9', require: false
+  gem 'rubocop-rspec', '~> 2.2', require: false
+end
 
 # Optional extensions
 # TODO: Move this to Appraisals?

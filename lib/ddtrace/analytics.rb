@@ -6,11 +6,13 @@ module Datadog
     class << self
       def set_sample_rate(span, sample_rate)
         return if span.nil? || !sample_rate.is_a?(Numeric)
+
         span.set_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE, sample_rate)
       end
 
       def set_measured(span, value = true)
         return if span.nil?
+
         # rubocop:disable Style/MultipleComparison
         value = value == true || value == 1 ? 1 : 0
         span.set_metric(Datadog::Ext::Analytics::TAG_MEASURED, value)

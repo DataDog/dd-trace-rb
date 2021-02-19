@@ -23,7 +23,7 @@ RSpec.describe 'Sequel instrumentation' do
     end
   end
 
-  before(:each) do
+  before do
     skip('Sequel not compatible.') unless Datadog::Contrib::Sequel::Integration.compatible?
 
     # Patch Sequel
@@ -41,7 +41,7 @@ RSpec.describe 'Sequel instrumentation' do
   end
 
   shared_context 'instrumented queries' do
-    before(:each) do
+    before do
       sequel.create_table!(:tbl) do # Drops table before creating if already exists
         String :name
       end
@@ -53,7 +53,8 @@ RSpec.describe 'Sequel instrumentation' do
 
     describe 'Sequel::Database.run' do
       shared_context 'query executed through a Sequel::Database object' do
-        before(:each) { sequel.run(query) }
+        before { sequel.run(query) }
+
         let(:span) { spans.first }
 
         it 'traces the command' do
@@ -101,7 +102,7 @@ RSpec.describe 'Sequel instrumentation' do
       let(:sequel_cmd3_span) { spans[4] }
       let(:sequel_internal_spans) { spans[5..-1] }
 
-      before(:each) do
+      before do
         tracer.trace('publish') do |span|
           span.service = 'webapp'
           span.resource = '/index'
@@ -202,22 +203,13 @@ RSpec.describe 'Sequel instrumentation' do
   end
 
   describe 'with a SQLite database' do
-    it_behaves_like 'instrumented queries'
-
-    let(:adapter) { 'sqlite' }
     let(:connection_string) { 'sqlite::memory:' }
+    let(:adapter) { 'sqlite' }
+
+    it_behaves_like 'instrumented queries'
   end
 
   describe 'with a MySQL database' do
-    it_behaves_like 'instrumented queries'
-
-    let(:adapter) do
-      if PlatformHelpers.jruby?
-        'mysql'
-      else
-        'mysql2'
-      end
-    end
     let(:connection_string) do
       user = ENV.fetch('TEST_MYSQL_USER', 'root')
       password = ENV.fetch('TEST_MYSQL_PASSWORD', 'root')
@@ -226,13 +218,18 @@ RSpec.describe 'Sequel instrumentation' do
       db = ENV.fetch('TEST_MYSQL_DB', 'mysql')
       "#{adapter}://#{host}:#{port}/#{db}?user=#{user}&password=#{password}"
     end
+    let(:adapter) do
+      if PlatformHelpers.jruby?
+        'mysql'
+      else
+        'mysql2'
+      end
+    end
+
+    it_behaves_like 'instrumented queries'
   end
 
   describe 'with a PostgreSQL database' do
-    it_behaves_like 'instrumented queries'
-
-    let(:adapter) { 'postgresql' }
-    let(:normalized_adapter) { 'postgres' }
     let(:connection_string) do
       user = ENV.fetch('TEST_POSTGRES_USER', 'postgres')
       password = ENV.fetch('TEST_POSTGRES_PASSWORD', 'postgres')
@@ -241,5 +238,9 @@ RSpec.describe 'Sequel instrumentation' do
       db = ENV.fetch('TEST_POSTGRES_DB', 'postgres')
       "#{adapter}://#{host}:#{port}/#{db}?user=#{user}&password=#{password}"
     end
+    let(:normalized_adapter) { 'postgres' }
+    let(:adapter) { 'postgresql' }
+
+    it_behaves_like 'instrumented queries'
   end
 end

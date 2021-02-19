@@ -24,9 +24,7 @@ module Datadog
       def do_once(key = nil, options = {})
         # If already done, don't do again
         @done_once ||= Hash.new { |h, k| h[k] = {} }
-        if @done_once.key?(key) && @done_once[key].key?(options[:for])
-          return @done_once[key][options[:for]]
-        end
+        return @done_once[key][options[:for]] if @done_once.key?(key) && @done_once[key].key?(options[:for])
 
         # Otherwise 'do'
         yield.tap do
@@ -37,6 +35,7 @@ module Datadog
 
       def done?(key, options = {})
         return false unless instance_variable_defined?(:@done_once)
+
         !@done_once.nil? && @done_once.key?(key) && @done_once[key].key?(options[:for])
       end
     end

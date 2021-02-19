@@ -1,6 +1,6 @@
 require 'bundler/gem_tasks'
 require 'ddtrace/version'
-require 'rubocop/rake_task' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
+require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'rspec/core/rake_task'
 require 'rake/testtask'
 require 'appraisal'
@@ -154,14 +154,6 @@ namespace :test do
     t.libs << %w[test lib]
     t.test_files = FileList['test/contrib/rails/**/*_test.rb']
   end
-
-  [
-  ].each do |contrib|
-    Rake::TestTask.new(contrib) do |t|
-      t.libs << %w[test lib]
-      t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
-    end
-  end
 end
 
 Rake::TestTask.new(:benchmark) do |t|
@@ -169,7 +161,7 @@ Rake::TestTask.new(:benchmark) do |t|
   t.test_files = FileList['test/benchmark_test.rb']
 end
 
-if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
+if defined?(RuboCop::RakeTask)
   RuboCop::RakeTask.new(:rubocop) do |t|
     t.options << ['-D', '--force-exclusion']
     t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'spec/**/*.rb', 'Gemfile', 'Rakefile']
@@ -189,6 +181,7 @@ S3_DIR = ENV['S3_DIR']
 desc 'release the docs website'
 task :'release:docs' => :docs do
   raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
+
   sh "aws s3 cp --recursive doc/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
 end
 

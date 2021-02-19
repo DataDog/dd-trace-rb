@@ -16,9 +16,7 @@ module Datadog
       def initialize(options = {})
         transport_options = options.fetch(:transport_options, {})
 
-        if transport_options.is_a?(Proc)
-          transport_options = { on_build: transport_options }
-        end
+        transport_options = { on_build: transport_options } if transport_options.is_a?(Proc)
 
         transport_options[:hostname] = options[:hostname] if options.key?(:hostname)
         transport_options[:port] = options[:port] if options.key?(:port)
@@ -66,9 +64,7 @@ module Datadog
           next if trace.first.nil?
 
           hostname = Datadog::Runtime::Socket.hostname
-          unless hostname.nil? || hostname.empty?
-            trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
-          end
+          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
         end
       end
 
@@ -83,10 +79,6 @@ module Datadog
       class FlushCompleted < Event
         def initialize
           super(:flush_completed)
-        end
-
-        def publish(response)
-          super(response)
         end
       end
     end

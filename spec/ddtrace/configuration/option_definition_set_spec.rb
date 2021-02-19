@@ -8,7 +8,7 @@ RSpec.describe Datadog::Configuration::OptionDefinitionSet do
   it { is_expected.to be_a_kind_of(Hash) }
 
   shared_context 'dependent option set' do
-    before(:each) do
+    before do
       set[:foo] = instance_double(
         Datadog::Configuration::OptionDefinition,
         depends_on: [:bar]

@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 require 'stringio'
-require 'thread'
 require 'webrick'
 
 require 'ddtrace/transport/http'
@@ -57,7 +56,6 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
         begin
           sock = server.accept
           http.run(sock)
-        # rubocop:disable Lint/RescueWithoutErrorClass
         rescue => e
           puts "UNIX server error!: #{e}"
         end

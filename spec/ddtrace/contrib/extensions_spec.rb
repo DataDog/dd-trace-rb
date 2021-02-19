@@ -29,7 +29,7 @@ RSpec.describe Datadog::Contrib::Extensions do
       describe '#configure' do
         include_context 'registry with integration' do
           before do
-            allow(Datadog.configuration).to receive(:registry).and_return(registry)
+            allow(described_class.configuration).to receive(:registry).and_return(registry)
           end
         end
 
@@ -59,6 +59,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
         context 'given a target and options' do
           subject(:configure) { described_class.configure(target, opts) }
+
           let(:target) { double('target') }
           let(:opts) { {} }
 
@@ -84,6 +85,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
       describe '#use' do
         subject(:result) { settings.use(integration_name, options) }
+
         let(:options) { {} }
 
         context 'for a generic integration' do

@@ -9,8 +9,21 @@ require 'ddtrace/contrib/rake/patcher'
 
 RSpec.describe Datadog::Contrib::Rake::Instrumentation do
   let(:configuration_options) { { enabled: true } }
+  let(:task_name) { :test_rake_instrumentation }
+  let(:task_body) { proc { |task, args| spy.call(task, args) } }
+  let(:task_arg_names) { [] }
+  let(:task_class) do
+    stub_const('RakeInstrumentationTestTask', Class.new(Rake::TaskLib)).tap do |task_class|
+      tb = task_body
+      task_class.send(:define_method, :initialize) do |name = task_name, *args|
+        task(name, *args, &tb)
+      end
+    end
+  end
+  let(:task) { Rake::Task[task_name] }
+  let(:spy) { double('spy') }
 
-  before(:each) do
+  before do
     skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Integration.compatible?
 
     # Reset options (that might linger from other tests)
@@ -45,28 +58,14 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
     end
   end
 
-  let(:task_name) { :test_rake_instrumentation }
-  let(:task_body) { proc { |task, args| spy.call(task, args) } }
-  let(:task_arg_names) { [] }
-  let(:task_class) do
-    stub_const('RakeInstrumentationTestTask', Class.new(Rake::TaskLib)).tap do |task_class|
-      tb = task_body
-      task_class.send(:define_method, :initialize) do |name = task_name, *args|
-        task(name, *args, &tb)
-      end
-    end
-  end
-  let(:task) { Rake::Task[task_name] }
-  let(:spy) { double('spy') }
-
   describe '#invoke' do
-    before(:each) do
+    before do
       ::Rake.application.instance_variable_set(:@top_level_tasks, [task_name.to_s])
       expect(tracer).to receive(:shutdown!).with(no_args).once.and_call_original
     end
 
     shared_examples_for 'a single task execution' do
-      before(:each) do
+      before do
         expect(spy).to receive(:call) do |invocation_task, invocation_args|
           expect(invocation_task).to eq(task)
           expect(invocation_args.to_hash).to eq(args_hash)
@@ -111,12 +110,13 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
     end
 
     shared_examples 'an error occurrence' do
-      before(:each) do
+      before do
         expect(spy).to receive(:call) do
           raise 'oops'
         end
         expect(task).to receive(:shutdown_tracer!).with(no_args).twice.and_call_original
       end
+
       it { expect { task.invoke(*args) }.to raise_error('oops') }
     end
 
@@ -130,7 +130,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
         Rake::Task.define_task(task_name, *task_arg_names, &task_body)
       end
 
-      before(:each) { define_task! }
+      before { define_task! }
 
       it 'returns task return value' do
         allow(spy).to receive(:call)
@@ -158,6 +158,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
       context 'with args' do
         let(:args_hash) { { one: 1, two: 2, three: 3 } }
+
         it_behaves_like 'a single task execution' do
           describe '\'rake.invoke\' span tags' do
             it do
@@ -180,6 +181,19 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
       context 'with a prerequisite task' do
         let(:prerequisite_task_name) { :test_rake_instrumentation_prerequisite }
+        let(:invoke_span) { spans.find { |s| s.name == Datadog::Contrib::Rake::Ext::SPAN_INVOKE } }
+        let(:prerequisite_task_execute_span) do
+          spans.find do |s|
+            s.name == Datadog::Contrib::Rake::Ext::SPAN_EXECUTE \
+            && s.resource == prerequisite_task_name.to_s
+          end
+        end
+        let(:task_execute_span) do
+          spans.find do |s|
+            s.name == Datadog::Contrib::Rake::Ext::SPAN_EXECUTE \
+            && s.resource == task_name.to_s
+          end
+        end
         let(:prerequisite_task_body) { proc { |task, args| prerequisite_spy.call(task, args) } }
         let(:prerequisite_spy) { double('prerequisite spy') }
         let(:prerequisite_task) { Rake::Task[prerequisite_task_name] }
@@ -191,7 +205,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           Rake::Task.define_task(task_name => prerequisite_task_name, &task_body)
         end
 
-        before(:each) do
+        before do
           expect(prerequisite_spy).to receive(:call) do |invocation_task, invocation_args|
             expect(invocation_task).to eq(prerequisite_task)
             expect(invocation_args.to_hash).to eq({})
@@ -206,20 +220,6 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           expect(prerequisite_task).to receive(:shutdown_tracer!).with(no_args).once.and_call_original
 
           task.invoke(*args)
-        end
-
-        let(:invoke_span) { spans.find { |s| s.name == Datadog::Contrib::Rake::Ext::SPAN_INVOKE } }
-        let(:prerequisite_task_execute_span) do
-          spans.find do |s|
-            s.name == Datadog::Contrib::Rake::Ext::SPAN_EXECUTE \
-            && s.resource == prerequisite_task_name.to_s
-          end
-        end
-        let(:task_execute_span) do
-          spans.find do |s|
-            s.name == Datadog::Contrib::Rake::Ext::SPAN_EXECUTE \
-            && s.resource == task_name.to_s
-          end
         end
 
         it do
