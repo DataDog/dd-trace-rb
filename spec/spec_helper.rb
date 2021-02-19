@@ -82,59 +82,70 @@ RSpec.configure do |config|
     config.default_formatter = 'doc'
   end
 
-  # Check for leaky test resources
+  # Check for leaky test resources.
   #
-  # As far a  s we know, there is no way
-  # to create an `after` callback that's
-  # guaranteed to run after all other `after`
-  # callbacks have been run, so we resort
-  # to `after(:all)` here.
-  config.after(:all) do
-    # Exclude acceptable background threads
-    background_threads = Thread.list.reject do |t|
-      group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
-      backtrace = t.backtrace || []
+  # Execute this after the test has finished
+  # teardown and mock verifications.
+  #
+  # Changing this to `config.after(:each)` would
+  # put this code inside the test scope, interfering
+  # with the test execution.
+  config.around(:each) do |example|
+    example.run.tap do
+      # Exclude acceptable background threads
+      background_threads = Thread.list.reject do |t|
+        group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
+        backtrace = t.backtrace || []
 
-      # Current thread
-      t == Thread.current ||
-        # Thread has shut down, but we caught it right as it was still alive
-        !t.alive? ||
-        # Internal JRuby thread
-        defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
-        # WEBrick singleton thread for handling timeouts
-        backtrace.find { |b| b.include?('/webrick/utils.rb') } ||
-        # Rails connection reaper
-        backtrace.find { |b| b.include?('lib/active_record/connection_adapters/abstract/connection_pool.rb') } ||
-        # Ruby JetBrains debugger
-        t.class.name.include?('DebugThread') ||
-        # Categorized as a known leaky thread
-        !group_name.nil?
-    end
+        # Current thread
+        t == Thread.current ||
+          # Thread has shut down, but we caught it right as it was still alive
+          !t.alive? ||
+          # Internal JRuby thread
+          defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
+          # WEBrick singleton thread for handling timeouts
+          backtrace.find { |b| b.include?('/webrick/utils.rb') } ||
+          # Rails connection reaper
+          backtrace.find { |b| b.include?('lib/active_record/connection_adapters/abstract/connection_pool.rb') } ||
+          # Ruby JetBrains debugger
+          t.class.name.include?('DebugThread') ||
+          # Categorized as a known leaky thread
+          !group_name.nil?
+      end
 
-    unless background_threads.empty?
-      info = background_threads.each_with_index.flat_map do |t, idx|
-        caller = t.instance_variable_get(:@caller) || '(not recorded)'
-        [
-          "#{idx + 1}: #{t} (#{t.class.name})",
-          'Thread Creation Site:',
-          caller.map { |l| "\t#{l}" }.join("\n"),
-          'Thread Backtrace:',
-          t.backtrace.map { |l| "\t#{l}" }.join("\n"),
-          "\n"
-        ]
-      end.join("\n")
+      unless background_threads.empty?
+        info = background_threads.each_with_index.flat_map do |t, idx|
+          caller = t.instance_variable_get(:@caller) || '(not recorded)'
+          [
+            "#{idx + 1}: #{t} (#{t.class.name})",
+            'Thread Creation Site:',
+            caller.map { |l| "\t#{l}" }.join("\n"),
+            'Thread Backtrace:',
+            t.backtrace.map { |l| "\t#{l}" }.join("\n"),
+            "\n"
+          ]
+        end.join("\n")
 
-      # We cannot fail tests gracefully in an `after(:all)` block.
-      # The test results have already been decided by RSpec.
-      # We resort to a more "blunt approach.
-      STDERR.puts RSpec::Core::Formatters::ConsoleCodes.wrap(
-        "Test leaked #{background_threads.size} threads: \"#{self.class.description}\"\n" \
+        # We cannot fail tests gracefully in an `after(:all)` block.
+        # The test results have already been decided by RSpec.
+        # We resort to a more "blunt approach.
+        STDERR.puts RSpec::Core::Formatters::ConsoleCodes.wrap(
+          "Spec leaked #{background_threads.size} threads in \"#{example.full_description}\".\n" \
           "Ensure all threads are terminated when test finishes:\n#{info}",
-        :red
-      )
+          :red
+        )
+      end
     end
   end
 
+  # Closes the global testing tracer.
+  #
+  # Execute this after the test has finished
+  # teardown and mock verifications.
+  #
+  # Changing this to `config.after(:each)` would
+  # put this code inside the test scope, interfering
+  # with the test execution.
   config.around(:each) do |example|
     example.run.tap do
       tracer_shutdown!

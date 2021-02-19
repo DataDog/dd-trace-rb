@@ -72,8 +72,16 @@ module Contrib
         end
       end
 
-      config.after(:each) do
-        Datadog.tracer.shutdown!
+      # Execute shutdown! after the test has finished
+      # teardown and mock verifications.
+      #
+      # Changing this to `config.after(:each)` would
+      # put shutdown! inside the test scope, interfering
+      # with mock assertions.
+      config.around(:each) do |example|
+        example.run.tap do
+          Datadog.tracer.shutdown!
+        end
       end
     end
 
