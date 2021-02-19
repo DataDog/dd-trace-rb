@@ -147,6 +147,7 @@ module DatadogThreadDebugger
       Thread.current.instance_variable_set(:@caller, caller_)
       yield(*thread_args)
     end
+    wrapped.ruby2_keywords if wrapped.respond_to(:ruby2_keywords, true)
 
     super(*args, &wrapped)
   end
