@@ -52,6 +52,7 @@ module Datadog
         ElasticLoadBalancingV2
         ElasticTranscoder
         ElasticsearchService
+        EventBridge
         Firehose
         GameLift
         Glacier
