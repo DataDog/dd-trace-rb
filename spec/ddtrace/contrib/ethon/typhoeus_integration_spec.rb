@@ -7,7 +7,7 @@ require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
 RSpec.describe Datadog::Contrib::Ethon do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  before do
+  before(:context) do
     # Ethon will lazily initialize LibCurl,
     # which spans a leaky native thread.
     #
