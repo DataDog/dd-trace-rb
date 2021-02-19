@@ -83,6 +83,12 @@ RSpec.configure do |config|
   end
 
   # Check for leaky test resources
+  #
+  # As far a  s we know, there is no way
+  # to create an `after` callback that's
+  # guaranteed to run after all other `after`
+  # callbacks have been run, so we resort
+  # to `after(:all)` here.
   config.after(:all) do
     # Exclude acceptable background threads
     background_threads = Thread.list.reject do |t|
@@ -106,14 +112,14 @@ RSpec.configure do |config|
     end
 
     unless background_threads.empty?
-      info = background_threads.flat_map do |t|
+      info = background_threads.each_with_index.flat_map do |t, idx|
         caller = t.instance_variable_get(:@caller) || '(not recorded)'
         [
-          "#{t} (#{t.class.name})",
-          ' == Caller ==',
-          caller,
-          ' == Backtrace ==',
-          t.backtrace,
+          "#{idx + 1}: #{t} (#{t.class.name})",
+          "Thread Creation Site:",
+          caller.map { |l| "\t#{l}" }.join("\n"),
+          "Thread Backtrace:",
+          t.backtrace.map { |l| "\t#{l}" }.join("\n"),
           "\n"
         ]
       end.join("\n")
@@ -122,11 +128,10 @@ RSpec.configure do |config|
       # The test results have already been decided by RSpec.
       # We resort to a more "blunt approach.
       STDERR.puts RSpec::Core::Formatters::ConsoleCodes.wrap(
-        "#{self.class.description}: Test leaked threads! Ensure all threads are terminated when test finishes:",
+        "Test leaked #{background_threads.size} threads: \"#{self.class.description}\"\n" +
+          "Ensure all threads are terminated when test finishes:\n#{info}",
         :red
       )
-      STDERR.puts info
-      Kernel.exit!(1) unless ENV.key?('CI')
     end
   end
 
@@ -147,7 +152,7 @@ module DatadogThreadDebugger
       Thread.current.instance_variable_set(:@caller, caller_)
       yield(*thread_args)
     end
-    wrapped.ruby2_keywords if wrapped.respond_to(:ruby2_keywords, true)
+    wrapped.ruby2_keywords if wrapped.respond_to?(:ruby2_keywords, true)
 
     super(*args, &wrapped)
   end
