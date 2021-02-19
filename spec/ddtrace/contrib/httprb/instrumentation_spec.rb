@@ -49,9 +49,9 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
       c.use :httprb, configuration_options
     end
 
-    # WEBrick server thread
+    # LibFFI native thread
     allow(::HTTP::Connection).to receive(:new).and_wrap_original do |method, *args, &block|
-      ThreadHelpers.with_leaky_thread_creation(:httprb) do
+      ThreadHelpers.with_leaky_thread_creation(:ffi) do
         method.call(*args, &block)
       end
     end
