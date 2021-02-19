@@ -124,8 +124,8 @@ RSpec.configure do |config|
 
       unless background_threads.empty?
         info = background_threads.each_with_index.flat_map do |t, idx|
-          caller = t.instance_variable_get(:@caller) || ['(not available)']
-          backtrace = t.backtrace || ['(not available)']
+          caller = t.instance_variable_get(:@caller) || ['(Not available. Possibly a native thread.)']
+          backtrace = t.backtrace || ['(Not available. Possibly a native thread.)']
           [
             "#{idx + 1}: #{t} (#{t.class.name})",
             'Thread Creation Site:',
