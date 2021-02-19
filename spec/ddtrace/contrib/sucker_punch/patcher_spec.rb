@@ -29,7 +29,7 @@ RSpec.describe 'sucker_punch instrumentation' do
     Class.new do
       include SuckerPunch::Job
 
-      def perform(action = :none)
+      def perform(action = :none, **_)
         1 / 0 if action == :fail
       end
     end
