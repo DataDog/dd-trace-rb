@@ -18,7 +18,7 @@ RSpec.describe Datadog::Contrib::Ethon do
     #
     # This allows us to still ensure that the integration
     # itself is leak-free.
-    ethon_easy_new
+    EthonSupport.ethon_easy_new
   end
 
   context 'with Typhoeus request' do

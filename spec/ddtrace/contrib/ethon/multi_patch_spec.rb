@@ -24,7 +24,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   end
 
   describe '#add' do
-    let(:easy) { ethon_easy_new }
+    let(:easy) { EthonSupport.ethon_easy_new }
     let(:multi) { ::Ethon::Multi.new }
     subject { multi.add easy }
 
@@ -59,7 +59,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   end
 
   describe '#perform' do
-    let(:easy) { ethon_easy_new }
+    let(:easy) { EthonSupport.ethon_easy_new }
     let(:multi) { ::Ethon::Multi.new }
     subject { multi.perform }
 

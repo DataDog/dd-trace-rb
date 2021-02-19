@@ -23,7 +23,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     Datadog.registry[:ethon].reset_configuration!
   end
 
-  let(:easy) { ethon_easy_new }
+  let(:easy) { EthonSupport.ethon_easy_new }
 
   describe '#http_request' do
     it 'preserves HTTP request method on easy instance' do
