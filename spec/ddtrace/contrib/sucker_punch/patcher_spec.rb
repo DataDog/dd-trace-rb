@@ -13,9 +13,13 @@ RSpec.describe 'sucker_punch instrumentation' do
   end
 
   after do
+    count = Thread.list.size
+
     SuckerPunch::RUNNING.make_false
     SuckerPunch::Queue.all.each(&:shutdown)
     SuckerPunch::Queue.clear
+
+    try_wait_until { Thread.list.size < count }
   end
 
   around do |example|
