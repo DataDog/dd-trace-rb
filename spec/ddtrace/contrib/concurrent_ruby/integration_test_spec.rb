@@ -8,7 +8,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
   # DEV We save an unmodified copy of Concurrent::Future.
   let!(:unmodified_future) { ::Concurrent::Future.dup }
 
-  before do
+  before(:context) do
     # Execute an async future to force the eager creation of internal
     # global threads that are never closed.
     #
