@@ -72,10 +72,8 @@ module Contrib
         end
       end
 
-      config.around(:each) do |example|
-        example.run.tap do
-          Datadog.tracer.shutdown!
-        end
+      config.after(:each) do
+        Datadog.tracer.shutdown!
       end
     end
 
