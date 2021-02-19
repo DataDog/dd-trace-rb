@@ -92,6 +92,13 @@ RSpec.configure do |config|
   # with the test execution.
   config.around(:each) do |example|
     example.run.tap do
+      # TODO: Temporarily disabled for `spec/ddtrace/workers`
+      # was meaningful changes are required to address clean
+      # teardown in those tests.
+      # They currently flood the output, making our test
+      # suite output unreadable.
+      next if example.file_path.start_with?('./spec/ddtrace/workers/async_spec.rb')
+
       # Exclude acceptable background threads
       background_threads = Thread.list.reject do |t|
         group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
