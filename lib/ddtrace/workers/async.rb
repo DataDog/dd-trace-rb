@@ -17,13 +17,6 @@ module Datadog
 
         # Methods that must be prepended
         module PrependedMethods
-          def initialize(*args, &block)
-            super
-
-            @mutex = Mutex.new
-            @async = true
-          end
-
           def perform(*args)
             start { self.result = super(*args) } unless started?
           end
@@ -34,7 +27,7 @@ module Datadog
           :result
 
         attr_writer \
-          :async, :fork_policy
+          :fork_policy
 
         def join(timeout = nil)
           return true unless running?
@@ -43,13 +36,14 @@ module Datadog
 
         def terminate
           return false unless running?
-          @async = false
+          @run_async = false
           worker.terminate
           true
         end
 
-        def async?
-          @async == true
+        def run_async?
+          return false unless instance_variable_defined?(:@run_async)
+          @run_async == true
         end
 
         def started?
@@ -86,6 +80,10 @@ module Datadog
         attr_writer \
           :result
 
+        def mutex
+          @mutex ||= Mutex.new
+        end
+
         def after_fork
           # Do nothing by default
         end
@@ -93,7 +91,7 @@ module Datadog
         private
 
         attr_reader \
-          :mutex, :pid
+          :pid
 
         def mutex_after_fork
           @mutex_after_fork ||= Mutex.new
@@ -113,14 +111,14 @@ module Datadog
               when FORK_POLICY_RESTART
                 restart_after_fork(&block)
               end
-            elsif async?
+            elsif !run_async?
               start_worker(&block)
             end
           end
         end
 
         def start_worker
-          @async = true
+          @run_async = true
           @pid = Process.pid
           @error = nil
           Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
@@ -148,7 +146,7 @@ module Datadog
 
               # Reset and turn off
               @pid = Process.pid
-              @async = false
+              @run_async = false
             end
           end
         end

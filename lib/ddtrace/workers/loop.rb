@@ -20,9 +20,7 @@ module Datadog
 
       def stop_loop
         mutex.synchronize do
-          # Ensure we always inform that a stop was requested.
-          # This guarantees correct shutdown even if the loop
-          # has asynchronously not stated yet.
+          return false unless run_loop?
           @run_loop = false
           shutdown.signal
         end
@@ -77,12 +75,7 @@ module Datadog
       private
 
       def perform_loop
-        mutex.synchronize do
-          # Loop has been stopped before it even started?
-          return if instance_variable_defined?(:@run_loop) && @run_loop == false
-
-          @run_loop = true
-        end
+        @run_loop = true
 
         loop do
           if work_pending?

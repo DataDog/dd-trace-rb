@@ -67,7 +67,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
 
       context 'when the worker is not running' do
         before { worker.stop_loop }
-        it { is_expected.to be true }
+        it { is_expected.to be false }
       end
 
       context 'when the worker is running' do

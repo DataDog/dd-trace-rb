@@ -101,6 +101,9 @@ module Datadog
       FORK_POLICY_ASYNC = :async
       FORK_POLICY_SYNC = :sync
 
+      attr_writer \
+        :async
+
       def initialize(options = {})
         # Workers::TraceWriter settings
         super
@@ -109,6 +112,7 @@ module Datadog
         self.enabled = options.fetch(:enabled, true)
 
         # Workers::Async::Thread settings
+        @async = true
         self.fork_policy = options.fetch(:fork_policy, FORK_POLICY_ASYNC)
 
         # Workers::IntervalLoop settings
@@ -153,6 +157,10 @@ module Datadog
         !buffer.empty?
       end
 
+      def async?
+        @async == true
+      end
+
       def fork_policy=(policy)
         # Translate to Workers::Async::Thread policy
         thread_fork_policy = case policy
@@ -189,9 +197,6 @@ module Datadog
       def write(trace)
         # Start worker thread. If the process has forked, it will trigger #after_fork to
         # reconfigure the worker accordingly.
-        #
-        # `perform` can change the result of `async?` during a fork.
-        #
         # NOTE: It's important we do this before queuing or it will drop the current trace,
         #       because #after_fork resets the buffer.
         perform

@@ -321,7 +321,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
       expect(writer.send(:worker)).to be_a_kind_of(Thread)
       expect(writer).to have_attributes(
-        async?: true,
+        run_async?: true,
         running?: true,
         started?: true,
         forked?: false,
@@ -458,7 +458,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
             # Give thread time to be terminated
             try_wait_until { !writer.running? }
 
-            expect(writer.async?).to be false
+            expect(writer.run_async?).to be false
             expect(writer.running?).to be false
           end
         end
@@ -582,8 +582,6 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
       before { expect(writer.async?).to be true }
 
       context 'is true' do
-        after { expect(writer.stop).to be_truthy }
-
         it 'starts a worker thread & queues the trace' do
           expect(writer.buffer).to receive(:push)
             .with(trace)
