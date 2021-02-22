@@ -102,7 +102,7 @@ module Datadog
           locations = locations[0..(max_frames - 1)]
 
           # Convert backtrace locations into structs
-          locations = convert_backtrace_locations(locations)
+          locations = convert_backtrace_locations(locations, thread)
 
           thread_id = thread.respond_to?(:native_thread_id) ? thread.native_thread_id : thread.object_id
           trace_id, span_id = get_trace_identifiers(thread)
@@ -160,12 +160,15 @@ module Datadog
 
         # Convert backtrace locations into structs
         # Re-use old backtrace location objects if they already exist in the buffer
-        def convert_backtrace_locations(locations)
+        def convert_backtrace_locations(locations, thread)
           locations.collect do |location|
             # Re-use existing BacktraceLocation if identical copy, otherwise build a new one.
+
+
             recorder[Events::StackSample].cache(:backtrace_locations).fetch(
               # Function name
-              location.base_label,
+              #location.base_label,
+              thread.to_s.include?('reference-processor') ? "FIXME-WIP-TRUFFLERUBY" : location.base_label,
               # Line number
               location.lineno,
               # Filename

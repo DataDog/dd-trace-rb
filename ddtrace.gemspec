@@ -51,7 +51,8 @@ Gem::Specification.new do |spec|
       '!= 3.7.0.rc.3',
       '!= 3.7.0',
       '!= 3.7.1',
-      '!= 3.8.0.rc.1'
+      '!= 3.8.0.rc.1',
+      '~> 3.14.0',
     ]
 
     spec.add_development_dependency 'google-protobuf', *google_protobuf_versions
