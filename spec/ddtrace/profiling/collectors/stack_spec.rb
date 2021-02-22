@@ -257,7 +257,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         include_context 'with profiling extensions'
 
         before do
-          allow(Thread).to receive(:current).and_return(double('Current thread', cpu_time: true))
+          real_current_thread = Thread.current
+          mock_thread = double('Mock current thread', cpu_time: true)
+          allow(mock_thread).to receive(:[]) { |name| real_current_thread[name] }
+          allow(mock_thread).to receive(:[]=) { |name, value| real_current_thread[name] = value }
+
+          allow(Thread).to receive(:current).and_return(mock_thread)
 
           allow(thread)
             .to receive(:cpu_time_instrumentation_installed?)
