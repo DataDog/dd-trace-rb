@@ -116,6 +116,10 @@ decreased.
 
 **Ensuring tests don't leak resources**
 
+Tests execution can create resources that are hard to track: threads, sockets, files, etc. Because these resources can come
+from the both the test setup as well as the code under test, making sure all resources are properly disposed is important
+to prevent the application from inadvertently creating cumulative resources during its execution.
+
 When running tests that utilize threads, you might see an error message similar to this one:
 
 ```
