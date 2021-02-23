@@ -4,8 +4,9 @@ require 'spec/support/language_helpers'
 require 'ddtrace/chunker'
 
 RSpec.describe Datadog::Chunker do
-  context '.chunk_by_size' do
+  describe '.chunk_by_size' do
     subject(:encode) { described_class.chunk_by_size(list, max_chunk_size) }
+
     let(:list) { %w[1 22 333] }
     let(:max_chunk_size) { 3 }
 

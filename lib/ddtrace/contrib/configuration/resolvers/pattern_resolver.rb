@@ -11,7 +11,7 @@ module Datadog
             return if patterns.empty?
 
             # Try to find a matching pattern
-            matching_pattern = patterns.find do |pattern|
+            patterns.find do |pattern|
               if pattern.is_a?(Proc)
                 (pattern === name)
               else
@@ -19,9 +19,6 @@ module Datadog
                   (pattern == name) # Only required during configuration time.
               end
             end
-
-            # Return match or default
-            matching_pattern
           end
 
           def add(pattern)

@@ -13,7 +13,7 @@ RSpec.describe 'AWS instrumentation' do
   let(:client) { ::Aws::S3::Client.new(stub_responses: responses) }
   let(:responses) { true }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :aws, configuration_options
     end

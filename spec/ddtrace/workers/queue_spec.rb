@@ -26,6 +26,7 @@ RSpec.describe Datadog::Workers::Queue do
 
       context 'when work is queued' do
         let(:args) { [:foo, :bar] }
+
         before { worker.enqueue(*args) }
 
         it 'performs the task with arguments provided' do
@@ -35,12 +36,14 @@ RSpec.describe Datadog::Workers::Queue do
 
     describe '#buffer' do
       subject(:buffer) { worker.buffer }
+
       it { is_expected.to be_a_kind_of(Array) }
       it { is_expected.to be_empty }
     end
 
     describe '#enqueue' do
       subject(:enqueue) { worker.enqueue(*args) }
+
       let(:args) { [:foo, :bar] }
 
       it do
@@ -59,6 +62,7 @@ RSpec.describe Datadog::Workers::Queue do
 
       context 'when args are queued' do
         let(:args) { [:foo, :bar] }
+
         before { worker.enqueue(*args) }
 
         it do
@@ -80,7 +84,9 @@ RSpec.describe Datadog::Workers::Queue do
 
       context 'when the buffer is not empty' do
         before { worker.enqueue(*args) }
+
         let(:args) { [:foo, :bar] }
+
         it { is_expected.to be true }
       end
     end

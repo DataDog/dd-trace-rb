@@ -5,6 +5,7 @@ require 'ddtrace/contrib/aws/parsed_context'
 
 RSpec.describe Datadog::Contrib::Aws::ParsedContext do
   subject(:parsed_context) { described_class.new(context) }
+
   let(:context) { client.list_buckets.context }
 
   let(:client) { ::Aws::S3::Client.new(region: 'us-west-2', stub_responses: responses) }
@@ -30,11 +31,13 @@ RSpec.describe Datadog::Contrib::Aws::ParsedContext do
 
   describe '#safely' do
     subject(:attribute) { parsed_context.safely(attribute_name, fallback) }
+
     let(:attribute_name) { :resource }
     let(:fallback) { 'fallback_name' }
 
     context 'when the attribute raises an error' do
-      before(:each) { allow(parsed_context).to receive(attribute_name).and_raise('Parse error.') }
+      before { allow(parsed_context).to receive(attribute_name).and_raise('Parse error.') }
+
       it { is_expected.to eq(fallback) }
     end
   end

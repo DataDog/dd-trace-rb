@@ -6,27 +6,32 @@ RSpec.describe Datadog::Contrib::Analytics do
   describe '::enabled?' do
     context 'when flag is not provided' do
       subject(:enabled?) { described_class.enabled? }
+
       it { is_expected.to be false }
     end
 
     context 'when flag is nil' do
       subject(:enabled?) { described_class.enabled?(nil) }
+
       it { is_expected.to be false }
     end
 
     context 'when flag is true' do
       subject(:enabled?) { described_class.enabled?(true) }
+
       it { is_expected.to be true }
     end
 
     context 'when flag is false' do
       subject(:enabled?) { described_class.enabled?(false) }
+
       it { is_expected.to be false }
     end
   end
 
   describe '::set_sample_rate' do
     subject(:set_sample_rate) { described_class.set_sample_rate(span, sample_rate) }
+
     let(:span) { instance_double(Datadog::Span) }
 
     context 'when sample rate is nil' do
@@ -55,6 +60,7 @@ RSpec.describe Datadog::Contrib::Analytics do
 
   describe '::set_measured' do
     subject(:set_measured) { described_class.set_measured(span) }
+
     let(:span) { instance_double(Datadog::Span) }
 
     before do
@@ -71,6 +77,7 @@ RSpec.describe Datadog::Contrib::Analytics do
 
     context 'when a span and value is given' do
       subject(:set_measured) { described_class.set_measured(span, value) }
+
       let(:value) { double('value') }
 
       it 'sets measured as true' do

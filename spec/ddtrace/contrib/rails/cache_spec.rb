@@ -20,13 +20,14 @@ RSpec.describe 'Rails cache' do
   let(:key) { 'custom-key' }
   let(:multi_keys) { %w[custom-key-1 custom-key-2 custom-key-3] }
 
-  context '#read' do
+  describe '#read' do
     subject(:read) { cache.read(key) }
 
     before { cache.write(key, 50) }
 
     it_behaves_like 'measured span for integration', false do
       before { read }
+
       let(:span) { spans.first }
     end
 
@@ -45,13 +46,14 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context '#read_multi' do
+  describe '#read_multi' do
     subject(:read_multi) { cache.read_multi(*multi_keys) }
 
     before { multi_keys.each { |key| cache.write(key, 50 + key[-1].to_i) } }
 
     it_behaves_like 'measured span for integration', false do
       before { read_multi }
+
       let(:span) { spans[0] }
     end
 
@@ -71,7 +73,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context '#write' do
+  describe '#write' do
     subject(:write) { cache.write(key, 50) }
 
     it_behaves_like 'measured span for integration', false do
@@ -108,7 +110,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context '#write_multi' do
+  describe '#write_multi' do
     let(:values) { multi_keys.map { |k| 50 + k[-1].to_i } }
 
     subject(:write_multi) { cache.write_multi(Hash[multi_keys.zip(values)], opt_name: :opt_value) }
@@ -160,6 +162,7 @@ RSpec.describe 'Rails cache' do
           skip 'Test is not applicable to this Rails version'
         end
       end
+
       it do
         expect(::ActiveSupport::Cache::Store.ancestors).not_to(
           include(::Datadog::Contrib::ActiveSupport::Cache::Instrumentation::WriteMulti)
@@ -172,7 +175,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context '#delete' do
+  describe '#delete' do
     subject!(:delete) { cache.delete(key) }
 
     it_behaves_like 'measured span for integration', false
@@ -187,12 +190,13 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context '#fetch' do
+  describe '#fetch' do
     subject(:fetch) { cache.fetch(key) { 'default' } }
 
     it_behaves_like 'measured span for integration', false do
       before { fetch }
       # Choose either GET or SET span
+
       let(:span) { spans.sample }
     end
 
@@ -214,7 +218,7 @@ RSpec.describe 'Rails cache' do
     end
   end
 
-  context '#fetch_multi' do
+  describe '#fetch_multi' do
     subject(:fetch_multi) { cache.fetch_multi(*multi_keys, expires_in: 42) { |key| 50 + key[-1].to_i } }
 
     context 'when the method is defined' do
@@ -227,6 +231,7 @@ RSpec.describe 'Rails cache' do
       it_behaves_like 'measured span for integration', false do
         before { fetch_multi }
         # Choose either GET or SET span
+
         let(:span) { spans.sample }
       end
 

@@ -145,15 +145,14 @@ module Datadog
           end
 
           def should_skip_distributed_tracing?(pin)
-            if pin.config && pin.config.key?(:distributed_tracing)
-              return !pin.config[:distributed_tracing]
-            end
+            return !pin.config[:distributed_tracing] if pin.config && pin.config.key?(:distributed_tracing)
 
             !Datadog.configuration[:httprb][:distributed_tracing]
           end
 
           def set_analytics_sample_rate(span, request_options)
             return unless analytics_enabled?(request_options)
+
             Contrib::Analytics.set_sample_rate(span, request_options[:analytics_sample_rate])
           end
         end

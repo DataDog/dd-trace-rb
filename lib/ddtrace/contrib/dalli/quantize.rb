@@ -12,7 +12,6 @@ module Datadog
           command = [operation, *args].join(' ').strip
           command = Utils.utf8_encode(command, binary: true, placeholder: placeholder)
           Utils.truncate(command, Ext::QUANTIZE_MAX_CMD_LENGTH)
-        # rubocop:disable Lint/RescueWithoutErrorClass
         rescue => e
           Datadog.logger.debug("Error sanitizing Dalli operation: #{e}")
           placeholder

@@ -20,11 +20,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:environment) { nil }
+
           it { is_expected.to be nil }
         end
 
         context 'is defined' do
           let(:environment) { 'true' }
+
           it { is_expected.to be true }
         end
       end
@@ -42,6 +44,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
   describe '#analytics_enabled' do
     subject(:analytics_enabled) { settings.analytics_enabled }
+
     let(:value) { double }
 
     before { expect(settings.analytics).to receive(:enabled).and_return(value) }
@@ -72,11 +75,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'is not defined' do
         let(:api_key_env) { nil }
+
         it { is_expected.to be nil }
       end
 
       context 'is defined' do
         let(:api_key_env) { SecureRandom.uuid.delete('-') }
+
         it { is_expected.to eq(api_key_env) }
       end
     end
@@ -87,7 +92,9 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when given a value' do
       let(:api_key) { SecureRandom.uuid.delete('-') }
+
       before { set_api_key }
+
       it { expect(settings.api_key).to eq(api_key) }
     end
   end
@@ -95,6 +102,7 @@ RSpec.describe Datadog::Configuration::Settings do
   describe '#diagnostics' do
     describe '#debug' do
       subject(:debug) { settings.diagnostics.debug }
+
       it { is_expected.to be false }
 
       context "when #{Datadog::Ext::Diagnostics::DD_TRACE_DEBUG}" do
@@ -106,16 +114,19 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:environment) { nil }
+
           it { is_expected.to be false }
         end
 
         context 'is set to true' do
           let(:environment) { 'true' }
+
           it { is_expected.to be true }
         end
 
         context 'is set to false' do
           let(:environment) { 'false' }
+
           it { is_expected.to be false }
         end
       end
@@ -124,6 +135,7 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#debug=' do
       context 'enabled' do
         subject(:set_debug) { settings.diagnostics.debug = true }
+
         after { settings.diagnostics.debug = false }
 
         it 'updates the #debug setting' do
@@ -159,11 +171,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
           context 'is not defined' do
             let(:environment) { nil }
+
             it { is_expected.to be false }
           end
 
           context 'is defined' do
             let(:environment) { 'true' }
+
             it { is_expected.to be true }
           end
         end
@@ -180,6 +194,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       describe '#statsd' do
         subject(:statsd) { settings.diagnostics.health_metrics.statsd }
+
         it { is_expected.to be nil }
       end
 
@@ -209,6 +224,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:environment) { nil }
+
           it do
             is_expected.to eq(
               [
@@ -222,6 +238,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is defined' do
           let(:environment) { 'B3,B3 single header' }
+
           it do
             is_expected.to eq(
               [
@@ -242,6 +259,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:environment) { nil }
+
           it do
             is_expected.to eq(
               [
@@ -255,6 +273,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is defined' do
           let(:environment) { 'B3,B3 single header' }
+
           it do
             is_expected.to eq(
               [
@@ -279,11 +298,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:environment) { nil }
+
           it { is_expected.to eq([Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG]) }
         end
 
         context 'is defined' do
           let(:environment) { 'Datadog,B3' }
+
           it do
             is_expected.to eq(
               [
@@ -304,11 +325,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:environment) { nil }
+
           it { is_expected.to eq([Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG]) }
         end
 
         context 'is defined' do
           let(:environment) { 'Datadog,B3' }
+
           it do
             is_expected.to eq(
               [
@@ -324,6 +347,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
   describe '#env' do
     subject(:env) { settings.env }
+
     context "when #{Datadog::Ext::Environment::ENV_ENVIRONMENT}" do
       around do |example|
         ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => environment) do
@@ -333,11 +357,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'is not defined' do
         let(:environment) { nil }
+
         it { is_expected.to be nil }
       end
 
       context 'is defined' do
         let(:environment) { 'env-value' }
+
         it { is_expected.to eq(environment) }
       end
     end
@@ -348,7 +374,9 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when given a value' do
       let(:env) { 'custom-env' }
+
       before { set_env }
+
       it { expect(settings.env).to eq(env) }
     end
   end
@@ -356,6 +384,7 @@ RSpec.describe Datadog::Configuration::Settings do
   describe '#logger' do
     describe '#instance' do
       subject(:instance) { settings.logger.instance }
+
       it { is_expected.to be nil }
     end
 
@@ -379,6 +408,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#level' do
       subject(:level) { settings.logger.level }
+
       it { is_expected.to be ::Logger::INFO }
     end
 
@@ -395,7 +425,7 @@ RSpec.describe Datadog::Configuration::Settings do
   end
 
   describe '#logger=' do
-    let(:logger) { Datadog::Logger.new(STDOUT) }
+    let(:logger) { Datadog::Logger.new($stdout) }
 
     it 'sets the logger instance' do
       expect { settings.logger = logger }.to change { settings.logger.instance }
@@ -416,11 +446,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'is not defined' do
         let(:environment) { nil }
+
         it { is_expected.to be false }
       end
 
       context 'is defined' do
         let(:environment) { 'true' }
+
         it { is_expected.to be true }
       end
     end
@@ -439,6 +471,7 @@ RSpec.describe Datadog::Configuration::Settings do
     describe 'old style' do
       context 'given nothing' do
         subject(:runtime_metrics) { settings.runtime_metrics }
+
         it 'returns the new settings object' do
           is_expected.to be_a_kind_of(Datadog::Configuration::Base)
         end
@@ -457,6 +490,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'given :statsd' do
         subject(:runtime_metrics) { settings.runtime_metrics statsd: statsd }
+
         let(:statsd) { double('statsd') }
 
         it 'updates the new #statsd setting' do
@@ -480,11 +514,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:environment) { nil }
+
           it { is_expected.to be false }
         end
 
         context 'is defined' do
           let(:environment) { 'true' }
+
           it { is_expected.to be true }
         end
       end
@@ -501,6 +537,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#opts' do
       subject(:opts) { settings.runtime_metrics.opts }
+
       it { is_expected.to eq({}) }
     end
 
@@ -517,6 +554,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#statsd' do
       subject(:statsd) { settings.runtime_metrics.statsd }
+
       it { is_expected.to be nil }
     end
 
@@ -534,6 +572,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
   describe '#runtime_metrics_enabled' do
     subject(:runtime_metrics_enabled) { settings.runtime_metrics_enabled }
+
     let(:value) { double }
 
     before { expect(settings.runtime_metrics).to receive(:enabled).and_return(value) }
@@ -592,6 +631,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
   describe '#service' do
     subject(:service) { settings.service }
+
     context "when #{Datadog::Ext::Environment::ENV_SERVICE}" do
       around do |example|
         ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => service) do
@@ -601,11 +641,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'is not defined' do
         let(:service) { nil }
+
         it { is_expected.to be nil }
       end
 
       context 'is defined' do
         let(:service) { 'service-value' }
+
         it { is_expected.to eq(service) }
       end
     end
@@ -616,7 +658,9 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when given a value' do
       let(:service) { 'custom-service' }
+
       before { set_service }
+
       it { expect(settings.service).to eq(service) }
     end
   end
@@ -633,11 +677,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'is not defined' do
         let(:site_env) { nil }
+
         it { is_expected.to be nil }
       end
 
       context 'is defined' do
         let(:site_env) { 'datadoghq.com' }
+
         it { is_expected.to eq(site_env) }
       end
     end
@@ -648,7 +694,9 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when given a value' do
       let(:site) { 'datadoghq.com' }
+
       before { set_site }
+
       it { expect(settings.site).to eq(site) }
     end
   end
@@ -665,6 +713,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'is not defined' do
         let(:env_tags) { nil }
+
         it { is_expected.to eq({}) }
       end
 
@@ -676,26 +725,31 @@ RSpec.describe Datadog::Configuration::Settings do
         context 'with an invalid tag' do
           context do
             let(:env_tags) { '' }
+
             it { is_expected.to eq({}) }
           end
 
           context do
             let(:env_tags) { 'a' }
+
             it { is_expected.to eq({}) }
           end
 
           context do
             let(:env_tags) { ':' }
+
             it { is_expected.to eq({}) }
           end
 
           context do
             let(:env_tags) { ',' }
+
             it { is_expected.to eq({}) }
           end
 
           context do
             let(:env_tags) { 'a:' }
+
             it { is_expected.to eq({}) }
           end
         end
@@ -705,11 +759,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
           context 'is set' do
             let(:env) { 'env-value' }
+
             it { is_expected.to include('env' => env) }
           end
 
           context 'is not set' do
             let(:env) { nil }
+
             it { is_expected.to_not include('env') }
           end
         end
@@ -719,11 +775,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
           context 'is set' do
             let(:version) { 'version-value' }
+
             it { is_expected.to include('version' => version) }
           end
 
           context 'is not set' do
             let(:version) { nil }
+
             it { is_expected.to_not include('version') }
           end
         end
@@ -793,13 +851,17 @@ RSpec.describe Datadog::Configuration::Settings do
     context 'when given a Hash' do
       context 'with Symbol keys' do
         let(:tags) { { :'custom-tag' => 'custom-value' } }
+
         before { set_tags }
+
         it { expect(settings.tags).to eq('custom-tag' => 'custom-value') }
       end
 
       context 'with String keys' do
         let(:tags) { { 'custom-tag' => 'custom-value' } }
+
         before { set_tags }
+
         it { expect(settings.tags).to eq(tags) }
       end
     end
@@ -839,7 +901,7 @@ RSpec.describe Datadog::Configuration::Settings do
       end
 
       context 'given :log' do
-        let(:custom_log) { Logger.new(STDOUT, level: Logger::INFO) }
+        let(:custom_log) { Logger.new($stdout, level: Logger::INFO) }
 
         it 'updates the new #instance setting' do
           expect { settings.tracer(log: custom_log) }
@@ -923,6 +985,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#enabled' do
       subject(:enabled) { settings.tracer.enabled }
+
       it { is_expected.to be true }
 
       context "when #{Datadog::Ext::Diagnostics::DD_TRACE_ENABLED}" do
@@ -934,16 +997,19 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:enable) { nil }
+
           it { is_expected.to be true }
         end
 
         context 'is set to true' do
           let(:enable) { 'true' }
+
           it { is_expected.to be true }
         end
 
         context 'is set to false' do
           let(:enable) { 'false' }
+
           it { is_expected.to be false }
         end
       end
@@ -960,6 +1026,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#hostname' do
       subject(:hostname) { settings.tracer.hostname }
+
       it { is_expected.to be nil }
     end
 
@@ -976,6 +1043,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#instance' do
       subject(:instance) { settings.tracer.instance }
+
       it { is_expected.to be nil }
     end
 
@@ -993,6 +1061,7 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#partial_flush' do
       describe '#enabled' do
         subject(:enabled) { settings.tracer.partial_flush.enabled }
+
         it { is_expected.to be false }
       end
 
@@ -1007,6 +1076,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       describe '#min_spans_threshold' do
         subject(:min_spans_threshold) { settings.tracer.partial_flush.min_spans_threshold }
+
         it { is_expected.to be nil }
       end
 
@@ -1024,6 +1094,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#port' do
       subject(:port) { settings.tracer.port }
+
       it { is_expected.to be nil }
     end
 
@@ -1040,6 +1111,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#priority_sampling' do
       subject(:priority_sampling) { settings.tracer.priority_sampling }
+
       it { is_expected.to be nil }
     end
 
@@ -1054,6 +1126,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#sampler' do
       subject(:sampler) { settings.tracer.sampler }
+
       it { is_expected.to be nil }
     end
 
@@ -1070,6 +1143,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#transport_options' do
       subject(:transport_options) { settings.tracer.transport_options }
+
       it { is_expected.to eq({}) }
 
       context 'when modified' do
@@ -1094,6 +1168,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#writer' do
       subject(:writer) { settings.tracer.writer }
+
       it { is_expected.to be nil }
     end
 
@@ -1110,6 +1185,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#writer_options' do
       subject(:writer_options) { settings.tracer.writer_options }
+
       it { is_expected.to eq({}) }
 
       context 'when modified' do
@@ -1145,6 +1221,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
   describe '#version' do
     subject(:version) { settings.version }
+
     context "when #{Datadog::Ext::Environment::ENV_VERSION}" do
       around do |example|
         ClimateControl.modify(Datadog::Ext::Environment::ENV_VERSION => version) do
@@ -1154,11 +1231,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'is not defined' do
         let(:version) { nil }
+
         it { is_expected.to be nil }
       end
 
       context 'is defined' do
         let(:version) { 'version-value' }
+
         it { is_expected.to eq(version) }
       end
     end
@@ -1169,13 +1248,16 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when given a value' do
       let(:version) { '0.1.0.alpha' }
+
       before { set_version }
+
       it { expect(settings.version).to eq(version) }
     end
   end
 
   describe '#time_now_provider=' do
     subject(:set_time_now_provider) { settings.time_now_provider = time_now_provider }
+
     after { settings.reset! }
 
     let(:time_now) { double('time') }
@@ -1206,6 +1288,7 @@ RSpec.describe Datadog::Configuration::Settings do
       before { set_time_now_provider }
 
       let(:original_time_now) { double('original time') }
+
       before { allow(Time).to receive(:now).and_return(original_time_now) }
 
       it 'returns the provided time' do

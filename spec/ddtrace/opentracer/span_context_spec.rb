@@ -10,6 +10,7 @@ if Datadog::OpenTracer.supported?
     describe '#initialize' do
       context 'given a Datadog::Context' do
         subject(:span_context) { described_class.new(datadog_context: datadog_context) }
+
         let(:datadog_context) { instance_double(Datadog::Context) }
 
         it do
@@ -26,6 +27,7 @@ if Datadog::OpenTracer.supported?
               baggage: original_baggage
             )
           end
+
           let(:original_baggage) { { account_id: '1234' } }
 
           it { is_expected.to be_a_kind_of(described_class) }
@@ -33,7 +35,9 @@ if Datadog::OpenTracer.supported?
           describe 'builds a SpanContext where' do
             describe '#baggage' do
               subject(:baggage) { span_context.baggage }
+
               it { is_expected.to be(original_baggage) }
+
               it 'is immutable' do
                 expect { baggage[1] = 2 }.to raise_error(RuntimeError)
               end

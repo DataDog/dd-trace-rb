@@ -21,9 +21,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
         )
         .and_return(http_connection)
 
-      allow(http_connection).to receive(:start) do |&block|
-        block.call(http_connection)
-      end
+      allow(http_connection).to receive(:start).and_yield(http_connection)
     end
   end
 
@@ -42,6 +40,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
     context 'given a timeout option' do
       let(:options) { { timeout: timeout } }
       let(:timeout) { double('timeout') }
+
       it { is_expected.to have_attributes(timeout: timeout) }
     end
   end
@@ -59,12 +58,14 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
 
     let(:filepath) { '/tmp/trace.sock' }
     let(:timeout) { 7 }
+
     it { is_expected.to eq('http+unix:///tmp/trace.sock?timeout=7') }
   end
 end
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket::HTTP do
   subject(:unix_http) { described_class.new(filepath, options) }
+
   let(:filepath) { double('filepath') }
   let(:options) { {} }
 
@@ -84,18 +85,21 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket::HTTP do
     context 'given a read timeout option' do
       let(:options) { { read_timeout: read_timeout } }
       let(:read_timeout) { double('read_timeout') }
+
       it { is_expected.to have_attributes(read_timeout: read_timeout) }
     end
 
     context 'given a continue timeout option' do
       let(:options) { { continue_timeout: continue_timeout } }
       let(:continue_timeout) { double('continue_timeout') }
+
       it { is_expected.to have_attributes(continue_timeout: continue_timeout) }
     end
   end
 
   describe '#connect' do
     subject(:connect) { unix_http.connect }
+
     let(:unix_socket) { instance_double(::UNIXSocket) }
     let(:net_io) { instance_double(::Net::BufferedIO) }
 

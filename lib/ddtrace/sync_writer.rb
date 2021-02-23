@@ -34,7 +34,6 @@ module Datadog
       end
 
       flush_trace(trace)
-    # rubocop:disable Lint/RescueWithoutErrorClass
     rescue => e
       Datadog.logger.debug(e)
     end
@@ -50,6 +49,7 @@ module Datadog
     def flush_trace(trace)
       processed_traces = Pipeline.process!([trace])
       return if processed_traces.empty?
+
       inject_hostname!(processed_traces.first) if Datadog.configuration.report_hostname
       transport.send_traces(processed_traces)
     end
@@ -57,9 +57,7 @@ module Datadog
     def inject_hostname!(trace)
       unless trace.first.nil?
         hostname = Datadog::Runtime::Socket.hostname
-        unless hostname.nil? || hostname.empty?
-          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
-        end
+        trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
       end
     end
   end

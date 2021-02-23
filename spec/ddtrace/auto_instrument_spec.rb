@@ -74,7 +74,7 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
     let(:adapter_host) { Datadog::Contrib::ActiveRecord::Utils.adapter_host }
     let(:adapter_port) { Datadog::Contrib::ActiveRecord::Utils.adapter_port }
 
-    it 'should auto_instrument all relevant gems automatically' do
+    it 'auto_instruments all relevant gems automatically' do
       is_expected.to be_ok
       expect(spans).to have_at_least(2).items
 

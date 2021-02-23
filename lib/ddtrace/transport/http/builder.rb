@@ -36,6 +36,7 @@ module Datadog
           @default_adapter = if type.is_a?(Symbol)
                                registry_klass = REGISTRY.get(type)
                                raise UnknownAdapterError, type if registry_klass.nil?
+
                                registry_klass.new(*args)
                              else
                                type
@@ -67,6 +68,7 @@ module Datadog
 
         def default_api=(key)
           raise UnknownApiError, key unless @apis.key?(key)
+
           @default_api = key
         end
 

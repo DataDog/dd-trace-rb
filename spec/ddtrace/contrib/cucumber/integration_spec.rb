@@ -26,11 +26,13 @@ RSpec.describe Datadog::Contrib::Cucumber::Integration do
 
     context 'when Cucumber::Runtime is defined' do
       before { stub_const('Cucumber::Runtime', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when Cucumber::Runtime is not defined' do
       before { hide_const('Cucumber::Runtime') }
+
       it { is_expected.to be false }
     end
   end
@@ -58,16 +60,19 @@ RSpec.describe Datadog::Contrib::Cucumber::Integration do
 
   describe '#auto_instrument?' do
     subject(:auto_instrument?) { integration.auto_instrument? }
+
     it { is_expected.to be(false) }
   end
 
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::Cucumber::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::Cucumber::Patcher }
   end
 end

@@ -13,6 +13,7 @@ RSpec.describe Datadog::Contrib::Registerable do
     describe 'class behavior' do
       describe '#register_as' do
         subject(:register_as) { registerable_class.register_as(name, options) }
+
         let(:name) { :foo }
         let(:options) { {} }
 
@@ -61,6 +62,7 @@ RSpec.describe Datadog::Contrib::Registerable do
 
     describe 'instance behavior' do
       subject(:registerable_object) { registerable_class.new(name, options) }
+
       let(:name) { :foo }
       let(:options) { {} }
 

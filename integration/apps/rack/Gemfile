@@ -4,8 +4,8 @@ source 'https://rubygems.org' do
   gem 'puma'
   gem 'unicorn'
 
-  gem 'rack'
   gem 'dogstatsd-ruby'
+  gem 'rack'
 
   gem 'ffi'
   gem 'google-protobuf'

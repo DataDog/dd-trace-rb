@@ -30,6 +30,7 @@ module Datadog
             reduce_verbosity = target.respond_to?(:reduce_verbosity?) ? target.reduce_verbosity? : false
             target.integrations_pending_activation.each do |integration|
               next unless integration.respond_to?(:patch)
+
               # integration.patch returns either true or a hash of details on why patching failed
               patch_results = integration.patch
 

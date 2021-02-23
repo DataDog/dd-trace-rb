@@ -78,17 +78,20 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
         context 'that contains \'job_class\'' do
           let(:body) { { 'job_class' => job_class } }
           let(:job_class) { 'MyJob' }
+
           it { expect(span.resource).to eq(job_class) }
         end
 
         context 'that does not contain \'job_class\'' do
           let(:body) { {} }
+
           it { expect(span.resource).to eq('TestWorker') }
         end
       end
 
       context 'that is a String' do
         let(:body) { 'my body' }
+
         it { expect(span.resource).to eq('TestWorker') }
       end
     end

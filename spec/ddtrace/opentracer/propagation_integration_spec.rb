@@ -8,6 +8,7 @@ if Datadog::OpenTracer.supported?
     include_context 'OpenTracing helpers'
 
     subject(:tracer) { Datadog::OpenTracer::Tracer.new(writer: FauxWriter.new) }
+
     let(:datadog_tracer) { tracer.datadog_tracer }
     let(:datadog_spans) { datadog_tracer.writer.spans(:keep) }
 
@@ -34,7 +35,7 @@ if Datadog::OpenTracer.supported?
         let(:baggage) { { 'account_name' => 'acme' } }
         let(:carrier) { {} }
 
-        before(:each) do
+        before do
           tracer.start_active_span(span_name) do |scope|
             scope.span.context.datadog_context.sampling_priority = 1
             scope.span.context.datadog_context.origin = 'synthetics'
@@ -69,7 +70,7 @@ if Datadog::OpenTracer.supported?
         let(:baggage_with_prefix) { baggage_to_carrier_format(baggage) }
         let(:carrier) { baggage_with_prefix }
 
-        before(:each) do
+        before do
           span_context = tracer.extract(OpenTracing::FORMAT_TEXT_MAP, carrier)
           tracer.start_active_span(span_name, child_of: span_context) do |scope|
             @scope = scope
@@ -118,11 +119,13 @@ if Datadog::OpenTracer.supported?
 
       context 'in a round-trip' do
         let(:sender_span_name) { 'operation.sender' }
+        let(:sender_datadog_span) { datadog_spans.last }
+        let(:receiver_datadog_span) { datadog_spans.first }
         let(:receiver_span_name) { 'operation.receiver' }
         let(:baggage) { { 'account_name' => 'acme' } }
         let(:carrier) { {} }
 
-        before(:each) do
+        before do
           tracer.start_active_span(sender_span_name) do |sender_scope|
             sender_scope.span.context.datadog_context.sampling_priority = 1
             sender_scope.span.context.datadog_context.origin = 'synthetics'
@@ -140,9 +143,6 @@ if Datadog::OpenTracer.supported?
             end
           end
         end
-
-        let(:sender_datadog_span) { datadog_spans.last }
-        let(:receiver_datadog_span) { datadog_spans.first }
 
         it { expect(datadog_spans).to have(2).items }
         it { expect(sender_datadog_span.name).to eq(sender_span_name) }
@@ -174,7 +174,7 @@ if Datadog::OpenTracer.supported?
         let(:baggage) { { 'account_name' => 'acme' } }
         let(:carrier) { {} }
 
-        before(:each) do
+        before do
           tracer.start_active_span(span_name) do |scope|
             scope.span.context.datadog_context.sampling_priority = 1
             scope.span.context.datadog_context.origin = 'synthetics'
@@ -209,7 +209,7 @@ if Datadog::OpenTracer.supported?
         let(:baggage_with_prefix) { baggage_to_carrier_format(baggage) }
         let(:carrier) { carrier_to_rack_format(baggage_with_prefix) }
 
-        before(:each) do
+        before do
           span_context = tracer.extract(OpenTracing::FORMAT_RACK, carrier)
           tracer.start_active_span(span_name, child_of: span_context) do |scope|
             @scope = scope
@@ -260,6 +260,8 @@ if Datadog::OpenTracer.supported?
 
       context 'in a round-trip' do
         let(:sender_span_name) { 'operation.sender' }
+        let(:sender_datadog_span) { datadog_spans.last }
+        let(:receiver_datadog_span) { datadog_spans.first }
         let(:receiver_span_name) { 'operation.receiver' }
         # NOTE: If these baggage names include either dashes or uppercase characters
         #       they will not make a round-trip with the same key format. They will
@@ -268,7 +270,7 @@ if Datadog::OpenTracer.supported?
         #       on key format to be lost.
         let(:baggage) { { 'account_name' => 'acme' } }
 
-        before(:each) do
+        before do
           tracer.start_active_span(sender_span_name) do |sender_scope|
             sender_scope.span.context.datadog_context.sampling_priority = 1
             sender_scope.span.context.datadog_context.origin = 'synthetics'
@@ -290,9 +292,6 @@ if Datadog::OpenTracer.supported?
             end
           end
         end
-
-        let(:sender_datadog_span) { datadog_spans.last }
-        let(:receiver_datadog_span) { datadog_spans.first }
 
         it { expect(datadog_spans).to have(2).items }
         it { expect(sender_datadog_span.name).to eq(sender_span_name) }

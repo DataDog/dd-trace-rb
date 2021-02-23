@@ -17,7 +17,7 @@ module Datadog
       # Pass options to override any settings.
       def default(options = {})
         new(
-          options.fetch(:out, STDOUT),
+          options.fetch(:out, $stdout),
           options.fetch(:encoder, Encoding::JSONEncoder)
         )
       end

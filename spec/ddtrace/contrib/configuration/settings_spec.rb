@@ -9,12 +9,14 @@ RSpec.describe Datadog::Contrib::Configuration::Settings do
 
   describe '#service_name' do
     subject(:service_name) { settings.service_name }
+
     it { expect(settings.service_name).to be nil }
     it { expect(settings[:service_name]).to be nil }
   end
 
   describe '#tracer' do
     subject(:tracer) { settings.tracer }
+
     it { expect(settings.tracer).to be Datadog.tracer }
     it { expect(settings[:tracer]).to be Datadog.tracer }
 
@@ -30,12 +32,14 @@ RSpec.describe Datadog::Contrib::Configuration::Settings do
 
   describe '#analytics_enabled' do
     subject(:analytics_enabled) { settings.analytics_enabled }
+
     it { expect(settings.analytics_enabled).to be false }
     it { expect(settings[:analytics_enabled]).to be false }
   end
 
   describe '#analytics_sample_rate' do
     subject(:analytics_sample_rate) { settings.analytics_sample_rate }
+
     it { expect(settings.analytics_sample_rate).to eq 1.0 }
     it { expect(settings[:analytics_sample_rate]).to eq 1.0 }
   end

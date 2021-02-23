@@ -28,7 +28,6 @@ module Datadog
         propagator = PROPAGATION_STYLES[style]
         begin
           propagator.inject!(context, env) unless propagator.nil?
-        # rubocop:disable Lint/RescueWithoutErrorClass
         rescue => e
           Datadog.logger.error(
             'Error injecting propagated context into the environment. ' \

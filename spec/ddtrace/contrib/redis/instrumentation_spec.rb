@@ -18,7 +18,7 @@ RSpec.describe 'Redis instrumentation test' do
     Datadog.registry[:redis].reset_configuration!
   end
 
-  before(:each) do
+  before do
     skip unless ENV['TEST_DATADOG_INTEGRATION']
   end
 

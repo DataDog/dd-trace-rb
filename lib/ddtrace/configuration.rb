@@ -48,7 +48,7 @@ module Datadog
         # This prevents recursive loops while initializing.
         # e.g. Get logger --> Build components --> Log message --> Repeat...
         @temp_logger ||= begin
-          logger = configuration.logger.instance || Datadog::Logger.new(STDOUT)
+          logger = configuration.logger.instance || Datadog::Logger.new($stdout)
           logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
           logger
         end

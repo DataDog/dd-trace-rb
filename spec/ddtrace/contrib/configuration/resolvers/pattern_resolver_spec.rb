@@ -12,6 +12,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
       let(:pattern) { /name/ }
 
       before { resolver.add(pattern) }
+
       it { is_expected.to eq(pattern) }
 
       context 'then given a name that isn\'t a String but is case equal' do
@@ -26,14 +27,18 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
 
     context 'when non-matching Regexp has been added' do
       let(:name) { 'my-name' }
+
       before { resolver.add(/not_found/) }
+
       it { is_expected.to be nil }
     end
 
     context 'when matching Proc has been added' do
       let(:name) { 'my-name' }
       let(:pattern_proc) { proc { |n| n == name } }
+
       before { resolver.add(pattern_proc) }
+
       it { is_expected.to eq(pattern_proc) }
 
       context 'then given a name that isn\'t a String but is case equal' do
@@ -48,7 +53,9 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
 
     context 'when non-matching Proc has been added' do
       let(:name) { 'my-name' }
+
       before { resolver.add(proc { |n| n == 'not_found' }) }
+
       it { is_expected.to be nil }
     end
 
@@ -57,6 +64,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
       let(:pattern) { name }
 
       before { resolver.add(pattern) }
+
       it { is_expected.to eq(pattern) }
 
       context 'then given a name that isn\'t a String but is case equal' do
@@ -71,7 +79,9 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
 
     context 'when a non-matching String has been added' do
       let(:name) { 'name' }
+
       before { resolver.add('my-name') }
+
       it { is_expected.to be nil }
     end
   end

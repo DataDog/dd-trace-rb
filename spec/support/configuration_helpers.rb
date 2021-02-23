@@ -39,9 +39,7 @@ module ConfigurationHelpers
       end
     elsif Datadog.registry[integration].respond_to?(:patcher)
       Datadog.registry[integration].patcher.tap do |patcher|
-        if patcher.instance_variable_defined?(:@done_once)
-          patcher.instance_variable_get(:@done_once).delete(patch_key)
-        end
+        patcher.instance_variable_get(:@done_once).delete(patch_key) if patcher.instance_variable_defined?(:@done_once)
       end
     else
       Datadog
@@ -51,7 +49,7 @@ module ConfigurationHelpers
   end
 
   def self.included(config)
-    config.before(:each) do
+    config.before do
       allow_any_instance_of(Datadog::Pin)
         .to receive(:deprecation_warning)
         .and_raise('DEPRECATED: Tracer cannot be eagerly cached.' \

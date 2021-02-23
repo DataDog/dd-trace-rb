@@ -1,4 +1,4 @@
-logger = Logger.new(STDOUT)
+logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
 class ApplicationRecord < ActiveRecord::Base

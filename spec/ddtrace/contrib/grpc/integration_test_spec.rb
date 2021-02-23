@@ -51,21 +51,25 @@ RSpec.describe 'gRPC integration test' do
 
   context 'request reply' do
     before { run_request_reply }
+
     it_behaves_like 'associates child spans with the parent'
   end
 
   context 'client stream' do
     before { run_client_streamer }
+
     it_behaves_like 'associates child spans with the parent'
   end
 
   context 'server stream' do
     before { run_server_streamer }
+
     it_behaves_like 'associates child spans with the parent'
   end
 
   context 'bidirectional stream' do
     before { run_bidi_streamer }
+
     it_behaves_like 'associates child spans with the parent'
   end
 end

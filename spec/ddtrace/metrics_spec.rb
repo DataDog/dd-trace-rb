@@ -10,6 +10,7 @@ RSpec.describe Datadog::Metrics do
   include_context 'metrics'
 
   subject(:metrics) { described_class.new(options) }
+
   let(:options) { { statsd: statsd } }
 
   it { is_expected.to have_attributes(statsd: statsd) }
@@ -33,6 +34,7 @@ RSpec.describe Datadog::Metrics do
 
       context 'is not loaded' do
         let(:spec) { nil }
+
         it { is_expected.to be false }
       end
 
@@ -41,11 +43,13 @@ RSpec.describe Datadog::Metrics do
 
         context 'with version < 3.3.0' do
           let(:version) { Gem::Version.new('3.2.9') }
+
           it { is_expected.to be false }
         end
 
         context 'with version 3.3.0' do
           let(:version) { Gem::Version.new('3.3.0') }
+
           it { is_expected.to be true }
         end
       end
@@ -61,31 +65,37 @@ RSpec.describe Datadog::Metrics do
 
     context 'when initialized as enabled' do
       let(:options) { super().merge(enabled: true) }
+
       it { is_expected.to be true }
     end
 
     context 'when initialized as disabled' do
       let(:options) { super().merge(enabled: false) }
+
       it { is_expected.to be false }
     end
   end
 
   describe '#enabled=' do
     subject(:enabled) { metrics.enabled? }
+
     before { metrics.enabled = status }
 
     context 'is given true' do
       let(:status) { true }
+
       it { is_expected.to be true }
     end
 
     context 'is given false' do
       let(:status) { false }
+
       it { is_expected.to be false }
     end
 
     context 'is given nil' do
       let(:status) { nil }
+
       it { is_expected.to be false }
     end
   end
@@ -148,6 +158,7 @@ RSpec.describe Datadog::Metrics do
 
   describe '#default_statsd_client' do
     subject(:default_statsd_client) { metrics.default_statsd_client }
+
     let(:statsd_client) { instance_double(Datadog::Statsd) }
 
     before do
@@ -181,6 +192,7 @@ RSpec.describe Datadog::Metrics do
       context ':statsd' do
         let(:configure_options) { { statsd: custom_statsd } }
         let(:custom_statsd) { instance_double(Datadog::Statsd) }
+
         it { expect { configure }.to change { metrics.statsd }.from(statsd).to(custom_statsd) }
       end
 
@@ -189,13 +201,17 @@ RSpec.describe Datadog::Metrics do
 
         context 'as true' do
           let(:enabled) { true }
+
           before { configure }
+
           it { expect(metrics.enabled?).to be(true) }
         end
 
         context 'as false' do
           let(:enabled) { false }
+
           before { configure }
+
           it { expect(metrics.enabled?).to be(false) }
         end
       end
@@ -207,6 +223,7 @@ RSpec.describe Datadog::Metrics do
 
     context 'when disabled' do
       before { metrics.enabled = false }
+
       it { is_expected.to be(false) }
     end
 
@@ -214,12 +231,15 @@ RSpec.describe Datadog::Metrics do
       context 'and Statsd' do
         context 'is initialized' do
           let(:custom_statsd) { instance_double(Datadog::Statsd) }
+
           before { metrics.configure(statsd: custom_statsd) }
+
           it { is_expected.to be(true) }
         end
 
         context 'is nil' do
           before { metrics.configure(statsd: nil) }
+
           it { is_expected.to be(false) }
         end
       end
@@ -228,12 +248,13 @@ RSpec.describe Datadog::Metrics do
 
   describe '#count' do
     subject(:count) { metrics.count(stat, value, stat_options) }
+
     let(:stat) { :foo }
     let(:value) { 100 }
     let(:stat_options) { nil }
 
     context 'when #statsd is nil' do
-      before(:each) do
+      before do
         allow(metrics).to receive(:statsd).and_return(nil)
         expect { count }.to_not raise_error
       end
@@ -245,49 +266,58 @@ RSpec.describe Datadog::Metrics do
       context 'and given a block' do
         context 'that does not yield args' do
           subject(:count) { metrics.count(stat) {} }
+
           it_behaves_like 'missing value arg'
         end
 
         context 'that yields args' do
           subject(:count) { metrics.count(stat) { [value, stat_options] } }
+
           let(:stat_options) { {} }
+
           before { count }
+
           it { expect(statsd).to have_received_count_metric(stat) }
         end
       end
 
       context 'and given no options' do
-        before(:each) { expect { count }.to_not raise_error }
+        before { expect { count }.to_not raise_error }
+
         it { expect(statsd).to have_received_count_metric(stat) }
       end
 
       context 'and given options' do
-        before(:each) { expect { count }.to_not raise_error }
+        before { expect { count }.to_not raise_error }
 
         context 'that are empty' do
           let(:stat_options) { {} }
+
           it { expect(statsd).to have_received_count_metric(stat) }
         end
 
         context 'that are frozen' do
           let(:stat_options) { {}.freeze }
+
           it { expect(statsd).to have_received_count_metric(stat) }
         end
 
         context 'that contain :tags' do
           let(:stat_options) { { tags: tags } }
           let(:tags) { %w[foo bar] }
+
           it { expect(statsd).to have_received_count_metric(stat, kind_of(Numeric), stat_options) }
 
           context 'which are frozen' do
             let(:tags) { super().freeze }
+
             it { expect(statsd).to have_received_count_metric(stat, kind_of(Numeric), stat_options) }
           end
         end
       end
 
       context 'which raises an error' do
-        before(:each) do
+        before do
           expect(statsd).to receive(:count).and_raise(StandardError)
           expect(Datadog.logger).to receive(:error)
         end
@@ -299,12 +329,13 @@ RSpec.describe Datadog::Metrics do
 
   describe '#distribution' do
     subject(:distribution) { metrics.distribution(stat, value, stat_options) }
+
     let(:stat) { :foo }
     let(:value) { 100 }
     let(:stat_options) { nil }
 
     context 'when #statsd is nil' do
-      before(:each) do
+      before do
         allow(metrics).to receive(:statsd).and_return(nil)
         expect { distribution }.to_not raise_error
       end
@@ -316,49 +347,58 @@ RSpec.describe Datadog::Metrics do
       context 'and given a block' do
         context 'that does not yield args' do
           subject(:distribution) { metrics.distribution(stat) {} }
+
           it_behaves_like 'missing value arg'
         end
 
         context 'that yields args' do
           subject(:distribution) { metrics.distribution(stat) { [value, stat_options] } }
+
           let(:stat_options) { {} }
+
           before { distribution }
+
           it { expect(statsd).to have_received_distribution_metric(stat) }
         end
       end
 
       context 'and given no options' do
-        before(:each) { expect { distribution }.to_not raise_error }
+        before { expect { distribution }.to_not raise_error }
+
         it { expect(statsd).to have_received_distribution_metric(stat) }
       end
 
       context 'and given options' do
-        before(:each) { expect { distribution }.to_not raise_error }
+        before { expect { distribution }.to_not raise_error }
 
         context 'that are empty' do
           let(:stat_options) { {} }
+
           it { expect(statsd).to have_received_distribution_metric(stat) }
         end
 
         context 'that are frozen' do
           let(:stat_options) { {}.freeze }
+
           it { expect(statsd).to have_received_distribution_metric(stat) }
         end
 
         context 'that contain :tags' do
           let(:stat_options) { { tags: tags } }
           let(:tags) { %w[foo bar] }
+
           it { expect(statsd).to have_received_distribution_metric(stat, kind_of(Numeric), stat_options) }
 
           context 'which are frozen' do
             let(:tags) { super().freeze }
+
             it { expect(statsd).to have_received_distribution_metric(stat, kind_of(Numeric), stat_options) }
           end
         end
       end
 
       context 'which raises an error' do
-        before(:each) do
+        before do
           expect(statsd).to receive(:distribution).and_raise(StandardError)
           expect(Datadog.logger).to receive(:error)
         end
@@ -370,12 +410,13 @@ RSpec.describe Datadog::Metrics do
 
   describe '#gauge' do
     subject(:gauge) { metrics.gauge(stat, value, stat_options) }
+
     let(:stat) { :foo }
     let(:value) { 100 }
     let(:stat_options) { nil }
 
     context 'when #statsd is nil' do
-      before(:each) do
+      before do
         allow(metrics).to receive(:statsd).and_return(nil)
         expect { gauge }.to_not raise_error
       end
@@ -387,49 +428,58 @@ RSpec.describe Datadog::Metrics do
       context 'and given a block' do
         context 'that does not yield args' do
           subject(:gauge) { metrics.gauge(stat) {} }
+
           it_behaves_like 'missing value arg'
         end
 
         context 'that yields args' do
           subject(:gauge) { metrics.gauge(stat) { [value, stat_options] } }
+
           let(:stat_options) { {} }
+
           before { gauge }
+
           it { expect(statsd).to have_received_gauge_metric(stat) }
         end
       end
 
       context 'and given no options' do
-        before(:each) { expect { gauge }.to_not raise_error }
+        before { expect { gauge }.to_not raise_error }
+
         it { expect(statsd).to have_received_gauge_metric(stat) }
       end
 
       context 'and given options' do
-        before(:each) { expect { gauge }.to_not raise_error }
+        before { expect { gauge }.to_not raise_error }
 
         context 'that are empty' do
           let(:stat_options) { {} }
+
           it { expect(statsd).to have_received_gauge_metric(stat) }
         end
 
         context 'that are frozen' do
           let(:stat_options) { {}.freeze }
+
           it { expect(statsd).to have_received_gauge_metric(stat) }
         end
 
         context 'that contain :tags' do
           let(:stat_options) { { tags: tags } }
           let(:tags) { %w[foo bar] }
+
           it { expect(statsd).to have_received_gauge_metric(stat, kind_of(Numeric), stat_options) }
 
           context 'which are frozen' do
             let(:tags) { super().freeze }
+
             it { expect(statsd).to have_received_gauge_metric(stat, kind_of(Numeric), stat_options) }
           end
         end
       end
 
       context 'which raises an error' do
-        before(:each) do
+        before do
           expect(statsd).to receive(:gauge).and_raise(StandardError)
           expect(Datadog.logger).to receive(:error)
         end
@@ -441,11 +491,12 @@ RSpec.describe Datadog::Metrics do
 
   describe '#increment' do
     subject(:increment) { metrics.increment(stat, stat_options) }
+
     let(:stat) { :foo }
     let(:stat_options) { nil }
 
     context 'when #statsd is nil' do
-      before(:each) do
+      before do
         allow(metrics).to receive(:statsd).and_return(nil)
         expect { increment }.to_not raise_error
       end
@@ -457,50 +508,59 @@ RSpec.describe Datadog::Metrics do
       context 'and given a block' do
         context 'that yields args' do
           subject(:increment) { metrics.increment(stat) { stat_options } }
+
           let(:stat_options) { {} }
+
           before { increment }
+
           it { expect(statsd).to have_received_increment_metric(stat) }
         end
       end
 
       context 'and given no options' do
-        before(:each) { expect { increment }.to_not raise_error }
+        before { expect { increment }.to_not raise_error }
+
         it { expect(statsd).to have_received_increment_metric(stat) }
       end
 
       context 'and given options' do
-        before(:each) { expect { increment }.to_not raise_error }
+        before { expect { increment }.to_not raise_error }
 
         context 'that are empty' do
           let(:stat_options) { {} }
+
           it { expect(statsd).to have_received_increment_metric(stat) }
         end
 
         context 'that are frozen' do
           let(:stat_options) { {}.freeze }
+
           it { expect(statsd).to have_received_increment_metric(stat) }
         end
 
         context 'that contain :by' do
           let(:stat_options) { { by: count } }
           let(:count) { 1 }
+
           it { expect(statsd).to have_received_increment_metric(stat, stat_options) }
         end
 
         context 'that contain :tags' do
           let(:stat_options) { { tags: tags } }
           let(:tags) { %w[foo bar] }
+
           it { expect(statsd).to have_received_increment_metric(stat, stat_options) }
 
           context 'which are frozen' do
             let(:tags) { super().freeze }
+
             it { expect(statsd).to have_received_increment_metric(stat, stat_options) }
           end
         end
       end
 
       context 'which raises an error' do
-        before(:each) do
+        before do
           expect(statsd).to receive(:increment).and_raise(StandardError)
           expect(Datadog.logger).to receive(:error)
         end
@@ -512,12 +572,13 @@ RSpec.describe Datadog::Metrics do
 
   describe '#time' do
     subject(:time) { metrics.time(stat, stat_options, &block) }
+
     let(:stat) { :foo }
     let(:stat_options) { nil }
     let(:block) { proc {} }
 
     context 'when #statsd is nil' do
-      before(:each) do
+      before do
         allow(metrics).to receive(:statsd).and_return(nil)
         expect { time }.to_not raise_error
       end
@@ -533,42 +594,48 @@ RSpec.describe Datadog::Metrics do
           let(:block) { proc { raise error } }
           let(:error) { RuntimeError.new }
           # Expect the given block to raise its errors through
+
           it { expect { time }.to raise_error(error) }
         end
       end
 
       context 'and given no options' do
-        before(:each) { expect { time }.to_not raise_error }
+        before { expect { time }.to_not raise_error }
+
         it { expect(statsd).to have_received_time_metric(stat) }
       end
 
       context 'and given options' do
-        before(:each) { expect { time }.to_not raise_error }
+        before { expect { time }.to_not raise_error }
 
         context 'that are empty' do
           let(:stat_options) { {} }
+
           it { expect(statsd).to have_received_time_metric(stat) }
         end
 
         context 'that are frozen' do
           let(:stat_options) { {}.freeze }
+
           it { expect(statsd).to have_received_time_metric(stat) }
         end
 
         context 'that contain :tags' do
           let(:stat_options) { { tags: tags } }
           let(:tags) { %w[foo bar] }
+
           it { expect(statsd).to have_received_time_metric(stat, stat_options) }
 
           context 'which are frozen' do
             let(:tags) { super().freeze }
+
             it { expect(statsd).to have_received_time_metric(stat, stat_options) }
           end
         end
       end
 
       context 'which raises an error' do
-        before(:each) do
+        before do
           expect(statsd).to receive(:distribution).and_raise(StandardError)
           expect(Datadog.logger).to receive(:error)
         end
@@ -616,6 +683,7 @@ end
 RSpec.describe Datadog::Metrics::Options do
   context 'when included into a class' do
     subject(:instance) { options_class.new }
+
     let(:options_class) { stub_const('OptionsClass', Class.new { include Datadog::Metrics::Options }) }
 
     describe '#default_metric_options' do
@@ -629,6 +697,7 @@ RSpec.describe Datadog::Metrics::Options do
 
         it { is_expected.to be_a_kind_of(Array) }
         it { expect(default_tags.frozen?).to be false }
+
         it 'includes default tags' do
           is_expected.to include(
             "#{Datadog::Ext::Metrics::TAG_LANG}:#{Datadog::Runtime::Identity.lang}",
@@ -643,11 +712,13 @@ RSpec.describe Datadog::Metrics::Options do
 
           context 'is not defined' do
             let(:environment) { nil }
-            it { is_expected.to_not include(/\A#{Datadog::Ext::Environment::TAG_ENV}:/) }
+
+            it { is_expected.to_not include(/\A#{Datadog::Ext::Environment::TAG_ENV}:/o) }
           end
 
           context 'is defined' do
             let(:environment) { 'my-env' }
+
             it { is_expected.to include("#{Datadog::Ext::Environment::TAG_ENV}:#{environment}") }
           end
         end
@@ -657,11 +728,13 @@ RSpec.describe Datadog::Metrics::Options do
 
           context 'is not defined' do
             let(:version) { nil }
-            it { is_expected.to_not include(/\A#{Datadog::Ext::Environment::TAG_VERSION}:/) }
+
+            it { is_expected.to_not include(/\A#{Datadog::Ext::Environment::TAG_VERSION}:/o) }
           end
 
           context 'is defined' do
             let(:version) { 'my-version' }
+
             it { is_expected.to include("#{Datadog::Ext::Environment::TAG_VERSION}:#{version}") }
           end
         end
@@ -672,6 +745,7 @@ end
 
 RSpec.describe Datadog::Metrics::Logging::Adapter do
   subject(:adapter) { described_class.new(logger) }
+
   let(:logger) { instance_double(Logger) }
 
   def have_received_json_metric(expected_hash)
@@ -690,14 +764,17 @@ RSpec.describe Datadog::Metrics::Logging::Adapter do
 
       describe '#logger' do
         subject(:logger) { adapter.logger }
+
         it { expect(logger.level).to be(Logger::INFO) }
-        it { expect(logger.instance_variable_get(:@logdev).dev).to eq(STDOUT) }
+        it { expect(logger.instance_variable_get(:@logdev).dev).to eq($stdout) }
       end
     end
 
     context 'given a logger' do
       subject(:adapter) { described_class.new(logger) }
+
       let(:logger) { instance_double(Logger) }
+
       it { expect(adapter.logger).to be logger }
     end
   end
@@ -785,6 +862,7 @@ RSpec.describe Datadog::Metrics::Logging::Adapter do
 
     describe 'and #count is sent' do
       subject(:count) { metrics.count(stat, value, options) }
+
       let(:stat) { :my_stat }
       let(:value) { 100 }
       let(:options) { { tags: ['foo:bar'] } }

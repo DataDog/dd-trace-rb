@@ -38,7 +38,7 @@ if Datadog::OpenTracer.supported?
       let(:carrier) { instance_double(Datadog::OpenTracer::Carrier) }
 
       # Expect carrier to be set with Datadog trace properties
-      before(:each) do
+      before do
         expect(carrier).to receive(:[]=)
           .with(Datadog::HTTPPropagator::HTTP_HEADER_TRACE_ID, trace_id.to_s)
         expect(carrier).to receive(:[]=)
@@ -50,7 +50,7 @@ if Datadog::OpenTracer.supported?
       end
 
       # Expect carrier to be set with OpenTracing baggage
-      before(:each) do
+      before do
         baggage.each do |key, value|
           expect(carrier).to receive(:[]=)
             .with(described_class::BAGGAGE_PREFIX + key, value)
@@ -62,11 +62,12 @@ if Datadog::OpenTracer.supported?
 
     describe '#extract' do
       subject(:span_context) { described_class.extract(carrier) }
+
       let(:carrier) { instance_double(Datadog::OpenTracer::Carrier) }
       let(:items) { {} }
       let(:datadog_context) { instance_double(Datadog::Context) }
 
-      before(:each) do
+      before do
         expect(Datadog::HTTPPropagator).to receive(:extract)
           .with(carrier)
           .and_return(datadog_context)
@@ -81,7 +82,7 @@ if Datadog::OpenTracer.supported?
           let(:value) { 'acme' }
           let(:items) { { key => value } }
 
-          before(:each) do
+          before do
             items.each do |key, value|
               allow(carrier).to receive(:[]).with(key).and_return(value)
             end
@@ -90,11 +91,13 @@ if Datadog::OpenTracer.supported?
           context 'with a symbol' do
             context 'that does not have a proper prefix' do
               let(:key) { :my_baggage_item }
+
               it { expect(span_context.baggage).to be_empty }
             end
 
             context 'that has a proper prefix' do
               let(:key) { :"#{described_class::BAGGAGE_PREFIX_FORMATTED}ACCOUNT_NAME" }
+
               it { expect(span_context.baggage).to have(1).items }
               it { expect(span_context.baggage).to include('account_name' => value) }
             end
@@ -103,11 +106,13 @@ if Datadog::OpenTracer.supported?
           context 'with a string' do
             context 'that does not have a proper prefix' do
               let(:key) { 'HTTP_ACCOUNT_NAME' }
+
               it { expect(span_context.baggage).to be_empty }
             end
 
             context 'that has a proper prefix' do
               let(:key) { "#{described_class::BAGGAGE_PREFIX_FORMATTED}ACCOUNT_NAME" }
+
               it { expect(span_context.baggage).to have(1).items }
               it { expect(span_context.baggage).to include('account_name' => value) }
             end

@@ -4,6 +4,7 @@ require 'ddtrace/transport/http/traces'
 
 RSpec.describe Datadog::Transport::HTTP::Traces::Response do
   subject(:response) { described_class.new(http_response, options) }
+
   let(:http_response) { instance_double(Datadog::Transport::Response) }
   let(:options) { {} }
 
@@ -16,6 +17,7 @@ RSpec.describe Datadog::Transport::HTTP::Traces::Response do
     context 'given a \'service_rates\' option' do
       let(:options) { { service_rates: service_rates } }
       let(:service_rates) { instance_double(Hash) }
+
       it { is_expected.to have_attributes(service_rates: service_rates) }
     end
   end
@@ -23,10 +25,12 @@ end
 
 RSpec.describe Datadog::Transport::HTTP::Client do
   subject(:client) { described_class.new(api) }
+
   let(:api) { instance_double(Datadog::Transport::HTTP::API::Instance) }
 
   describe '#send_payload' do
     subject(:send_payload) { client.send_payload(request) }
+
     let(:request) { instance_double(Datadog::Transport::Traces::Request) }
     let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }
 
@@ -50,12 +54,15 @@ RSpec.describe Datadog::Transport::HTTP::API::Spec do
 
   describe '#traces=' do
     subject(:traces) { spec.traces = endpoint }
+
     let(:endpoint) { instance_double(Datadog::Transport::HTTP::Traces::API::Endpoint) }
+
     it { expect { traces }.to change { spec.traces }.from(nil).to(endpoint) }
   end
 
   describe '#send_traces' do
     subject(:send_traces) { spec.send_traces(env, &block) }
+
     let(:env) { instance_double(Datadog::Transport::HTTP::Env) }
     let(:block) { proc {} }
 
@@ -88,14 +95,17 @@ end
 
 RSpec.describe Datadog::Transport::HTTP::API::Instance do
   subject(:instance) { described_class.new(spec, adapter) }
+
   let(:adapter) { double('adapter') }
 
   describe '#send_traces' do
     subject(:send_traces) { instance.send_traces(env) }
+
     let(:env) { instance_double(Datadog::Transport::HTTP::Env) }
 
     context 'when specification does not support traces' do
       let(:spec) { double('spec') }
+
       it { expect { send_traces }.to raise_error(Datadog::Transport::HTTP::Traces::API::Instance::TracesNotSupportedError) }
     end
 
@@ -112,6 +122,7 @@ end
 
 RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
   subject(:endpoint) { described_class.new(path, encoder, options) }
+
   let(:path) { double('path') }
   let(:encoder) { instance_double(Datadog::Encoding::Encoder, content_type: content_type) }
   let(:content_type) { 'application/test-type' }
@@ -135,12 +146,14 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
 
     context 'when initialized with a \'service_rates\' option' do
       let(:options) { { service_rates: true } }
+
       it { is_expected.to be true }
     end
   end
 
   describe '#call' do
     subject(:call) { endpoint.call(env, &block) }
+
     let(:env) { Datadog::Transport::HTTP::Env.new(request) }
     let(:request) { Datadog::Transport::Traces::Request.new(parcel) }
     let(:parcel) { double(Datadog::Transport::Traces::EncodedParcel, data: data, trace_count: trace_count) }
@@ -183,6 +196,7 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
 
     context 'when service_rates? is false' do
       let(:options) { { service_rates: false } }
+
       it_behaves_like 'traces request'
     end
 

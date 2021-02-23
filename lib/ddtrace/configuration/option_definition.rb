@@ -60,7 +60,7 @@ module Datadog
         end
 
         def default(value = nil, &block)
-          @default = block_given? ? block : value
+          @default = block || value
         end
 
         def delegate_to(&block)

@@ -5,6 +5,7 @@ require 'ddtrace/transport/parcel'
 RSpec.describe Datadog::Transport::Parcel do
   context 'when implemented by a class' do
     subject(:parcel) { parcel_class.new(data) }
+
     let(:parcel_class) do
       stub_const('TestParcel', Class.new { include Datadog::Transport::Parcel })
     end

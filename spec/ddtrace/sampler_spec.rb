@@ -5,6 +5,7 @@ require 'ddtrace/sampler'
 
 RSpec.shared_examples 'sampler with sample rate' do |sample_rate|
   subject(:sampler_sample_rate) { sampler.sample_rate(span) }
+
   let(:span) { Datadog::Span.new(nil, 'dummy') }
 
   it { is_expected.to eq(sample_rate) }
@@ -14,6 +15,7 @@ RSpec.describe Datadog::AllSampler do
   subject(:sampler) { described_class.new }
 
   before { Datadog.logger.level = Logger::FATAL }
+
   after { Datadog.logger.level = Logger::WARN }
 
   describe '#sample!' do
@@ -40,12 +42,14 @@ RSpec.describe Datadog::RateSampler do
   subject(:sampler) { described_class.new(sample_rate) }
 
   before { Datadog.logger.level = Logger::FATAL }
+
   after { Datadog.logger.level = Logger::WARN }
 
   describe '#initialize' do
     context 'given a sample rate' do
       context 'that is negative' do
         let(:sample_rate) { -1.0 }
+
         it_behaves_like 'sampler with sample rate', 1.0 do
           let(:span) { nil }
         end
@@ -53,16 +57,19 @@ RSpec.describe Datadog::RateSampler do
 
       context 'that is 0' do
         let(:sample_rate) { 0.0 }
+
         it_behaves_like 'sampler with sample rate', 1.0
       end
 
       context 'that is between 0 and 1.0' do
         let(:sample_rate) { 0.5 }
+
         it_behaves_like 'sampler with sample rate', 0.5
       end
 
       context 'that is greater than 1.0' do
         let(:sample_rate) { 1.5 }
+
         it_behaves_like 'sampler with sample rate', 1.0
       end
     end
@@ -94,7 +101,7 @@ RSpec.describe Datadog::RateSampler do
           expect(span.get_metric(Datadog::RateSampler::SAMPLE_RATE_METRIC_KEY)).to eq(sample_rate) if sampled
         end
 
-        expect(spans.select(&:sampled).length).to be_within(expected_num_of_sampled_spans * 0.1)
+        expect(spans.count(&:sampled)).to be_within(expected_num_of_sampled_spans * 0.1)
           .of(expected_num_of_sampled_spans)
       end
     end
@@ -130,13 +137,16 @@ RSpec.describe Datadog::RateByServiceSampler do
 
     context 'given a default rate' do
       subject(:sampler) { described_class.new(default_rate) }
+
       let(:default_rate) { 0.1 }
+
       it { expect(sampler.default_sampler.sample_rate).to eq default_rate }
     end
   end
 
   describe '#resolve' do
     subject(:resolve) { sampler.resolve(span) }
+
     let(:span) { instance_double(Datadog::Span, service: service_name) }
     let(:service_name) { 'my-service' }
 
@@ -149,11 +159,13 @@ RSpec.describe Datadog::RateByServiceSampler do
 
       context 'that is a String' do
         let(:env) { 'my-env' }
+
         it { is_expected.to eq("service:#{service_name},env:#{env}") }
       end
 
       context 'that is a Proc' do
         let(:env) { proc { 'my-env' } }
+
         it { is_expected.to eq("service:#{service_name},env:my-env") }
       end
     end
@@ -161,6 +173,7 @@ RSpec.describe Datadog::RateByServiceSampler do
 
   describe '#update' do
     subject(:update) { sampler.update(rate_by_service) }
+
     let(:samplers) { sampler.instance_variable_get(:@samplers) }
 
     include_context 'health metrics'
@@ -230,12 +243,14 @@ end
 
 RSpec.describe Datadog::PrioritySampler do
   subject(:sampler) { described_class.new(base_sampler: base_sampler, post_sampler: post_sampler) }
+
   let(:base_sampler) { nil }
   let(:post_sampler) { nil }
 
   let(:sample_rate_tag_value) { nil }
 
   before { Datadog.logger.level = Logger::FATAL }
+
   after { Datadog.logger.level = Logger::WARN }
 
   describe '#sample!' do
@@ -319,6 +334,7 @@ RSpec.describe Datadog::PrioritySampler do
 
     context 'when configured with defaults' do
       let(:sampler) { described_class.new }
+
       it_behaves_like 'priority sampling without scaling'
     end
 

@@ -44,6 +44,7 @@ module Datadog
         def forked?
           pin = Datadog::Pin.get_from(::Resque)
           return false unless pin
+
           pin.config[:forked] == true
         end
 
@@ -76,5 +77,6 @@ Resque.after_fork do
 
   # Clean the state so no CoW happens
   next if configuration[:tracer].nil?
+
   configuration[:tracer].provider.context = nil
 end

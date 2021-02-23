@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe Datadog::Workers::AsyncTransport do
   let(:task) { proc { true } }
   let(:worker) do
-    Datadog::Workers::AsyncTransport.new(
+    described_class.new(
       transport: nil,
       buffer_size: 100,
       on_trace: task,
@@ -36,9 +36,7 @@ RSpec.describe Datadog::Workers::AsyncTransport do
   describe 'thread naming' do
     context 'on Ruby < 2.3' do
       before do
-        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
-          skip 'Only applies to old Rubies'
-        end
+        skip 'Only applies to old Rubies' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
       end
 
       it 'does not try to set a thread name' do
@@ -52,9 +50,7 @@ RSpec.describe Datadog::Workers::AsyncTransport do
 
     context 'on Ruby >= 2.3' do
       before do
-        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
-          skip 'Not supported on old Rubies'
-        end
+        skip 'Not supported on old Rubies' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
       end
 
       it do

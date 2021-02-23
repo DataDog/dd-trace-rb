@@ -12,6 +12,7 @@ RSpec.describe Datadog::Utils::Forking do
 
     describe '#after_fork!' do
       subject(:after_fork!) { test_object.after_fork!(&block) }
+
       let(:block) { proc {} }
 
       context 'when the process forks' do
@@ -95,12 +96,15 @@ RSpec.describe Datadog::Utils::Forking do
 
   describe 'when extended by a module' do
     subject(:test_object) { Module.new { extend Datadog::Utils::Forking } }
+
     it_behaves_like 'a Forking type'
   end
 
   describe 'when included in a class' do
     subject(:test_object) { test_class.new }
+
     let(:test_class) { Class.new { include Datadog::Utils::Forking } }
+
     it_behaves_like 'a Forking type'
   end
 end

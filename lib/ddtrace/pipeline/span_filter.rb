@@ -10,7 +10,7 @@ module Datadog
         @criteria = filter || block
       end
 
-      # Note: this SpanFilter implementation only handles traces in which child spans appear
+      # NOTE: this SpanFilter implementation only handles traces in which child spans appear
       # after parent spans in the trace array. If in the future child spans can be before
       # parent spans, then the code below will need to be updated.
       def call(trace)
@@ -31,7 +31,6 @@ module Datadog
       private
 
       def drop_it?(span)
-        # rubocop:disable Lint/RescueWithoutErrorClass
         @criteria.call(span) rescue false
       end
     end

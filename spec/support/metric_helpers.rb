@@ -8,6 +8,7 @@ module MetricHelpers
 
     def metric_options(options = nil)
       return options unless options.nil? || options.is_a?(Hash)
+
       Datadog::Metrics.metric_options(options)
     end
 

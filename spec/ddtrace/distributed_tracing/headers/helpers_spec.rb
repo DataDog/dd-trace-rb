@@ -16,6 +16,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Helpers do
     ].each do |value, expected|
       context "with input of #{value}" do
         let(:value) { value }
+
         it { is_expected.to eq(expected) }
       end
     end
@@ -55,6 +56,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Helpers do
     ].each do |value, expected|
       context "with input of #{value}" do
         let(:value) { value }
+
         it { is_expected.to eq(expected) }
       end
     end

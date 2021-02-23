@@ -4,6 +4,7 @@ require 'ddtrace'
 
 RSpec.describe Datadog::Context do
   subject(:context) { described_class.new(options) }
+
   let(:options) { {} }
   let(:tracer) { get_test_tracer }
 
@@ -32,6 +33,7 @@ RSpec.describe Datadog::Context do
         context ":#{option_name} option" do
           let(:options) { { option_name => option_value } }
           let(:option_value) { double(option_name.to_s) }
+
           it { expect(context.send(option_name)).to eq(option_value) }
         end
       end
@@ -40,6 +42,7 @@ RSpec.describe Datadog::Context do
     context 'given a :sampled option' do
       let(:options) { { sampled: sampled } }
       let(:sampled) { double('sampled') }
+
       it { expect(context.sampled?).to eq(sampled) }
     end
 
@@ -51,6 +54,7 @@ RSpec.describe Datadog::Context do
        nil, 999].each do |sampling_priority|
         context ": #{sampling_priority} sampling_priority" do
           let(:options) { { sampling_priority: sampling_priority } }
+
           if sampling_priority
             it { expect(context.sampling_priority).to eq(sampling_priority) }
           else
@@ -87,6 +91,7 @@ RSpec.describe Datadog::Context do
 
         let(:options) { { max_length: max_length } }
         let(:max_length) { 1 }
+
         before { allow(Datadog.logger).to receive(:debug) }
 
         RSpec::Matchers.define :a_context_overflow_error do
@@ -300,7 +305,8 @@ RSpec.describe Datadog::Context do
 
     context 'after a span is added' do
       let(:span) { Datadog::Span.new(tracer, 'span.one', context: context) }
-      before(:each) { context.add_span(span) }
+
+      before { context.add_span(span) }
 
       it { is_expected.to be span }
 
@@ -318,13 +324,16 @@ RSpec.describe Datadog::Context do
       end
 
       context 'and is reset' do
-        before(:each) { context.send(:reset) }
+        before { context.send(:reset) }
+
         it { is_expected.to be nil }
       end
 
       context 'followed by a second span' do
         let(:span_two) { Datadog::Span.new(tracer, 'span.two', context: context) }
-        before(:each) { context.add_span(span_two) }
+
+        before { context.add_span(span_two) }
+
         it { is_expected.to be span }
       end
     end
@@ -332,18 +341,21 @@ RSpec.describe Datadog::Context do
 
   describe '#origin' do
     context 'with nil' do
-      before(:each) { context.origin = nil }
+      before { context.origin = nil }
+
       it { expect(context.origin).to be_nil }
     end
 
     context 'with empty string' do
       # We do not do any filtering based on value
-      before(:each) { context.origin = '' }
+      before { context.origin = '' }
+
       it { expect(context.origin).to eq('') }
     end
 
     context 'with synthetics' do
-      before(:each) { context.origin = 'synthetics' }
+      before { context.origin = 'synthetics' }
+
       it { expect(context.origin).to eq('synthetics') }
     end
   end
@@ -377,6 +389,7 @@ RSpec.describe Datadog::Context do
 
   describe '#annotate_for_flush!' do
     subject(:annotate_for_flush!) { context.annotate_for_flush!(root_span) }
+
     let(:root_span) { Datadog::Span.new(nil, 'dummy') }
 
     let(:options) { { origin: origin, sampled: sampled, sampling_priority: sampling_priority } }
@@ -393,6 +406,7 @@ RSpec.describe Datadog::Context do
 
     context 'with origin' do
       let(:origin) { 'origin_1' }
+
       it do
         expect(root_span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq(origin)
       end
@@ -435,6 +449,7 @@ RSpec.describe Datadog::Context do
 
   describe '#length' do
     subject(:ctx) { context }
+
     let(:span) { new_span }
 
     def new_span(name = nil)
@@ -442,7 +457,7 @@ RSpec.describe Datadog::Context do
     end
 
     context 'with many spans' do
-      it 'should track the number of spans added to the trace' do
+      it 'tracks the number of spans added to the trace' do
         10.times do |i|
           span_to_add = span
           expect(ctx.send(:length)).to eq(i)
@@ -460,16 +475,17 @@ RSpec.describe Datadog::Context do
 
   describe '#start_time' do
     subject(:ctx) { tracer.call_context }
+
     let(:tracer) { get_test_tracer }
 
     context 'with no active spans' do
-      it 'should not have a start time' do
+      it 'does not have a start time' do
         expect(ctx.send(:start_time)).to be nil
       end
     end
 
     context 'with a span in the trace' do
-      it 'should track start time of the span when trace is active' do
+      it 'tracks start time of the span when trace is active' do
         expect(ctx.send(:start_time)).to be nil
 
         tracer.trace('test.op') do |span|
@@ -490,7 +506,7 @@ RSpec.describe Datadog::Context do
     end
 
     context 'with a span in the trace' do
-      it 'should iterate over all the spans available' do
+      it 'iterates over all the spans available' do
         test_name = 'op.test'
         new_span(test_name)
 
@@ -507,7 +523,7 @@ RSpec.describe Datadog::Context do
     end
 
     context 'with many threads' do
-      it 'should be threadsafe' do
+      it 'is threadsafe' do
         n = 100
         threads = []
         spans = []
