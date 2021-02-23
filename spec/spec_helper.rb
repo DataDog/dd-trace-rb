@@ -144,7 +144,10 @@ RSpec.configure do |config|
         # We resort to a more "blunt approach.
         STDERR.puts RSpec::Core::Formatters::ConsoleCodes.wrap(
           "Spec leaked #{background_threads.size} threads in \"#{example.full_description}\".\n" \
-          "Ensure all threads are terminated when test finishes:\n#{info}",
+          "Ensure all threads are terminated when test finishes.\n" \
+          "For help fixing this issue, see \"Ensuring tests don't leak resources\" in docs/DevelopmentGuide.md.\n" \
+          "\n" \
+          "#{info}",
           :red
         )
       end
