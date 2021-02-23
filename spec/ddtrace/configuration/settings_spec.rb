@@ -1,3 +1,4 @@
+
 require 'spec_helper'
 require 'securerandom'
 
@@ -448,10 +449,10 @@ RSpec.describe Datadog::Configuration::Settings do
         subject(:runtime_metrics) { settings.runtime_metrics enabled: true }
 
         it 'updates the new #enabled setting' do
-          expect { settings.runtime_metrics enabled: true }
+          expect { settings.runtime_metrics enabled: false }
             .to change { settings.runtime_metrics.enabled }
-            .from(false)
-            .to(true)
+            .from(true)
+            .to(false)
         end
       end
 
@@ -480,7 +481,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:environment) { nil }
-          it { is_expected.to be false }
+          it { is_expected.to be true }
         end
 
         context 'is defined' do
@@ -492,10 +493,10 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#enabled=' do
       it 'changes the #enabled setting' do
-        expect { settings.runtime_metrics.enabled = true }
+        expect { settings.runtime_metrics.enabled = false }
           .to change { settings.runtime_metrics.enabled }
-          .from(false)
-          .to(true)
+          .from(true)
+          .to(false)
       end
     end
 
@@ -545,10 +546,10 @@ RSpec.describe Datadog::Configuration::Settings do
 
   describe '#runtime_metrics_enabled=' do
     it 'changes the new #enabled setting' do
-      expect { settings.runtime_metrics_enabled = true }
+      expect { settings.runtime_metrics_enabled = false }
         .to change { settings.runtime_metrics.enabled }
-        .from(false)
-        .to(true)
+        .from(true)
+        .to(false)
     end
   end
 

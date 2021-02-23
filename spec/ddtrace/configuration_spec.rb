@@ -363,7 +363,7 @@ RSpec.describe Datadog::Configuration do
     describe '#runtime_metrics' do
       subject(:runtime_metrics) { test_class.runtime_metrics }
       it { is_expected.to be_a_kind_of(Datadog::Workers::RuntimeMetrics) }
-      it { expect(runtime_metrics.enabled?).to be false }
+      it { expect(runtime_metrics.enabled?).to be true }
       it { expect(runtime_metrics.running?).to be false }
     end
 
