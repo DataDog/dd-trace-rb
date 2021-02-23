@@ -16,6 +16,7 @@ module Datadog
       end
 
       def export(flush)
+        puts "DEBUG: Sending profiling flush"
         transport.send_profiling_flush(flush)
       end
     end

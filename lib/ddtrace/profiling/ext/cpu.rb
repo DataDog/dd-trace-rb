@@ -35,12 +35,12 @@ module Datadog
 
           if RUBY_ENGINE == 'jruby'
             'JRuby is not supported'
-          elsif RUBY_PLATFORM =~ /darwin/
-            'Feature requires Linux; macOS is not supported'
+          # elsif RUBY_PLATFORM =~ /darwin/
+          #   'Feature requires Linux; macOS is not supported'
           elsif RUBY_PLATFORM =~ /(mswin|mingw)/
             'Feature requires Linux; Windows is not supported'
-          elsif RUBY_PLATFORM !~ /linux/
-            "Feature requires Linux; #{RUBY_PLATFORM} is not supported"
+          # elsif RUBY_PLATFORM !~ /linux/
+          #   "Feature requires Linux; #{RUBY_PLATFORM} is not supported"
           elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
             'Ruby >= 2.1 is required'
           elsif Gem.loaded_specs['ffi'].nil?
