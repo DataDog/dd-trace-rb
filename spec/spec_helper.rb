@@ -139,9 +139,7 @@ RSpec.configure do |config|
           ]
         end.join("\n")
 
-        # We cannot fail tests gracefully in an `after(:all)` block.
-        # The test results have already been decided by RSpec.
-        # We resort to a more "blunt approach.
+        # Warn about leakly thread
         STDERR.puts RSpec::Core::Formatters::ConsoleCodes.wrap(
           "Spec leaked #{background_threads.size} threads in \"#{example.full_description}\".\n" \
           "Ensure all threads are terminated when test finishes.\n" \
