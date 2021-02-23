@@ -497,6 +497,8 @@ RSpec.describe Datadog::Configuration::Settings do
           .from(false)
           .to(true)
       end
+
+      after { settings.runtime_metrics.reset! }
     end
 
     describe '#opts' do

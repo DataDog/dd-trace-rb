@@ -193,7 +193,8 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       end
 
       context 'with runtime metrics enabled' do
-        before { Datadog.configure { |c| c.runtime_metrics_enabled = true } }
+        before { Datadog.configure { |c| c.runtime_metrics.enabled = true } }
+        after { Datadog.configure.runtime_metrics.reset! }
 
         it { is_expected.to include runtime_metrics_enabled: true }
       end
