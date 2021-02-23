@@ -55,7 +55,12 @@ module Datadog
 
         def cpu_time(unit = :float_second)
           return unless clock_id && ::Process.respond_to?(:clock_gettime)
-          ::Process.clock_gettime(clock_id, unit)
+          begin
+            ::Process.clock_gettime(clock_id, unit)
+          rescue ::Errno::EINVAL
+            puts "Failed to get clock_id for thread #{Thread.current} clock_id #{clock_id}"
+            nil # ¯\_(ツ)_/¯
+          end
         end
 
         def cpu_time_instrumentation_installed?
