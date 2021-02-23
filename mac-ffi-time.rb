@@ -10,6 +10,13 @@ end
 require 'ffi'
 require 'pry'
 
+# Inspired by
+# https://stackoverflow.com/questions/17372110/clock-thread-cputime-id-on-macosx
+# https://stackoverflow.com/questions/9081094/how-do-you-measure-actual-on-cpu-time-for-an-ios-thread
+# https://stackoverflow.com/questions/13893134/get-current-pthread-cpu-usage-mac-os-x
+
+# FIXME: Should we deallocate the port after usage?
+
 module MacStuff
   extend FFI::Library
   ffi_lib FFI::CURRENT_PROCESS
@@ -70,6 +77,7 @@ module MacStuff
     end
   end
 
+  # We can also get the port from the pthread id using pthread_mach_thread_np(pthread), see https://opensource.apple.com/source/Libc/Libc-498/pthreads/pthread.c
   attach_function(
     :mach_thread_self, # http://web.mit.edu/darwin/src/modules/xnu/osfmk/man/mach_thread_self.html
                        # https://github.com/apple/darwin-xnu/blob/8f02f2a044b9bb1ad951987ef5bab20ec9486310/libsyscall/mach/mach/mach_init.h#L73
@@ -95,8 +103,8 @@ module MacStuff
 
   class StructThreadExtendedInfo < FFI::Struct
     layout(
-      pth_user_time: :uint64,
-      pth_system_time: :uint64,
+      pth_user_time: :uint64, # time in nanoseconds
+      pth_system_time: :uint64, # time in nanoseconds
       pth_cpu_usage: :int32,
       pth_policy: :int32,
       pth_run_state: :int32,
@@ -134,39 +142,28 @@ module MacStuff
   )
 end
 
-# We can also get the port from the pthread id using pthread_mach_thread_np(pthread), see https://opensource.apple.com/source/Libc/Libc-498/pthreads/pthread.c
-current_thread_port = MacStuff.mach_thread_self
+class Thread
+  def get_self_cpu_time_on_mac_in_seconds
+    current_thread_port = MacStuff.mach_thread_self
 
-thread_basic_info = MacStuff::StructThreadBasicInfo.new
+    thread_extended_info = MacStuff::StructThreadExtendedInfo.new
+    thread_extended_info_out_cnt = MacStuff::MachMsgTypeNumberT.new
+    thread_extended_info_out_cnt[:fixme] = MacStuff::THREAD_EXTENDED_INFO_COUNT
 
-thread_info_out_cnt = MacStuff::MachMsgTypeNumberT.new
-thread_info_out_cnt[:fixme] = MacStuff::THREAD_BASIC_INFO_COUNT
+    result = MacStuff.thread_extended_info(current_thread_port, MacStuff::THREAD_EXTENDED_INFO, thread_extended_info, thread_extended_info_out_cnt)
+    raise "Kernel call failed with error #{result}" unless result.zero? # see kern_return.h for list of error codes
+
+    (thread_extended_info[:pth_user_time] + thread_extended_info[:pth_system_time]).to_f / 1_000_000_000
+  end
+end
+
+before_cpu_time = Thread.current.get_self_cpu_time_on_mac_in_seconds
 
 start_time = Time.now
 finish_time = start_time + 5
 
 rand while (Time.now < finish_time)
 
-thread_info_result = MacStuff.thread_basic_info(current_thread_port, MacStuff::THREAD_BASIC_INFO, thread_basic_info, thread_info_out_cnt)
-
-if thread_info_result == 0
-  puts "Success!"
-else
-  puts "Call failed with error #{thread_info_result}" # see kern_return.h
-end
-
-thread_extended_info = MacStuff::StructThreadExtendedInfo.new
-thread_extended_info_out_cnt = MacStuff::MachMsgTypeNumberT.new
-thread_extended_info_out_cnt[:fixme] = MacStuff::THREAD_EXTENDED_INFO_COUNT
-
-thread_extended_info_result = MacStuff.thread_extended_info(current_thread_port, MacStuff::THREAD_EXTENDED_INFO, thread_extended_info, thread_extended_info_out_cnt)
-
-if thread_extended_info_result == 0
-  puts "Success!"
-else
-  puts "Call failed with error #{thread_extended_info_result}" # see kern_return.h
-end
-
-puts "This thread took #{(thread_extended_info[:pth_user_time] + thread_extended_info[:pth_system_time]).to_f / 1_000_000_000}s to run"
+puts "This thread took #{Thread.current.get_self_cpu_time_on_mac_in_seconds - before_cpu_time}s to run"
 
 binding.pry
