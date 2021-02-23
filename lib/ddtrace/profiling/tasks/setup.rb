@@ -56,7 +56,8 @@ module Datadog
             log "[DDTRACE] CPU profiling skipped because native CPU time is not supported: #{Ext::CPU.unsupported_reason}."
           end
         rescue StandardError, ScriptError => e
-          log "[DDTRACE] CPU profiling unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
+          log "[DDTRACE] CPU profiling unavailable. Cause: #{e.message} Location:"
+          log e.backtrace.join("\n\t")
         end
 
         def autostart_profiler
