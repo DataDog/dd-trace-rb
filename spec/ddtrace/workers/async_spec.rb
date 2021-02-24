@@ -357,7 +357,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
     end
 
     describe '#forked?' do
-      before { skip unless PlatformHelpers.supports_fork? }
+      before { skip 'Fork not supported on current platform' unless PlatformHelpers.supports_fork? }
 
       subject(:forked?) { worker.forked? }
 
@@ -398,7 +398,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     describe 'integration tests' do
       describe 'forking' do
-        before { skip unless PlatformHelpers.supports_fork? }
+        before { skip 'Fork not supported on current platform' unless PlatformHelpers.supports_fork? }
 
         context 'when the process forks' do
           context 'with FORK_POLICY_STOP fork policy' do

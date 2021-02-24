@@ -98,7 +98,7 @@ RSpec.describe 'Qless instrumentation' do
 
   context 'with forking' do
     before do
-      skip unless PlatformHelpers.supports_fork?
+      skip 'Fork not supported on current platform' unless PlatformHelpers.supports_fork?
 
       # Ensures worker is using forking
       expect(worker.class).to eq(Qless::Workers::ForkingWorker)

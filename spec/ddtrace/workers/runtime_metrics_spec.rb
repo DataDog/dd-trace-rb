@@ -236,7 +236,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     end
 
     describe 'forking' do
-      before { skip unless PlatformHelpers.supports_fork? }
+      before { skip 'Fork not supported on current platform' unless PlatformHelpers.supports_fork? }
 
       let(:options) do
         {
