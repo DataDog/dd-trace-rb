@@ -9,7 +9,7 @@ RSpec.describe Datadog::Runtime::ClassCount do
   end
 
   describe '::value' do
-    before { skip 'Not supported on current platform' if (PlatformHelpers.jruby? || PlatformHelpers.truffleruby?) }
+    before { skip 'Not supported on current platform' if PlatformHelpers.jruby? || PlatformHelpers.truffleruby? }
 
     subject(:value) { described_class.value }
 
