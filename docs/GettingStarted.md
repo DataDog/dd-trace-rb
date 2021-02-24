@@ -184,7 +184,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 #### Automatic instrumentation
 
 1. Install the gem with `gem install ddtrace`
-2. Requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented. 
+2. Requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented.
 3. Add `require 'ddtrace/auto_instrument'` to your application. _Note:_ This must be done _after_ requiring any supported libraries or frameworks.
 
     ```ruby
@@ -195,7 +195,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
     require 'ddtrace/auto_instrument'
     ```
- 
+
     You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).
 
 #### Manual instrumentation
@@ -673,7 +673,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `true` |
 | `enabled` | Defines whether Cucumber tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `cucumber` instrumentation. | `'cucumber'` |
 | `operation_name` | Operation name used for `cucumber` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'cucumber.test'` |
@@ -1621,7 +1620,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `true` |
 | `enabled` | Defines whether RSpec tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `rspec` instrumentation. | `'rspec'` |
 | `operation_name` | Operation name used for `rspec` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'rspec.example'` |

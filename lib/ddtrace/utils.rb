@@ -59,7 +59,6 @@ module Datadog
       else
         str.encode(::Encoding::UTF_8)
       end
-    # rubocop:disable Lint/RescueWithoutErrorClass
     rescue => e
       Datadog.logger.debug("Error encoding string in UTF-8: #{e}")
 

@@ -9,16 +9,11 @@ module Datadog
   class Pin
     def self.get_from(obj)
       return nil unless obj.respond_to? :datadog_pin
+
       obj.datadog_pin
     end
 
-    attr_accessor :app
-    attr_accessor :app_type
-    attr_accessor :config
-    attr_accessor :name
-    attr_accessor :service_name
-    attr_accessor :tags
-    attr_accessor :writer
+    attr_accessor :app, :app_type, :config, :name, :service_name, :tags, :writer
 
     alias service= service_name=
     alias service service_name
@@ -41,6 +36,7 @@ module Datadog
 
     def enabled?
       return tracer.enabled if tracer
+
       false
     end
 

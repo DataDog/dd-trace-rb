@@ -36,6 +36,7 @@ module Datadog
 
           # Zero or greater than max allowed value of 2**64
           return if id.zero? || id > Span::EXTERNAL_MAX_ID
+
           id < 0 ? id + (2**64) : id
         end
 

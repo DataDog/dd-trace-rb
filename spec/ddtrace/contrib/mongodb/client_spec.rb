@@ -7,6 +7,8 @@ require 'mongo'
 
 RSpec.describe 'Mongo::Client instrumentation' do
   let(:configuration_options) { {} }
+  # Clear data between tests
+  let(:drop_database?) { true }
 
   let(:client) { Mongo::Client.new(["#{host}:#{port}"], client_options) }
   let(:client_options) { { database: database } }
@@ -17,7 +19,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
   let(:mongo_gem_version) { Gem.loaded_specs['mongo'].version }
 
-  before(:each) do
+  before do
     # Disable Mongo logging
     Mongo::Logger.logger.level = ::Logger::WARN
 
@@ -25,9 +27,6 @@ RSpec.describe 'Mongo::Client instrumentation' do
       c.use :mongo, configuration_options
     end
   end
-
-  # Clear data between tests
-  let(:drop_database?) { true }
 
   def suppress_warnings
     original_verbosity = $VERBOSE
@@ -59,7 +58,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
   context 'when the client is configured' do
     context 'with a different service name' do
       let(:service) { 'mongodb-primary' }
-      before(:each) { Datadog.configure(client, service_name: service) }
+
+      before { Datadog.configure(client, service_name: service) }
 
       subject { client[collection].insert_one(name: 'FKA Twigs') }
 
@@ -73,7 +73,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     end
 
     context 'to disable the tracer' do
-      before(:each) { tracer.enabled = false }
+      before { tracer.enabled = false }
 
       it 'produces spans with the correct service' do
         client[collection].insert_one(name: 'FKA Twigs')
@@ -82,7 +82,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     end
   end
 
-  # rubocop:disable Metrics/LineLength
+  # rubocop:disable Layout/LineLength
   describe 'tracing' do
     shared_examples_for 'a MongoDB trace' do
       it 'has basic properties' do
@@ -147,7 +147,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     end
 
     describe '#insert_one operation' do
-      before(:each) { client[collection].insert_one(params) }
+      before { client[collection].insert_one(params) }
 
       context 'for a basic document' do
         let(:params) { { name: 'FKA Twigs' } }
@@ -182,7 +182,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     end
 
     describe '#insert_many operation' do
-      before(:each) { client[collection].insert_many(params) }
+      before { client[collection].insert_many(params) }
 
       context 'for documents with arrays' do
         let(:params) do
@@ -210,7 +210,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     describe '#find_all operation' do
       let(:collection) { :people }
 
-      before(:each) do
+      before do
         # Insert a document
         client[collection].insert_one(name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing'])
         clear_spans!
@@ -236,7 +236,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     describe '#find operation' do
       let(:collection) { :people }
 
-      before(:each) do
+      before do
         # Insert a document
         client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
         clear_spans!
@@ -261,7 +261,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     describe '#update_one operation' do
       let(:collection) { :people }
 
-      before(:each) do
+      before do
         # Insert a document
         client[collection].insert_one(name: 'Sally', hobbies: ['skiing', 'stamp collecting'])
         clear_spans!
@@ -270,7 +270,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         client[collection].update_one({ name: 'Sally' }, '$set' => { 'phone_number' => '555-555-5555' })
       end
 
-      after(:each) do
+      after do
         # Verify correctness of the operation
         expect(client[collection].find(name: 'Sally').first[:phone_number]).to eq('555-555-5555')
       end
@@ -296,7 +296,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         ]
       end
 
-      before(:each) do
+      before do
         # Insert documents
         client[collection].insert_many(documents)
         clear_spans!
@@ -305,7 +305,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         client[collection].update_many({}, '$set' => { 'phone_number' => '555-555-5555' })
       end
 
-      after(:each) do
+      after do
         # Verify correctness of the operation
         documents.each do |d|
           expect(client[collection].find(name: d[:name]).first[:phone_number]).to eq('555-555-5555')
@@ -327,7 +327,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     describe '#delete_one operation' do
       let(:collection) { :people }
 
-      before(:each) do
+      before do
         # Insert a document
         client[collection].insert_one(name: 'Sally', hobbies: ['skiing', 'stamp collecting'])
         clear_spans!
@@ -336,7 +336,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         client[collection].delete_one(name: 'Sally')
       end
 
-      after(:each) do
+      after do
         # Verify correctness of the operation
         expect(client[collection].find(name: 'Sally').count).to eq(0)
       end
@@ -362,7 +362,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         ]
       end
 
-      before(:each) do
+      before do
         # Insert documents
         client[collection].insert_many(documents)
         clear_spans!
@@ -371,7 +371,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         client[collection].delete_many(name: /$S*/)
       end
 
-      after(:each) do
+      after do
         # Verify correctness of the operation
         documents.each do |d|
           expect(client[collection].find(name: d[:name]).count).to eq(0)
@@ -393,7 +393,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     describe '#drop operation' do
       let(:collection) { 1 } # Because drop operation doesn't have a collection
 
-      before(:each) { client.database.drop }
+      before { client.database.drop }
 
       it_behaves_like 'a MongoDB trace'
 
@@ -408,7 +408,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     end
 
     describe 'a failed query' do
-      before(:each) { client[:artists].drop }
+      before { client[:artists].drop }
 
       it_behaves_like 'a MongoDB trace'
 
@@ -425,11 +425,12 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
       context 'that triggers #failed before #started' do
         subject(:failed_event) { subscriber.failed(event) }
+
         let(:event) { instance_double(Mongo::Monitoring::Event::CommandFailed, request_id: double('request_id')) }
         let(:subscriber) { Datadog::Contrib::MongoDB::MongoCommandSubscriber.new }
 
         # Clear the thread variable out, as if #started has never run.
-        before(:each) { Thread.current[:datadog_mongo_span] = nil }
+        before { Thread.current[:datadog_mongo_span] = nil }
 
         it { expect { failed_event }.to_not raise_error }
       end
@@ -445,7 +446,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         let(:auth_span) { spans.last }
         let(:drop_database?) { false }
 
-        before(:each) do
+        before do
           begin
             # Insert a document
             client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])

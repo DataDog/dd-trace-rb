@@ -31,7 +31,6 @@ module Datadog
 
                 __run_perform_without_datadog(*args)
               end
-            # rubocop:disable Lint/RescueWithoutErrorClass
             rescue => e
               ::SuckerPunch.__exception_handler.call(e, self, args)
             end

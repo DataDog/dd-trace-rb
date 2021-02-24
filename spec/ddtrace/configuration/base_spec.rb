@@ -20,12 +20,14 @@ RSpec.describe Datadog::Configuration::Base do
 
           describe 'defines a settings option' do
             subject(:definition) { base_class.options[name] }
+
             before { settings }
 
             it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition) }
 
             describe 'when instantiated' do
               subject(:option) { Datadog::Configuration::Option.new(definition, self) }
+
               it { expect(option.default_value).to be_a_kind_of(described_class) }
               it { expect(option.default_value.option_defined?(:enabled)).to be true }
             end
@@ -41,6 +43,7 @@ RSpec.describe Datadog::Configuration::Base do
 
       describe '#initialize' do
         subject(:base_object) { base_class.new(options) }
+
         let(:options) { { foo: :bar } }
 
         before { allow_any_instance_of(base_class).to receive(:configure) }
@@ -87,6 +90,7 @@ RSpec.describe Datadog::Configuration::Base do
 
       describe '#to_h' do
         subject(:hash) { base_object.to_h }
+
         let(:options_hash) { double('options hash') }
 
         before do

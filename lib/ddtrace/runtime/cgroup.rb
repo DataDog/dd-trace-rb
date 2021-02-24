@@ -4,7 +4,7 @@ module Datadog
   module Runtime
     # For control groups
     module Cgroup
-      LINE_REGEX = /^(\d+):([^:]*):(.+)$/
+      LINE_REGEX = /^(\d+):([^:]*):(.+)$/.freeze
 
       Descriptor = Struct.new(
         :id,

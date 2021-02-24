@@ -40,6 +40,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span.get_tag('rails.route.controller'), 'TracingController')
     # Stop here for old Rails versions, which have no ActionDispatch::ExceptionWrapper
     return if Rails.version < '3.2.22.5'
+
     assert_equal(span.status, 0)
     assert_nil(span.get_tag('error.type'))
     assert_nil(span.get_tag('error.msg'))

@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 require 'stringio'
-require 'thread'
 require 'webrick'
 
 require 'ddtrace/transport/http'

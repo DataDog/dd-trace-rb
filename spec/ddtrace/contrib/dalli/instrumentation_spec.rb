@@ -14,7 +14,7 @@ RSpec.describe 'Dalli instrumentation' do
   let(:configuration_options) { {} }
 
   # Enable the test tracer
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :dalli, configuration_options
     end

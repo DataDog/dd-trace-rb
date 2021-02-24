@@ -9,7 +9,7 @@ module Datadog
       class Tracer
         def call(job)
           trace_options = {
-            service:   configuration[:service_name],
+            service: configuration[:service_name],
             span_type: Datadog::Ext::AppTypes::WORKER,
             on_error: configuration[:error_handler]
           }

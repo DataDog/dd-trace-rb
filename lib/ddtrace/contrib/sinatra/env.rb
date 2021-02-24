@@ -23,9 +23,7 @@ module Datadog
           {}.tap do |result|
             headers.each do |header|
               rack_header = header_to_rack_header(header)
-              if env.key?(rack_header)
-                result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
-              end
+              result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header] if env.key?(rack_header)
             end
           end
         end

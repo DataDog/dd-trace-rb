@@ -41,6 +41,7 @@ RSpec.describe 'sucker_punch instrumentation' do
 
   context 'successful job' do
     subject(:dummy_worker_success) { worker_class.perform_async }
+
     let(:job_span) { spans.find { |s| s.resource[/PROCESS/] } }
     let(:enqueue_span) { spans.find { |s| s.resource[/ENQUEUE/] } }
     let(:span) { spans.first }
@@ -52,13 +53,13 @@ RSpec.describe 'sucker_punch instrumentation' do
       end
     end
 
-    it 'should generate two spans, one for pushing to enqueue and one for the job itself' do
+    it 'generates two spans, one for pushing to enqueue and one for the job itself' do
       is_expected.to be true
       try_wait_until { fetch_spans.length == 2 }
       expect(spans.length).to eq(2)
     end
 
-    it 'should instrument successful job' do
+    it 'instruments successful job' do
       is_expected.to be true
       try_wait_until { fetch_spans.length == 2 }
 
@@ -69,7 +70,7 @@ RSpec.describe 'sucker_punch instrumentation' do
       expect(job_span.status).not_to eq(Datadog::Ext::Errors::STATUS)
     end
 
-    it 'should instrument successful enqueuing' do
+    it 'instruments successful enqueuing' do
       is_expected.to be true
       try_wait_until { fetch_spans.any? }
 
@@ -83,6 +84,7 @@ RSpec.describe 'sucker_punch instrumentation' do
 
   context 'failed job' do
     subject(:dummy_worker_fail) { worker_class.perform_async(:fail) }
+
     let(:job_span) { spans.find { |s| s.resource[/PROCESS/] } }
     let(:span) { spans.first }
 
@@ -93,7 +95,7 @@ RSpec.describe 'sucker_punch instrumentation' do
       end
     end
 
-    it 'should instrument a failed job' do
+    it 'instruments a failed job' do
       is_expected.to be true
       try_wait_until { fetch_spans.length == 2 }
 
@@ -109,6 +111,7 @@ RSpec.describe 'sucker_punch instrumentation' do
 
   context 'delayed job' do
     subject(:dummy_worker_delay) { worker_class.perform_in(0) }
+
     let(:enqueue_span) { spans.find { |s| s.resource[/ENQUEUE/] } }
     let(:span) { spans.first }
 
@@ -119,7 +122,7 @@ RSpec.describe 'sucker_punch instrumentation' do
       end
     end
 
-    it 'should instrument enqueuing for a delayed job' do
+    it 'instruments enqueuing for a delayed job' do
       dummy_worker_delay
       try_wait_until { fetch_spans.any? }
 

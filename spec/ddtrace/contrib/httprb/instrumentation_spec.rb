@@ -24,9 +24,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
       req.each do |header_name|
         # webrick formats header values as 1 length arrays
         header_in_array = req.header[header_name]
-        if header_in_array.is_a?(Array)
-          res.header[header_name] = header_in_array.join('')
-        end
+        res.header[header_name] = header_in_array.join if header_in_array.is_a?(Array)
       end
 
       res.body = req.body
@@ -160,6 +158,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
         context 'response has not found status' do
           let(:code) { 404 }
           let(:message) { 'Not Found' }
+
           before { response }
 
           it 'has tag with status code' do

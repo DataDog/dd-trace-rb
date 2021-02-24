@@ -71,6 +71,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     describe '#perform' do
       subject(:perform) { worker.perform(*args) }
+
       let(:args) { [:foo, :bar] }
 
       context 'given arguments' do
@@ -160,6 +161,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     describe '#fork_policy=' do
       subject(:set_fork_policy) { worker.fork_policy = policy }
+
       let(:policy) { double('policy') }
 
       it do
@@ -172,6 +174,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     describe '#join' do
       subject(:join) { worker.join }
+
       let(:thread) { worker.send(:worker) }
 
       context 'when not started' do
@@ -243,6 +246,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
       context 'when started' do
         before { worker.perform }
+
         it { is_expected.to be true }
       end
     end
@@ -256,6 +260,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
       context 'when started' do
         before { worker.perform }
+
         it { is_expected.to be true }
       end
     end
@@ -443,9 +448,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
       context 'on Ruby < 2.3' do
         before do
-          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
-            skip 'Only applies to old Rubies'
-          end
+          skip 'Only applies to old Rubies' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
         end
 
         it 'does not try to set a thread name' do
@@ -459,9 +462,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
       context 'on Ruby >= 2.3' do
         before do
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
-            skip 'Not supported on old Rubies'
-          end
+          skip 'Not supported on old Rubies' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
         end
 
         class AsyncSpecThreadNaming < Datadog::Worker

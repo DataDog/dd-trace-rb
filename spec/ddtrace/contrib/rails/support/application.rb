@@ -42,7 +42,7 @@ RSpec.shared_context 'Rails test application' do
   end
 
   if Rails.version < '4.0'
-    around(:each) do |example|
+    around do |example|
       without_warnings do
         example.run
       end

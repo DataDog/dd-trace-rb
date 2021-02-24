@@ -7,9 +7,9 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   let(:job_args) do
     {
       field_one: 1,
-      queue:     'low',
-      priority:  10,
-      tags:      { a: 1, b: 2 }
+      queue: 'low',
+      priority: 10,
+      tags: { a: 1, b: 2 }
     }
   end
   let(:job_class) do

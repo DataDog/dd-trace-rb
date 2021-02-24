@@ -10,11 +10,13 @@ RSpec.describe Datadog::Configuration::DependencyResolver do
 
     context 'given a set of dependencies' do
       let(:graph) { { 1 => [2], 2 => [3, 4], 3 => [], 4 => [3], 5 => [1] } }
+
       it { expect(order).to eq([3, 4, 2, 1, 5]) }
     end
 
     context 'given cyclic dependencies' do
       let(:graph) { { 1 => [2], 2 => [1] } }
+
       it { expect { order }.to raise_error(TSort::Cyclic) }
     end
   end

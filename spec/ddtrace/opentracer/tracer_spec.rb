@@ -17,6 +17,7 @@ if Datadog::OpenTracer.supported?
     describe '#initialize' do
       context 'when given options' do
         subject(:tracer) { described_class.new(options) }
+
         let(:options) { double('options') }
         let(:datadog_tracer) { double('datadog_tracer') }
 
@@ -32,11 +33,13 @@ if Datadog::OpenTracer.supported?
 
     describe '#datadog_tracer' do
       subject(:datadog_tracer) { tracer.datadog_tracer }
+
       it { is_expected.to be_a_kind_of(Datadog::Tracer) }
     end
 
     describe '#configure' do
       subject(:configure) { tracer.configure(options) }
+
       let(:options) { double('options') }
 
       before do
@@ -51,11 +54,13 @@ if Datadog::OpenTracer.supported?
 
     describe '#scope_manager' do
       subject(:scope_manager) { tracer.scope_manager }
+
       it { is_expected.to be_a_kind_of(Datadog::OpenTracer::ThreadLocalScopeManager) }
     end
 
     describe '#start_active_span' do
       subject(:span) { tracer.start_active_span(name) }
+
       let(:name) { 'opentracing_span' }
 
       it { is_expected.to be_a_kind_of(Datadog::OpenTracer::ThreadLocalScope) }
@@ -71,6 +76,7 @@ if Datadog::OpenTracer.supported?
 
     describe '#start_span' do
       subject(:span) { tracer.start_span(name) }
+
       let(:name) { 'opentracing_span' }
 
       it { is_expected.to be_a_kind_of(Datadog::OpenTracer::Span) }
@@ -78,6 +84,7 @@ if Datadog::OpenTracer.supported?
 
     describe '#inject' do
       subject(:inject) { tracer.inject(span_context, format, carrier) }
+
       let(:span_context) { instance_double(OpenTracing::SpanContext) }
       let(:carrier) { instance_double(OpenTracing::Carrier) }
 
@@ -93,6 +100,7 @@ if Datadog::OpenTracer.supported?
           include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_TEXT_MAP }
           let(:propagator) { Datadog::OpenTracer::TextMapPropagator }
+
           it { expect { inject }.to_not output.to_stdout }
           it { is_expected.to be nil }
         end
@@ -101,6 +109,7 @@ if Datadog::OpenTracer.supported?
           include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_BINARY }
           let(:propagator) { Datadog::OpenTracer::BinaryPropagator }
+
           it { expect { inject }.to_not output.to_stdout }
           it { is_expected.to be nil }
         end
@@ -109,12 +118,14 @@ if Datadog::OpenTracer.supported?
           include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_RACK }
           let(:propagator) { Datadog::OpenTracer::RackPropagator }
+
           it { expect { inject }.to_not output.to_stdout }
           it { is_expected.to be nil }
         end
 
         context 'unknown' do
           let(:format) { double('unknown format') }
+
           it { expect { inject }.to output(/Unknown inject format/).to_stderr }
         end
       end
@@ -122,6 +133,7 @@ if Datadog::OpenTracer.supported?
 
     describe '#extract' do
       subject(:extract) { tracer.extract(format, carrier) }
+
       let(:carrier) { instance_double(OpenTracing::Carrier) }
       let(:span_context) { instance_double(Datadog::OpenTracer::SpanContext) }
 
@@ -138,6 +150,7 @@ if Datadog::OpenTracer.supported?
           include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_TEXT_MAP }
           let(:propagator) { Datadog::OpenTracer::TextMapPropagator }
+
           it { expect { extract }.to_not output.to_stdout }
           it { is_expected.to be span_context }
         end
@@ -146,6 +159,7 @@ if Datadog::OpenTracer.supported?
           include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_BINARY }
           let(:propagator) { Datadog::OpenTracer::BinaryPropagator }
+
           it { expect { extract }.to_not output.to_stdout }
           it { is_expected.to be span_context }
         end
@@ -154,13 +168,16 @@ if Datadog::OpenTracer.supported?
           include_context 'by propagator'
           let(:format) { OpenTracing::FORMAT_RACK }
           let(:propagator) { Datadog::OpenTracer::RackPropagator }
+
           it { expect { extract }.to_not output.to_stdout }
           it { is_expected.to be span_context }
         end
 
         context 'unknown' do
           let(:format) { double('unknown format') }
+
           before { expect { extract }.to output(/Unknown extract format/).to_stderr }
+
           it { is_expected.to be nil }
         end
       end

@@ -15,9 +15,10 @@ module HttpHelpers
     # Create the HTTP objects
     http = Net::HTTP.new(uri.host, uri.port)
 
-    if http_method == :get
+    case http_method
+    when :get
       request = Net::HTTP::Get.new(uri.request_uri, {})
-    elsif http_method == :post
+    when :post
       request = Net::HTTP::Post.new(uri.request_uri, {})
       request.body = {}.to_json
     end
@@ -28,7 +29,7 @@ module HttpHelpers
 
   def wait_http_server(server, delay)
     SynchronizationHelpers.try_wait_until(attempts: delay, backoff: 1) do |attempts_left|
-      uri = URI(server + '/')
+      uri = URI("#{server}/")
       begin
         res = Net::HTTP.get_response(uri)
         return true if res.code == '200'

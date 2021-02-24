@@ -37,7 +37,7 @@ module Datadog
 
         def new_settings_class(&block)
           Class.new { include Datadog::Configuration::Base }.tap do |klass|
-            klass.instance_eval(&block) if block_given?
+            klass.instance_eval(&block) if block
           end
         end
       end

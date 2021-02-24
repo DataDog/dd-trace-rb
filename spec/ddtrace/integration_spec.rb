@@ -3,11 +3,9 @@ require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/tracer'
 require 'datadog/statsd'
-require 'thread'
-
 RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
-    before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+    before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
     let(:tracer) do
       Datadog::Tracer.new(initialize_options).tap do |t|
@@ -43,6 +41,7 @@ RSpec.describe 'Tracer integration tests' do
     def wait_for_flush(stat, num = 1)
       test_repeat.times do
         break if tracer.writer.stats[stat] >= num
+
         sleep(0.1)
       end
     end
@@ -99,7 +98,7 @@ RSpec.describe 'Tracer integration tests' do
   describe 'agent receives short span' do
     include_context 'agent-based test'
 
-    before(:each) do
+    before do
       tracer.trace('my.short.op') do |span|
         @span = span
         span.service = 'my.service'
@@ -267,7 +266,6 @@ RSpec.describe 'Tracer integration tests' do
 
         # Kill the process
         write.close
-        # rubocop:disable Lint/RescueWithoutErrorClass
         Process.kill('TERM', fork_id) rescue nil
 
         # Read and return any output
@@ -293,7 +291,7 @@ RSpec.describe 'Tracer integration tests' do
       let(:parent_span) { tracer.start_span('parent span') }
       let(:child_span) { tracer.start_span('child span', child_of: parent_span.context) }
 
-      before(:each) do
+      before do
         parent_span.tap do
           child_span.tap do
             child_span.context.sampling_priority = 10
@@ -319,9 +317,10 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'when #sampling_priority is set on a parent span' do
       subject(:tag_value) { parent_span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY) }
+
       let(:parent_span) { tracer.start_span('parent span') }
 
-      before(:each) do
+      before do
         parent_span.tap do
           parent_span.context.origin = 'synthetics'
         end.finish
@@ -369,7 +368,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:transport) { Datadog::Transport::IO.default(out: out) }
     let(:out) { instance_double(IO) } # Dummy output so we don't pollute STDOUT
 
-    before(:each) do
+    before do
       tracer.configure(
         enabled: true,
         priority_sampling: true,
@@ -425,7 +424,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:writer) { Datadog::Writer.new(transport: transport, priority_sampler: Datadog::PrioritySampler.new) }
     let(:transport) { Datadog::Transport::HTTP.default }
 
-    before(:each) do
+    before do
       tracer.configure(
         enabled: true,
         priority_sampling: true,

@@ -50,6 +50,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
 
     describe '#perform' do
       subject(:perform) { worker.perform(*args) }
+
       let(:args) { [:foo, :bar] }
 
       context 'given arguments' do
@@ -67,6 +68,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
 
       context 'when the worker is not running' do
         before { worker.stop_loop }
+
         it { is_expected.to be false }
       end
 
@@ -193,6 +195,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
 
     describe '#loop_back_off?' do
       subject(:loop_back_off?) { worker.loop_back_off? }
+
       it { is_expected.to be false }
     end
 
@@ -215,6 +218,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
 
       context 'given an amount to back off' do
         subject(:loop_back_off!) { worker.loop_back_off!(value) }
+
         let(:value) { rand }
 
         it do

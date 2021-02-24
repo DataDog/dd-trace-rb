@@ -11,6 +11,8 @@ require 'ddtrace/pipeline'
 
 RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:hostname) { 'http://127.0.0.1' }
+  let(:stats) { writer.stats }
+  let(:dump) { transport.dump }
   let(:port) { 1234 }
   let(:flush_interval) { 0.1 }
   let(:buffer_size) { 10 }
@@ -51,12 +53,10 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   def wait_for_flush(num = 1, period = 0.1)
     (20 * flush_interval).to_i.times do
       break if block_given? ? yield : writer.stats[:traces_flushed] >= num
+
       sleep(period)
     end
   end
-
-  let(:stats) { writer.stats }
-  let(:dump) { transport.dump }
 
   describe 'when sending spans' do
     let(:dumped_traces) { dump[200][:traces] }
@@ -69,7 +69,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     # but it checks that all the machinery around workers (tracer/writer/worker/transport)
     # is consistent and that data flows through it.
     context 'with service names' do
-      before(:each) do
+      before do
         tracer.start_span('my.op').tap do |s|
           s.service = 'my.service'
           sleep(0.001)
@@ -108,7 +108,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
 
     # Test that a default service is provided if none has been given at all
     context 'with default service names' do
-      before(:each) do
+      before do
         tracer.start_span('my.op').tap do |s|
           sleep(0.001)
           s.finish
@@ -142,7 +142,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     end
 
     context 'that are filtered' do
-      before(:each) do
+      before do
         # Activate filter
         filter = Datadog::Pipeline::SpanFilter.new do |span|
           span.name[/discard/]
@@ -157,7 +157,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         wait_for_flush(2)
       end
 
-      after(:each) { Datadog::Pipeline.processors = [] }
+      after { Datadog::Pipeline.processors = [] }
 
       it 'filters the trace correctly' do
         expect(transport.helper_sent[200][:traces].to_s).to match(/keep/)
@@ -171,7 +171,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
 
     # Test that services are correctly flushed, with two of them
     context 'for two services' do
-      before(:each) do
+      before do
         tracer.start_span('my.op').finish
       end
 
@@ -190,7 +190,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   end
 
   describe 'when terminating the worker' do
-    before(:each) do
+    before do
       worker.start
 
       # Let it reach the 10 seconds back-off

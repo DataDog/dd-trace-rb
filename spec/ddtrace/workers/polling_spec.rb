@@ -13,6 +13,7 @@ RSpec.describe Datadog::Workers::Polling do
 
     describe '#perform' do
       subject(:perform) { worker.perform }
+
       after { worker.stop(true, 5) }
 
       let(:worker) { worker_class.new(&task) }

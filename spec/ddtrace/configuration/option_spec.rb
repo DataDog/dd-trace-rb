@@ -4,6 +4,7 @@ require 'ddtrace'
 
 RSpec.describe Datadog::Configuration::Option do
   subject(:option) { described_class.new(definition, context) }
+
   let(:definition) do
     instance_double(
       Datadog::Configuration::OptionDefinition,
@@ -28,6 +29,7 @@ RSpec.describe Datadog::Configuration::Option do
 
   describe '#set' do
     subject(:set) { option.set(value) }
+
     let(:value) { double('value') }
 
     context 'when no value has been set' do
@@ -58,7 +60,9 @@ RSpec.describe Datadog::Configuration::Option do
 
         context 'then #get is invoked' do
           subject(:get) { option.get }
+
           before { set }
+
           it { is_expected.to be(setter_value) }
         end
       end
@@ -124,7 +128,9 @@ RSpec.describe Datadog::Configuration::Option do
 
         context 'then #get is invoked' do
           subject(:get) { option.get }
+
           before { set }
+
           it { is_expected.to be(setter_value) }
         end
       end
@@ -194,7 +200,9 @@ RSpec.describe Datadog::Configuration::Option do
       context 'and no resetter is defined' do
         context 'then #get is invoked' do
           subject(:get) { option.get }
+
           before { reset }
+
           it { is_expected.to be(default) }
         end
       end
@@ -215,7 +223,9 @@ RSpec.describe Datadog::Configuration::Option do
 
         context 'then #get is invoked' do
           subject(:get) { option.get }
+
           before { reset }
+
           it { is_expected.to be(resetter_value) }
         end
       end
@@ -224,6 +234,7 @@ RSpec.describe Datadog::Configuration::Option do
 
   describe '#default_value' do
     subject(:default_value) { option.default_value }
+
     let(:default) { double('default') }
 
     context 'when lazy is true' do
@@ -243,6 +254,7 @@ RSpec.describe Datadog::Configuration::Option do
 
     context 'when lazy is false' do
       let(:lazy) { false }
+
       it { is_expected.to be default }
     end
   end

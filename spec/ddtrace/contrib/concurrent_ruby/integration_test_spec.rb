@@ -7,6 +7,9 @@ require 'spec/support/thread_helpers'
 RSpec.describe 'ConcurrentRuby integration tests' do
   # DEV We save an unmodified copy of Concurrent::Future.
   let!(:unmodified_future) { ::Concurrent::Future.dup }
+  let(:configuration_options) { {} }
+  let(:outer_span) { spans.find { |s| s.name == 'outer_span' } }
+  let(:inner_span) { spans.find { |s| s.name == 'inner_span' } }
 
   before(:context) do
     # Execute an async future to force the eager creation of internal
@@ -26,8 +29,6 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     remove_patch!(:concurrent_ruby)
   end
 
-  let(:configuration_options) { {} }
-
   subject(:deferred_execution) do
     outer_span = tracer.trace('outer_span')
     future = Concurrent::Future.new do
@@ -38,9 +39,6 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     future.wait
     outer_span.finish
   end
-
-  let(:outer_span) { spans.find { |s| s.name == 'outer_span' } }
-  let(:inner_span) { spans.find { |s| s.name == 'inner_span' } }
 
   shared_examples_for 'deferred execution' do
     before do
@@ -67,14 +65,14 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       end
     end
 
-    it 'should add FuturePatch to Future ancestors' do
+    it 'adds FuturePatch to Future ancestors' do
       expect { patch }.to change { ::Concurrent::Future.ancestors.map(&:to_s) }
         .to include('Datadog::Contrib::ConcurrentRuby::FuturePatch')
     end
   end
 
   context 'when context propagation is disabled' do
-    it_should_behave_like 'deferred execution'
+    it_behaves_like 'deferred execution'
 
     it 'inner span should not have parent' do
       deferred_execution
@@ -89,7 +87,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       end
     end
 
-    it_should_behave_like 'deferred execution'
+    it_behaves_like 'deferred execution'
 
     it 'inner span parent should be included in outer span' do
       deferred_execution

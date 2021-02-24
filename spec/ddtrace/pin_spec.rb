@@ -10,7 +10,7 @@ RSpec.describe Datadog::Pin do
   let(:target) { Object.new }
 
   describe '#initialize' do
-    before(:each) { pin }
+    before { pin }
 
     context 'when given some options' do
       let(:options) do
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Pin do
       let(:tracer_option) { get_test_tracer }
 
       before do
-        allow_any_instance_of(Datadog::Pin).to receive(:deprecation_warning).and_call_original
+        allow_any_instance_of(described_class).to receive(:deprecation_warning).and_call_original
       end
 
       it 'expect a deprecation warning' do
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Pin do
     let(:options) { { app: 'anapp' } }
     let(:returned_pin) { described_class.get_from(target) }
 
-    before(:each) { pin.onto(target) }
+    before { pin.onto(target) }
 
     it 'attaches the pin to the target' do
       expect(returned_pin.service).to eq(service_name)
@@ -91,16 +91,19 @@ RSpec.describe Datadog::Pin do
     context 'called against' do
       context '0' do
         let(:target) { 0 }
+
         it { is_expected.to be nil }
       end
 
       context 'nil' do
         let(:target) { nil }
+
         it { is_expected.to be nil }
       end
 
       context 'self' do
         let(:target) { self }
+
         it { is_expected.to be nil }
       end
     end
@@ -119,7 +122,8 @@ RSpec.describe Datadog::Pin do
       end
 
       let(:target) { target_class.new }
-      before(:each) { pin.onto(target) }
+
+      before { pin.onto(target) }
 
       it 'returns the custom pin' do
         is_expected.to eq('The PIN is set!')
@@ -129,23 +133,29 @@ RSpec.describe Datadog::Pin do
 
   describe '#to_s' do
     subject(:string) { pin.to_s }
+
     let(:service_name) { 'abc' }
     let(:options) { { app: 'anapp', app_type: 'db' } }
+
     it { is_expected.to eq('Pin(service:abc,app:anapp,app_type:db,name:)') }
   end
 
   describe '#datadog_pin' do
     let(:returned_pin) { target.datadog_pin }
-    before(:each) { pin.onto(target) }
+
+    before { pin.onto(target) }
+
     it { expect(returned_pin.service).to eq(service_name) }
   end
 
   describe '#enabled?' do
     subject(:enabled) { pin.enabled? }
+
     it { is_expected.to be true }
 
     context 'when the tracer is disabled' do
-      before(:each) { pin.tracer.enabled = false }
+      before { pin.tracer.enabled = false }
+
       it { is_expected.to be false }
     end
   end

@@ -14,7 +14,7 @@ require 'ddtrace'
 RSpec.describe 'Racecar patcher' do
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :racecar, configuration_options
     end
@@ -32,7 +32,7 @@ RSpec.describe 'Racecar patcher' do
     let(:payload) { { consumer_class: consumer } }
 
     let(:span) do
-      spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_CONSUME }.first
+      spans.find { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_CONSUME }
     end
 
     context 'that doesn\'t raise an error' do
@@ -76,6 +76,7 @@ RSpec.describe 'Racecar patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('main_loop.racecar', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -100,7 +101,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:span) do
-      spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_MESSAGE }.first
+      spans.find { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_MESSAGE }
     end
 
     context 'that doesn\'t raise an error' do
@@ -152,6 +153,7 @@ RSpec.describe 'Racecar patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_message.racecar', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -178,7 +180,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:span) do
-      spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_BATCH }.first
+      spans.find { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_BATCH }
     end
 
     context 'that doesn\'t raise an error' do
@@ -231,6 +233,7 @@ RSpec.describe 'Racecar patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_batch.racecar', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end

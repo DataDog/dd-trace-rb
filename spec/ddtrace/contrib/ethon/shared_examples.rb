@@ -56,7 +56,7 @@ RSpec.shared_examples_for 'instrumented request' do
 
     describe 'created span' do
       subject(:span) do
-        spans.select { |span| span.name == 'ethon.request' }.first
+        spans.find { |span| span.name == 'ethon.request' }
       end
 
       context 'response is successful' do
@@ -77,9 +77,11 @@ RSpec.shared_examples_for 'instrumented request' do
         it 'has error set' do
           expect(span).to have_error_message('Request has failed with HTTP error: 500')
         end
+
         it 'has no error stack' do
           expect(span).to_not have_error_stack
         end
+
         it 'has no error type' do
           expect(span).to_not have_error_type
         end
@@ -116,7 +118,7 @@ RSpec.shared_examples_for 'instrumented request' do
 
     context 'distributed tracing default' do
       let(:return_headers) { true }
-      let(:span) { spans.select { |span| span.name == 'ethon.request' }.first }
+      let(:span) { spans.find { |span| span.name == 'ethon.request' } }
 
       shared_examples_for 'propagating distributed headers' do
         let(:return_headers) { true }

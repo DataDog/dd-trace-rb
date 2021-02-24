@@ -14,12 +14,13 @@ if Datadog::OpenTracer.supported?
         finish_on_close: finish_on_close
       )
     end
+
     let(:manager) { Datadog::OpenTracer::ThreadLocalScopeManager.new }
     let(:span) { instance_double(Datadog::OpenTracer::Span) }
     let(:finish_on_close) { true }
     let(:previous_scope) { nil }
 
-    before(:each) do
+    before do
       allow(manager).to receive(:active) do
         # Unstub after first call
         allow(manager).to receive(:active).and_call_original
@@ -34,7 +35,7 @@ if Datadog::OpenTracer.supported?
       subject(:close) { scope.close }
 
       context 'when the scope is' do
-        before(:each) do
+        before do
           scope # Initialize the scope, to prevent overstubbing the previous stub
           allow(manager).to receive(:active).and_return(active_scope)
         end
@@ -68,7 +69,7 @@ if Datadog::OpenTracer.supported?
         context 'not active' do
           let(:active_scope) { instance_double(described_class) }
 
-          it 'should do nothing' do
+          it 'does nothing' do
             expect(span).to_not receive(:finish)
             expect(manager).to_not receive(:set_scope)
             scope.close
