@@ -308,6 +308,38 @@ services:
       - .:/app
       - bundle-jruby-9.2:/usr/local/bundle
       - gemfiles-jruby-9.2:/app/gemfiles
+  # TruffleRuby
+  tracer-truffleruby-21.0.0:
+    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_0_0
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - presto
+      - redis
+    env_file: ./.env
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_PRESTO_HOST=presto
+      - TEST_PRESTO_PORT=8080
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-truffleruby-21.0.0:/usr/local/bundle
+      - gemfiles-truffleruby-21.0.0:/app/gemfiles
   ddagent:
     image: datadog/agent
     environment:
@@ -388,6 +420,7 @@ volumes:
   bundle-2.7:
   bundle-3.0:
   bundle-jruby-9.2:
+  bundle-truffleruby-21.0.0:
   gemfiles-2.0:
   gemfiles-2.1:
   gemfiles-2.2:
@@ -398,3 +431,4 @@ volumes:
   gemfiles-2.7:
   gemfiles-3.0:
   gemfiles-jruby-9.2:
+  gemfiles-truffleruby-21.0.0:
