@@ -27,6 +27,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
         begin
           thread.join
         rescue error_class => _e
+          # Prevents test from erroring out during cleanup
         end
       end
     end
@@ -185,11 +186,11 @@ RSpec.describe Datadog::Workers::Async::Thread do
         let(:task) { proc { sleep(0.1) } }
         let(:join_result) { double('join result') }
 
-        before { worker.perform }
-
         before do
           expect(thread).to receive(:join)
             .with(timeout).and_call_original
+
+          worker.perform
         end
 
         context 'given no arguments' do
