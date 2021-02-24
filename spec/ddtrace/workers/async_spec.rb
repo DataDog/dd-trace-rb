@@ -187,10 +187,10 @@ RSpec.describe Datadog::Workers::Async::Thread do
         let(:join_result) { double('join result') }
 
         before do
+          worker.perform
+
           expect(thread).to receive(:join)
             .with(timeout).and_call_original
-
-          worker.perform
         end
 
         context 'given no arguments' do
