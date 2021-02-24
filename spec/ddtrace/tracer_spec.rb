@@ -224,7 +224,7 @@ RSpec.describe Datadog::Tracer do
         end
 
         context 'with forking' do
-          before { skip 'Java not supported' if RUBY_PLATFORM == 'java' }
+          before { skip 'Fork not supported on current platform' unless PlatformHelpers.supports_fork? }
 
           it 'only the top most span per process has a runtime ID tag' do
             tracer.trace(name) do |parent_span|

@@ -52,7 +52,7 @@ RSpec.describe Datadog::DefaultContextProvider do
   end
 
   context 'when fork occurs' do
-    before { skip 'Java not supported' if RUBY_PLATFORM == 'java' }
+    before { skip 'Fork not supported on current platform' unless PlatformHelpers.supports_fork? }
 
     it 'clones the context and returns the clone' do
       # Initialize a context for the current process
