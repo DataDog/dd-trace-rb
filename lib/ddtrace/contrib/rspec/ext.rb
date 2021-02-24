@@ -8,7 +8,6 @@ module Datadog
         ENV_OPERATION_NAME = 'DD_TRACE_RSPEC_OPERATION_NAME'.freeze
         FRAMEWORK = 'rspec'.freeze
         OPERATION_NAME = 'rspec.example'.freeze
-        EXAMPLE_GROUP_OPERATION_NAME = 'rspec.example_group'.freeze
         SERVICE_NAME = 'rspec'.freeze
         TEST_TYPE = 'test'.freeze
       end
