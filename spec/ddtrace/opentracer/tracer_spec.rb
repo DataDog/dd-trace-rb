@@ -8,6 +8,7 @@ if Datadog::OpenTracer.supported?
     include_context 'OpenTracing helpers'
 
     subject(:tracer) { described_class.new(writer: writer) }
+
     let(:writer) { FauxWriter.new }
 
     after { writer.stop }

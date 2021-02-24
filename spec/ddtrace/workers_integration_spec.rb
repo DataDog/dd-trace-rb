@@ -11,21 +11,6 @@ require 'ddtrace/pipeline'
 
 RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:hostname) { 'http://127.0.0.1' }
-  let(:stats) { writer.stats }
-  let(:dump) { transport.dump }
-  let(:port) { 1234 }
-  let(:flush_interval) { 0.1 }
-  let(:buffer_size) { 10 }
-
-  let(:tracer) do
-    Datadog::Tracer.new.tap do |t|
-      t.configure(enabled: true, hostname: hostname, port: port)
-      t.writer = writer
-    end
-  end
-
-  after { tracer.shutdown! }
-
   let(:writer) do
     Datadog::Writer.new.tap do |w|
       # write some stuff to trigger a #start
@@ -45,10 +30,23 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
       w.worker.start
     end
   end
-
   # Use SpyTransport instead of shared context because
   # worker threads sometimes call test objects after test finishes.
   let(:transport) { SpyTransport.new }
+  let(:stats) { writer.stats }
+  let(:dump) { transport.dump }
+  let(:port) { 1234 }
+  let(:flush_interval) { 0.1 }
+  let(:buffer_size) { 10 }
+
+  let(:tracer) do
+    Datadog::Tracer.new.tap do |t|
+      t.configure(enabled: true, hostname: hostname, port: port)
+      t.writer = writer
+    end
+  end
+
+  after { tracer.shutdown! }
 
   def wait_for_flush(num = 1, period = 0.1)
     (20 * flush_interval).to_i.times do
@@ -214,6 +212,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         interval: interval
       )
     end
+    let(:interval) { 10 }
 
     after do
       thread = worker.instance_variable_get(:@worker)
@@ -222,8 +221,6 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         thread.join
       end
     end
-
-    let(:interval) { 10 }
 
     context 'which underruns the timeout' do
       let(:trace_task) { spy('trace task') }

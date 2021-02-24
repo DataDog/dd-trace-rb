@@ -48,11 +48,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
   end
 
   context 'when the client is configured with a block' do
+    after { @client.close }
+
     it 'evaluates the block given to the constructor' do
       expect { |b| @client = Mongo::Client.new(["#{host}:#{port}"], client_options, &b) }.to yield_control
     end
-
-    after { @client.close }
   end
 
   context 'when the client is configured' do

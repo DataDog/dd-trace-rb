@@ -359,6 +359,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
     context 'when in async mode' do
       before { allow(writer).to receive(:async?).and_return true }
+
       after { writer.stop }
 
       context 'and given a trace' do

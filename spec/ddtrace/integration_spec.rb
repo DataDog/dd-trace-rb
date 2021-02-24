@@ -574,6 +574,7 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'with another tracer instance' do
       let(:tracer2) { new_tracer }
+
       after { tracer2.shutdown! }
 
       it 'create one thread-local context per tracer' do

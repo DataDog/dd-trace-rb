@@ -90,7 +90,7 @@ RSpec.configure do |config|
   # Changing this to `config.after(:each)` would
   # put this code inside the test scope, interfering
   # with the test execution.
-  config.around(:each) do |example|
+  config.around do |example|
     example.run.tap do
       # Exclude acceptable background threads
       background_threads = Thread.list.reject do |t|
@@ -140,7 +140,7 @@ RSpec.configure do |config|
         end.join("\n")
 
         # Warn about leakly thread
-        STDERR.puts RSpec::Core::Formatters::ConsoleCodes.wrap(
+        warn RSpec::Core::Formatters::ConsoleCodes.wrap(
           "Spec leaked #{background_threads.size} threads in \"#{example.full_description}\".\n" \
           "Ensure all threads are terminated when test finishes.\n" \
           "For help fixing this issue, see \"Ensuring tests don't leak resources\" in docs/DevelopmentGuide.md.\n" \
@@ -160,7 +160,7 @@ RSpec.configure do |config|
   # Changing this to `config.after(:each)` would
   # put this code inside the test scope, interfering
   # with the test execution.
-  config.around(:each) do |example|
+  config.around do |example|
     example.run.tap do
       tracer_shutdown!
     end

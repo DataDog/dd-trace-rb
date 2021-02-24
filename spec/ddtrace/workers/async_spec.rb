@@ -26,7 +26,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
         thread.terminate
         begin
           thread.join
-        rescue error_class => _ # rubocop:disable Lint/HandleExceptions
+        rescue error_class => _e
         end
       end
     end
@@ -194,6 +194,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
         context 'given no arguments' do
           let(:timeout) { nil }
+
           it { is_expected.to be true }
         end
 
@@ -202,11 +203,13 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
           context 'which is not reached' do
             let(:timeout) { 10 }
+
             it { is_expected.to be true }
           end
 
           context 'which is reached' do
             let(:timeout) { 0 }
+
             it { is_expected.to be false }
           end
         end
