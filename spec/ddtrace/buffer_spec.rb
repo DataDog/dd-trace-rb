@@ -315,7 +315,7 @@ RSpec.shared_examples 'thread-safe buffer' do
 
   describe '#push' do
     let(:output) { buffer.pop }
-    let(:wait_for_threads) { threads.each { |t| t.join(5000) } }
+    let(:wait_for_threads) { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
     let(:max_size) { 500 }
     let(:thread_count) { 100 }
     let(:threads) do
@@ -391,7 +391,7 @@ RSpec.shared_examples 'thread-safe buffer' do
 
   describe '#concat' do
     let(:output) { buffer.pop }
-    let(:wait_for_threads) { threads.each { |t| t.join(5000) } }
+    let(:wait_for_threads) { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
     let(:bulk_items) { Array.new(10, items) }
     let(:max_size) { 5000 }
     let(:thread_count) { 100 }
