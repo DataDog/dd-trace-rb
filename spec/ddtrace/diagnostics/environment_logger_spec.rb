@@ -281,6 +281,12 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
 
         it { is_expected.to include vm: start_with('jruby') }
       end
+
+      context 'with TruffleRuby' do
+        before { skip unless PlatformHelpers.truffleruby? }
+
+        it { is_expected.to include vm: start_with('truffleruby') }
+      end
     end
   end
 end
