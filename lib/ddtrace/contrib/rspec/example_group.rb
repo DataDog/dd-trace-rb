@@ -28,11 +28,6 @@ module Datadog
               span.set_tag(Datadog::Ext::Test::TAG_TYPE, Ext::TEST_TYPE)
               span.set_tag(Datadog::Ext::Test::TAG_SPAN_KIND, Datadog::Ext::AppTypes::TEST)
 
-              # Set analytics sample rate
-              if Datadog::Contrib::Analytics.enabled?(configuration[:analytics_enabled])
-                Datadog::Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
-              end
-
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
