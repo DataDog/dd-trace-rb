@@ -12,7 +12,7 @@ RSpec.describe Datadog::Runtime::Identity do
     end
 
     context 'when invoked around a fork' do
-      before { skip 'Fork not supported on current platform' unless PlatformHelpers.supports_fork? }
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       let(:before_fork_id) { described_class.id }
       let(:inside_fork_id) { described_class.id }

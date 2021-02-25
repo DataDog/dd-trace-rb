@@ -637,7 +637,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
     let(:output) { [] }
 
     describe 'forking' do
-      before { skip 'Fork not supported on current platform' unless PlatformHelpers.supports_fork? }
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       context 'when the process forks and a trace is written' do
         let(:traces) { get_test_traces(3) }

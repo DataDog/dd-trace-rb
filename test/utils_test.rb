@@ -43,7 +43,7 @@ class UtilsTest < Minitest::Test
   end
 
   def test_forked_process_id_collision
-    skip 'Fork not supported on current platform' if %w[jruby truffleruby].include?(RUBY_ENGINE)
+    skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
 
     r, w = IO.pipe
 

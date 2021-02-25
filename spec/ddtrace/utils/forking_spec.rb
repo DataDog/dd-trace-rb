@@ -4,7 +4,7 @@ require 'ddtrace/utils/forking'
 
 RSpec.describe Datadog::Utils::Forking do
   before do
-    skip 'Fork not supported on current platform' unless PlatformHelpers.supports_fork?
+    skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
   end
 
   shared_examples_for 'a Forking type' do
