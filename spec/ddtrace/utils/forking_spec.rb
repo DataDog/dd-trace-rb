@@ -3,7 +3,9 @@ require 'spec_helper'
 require 'ddtrace/utils/forking'
 
 RSpec.describe Datadog::Utils::Forking do
-  before { skip 'Java not supported' if RUBY_PLATFORM == 'java' }
+  before do
+    skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
+  end
 
   shared_examples_for 'a Forking type' do
     # Assume the module is defined in the parent process not the fork.

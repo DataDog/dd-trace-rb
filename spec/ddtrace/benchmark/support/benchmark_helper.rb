@@ -286,7 +286,7 @@ RSpec.shared_context 'minimal agent' do
   before do
     # Initializes server in a fork, to allow for true concurrency.
     # In JRuby, threads are not supported, but true thread concurrency is.
-    @agent_runner = if PlatformHelpers.supports_fork?
+    @agent_runner = if Process.respond_to?(:fork)
                       fork { server_runner }
                     else
                       Thread.new { server_runner }
@@ -294,7 +294,7 @@ RSpec.shared_context 'minimal agent' do
   end
 
   after do
-    if PlatformHelpers.supports_fork?
+    if Process.respond_to?(:fork)
       Process.kill('TERM', @agent_runner) rescue nil
       Process.wait(@agent_runner)
     else

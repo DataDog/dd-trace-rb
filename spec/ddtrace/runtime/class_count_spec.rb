@@ -5,11 +5,11 @@ RSpec.describe Datadog::Runtime::ClassCount do
   describe '::available?' do
     subject(:available?) { described_class.available? }
 
-    it { is_expected.to be !PlatformHelpers.jruby? }
+    it { is_expected.to be !(PlatformHelpers.jruby? || PlatformHelpers.truffleruby?) }
   end
 
   describe '::value' do
-    before { skip if PlatformHelpers.jruby? }
+    before { skip 'Not supported on current platform' unless described_class.available? }
 
     subject(:value) { described_class.value }
 

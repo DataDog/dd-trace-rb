@@ -122,7 +122,7 @@ RSpec.describe 'Resque instrumentation' do
   end
 
   context 'with forking' do
-    before { skip unless PlatformHelpers.supports_fork? }
+    before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
     it_behaves_like 'job execution tracing'
 
