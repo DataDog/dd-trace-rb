@@ -2,6 +2,7 @@ require 'concurrent/future'
 
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
+require 'spec/support/thread_helpers'
 
 RSpec.describe 'ConcurrentRuby integration tests' do
   # DEV We save an unmodified copy of Concurrent::Future.
@@ -9,6 +10,17 @@ RSpec.describe 'ConcurrentRuby integration tests' do
   let(:configuration_options) { {} }
   let(:outer_span) { spans.find { |s| s.name == 'outer_span' } }
   let(:inner_span) { spans.find { |s| s.name == 'inner_span' } }
+
+  before(:context) do
+    # Execute an async future to force the eager creation of internal
+    # global threads that are never closed.
+    #
+    # This allows us to separate internal concurrent-ruby threads
+    # from ddtrace threads for leak detection.
+    ThreadHelpers.with_leaky_thread_creation(:concurrent_ruby) do
+      Concurrent::Future.execute {}.value
+    end
+  end
 
   # DEV We then restore Concurrent::Future, a dangerous game.
   after do

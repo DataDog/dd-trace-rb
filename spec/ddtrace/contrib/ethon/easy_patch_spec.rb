@@ -5,9 +5,11 @@ require 'ddtrace/contrib/ethon/easy_patch'
 require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/analytics_examples'
 
+require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
   let(:configuration_options) { {} }
-  let(:easy) { ::Ethon::Easy.new }
+  let(:easy) { EthonSupport.ethon_easy_new }
 
   before do
     Datadog.configure do |c|

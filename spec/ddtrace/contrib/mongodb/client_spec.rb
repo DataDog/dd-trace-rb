@@ -43,11 +43,16 @@ RSpec.describe 'Mongo::Client instrumentation' do
       example.run
       Datadog.registry[:mongo].reset_configuration!
       client.database.drop if drop_database?
+      client.close
     end
   end
 
-  it 'evaluates the block given to the constructor' do
-    expect { |b| Mongo::Client.new(["#{host}:#{port}"], client_options, &b) }.to yield_control
+  context 'when the client is configured with a block' do
+    after { @client.close }
+
+    it 'evaluates the block given to the constructor' do
+      expect { |b| @client = Mongo::Client.new(["#{host}:#{port}"], client_options, &b) }.to yield_control
+    end
   end
 
   context 'when the client is configured' do

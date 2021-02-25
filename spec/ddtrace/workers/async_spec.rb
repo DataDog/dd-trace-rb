@@ -16,6 +16,22 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     before { allow(worker_spy).to receive(:perform) }
 
+    after do
+      thread = worker.send(:worker)
+      if thread
+        # Avoid tripping RSpec expectations on the worker thread
+        # when calling `terminate` and `join` below.
+        RSpec::Mocks.space.proxy_for(thread).reset
+
+        thread.terminate
+        begin
+          thread.join
+        rescue error_class => _e
+          # Prevents test from erroring out during cleanup
+        end
+      end
+    end
+
     shared_context 'perform and wait' do
       let(:perform) { worker.perform(*args) }
       let(:args) { [:foo, :bar] }
@@ -167,17 +183,18 @@ RSpec.describe Datadog::Workers::Async::Thread do
       end
 
       context 'when started' do
-        let(:task) { proc { sleep(1) } }
+        let(:task) { proc { sleep(0.1) } }
         let(:join_result) { double('join result') }
 
-        before { worker.perform }
+        before do
+          worker.perform
+
+          expect(thread).to receive(:join)
+            .with(timeout).and_call_original
+        end
 
         context 'given no arguments' do
-          before do
-            expect(thread).to receive(:join)
-              .with(nil)
-              .and_return(join_result)
-          end
+          let(:timeout) { nil }
 
           it { is_expected.to be true }
         end
@@ -185,24 +202,14 @@ RSpec.describe Datadog::Workers::Async::Thread do
         context 'given a timeout' do
           subject(:join) { worker.join(timeout) }
 
-          let(:timeout) { rand }
-
           context 'which is not reached' do
-            before do
-              expect(thread).to receive(:join)
-                .with(timeout)
-                .and_return(join_result)
-            end
+            let(:timeout) { 10 }
 
             it { is_expected.to be true }
           end
 
           context 'which is reached' do
-            before do
-              expect(thread).to receive(:join)
-                .with(timeout)
-                .and_return(nil)
-            end
+            let(:timeout) { 0 }
 
             it { is_expected.to be false }
           end
@@ -244,8 +251,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
       context 'when started' do
         before { worker.perform }
 
-        after { worker.terminate }
-
         it { is_expected.to be true }
       end
     end
@@ -259,8 +264,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
       context 'when started' do
         before { worker.perform }
-
-        after { worker.terminate }
 
         it { is_expected.to be true }
       end
@@ -281,8 +284,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
           try_wait_until { worker.running? }
         end
 
-        after { worker.terminate }
-
         it { is_expected.to be true }
       end
     end
@@ -301,8 +302,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
           worker.perform
           try_wait_until { worker.running? }
         end
-
-        after { worker.terminate }
 
         it do
           expect(worker.running?).to be true
@@ -332,8 +331,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
         let(:task) { proc { sleep(1) } }
 
         before { worker.perform }
-
-        after { worker.terminate }
 
         it do
           expect(worker.running?).to be true
@@ -370,8 +367,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
         before { worker.perform }
 
-        after { worker.terminate }
-
         it do
           expect(worker.running?).to be true
           is_expected.to be false
@@ -382,8 +377,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
         let(:task) { proc { sleep(1) } }
 
         before { worker.perform }
-
-        after { worker.terminate }
 
         it do
           expect(worker.running?).to be true

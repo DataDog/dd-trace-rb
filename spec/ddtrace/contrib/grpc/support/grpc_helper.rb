@@ -1,5 +1,7 @@
 require 'grpc'
 
+require 'spec/support/thread_helpers'
+
 module GRPCHelper
   def run_request_reply(address = available_endpoint, client = nil)
     runner(address, client) { |c| c.basic(TestMessage.new) }
@@ -24,7 +26,9 @@ module GRPCHelper
   end
 
   def runner(address, client)
-    server = GRPC::RpcServer.new
+    # GRPC native threads that are never cleaned up
+    server = ThreadHelpers.with_leaky_thread_creation(:grpc) { GRPC::RpcServer.new }
+
     server.add_http2_port(address, :this_port_is_insecure)
     server.handle(TestService)
 

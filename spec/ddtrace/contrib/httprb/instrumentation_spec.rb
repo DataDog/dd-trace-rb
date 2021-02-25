@@ -7,8 +7,11 @@ require 'http'
 require 'webrick'
 require 'json'
 
+require 'spec/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
   before(:all) do
+    # TODO: Consolidate mock webserver code
     @log_buffer = StringIO.new # set to $stderr to debug
     log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
     access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
@@ -27,18 +30,31 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
       res.body = req.body
     end
 
-    Thread.new { server.start }
+    ThreadHelpers.with_leaky_thread_creation(:httprb_test_server) do
+      @thread = Thread.new { server.start }
+    end
+
     @server = server
     @port = server[:Port]
   end
 
-  after(:all) { @server.shutdown }
+  after(:all) do
+    @server.shutdown
+    @thread.join
+  end
 
   let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|
       c.use :httprb, configuration_options
+    end
+
+    # LibFFI native thread
+    allow(::HTTP::Connection).to receive(:new).and_wrap_original do |method, *args, &block|
+      ThreadHelpers.with_leaky_thread_creation(:ffi) do
+        method.call(*args, &block)
+      end
     end
   end
 

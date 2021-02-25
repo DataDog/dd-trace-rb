@@ -9,12 +9,24 @@ RSpec.describe 'sucker_punch instrumentation' do
       c.use :sucker_punch
     end
 
-    SuckerPunch::Queue.clear
     SuckerPunch::RUNNING.make_true
   end
 
   after do
+    count = Thread.list.size
+
+    SuckerPunch::RUNNING.make_false
+    SuckerPunch::Queue.all.each(&:shutdown)
     SuckerPunch::Queue.clear
+
+    # Unfortunately, SuckerPunch queues (which are concurrent-ruby
+    # ThreadPoolExecutor instances) don't have an interface that
+    # waits until threads have completely terminated.
+    # Even methods like
+    # http://ruby-concurrency.github.io/concurrent-ruby/1.1.8/Concurrent/ThreadPoolExecutor.html#wait_for_termination-instance_method
+    # only wait until the executor is guaranteed to not process any
+    # more items, but not necessarily decommission all resources.
+    try_wait_until { Thread.list.size < count }
   end
 
   around do |example|

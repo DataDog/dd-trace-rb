@@ -315,6 +315,7 @@ RSpec.shared_examples 'thread-safe buffer' do
 
   describe '#push' do
     let(:output) { buffer.pop }
+    let(:wait_for_threads) { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
     let(:max_size) { 500 }
     let(:thread_count) { 100 }
     let(:threads) do
@@ -329,6 +330,8 @@ RSpec.shared_examples 'thread-safe buffer' do
       end
     end
     let(:output) { buffer.pop }
+
+    let(:push) { wait_for_threads }
 
     subject(:push) { threads.each(&:join) }
 
@@ -377,10 +380,8 @@ RSpec.shared_examples 'thread-safe buffer' do
             # Yield control to threads to increase contention.
             # Otherwise we might run #pop a few times in succession,
             # which doesn't help us stress test this case.
-            sleep 0
+            Thread.pass
           end
-
-          threads.each(&:kill)
 
           push
         end
@@ -390,6 +391,7 @@ RSpec.shared_examples 'thread-safe buffer' do
 
   describe '#concat' do
     let(:output) { buffer.pop }
+    let(:wait_for_threads) { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
     let(:bulk_items) { Array.new(10, items) }
     let(:max_size) { 5000 }
     let(:thread_count) { 100 }
@@ -406,9 +408,9 @@ RSpec.shared_examples 'thread-safe buffer' do
     end
     let(:output) { buffer.pop }
 
-    subject(:concat) { threads.each { |t| t.join(5000) } }
+    subject(:concat) { wait_for_threads }
 
-    xit 'does not have collisions' do
+    it 'does not have collisions' do
       concat
       expect(output).to_not be nil
       expect(output).to match_array(thread_count.times.flat_map { bulk_items })
@@ -454,10 +456,8 @@ RSpec.shared_examples 'thread-safe buffer' do
             # Yield control to threads to increase contention.
             # Otherwise we might run #pop a few times in succession,
             # which doesn't help us stress test this case.
-            sleep 0
+            Thread.pass
           end
-
-          threads.each(&:kill)
 
           concat
         end

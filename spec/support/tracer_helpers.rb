@@ -152,4 +152,15 @@ module TracerHelpers
     @spans = nil
     @span = nil
   end
+
+  def tracer_shutdown!
+    if defined?(@use_real_tracer) && @use_real_tracer
+      Datadog.tracer.shutdown!
+    else
+      return unless defined?(@tracer) && @tracer
+
+      @tracer.shutdown!
+      @tracer = nil
+    end
+  end
 end

@@ -71,10 +71,23 @@ module Contrib
           instance
         end
       end
+
+      # Execute shutdown! after the test has finished
+      # teardown and mock verifications.
+      #
+      # Changing this to `config.after(:each)` would
+      # put shutdown! inside the test scope, interfering
+      # with mock assertions.
+      config.around do |example|
+        example.run.tap do
+          Datadog.tracer.shutdown!
+        end
+      end
     end
 
     # Useful for integration testing.
     def use_real_tracer!
+      @use_real_tracer = true
       allow(Datadog::Tracer).to receive(:new).and_call_original
     end
   end

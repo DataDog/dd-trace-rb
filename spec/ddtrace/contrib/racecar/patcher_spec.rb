@@ -1,7 +1,13 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
-require 'racecar'
+require 'spec/support/thread_helpers'
+
+# FFI::Function background native thread
+ThreadHelpers.with_leaky_thread_creation(:racecar) do
+  require 'racecar'
+end
+
 require 'racecar/cli'
 require 'active_support'
 require 'ddtrace'

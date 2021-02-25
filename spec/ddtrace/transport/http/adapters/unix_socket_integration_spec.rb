@@ -67,6 +67,9 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     after do
       http.shutdown
       cleanup_socket
+
+      @http_server_thread.join
+      @unix_server_thread.join
     end
   end
 

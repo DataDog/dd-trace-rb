@@ -3,12 +3,15 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace'
 require 'ddtrace/contrib/httpclient/instrumentation'
-require 'http'
+require 'httpclient'
 require 'webrick'
 require 'json'
 
+require 'spec/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
   before(:all) do
+    # TODO: Consolidate mock webserver code
     @log_buffer = StringIO.new # set to $stderr to debug
     log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
     access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
@@ -27,12 +30,18 @@ RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
       res.body = req.body
     end
 
-    Thread.new { server.start }
+    ThreadHelpers.with_leaky_thread_creation(:httpclient_test_server) do
+      @thread = Thread.new { server.start }
+    end
+
     @server = server
     @port = server[:Port]
   end
 
-  after(:all) { @server.shutdown }
+  after(:all) do
+    @server.shutdown
+    @thread.join
+  end
 
   let(:configuration_options) { {} }
 

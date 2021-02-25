@@ -3,6 +3,8 @@ require 'ddtrace'
 
 require 'ddtrace/contrib/rails/rails_helper'
 
+require 'spec/support/thread_helpers'
+
 begin
   require 'action_cable'
 rescue LoadError
@@ -35,6 +37,13 @@ RSpec.describe 'ActionCable Rack override' do
 
     rails_test_application.instance.routes.draw do
       mount ActionCable.server => '/cable'
+    end
+
+    # ActionCable background threads that can't be finished
+    allow(ActionCable.server).to receive(:call).and_wrap_original do |method, *args, &block|
+      ThreadHelpers.with_leaky_thread_creation(:action_cable) do
+        method.call(*args, &block)
+      end
     end
   end
 
