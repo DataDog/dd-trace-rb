@@ -5,8 +5,7 @@ require 'rspec/collection_matchers'
 require 'webmock/rspec'
 require 'climate_control'
 
-# Skip for benchmarks, as coverage collection slows them down.
-unless RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/') }
+if (ENV['SKIP_SIMPLECOV'] != '1') && !RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/') }
   # +SimpleCov.start+ must be invoked before any application code is loaded
   require 'simplecov'
   SimpleCov.start do
