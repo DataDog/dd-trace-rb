@@ -5,7 +5,7 @@ module Datadog
       # profiling abilities after the VM forks.
       module Forking
         def self.supported?
-          RUBY_PLATFORM != 'java'
+          Process.respond_to?(:fork)
         end
 
         def self.apply!
