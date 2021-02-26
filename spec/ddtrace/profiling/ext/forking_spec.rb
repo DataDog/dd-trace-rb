@@ -5,20 +5,6 @@ require 'ddtrace/profiling'
 require 'ddtrace/profiling/ext/forking'
 
 RSpec.describe Datadog::Profiling::Ext::Forking do
-  describe '::supported?' do
-    subject(:supported?) { described_class.supported? }
-
-    context 'when MRI Ruby is used' do
-      before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
-      it { is_expected.to be true }
-    end
-
-    context 'when JRuby is used' do
-      before { stub_const('RUBY_PLATFORM', 'java') }
-      it { is_expected.to be false }
-    end
-  end
-
   describe '::apply!' do
     subject(:apply!) { described_class.apply! }
 
