@@ -112,7 +112,10 @@ RSpec.configure do |config|
           # Ruby JetBrains debugger
           t.class.name.include?('DebugThread') ||
           # Categorized as a known leaky thread
-          !group_name.nil?
+          !group_name.nil? ||
+          # Internal TruffleRuby thread, defined in
+          # https://github.com/oracle/truffleruby/blob/02f568556ca4dd9056b0114b750ab848ac52943b/src/main/java/org/truffleruby/core/ReferenceProcessingService.java#L221
+          RUBY_ENGINE == 'truffleruby' && t.to_s.include?('Ruby-reference-processor')
       end
 
       unless background_threads.empty?
