@@ -1648,7 +1648,6 @@ Datadog.configure do |c|
 end
 ```
 
-
 Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
