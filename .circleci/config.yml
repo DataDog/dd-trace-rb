@@ -21,6 +21,10 @@ test_containers:
         description: Jit enabled?
         type: boolean
         default: false
+      resource_class_to_use:
+        description: Resource class to use
+        type: string
+        default: medium
   - &container_base_environment
     BUNDLE_GEMFILE: /app/Gemfile
     JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
@@ -133,6 +137,7 @@ orbs:
     jobs:
       build:
         <<: *test_job_default
+        resource_class: <<parameters.resource_class_to_use>>
         steps:
           - checkout
           - restore_cache:
@@ -438,6 +443,12 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2'
     image: marcotc/docker-library:ddtrace_rb_jruby_9_2
+  # TruffleRuby
+  - &config-truffleruby-21_0_0
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'truffleruby-21.0.0'
+    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_0_0
+    resource_class_to_use: large
 
 workflows:
   version: 2
@@ -462,6 +473,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-jruby-9.2
+            # soon™️ - test-truffleruby-21.0.0
       - orb/changelog:
           <<: *config-2_7
           name: changelog
@@ -612,6 +624,16 @@ workflows:
           name: test-jruby-9.2
           requires:
             - build-jruby-9.2
+      # TruffleRuby
+      - orb/build:
+          <<: *config-truffleruby-21_0_0
+          name: build-truffleruby-21.0.0
+      # soon™️
+      # - orb/test:
+      #     <<: *config-truffleruby-21_0_0
+      #     name: test-truffleruby-21.0.0
+      #     requires:
+      #       - build-truffleruby-21.0.0
       # Release jobs
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
@@ -628,6 +650,7 @@ workflows:
             - test-3.0
             - test-3.0-jit
             - test-jruby-9.2
+            # soon™️ - test-truffleruby-21.0.0
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
@@ -643,3 +666,4 @@ workflows:
             - test-3.0
             - test-3.0-jit
             - test-jruby-9.2
+            # soon™️ - test-truffleruby-21.0.0
