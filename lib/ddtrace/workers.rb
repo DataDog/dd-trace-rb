@@ -46,7 +46,7 @@ module Datadog
       end
 
       # Callback function that process traces and executes the +send_traces()+ method.
-      def callback_traces
+      def flush_data
         return true if @trace_buffer.empty?
 
         begin
@@ -103,8 +103,6 @@ module Datadog
       end
 
       private
-
-      alias flush_data callback_traces
 
       def perform
         loop do

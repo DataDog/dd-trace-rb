@@ -1,7 +1,6 @@
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/cucumber/configuration/settings'
 require 'ddtrace/contrib/cucumber/patcher'
-require 'ddtrace/contrib/integration'
 
 module Datadog
   module Contrib

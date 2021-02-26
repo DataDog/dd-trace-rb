@@ -1,7 +1,6 @@
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/rspec/configuration/settings'
 require 'ddtrace/contrib/rspec/patcher'
-require 'ddtrace/contrib/integration'
 
 module Datadog
   module Contrib
