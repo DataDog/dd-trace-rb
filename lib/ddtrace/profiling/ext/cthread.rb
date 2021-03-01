@@ -122,9 +122,11 @@ module Datadog
             ::Thread.current.send(:update_native_ids)
             yield(*t_args)
           end
+          wrapped_block.ruby2_keywords if wrapped_block.respond_to?(:ruby2_keywords, true)
 
           super(*args, &wrapped_block)
         end
+        ruby2_keywords :start if respond_to?(:ruby2_keywords, true)
 
         alias fork start
       end
