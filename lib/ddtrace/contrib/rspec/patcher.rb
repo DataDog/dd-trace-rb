@@ -18,8 +18,9 @@ module Datadog
           ::RSpec::Core::Example.send(:include, Example)
           ::RSpec.configure do |config|
             config.after(:suite) do
+              tracer = Datadog.configuration[:rspec][:tracer]
               # force blocking flush before at_exit shutdown! hook
-              Datadog.tracer.writer.worker.flush_data
+              tracer.writer.worker.flush_data
             end
           end
         end
