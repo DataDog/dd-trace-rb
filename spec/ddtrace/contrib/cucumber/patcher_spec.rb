@@ -22,6 +22,7 @@ RSpec.describe Datadog::Contrib::Cucumber::Patcher do
         expect(handlers).to include(&runtime.datadog_formatter.method(:on_test_case_finished))
         expect(handlers).to include(&runtime.datadog_formatter.method(:on_test_step_started))
         expect(handlers).to include(&runtime.datadog_formatter.method(:on_test_step_finished))
+        expect(handlers).to include(&runtime.datadog_formatter.method(:on_test_run_finished))
       end
     end
   end

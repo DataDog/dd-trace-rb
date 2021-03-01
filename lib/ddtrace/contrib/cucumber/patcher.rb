@@ -16,8 +16,6 @@ module Datadog
 
         def patch
           ::Cucumber::Runtime.send(:include, Instrumentation)
-          # force blocking flush before at_exit shutdown! hook
-          at_exit { Datadog.tracer.writer.worker.flush_data }
         end
       end
     end
