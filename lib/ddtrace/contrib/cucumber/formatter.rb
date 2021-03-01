@@ -70,8 +70,6 @@ module Datadog
           @current_step_span.finish
         end
 
-        require 'pry'
-
         def on_test_run_finished(_)
           # force blocking flush before at_exit shutdown! hook
           tracer.writer.worker.flush_data
