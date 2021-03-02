@@ -6,36 +6,21 @@ require 'ddtrace/profiling/ext/forking'
 module Datadog
   module Profiling
     module Tasks
-      # Takes care of loading our extensions/monkey patches and starting up profiler
+      # Takes care of loading our extensions/monkey patches to handle fork() and CPU profiling.
       class Setup
         def run
-          activate_main_extensions
-          autostart_profiler
-        end
-
-        def activate_main_extensions
-          # Activate extensions first
-          activate_forking_extensions
-          activate_cpu_extensions
-
-          # Setup at_fork hook:
-          # When Ruby forks, clock IDs for each of the threads
-          # will change. We can only update these IDs from the
-          # execution context of the thread that owns it.
-          # This hook will update the IDs for the main thread
-          # after a fork occurs.
-          if Process.respond_to?(:at_fork)
-            Process.at_fork(:child) do
-              # Update current thread clock, if available.
-              # (Be careful not to raise an error here.)
-              if Thread.current.respond_to?(:update_native_ids, true)
-                Thread.current.send(:update_native_ids)
-              end
+          ONLY_ONCE.run do
+            begin
+              activate_forking_extensions
+              activate_cpu_extensions
+              setup_at_fork_hooks
+            rescue StandardError, ScriptError => e
+              log "[DDTRACE] Main extensions unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
             end
           end
-        rescue StandardError, ScriptError => e
-          log "[DDTRACE] Main extensions unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
         end
+
+        private
 
         def activate_forking_extensions
           if Ext::Forking.supported?
@@ -59,32 +44,60 @@ module Datadog
           log "[DDTRACE] CPU profiling unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
         end
 
-        def autostart_profiler
-          if Datadog::Profiling.supported?
-            # Start the profiler
-            Datadog.profiler.start if Datadog.profiler
+        def setup_at_fork_hooks
+          if Process.respond_to?(:at_fork)
+            Process.at_fork(:child) do
+              begin
+                # When Ruby forks, clock IDs for each of the threads
+                # will change. We can only update these IDs from the
+                # execution context of the thread that owns it.
+                # This hook will update the IDs for the main thread
+                # after a fork occurs.
+                if Thread.current.respond_to?(:update_native_ids, true)
+                  Thread.current.send(:update_native_ids)
+                end
 
-            # Setup at_fork hook:
-            # When Ruby forks, threads running in the parent process
-            # won't be restarted in the child process. This hook will
-            # restart the profiler in the child process when this happens.
-            if Process.respond_to?(:at_fork)
-              Process.at_fork(:child) { Datadog.profiler.start if Datadog.profiler }
+                # Restart profiler, if enabled
+                Datadog.profiler.start if Datadog.profiler
+              rescue StandardError => e
+                log "[DDTRACE] Error during post-fork hooks. Cause: #{e.message} Location: #{e.backtrace.first}"
+              end
             end
-          elsif Datadog.configuration.profiling.enabled
-            # Log warning if profiling was supposed to be activated.
-            log '[DDTRACE] Profiling did not autostart; profiling not supported.'
           end
-        rescue StandardError => e
-          log "[DDTRACE] Could not autostart profiling. Cause: #{e.message} Location: #{e.backtrace.first}"
         end
-
-        private
 
         def log(message)
           # Print to STDOUT for now because logging may not be setup yet...
           puts message
         end
+
+        # Small helper class to allow some piece of code to be run only once
+        class OnlyOnce
+          def initialize
+            @mutex = Mutex.new
+            @ran_once = false
+          end
+
+          def run
+            @mutex.synchronize do
+              return if @ran_once
+
+              @ran_once = true
+
+              yield
+            end
+          end
+
+          private
+
+          def reset_ran_once_state_for_tests
+            @ran_once = false
+          end
+        end
+        ONLY_ONCE = OnlyOnce.new
+
+        private_constant :OnlyOnce
+        private_constant :ONLY_ONCE
       end
     end
   end
