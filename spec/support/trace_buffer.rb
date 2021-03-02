@@ -41,6 +41,12 @@ class TestTraceBuffer
     end
   end
 
+  def length
+    @mutex.synchronize { @spans.length }
+  end
+
+  alias_method :count, :length
+
   def trace0_spans
     @mutex.synchronize do
       return [] unless @spans

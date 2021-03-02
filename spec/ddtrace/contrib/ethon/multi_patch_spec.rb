@@ -68,7 +68,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
 
     context 'with no easy added to multi' do
       it 'does not trace' do
-        expect { subject }.to change { fetch_spans.count }.by 0
+        expect { subject }.to change { spans.count }.by 0
       end
     end
 
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
       end
 
       it 'submits parent and child traces' do
-        expect { subject }.to change { fetch_spans.count }.by 2
+        expect { subject }.to change { spans.count }.by 2
       end
 
       it 'cleans up multi span variable' do
@@ -120,7 +120,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
           multi.add easy
           multi.perform
           multi.perform
-        end.to change { fetch_spans.count }.by 2
+        end.to change { spans.count }.by 2
       end
 
       it 'creates extra traces for each extra valid call to perform' do
@@ -129,7 +129,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
           multi.perform
           multi.add easy
           multi.perform
-        end.to change { fetch_spans.count }.by 4
+        end.to change { spans.count }.by 4
       end
     end
   end

@@ -10,19 +10,15 @@ require 'ddtrace/ext/http'
 
 RSpec.describe 'ActiveModelSerializers patcher' do
   include_context 'AMS serializer'
-  include_context 'trace components'
+  # include_context 'completed traces'
 
   let(:configuration_options) { {} }
-
-  def all_spans
-    trace_writer.spans(:keep)
-  end
 
   before do
     # Supress active_model_serializers log output in the test run
     ActiveModelSerializersHelpers.disable_logging
 
-    Datadog.configure(global_settings) do |c|
+    Datadog.configure do |c|
       c.use :active_model_serializers, configuration_options
     end
 

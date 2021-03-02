@@ -53,49 +53,67 @@ module TracerHelpers
     traces
   end
 
-  def spans
-    @spans ||= fetch_spans
-  end
+  # def spans
+  #   @spans ||= fetch_spans
+  # end
 
   # Returns the only span in the current tracer writer.
   #
   # This method will not allow for ambiguous use,
   # meaning it will throw an error when more than
   # one span is available.
-  def span
-    @span ||= begin
-      expect(spans).to have(1).item, "Requested the only span, but #{spans.size} spans are available"
-      spans.first
-    end
-  end
+  # def span
+  #   @span ||= begin
+  #     expect(spans).to have(1).item, "Requested the only span, but #{spans.size} spans are available"
+  #     spans.first
+  #   end
+  # end
 
-  def fetch_spans
-    writer.spans
-  end
+  # def fetch_spans
+  #   writer.spans
+  # end
 
-  def clear_spans!
-    writer.clear!
+  # def clear_spans!
+  #   writer.clear!
 
-    @spans = nil
-    @span = nil
-  end
+  #   @spans = nil
+  #   @span = nil
+  # end
 
   shared_context 'completed traces' do
-    let(:trace_writer) { nil }
     let(:traces) { TestTraceBuffer.new }
 
     before do
-      tracer.trace_completed.subscribe(:test) do |trace|
-        traces << trace unless traces.nil?
-        trace_writer.write(trace) unless trace_writer.nil?
-      end
+      # Forward traces into the trace buffer
+      allow(tracer.trace_completed)
+        .to receive(:publish)
+        .and_wrap_original do |m, *args|
+          trace = args.first
+
+          # puts "[#{traces.object_id}] Traces (#{traces.count}) << [#{trace}]"
+
+          traces << trace unless traces.nil?
+          m.call(*args)
+        end
     end
 
-    let(:spans) { traces.spans }
-    let(:span) { spans.first }
+    def spans
+      traces.spans
+    end
+
+    def span
+      @span ||= begin
+        expect(spans).to have(1).item, "Requested the only span, but #{spans.size} spans are available"
+        spans.first
+      end
+    end
   end
 
   shared_context 'trace components' do
+    include_context 'completed traces'
+
+    let(:trace_writer) { FauxWriter.new }
+
     let(:global_settings) do
       Datadog::Configuration::Settings.new.tap do |settings|
         settings.tracer.instance = tracer
@@ -103,10 +121,6 @@ module TracerHelpers
       end
     end
 
-    let(:tracer) { new_tracer }
-    let(:trace_writer) { FauxWriter.new }
-
-    let(:spans) { trace_writer.spans }
-    let(:span) { spans.first }
+    after { trace_writer.stop(true, 5) }
   end
 end

@@ -9,18 +9,14 @@ if Datadog::OpenTracer.supported?
 
     subject(:tracer) { Datadog::OpenTracer::Tracer.new }
     let(:datadog_tracer) { tracer.datadog_tracer }
-    let(:datadog_trace_writer) { FauxWriter.new }
-    let(:datadog_spans) { datadog_trace_writer.spans(:keep) }
+
+    let(:datadog_traces) { TestTraceBuffer.new }
+    let(:datadog_spans) { datadog_traces.spans }
 
     before do
       datadog_tracer.trace_completed.subscribe(:test) do |trace|
-        datadog_trace_writer.write(trace)
+        datadog_traces << trace
       end
-    end
-
-    after do
-      # Ensure tracer is shutdown between test, as to not leak threads.
-      datadog_tracer.shutdown!
     end
 
     def sampling_priority_metric(span)

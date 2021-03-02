@@ -56,7 +56,7 @@ RSpec.describe Datadog::Contrib::Ethon do
     end
 
     it 'creates 3 spans' do
-      expect { request }.to change { fetch_spans.count }.to 3
+      expect { request }.to change { spans.count }.to 3
     end
 
     describe 'created spans' do

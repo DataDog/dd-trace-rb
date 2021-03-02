@@ -122,7 +122,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     end
 
     it 'creates a span' do
-      expect { subject }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
+      expect { subject }.to change { spans.first }.to be_instance_of(Datadog::Span)
     end
 
     it 'cleans up span stored on easy' do

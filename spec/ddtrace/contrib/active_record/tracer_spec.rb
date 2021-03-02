@@ -12,7 +12,9 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
   before do
     # Prevent extra spans during tests
+    # Produce a query then clear the traces.
     Article.count
+    traces.clear!
 
     # Reset options (that might linger from other tests)
     Datadog.configuration[:active_record].reset!
@@ -62,7 +64,6 @@ RSpec.describe 'ActiveRecord instrumentation' do
       context 'is set' do
         let(:service_name) { 'test_active_record' }
         let(:configuration_options) { super().merge(service_name: service_name) }
-
         it { expect(span.service).to eq(service_name) }
       end
     end

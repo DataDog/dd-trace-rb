@@ -39,6 +39,8 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
         # Prevent extraneous spans from showing up
         klass.count
       end
+
+      traces.clear!
     end
   end
   let!(:widget_class) do
@@ -58,6 +60,8 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
         # Prevent extraneous spans from showing up
         klass.count
       end
+
+      traces.clear!
     end
   end
   let(:gadget_span) { spans[0] }
@@ -80,7 +84,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
   subject(:count) do
     gadget_class.count
     widget_class.count
-    trace_writer.spans
+    spans
   end
 
   before do

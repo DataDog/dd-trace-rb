@@ -64,13 +64,13 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
   describe 'instrumented job invocation' do
     let(:job_params) { {} }
-    let(:span) { fetch_spans.first }
-    let(:enqueue_span) { fetch_spans.first }
+    let(:span) { spans.first }
+    let(:enqueue_span) { spans.first }
 
     subject(:job_run) { Delayed::Job.enqueue(sample_job_object.new, job_params) }
 
     it 'creates a span' do
-      expect { job_run }.to change { fetch_spans }.to all(be_instance_of(Datadog::Span))
+      expect { job_run }.to change { spans }.to all(be_instance_of(Datadog::Span))
     end
 
     context 'when the job looks like Active Job' do
@@ -143,7 +143,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
     end
 
     describe 'invoke span' do
-      subject(:span) { fetch_spans.first }
+      subject(:span) { spans.first }
 
       before { job_run }
 
@@ -171,7 +171,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
     end
 
     describe 'enqueue span' do
-      subject(:span) { fetch_spans.last }
+      subject(:span) { spans.last }
 
       before { job_run }
 
