@@ -1,3 +1,3 @@
-require 'ddtrace/profiling/tasks/setup'
+require 'ddtrace'
 
-Datadog::Profiling::Tasks::Setup.new.run
+Datadog.profiler.start if Datadog.profiler
