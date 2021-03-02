@@ -24,7 +24,6 @@ module Datadog
           config.on_event :test_case_finished, &method(:on_test_case_finished)
           config.on_event :test_step_started, &method(:on_test_step_started)
           config.on_event :test_step_finished, &method(:on_test_step_finished)
-          config.on_event :test_run_finished, &method(:on_test_run_finished)
         end
 
         def on_test_case_started(event)
@@ -68,11 +67,6 @@ module Datadog
           @current_step_span.set_error event.result.exception unless event.result.passed?
           @current_step_span.set_tag(Datadog::Ext::Test::TAG_STATUS, status_from_result(event.result))
           @current_step_span.finish
-        end
-
-        def on_test_run_finished(_)
-          # force blocking flush before at_exit shutdown! hook
-          tracer.writer.worker.flush_data
         end
 
         private

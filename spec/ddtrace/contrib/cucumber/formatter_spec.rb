@@ -23,7 +23,6 @@ RSpec.describe 'Cucumber formatter' do
     Datadog.configure do |c|
       c.use :cucumber, configuration_options
     end
-    Datadog.configuration[:cucumber][:tracer].writer.start
   end
 
   context 'executing a test suite' do
