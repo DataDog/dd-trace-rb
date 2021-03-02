@@ -10,6 +10,7 @@ module ProfilingFeatureHelpers
       stub_const('Kernel', ::Kernel.dup)
 
       require 'ddtrace/profiling/tasks/setup'
+      Datadog::Profiling::Tasks::Setup.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
       Datadog::Profiling::Tasks::Setup.new.run
     end
   end
@@ -26,6 +27,7 @@ module ProfilingFeatureHelpers
     # Apply extensions in a fork so we don't modify the original Thread class
     expect_in_fork do
       require 'ddtrace/profiling/tasks/setup'
+      Datadog::Profiling::Tasks::Setup.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
       Datadog::Profiling::Tasks::Setup.new.run
       yield
     end

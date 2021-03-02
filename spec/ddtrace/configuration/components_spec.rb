@@ -725,6 +725,12 @@ RSpec.describe Datadog::Configuration::Components do
           it_behaves_like 'profiler with default scheduler'
           it_behaves_like 'profiler with default recorder'
           it_behaves_like 'profiler with default exporters'
+
+          it 'runs the setup task to set up any needed extensions for profiling' do
+            expect_any_instance_of(Datadog::Profiling::Tasks::Setup).to receive(:run)
+
+            build_profiler
+          end
         end
 
         context 'and :cpu.enabled' do

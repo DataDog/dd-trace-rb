@@ -71,6 +71,9 @@ module Datadog
         def build_profiler(settings)
           return unless Datadog::Profiling.supported?
 
+          # Load extensions needed to support some of the Profiling features
+          Datadog::Profiling::Tasks::Setup.new.run
+
           # Note: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
           recorder = build_profiler_recorder(settings)
@@ -184,12 +187,15 @@ module Datadog
       def startup!(settings)
         if settings.profiling.enabled
           if profiler
+            @logger.debug('Profiling started')
             profiler.start
           else
             # Display a warning for users who expected profiling to autostart
             protobuf = Datadog::Profiling.google_protobuf_supported?
             logger.warn("Profiling was enabled but is not supported; profiling disabled. (google-protobuf?: #{protobuf})")
           end
+        else
+          @logger.debug('Profiling not enabled')
         end
       end
 
