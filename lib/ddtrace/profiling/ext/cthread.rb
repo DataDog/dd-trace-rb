@@ -11,8 +11,8 @@ module Datadog
       # Extension used to enable CPU-time profiling via use of Pthread's `getcpuclockid`.
       module CThread
         extend FFI::Library
-        ffi_lib 'ruby', ['pthread', 'libpthread.so.0']
-        attach_function :rb_nativethread_self, [], :ulong
+        ffi_lib ['pthread', 'libpthread.so.0']
+        attach_function :pthread_self, [], :ulong
         attach_function :pthread_getcpuclockid, [:ulong, CClockId], :int
 
         def self.prepended(base)
@@ -85,14 +85,12 @@ module Datadog
         end
 
         def get_native_thread_id
-          # Only run if invoked from same thread, otherwise
-          # it will receive incorrect thread ID.
           return unless ::Thread.current == self
 
           # NOTE: Only returns thread ID for thread that evaluates this call.
           #       a.k.a. evaluating `thread_a.get_native_thread_id` from within
           #       `thread_b` will return `thread_b`'s thread ID, not `thread_a`'s.
-          rb_nativethread_self
+          pthread_self
         end
 
         def get_clock_id(pthread_id)
