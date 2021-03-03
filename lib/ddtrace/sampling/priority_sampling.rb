@@ -7,40 +7,30 @@ module Datadog
     module PrioritySampling
       module_function
 
-      def activate!(options = {})
-        tracer = options.fetch(:tracer) { Datadog.tracer }
-        trace_writer = options.fetch(:trace_writer) { Datadog.trace_writer }
+      def new_sampler(base_sampler = nil)
+        return base_sampler if base_sampler.is_a?(Datadog::PrioritySampler)
 
-        unless tracer.sampler.is_a?(PrioritySampler)
-          # Build a priority sampler
-          sampler = PrioritySampler.new(
-            base_sampler: tracer.sampler,
-            post_sampler: Sampling::RuleSampler.new
-          )
+        PrioritySampler.new(
+          base_sampler: base_sampler || Datadog::AllSampler.new,
+          post_sampler: Sampling::RuleSampler.new
+        )
+      end
 
-          # Replace sampler on the tracer
-          tracer.configure(sampler: sampler)
-        end
+      def activate!(priority_sampler, trace_writer)
+        raise ArgumentError, 'Priority sampler and trace writer are required' if priority_sampler.nil? || trace_writer.nil?
 
         # Subscribe to #flush_completed
         trace_writer.flush_completed.subscribe(:priority_sampling) do |responses|
           responses.each do |response|
             if response.respond_to?(:service_rates) && !response.service_rates.nil?
-              tracer.sampler.update(response.service_rates)
+              priority_sampler.update(response.service_rates)
             end
           end
         end
       end
 
-      def deactivate!(options = {})
-        tracer = options.fetch(:tracer) { Datadog.tracer }
-        trace_writer = options.fetch(:trace_writer) { Datadog.trace_writer }
-
-        # Replace sampler on the tracer
-        if tracer.sampler.is_a?(PrioritySampler)
-          sampler = options[:sampler] || Sampling::RuleSampler.new
-          tracer.configure(sampler: sampler)
-        end
+      def deactivate!(trace_writer)
+        raise ArgumentError, 'Trace writer is required' if trace_writer.nil?
 
         # Unsubscribe from #flush_completed
         trace_writer.flush_completed.unsubscribe(:priority_sampling)

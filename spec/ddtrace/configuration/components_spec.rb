@@ -14,10 +14,17 @@ RSpec.describe Datadog::Configuration::Components do
 
     let(:logger) { instance_double(Datadog::Logger) }
     let(:trace_writer) { instance_double(Datadog::Writer) } # TODO: Replace with Workers::AsyncTraceWriter
-    let(:tracer) { instance_double(Datadog::Tracer, trace_completed: trace_completed) }
+    let(:tracer) do
+      instance_double(
+        Datadog::Tracer,
+        sampler: sampler,
+        trace_completed: trace_completed
+      )
+    end
     let(:runtime_metrics) { instance_double(Datadog::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics) }
 
+    let(:sampler) { instance_double(Datadog::AllSampler) }
     let(:trace_completed) { instance_double(Datadog::Tracer::TraceCompleted) }
 
     def verify_trace_writer_subscription(name, &block)
@@ -84,7 +91,6 @@ RSpec.describe Datadog::Configuration::Components do
         .and_return(priority_sampling)
 
       allow(Datadog::Sampling::PrioritySampling).to receive(:activate!)
-      allow(Datadog::Sampling::PrioritySampling).to receive(:deactivate!)
     end
 
     shared_examples_for 'new components' do
@@ -127,14 +133,12 @@ RSpec.describe Datadog::Configuration::Components do
     context 'when priority sampling' do
       context 'is enabled' do
         let(:priority_sampling) { true }
+        let(:sampler) { Datadog::PrioritySampler.new }
 
         before do
           expect(Datadog::Sampling::PrioritySampling)
             .to receive(:activate!)
-            .with(tracer: tracer, trace_writer: trace_writer)
-
-          expect(Datadog::Sampling::PrioritySampling)
-            .to_not receive(:deactivate!)
+            .with(sampler, trace_writer)
         end
 
         it_behaves_like 'new components'
@@ -146,14 +150,6 @@ RSpec.describe Datadog::Configuration::Components do
         before do
           expect(Datadog::Sampling::PrioritySampling)
             .to_not receive(:activate!)
-
-          expect(Datadog::Sampling::PrioritySampling)
-            .to receive(:deactivate!)
-            .with(
-              tracer: tracer,
-              trace_writer: trace_writer,
-              sampler: settings.sampling.sampler
-            )
         end
 
         it_behaves_like 'new components'
@@ -584,12 +580,15 @@ RSpec.describe Datadog::Configuration::Components do
     context 'given settings' do
       shared_examples_for 'new tracer' do
         let(:tracer) { instance_double(Datadog::Tracer) }
+        let(:priority_sampler) { instance_double(Datadog::PrioritySampler) }
+
         let(:default_options) do
           {
             default_service: settings.service,
             enabled: settings.tracer.enabled,
             partial_flush: settings.tracer.partial_flush.enabled,
-            tags: settings.tags
+            tags: settings.tags,
+            sampler: priority_sampler
           }
         end
         let(:options) { {} }
@@ -598,6 +597,11 @@ RSpec.describe Datadog::Configuration::Components do
           expect(Datadog::Tracer).to receive(:new)
             .with(default_options.merge(options))
             .and_return(tracer)
+
+          allow(Datadog::Sampling::PrioritySampling)
+            .to receive(:new_sampler)
+            .with(settings.sampling.sampler)
+            .and_return(priority_sampler)
         end
 
         it { is_expected.to be(tracer) }
@@ -678,6 +682,59 @@ RSpec.describe Datadog::Configuration::Components do
         end
       end
 
+      context 'with :priority_sampling' do
+        context 'by default' do
+          it_behaves_like 'new tracer' do
+            let(:options) { { sampler: priority_sampler } }
+          end
+        end
+
+        context 'enabled' do
+          before do
+            allow(settings.sampling)
+              .to receive(:priority_sampling)
+              .and_return(true)
+          end
+
+          it_behaves_like 'new tracer' do
+            let(:options) { { sampler: priority_sampler } }
+          end
+
+          context 'and a :sampler is provided' do
+            let(:sampler) { instance_double(Datadog::Sampler) }
+
+            before do
+              allow(settings.sampling)
+                .to receive(:sampler)
+                .and_return(sampler)
+            end
+
+            it_behaves_like 'new tracer' do
+              let(:options) { { sampler: priority_sampler } }
+            end
+          end
+        end
+
+        context 'disabled' do
+          before do
+            allow(settings.sampling)
+              .to receive(:priority_sampling)
+              .and_return(false)
+          end
+
+          it_behaves_like 'new tracer' do
+            let(:default_options) do
+              {
+                default_service: settings.service,
+                enabled: settings.tracer.enabled,
+                partial_flush: settings.tracer.partial_flush.enabled,
+                tags: settings.tags
+              }
+            end
+          end
+        end
+      end
+
       context 'with :sampler' do
         let(:sampler) { instance_double(Datadog::Sampler) }
 
@@ -687,8 +744,30 @@ RSpec.describe Datadog::Configuration::Components do
             .and_return(sampler)
         end
 
-        it_behaves_like 'new tracer' do
-          let(:options) { { sampler: sampler } }
+        context 'when priority sampling' do
+          context 'is enabled' do
+            before do
+              allow(settings.sampling)
+                .to receive(:priority_sampling)
+                .and_return(true)
+            end
+
+            it_behaves_like 'new tracer' do
+              let(:options) { { sampler: priority_sampler } }
+            end
+          end
+
+          context 'is disabled' do
+            before do
+              allow(settings.sampling)
+                .to receive(:priority_sampling)
+                .and_return(false)
+            end
+
+            it_behaves_like 'new tracer' do
+              let(:options) { { sampler: sampler } }
+            end
+          end
         end
       end
 

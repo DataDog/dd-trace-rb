@@ -86,6 +86,11 @@ module Datadog
 
           options[:sampler] = settings.sampling.sampler unless settings.sampling.sampler.nil?
 
+          # Build a priority sampler if enabled
+          if settings.sampling.priority_sampling
+            options[:sampler] = Datadog::Sampling::PrioritySampling.new_sampler(options[:sampler])
+          end
+
           Datadog::Tracer.new(options)
         end
 
@@ -135,18 +140,11 @@ module Datadog
           end
         end
 
-        if settings.sampling.priority_sampling
+        if settings.sampling.priority_sampling && tracer.sampler.is_a?(Datadog::PrioritySampler)
           # Activate priority sampling
           Datadog::Sampling::PrioritySampling.activate!(
-            tracer: tracer,
-            trace_writer: trace_writer
-          )
-        else
-          # Deactivate priority sampling
-          Datadog::Sampling::PrioritySampling.deactivate!(
-            tracer: tracer,
-            trace_writer: trace_writer,
-            sampler: settings.sampling.sampler
+            tracer.sampler,
+            trace_writer
           )
         end
       end

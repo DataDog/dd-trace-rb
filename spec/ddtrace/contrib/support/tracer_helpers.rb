@@ -7,7 +7,7 @@ module Contrib
     RSpec.configure do |config|
       config.include_context 'completed traces'
 
-      config.before(:each) do
+      config.before do
         allow(Datadog).to receive(:tracer).and_return(tracer)
       end
 

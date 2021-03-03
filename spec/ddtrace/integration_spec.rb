@@ -8,12 +8,10 @@ RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
     before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-    after { trace_writer.stop(true, 5) }
+    after { components.shutdown! }
 
     let(:settings) do
-      Datadog::Configuration::Settings.new.tap do |settings|
-        settings.tracer.instance = Datadog::Tracer.new(initialize_options)
-      end
+      Datadog::Configuration::Settings.new
     end
 
     let(:components) do
@@ -27,8 +25,6 @@ RSpec.describe 'Tracer integration tests' do
     def trace_writer
       components.trace_writer
     end
-
-    let(:initialize_options) { {} }
   end
 
   shared_examples 'flushed trace' do
@@ -133,6 +129,14 @@ RSpec.describe 'Tracer integration tests' do
   describe 'rule sampler' do
     include_context 'agent-based test'
 
+    shared_context 'rule sampler' do
+      let(:settings) do
+        Datadog::Configuration::Settings.new.tap do |settings|
+          settings.sampling.sampler = Datadog::PrioritySampler.new(post_sampler: rule_sampler)
+        end
+      end
+    end
+
     shared_examples 'priority sampled' do |sampling_priority|
       it { expect(@sampling_priority).to eq(sampling_priority) }
     end
@@ -156,11 +160,8 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     let(:stats) { trace_writer.stats }
-    let(:initialize_options) { { sampler: Datadog::PrioritySampler.new(post_sampler: rule_sampler) } }
 
     context 'with default settings' do
-      let(:initialize_options) { {} }
-
       it_behaves_like 'flushed trace'
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
       it_behaves_like 'rule sampling rate metric', nil
@@ -180,7 +181,9 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     context 'with low default sample rate' do
-      let(:rule_sampler) { Datadog::Sampling::RuleSampler.new(default_sample_rate: Float::MIN) }
+      include_context 'rule sampler' do
+        let(:rule_sampler) { Datadog::Sampling::RuleSampler.new(default_sample_rate: Float::MIN) }
+      end
 
       it_behaves_like 'flushed trace'
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
@@ -189,8 +192,10 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     context 'with rule' do
-      let(:rule_sampler) { Datadog::Sampling::RuleSampler.new([rule], **rule_sampler_opt) }
-      let(:rule_sampler_opt) { {} }
+      include_context 'rule sampler' do
+        let(:rule_sampler) { Datadog::Sampling::RuleSampler.new([rule], **rule_sampler_opt) }
+        let(:rule_sampler_opt) { {} }
+      end
 
       context 'matching span' do
         let(:rule) { Datadog::Sampling::SimpleRule.new(name: 'my.op') }
