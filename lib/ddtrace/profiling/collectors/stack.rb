@@ -37,7 +37,7 @@ module Datadog
           self.loop_base_interval = options[:interval] || MIN_INTERVAL
 
           # Workers::Polling settings
-          self.enabled = options[:enabled] == true
+          self.enabled = options.key?(:enabled) ? options[:enabled] == true : true
 
           @warned_about_missing_cpu_time_instrumentation = false
         end
