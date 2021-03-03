@@ -326,18 +326,6 @@ RSpec.describe Datadog::Configuration do
       context 'when the profiler' do
         context 'is not changed' do
           before { skip 'Profiling is not supported.' unless Datadog::Profiling.supported? }
-
-          before do
-            @original_profiler = test_class.profiler
-            expect(@original_profiler).to receive(:shutdown!)
-          end
-
-          it 'shuts down the old profiler' do
-            configure
-            expect(test_class.profiler).to be_a_kind_of(Datadog::Profiler)
-            expect(test_class.profiler).to_not be(@original_profiler)
-          end
-
           context 'and profiling is enabled' do
             before do
               allow(test_class.configuration.profiling)
@@ -346,6 +334,8 @@ RSpec.describe Datadog::Configuration do
 
               allow_any_instance_of(Datadog::Profiler)
                 .to receive(:start)
+              allow_any_instance_of(Datadog::Profiling::Tasks::Setup)
+                .to receive(:run)
             end
 
             it 'starts the profiler' do
@@ -422,17 +412,6 @@ RSpec.describe Datadog::Configuration do
           test_class.configure
 
           expect(logger_during_component_replacement).to be old_logger
-        end
-      end
-    end
-
-    describe '#profiler' do
-      subject(:profiler) { test_class.profiler }
-      it do
-        if Datadog::Profiling.supported?
-          is_expected.to be_a_kind_of(Datadog::Profiler)
-        else
-          is_expected.to be nil
         end
       end
     end
