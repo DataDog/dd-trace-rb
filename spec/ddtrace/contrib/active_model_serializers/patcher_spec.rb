@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'spec/ddtrace/contrib/active_model_serializers/helpers'
+require 'spec/ddtrace/contrib/rails/support/deprecation'
 
 require 'active_support/all'
 require 'active_model_serializers'
@@ -28,6 +29,8 @@ RSpec.describe 'ActiveModelSerializers patcher' do
         allow(subscription).to receive(:tracer).and_return(tracer)
       end
     end
+
+    raise_on_rails_deprecation!
   end
 
   around do |example|

@@ -1,4 +1,6 @@
 require 'ddtrace/contrib/support/spec_helper'
+require 'spec/ddtrace/contrib/rails/support/deprecation'
+
 require 'ddtrace'
 
 require 'ddtrace/contrib/rails/rails_helper'
@@ -38,6 +40,8 @@ RSpec.describe 'ActionCable Rack override' do
     rails_test_application.instance.routes.draw do
       mount ActionCable.server => '/cable'
     end
+
+    raise_on_rails_deprecation!
 
     # ActionCable background threads that can't be finished
     allow(ActionCable.server).to receive(:call).and_wrap_original do |method, *args, &block|

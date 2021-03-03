@@ -3,6 +3,8 @@ require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace'
 
+require 'spec/ddtrace/contrib/rails/support/deprecation'
+
 require_relative 'app'
 
 RSpec.describe 'ActiveRecord instrumentation' do
@@ -18,6 +20,8 @@ RSpec.describe 'ActiveRecord instrumentation' do
     Datadog.configure do |c|
       c.use :active_record, configuration_options
     end
+
+    raise_on_rails_deprecation!
   end
 
   around do |example|

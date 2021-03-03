@@ -2,6 +2,8 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require 'ddtrace/contrib/integration_examples'
 
+require 'spec/ddtrace/contrib/rails/support/deprecation'
+
 require 'active_record'
 
 if PlatformHelpers.jruby?
@@ -86,6 +88,8 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
     Datadog.configure do |c|
       c.use :active_record, configuration_options
     end
+
+    raise_on_rails_deprecation!
   end
 
   after do
