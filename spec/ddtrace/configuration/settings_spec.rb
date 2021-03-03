@@ -437,22 +437,6 @@ RSpec.describe Datadog::Configuration::Settings do
   end
 
   describe '#profiling' do
-    describe '#cpu' do
-      describe '#enabled' do
-        subject(:enabled) { settings.profiling.cpu.enabled }
-        it { is_expected.to be true }
-      end
-
-      describe '#enabled=' do
-        it 'updates the #enabled setting' do
-          expect { settings.profiling.cpu.enabled = false }
-            .to change { settings.profiling.cpu.enabled }
-            .from(true)
-            .to(false)
-        end
-      end
-    end
-
     describe '#enabled' do
       subject(:enabled) { settings.profiling.enabled }
 
