@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require 'time'
-require 'thread'
-
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/priority'
@@ -38,7 +36,7 @@ module Datadog
     EXTERNAL_MAX_ID = 1 << 64
 
     # This limit is for numeric tags because uint64 could end up rounded.
-    NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53)
+    NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53).freeze
 
     attr_accessor :name, :service, :resource, :span_type,
                   :span_id, :trace_id, :parent_id,

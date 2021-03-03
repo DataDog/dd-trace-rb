@@ -8,13 +8,14 @@ RSpec.describe Datadog::Encoding do
 
   context 'Msgpack encoding' do
     let(:encoder) { Datadog::Encoding::MsgpackEncoder }
+
     subject(:deserialized) { MessagePack.unpack(encoded) }
 
-    context '#content_type' do
+    describe '#content_type' do
       it { expect(encoder.content_type).to eq('application/msgpack') }
     end
 
-    context '#encode' do
+    describe '#encode' do
       let(:encoded) { encoder.encode(obj) }
 
       it do
@@ -22,7 +23,7 @@ RSpec.describe Datadog::Encoding do
       end
     end
 
-    context '#join' do
+    describe '#join' do
       let(:encoded) { encoder.join(elements) }
       let(:elements) { [encoder.encode(obj), encoder.encode(obj)] }
 
@@ -34,13 +35,14 @@ RSpec.describe Datadog::Encoding do
 
   context 'JSON encoding' do
     let(:encoder) { Datadog::Encoding::JSONEncoder }
+
     subject(:deserialized) { JSON.parse(encoded) }
 
-    context '#content_type' do
+    describe '#content_type' do
       it { expect(encoder.content_type).to eq('application/json') }
     end
 
-    context '#encode' do
+    describe '#encode' do
       let(:encoded) { encoder.encode(obj) }
 
       it do
@@ -48,7 +50,7 @@ RSpec.describe Datadog::Encoding do
       end
     end
 
-    context '#join' do
+    describe '#join' do
       let(:encoded) { encoder.join(elements) }
       let(:elements) { [encoder.encode(obj), encoder.encode(obj)] }
 

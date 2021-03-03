@@ -7,12 +7,14 @@ require 'stringio'
 require 'webrick'
 require 'ddtrace/contrib/ethon/shared_examples'
 
+require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
+
 RSpec.describe 'Ethon integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   context 'with Easy HTTP request' do
     subject(:request) do
-      easy = Ethon::Easy.new
+      easy = EthonSupport.ethon_easy_new
       easy.http_request(url, 'GET', params: query, timeout_ms: timeout * 1000)
       easy.perform
       # Use Typhoeus response wrapper to simplify tests
@@ -59,7 +61,7 @@ RSpec.describe 'Ethon integration tests' do
 
   context 'with simple Easy & headers override' do
     subject(:request) do
-      easy = Ethon::Easy.new(url: url)
+      easy = EthonSupport.ethon_easy_new(url: url)
       easy.customrequest = 'GET'
       easy.set_attributes(timeout_ms: timeout * 1000)
       easy.headers = { key: 'value' }
@@ -76,7 +78,7 @@ RSpec.describe 'Ethon integration tests' do
   context 'with single Multi request' do
     subject(:request) do
       multi = Ethon::Multi.new
-      easy = Ethon::Easy.new
+      easy = EthonSupport.ethon_easy_new
       easy.http_request(url, 'GET', params: query, timeout_ms: timeout * 1000)
       multi.add(easy)
       multi.perform

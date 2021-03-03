@@ -7,6 +7,7 @@ RSpec.describe Datadog::Transport::HTTP do
   describe '.new' do
     context 'given a block' do
       subject(:new_http) { described_class.new(&block) }
+
       let(:block) { proc {} }
 
       let(:builder) { instance_double(Datadog::Transport::HTTP::Builder) }
@@ -97,11 +98,13 @@ RSpec.describe Datadog::Transport::HTTP do
 
         context 'that is defined' do
           let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+
           it { expect(default.current_api_id).to eq(api_version) }
         end
 
         context 'that is not defined' do
           let(:api_version) { double('non-existent API') }
+
           it { expect { default }.to raise_error(Datadog::Transport::HTTP::Builder::UnknownApiError) }
         end
       end
@@ -145,11 +148,13 @@ RSpec.describe Datadog::Transport::HTTP do
 
       context 'is not nil' do
         let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
+
         it { is_expected.to include(Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID => container_id) }
       end
 
       context 'is nil' do
         let(:container_id) { nil }
+
         it { is_expected.to_not include(Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID) }
       end
     end

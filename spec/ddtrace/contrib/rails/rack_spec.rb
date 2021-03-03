@@ -156,7 +156,7 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span).to_not have_error_message
       expect(controller_span).to_not have_error_stack
 
-      expect('rack.request').to eq(request_span.name)
+      expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
       expect(request_span.resource).to eq('TestController#soft_error')
       expect(request_span.get_tag('http.url')).to eq('/soft_error')
@@ -179,7 +179,7 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span).to have_error_message('divided by 0')
       expect(controller_span).to have_error_stack
 
-      expect('rack.request').to eq(request_span.name)
+      expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
       expect(request_span.resource).to eq('TestController#sub_error')
       expect(request_span.get_tag('http.url')).to eq('/sub_error')
@@ -203,7 +203,7 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span).to have_error
       expect(controller_span).to have_error_type('RescuableError')
 
-      expect('rack.request').to eq(request_span.name)
+      expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('200')

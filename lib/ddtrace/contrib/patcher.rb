@@ -8,7 +8,7 @@ module Datadog
         base.send(:include, Datadog::Patcher)
 
         base.singleton_class.send(:prepend, CommonMethods)
-        base.send(:prepend, CommonMethods) if base.class == Class
+        base.send(:prepend, CommonMethods) if base.instance_of?(Class)
       end
 
       # Prepended instance methods for all patchers

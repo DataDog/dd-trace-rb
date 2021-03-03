@@ -4,6 +4,7 @@ require 'ddtrace/transport/http/env'
 
 RSpec.describe Datadog::Transport::HTTP::Env do
   subject(:env) { described_class.new(request, options) }
+
   let(:request) { instance_double(Datadog::Transport::Request) }
   let(:options) { {} }
 
@@ -19,6 +20,7 @@ RSpec.describe Datadog::Transport::HTTP::Env do
 
     context 'given options' do
       let(:options) { { foo: :foo } }
+
       it { expect(env[:foo]).to eq(:foo) }
     end
   end

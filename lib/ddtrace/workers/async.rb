@@ -31,11 +31,13 @@ module Datadog
 
         def join(timeout = nil)
           return true unless running?
+
           !worker.join(timeout).nil?
         end
 
         def terminate
           return false unless running?
+
           @run_async = false
           worker.terminate
           true
@@ -43,6 +45,7 @@ module Datadog
 
         def run_async?
           return false unless instance_variable_defined?(:@run_async)
+
           @run_async == true
         end
 
@@ -56,6 +59,7 @@ module Datadog
 
         def error?
           return false unless instance_variable_defined?(:@error)
+
           !@error.nil?
         end
 
@@ -104,6 +108,7 @@ module Datadog
         def start(&block)
           mutex.synchronize do
             return if running?
+
             if forked?
               case fork_policy
               when FORK_POLICY_STOP
@@ -133,6 +138,9 @@ module Datadog
               raise
             end
           end
+          @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+
+          nil
         end
 
         def stop_fork

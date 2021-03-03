@@ -12,6 +12,7 @@ RSpec.describe Datadog::Contrib::Integration do
 
     describe 'instance behavior' do
       subject(:integration_object) { integration_class.new(name) }
+
       let(:name) { :foo }
 
       it { is_expected.to be_a_kind_of(Datadog::Contrib::Configurable) }

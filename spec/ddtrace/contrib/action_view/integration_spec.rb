@@ -37,11 +37,13 @@ RSpec.describe Datadog::Contrib::ActionView::Integration do
 
     context 'when ActionView is defined' do
       before { stub_const('ActionView', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when ActionView is not defined' do
       before { hide_const('ActionView') }
+
       it { is_expected.to be false }
     end
   end
@@ -73,11 +75,13 @@ RSpec.describe Datadog::Contrib::ActionView::Integration do
 
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::ActionView::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::ActionView::Patcher }
   end
 end

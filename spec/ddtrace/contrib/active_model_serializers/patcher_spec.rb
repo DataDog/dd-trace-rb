@@ -14,7 +14,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
 
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     # Supress active_model_serializers log output in the test run
     ActiveModelSerializersHelpers.disable_logging
 
@@ -54,7 +54,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     end
 
     let(:active_model_serializers_span) do
-      spans.select { |s| s.name == name }.first
+      spans.find { |s| s.name == name }
     end
 
     if ActiveModelSerializersHelpers.ams_0_10_or_newer?
@@ -96,7 +96,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
 
     context 'when adapter is nil' do
       if ActiveModelSerializersHelpers.ams_0_10_or_newer?
-        subject(:render) { ActiveModelSerializers::SerializableResource.new(test_obj, adapter: nil).serializable_hash }
+        let(:render) { ActiveModelSerializers::SerializableResource.new(test_obj, adapter: nil).serializable_hash }
 
         it 'is expected to send a span with adapter tag equal to the model name' do
           render
@@ -131,4 +131,3 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     end
   end
 end
-# rubocop:enable Metrics/BlockLength

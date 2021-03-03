@@ -5,6 +5,7 @@ require 'ddtrace/transport/http/response'
 RSpec.describe Datadog::Transport::HTTP::Response do
   context 'when implemented by a class' do
     subject(:response) { response_class.new(http_response) }
+
     let(:response_class) do
       stub_const('TestResponse', Class.new { include Datadog::Transport::HTTP::Response })
     end
@@ -21,10 +22,12 @@ RSpec.describe Datadog::Transport::HTTP::Response do
 
     describe '#code' do
       subject(:code) { response.code }
+
       let(:http_response) { double('http response') }
 
       context 'when HTTP response responds to #code' do
         let(:status_code) { double('status code') }
+
         before { allow(http_response).to receive(:code).and_return(status_code) }
 
         it 'forwards to the HTTP response' do

@@ -7,12 +7,12 @@ require 'faraday'
 require 'ddtrace'
 
 RSpec.describe 'Elasticsearch::Transport::Client tracing' do
-  before(:each) do
+  before do
     WebMock.enable!
     WebMock.disable_net_connect!
   end
 
-  after(:each) do
+  after do
     WebMock.allow_net_connect!
     WebMock.reset!
     WebMock.disable!
@@ -22,16 +22,16 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '1234').to_i }
   let(:server) { "http://#{host}:#{port}" }
 
-  let(:client) { Elasticsearch::Client.new(url: server) }
+  let(:client) { Elasticsearch::Client.new(url: server, adapter: :net_http) }
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :elasticsearch, configuration_options
     end
   end
 
-  after(:each) { Datadog.registry[:elasticsearch].reset_configuration! }
+  after { Datadog.registry[:elasticsearch].reset_configuration! }
 
   context 'when configured with middleware' do
     let(:client) do
@@ -42,10 +42,6 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
     let(:middleware) do
       stub_const('MyFaradayMiddleware', Class.new(Faraday::Middleware) do
-        def initialize(app)
-          super(app)
-        end
-
         def call(env)
           @app.call(env)
         end
@@ -54,6 +50,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
     describe 'the handlers' do
       subject(:handlers) { client.transport.connections.first.connection.builder.handlers }
+
       it { is_expected.to include(middleware) }
     end
   end
@@ -66,7 +63,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
         let(:method) { 'GET' }
         let(:path) { '_cluster/health' }
 
-        before(:each) do
+        before do
           stub_request(:get, "#{server}/#{path}").to_return(status: 200)
           expect(response.status).to eq(200)
         end
@@ -96,7 +93,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
         let(:path) { 'my/thing/1' }
         let(:params) { { refresh: true } }
 
-        before(:each) do
+        before do
           stub_request(:put, "#{server}/#{path}?refresh=true").with(body: body).to_return(status: 201)
           expect(response.status).to eq(201)
         end
@@ -122,11 +119,13 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
         context 'with Hash params' do
           let(:body) { '{"data1":"D1","data2":"D2"}' }
+
           it_behaves_like 'a PUT request trace'
         end
 
         context 'with encoded body' do
           let(:body) { { data1: 'D1', data2: 'D2' } }
+
           it_behaves_like 'a PUT request trace'
         end
       end
@@ -135,7 +134,8 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
   describe 'client Datadog::Pin' do
     context 'when #service is overridden' do
-      before(:each) { Datadog::Pin.get_from(client).service = service_name }
+      before { Datadog::Pin.get_from(client).service = service_name }
+
       let(:service_name) { 'bar' }
 
       describe 'then a GET request' do
@@ -144,7 +144,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
         let(:method) { 'GET' }
         let(:path) { '_cluster/health' }
 
-        before(:each) do
+        before do
           stub_request(:get, "#{server}/#{path}").to_return(status: 200)
           expect(response.status).to eq(200)
         end

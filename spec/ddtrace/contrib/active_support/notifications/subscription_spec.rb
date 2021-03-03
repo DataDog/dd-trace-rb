@@ -7,6 +7,7 @@ require 'ddtrace/contrib/active_support/notifications/subscription'
 RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
   describe 'instance' do
     subject(:subscription) { described_class.new(tracer, span_name, options, &block) }
+
     let(:span_name) { double('span_name') }
     let(:options) { {} }
     let(:payload) { {} }
@@ -20,6 +21,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
     describe 'behavior' do
       describe '#call' do
         subject(:result) { subscription.call(name, start, finish, id, payload) }
+
         let(:name) { double('name') }
         let(:start) { double('start') }
         let(:finish) { double('finish') }
@@ -43,7 +45,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
             end
           end
 
-          around(:each) { |example| without_errors { example.run } }
+          around { |example| without_errors { example.run } }
 
           it 'finishes tracing anyways' do
             expect(tracer).to receive(:trace).with(span_name, options).and_return(span).ordered
@@ -56,6 +58,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
       describe '#start' do
         subject(:result) { subscription.start(name, id, payload) }
+
         let(:name) { double('name') }
         let(:id) { double('id') }
         let(:span) { double('span') }
@@ -82,6 +85,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
       describe '#finish' do
         subject(:result) { subscription.finish(name, id, payload) }
+
         let(:name) { double('name') }
         let(:id) { double('id') }
 
@@ -99,7 +103,8 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         context 'given a block' do
           let(:callback_block) { proc { callback_spy.call } }
           let(:callback_spy) { double('callback spy') }
-          before(:each) { subscription.before_trace(&callback_block) }
+
+          before { subscription.before_trace(&callback_block) }
 
           shared_examples_for 'a before_trace callback' do
             context 'on #start' do
@@ -113,6 +118,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
           context 'that doesn\'t raise an error' do
             let(:callback_block) { proc { callback_spy.call } }
+
             it_behaves_like 'a before_trace callback'
           end
 
@@ -123,7 +129,9 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
                 raise ArgumentError, 'Fail!'
               end
             end
-            around(:each) { |example| without_errors { example.run } }
+
+            around { |example| without_errors { example.run } }
+
             it_behaves_like 'a before_trace callback'
           end
         end
@@ -133,7 +141,8 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         context 'given a block' do
           let(:callback_block) { proc { callback_spy.call } }
           let(:callback_spy) { double('callback spy') }
-          before(:each) { subscription.after_trace(&callback_block) }
+
+          before { subscription.after_trace(&callback_block) }
 
           shared_examples_for 'an after_trace callback' do
             context 'on #finish' do
@@ -151,6 +160,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
           context 'that doesn\'t raise an error' do
             let(:callback_block) { proc { callback_spy.call } }
+
             it_behaves_like 'an after_trace callback'
           end
 
@@ -161,7 +171,9 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
                 raise ArgumentError, 'Fail!'
               end
             end
-            around(:each) { |example| without_errors { example.run } }
+
+            around { |example| without_errors { example.run } }
+
             it_behaves_like 'an after_trace callback'
           end
         end
@@ -169,6 +181,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
       describe '#subscribe' do
         subject(:result) { subscription.subscribe(pattern) }
+
         let(:pattern) { double('pattern') }
 
         let(:active_support_subscriber) { double('ActiveSupport subscriber') }
@@ -185,7 +198,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         end
 
         context 'when already subscribed to the pattern' do
-          before(:each) do
+          before do
             allow(ActiveSupport::Notifications).to receive(:subscribe)
               .with(pattern, subscription)
               .and_return(active_support_subscriber)
@@ -199,6 +212,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
       describe '#unsubscribe' do
         subject(:result) { subscription.unsubscribe(pattern) }
+
         let(:pattern) { double('pattern') }
 
         let(:active_support_subscriber) { double('ActiveSupport subscriber') }
@@ -208,7 +222,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         end
 
         context 'when already subscribed to the pattern' do
-          before(:each) do
+          before do
             allow(ActiveSupport::Notifications).to receive(:subscribe)
               .with(pattern, subscription)
               .and_return(active_support_subscriber)
@@ -237,7 +251,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         end
 
         context 'when already subscribed to the pattern' do
-          before(:each) do
+          before do
             allow(ActiveSupport::Notifications).to receive(:subscribe)
               .with(kind_of(String), subscription)
               .and_return(active_support_subscriber)

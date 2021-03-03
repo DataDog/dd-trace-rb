@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'ddtrace/runtime/cgroup'
 
-# rubocop:disable Metrics/LineLength
+# rubocop:disable Layout/LineLength
 RSpec.describe Datadog::Runtime::Cgroup do
   describe '::descriptors' do
     subject(:descriptors) { described_class.descriptors }
@@ -101,7 +101,9 @@ RSpec.describe Datadog::Runtime::Cgroup do
     context 'given a line' do
       context 'that is blank' do
         let(:line) { '' }
+
         it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
         it do
           is_expected.to have_attributes(
             id: nil,
@@ -114,7 +116,9 @@ RSpec.describe Datadog::Runtime::Cgroup do
 
       context 'with an empty path' do
         let(:line) { '12:freezer:/' }
+
         it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
         it do
           is_expected.to have_attributes(
             id: '12',
@@ -127,7 +131,9 @@ RSpec.describe Datadog::Runtime::Cgroup do
 
       context 'with \'.slice\'' do
         let(:line) { '11:memory:/user.slice' }
+
         it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
         it do
           is_expected.to have_attributes(
             id: '11',
@@ -140,7 +146,9 @@ RSpec.describe Datadog::Runtime::Cgroup do
 
       context 'with no group' do
         let(:line) { '0::/user.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service' }
+
         it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
         it do
           is_expected.to have_attributes(
             id: '0',
@@ -153,7 +161,9 @@ RSpec.describe Datadog::Runtime::Cgroup do
 
       context 'with \'@\'' do
         let(:line) { '1:name=systemd:/user.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service' }
+
         it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
         it do
           is_expected.to have_attributes(
             id: '1',
@@ -166,7 +176,9 @@ RSpec.describe Datadog::Runtime::Cgroup do
 
       context 'in Docker format' do
         let(:line) { '13:name=systemd:/docker/3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
+
         it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
         it do
           is_expected.to have_attributes(
             id: '13',
@@ -179,7 +191,9 @@ RSpec.describe Datadog::Runtime::Cgroup do
 
       context 'in Kubernetes format' do
         let(:line) { '1:name=systemd:/kubepods/besteffort/pod3d274242-8ee0-11e9-a8a6-1e68d864ef1a/3e74d3fd9db4c9dd921ae05c2502fb984d0cde1b36e581b13f79c639da4518a1' }
+
         it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
         it do
           is_expected.to have_attributes(
             id: '1',
@@ -192,7 +206,9 @@ RSpec.describe Datadog::Runtime::Cgroup do
 
       context 'in ECS format' do
         let(:line) { '1:blkio:/ecs/haissam-ecs-classic/5a0d5ceddf6c44c1928d367a815d890f/38fac3e99302b3622be089dd41e7ccf38aff368a86cc339972075136ee2710ce' }
+
         it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
         it do
           is_expected.to have_attributes(
             id: '1',
@@ -205,7 +221,9 @@ RSpec.describe Datadog::Runtime::Cgroup do
 
       context 'in Fargate format' do
         let(:line) { '1:name=systemd:/ecs/55091c13-b8cf-4801-b527-f4601742204d/432624d2150b349fe35ba397284dea788c2bf66b885d14dfc1569b01890ca7da' }
+
         it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
         it do
           is_expected.to have_attributes(
             id: '1',

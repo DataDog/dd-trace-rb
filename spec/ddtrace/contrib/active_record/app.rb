@@ -6,7 +6,7 @@ else
   require 'mysql2'
 end
 
-logger = Logger.new(STDOUT)
+logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
 # connecting to any kind of database is enough to test the integration

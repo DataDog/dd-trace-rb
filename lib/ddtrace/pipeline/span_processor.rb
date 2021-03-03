@@ -12,7 +12,6 @@ module Datadog
 
       def call(trace)
         trace.each do |span|
-          # rubocop:disable Lint/RescueWithoutErrorClass
           @operation.call(span) rescue next
         end
       end

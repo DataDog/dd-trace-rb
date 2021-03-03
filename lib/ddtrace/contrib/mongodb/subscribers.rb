@@ -29,9 +29,7 @@ module Datadog
           span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
           # Set analytics sample rate
-          if analytics_enabled?
-            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
-          end
+          Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
           # add operation tags; the full query is stored and used as a resource,
           # since it has been quantized and reduced
@@ -92,6 +90,7 @@ module Datadog
 
         def clear_span(event)
           return if Thread.current[:datadog_mongo_span].nil?
+
           Thread.current[:datadog_mongo_span].delete(event.request_id)
         end
 

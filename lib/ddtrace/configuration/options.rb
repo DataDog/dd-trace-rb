@@ -51,6 +51,7 @@ module Datadog
         def define_helpers(helpers)
           helpers.each do |name, block|
             next unless block.is_a?(Proc)
+
             define_method(name, &block)
           end
         end
@@ -102,9 +103,7 @@ module Datadog
         end
 
         def assert_valid_option!(name)
-          unless option_defined?(name)
-            raise(InvalidOptionError, "#{self.class.name} doesn't define the option: #{name}")
-          end
+          raise(InvalidOptionError, "#{self.class.name} doesn't define the option: #{name}") unless option_defined?(name)
         end
       end
 

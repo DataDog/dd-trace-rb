@@ -1,4 +1,3 @@
-require 'thread'
 require 'logger'
 require 'pathname'
 
@@ -144,6 +143,7 @@ module Datadog
     # a service would be invalid and rejected.
     def default_service
       return @default_service if instance_variable_defined?(:@default_service) && @default_service
+
       begin
         @default_service = File.basename($PROGRAM_NAME, '.*')
       rescue StandardError => e
@@ -294,7 +294,6 @@ module Datadog
           if (on_error_handler = options[:on_error]) && on_error_handler.respond_to?(:call)
             begin
               on_error_handler.call(span, e)
-            # rubocop:disable Lint/RescueWithoutErrorClass
             rescue
               Datadog.logger.debug('Custom on_error handler failed, falling back to default')
               DEFAULT_ON_ERROR.call(span, e)

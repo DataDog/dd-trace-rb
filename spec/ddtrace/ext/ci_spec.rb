@@ -10,7 +10,7 @@ RSpec.describe Datadog::Ext::CI do
       end
     end
 
-    Dir.glob(File.dirname(__FILE__) + '/fixtures/ci/*.json') do |filename|
+    Dir.glob("#{File.dirname(__FILE__)}/fixtures/ci/*.json") do |filename|
       File.open(filename) do |f|
         JSON.parse(f.read).each do |item|
           match(item[0], item[1])

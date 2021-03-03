@@ -2,6 +2,15 @@ require 'ddtrace/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails ActionController' do
   let(:rails_options) { {} }
+  let(:controller) do
+    stub_const('TestController', Class.new(base_class) do
+      def index
+        # Do nothing
+      end
+    end)
+  end
+  let(:name) { :index }
+  let(:base_class) { ActionController::Base }
 
   before do
     Datadog.configure do |c|
@@ -14,18 +23,9 @@ RSpec.describe 'Rails ActionController' do
     end
   end
 
-  let(:controller) do
-    stub_const('TestController', Class.new(base_class) do
-      def index
-        # Do nothing
-      end
-    end)
-  end
-  let(:name) { :index }
-  let(:base_class) { ActionController::Base }
-
   describe '#action' do
     subject(:result) { action.call(env) }
+
     let(:action) { controller.action(name) }
     let(:env) { {} }
 

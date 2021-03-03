@@ -43,7 +43,7 @@ class UtilsTest < Minitest::Test
   end
 
   def test_forked_process_id_collision
-    skip if RUBY_PLATFORM == 'java'
+    skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
 
     r, w = IO.pipe
 

@@ -21,6 +21,7 @@ module Datadog
       def stop_loop
         mutex.synchronize do
           return false unless run_loop?
+
           @run_loop = false
           shutdown.signal
         end
@@ -34,6 +35,7 @@ module Datadog
 
       def run_loop?
         return false unless instance_variable_defined?(:@run_loop)
+
         @run_loop == true
       end
 
@@ -92,6 +94,7 @@ module Datadog
           # Wait for an interval, unless shutdown has been signaled.
           mutex.synchronize do
             return unless run_loop? || work_pending?
+
             shutdown.wait(mutex, loop_wait_time) if run_loop?
           end
         end

@@ -5,9 +5,11 @@ require 'ddtrace/contrib/rack/middlewares'
 
 RSpec.describe 'Rails Railtie' do
   before { skip 'Test not compatible with Rails < 4.0' if Rails.version < '4.0' }
+
   include_context 'Rails test application'
 
   let(:routes) { { '/' => 'test#index' } }
+  let(:rails_options) { {} }
   let(:controllers) { [controller] }
 
   let(:controller) do
@@ -41,8 +43,6 @@ RSpec.describe 'Rails Railtie' do
     end
   end
 
-  let(:rails_options) { {} }
-
   describe 'with Rails integration #middleware option' do
     context 'set to true' do
       let(:rails_options) { super().merge(middleware: true) }
@@ -53,6 +53,7 @@ RSpec.describe 'Rails Railtie' do
 
     context 'set to false' do
       let(:rails_options) { super().merge(middleware: false) }
+
       after { Datadog.configuration[:rails][:middleware] = true }
 
       it { expect(app).to_not have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware) }

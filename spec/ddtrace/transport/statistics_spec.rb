@@ -6,6 +6,7 @@ require 'ddtrace/transport/statistics'
 RSpec.describe Datadog::Transport::Statistics do
   context 'when implemented by a class' do
     subject(:object) { stats_class.new }
+
     let(:stats_class) do
       stub_const('TestObject', Class.new { include Datadog::Transport::Statistics })
     end
@@ -16,6 +17,7 @@ RSpec.describe Datadog::Transport::Statistics do
 
     describe '#update_stats_from_response!' do
       subject(:update) { object.update_stats_from_response!(response) }
+
       let(:response) { instance_double(Datadog::Transport::Response) }
 
       before { allow(Datadog.health_metrics).to receive(:send_metrics) }
@@ -139,6 +141,7 @@ RSpec.describe Datadog::Transport::Statistics do
 
     describe '#metrics_for_response' do
       subject(:metrics_for_response) { object.metrics_for_response(response) }
+
       let(:response) { instance_double(Datadog::Transport::Response) }
 
       context 'when the response' do
@@ -224,6 +227,7 @@ RSpec.describe Datadog::Transport::Statistics do
 
     describe '#update_stats_from_exception!' do
       subject(:update) { object.update_stats_from_exception!(exception) }
+
       let(:exception) { instance_double(StandardError) }
 
       before { allow(Datadog.health_metrics).to receive(:send_metrics) }
@@ -251,6 +255,7 @@ RSpec.describe Datadog::Transport::Statistics do
 
     describe '#metrics_for_exception' do
       subject(:metrics_for_exception) { object.metrics_for_exception(exception) }
+
       let(:exception) { instance_double(StandardError) }
 
       it do

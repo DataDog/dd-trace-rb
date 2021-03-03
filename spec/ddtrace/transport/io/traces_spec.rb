@@ -4,12 +4,14 @@ require 'ddtrace/transport/io/traces'
 
 RSpec.describe Datadog::Transport::IO::Client do
   subject(:client) { described_class.new(out, encoder) }
+
   let(:out) { instance_double(IO) }
   let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
 
   describe '#send_traces' do
     context 'given traces' do
       subject(:send_traces) { client.send_traces(traces) }
+
       let(:traces) { instance_double(Array) }
       let(:encoded_traces) { double('encoded traces') }
       let(:result) { double('IO result') }
@@ -35,6 +37,7 @@ RSpec.describe Datadog::Transport::IO::Client do
 
     context 'given traces and a block' do
       subject(:send_traces) { client.send_traces(traces) { |out, data| target.write(out, data) } }
+
       let(:traces) { instance_double(Array) }
       let(:encoded_traces) { double('encoded traces') }
       let(:result) { double('IO result') }
@@ -72,6 +75,7 @@ RSpec.describe Datadog::Transport::IO::Traces::Encoder do
 
     describe '.encode_traces' do
       subject(:encode_traces) { trace_encoder.encode_traces(encoder, traces) }
+
       let(:traces) { get_test_traces(2) }
 
       it { is_expected.to be_a_kind_of(String) }
@@ -107,6 +111,7 @@ RSpec.describe Datadog::Transport::IO::Traces::Encoder do
 
       context 'when ID is missing' do
         subject(:encoded_traces) { JSON.parse(encode_traces)['traces'] }
+
         let(:missing_id) { :span_id }
 
         before do

@@ -1,7 +1,9 @@
 require 'webrick'
+require 'spec/support/thread_helpers'
 
 RSpec.shared_context 'integration context' do
   before(:all) do
+    # TODO: Consolidate mock webserver code
     @log_buffer = StringIO.new # set to $stderr to debug
     log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
     access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
@@ -27,13 +29,21 @@ RSpec.shared_context 'integration context' do
         res.body = 'response'
       end
     end
-    Thread.new { server.start }
+
+    ThreadHelpers.with_leaky_thread_creation(:ethon_test_server) do
+      @thread = Thread.new { server.start }
+    end
+
     init_signal.pop
 
     @server = server
     @port = server[:Port]
   end
-  after(:all) { @server.shutdown }
+
+  after(:all) do
+    @server.shutdown
+    @thread.join
+  end
 
   let(:host) { 'localhost' }
   let(:status) { '200' }

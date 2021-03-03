@@ -43,9 +43,9 @@ module Datadog
 
           def normalize(hash)
             {
-              adapter:  hash[:adapter],
-              host:     hash[:host],
-              port:     hash[:port],
+              adapter: hash[:adapter],
+              host: hash[:host],
+              port: hash[:port],
               database: hash[:database],
               username: hash[:username]
             }

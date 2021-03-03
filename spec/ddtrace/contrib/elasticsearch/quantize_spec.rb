@@ -7,7 +7,8 @@ require 'ddtrace/contrib/elasticsearch/quantize'
 RSpec.describe Datadog::Contrib::Elasticsearch::Quantize do
   describe '#format_url' do
     shared_examples_for 'a quantized URL' do |url, expected_url|
-      subject(:quantized_url) { Datadog::Contrib::Elasticsearch::Quantize.format_url(url) }
+      subject(:quantized_url) { described_class.format_url(url) }
+
       it { is_expected.to eq(expected_url) }
     end
 
@@ -44,7 +45,8 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Quantize do
 
   describe '#format_body' do
     shared_examples_for 'a quantized body' do |body, expected_body|
-      subject(:quantized_body) { Datadog::Contrib::Elasticsearch::Quantize.format_body(body, options) }
+      subject(:quantized_body) { described_class.format_body(body, options) }
+
       it { is_expected.to eq(expected_body) }
     end
 
@@ -54,6 +56,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Quantize do
       describe ':show with' do
         context 'an Array of attributes' do
           let(:options) { { show: [:title] } }
+
           it_behaves_like 'a quantized body',
                           '{"query":{"match":{"title":"test","subtitle":"test"}}}',
                           '{"query":{"match":{"title":"test","subtitle":"?"}}}'
@@ -61,6 +64,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Quantize do
 
         context ':all' do
           let(:options) { { show: :all } }
+
           it_behaves_like 'a quantized body',
                           '{"query":{"match":{"title":"test","subtitle":"test"}}}',
                           '{"query":{"match":{"title":"test","subtitle":"test"}}}'
@@ -76,6 +80,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Quantize do
       describe ':exclude with' do
         context 'an Array of attributes' do
           let(:options) { { exclude: [:title] } }
+
           it_behaves_like 'a quantized body',
                           '{"query":{"match":{"title":"test","subtitle":"test"}}}',
                           '{"query":{"match":{"subtitle":"?"}}}'
@@ -97,7 +102,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Quantize do
                           '{"query":{"match":{"title":"?"}}}'
         end
 
-        # rubocop:disable Metrics/LineLength
+        # rubocop:disable Layout/LineLength
         describe 'MSearch' do
           it_behaves_like 'a quantized body',
                           "{}\n{\"query\":{\"match_all\":{}}}\n{\"index\":\"myindex\",\"type\":\"mytype\"}\n{\"query\":{\"query_string\":{\"query\":\"\\\"test\\\"\"}}}\n{\"search_type\":\"count\"}\n{\"aggregations\":{\"published\":{\"terms\":{\"field\":\"published\"}}}}\n",

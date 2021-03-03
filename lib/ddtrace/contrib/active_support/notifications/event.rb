@@ -20,7 +20,8 @@ module Datadog
           module ClassMethods
             DEFAULT_TRACER = -> { Datadog.tracer }
 
-            def subscribe!
+            # Publicly exposes protected method `subscribe!`
+            def subscribe! # rubocop:disable Lint/UselessMethodDefinition
               super
             end
 

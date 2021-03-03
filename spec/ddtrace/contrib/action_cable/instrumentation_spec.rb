@@ -5,6 +5,8 @@ require 'ddtrace'
 
 require 'ddtrace/contrib/rails/rails_helper'
 
+require 'spec/support/thread_helpers'
+
 begin
   require 'action_cable'
 rescue LoadError
@@ -15,10 +17,19 @@ require 'websocket/driver'
 
 RSpec.describe 'ActionCable Rack override' do
   before { skip('ActionCable not supported') unless Datadog::Contrib::ActionCable::Integration.compatible? }
+
   include Rack::Test::Methods
   include_context 'Rails test application'
 
   let(:options) { {} }
+  let(:initialize_block) do
+    proc do
+      config.action_cable.disable_request_forgery_protection = true
+    end
+  end
+  let!(:fake_client_support) do
+    allow(::WebSocket::Driver).to receive(:websocket?).and_return(true)
+  end
 
   before do
     Datadog.configure do |c|
@@ -31,16 +42,13 @@ RSpec.describe 'ActionCable Rack override' do
     end
 
     raise_on_rails_deprecation!
-  end
 
-  let(:initialize_block) do
-    proc do
-      config.action_cable.disable_request_forgery_protection = true
+    # ActionCable background threads that can't be finished
+    allow(ActionCable.server).to receive(:call).and_wrap_original do |method, *args, &block|
+      ThreadHelpers.with_leaky_thread_creation(:action_cable) do
+        method.call(*args, &block)
+      end
     end
-  end
-
-  let!(:fake_client_support) do
-    allow(::WebSocket::Driver).to receive(:websocket?).and_return(true)
   end
 
   context 'on ActionCable connection request' do

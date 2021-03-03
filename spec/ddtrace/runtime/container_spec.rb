@@ -7,9 +7,9 @@ RSpec.describe Datadog::Runtime::Container do
 
     around do |example|
       # Reset descriptor since it's cached.
-      Datadog::Runtime::Container.instance_variable_set(:@descriptor, nil)
+      described_class.instance_variable_set(:@descriptor, nil)
       example.run
-      Datadog::Runtime::Container.instance_variable_set(:@descriptor, nil)
+      described_class.instance_variable_set(:@descriptor, nil)
     end
 
     context 'when not in a containerized environment' do

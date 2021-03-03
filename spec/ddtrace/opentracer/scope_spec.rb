@@ -8,6 +8,7 @@ if Datadog::OpenTracer.supported?
     include_context 'OpenTracing helpers'
 
     subject(:scope) { described_class.new(manager: manager, span: span) }
+
     let(:manager) { instance_double(Datadog::OpenTracer::ScopeManager) }
     let(:span) { instance_double(Datadog::OpenTracer::Span) }
 
@@ -20,6 +21,7 @@ if Datadog::OpenTracer.supported?
 
     describe '#close' do
       subject(:result) { scope.close }
+
       it { is_expected.to be nil }
     end
   end

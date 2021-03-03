@@ -19,6 +19,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     context 'when initialized with a value' do
       let(:meta) { { default: default_value } }
       let(:default_value) { double('default') }
+
       it { is_expected.to be default_value }
     end
   end
@@ -29,6 +30,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     context 'when given a value' do
       let(:meta) { { delegate_to: delegate_to_value } }
       let(:delegate_to_value) { double('delegate_to') }
+
       it { is_expected.to be delegate_to_value }
     end
 
@@ -47,6 +49,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     context 'when initialized with a value' do
       let(:meta) { { depends_on: depends_on_value } }
       let(:depends_on_value) { double('depends_on') }
+
       it { is_expected.to be depends_on_value }
     end
   end
@@ -61,6 +64,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     context 'when initialized with a value' do
       let(:meta) { { lazy: lazy_value } }
       let(:lazy_value) { double('lazy') }
+
       it { is_expected.to be lazy_value }
     end
   end
@@ -70,11 +74,13 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
 
     context 'when given a String' do
       let(:name) { 'enabled' }
+
       it { is_expected.to be name.to_sym }
     end
 
     context 'when given a Symbol' do
       let(:name) { :enabled }
+
       it { is_expected.to be name }
     end
   end
@@ -85,6 +91,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     context 'when given a value' do
       let(:meta) { { on_set: on_set_value } }
       let(:on_set_value) { double('on_set') }
+
       it { is_expected.to be on_set_value }
     end
 
@@ -99,11 +106,13 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     context 'when given a value' do
       let(:meta) { { setter: setter_value } }
       let(:setter_value) { double('setter') }
+
       it { is_expected.to be setter_value }
     end
 
     context 'when initialized with a block' do
       let(:block) { proc {} }
+
       it { is_expected.to be block }
     end
 
@@ -118,6 +127,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     context 'when given a value' do
       let(:meta) { { resetter: resetter_value } }
       let(:resetter_value) { double('resetter') }
+
       it { is_expected.to be resetter_value }
     end
 
@@ -128,6 +138,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
 
   describe '#build' do
     subject(:build) { definition.build(context) }
+
     let(:context) { double('context') }
     let(:option) { instance_double(Datadog::Configuration::Option) }
 
@@ -153,6 +164,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
       context 'creates a Builder' do
         context 'where #helpers' do
           subject(:helpers) { builder.helpers }
+
           it { is_expected.to eq({}) }
         end
 
@@ -188,7 +200,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
         let(:initialize_options) { { default: true } }
         let(:initialize_block) { proc { |o| o.default false } }
 
-        context '#to_definition' do
+        describe '#to_definition' do
           subject(:definition) { builder.to_definition }
 
           it 'yields an OptionDefinition with the block\'s value' do
@@ -204,45 +216,54 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
 
     context 'given a list of arguments' do
       let(:values) { [:foo, :bar] }
+
       it { is_expected.to eq(values) }
     end
 
     context 'given an nested Array' do
       let(:values) { [[:foo], [:bar]] }
+
       it { is_expected.to eq([:foo, :bar]) }
     end
   end
 
   describe '#default' do
     subject(:default) { builder.default(value, &block) }
+
     let(:value) { nil }
     let(:block) { nil }
 
     context 'given a value' do
       let(:value) { true }
+
       it { is_expected.to be value }
     end
 
     context 'given a block' do
       let(:block) { proc { false } }
+
       it { is_expected.to be block }
     end
 
     context 'given a value and block' do
       let(:value) { true }
       let(:block) { proc { false } }
+
       it { is_expected.to be block }
     end
   end
 
   describe '#delegate_to' do
     subject(:delegate_to) { builder.delegate_to(&block) }
+
     let(:block) { proc {} }
+
     it { is_expected.to be block }
   end
 
   describe '#helper' do
     subject(:helper) { builder.helper(name, *args, &block) }
+
     let(:name) { :enabled }
     let(:args) { [] }
     let(:block) { nil }
@@ -269,36 +290,46 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
   describe '#lazy' do
     context 'given no arguments' do
       subject(:lazy) { builder.lazy }
+
       it { is_expected.to be true }
     end
 
     context 'given a value' do
       subject(:lazy) { builder.lazy(value) }
+
       let(:value) { double('value') }
+
       it { is_expected.to be value }
     end
   end
 
   describe '#on_set' do
     subject(:on_set) { builder.on_set(&block) }
+
     let(:block) { proc {} }
+
     it { is_expected.to be block }
   end
 
   describe '#resetter' do
     subject(:resetter) { builder.resetter(&block) }
+
     let(:block) { proc {} }
+
     it { is_expected.to be block }
   end
 
   describe '#setter' do
     subject(:setter) { builder.setter(&block) }
+
     let(:block) { proc {} }
+
     it { is_expected.to be block }
   end
 
   describe '#apply_options!' do
     subject(:apply_options!) { builder.apply_options!(options) }
+
     let(:options) { {} }
 
     context 'given :default' do
@@ -386,6 +417,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
 
   describe '#to_definition' do
     subject(:definition) { builder.to_definition }
+
     let(:option_definition) { instance_double(Datadog::Configuration::OptionDefinition) }
 
     before do
@@ -399,6 +431,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
 
   describe '#meta' do
     subject(:meta) { builder.meta }
+
     it { is_expected.to be_a_kind_of(Hash) }
 
     it 'contains the arguments for OptionDefinition' do
