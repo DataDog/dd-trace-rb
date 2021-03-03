@@ -2,6 +2,43 @@
 
 ## [Unreleased]
 
+## [0.46.0] - 2021-03-03
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.46.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.45.0...v0.46.0
+
+### Added
+
+- Add EventBridge to supported AWS services ([#1368][]) ([@tomgi][])
+- Add `time_now_provider` configuration option ([#1224][])
+  - This new option allows the span `start_time` and `end_time` to be configured in environments that change the default time provider, like with *Timecop*. More information in the [official documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#tracer-settings).
+- Add name to background threads created by ddtrace ([#1366][])
+
+### Changed
+
+- Rework RSpec instrumentation as separate traces for each test ([#1381][])
+
+### Fixed
+
+- ArgumentError: wrong number of arguments (given 2, expected 0) due to concurrent `require` ([#1306][], [#1354][]) ([@EvNomad][])
+- Fix Rails' deprecation warnings ([#1352][])
+- Fully populate Rake span fields on exceptions ([#1377][])
+- Fix a typo in `httpclient` integration ([#1365][]) ([@y-yagi][])
+- Add missing license files for vendor'd code ([#1346][])
+
+### Refactored
+
+- Improvements to test suite & CI ([#1277][], [#1305][], [#1336][], [#1350][], [#1353][], [#1357][], [#1367][], [#1369][], [#1370][], [#1371][], [#1374][], [#1380][])
+- Improvements to documentation ([#1332][])
+
+### Removed
+
+- Remove deprecated Datadog::Monkey ([#1341][])
+- Remove deprecated Datadog::DeprecatedPin ([#1342][])
+- Remove unused Shim/MethodWrapper/MethodWrapping ([#1347][])
+- Remove APP_ANALYTICS from tests instrumentation ([#1378][]) ([@AdrianLC][])
+
 ## [0.45.0] - 2021-01-26
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.45.0
@@ -1546,7 +1583,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.45.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.46.0...master
+[0.46.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.45.0...v0.46.0
 [0.45.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.44.0...v0.45.0
 [0.44.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.43.0...v0.44.0
 [0.43.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.42.0...v0.43.0
@@ -2097,6 +2135,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1217]: https://github.com/DataDog/dd-trace-rb/issues/1217
 [#1218]: https://github.com/DataDog/dd-trace-rb/issues/1218
 [#1220]: https://github.com/DataDog/dd-trace-rb/issues/1220
+[#1224]: https://github.com/DataDog/dd-trace-rb/issues/1224
 [#1225]: https://github.com/DataDog/dd-trace-rb/issues/1225
 [#1226]: https://github.com/DataDog/dd-trace-rb/issues/1226
 [#1227]: https://github.com/DataDog/dd-trace-rb/issues/1227
@@ -2146,6 +2185,8 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1302]: https://github.com/DataDog/dd-trace-rb/issues/1302
 [#1303]: https://github.com/DataDog/dd-trace-rb/issues/1303
 [#1304]: https://github.com/DataDog/dd-trace-rb/issues/1304
+[#1305]: https://github.com/DataDog/dd-trace-rb/issues/1305
+[#1306]: https://github.com/DataDog/dd-trace-rb/issues/1306
 [#1307]: https://github.com/DataDog/dd-trace-rb/issues/1307
 [#1309]: https://github.com/DataDog/dd-trace-rb/issues/1309
 [#1311]: https://github.com/DataDog/dd-trace-rb/issues/1311
@@ -2157,10 +2198,35 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1325]: https://github.com/DataDog/dd-trace-rb/issues/1325
 [#1326]: https://github.com/DataDog/dd-trace-rb/issues/1326
 [#1331]: https://github.com/DataDog/dd-trace-rb/issues/1331
+[#1332]: https://github.com/DataDog/dd-trace-rb/issues/1332
+[#1336]: https://github.com/DataDog/dd-trace-rb/issues/1336
+[#1341]: https://github.com/DataDog/dd-trace-rb/issues/1341
+[#1342]: https://github.com/DataDog/dd-trace-rb/issues/1342
+[#1346]: https://github.com/DataDog/dd-trace-rb/issues/1346
+[#1347]: https://github.com/DataDog/dd-trace-rb/issues/1347
+[#1350]: https://github.com/DataDog/dd-trace-rb/issues/1350
+[#1352]: https://github.com/DataDog/dd-trace-rb/issues/1352
+[#1353]: https://github.com/DataDog/dd-trace-rb/issues/1353
+[#1354]: https://github.com/DataDog/dd-trace-rb/issues/1354
+[#1357]: https://github.com/DataDog/dd-trace-rb/issues/1357
+[#1365]: https://github.com/DataDog/dd-trace-rb/issues/1365
+[#1366]: https://github.com/DataDog/dd-trace-rb/issues/1366
+[#1367]: https://github.com/DataDog/dd-trace-rb/issues/1367
+[#1368]: https://github.com/DataDog/dd-trace-rb/issues/1368
+[#1369]: https://github.com/DataDog/dd-trace-rb/issues/1369
+[#1370]: https://github.com/DataDog/dd-trace-rb/issues/1370
+[#1371]: https://github.com/DataDog/dd-trace-rb/issues/1371
+[#1374]: https://github.com/DataDog/dd-trace-rb/issues/1374
+[#1377]: https://github.com/DataDog/dd-trace-rb/issues/1377
+[#1378]: https://github.com/DataDog/dd-trace-rb/issues/1378
+[#1380]: https://github.com/DataDog/dd-trace-rb/issues/1380
+[#1381]: https://github.com/DataDog/dd-trace-rb/issues/1381
+[@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
 [@DocX]: https://github.com/DocX
 [@EpiFouloux]: https://github.com/EpiFouloux
+[@EvNomad]: https://github.com/EvNomad
 [@JamesHarker]: https://github.com/JamesHarker
 [@Jared-Prime]: https://github.com/Jared-Prime
 [@Joas1988]: https://github.com/Joas1988
@@ -2255,6 +2321,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@tjgrathwell]: https://github.com/tjgrathwell
 [@tjwp]: https://github.com/tjwp
 [@tomasv]: https://github.com/tomasv
+[@tomgi]: https://github.com/tomgi
 [@tonypinder]: https://github.com/tonypinder
 [@twe4ked]: https://github.com/twe4ked
 [@undergroundwebdesigns]: https://github.com/undergroundwebdesigns
