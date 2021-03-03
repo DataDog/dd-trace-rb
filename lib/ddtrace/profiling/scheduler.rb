@@ -29,7 +29,7 @@ module Datadog
         self.loop_base_interval = options[:interval] || DEFAULT_INTERVAL
 
         # Workers::Polling settings
-        self.enabled = options[:enabled] == true
+        self.enabled = options.key?(:enabled) ? options[:enabled] == true : true
       end
 
       def start
