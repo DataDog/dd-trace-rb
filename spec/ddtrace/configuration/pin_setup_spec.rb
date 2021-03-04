@@ -5,12 +5,12 @@ require 'ddtrace'
 RSpec.describe Datadog::Configuration::PinSetup do
   let(:target) { Object.new }
 
-  before(:each) do
+  before do
     Datadog::Pin.new('original-service', app: 'original-app').onto(target)
   end
 
   describe '#call' do
-    before(:each) { described_class.new(target, options).call }
+    before { described_class.new(target, options).call }
 
     context 'given options' do
       let(:options) do
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Configuration::PinSetup do
   end
 
   describe 'Datadog#configure' do
-    before(:each) { Datadog.configure(target, service_name: :foo, extra: :bar) }
+    before { Datadog.configure(target, service_name: :foo, extra: :bar) }
 
     it do
       expect(target.datadog_pin.service).to eq(:foo)

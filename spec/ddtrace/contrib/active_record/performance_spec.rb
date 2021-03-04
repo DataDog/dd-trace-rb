@@ -12,7 +12,7 @@ end
 RSpec.describe 'ActiveRecord tracing performance' do
   let(:options) { {} }
 
-  before(:each) do
+  before do
     skip('Performance test does not run in CI.')
 
     # Configure the tracer
@@ -21,7 +21,7 @@ RSpec.describe 'ActiveRecord tracing performance' do
     end
   end
 
-  after(:each) { Datadog.registry[:active_record].reset_configuration! }
+  after { Datadog.registry[:active_record].reset_configuration! }
 
   describe 'for an in-memory database' do
     let!(:connection) do
@@ -30,6 +30,7 @@ RSpec.describe 'ActiveRecord tracing performance' do
 
     describe 'when queried with a simple select' do
       subject(:measurement) { measure(iterations) }
+
       let(:iterations) { 100_000 }
 
       def measure(iterations = 1)
@@ -40,7 +41,7 @@ RSpec.describe 'ActiveRecord tracing performance' do
         end
       end
 
-      before(:each) do
+      before do
         # Perform a measurement to warm up
         measure(10)
 

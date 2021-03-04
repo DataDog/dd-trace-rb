@@ -8,7 +8,6 @@ module Datadog
         end
 
         def safely(attr, fallback = nil)
-          # rubocop:disable Lint/RescueWithoutErrorClass
           public_send(attr) rescue fallback
         end
 

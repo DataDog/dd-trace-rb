@@ -1,5 +1,4 @@
 require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/ext/integration'
 
 require 'cucumber'
@@ -9,17 +8,9 @@ RSpec.describe 'Cucumber formatter' do
   extend ConfigurationHelpers
 
   let(:configuration_options) { {} }
-
-  before(:each) do
-    Datadog.configure do |c|
-      c.use :cucumber, configuration_options
-    end
-  end
-
   # Cucumber runtime setup
   let(:existing_runtime) { Cucumber::Runtime.new(runtime_options) }
   let(:runtime_options)  { {} }
-
   # CLI configuration
   let(:args)   { [] }
   let(:stdin)  { StringIO.new }
@@ -27,6 +18,12 @@ RSpec.describe 'Cucumber formatter' do
   let(:stderr) { StringIO.new }
   let(:kernel) { double(:kernel) }
   let(:cli)    { Cucumber::Cli::Main.new(args, stdin, stdout, stderr, kernel) }
+
+  before do
+    Datadog.configure do |c|
+      c.use :cucumber, configuration_options
+    end
+  end
 
   context 'executing a test suite' do
     let(:args) { ['spec/ddtrace/contrib/cucumber/cucumber.features'] }

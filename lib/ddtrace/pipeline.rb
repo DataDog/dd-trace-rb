@@ -33,7 +33,6 @@ module Datadog
       end
 
       result || []
-    # rubocop:disable Lint/RescueWithoutErrorClass
     rescue => e
       Datadog.logger.debug(
         "trace dropped entirely due to `Pipeline.before_flush` error: #{e}"

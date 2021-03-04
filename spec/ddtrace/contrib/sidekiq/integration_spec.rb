@@ -26,11 +26,13 @@ RSpec.describe Datadog::Contrib::Sidekiq::Integration do
 
     context 'when Sidekiq is defined' do
       before { stub_const('Sidekiq', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when Sidekiq is not defined' do
       before { hide_const('Sidekiq') }
+
       it { is_expected.to be false }
     end
   end
@@ -58,16 +60,19 @@ RSpec.describe Datadog::Contrib::Sidekiq::Integration do
 
   describe '#auto_instrument?' do
     subject(:auto_instrument?) { integration.auto_instrument? }
+
     it { is_expected.to be(true) }
   end
 
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::Sidekiq::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::Sidekiq::Patcher }
   end
 end

@@ -5,8 +5,11 @@ require 'ddtrace/contrib/ethon/easy_patch'
 require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/analytics_examples'
 
+require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
   let(:configuration_options) { {} }
+  let(:easy) { EthonSupport.ethon_easy_new }
 
   before do
     Datadog.configure do |c|
@@ -20,8 +23,6 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     example.run
     Datadog.registry[:ethon].reset_configuration!
   end
-
-  let(:easy) { ::Ethon::Easy.new }
 
   describe '#http_request' do
     it 'preserves HTTP request method on easy instance' do
@@ -45,7 +46,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     before do
       expect(::Ethon::Curl).to receive(:easy_perform).and_return(0)
       expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
-      # Note: suppress call to #complete to isolate #perform functionality
+      # NOTE: suppress call to #complete to isolate #perform functionality
       expect(easy).to receive(:complete)
     end
 
@@ -88,6 +89,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
     it_behaves_like 'span' do
       before { subject }
+
       let(:method) { 'N/A' }
       let(:path) { '/test' }
       let(:host) { 'example.com' }
@@ -97,6 +99,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
     it_behaves_like 'analytics for integration' do
       before { subject }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -107,7 +110,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
   end
 
   describe '#complete' do
-    # Note: perform calls complete
+    # NOTE: perform calls complete
     subject { easy.complete }
 
     before do
@@ -132,6 +135,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
       it_behaves_like 'span' do
         before { subject }
+
         let(:method) { 'N/A' }
         let(:path) { '/test' }
         let(:host) { 'example.com' }

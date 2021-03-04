@@ -13,7 +13,7 @@ RSpec.describe 'Resque instrumentation' do
 
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     # Setup Resque to use Redis
     ::Resque.redis = url
     ::Resque::Failure.clear
@@ -33,7 +33,7 @@ RSpec.describe 'Resque instrumentation' do
 
   shared_examples 'job execution tracing' do
     context 'that succeeds' do
-      before(:each) { perform_job(job_class, job_args) }
+      before { perform_job(job_class, job_args) }
 
       it 'is traced' do
         expect(spans).to have(1).items
@@ -66,7 +66,7 @@ RSpec.describe 'Resque instrumentation' do
     end
 
     context 'that fails' do
-      before(:each) do
+      before do
         # Rig the job to fail
         expect(job_class).to receive(:perform) do
           raise error_class, error_message
@@ -114,20 +114,20 @@ RSpec.describe 'Resque instrumentation' do
       end
     end
 
-    it_should_behave_like 'job execution tracing'
+    it_behaves_like 'job execution tracing'
 
     it 'ensures worker is not using forking' do
-      expect(worker.fork_per_job?).to be_falsey
+      expect(worker).not_to be_fork_per_job
     end
   end
 
   context 'with forking' do
-    it_should_behave_like 'job execution tracing'
+    before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
-    before { skip unless PlatformHelpers.supports_fork? }
+    it_behaves_like 'job execution tracing'
 
     context 'trace context' do
-      before(:each) do
+      before do
         expect(job_class).to receive(:perform) do
           expect(tracer.active_span).to be_a_kind_of(Datadog::Span)
           expect(tracer.active_span.parent_id).to eq(0)
@@ -154,7 +154,7 @@ RSpec.describe 'Resque instrumentation' do
     end
 
     it 'ensures worker is using forking' do
-      expect(worker.fork_per_job?).to be_truthy
+      expect(worker).to be_fork_per_job
     end
   end
 
@@ -162,7 +162,7 @@ RSpec.describe 'Resque instrumentation' do
     let(:worker_class_1) { Class.new }
     let(:worker_class_2) { Class.new }
 
-    before(:each) do
+    before do
       # Remove the patch so it applies new patch
       remove_patch!(:resque)
 

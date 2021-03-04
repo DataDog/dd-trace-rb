@@ -5,12 +5,14 @@ require 'ddtrace/transport/http/statistics'
 RSpec.describe Datadog::Transport::HTTP::Statistics do
   context 'when implemented by a class' do
     subject(:object) { stats_class.new }
+
     let(:stats_class) do
       stub_const('TestObject', Class.new { include Datadog::Transport::HTTP::Statistics })
     end
 
     describe '#metrics_for_response' do
       subject(:metrics_for_response) { object.metrics_for_response(response) }
+
       let(:response) { instance_double(Datadog::Transport::HTTP::Response, code: status_code) }
       let(:status_code) { double('status code') }
 

@@ -57,9 +57,7 @@ module Datadog
         end
 
         def handle_response(span, env, options)
-          if options.fetch(:error_handler).call(env)
-            span.set_error(["Error #{env[:status]}", env[:body]])
-          end
+          span.set_error(["Error #{env[:status]}", env[:body]]) if options.fetch(:error_handler).call(env)
 
           span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, env[:status])
         end

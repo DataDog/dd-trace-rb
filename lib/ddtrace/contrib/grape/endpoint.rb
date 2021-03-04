@@ -51,6 +51,7 @@ module Datadog
 
           def endpoint_run(name, start, finish, id, payload)
             return unless Thread.current[KEY_RUN]
+
             Thread.current[KEY_RUN] = false
 
             return unless enabled?
@@ -76,18 +77,14 @@ module Datadog
               end
 
               # Set analytics sample rate
-              if analytics_enabled?
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
-              end
+              Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
 
-              if exception_is_error?(payload[:exception_object])
-                span.set_error(payload[:exception_object])
-              end
+              span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
 
               # override the current span with this notification values
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
@@ -122,6 +119,7 @@ module Datadog
 
           def endpoint_render(name, start, finish, id, payload)
             return unless Thread.current[KEY_RENDER]
+
             Thread.current[KEY_RENDER] = false
 
             return unless enabled?
@@ -134,9 +132,7 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
-              if exception_is_error?(payload[:exception_object])
-                span.set_error(payload[:exception_object])
-              end
+              span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
             ensure
               span.start(start)
               span.finish(finish)
@@ -163,17 +159,13 @@ module Datadog
 
             begin
               # Set analytics sample rate
-              if analytics_enabled?
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
-              end
+              Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
-              if exception_is_error?(payload[:exception_object])
-                span.set_error(payload[:exception_object])
-              end
+              span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
 
               span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
             ensure
@@ -226,6 +218,7 @@ module Datadog
             return false unless exception
             return true unless matcher
             return true unless exception.respond_to?('status')
+
             matcher.include?(exception.status)
           end
 

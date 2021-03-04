@@ -142,7 +142,7 @@ RSpec.describe 'Grape instrumentation' do
           before { is_expected.to be_ok }
         end
 
-        it 'should trace the endpoint body' do
+        it 'traces the endpoint body' do
           is_expected.to be_ok
           expect(response.body).to eq('OK')
           expect(spans.length).to eq(2)
@@ -172,11 +172,12 @@ RSpec.describe 'Grape instrumentation' do
 
         it_behaves_like 'analytics for integration', ignore_global_flag: false do
           before { is_expected.to be_ok }
+
           let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
-        it 'should trace the endpoint body and all before/after filters' do
+        it 'traces the endpoint body and all before/after filters' do
           is_expected.to be_ok
           expect(response.body).to eq('OK')
           expect(spans.length).to eq(4)
@@ -206,11 +207,11 @@ RSpec.describe 'Grape instrumentation' do
           expect(after_span.parent).to eq(run_span)
           expect(after_span.to_hash[:duration] > 0.01).to be true
 
-          expect('grape.endpoint_run').to eq(run_span.name)
-          expect('web').to eq(run_span.span_type)
-          expect('grape').to eq(run_span.service)
-          expect('TestingAPI GET /filtered/before_after').to eq(run_span.resource)
-          expect(0).to eq(run_span.status)
+          expect(run_span.name).to eq('grape.endpoint_run')
+          expect(run_span.span_type).to eq('web')
+          expect(run_span.service).to eq('grape')
+          expect(run_span.resource).to eq('TestingAPI GET /filtered/before_after')
+          expect(run_span.status).to eq(0)
           expect(run_span.parent).to be_nil
         end
       end
@@ -220,7 +221,7 @@ RSpec.describe 'Grape instrumentation' do
       context 'without filters' do
         subject(:response) { post '/base/hard_failure' }
 
-        it 'should handle exceptions' do
+        it 'handles exceptions' do
           expect(response.body).to eq('405 Not Allowed')
           expect(spans.length).to eq(1)
           expect(spans[0].name).to eq('grape.endpoint_run')
@@ -232,9 +233,10 @@ RSpec.describe 'Grape instrumentation' do
 
         context 'and error_responses' do
           subject(:response) { post '/base/hard_failure' }
+
           let(:configuration_options) { { error_statuses: '300-399,,xxx-xxx,1111,400-499' } }
 
-          it 'should handle exceptions' do
+          it 'handles exceptions' do
             expect(response.body).to eq('405 Not Allowed')
             expect(spans.length).to eq(1)
             expect(spans[0].name).to eq('grape.endpoint_run')
@@ -247,9 +249,10 @@ RSpec.describe 'Grape instrumentation' do
 
         context 'and error_responses with arrays' do
           subject(:response) { post '/base/hard_failure' }
+
           let(:configuration_options) { { error_statuses: ['300-399', 'xxx-xxx', 1111, 405] } }
 
-          it 'should handle exceptions' do
+          it 'handles exceptions' do
             expect(response.body).to eq('405 Not Allowed')
             expect(spans.length).to eq(1)
             expect(spans[0].name).to eq('grape.endpoint_run')
@@ -262,9 +265,10 @@ RSpec.describe 'Grape instrumentation' do
 
         context 'and error_responses with arrays that dont contain exception status' do
           subject(:response) { post '/base/hard_failure' }
+
           let(:configuration_options) { { error_statuses: ['300-399', 'xxx-xxx', 1111, 406] } }
 
-          it 'should handle exceptions' do
+          it 'handles exceptions' do
             expect(response.body).to eq('405 Not Allowed')
             expect(spans.length).to eq(1)
             expect(spans[0].name).to eq('grape.endpoint_run')
@@ -277,9 +281,10 @@ RSpec.describe 'Grape instrumentation' do
 
         context 'defaults to >=500 when provided invalid config' do
           subject(:response) { post '/base/hard_failure' }
+
           let(:configuration_options) { { error_statuses: 'xxx-499' } }
 
-          it 'should handle exceptions' do
+          it 'handles exceptions' do
             expect(response.body).to eq('405 Not Allowed')
             expect(spans.length).to eq(1)
             expect(spans[0].name).to eq('grape.endpoint_run')
@@ -308,7 +313,7 @@ RSpec.describe 'Grape instrumentation' do
           end
         end
 
-        it 'should handle exceptions' do
+        it 'handles exceptions' do
           expect { subject }.to raise_error(StandardError, 'Ouch!')
 
           expect(spans.length).to eq(2)
@@ -354,7 +359,7 @@ RSpec.describe 'Grape instrumentation' do
           end
         end
 
-        it 'should trace the endpoint even if a filter raises an exception' do
+        it 'traces the endpoint even if a filter raises an exception' do
           expect { subject }.to raise_error(StandardError, 'Ouch!')
 
           expect(spans.length).to eq(2)
@@ -395,7 +400,7 @@ RSpec.describe 'Grape instrumentation' do
           before { is_expected.to be_ok }
         end
 
-        it 'should trace the endpoint body' do
+        it 'traces the endpoint body' do
           is_expected.to be_ok
           expect(response.body).to eq('[]')
           expect(spans.length).to eq(2)
@@ -435,7 +440,7 @@ RSpec.describe 'Grape instrumentation' do
           before { expect(response.status).to eq(201) }
         end
 
-        it 'should trace the endpoint body' do
+        it 'traces the endpoint body' do
           expect(response.status).to eq(201)
           expect(response.body).to eq('{}')
           expect(spans.length).to eq(2)
@@ -465,7 +470,7 @@ RSpec.describe 'Grape instrumentation' do
       context 'deeply nested' do
         subject(:response) { get '/nested/widgets' }
 
-        it 'should trace the endpoint body' do
+        it 'traces the endpoint body' do
           is_expected.to be_ok
           expect(response.body).to eq('[]')
           expect(spans.length).to eq(2)
@@ -507,12 +512,13 @@ RSpec.describe 'Grape instrumentation' do
 
       it_behaves_like 'analytics for integration', ignore_global_flag: false do
         before { is_expected.to be_ok }
+
         let(:span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
         let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-      it 'should intergrate with the Rack integration' do
+      it 'intergrates with the Rack integration' do
         is_expected.to be_ok
         expect(response.body).to eq('OK')
         expect(spans.length).to eq(3)
@@ -566,7 +572,7 @@ RSpec.describe 'Grape instrumentation' do
         end
       end
 
-      it 'should integrate with Rack integration when exception is thrown' do
+      it 'integrates with Rack integration when exception is thrown' do
         expect { subject }.to raise_error(StandardError, 'Ouch!')
         expect(spans.length).to eq(3)
 
@@ -613,7 +619,7 @@ RSpec.describe 'Grape instrumentation' do
         end
       end
 
-      it 'it should not impact the Rack integration that must work as usual' do
+      it 'does not impact the Rack integration that must work as usual' do
         expect(subject.status).to eq(404)
         expect(spans.length).to eq(1)
 

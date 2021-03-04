@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'spec/ddtrace/contrib/active_model_serializers/helpers'
+require 'spec/ddtrace/contrib/rails/support/deprecation'
 
 require 'active_support/all'
 require 'active_model_serializers'
@@ -13,7 +14,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
 
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     # Supress active_model_serializers log output in the test run
     ActiveModelSerializersHelpers.disable_logging
 
@@ -28,6 +29,8 @@ RSpec.describe 'ActiveModelSerializers patcher' do
         allow(subscription).to receive(:tracer).and_return(tracer)
       end
     end
+
+    raise_on_rails_deprecation!
   end
 
   around do |example|
@@ -51,7 +54,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     end
 
     let(:active_model_serializers_span) do
-      spans.select { |s| s.name == name }.first
+      spans.find { |s| s.name == name }
     end
 
     if ActiveModelSerializersHelpers.ams_0_10_or_newer?
@@ -93,7 +96,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
 
     context 'when adapter is nil' do
       if ActiveModelSerializersHelpers.ams_0_10_or_newer?
-        subject(:render) { ActiveModelSerializers::SerializableResource.new(test_obj, adapter: nil).serializable_hash }
+        let(:render) { ActiveModelSerializers::SerializableResource.new(test_obj, adapter: nil).serializable_hash }
 
         it 'is expected to send a span with adapter tag equal to the model name' do
           render
@@ -128,4 +131,3 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     end
   end
 end
-# rubocop:enable Metrics/BlockLength

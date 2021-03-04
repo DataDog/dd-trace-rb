@@ -64,7 +64,7 @@ RSpec.describe 'Rails Log Auto Injection' do
         end
 
         context 'with Tagged logging setup and no tags' do
-          it 'should inject trace_id into logs' do
+          it 'injects trace_id into logs' do
             is_expected.to be_ok
 
             expect(logs).to include(spans[0].trace_id.to_s)
@@ -77,7 +77,7 @@ RSpec.describe 'Rails Log Auto Injection' do
             allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
           end
 
-          it 'should inject trace_id into logs and preserve existing log tags' do
+          it 'injects trace_id into logs and preserve existing log tags' do
             is_expected.to be_ok
 
             expect(logs).to include(spans[0].trace_id.to_s)
@@ -98,7 +98,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
       context 'with lograge enabled' do
         context 'with Lograge setup and no custom_options' do
-          it 'should inject trace_id into logs' do
+          it 'injects trace_id into logs' do
             is_expected.to be_ok
 
             expect(logs).to include(spans[0].trace_id.to_s)
@@ -114,7 +114,7 @@ RSpec.describe 'Rails Log Auto Injection' do
             )
           end
 
-          it 'should inject trace_id into logs and preserve existing hash' do
+          it 'injects trace_id into logs and preserve existing hash' do
             is_expected.to be_ok
 
             expect(logs).to include(spans[0].trace_id.to_s)
@@ -138,7 +138,7 @@ RSpec.describe 'Rails Log Auto Injection' do
             )
           end
 
-          it 'should inject trace_id into logs and preserve existing lambda' do
+          it 'injects trace_id into logs and preserve existing lambda' do
             is_expected.to be_ok
 
             expect(logs).to include(spans[0].trace_id.to_s)
@@ -156,7 +156,7 @@ RSpec.describe 'Rails Log Auto Injection' do
           allow(ENV).to receive(:[]).with('LOGRAGE_DISABLED').and_return(true)
         end
 
-        it 'should not inject trace_id into logs' do
+        it 'does not inject trace_id into logs' do
           is_expected.to be_ok
 
           expect(logs).not_to include(spans[0].trace_id.to_s)

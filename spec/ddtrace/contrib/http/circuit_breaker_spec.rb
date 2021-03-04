@@ -5,10 +5,12 @@ require 'ddtrace/contrib/http/circuit_breaker'
 
 RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
   subject(:circuit_breaker) { circuit_breaker_class.new }
+
   let(:circuit_breaker_class) { Class.new { include Datadog::Contrib::HTTP::CircuitBreaker } }
 
   describe '#should_skip_tracing?' do
     subject(:should_skip_tracing?) { circuit_breaker.should_skip_tracing?(request, tracer) }
+
     let(:request) { ::Net::HTTP::Post.new('/some/path') }
     let(:tracer) { instance_double(Datadog::Tracer) }
 
@@ -57,11 +59,13 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
         context 'is present' do
           let(:request) { ::Net::HTTP::Post.new('/some/path', headers) }
           let(:headers) { { Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::VERSION::STRING } }
+
           it { is_expected.to be true }
         end
 
         context 'is missing' do
           let(:request) { ::Net::HTTP::Post.new('/some/path') }
+
           it { is_expected.to be false }
         end
       end
@@ -92,6 +96,7 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
           before { expect(::Net::HTTP).to receive(:new) }
 
           let(:transport) { Datadog::Transport::HTTP.default }
+
           it { is_expected.to be true }
         end
 

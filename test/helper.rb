@@ -23,19 +23,23 @@ module Datadog
   class Writer
     attr_accessor :trace_handler, :service_handler, :worker
   end
+
   class Tracer
     remove_method :writer
     attr_accessor :writer
   end
+
   module Workers
     class AsyncTransport
       attr_accessor :transport
     end
   end
+
   class Context
     remove_method :current_span
     attr_accessor :trace, :sampled, :finished_spans, :current_span
   end
+
   class Span
     attr_accessor :meta, :metrics
   end
@@ -171,6 +175,7 @@ class FauxWriter < Datadog::Writer
     @mutex.synchronize do
       return [] unless @spans
       return [] if @spans.empty?
+
       spans = @spans[0]
       @spans = @spans[1..@spans.size]
       spans
@@ -217,6 +222,7 @@ def test_repeat
   # (like: be over 10 seconds to make sure handle the case "a flush just happened
   # a few milliseconds ago")
   return 300 if RUBY_PLATFORM == 'java'
+
   30
 end
 
@@ -224,6 +230,7 @@ end
 def try_wait_until(attempts: 50, backoff: 0.1)
   loop do
     break if yield
+
     sleep(backoff)
     attempts -= 1
 

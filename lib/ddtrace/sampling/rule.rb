@@ -27,7 +27,6 @@ module Datadog
       # @return [NilClass] if the matcher fails errs during evaluation
       def match?(span)
         @matcher.match?(span)
-      # rubocop:disable Lint/RescueWithoutErrorClass
       rescue => e
         Datadog.logger.error("Matcher failed. Cause: #{e.message} Source: #{e.backtrace.first}")
         nil

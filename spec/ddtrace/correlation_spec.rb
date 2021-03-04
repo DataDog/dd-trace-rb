@@ -164,6 +164,7 @@ RSpec.describe Datadog::Correlation do
           it_behaves_like 'an identifier string' do
             let(:env) { double('env') }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_ENV}=#{env}") }
+
             it 'puts the env attribute before trace ID and span ID' do
               is_expected.to match(/(dd\.env=).*(dd\.trace_id=).*(dd\.span_id=).*/)
             end
@@ -183,6 +184,7 @@ RSpec.describe Datadog::Correlation do
           it_behaves_like 'an identifier string' do
             let(:service) { double('service') }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_SERVICE}=#{service}") }
+
             it 'puts the service attribute before trace ID and span ID' do
               is_expected.to match(/(dd\.service=).*(dd\.trace_id=).*(dd\.span_id=).*/)
             end
@@ -202,6 +204,7 @@ RSpec.describe Datadog::Correlation do
           it_behaves_like 'an identifier string' do
             let(:version) { double('version') }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_VERSION}=#{version}") }
+
             it 'puts the version attribute before trace ID and span ID' do
               is_expected.to match(/(dd\.version=).*(dd\.trace_id=).*(dd\.span_id=).*/)
             end

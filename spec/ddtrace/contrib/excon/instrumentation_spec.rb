@@ -8,31 +8,6 @@ require 'ddtrace/contrib/excon/middleware'
 
 RSpec.describe Datadog::Contrib::Excon::Middleware do
   let(:connection_options) { { mock: true } }
-  let(:middleware_options) { {} }
-  let(:configuration_options) { {} }
-
-  let(:request_span) do
-    spans.find { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
-  end
-
-  let(:all_request_spans) do
-    spans.find_all { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
-  end
-
-  before(:each) do
-    Datadog.configure do |c|
-      c.use :excon, configuration_options
-    end
-  end
-
-  around do |example|
-    # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:excon].reset_configuration!
-    example.run
-    Datadog.registry[:excon].reset_configuration!
-    Excon.stubs.clear
-  end
-
   let(:connection) do
     Excon.new('http://example.com', connection_options).tap do
       Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200)
@@ -46,13 +21,37 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       )
     end
   end
+  let(:middleware_options) { {} }
+  let(:configuration_options) { {} }
+
+  let(:request_span) do
+    spans.find { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
+  end
+
+  let(:all_request_spans) do
+    spans.find_all { |span| span.name == Datadog::Contrib::Excon::Ext::SPAN_REQUEST }
+  end
+
+  before do
+    Datadog.configure do |c|
+      c.use :excon, configuration_options
+    end
+  end
+
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:excon].reset_configuration!
+    example.run
+    Datadog.registry[:excon].reset_configuration!
+    Excon.stubs.clear
+  end
 
   shared_context 'connection with custom middleware' do
     let(:connection_options) do
       super().merge(
         middlewares: [
           Excon::Middleware::ResponseParser,
-          Datadog::Contrib::Excon::Middleware.with(middleware_options),
+          described_class.with(middleware_options),
           Excon::Middleware::Mock
         ]
       )
@@ -61,7 +60,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   shared_context 'connection with default middleware' do
     let(:connection_options) do
-      super().merge(middlewares: Datadog::Contrib::Excon::Middleware.with(middleware_options).around_default_stack)
+      super().merge(middlewares: described_class.with(middleware_options).around_default_stack)
     end
   end
 
@@ -126,11 +125,13 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   context 'when the path is not found' do
     subject!(:response) { connection.get(path: '/not_found') }
+
     it { expect(request_span).to_not have_error }
   end
 
   context 'when the request times out' do
     subject(:response) { connection.get(path: '/timeout') }
+
     it do
       expect { subject }.to raise_error(Excon::Error::Timeout)
       expect(request_span.finished?).to eq(true)
@@ -140,6 +141,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
     context 'when the request is idempotent' do
       subject(:response) { connection.get(path: '/timeout', idempotent: true, retry_limit: 4) }
+
       it 'records separate spans' do
         expect { subject }.to raise_error(Excon::Error::Timeout)
         expect(all_request_spans.size).to eq(4)
@@ -150,16 +152,21 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   context 'when there is custom error handling' do
     subject!(:response) { connection.get(path: 'not_found') }
+
     let(:configuration_options) { super().merge(error_handler: custom_handler) }
     let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
-    after(:each) { Datadog.configuration[:excon][:error_handler] = nil }
+
+    after { Datadog.configuration[:excon][:error_handler] = nil }
+
     it { expect(request_span).to have_error }
   end
 
   context 'when split by domain' do
     subject(:response) { connection.get(path: '/success') }
+
     let(:configuration_options) { super().merge(split_by_domain: true) }
-    after(:each) { Datadog.configuration[:excon][:split_by_domain] = false }
+
+    after { Datadog.configuration[:excon][:split_by_domain] = false }
 
     it do
       response
@@ -194,7 +201,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   context 'default request headers' do
     subject!(:response) do
-      expect_any_instance_of(Datadog::Contrib::Excon::Middleware).to receive(:request_call)
+      expect_any_instance_of(described_class).to receive(:request_call)
         .and_wrap_original do |m, *args|
           m.call(*args).tap do |datum|
             # Assert request headers
@@ -218,10 +225,11 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   context 'when distributed tracing is disabled' do
     let(:configuration_options) { super().merge(distributed_tracing: false) }
-    after(:each) { Datadog.configuration[:excon][:distributed_tracing] = true }
+
+    after { Datadog.configuration[:excon][:distributed_tracing] = true }
 
     subject!(:response) do
-      expect_any_instance_of(Datadog::Contrib::Excon::Middleware).to receive(:request_call)
+      expect_any_instance_of(described_class).to receive(:request_call)
         .and_wrap_original do |m, *args|
           m.call(*args).tap do |datum|
             # Assert request headers
@@ -246,7 +254,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
         # Disable the tracer
         tracer.enabled = false
 
-        expect_any_instance_of(Datadog::Contrib::Excon::Middleware).to receive(:request_call)
+        expect_any_instance_of(described_class).to receive(:request_call)
           .and_wrap_original do |m, *args|
             m.call(*args).tap do |datum|
               # Assert request headers
@@ -270,14 +278,15 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   context 'global service name' do
     subject(:get) { connection.get(path: '/success') }
+
     let(:service_name) { 'excon-global' }
 
-    before(:each) do
+    before do
       @old_service_name = Datadog.configuration[:excon][:service_name]
       Datadog.configure { |c| c.use :excon, service_name: service_name }
     end
 
-    after(:each) { Datadog.configure { |c| c.use :excon, service_name: @old_service_name } }
+    after { Datadog.configure { |c| c.use :excon, service_name: @old_service_name } }
 
     it do
       subject
@@ -300,6 +309,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     context 'with default middleware' do
       include_context 'connection with default middleware'
       let(:service_name) { 'request-with-default' }
+
       it { expect(request_span.service).to eq(service_name) }
 
       it_behaves_like 'a peer service span' do
@@ -310,6 +320,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     context 'with custom middleware' do
       include_context 'connection with custom middleware'
       let(:service_name) { 'request-with-custom' }
+
       it { expect(request_span.service).to eq(service_name) }
 
       it_behaves_like 'a peer service span' do

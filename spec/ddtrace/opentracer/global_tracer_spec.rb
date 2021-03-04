@@ -11,7 +11,8 @@ if Datadog::OpenTracer.supported?
     context 'when included into OpenTracing' do
       describe '#global_tracer=' do
         subject(:global_tracer) { OpenTracing.global_tracer = tracer }
-        after(:each) { Datadog.configuration.tracer = Datadog::Tracer.new }
+
+        after { Datadog.configuration.tracer = Datadog::Tracer.new }
 
         context 'when given a Datadog::OpenTracer::Tracer' do
           let(:tracer) { Datadog::OpenTracer::Tracer.new }

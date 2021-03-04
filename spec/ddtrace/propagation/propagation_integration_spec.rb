@@ -4,12 +4,10 @@ require 'ddtrace'
 require 'ddtrace/propagation/http_propagator'
 
 RSpec.describe 'Context propagation' do
-  let(:tracer) { get_test_tracer }
-
   describe 'when max context size is exceeded' do
     let(:max_size) { 3 }
 
-    before(:each) { stub_const('Datadog::Context::DEFAULT_MAX_LENGTH', max_size) }
+    before { stub_const('Datadog::Context::DEFAULT_MAX_LENGTH', max_size) }
 
     # Creates scenario for when size is exceeded, and yields.
     # (Would rather use #around but it doesn't support stubs.)

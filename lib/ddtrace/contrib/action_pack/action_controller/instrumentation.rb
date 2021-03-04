@@ -36,9 +36,7 @@ module Datadog
 
             begin
               # Set the resource name, if it's still the default name
-              if span.resource == span.name
-                span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
-              end
+              span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}" if span.resource == span.name
 
               # Set the resource name of the Rack request span unless this is an exception controller.
               unless exception_controller?(payload)

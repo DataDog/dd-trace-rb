@@ -7,7 +7,7 @@ RSpec.describe 'GraphQL patcher' do
 
   # GraphQL generates tons of warnings.
   # This suppresses those warnings.
-  around(:each) do |example|
+  around do |example|
     without_warnings do
       example.run
     end
@@ -16,7 +16,7 @@ RSpec.describe 'GraphQL patcher' do
   let(:root_span) { spans.find { |s| s.parent.nil? } }
 
   RSpec.shared_examples 'Schema patcher' do
-    before(:each) do
+    before do
       remove_patch!(:graphql)
       Datadog.configure do |c|
         c.use :graphql,
@@ -87,17 +87,17 @@ RSpec.describe 'GraphQL patcher' do
 
   context 'class-based schema' do
     include_context 'GraphQL class-based schema'
-    it_should_behave_like 'Schema patcher'
-
     # Newer execution strategy (default since 1.12.0)
     let(:expected_execution_strategy) { GraphQL::Execution::Interpreter }
+
+    it_behaves_like 'Schema patcher'
   end
 
-  context '.define-style schema' do
+  describe '.define-style schema' do
     include_context 'GraphQL .define-style schema'
-    it_should_behave_like 'Schema patcher'
-
     # Legacy execution strategy (default before 1.12.0)
     let(:expected_execution_strategy) { GraphQL::Execution::Execute }
+
+    it_behaves_like 'Schema patcher'
   end
 end

@@ -19,7 +19,7 @@ module Datadog
             @timeout = options[:timeout] || DEFAULT_TIMEOUT
           end
 
-          def open
+          def open(&block)
             # DEV Initializing +Net::HTTP+ directly help us avoid expensive
             # options processing done in +Net::HTTP.start+:
             # https://github.com/ruby/ruby/blob/b2d96abb42abbe2e01f010ffc9ac51f0f9a50002/lib/net/http.rb#L614-L618
@@ -27,9 +27,7 @@ module Datadog
 
             req.open_timeout = req.read_timeout = timeout
 
-            req.start do |http|
-              yield(http)
-            end
+            req.start(&block)
           end
 
           def call(env)
@@ -82,36 +80,43 @@ module Datadog
 
             def payload
               return super if http_response.nil?
+
               http_response.body
             end
 
             def code
               return super if http_response.nil?
+
               http_response.code.to_i
             end
 
             def ok?
               return super if http_response.nil?
+
               code.between?(200, 299)
             end
 
             def unsupported?
               return super if http_response.nil?
+
               code == 415
             end
 
             def not_found?
               return super if http_response.nil?
+
               code == 404
             end
 
             def client_error?
               return super if http_response.nil?
+
               code.between?(400, 499)
             end
 
             def server_error?
               return super if http_response.nil?
+
               code.between?(500, 599)
             end
 

@@ -22,7 +22,7 @@ module Datadog
       PROPAGATION_STYLE_B3_SINGLE_HEADER = 'B3 single header'.freeze
       PROPAGATION_STYLE_INJECT_ENV = 'DD_PROPAGATION_STYLE_INJECT'.freeze
       PROPAGATION_STYLE_EXTRACT_ENV = 'DD_PROPAGATION_STYLE_EXTRACT'.freeze
-      # Note: the below inject/extract values are deprecated and were defined erronously
+      # NOTE: the below inject/extract values are deprecated and were defined erronously
       # they were never part of the datadog language client standard or documentation
       # some users may already be relying on them, but we should look to remove these in the future
       # or before 1.0.
