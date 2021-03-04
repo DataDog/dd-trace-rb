@@ -326,3 +326,12 @@ Naming/FileName:
 # Enforces boolean parameters with default to be keyword arguments.
 Style/OptionalBooleanParameter:
   Enabled: false
+
+# Enforces parenthesis around chained method calls with blocks.
+# This pattern is very common in RSpec:
+#   expect { subject }.to change { condition }.from(0).to(1)
+# The suggested Rubocop correction becomes less legible than
+# the original.
+Lint/AmbiguousBlockAssociation:
+  Exclude:
+    - 'spec/**/*'

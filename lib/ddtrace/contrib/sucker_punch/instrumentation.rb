@@ -16,7 +16,7 @@ module Datadog
             alias_method :__run_perform_without_datadog, :__run_perform
             def __run_perform(*args)
               pin = Datadog::Pin.get_from(::SuckerPunch)
-              pin.tracer.provider.context = Datadog::Context.new
+              Contrib::Support.ensure_finished_context!(pin.tracer, Ext::APP)
 
               __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"

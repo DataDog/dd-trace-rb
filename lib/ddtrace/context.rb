@@ -250,6 +250,11 @@ module Datadog
       )
     end
 
+    # Are there any spans in this context?
+    def empty?
+      length == 0
+    end
+
     private
 
     def reset(options = {})

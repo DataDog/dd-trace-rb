@@ -44,20 +44,8 @@ module Datadog
 
           def subscription(*args)
             super.tap do |subscription|
-              subscription.before_trace { ensure_clean_context! }
+              subscription.before_trace { Contrib::Support.ensure_finished_context!(configuration[:tracer], Ext::APP) }
             end
-          end
-
-          private
-
-          # Context objects are thread-bound.
-          # If an integration re-uses threads, context from a previous trace
-          # could leak into the new trace. This "cleans" current context,
-          # preventing such a leak.
-          def ensure_clean_context!
-            return unless configuration[:tracer].call_context.current_span
-
-            configuration[:tracer].provider.context = Context.new
           end
         end
       end

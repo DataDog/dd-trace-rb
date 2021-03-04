@@ -119,7 +119,7 @@ module Datadog
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding
           # memory leaks.
-          tracer.provider.context = Datadog::Context.new if tracer
+          Contrib::Support.ensure_finished_context!(tracer, Ext::APP) if tracer
         end
 
         def resource_name_for(env, status)
