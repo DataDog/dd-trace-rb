@@ -33,6 +33,8 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     describe '#enabled=' do
+      after { settings.runtime_metrics.reset! }
+
       it 'changes the #enabled setting' do
         expect { settings.analytics.enabled = true }
           .to change { settings.analytics.enabled }
@@ -527,8 +529,6 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     describe '#enabled=' do
-      after { settings.runtime_metrics.reset! }
-
       after { settings.runtime_metrics.reset! }
 
       it 'changes the #enabled setting' do
