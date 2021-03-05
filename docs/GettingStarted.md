@@ -83,6 +83,9 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Metrics](#metrics)
          - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
+ - [Common issues](#common-issues)
+    - [Payload too large](#payload-too-large)
+    - [Stack level too deep](#stack-level-too-deep)
 
 ## Compatibility
 
@@ -2466,3 +2469,24 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 | `OpenTracing::FORMAT_TEXT_MAP` | Yes        |                        |
 | `OpenTracing::FORMAT_RACK`     | Yes        | Because of the loss of resolution in the Rack format, please note that baggage items with names containing either upper case characters or `-` will be converted to lower case and `_` in a round-trip respectively. We recommend avoiding these characters or accommodating accordingly on the receiving end. |
 | `OpenTracing::FORMAT_BINARY`   | No         |                        |
+
+## Common issues
+
+### Payload too large
+
+If you suspect that not all traces from your application are being captured, this might be due to traces that are too large to be processed.
+
+If your application creates long running traces, measured in minutes, or traces with a thousands of operations, such traces can go over our processing limit.
+You can enable [debug mode](#tracer-settings) and check if messages similar to `"Dropping trace. Payload too large"` are being emitted. Keep in mind that debug mode is very verbose. You can also inspect the [Datadog agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
+
+For cases where the payload is too large, you have the option to enable [partial_flush](#tracer-settings) in the tracer. This will break down large traces into smaller chunks that get streamed to Datadog. The side-effect of partial flushing is that service metrics will count a single large trace multiple times: once per chunk streamed.
+
+### Stack level too deep
+
+`ddtrace` uses [Module#prepend](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) when instrumenting gems, as this approach allows for non-competing overriding of the same method by different parties.
+
+A few libraries use [alias](https://ruby-doc.org/core-3.0.0/doc/syntax/miscellaneous_rdoc.html#label-alias) and [Module#alias_method](https://ruby-doc.org/core-3.0.0/Module.html#method-i-alias_method) for overriding methods, which destructively replaces the original method being overridden. This approach is also incompatible with `Module#prepend` overriding, causing, for example, `SystemStackError`.
+
+There's no simple solution if you are seeing `SystemStackError` being raised, but a few libraries have known workarounds:
+
+* `rack-mini-profiler`: [Net::HTTP stack level too deep errors](https://github.com/MiniProfiler/rack-mini-profiler#nethttp-stack-level-too-deep-errors).
