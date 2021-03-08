@@ -102,6 +102,32 @@ module Datadog
           pthread_getcpuclockid(pthread_id, clock).zero? ? clock[:value] : nil
         end
       end
+
+      # Threads in Ruby can be started by creating a new instance of `Thread` (or a subclass) OR by calling
+      # `start`/`fork` on `Thread` (or a subclass).
+      #
+      # This module intercepts calls to `start`/`fork`, ensuring that the `update_native_ids` operation is correctly
+      # called once the new thread starts.
+      #
+      # Note that unlike CThread above, this module should be prepended to the `Thread`'s singleton class, not to
+      # the class.
+      module WrapThreadStartFork
+        def start(*args)
+          # Wrap the work block with our own
+          # so we can retrieve the native thread ID within the thread's context.
+          wrapped_block = proc do |*t_args|
+            # Set native thread ID & clock ID
+            ::Thread.current.send(:update_native_ids)
+            yield(*t_args)
+          end
+          wrapped_block.ruby2_keywords if wrapped_block.respond_to?(:ruby2_keywords, true)
+
+          super(*args, &wrapped_block)
+        end
+        ruby2_keywords :start if respond_to?(:ruby2_keywords, true)
+
+        alias fork start
+      end
     end
   end
 end

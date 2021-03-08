@@ -237,4 +237,77 @@ if Datadog::Profiling::Ext::CPU.supported?
       end
     end
   end
+
+  RSpec.describe Datadog::Profiling::Ext::WrapThreadStartFork do
+    let(:thread_class) do
+      expect(Thread.singleton_class.ancestors).to_not include(described_class)
+
+      klass = ::Thread.dup
+      klass.send(:prepend, Datadog::Profiling::Ext::CThread)
+      klass.singleton_class.send(:prepend, described_class)
+      klass
+    end
+
+    describe '#start' do
+      it 'starts a new thread' do
+        new_thread = nil
+
+        thread_class.start do
+          new_thread = Thread.current
+        end.join
+
+        expect(new_thread).to_not be Thread.current
+      end
+
+      it 'sets up the CPU time instrumentation before running user code in the thread' do
+        ran_assertion = false
+
+        thread_class.start do
+          expect(Thread.current.cpu_time_instrumentation_installed?).to be true
+          ran_assertion = true
+        end.join
+
+        expect(ran_assertion).to be true
+      end
+
+      it 'returns the started thread' do
+        new_thread = nil
+
+        returned_thread = thread_class.start do
+          new_thread = Thread.current
+        end
+
+        returned_thread.join
+
+        expect(returned_thread).to be new_thread
+      end
+
+      it 'correctly forwards all received arguments to the passed proc' do
+        ran_assertion = false
+
+        thread_class.start(1, 2, 3, four: 4, five: 5) do |*args, **kwargs|
+          expect(args).to eq [1, 2, 3]
+          expect(kwargs).to eq(four: 4, five: 5)
+
+          ran_assertion = true
+        end.join
+
+        expect(ran_assertion).to be true
+      end
+
+      it 'sets the return of the user block as the return value of the thread' do
+        new_thread = thread_class.start do
+          :returned_value
+        end
+
+        expect(new_thread.value).to be :returned_value
+      end
+    end
+
+    describe '#fork' do
+      it 'is an alias for start' do
+        expect(thread_class.method(:start)).to eq thread_class.method(:fork)
+      end
+    end
+  end
 end
