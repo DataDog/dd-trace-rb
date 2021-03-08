@@ -57,13 +57,16 @@ module Datadog
 
     def logger
       # avoid initializing components if they didn't already exist
-      current_components = components? && components
+      return logger_without_components unless components?
 
-      if current_components
-        @temp_logger = nil
-        current_components.logger
+      @temp_logger = nil
+
+      if COMPONENTS_LOCK.owned?
+        # components are in the process of being replaced by this thread, avoid a deadlock and return the old logger
+        @components.logger
       else
-        logger_without_components
+        # grab the lock and retrieve the latest logger
+        components.logger
       end
     end
 
