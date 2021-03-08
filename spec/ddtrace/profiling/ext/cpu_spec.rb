@@ -118,6 +118,7 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
       it 'adds Thread extensions' do
         apply!
         expect(Thread.ancestors).to include(Datadog::Profiling::Ext::CThread)
+        expect(Thread.singleton_class.ancestors).to include(Datadog::Profiling::Ext::WrapThreadStartFork)
       end
     end
 
