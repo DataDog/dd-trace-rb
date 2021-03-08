@@ -6,6 +6,7 @@ require 'ddtrace/span'
 RSpec.describe Datadog::Analytics do
   describe '.set_sample_rate' do
     subject(:set_sample_rate) { described_class.set_sample_rate(span, sample_rate) }
+
     let(:span) { instance_double(Datadog::Span) }
     let(:sample_rate) { 0.5 }
 
@@ -17,6 +18,7 @@ RSpec.describe Datadog::Analytics do
     context 'given span that is' do
       context 'nil' do
         let(:span) { nil }
+
         it { expect { set_sample_rate }.to_not raise_error }
       end
     end
@@ -24,11 +26,13 @@ RSpec.describe Datadog::Analytics do
     context 'given sample rate that is' do
       context 'nil' do
         let(:sample_rate) { nil }
+
         it { expect(span).to_not have_received(:set_metric) }
       end
 
       context 'a String' do
         let(:sample_rate) { '1.0' }
+
         it { expect(span).to_not have_received(:set_metric) }
       end
 
@@ -45,6 +49,7 @@ RSpec.describe Datadog::Analytics do
 
   describe '.set_measured' do
     subject(:set_measured) { described_class.set_measured(span) }
+
     let(:span) { instance_double(Datadog::Span) }
 
     before do
@@ -54,6 +59,7 @@ RSpec.describe Datadog::Analytics do
 
     context 'given a nil span' do
       let(:span) { nil }
+
       it { expect { set_measured }.to_not raise_error }
     end
 
@@ -69,6 +75,7 @@ RSpec.describe Datadog::Analytics do
 
       context 'nil' do
         let(:value) { nil }
+
         it do
           expect(span).to have_received(:set_metric)
             .with(Datadog::Ext::Analytics::TAG_MEASURED, 0)
@@ -77,6 +84,7 @@ RSpec.describe Datadog::Analytics do
 
       context 'true' do
         let(:value) { true }
+
         it do
           expect(span).to have_received(:set_metric)
             .with(Datadog::Ext::Analytics::TAG_MEASURED, 1)
@@ -85,6 +93,7 @@ RSpec.describe Datadog::Analytics do
 
       context 'false' do
         let(:value) { false }
+
         it do
           expect(span).to have_received(:set_metric)
             .with(Datadog::Ext::Analytics::TAG_MEASURED, 0)
@@ -93,6 +102,7 @@ RSpec.describe Datadog::Analytics do
 
       context 'a String' do
         let(:value) { 'true' }
+
         it do
           expect(span).to have_received(:set_metric)
             .with(Datadog::Ext::Analytics::TAG_MEASURED, 0)

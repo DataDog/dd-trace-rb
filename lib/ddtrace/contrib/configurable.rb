@@ -81,7 +81,7 @@ module Datadog
         # DEV(1.0): Rename to `default_configuration`, make it public.
         # DEV(1.0): See comment on `default_configuration` for more information.
         def default_configuration_instance
-          @default_configuration ||= default_configuration
+          @default_configuration ||= default_configuration # rubocop:disable Naming/MemoizedInstanceVariableName
         end
 
         # Overridable configuration resolver.

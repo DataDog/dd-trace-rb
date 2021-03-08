@@ -1,7 +1,12 @@
 module Datadog
   module Contrib
     module Rack
-      # QueueTime simply...
+      # Retrieves the time spent in an upstream proxy
+      # for the current Rack request.
+      #
+      # This time captures the request delay introduced but
+      # such proxy before the request made it to the Ruby
+      # process.
       module QueueTime
         REQUEST_START = 'HTTP_X_REQUEST_START'.freeze
         QUEUE_START = 'HTTP_X_QUEUE_START'.freeze

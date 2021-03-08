@@ -1,17 +1,16 @@
-# encoding: utf-8
-
 require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/runtime/metrics'
 
 RSpec.describe Datadog::Runtime::Metrics do
   subject(:runtime_metrics) { described_class.new(options) }
+
   let(:options) { {} }
 
   describe '::new' do
     context 'given :services' do
       let(:options) { super().merge(services: services) }
-      let(:services) { ['service-a', 'service-b'] }
+      let(:services) { %w[service-a service-b] }
 
       it do
         expect(runtime_metrics.send(:service_tags)).to include(
@@ -24,6 +23,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
   describe '#associate_with_span' do
     subject(:associate_with_span) { runtime_metrics.associate_with_span(span) }
+
     let(:span) { Datadog::Span.new(nil, 'dummy', service: service) }
     let(:service) { 'parser' }
 
@@ -67,6 +67,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
   describe '#register_service' do
     subject(:register_service) { runtime_metrics.register_service(service) }
+
     let(:service) { 'parser' }
 
     context 'when enabled' do
@@ -99,7 +100,7 @@ RSpec.describe Datadog::Runtime::Metrics do
       let(:metric_value) { double('metric_value') }
 
       context 'when available' do
-        before(:each) { allow(runtime_metrics).to receive(:gauge) }
+        before { allow(runtime_metrics).to receive(:gauge) }
 
         it do
           allow(metric).to receive(:available?)
@@ -128,7 +129,7 @@ RSpec.describe Datadog::Runtime::Metrics do
       end
 
       context 'when an error is thrown' do
-        before(:each) { allow(Datadog.logger).to receive(:error) }
+        before { allow(Datadog.logger).to receive(:error) }
 
         it do
           allow(metric).to receive(:available?)
@@ -157,12 +158,12 @@ RSpec.describe Datadog::Runtime::Metrics do
       end
 
       context 'including GC stats' do
-        before(:each) { allow(runtime_metrics).to receive(:gauge) }
+        before { allow(runtime_metrics).to receive(:gauge) }
 
         it do
           flush
 
-          runtime_metrics.gc_metrics.each do |metric_name, _metric_value|
+          runtime_metrics.gc_metrics.each_key do |metric_name|
             expect(runtime_metrics).to have_received(:gauge)
               .with(metric_name, kind_of(Numeric))
               .once
@@ -219,6 +220,7 @@ RSpec.describe Datadog::Runtime::Metrics do
 
       context 'when services have been registered' do
         let(:services) { %w[parser serializer] }
+
         before { services.each { |service| runtime_metrics.register_service(service) } }
 
         it do

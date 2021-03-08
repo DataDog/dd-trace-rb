@@ -6,7 +6,7 @@ require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis integration test' do
-  before(:each) do
+  before do
     skip unless ENV['TEST_DATADOG_INTEGRATION']
 
     use_real_tracer!
@@ -16,7 +16,7 @@ RSpec.describe 'Redis integration test' do
     end
   end
 
-  after(:each) do
+  after do
     Datadog.registry[:redis].reset_configuration!
     Datadog.configuration.reset!
   end

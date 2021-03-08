@@ -5,6 +5,7 @@ require 'ddtrace/transport/http/client'
 
 RSpec.describe Datadog::Transport::HTTP::Client do
   subject(:client) { described_class.new(api) }
+
   let(:api) { instance_double(Datadog::Transport::HTTP::API::Instance) }
 
   describe '#initialize' do
@@ -111,6 +112,7 @@ RSpec.describe Datadog::Transport::HTTP::Client do
 
   describe '#build_env' do
     subject(:env) { client.build_env(request) }
+
     let(:request) { instance_double(Datadog::Transport::Request) }
 
     it 'returns a Datadog::Transport::HTTP::Env' do

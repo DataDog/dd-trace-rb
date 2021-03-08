@@ -3,11 +3,9 @@ require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/tracer'
 require 'datadog/statsd'
-require 'thread'
-
 RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
-    before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+    before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
     let(:tracer) do
       Datadog::Tracer.new(initialize_options).tap do |t|
@@ -28,6 +26,8 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  after { tracer.shutdown! }
+
   describe 'agent receives span' do
     include_context 'agent-based test'
 
@@ -41,6 +41,7 @@ RSpec.describe 'Tracer integration tests' do
     def wait_for_flush(stat, num = 1)
       test_repeat.times do
         break if tracer.writer.stats[stat] >= num
+
         sleep(0.1)
       end
     end
@@ -97,7 +98,7 @@ RSpec.describe 'Tracer integration tests' do
   describe 'agent receives short span' do
     include_context 'agent-based test'
 
-    before(:each) do
+    before do
       tracer.trace('my.short.op') do |span|
         @span = span
         span.service = 'my.service'
@@ -241,7 +242,7 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     context 'when sent TERM' do
-      before { skip unless PlatformHelpers.supports_fork? }
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       subject(:terminated_process) do
         # Initiate IO pipe
@@ -290,7 +291,7 @@ RSpec.describe 'Tracer integration tests' do
       let(:parent_span) { tracer.start_span('parent span') }
       let(:child_span) { tracer.start_span('child span', child_of: parent_span.context) }
 
-      before(:each) do
+      before do
         parent_span.tap do
           child_span.tap do
             child_span.context.sampling_priority = 10
@@ -316,9 +317,10 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'when #sampling_priority is set on a parent span' do
       subject(:tag_value) { parent_span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY) }
+
       let(:parent_span) { tracer.start_span('parent span') }
 
-      before(:each) do
+      before do
         parent_span.tap do
           parent_span.context.origin = 'synthetics'
         end.finish
@@ -366,7 +368,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:transport) { Datadog::Transport::IO.default(out: out) }
     let(:out) { instance_double(IO) } # Dummy output so we don't pollute STDOUT
 
-    before(:each) do
+    before do
       tracer.configure(
         enabled: true,
         priority_sampling: true,
@@ -422,7 +424,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:writer) { Datadog::Writer.new(transport: transport, priority_sampler: Datadog::PrioritySampler.new) }
     let(:transport) { Datadog::Transport::HTTP.default }
 
-    before(:each) do
+    before do
       tracer.configure(
         enabled: true,
         priority_sampling: true,
@@ -441,6 +443,7 @@ RSpec.describe 'Tracer integration tests' do
       expect(tracer.sampler).to receive(:update)
         .with(kind_of(Hash))
         .and_call_original
+        .at_least(1).time
     end
 
     it do
@@ -571,6 +574,8 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'with another tracer instance' do
       let(:tracer2) { new_tracer }
+
+      after { tracer2.shutdown! }
 
       it 'create one thread-local context per tracer' do
         span = tracer.trace('test')

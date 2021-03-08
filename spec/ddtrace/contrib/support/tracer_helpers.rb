@@ -49,7 +49,7 @@ module Contrib
 
     RSpec.configure do |config|
       # Capture spans from the global tracer
-      config.before(:each) do
+      config.before do
         Datadog.reset!
 
         # DEV `*_any_instance_of` has concurrency issues when running with parallelism (e.g. JRuby).
@@ -71,10 +71,23 @@ module Contrib
           instance
         end
       end
+
+      # Execute shutdown! after the test has finished
+      # teardown and mock verifications.
+      #
+      # Changing this to `config.after(:each)` would
+      # put shutdown! inside the test scope, interfering
+      # with mock assertions.
+      config.around do |example|
+        example.run.tap do
+          Datadog.tracer.shutdown!
+        end
+      end
     end
 
     # Useful for integration testing.
     def use_real_tracer!
+      @use_real_tracer = true
       allow(Datadog::Tracer).to receive(:new).and_call_original
     end
   end

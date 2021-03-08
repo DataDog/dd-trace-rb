@@ -4,7 +4,7 @@ require 'ddtrace'
 RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
   subject(:resolver) { described_class.new }
 
-  let(:config) { double('config') }
+  let(:config) { instance_double('config') }
 
   describe '#resolve' do
     subject(:resolve) { resolver.resolve(value) }
@@ -14,6 +14,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
       let(:matcher) { /value/ }
 
       before { resolver.add(matcher, config) }
+
       it { is_expected.to eq(config) }
 
       context 'then given a value that isn\'t a String but is case equal' do
@@ -28,14 +29,18 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
 
     context 'when non-matching Regexp has been added' do
       let(:value) { 'my-value' }
+
       before { resolver.add(/not_found/, config) }
+
       it { is_expected.to be nil }
     end
 
     context 'when matching Proc has been added' do
       let(:value) { 'my-value' }
       let(:matcher_proc) { proc { |n| n == value } }
+
       before { resolver.add(matcher_proc, config) }
+
       it { is_expected.to eq(config) }
 
       context 'then given a value that isn\'t a String but is case equal' do
@@ -50,7 +55,9 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
 
     context 'when non-matching Proc has been added' do
       let(:value) { 'my-value' }
+
       before { resolver.add(proc { |n| n == 'not_found' }, config) }
+
       it { is_expected.to be nil }
     end
 
@@ -59,6 +66,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
       let(:matcher) { value }
 
       before { resolver.add(matcher, config) }
+
       it { is_expected.to eq(config) }
 
       context 'then given a value that isn\'t a String but is case equal' do
@@ -73,7 +81,9 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
 
     context 'when a non-matching String has been added' do
       let(:value) { 'value' }
+
       before { resolver.add('my-value', config) }
+
       it { is_expected.to be nil }
     end
 
@@ -83,8 +93,8 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
       let(:first_matcher) { 'value' }
       let(:second_matcher) { /value/ }
 
-      let(:first_config) { double('first config') }
-      let(:second_config) { double('second config') }
+      let(:first_config) { instance_double('first config') }
+      let(:second_config) { instance_double('second config') }
 
       before do
         resolver.add(first_matcher, first_config)

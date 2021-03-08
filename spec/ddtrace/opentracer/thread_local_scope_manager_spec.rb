@@ -11,9 +11,11 @@ if Datadog::OpenTracer.supported?
 
     describe '#activate' do
       subject(:activate) { scope_manager.activate(span, finish_on_close: finish_on_close) }
+
       let(:scope) { activate }
       let(:span) { instance_double(Datadog::OpenTracer::Span) }
       let(:finish_on_close) { true }
+
       it { is_expected.to be_a_kind_of(Datadog::OpenTracer::ThreadLocalScope) }
       it { expect(scope.manager).to be(scope_manager) }
       it { expect(scope.span).to be(span) }
@@ -31,7 +33,7 @@ if Datadog::OpenTracer.supported?
         let(:span) { instance_double(Datadog::OpenTracer::Span) }
         let(:finish_on_close) { true }
 
-        before(:each) { scope } # Activate a scope
+        before { scope } # Activate a scope
 
         it { is_expected.to be(scope) }
       end

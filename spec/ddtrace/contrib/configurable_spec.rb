@@ -15,6 +15,7 @@ RSpec.describe Datadog::Contrib::Configurable do
 
       describe '#default_configuration' do
         subject(:configuration) { configurable_object.default_configuration }
+
         it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
 
         it 'defaults to being enabled' do
@@ -30,7 +31,7 @@ RSpec.describe Datadog::Contrib::Configurable do
         end
 
         context 'when a configuration has been added' do
-          before(:each) { configurable_object.configure(:foo, service_name: 'bar') }
+          before { configurable_object.configure(:foo, service_name: 'bar') }
 
           it do
             expect { reset_configuration! }.to change { configurable_object.configurations.keys }
@@ -43,16 +44,19 @@ RSpec.describe Datadog::Contrib::Configurable do
       describe '#configuration' do
         context 'when no key is provided' do
           subject(:configuration) { configurable_object.configuration }
+
           it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
           it { is_expected.to be(configurable_object.configurations[:default]) }
         end
 
         context 'when a key is provided' do
           subject(:configuration) { configurable_object.configuration(key) }
+
           let(:key) { :foo }
 
           context 'and the configuration exists' do
             before { configurable_object.configure(:foo, service_name: 'bar') }
+
             it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
             it { is_expected.to be(configurable_object.configurations[:foo]) }
           end
@@ -86,6 +90,7 @@ RSpec.describe Datadog::Contrib::Configurable do
       describe '#configure' do
         context 'when provided a key' do
           subject(:configure) { configurable_object.configure(key, service_name: 'bar') }
+
           let(:key) { :foo }
 
           context 'as nil or :default' do

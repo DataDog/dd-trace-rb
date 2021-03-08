@@ -32,6 +32,7 @@ module Datadog
           # cause undesirable service naming, so we exclude them based their auto_instrument? setting.
           # we also don't want to mix rspec/cucumber integration in as rspec is env we run tests in.
           next unless integration.klass.auto_instrument?
+
           integrations << integration.name
         end
 

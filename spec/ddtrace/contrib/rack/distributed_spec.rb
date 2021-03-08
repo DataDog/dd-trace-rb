@@ -10,13 +10,13 @@ RSpec.describe 'Rack integration distributed tracing' do
 
   let(:rack_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :rack, rack_options
     end
   end
 
-  after(:each) { Datadog.registry[:rack].reset_configuration! }
+  after { Datadog.registry[:rack].reset_configuration! }
 
   shared_context 'an incoming HTTP request' do
     subject(:response) { get '/' }
@@ -38,7 +38,7 @@ RSpec.describe 'Rack integration distributed tracing' do
     let(:sampling_priority) { Datadog::Ext::Priority::AUTO_KEEP }
     let(:origin) { 'synthetics' }
 
-    before(:each) do
+    before do
       header Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, trace_id
       header Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, parent_id
       header Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority
@@ -92,7 +92,7 @@ RSpec.describe 'Rack integration distributed tracing' do
           let(:server_span) { spans.first }
           let(:rack_span) { spans.last }
 
-          before(:each) do
+          before do
             header 'X-Request-Start', "t=#{Time.now.to_f}"
           end
 

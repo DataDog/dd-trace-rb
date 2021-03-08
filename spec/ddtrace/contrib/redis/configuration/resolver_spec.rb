@@ -6,12 +6,13 @@ require 'ddtrace'
 RSpec.describe 'Redis configuration resolver' do
   let(:resolver) { Datadog::Contrib::Redis::Configuration::Resolver.new }
 
-  let(:config) { double('config') }
+  let(:config) { instance_double('config') }
   let(:matcher) {}
 
-  context '#add' do
+  describe '#add' do
     subject(:add) { resolver.add(matcher, config) }
-    before { subject }
+
+    before { add }
 
     let(:parsed_key) do
       expect(resolver.configurations.keys).to have(1).item
@@ -100,8 +101,9 @@ RSpec.describe 'Redis configuration resolver' do
     end
   end
 
-  context '#resolve' do
+  describe '#resolve' do
     subject(:resolve) { resolver.resolve(value) }
+
     let(:value) { matcher }
 
     context 'with a matcher' do

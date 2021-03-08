@@ -138,7 +138,7 @@ class TracerTest < Minitest::Test
   def test_disabled_tracer
     tracer = get_test_tracer
     tracer.enabled = false
-    tracer.trace('something').finish()
+    tracer.trace('something').finish
 
     spans = tracer.writer.spans()
     assert_equal(0, spans.length)
@@ -287,8 +287,8 @@ class TracerTest < Minitest::Test
 
     main = tracer.trace('main_call')
     detached = tracer.start_span('detached_trace')
-    detached.finish()
-    main.finish()
+    detached.finish
+    main.finish
 
     spans = tracer.writer.spans()
     assert_equal(2, spans.length)

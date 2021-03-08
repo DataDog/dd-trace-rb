@@ -5,13 +5,14 @@ require 'ddtrace/contrib/active_record/configuration/resolver'
 
 RSpec.describe Datadog::Contrib::ActiveRecord::Configuration::Resolver do
   subject(:resolver) { described_class.new(configuration) }
+
   let(:configuration) { nil }
 
-  context '#add' do
+  describe '#add' do
     subject(:add) { resolver.add(matcher, config) }
 
-    let(:matcher) { double('matcher') }
-    let(:config) { double('config') }
+    let(:matcher) { instance_double('matcher') }
+    let(:config) { instance_double('config') }
 
     context 'with a hash matcher' do
       let(:matcher) do
@@ -87,25 +88,12 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Configuration::Resolver do
     end
   end
 
-  context '#resolve' do
+  describe '#resolve' do
     subject(:resolve) { resolver.resolve(actual) }
 
     let(:matchers) do
       [matcher]
     end
-
-    before do
-      matchers.each do |m|
-        resolver.add(m, m)
-      end
-    end
-
-    shared_context 'a matching pattern' do
-      it 'matches the pattern' do
-        is_expected.to be(matcher)
-      end
-    end
-
     let(:actual) do
       {
         adapter: 'adapter',
@@ -115,8 +103,19 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Configuration::Resolver do
         username: 'username'
       }
     end
-
     let(:match_all) { {} }
+
+    before do
+      matchers.each do |m|
+        resolver.add(m, m)
+      end
+    end
+
+    shared_examples 'a matching pattern' do
+      it 'matches the pattern' do
+        is_expected.to be(matcher)
+      end
+    end
 
     context 'with exact match' do
       let(:matcher) do

@@ -1,0 +1,24 @@
+require 'datadog/demo_env'
+
+source 'https://rubygems.org' do
+  gem 'puma'
+  gem 'unicorn'
+
+  gem 'dogstatsd-ruby'
+  gem 'rack'
+
+  gem 'ffi'
+  gem 'google-protobuf'
+
+  # Choose correct specs for 'ddtrace' demo environment
+  gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
+
+  # Development
+  gem 'byebug'
+  # gem 'pry-stack_explorer', platform: :ruby
+  # gem 'rbtrace'
+  # gem 'ruby-prof'
+
+  # Testing/CI
+  gem 'rspec'
+end

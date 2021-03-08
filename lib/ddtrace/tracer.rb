@@ -1,4 +1,3 @@
-require 'thread'
 require 'logger'
 require 'pathname'
 
@@ -144,6 +143,7 @@ module Datadog
     # a service would be invalid and rejected.
     def default_service
       return @default_service if instance_variable_defined?(:@default_service) && @default_service
+
       begin
         @default_service = File.basename($PROGRAM_NAME, '.*')
       rescue StandardError => e

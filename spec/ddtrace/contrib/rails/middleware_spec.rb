@@ -5,6 +5,8 @@ RSpec.describe 'Rails middleware' do
   include_context 'Rails test application'
 
   let(:routes) { { '/' => 'test#index' } }
+  let(:use_rack) { true }
+  let(:rails_options) { {} }
   let(:controllers) { [controller] }
 
   let(:controller) do
@@ -19,6 +21,7 @@ RSpec.describe 'Rails middleware' do
     match do |actual|
       while actual
         return true if actual.class <= expected
+
         without_warnings { actual = actual.instance_variable_get(:@app) }
       end
       false
@@ -31,9 +34,6 @@ RSpec.describe 'Rails middleware' do
       c.use :rails, rails_options
     end
   end
-
-  let(:use_rack) { true }
-  let(:rails_options) { {} }
 
   context 'with middleware' do
     context 'that does nothing' do

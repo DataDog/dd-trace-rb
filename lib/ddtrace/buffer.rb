@@ -1,4 +1,3 @@
-require 'thread'
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/runtime/object_space'
 
@@ -18,6 +17,7 @@ module Datadog
     # even if the buffer is full. In that case, a random item is discarded.
     def push(item)
       return if closed?
+
       full? ? replace!(item) : add!(item)
       item
     end
@@ -168,8 +168,8 @@ module Datadog
       synchronize { super }
     end
 
-    def synchronize
-      @mutex.synchronize { yield }
+    def synchronize(&block)
+      @mutex.synchronize(&block)
     end
   end
 
@@ -318,7 +318,7 @@ module Datadog
   #
   # TODO We should restructure this module, so that classes are not declared at top-level ::Datadog.
   # TODO Making such a change is potentially breaking for users manually configuring the tracer.
-  TraceBuffer = if Datadog::Ext::Runtime::RUBY_ENGINE == 'ruby' # rubocop:disable Style/ConstantName
+  TraceBuffer = if Datadog::Ext::Runtime::RUBY_ENGINE == 'ruby'
                   CRubyTraceBuffer
                 else
                   ThreadSafeTraceBuffer

@@ -5,6 +5,7 @@ require 'ddtrace/configuration/components'
 
 RSpec.describe Datadog::Configuration::Components do
   subject(:components) { described_class.new(settings) }
+
   let(:settings) { Datadog::Configuration::Settings.new }
 
   describe '::new' do
@@ -119,7 +120,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         before do
           expect(Datadog::Logger).to receive(:new)
-            .with(STDOUT)
+            .with($stdout)
             .and_return(logger)
 
           expect(logger).to receive(:level=).with(level)

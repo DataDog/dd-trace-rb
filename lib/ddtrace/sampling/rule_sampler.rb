@@ -88,6 +88,7 @@ module Datadog
 
       def update(*args)
         return false unless @default_sampler.respond_to?(:update)
+
         @default_sampler.update(*args)
       end
 

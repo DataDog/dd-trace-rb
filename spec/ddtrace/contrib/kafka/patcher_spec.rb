@@ -9,10 +9,10 @@ RSpec.describe 'Kafka patcher' do
   let(:configuration_options) { {} }
   let(:client_id) { SecureRandom.uuid }
   let(:span) do
-    spans.select { |s| s.name == span_name }.first
+    spans.find { |s| s.name == span_name }
   end
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :kafka, configuration_options
     end
@@ -84,6 +84,7 @@ RSpec.describe 'Kafka patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('request.connection.kafka', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -166,6 +167,7 @@ RSpec.describe 'Kafka patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_batch.consumer.kafka', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -248,6 +250,7 @@ RSpec.describe 'Kafka patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_message.consumer.kafka', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -321,6 +324,7 @@ RSpec.describe 'Kafka patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('heartbeat.consumer.kafka', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -383,6 +387,7 @@ RSpec.describe 'Kafka patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('join_group.consumer.kafka', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -445,6 +450,7 @@ RSpec.describe 'Kafka patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('leave_group.consumer.kafka', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -507,6 +513,7 @@ RSpec.describe 'Kafka patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('sync_group.consumer.kafka', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -573,6 +580,7 @@ RSpec.describe 'Kafka patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('send_messages.producer.kafka', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
@@ -643,6 +651,7 @@ RSpec.describe 'Kafka patcher' do
 
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('deliver_messages.producer.kafka', payload) }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end

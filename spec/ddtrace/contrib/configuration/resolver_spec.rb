@@ -4,10 +4,12 @@ require 'ddtrace/contrib/configuration/resolver'
 
 RSpec.describe Datadog::Contrib::Configuration::Resolver do
   subject(:resolver) { described_class.new }
+
   let(:config) { double('config') }
 
   describe '#resolve' do
     subject(:resolve) { resolver.resolve(value) }
+
     let(:value) { 'value' }
 
     context 'with a matcher' do
@@ -15,11 +17,13 @@ RSpec.describe Datadog::Contrib::Configuration::Resolver do
 
       context 'that matches' do
         let(:added_matcher) { value }
+
         it { is_expected.to be config }
       end
 
       context 'that does not match' do
         let(:added_matcher) { :different_value }
+
         it { is_expected.to be nil }
       end
     end
@@ -45,7 +49,9 @@ RSpec.describe Datadog::Contrib::Configuration::Resolver do
 
   describe '#add' do
     subject(:add) { resolver.add(matcher, config) }
+
     let(:matcher) { double('matcher') }
+
     it { is_expected.to be config }
 
     it 'stores in the configuration field' do
@@ -56,6 +62,7 @@ RSpec.describe Datadog::Contrib::Configuration::Resolver do
 
   describe '#get' do
     subject(:get) { resolver.get(matcher) }
+
     let(:matcher) { double('matcher') }
 
     before { resolver.add(matcher, config) }

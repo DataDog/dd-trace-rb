@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/diagnostics/health'
@@ -9,6 +7,7 @@ RSpec.describe Datadog::Diagnostics::Health::Metrics do
 
   shared_examples_for 'a health metric' do |type, name, stat|
     subject(:health_metric) { health_metrics.send(name, *args, &block) }
+
     let(:args) { [1] }
     let(:block) { proc {} }
 
@@ -22,7 +21,7 @@ RSpec.describe Datadog::Diagnostics::Health::Metrics do
     end
   end
 
-  # rubocop:disable Metrics/LineLength
+  # rubocop:disable Layout/LineLength
   it_behaves_like 'a health metric', :count, :api_errors, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_API_ERRORS
   it_behaves_like 'a health metric', :count, :api_requests, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_API_REQUESTS
   it_behaves_like 'a health metric', :count, :api_responses, Datadog::Ext::Diagnostics::Health::Metrics::METRIC_API_RESPONSES

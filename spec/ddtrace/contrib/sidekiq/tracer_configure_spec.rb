@@ -5,6 +5,7 @@ RSpec.describe 'Tracer configuration' do
   include_context 'Sidekiq testing'
 
   subject(:perform_async) { job_class.perform_async }
+
   let(:job_class) { EmptyWorker }
   let(:error_handler) { nil }
 
@@ -30,6 +31,7 @@ RSpec.describe 'Tracer configuration' do
 
     context 'with custom error handler' do
       let(:job_class) { ErrorWorker }
+      let(:error_handler) { proc {} }
 
       before do
         stub_const('ErrorWorker', Class.new do
@@ -40,8 +42,6 @@ RSpec.describe 'Tracer configuration' do
           end
         end)
       end
-
-      let(:error_handler) { proc {} }
 
       it 'uses custom error handler' do
         expect(error_handler).to receive(:call)

@@ -5,6 +5,7 @@ RSpec.describe 'Disabled tracer' do
   include_context 'Sidekiq testing'
 
   subject(:perform_async) { job_class.perform_async }
+
   let(:job_class) { EmptyWorker }
 
   before do

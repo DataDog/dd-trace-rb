@@ -22,7 +22,6 @@ module Datadog
 
           @tracer.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER,
                                        on_error: @error_handler) do |span|
-
             span.resource = resource
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -38,9 +37,7 @@ module Datadog
             span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
             span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
             span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Time.now.utc.to_f - job['enqueued_at'].to_f))
-            if tag_args && !job['args'].nil? && !job['args'].empty?
-              span.set_tag(Ext::TAG_JOB_ARGS, job['args'])
-            end
+            span.set_tag(Ext::TAG_JOB_ARGS, job['args']) if tag_args && !job['args'].nil? && !job['args'].empty?
 
             yield
           end
@@ -60,9 +57,7 @@ module Datadog
             nil
           end
 
-          if worker_klass.respond_to?(:datadog_tracer_config)
-            worker_klass.datadog_tracer_config[key]
-          end
+          worker_klass.datadog_tracer_config[key] if worker_klass.respond_to?(:datadog_tracer_config)
         end
       end
     end

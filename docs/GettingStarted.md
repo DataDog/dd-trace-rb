@@ -46,6 +46,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [gRPC](#grpc)
      - [http.rb](#http-rb)
      - [httpclient](#httpclient)
+     - [httpx](#httpx)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#net-http)
@@ -145,7 +146,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
 ### Quickstart for Rails applications
 
-#### Rails Auto Instrument all Integrations
+#### Automatic instrumentation
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -158,7 +159,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
 3. You can configure, override, or disable any specific integration settings by also adding a [Rails Manual Configuration](#rails-manual-configuration) file.
 
-#### Rails Manual Configuration
+#### Manual instrumentation
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -181,10 +182,10 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
 ### Quickstart for Ruby applications
 
-#### Ruby Auto Instrument all Integrations
+#### Automatic instrumentation
 
 1. Install the gem with `gem install ddtrace`
-2. Requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented. 
+2. Requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented.
 3. Add `require 'ddtrace/auto_instrument'` to your application. _Note:_ This must be done _after_ requiring any supported libraries or frameworks.
 
     ```ruby
@@ -195,10 +196,10 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
     require 'ddtrace/auto_instrument'
     ```
- 
+
     You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).
 
-#### Ruby Manual Configuration
+#### Manual instrumentation
 
 1. Install the gem with `gem install ddtrace`
 2. Add a configuration block to your Ruby application:
@@ -398,6 +399,7 @@ For a list of available integrations, and their configuration options, please re
 | gRPC                     | `grpc`                     | `>= 1.7`                 | *gem not available*       | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
 | http.rb                  | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#http-rb)*                  | *[Link](https://github.com/httprb/http)*                                       |
 | httpclient                | `httpclient`              | `>= 2.2`                 | `>= 2.2`                  | *[Link](#httpclient)*               | *[Link](https://github.com/nahi/httpclient)*                                     |
+| httpx                     | `httpx`                   | `>= 0.11`                | `>= 0.11`                 | *[Link](#httpx)*                    | *[Link](https://gitlab.com/honeyryderchuck/httpx)*                             |
 | Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | `>= 0.7.10`               | *[Link](#kafka)*                    | *[Link](https://github.com/zendesk/ruby-kafka)*                                |
 | MongoDB                  | `mongo`                    | `>= 2.1`                 | `>= 2.1`                  | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
@@ -697,7 +699,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `true` |
 | `enabled` | Defines whether Cucumber tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `cucumber` instrumentation. | `'cucumber'` |
 | `operation_name` | Operation name used for `cucumber` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'cucumber.test'` |
@@ -1082,7 +1083,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 The httpclient integration will trace any HTTP call using the httpclient gem.
 
 ```ruby
-require 'http'
+require 'httpclient'
 require 'ddtrace'
 Datadog.configure do |c|
   c.use :httpclient, options
@@ -1102,6 +1103,25 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `httpclient` instrumentation. | `'httpclient'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+
+### httpx
+
+`httpx` maintains its [own integration with `ddtrace`](https://honeyryderchuck.gitlab.io/httpx/wiki/Datadog-Adapter):
+
+```ruby
+require "ddtrace"
+require "httpx/adapters/datadog"
+
+Datadog.configure do |c|
+  c.use :httpx
+
+  # optionally, specify a different service name for hostnames matching a regex
+  c.use :httpx, describes: /user-[^.]+\.example\.com/ do |http|
+    http.service_name = 'user.example.com'
+    http.split_by_domain = false # Only necessary if split_by_domain is true by default
+  end
+end
+```
 
 ### Kafka
 
@@ -1652,7 +1672,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `true` |
 | `enabled` | Defines whether RSpec tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `rspec` instrumentation. | `'rspec'` |
 | `operation_name` | Operation name used for `rspec` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'rspec.example'` |
@@ -1895,6 +1914,7 @@ Available options are:
  - `sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
  - `diagnostics.startup_logs.enabled`: Startup configuration and diagnostic log. Defaults to `true`. Can be configured through the `DD_TRACE_STARTUP_LOGS` environment variable.
  - `diagnostics.debug`: set to true to enable debug logging. Can be configured through the `DD_TRACE_DEBUG` environment variable. Defaults to `false`.
+ - `time_now_provider`: when testing, it might be helpful to use a different time provider. For Timecop, for example, `->{ Time.now_without_mock_time }` allows the tracer to use the real wall time. Span duration calculation will still use the system monotonic clock when available, thus not being affected by this setting. Defaults to `->{ Time.now }`.
 
 #### Custom logging
 
@@ -2119,6 +2139,7 @@ For more details on how to activate distributed tracing for integrations, see th
 - [Sinatra](#sinatra)
 - [http.rb](#http-rb)
 - [httpclient](#httpclient)
+- [httpx](#httpx)
 
 **Using the HTTP propagator**
 
@@ -2147,9 +2168,7 @@ end
 
 Traces that originate from HTTP requests can be configured to include the time spent in a frontend web server or load balancer queue before the request reaches the Ruby application.
 
-This functionality is **experimental** and deactivated by default.
-
-To activate this feature, you must add an `X-Request-Start` or `X-Queue-Start` header from your web server (i.e., Nginx). The following is an Nginx configuration example:
+This feature is disabled by default. To activate it, you must add an `X-Request-Start` or `X-Queue-Start` header from your web server (i.e., Nginx). The following is an Nginx configuration example:
 
 ```
 # /etc/nginx/conf.d/ruby_service.conf
@@ -2163,9 +2182,7 @@ server {
 }
 ```
 
-Then you must enable the request queuing feature in the integration handling the request.
-
-For Rack-based applications, see the [documentation](#rack) for details for enabling this feature.
+Then you must enable the request queuing feature, by setting `request_queuing: true`, in the integration handling the request. For Rack-based applications, see the [documentation](#rack) for details.
 
 ### Processing Pipeline
 

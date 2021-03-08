@@ -12,7 +12,6 @@ module Datadog
 
           tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name(job),
                                       on_error: configuration[:error_handler]) do |span|
-
             set_sample_rate(span)
 
             # Measure service stats

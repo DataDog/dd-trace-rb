@@ -48,7 +48,7 @@ module Datadog
           end
 
           def resolve(db_config)
-            active_record_config = connection_resolver.resolve(db_config).symbolize_keys
+            active_record_config = resolve_connection_key(db_config).symbolize_keys
 
             hash = normalize(active_record_config)
 
@@ -72,7 +72,7 @@ module Datadog
           protected
 
           def parse_matcher(matcher)
-            resolved_pattern = connection_resolver.resolve(matcher).symbolize_keys
+            resolved_pattern = resolve_connection_key(matcher).symbolize_keys
             normalized = normalize(resolved_pattern)
 
             # Remove empty fields to allow for partial matching
@@ -88,7 +88,9 @@ module Datadog
 
           def connection_resolver
             @resolver ||= begin
-              if defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
+              if defined?(::ActiveRecord::Base.configurations.resolve)
+                ::ActiveRecord::DatabaseConfigurations.new(active_record_configuration)
+              elsif defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
                 ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(active_record_configuration)
               else
                 ::Datadog::Vendor::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(
@@ -98,13 +100,23 @@ module Datadog
             end
           end
 
+          def resolve_connection_key(key)
+            result = connection_resolver.resolve(key)
+
+            if result.respond_to?(:configuration_hash) # Rails >= 6.1
+              result.configuration_hash
+            else # Rails < 6.1
+              result
+            end
+          end
+
           # Extract only fields we'd like to match
           # from the ActiveRecord configuration.
           def normalize(active_record_config)
             {
-              adapter:  active_record_config[:adapter],
-              host:     active_record_config[:host],
-              port:     active_record_config[:port],
+              adapter: active_record_config[:adapter],
+              host: active_record_config[:host],
+              port: active_record_config[:port],
               database: active_record_config[:database],
               username: active_record_config[:username]
             }

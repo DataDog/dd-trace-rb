@@ -26,11 +26,13 @@ RSpec.describe Datadog::Contrib::Resque::Integration do
 
     context 'when Resque is defined' do
       before { stub_const('Resque', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when Resque is not defined' do
       before { hide_const('Resque') }
+
       it { is_expected.to be false }
     end
   end
@@ -68,16 +70,19 @@ RSpec.describe Datadog::Contrib::Resque::Integration do
 
   describe '#auto_instrument?' do
     subject(:auto_instrument?) { integration.auto_instrument? }
+
     it { is_expected.to be(true) }
   end
 
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::Resque::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::Resque::Patcher }
   end
 end

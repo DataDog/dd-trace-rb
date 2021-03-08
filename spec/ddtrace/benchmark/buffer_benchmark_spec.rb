@@ -21,12 +21,14 @@ RSpec.describe 'Microbenchmark Buffer' do
   describe 'CRubyTraceBuffer' do
     before { skip unless PlatformHelpers.mri? }
 
-    include_examples 'benchmark'
     let(:buffer) { Datadog::CRubyTraceBuffer.new(max_size) }
+
+    include_examples 'benchmark'
   end
 
   describe 'ThreadSafeTraceBuffer' do
-    include_examples 'benchmark'
     let(:buffer) { Datadog::ThreadSafeTraceBuffer.new(max_size) }
+
+    include_examples 'benchmark'
   end
 end

@@ -5,8 +5,9 @@ require 'net/http'
 require 'time'
 
 RSpec.describe 'net/http miniapp tests' do
-  before(:each) { WebMock.enable! }
-  after(:each) do
+  before { WebMock.enable! }
+
+  after do
     WebMock.reset!
     WebMock.disable!
   end
@@ -16,17 +17,18 @@ RSpec.describe 'net/http miniapp tests' do
   let(:uri) { "http://#{host}:#{port}" }
 
   let(:client) { Net::HTTP.new(host, port) }
-  before(:each) do
+
+  before do
     Datadog.configure { |c| c.use :http }
   end
 
   context 'when performing a trace around HTTP calls' do
-    before(:each) do
+    before do
       stub_request(:get, %r{#{uri}/.*}).to_return(body: '{}')
     end
 
     shared_examples_for 'a trace with two HTTP calls' do
-      before(:each) do
+      before do
         tracer.trace('page') do |span|
           span.service = 'webapp'
           span.resource = '/index'

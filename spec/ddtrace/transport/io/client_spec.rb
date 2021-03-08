@@ -4,6 +4,7 @@ require 'ddtrace/transport/io/client'
 
 RSpec.describe Datadog::Transport::IO::Client do
   subject(:client) { described_class.new(out, encoder) }
+
   let(:out) { instance_double(IO) }
   let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
 

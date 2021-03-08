@@ -14,6 +14,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
   describe '#adapter' do
     context 'given a symbol' do
       subject(:adapter) { builder.adapter(type, *args) }
+
       let(:type) { :foo }
       let(:args) { [double('arg1'), double('arg2')] }
 
@@ -44,6 +45,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
     context 'given an adapter object' do
       subject(:adapter) { builder.adapter(adapter_object) }
+
       let(:adapter_object) { double('adapter object') }
 
       it 'changes the default adapter' do
@@ -74,6 +76,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
   describe '#api' do
     subject(:api) { builder.api(key, spec, options) }
+
     let(:key) { :v2 }
     let(:spec) { instance_double(Datadog::Transport::HTTP::API::Spec) }
     let(:options) { {} }
@@ -133,12 +136,14 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
   describe '#default_api=' do
     subject(:default_api) { builder.default_api = key }
+
     let(:key) { double('API key') }
 
     before { builder.api :original, instance_double(Datadog::Transport::HTTP::API::Spec), default: true }
 
     context 'which matches an already defined API' do
       before { builder.api key, instance_double(Datadog::Transport::HTTP::API::Spec) }
+
       it { expect { default_api }.to change { builder.default_api }.from(:original).to(key) }
     end
 
@@ -152,6 +157,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
     shared_context 'default adapter' do
       before { builder.adapter(adapter) }
+
       let(:adapter) { double('adapter') }
     end
 
@@ -161,6 +167,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
     context 'when an API is defined' do
       before { builder.api(key, spec, options) }
+
       let(:key) { :v2 }
       let(:spec) { instance_double(Datadog::Transport::HTTP::API::Spec) }
       let(:options) { {} }
@@ -240,6 +247,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
         context 'which conflict with default headers' do
           let(:api_headers) { { 'X-Test-Two' => 'blah', 'X-Test-Three' => 'baz' } }
+
           before { builder.headers('X-Test-One' => 'foo', 'X-Test-Two' => 'bar') }
 
           it 'configures the API instance with the given adapter' do

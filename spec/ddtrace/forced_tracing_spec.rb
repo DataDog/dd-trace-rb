@@ -6,18 +6,21 @@ require 'ddtrace/span'
 RSpec.describe Datadog::ForcedTracing do
   describe '.keep' do
     subject(:keep) { described_class.keep(span) }
+
     let(:span) { instance_double(Datadog::Span, context: trace_context) }
     let(:trace_context) { instance_double(Datadog::Context) }
 
     context 'given span' do
       context 'that is nil' do
         let(:span) { nil }
+
         it { expect { keep }.to_not raise_error }
       end
 
       context 'and a context' do
         context 'that is nil' do
           let(:trace_context) { nil }
+
           it { expect { keep }.to_not raise_error }
         end
 
@@ -38,18 +41,21 @@ RSpec.describe Datadog::ForcedTracing do
 
   describe '.drop' do
     subject(:drop) { described_class.drop(span) }
+
     let(:span) { instance_double(Datadog::Span, context: trace_context) }
     let(:trace_context) { instance_double(Datadog::Context) }
 
     context 'given span' do
       context 'that is nil' do
         let(:span) { nil }
+
         it { expect { drop }.to_not raise_error }
       end
 
       context 'and a context' do
         context 'that is nil' do
           let(:trace_context) { nil }
+
           it { expect { drop }.to_not raise_error }
         end
 

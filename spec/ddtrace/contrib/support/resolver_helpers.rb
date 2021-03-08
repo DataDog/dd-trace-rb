@@ -1,4 +1,4 @@
-RSpec.shared_context 'a resolver with a matching pattern' do
+RSpec.shared_examples 'a resolver with a matching pattern' do
   it 'returns the associated configuration' do
     is_expected.to be(config)
   end

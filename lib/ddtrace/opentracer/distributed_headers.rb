@@ -29,8 +29,10 @@ module Datadog
         # It's important to make a difference between no header,
         # and a header defined to zero.
         return unless hdr
+
         value = hdr.to_i
         return if value < 0
+
         value
       end
 
@@ -45,6 +47,7 @@ module Datadog
       def id(header)
         value = @carrier[header].to_i
         return if value.zero? || value >= Datadog::Span::EXTERNAL_MAX_ID
+
         value < 0 ? value + 0x1_0000_0000_0000_0000 : value
       end
     end

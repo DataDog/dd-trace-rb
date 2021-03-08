@@ -187,9 +187,7 @@ module Datadog
           string_tags = Hash[new_value.collect { |k, v| [k.to_s, v] }]
 
           # Cross-populate tag values with other settings
-          if env.nil? && string_tags.key?(Ext::Environment::TAG_ENV)
-            self.env = string_tags[Ext::Environment::TAG_ENV]
-          end
+          self.env = string_tags[Ext::Environment::TAG_ENV] if env.nil? && string_tags.key?(Ext::Environment::TAG_ENV)
 
           if version.nil? && string_tags.key?(Ext::Environment::TAG_VERSION)
             self.version = string_tags[Ext::Environment::TAG_VERSION]
@@ -204,6 +202,22 @@ module Datadog
         end
 
         o.lazy
+      end
+
+      option :time_now_provider do |o|
+        o.default { ::Time.now }
+
+        o.on_set do |time_provider|
+          Utils::Time.now_provider = time_provider
+        end
+
+        o.resetter do |_value|
+          # TODO: Resetter needs access to the default value
+          # TODO: to help reduce duplication.
+          -> { ::Time.now }.tap do |default|
+            Utils::Time.now_provider = default
+          end
+        end
       end
 
       settings :tracer do

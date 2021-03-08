@@ -7,12 +7,15 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Registry do
 
   describe '#get' do
     subject(:get) { registry.get(name) }
+
     let(:name) { double('name') }
 
     context 'when name' do
       context 'exists' do
         let(:klass) { double('class') }
+
         before { registry.set(klass, name) }
+
         it { is_expected.to be klass }
       end
 
@@ -27,6 +30,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Registry do
 
     context 'when given a name' do
       subject(:set) { registry.set(klass, name) }
+
       let(:name) { double('name') }
 
       it do
@@ -37,6 +41,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Registry do
 
     context 'when not given a name' do
       subject(:set) { registry.set(klass) }
+
       let(:name) { double('name') }
 
       before { allow(klass).to receive(:to_s).and_return(name) }

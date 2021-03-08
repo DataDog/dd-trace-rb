@@ -142,17 +142,20 @@ module Datadog
 
         def downgrade?(response)
           return false unless apis.fallbacks.key?(@current_api_id)
+
           response.not_found? || response.unsupported?
         end
 
         def downgrade!
           downgrade_api_id = apis.fallbacks[@current_api_id]
           raise NoDowngradeAvailableError, @current_api_id if downgrade_api_id.nil?
+
           change_api!(downgrade_api_id)
         end
 
         def change_api!(api_id)
           raise UnknownApiVersionError, api_id unless apis.key?(api_id)
+
           @current_api_id = api_id
           @client = HTTP::Client.new(current_api)
         end
