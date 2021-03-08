@@ -257,12 +257,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         include_context 'with profiling extensions'
 
         before do
-          real_current_thread = Thread.current
-          mock_thread = double('Mock current thread', cpu_time: true)
-          allow(mock_thread).to receive(:[]) { |name| real_current_thread[name] }
-          allow(mock_thread).to receive(:[]=) { |name, value| real_current_thread[name] = value }
-
-          allow(Thread).to receive(:current).and_return(mock_thread)
+          safely_mock_thread_current_with(double('Mock current thread', cpu_time: true))
 
           allow(thread)
             .to receive(:cpu_time_instrumentation_installed?)
@@ -341,7 +336,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     context 'when CPU timing is supported' do
       before do
-        allow(Thread).to receive(:current).and_return(double('Current thread', cpu_time: true))
+        safely_mock_thread_current_with(double('Mock current thread', cpu_time: true))
       end
 
       include_context 'with profiling extensions'
@@ -357,13 +352,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         it { is_expected.to be nil }
 
         it 'logs a warning' do
-          expect(Datadog.logger).to receive(:warn).with(/missing CPU profiling instrumentation/)
+          expect(Datadog.logger).to receive(:debug).with(/missing CPU profiling instrumentation/)
 
           get_cpu_time_interval!
         end
 
         it 'logs a warning only once' do
-          expect(Datadog.logger).to receive(:warn).once
+          expect(Datadog.logger).to receive(:debug).once
 
           get_cpu_time_interval!
           get_cpu_time_interval!
@@ -663,5 +658,15 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
     end
+  end
+
+  # Why? When mocking Thread.current, we break fiber-local variables (sometimes mistakenly referred to as
+  # thread-local variables), which are needed when RSpec is trying to print test results for a failing test
+  # We can avoid breaking RSpec by adding back fiber-local variables to our mock.
+  def safely_mock_thread_current_with(mock_thread)
+    real_current_thread = Thread.current
+    allow(mock_thread).to receive(:[]) { |name| real_current_thread[name] }
+    allow(mock_thread).to receive(:[]=) { |name, value| real_current_thread[name] = value }
+    allow(Thread).to receive(:current).and_return(mock_thread)
   end
 end
