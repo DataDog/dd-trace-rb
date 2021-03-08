@@ -399,6 +399,28 @@ RSpec.describe Datadog::Configuration do
           expect(test_class.send(:components?)).to be false
         end
       end
+
+      context 'when components are being replaced' do
+        before do
+          test_class.configure
+          allow(test_class.send(:components)).to receive(:shutdown!)
+        end
+
+        it 'returns the old logger' do
+          old_logger = test_class.logger
+          logger_during_component_replacement = nil
+
+          allow(Datadog::Configuration::Components).to receive(:new) do
+            # simulate getting the logger during reinitialization
+            logger_during_component_replacement = test_class.logger
+            instance_double(Datadog::Configuration::Components, startup!: nil)
+          end
+
+          test_class.configure
+
+          expect(logger_during_component_replacement).to be old_logger
+        end
+      end
     end
 
     describe '#profiler' do
