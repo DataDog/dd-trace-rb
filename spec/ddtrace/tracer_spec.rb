@@ -508,22 +508,24 @@ RSpec.describe Datadog::Tracer do
   describe '#set_service_info' do
     include_context 'tracer logging'
 
-    # Ensure we have a clean `@done_once` before and after each test
+    # Ensure we have a clean OnlyOnce before and after each test
     # so we can properly test the behavior here, and we don't pollute other tests
-    before { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+    before { described_class::SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE.send(:reset_ran_once_state_for_tests) }
 
-    after { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+    after { described_class::SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE.send(:reset_ran_once_state_for_tests) }
 
     before do
       # Call multiple times to assert we only log once
+      allow(Datadog.logger).to receive(:warn).and_call_original
+
       tracer.set_service_info('service-A', 'app-A', 'app_type-A')
       tracer.set_service_info('service-B', 'app-B', 'app_type-B')
       tracer.set_service_info('service-C', 'app-C', 'app_type-C')
       tracer.set_service_info('service-D', 'app-D', 'app_type-D')
     end
 
-    it 'generates a single deprecation warnings' do
-      expect(log_buffer.length).to be > 1
+    it 'generates a single deprecation warning' do
+      expect(Datadog.logger).to have_received(:warn).once
       expect(log_buffer).to contain_line_with('Usage of set_service_info has been deprecated')
     end
   end

@@ -1,3 +1,4 @@
+require 'ddtrace/patcher'
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/integration'
