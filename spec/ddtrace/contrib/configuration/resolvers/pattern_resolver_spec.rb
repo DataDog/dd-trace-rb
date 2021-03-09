@@ -85,6 +85,24 @@ RSpec.describe Datadog::Contrib::Configuration::Resolvers::PatternResolver do
       before { resolver.add('my-value', config) }
 
       it { is_expected.to be nil }
+
+      describe 'benchmark' do
+        before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
+
+        it 'measure PatternResolver#resolve(str)' do
+          require 'benchmark/ips'
+
+          Benchmark.ips do |x|
+            x.config(time: 15, warmup: 2)
+
+            x.report 'resolver.resolve(str)' do
+              resolver.resolve(value)
+            end
+
+            x.compare!
+          end
+        end
+      end
     end
 
     context 'with two matching patterns' do

@@ -153,6 +153,24 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
           # Widget is configured to show up as its own database service
           expect(widget_span.service).to eq(widget_db_service_name)
         end
+
+        describe 'benchmark' do
+          before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
+
+          it 'measure #count' do
+            require 'benchmark/ips'
+
+            Benchmark.ips do |x|
+              x.config(time: 15, warmup: 2)
+
+              x.report 'gadget_class.count' do
+                gadget_class.count
+              end
+
+              x.compare!
+            end
+          end
+        end
       end
     end
 
