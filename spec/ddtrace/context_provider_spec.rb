@@ -143,12 +143,6 @@ RSpec.describe Datadog::ThreadLocalContext do
         expect(local).to_not be(thread_local_context.local)
       end
     end
-
-    context 'given a bad argument' do
-      subject(:local) { thread_local_context.local('bad_arg') }
-
-      it { expect { local }.to raise_error(ArgumentError) }
-    end
   end
 
   describe '#local=' do
