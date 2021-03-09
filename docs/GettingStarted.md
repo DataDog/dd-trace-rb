@@ -1578,16 +1578,11 @@ The Resque integration uses Resque hooks that wraps the `perform` method.
 To add tracing to a Resque job:
 
 ```ruby
+require 'resque'
 require 'ddtrace'
 
-class MyJob
-  def self.perform(*args)
-    # do_something
-  end
-end
-
 Datadog.configure do |c|
-  c.use :resque, options
+  c.use :resque, auto_instrument: true, **options
 end
 ```
 
@@ -1597,7 +1592,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `resque` instrumentation | `'resque'` |
-| `workers` | An array including all worker classes you want to trace (e.g. `[MyJob]`) | `[]` |
+| `auto_instrument` | Instrument all Resque jobs (recommended). | `false` |
+| `workers` | An array including all worker classes you want to trace (e.g. `[MyJob]`). Use `auto_instrument` instead if you'd like to instrument all jobs. | `[]` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
 ### Rest Client

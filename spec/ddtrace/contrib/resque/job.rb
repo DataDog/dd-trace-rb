@@ -14,7 +14,6 @@ RSpec.shared_context 'Resque job' do
   let(:worker) { Resque::Worker.new(queue_name) }
   let(:job_class) do
     stub_const('TestJob', Class.new).tap do |mod|
-      mod.send(:extend, Datadog::Contrib::Resque::ResqueJob)
       mod.send(:define_singleton_method, :perform) do |*args|
         # Do nothing by default.
       end

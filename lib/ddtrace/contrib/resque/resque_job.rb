@@ -7,6 +7,18 @@ require 'resque'
 module Datadog
   module Contrib
     module Resque
+      # Automatically configures jobs with {ResqueJob} plugin.
+      module Job
+        def perform
+          if Datadog.configuration[:resque][:auto_instrument]
+            job = payload_class
+            job.extend(Datadog::Contrib::Resque::ResqueJob) unless job.is_a? Datadog::Contrib::Resque::ResqueJob
+          end
+        ensure
+          super
+        end
+      end
+
       # Uses Resque job hooks to create traces
       module ResqueJob
         def around_perform(*args)

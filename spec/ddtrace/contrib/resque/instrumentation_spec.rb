@@ -92,7 +92,7 @@ RSpec.describe 'Resque instrumentation' do
       end
 
       context 'with custom error handler' do
-        let(:configuration_options) { { error_handler: error_handler } }
+        let(:configuration_options) { super().merge(error_handler: error_handler) }
         let(:error_handler) { proc {} }
 
         it 'uses custom error handler' do
@@ -114,6 +114,8 @@ RSpec.describe 'Resque instrumentation' do
       end
     end
 
+    let(:configuration_options) { { auto_instrument: true } }
+
     it_behaves_like 'job execution tracing'
 
     it 'ensures worker is not using forking' do
@@ -123,6 +125,8 @@ RSpec.describe 'Resque instrumentation' do
 
   context 'with forking' do
     before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+
+    let(:configuration_options) { { auto_instrument: true } }
 
     it_behaves_like 'job execution tracing'
 
@@ -159,22 +163,32 @@ RSpec.describe 'Resque instrumentation' do
   end
 
   describe 'patching for workers' do
-    let(:worker_class_1) { Class.new }
-    let(:worker_class_2) { Class.new }
-
     before do
       # Remove the patch so it applies new patch
       remove_patch!(:resque)
 
       # Re-apply patch, to workers
       Datadog.configure do |c|
-        c.use(:resque, workers: [worker_class_1, worker_class_2])
+        c.use(:resque, workers: [job_class])
       end
     end
 
-    it 'adds the instrumentation module' do
-      expect(worker_class_1.singleton_class.included_modules).to include(Datadog::Contrib::Resque::ResqueJob)
-      expect(worker_class_2.singleton_class.included_modules).to include(Datadog::Contrib::Resque::ResqueJob)
+    it_behaves_like 'job execution tracing'
+  end
+
+  describe 'with auto instrumentation' do
+    let(:configuration_options) { { auto_instrument: true } }
+
+    it_behaves_like 'job execution tracing'
+  end
+
+  describe 'with auto instrumentation disabled' do
+    let(:configuration_options) { {} } # The default is disabled
+
+    before { perform_job(job_class, job_args) }
+
+    it 'no tracing happens' do
+      expect(spans).to be_empty
     end
   end
 end

@@ -17,6 +17,9 @@ module Datadog
 
         def patch
           require_relative 'resque_job'
+
+          ::Resque::Job.send(:prepend, Resque::Job)
+
           get_option(:workers).each { |worker| worker.extend(ResqueJob) }
         end
 
