@@ -35,7 +35,7 @@ RSpec.describe Datadog::Contrib::Configurable do
 
           it do
             expect { reset_configuration! }.to change { configurable_object.configurations.keys }
-              .from([:default, :foo])
+              .from(match_array([:default, :foo]))
               .to([:default])
           end
         end
@@ -64,30 +64,6 @@ RSpec.describe Datadog::Contrib::Configurable do
           context 'but the configuration doesn\'t exist' do
             it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
             it { is_expected.to be(configurable_object.configurations[:default]) }
-          end
-        end
-      end
-
-      describe '#configuration_for?' do
-        context 'when a key is provided' do
-          subject(:configuration_for?) { configurable_object.configuration_for?(key) }
-
-          let(:key) { :foo }
-
-          context 'as :default' do
-            let(:key) { :default }
-
-            it { is_expected.to be true }
-          end
-
-          context 'and the configuration exists' do
-            before { configurable_object.configure(:foo, service_name: 'bar') }
-
-            it { is_expected.to be true }
-          end
-
-          context 'but the configuration doesn\'t exist' do
-            it { is_expected.to be false }
           end
         end
       end
