@@ -169,6 +169,25 @@ module Datadog
       }
     end
 
+    def to_h
+      {
+        :__class => self.class.name,
+        :@buff_size => @buff_size,
+        :@flush_interval => @flush_interval,
+        :@mutex_after_fork => @mutex_after_fork,
+        :@pid => @pid,
+        :@stopped => @stopped,
+        :@traces_flushed => @traces_flushed,
+        :priority_sampler => priority_sampler,
+        :transport => transport,
+        :worker => worker.to_h
+      }
+    end
+
+    def inspect
+      JSON.pretty_generate(to_h)
+    end
+
     private
 
     def inject_hostname!(traces)

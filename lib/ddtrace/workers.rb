@@ -102,6 +102,25 @@ module Datadog
         @trace_buffer.push(trace)
       end
 
+      def to_h
+        {
+          :__class => self.class.name,
+          :@back_off => @back_off,
+          :@flush_interval => @flush_interval,
+          :@mutex => @mutex,
+          :@run => @run,
+          :@shutdown => @shutdown,
+          :@trace_buffer => @trace_buffer,
+          :@trace_task => @trace_task,
+          :@transport => @transport,
+          :@worker => @worker
+        }
+      end
+
+      def inspect
+        JSON.pretty_generate(to_h)
+      end
+
       private
 
       alias flush_data callback_traces

@@ -440,6 +440,22 @@ module Datadog
       @sampler = base_sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
     end
 
+    def to_h
+      {
+        :__class => self.class.name,
+        context_flush: context_flush,
+        enabled: enabled,
+        provider: provider,
+        sampler: sampler,
+        tags: tags,
+        writer: writer.to_h
+      }
+    end
+
+    def inspect
+      JSON.pretty_generate(to_h)
+    end
+
     private \
       :activate_priority_sampling!,
       :configure_writer,
