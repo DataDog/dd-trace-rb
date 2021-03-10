@@ -39,7 +39,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   describe '::new' do
     it 'with default settings' do
       is_expected.to have_attributes(
-        enabled?: false,
+        enabled?: true,
         fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
         ignore_thread: nil,
         loop_base_interval: described_class::MIN_INTERVAL,

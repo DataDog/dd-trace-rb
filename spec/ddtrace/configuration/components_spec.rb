@@ -8,6 +8,13 @@ RSpec.describe Datadog::Configuration::Components do
 
   let(:settings) { Datadog::Configuration::Settings.new }
 
+  let(:profiler_setup_task) { instance_double(Datadog::Profiling::Tasks::Setup) }
+
+  before do
+    # Ensure the real task never gets run (so it doesn't apply our thread patches and other extensions to our test env)
+    allow(Datadog::Profiling::Tasks::Setup).to receive(:new).and_return(profiler_setup_task)
+  end
+
   describe '::new' do
     let(:settings) { instance_double(Datadog::Configuration::Settings) }
     let(:logger) { instance_double(Datadog::Logger) }
@@ -628,10 +635,7 @@ RSpec.describe Datadog::Configuration::Components do
       end
 
       shared_examples_for 'disabled profiler' do
-        it do
-          expect(profiler.collectors).to be_empty
-          expect(profiler.scheduler.enabled?).to be false
-        end
+        it { is_expected.to be nil }
       end
 
       shared_context 'enabled profiler' do
@@ -639,6 +643,7 @@ RSpec.describe Datadog::Configuration::Components do
           allow(settings.profiling)
             .to receive(:enabled)
             .and_return(true)
+          allow(profiler_setup_task).to receive(:run)
         end
       end
 
@@ -726,23 +731,11 @@ RSpec.describe Datadog::Configuration::Components do
           it_behaves_like 'profiler with default scheduler'
           it_behaves_like 'profiler with default recorder'
           it_behaves_like 'profiler with default exporters'
-        end
 
-        context 'and :cpu.enabled' do
-          context 'false' do
-            before do
-              allow(settings.profiling.cpu)
-                .to receive(:enabled)
-                .and_return(false)
-            end
+          it 'runs the setup task to set up any needed extensions for profiling' do
+            expect(profiler_setup_task).to receive(:run)
 
-            it_behaves_like 'profiler with default scheduler'
-            it_behaves_like 'profiler with default recorder'
-            it_behaves_like 'profiler with default exporters'
-
-            it 'does not have a CPU collector' do
-              expect(profiler.collectors).to be_empty
-            end
+            build_profiler
           end
         end
 
@@ -958,6 +951,7 @@ RSpec.describe Datadog::Configuration::Components do
           allow(settings.profiling)
             .to receive(:enabled)
             .and_return(true)
+          allow(profiler_setup_task).to receive(:run)
         end
 
         it do
@@ -976,8 +970,9 @@ RSpec.describe Datadog::Configuration::Components do
         end
 
         it do
-          expect(components.profiler)
-            .to_not receive(:start)
+          expect(components.logger)
+            .to receive(:debug)
+            .with(/is disabled/)
 
           startup!
         end
@@ -1028,7 +1023,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components' do
           expect(components.tracer).to receive(:shutdown!)
-          expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
+          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
@@ -1048,7 +1043,7 @@ RSpec.describe Datadog::Configuration::Components do
 
           it 'shuts down all components' do
             expect(components.tracer).to receive(:shutdown!)
-            expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
+            expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
             expect(components.runtime_metrics).to receive(:enabled=)
               .with(false)
             expect(components.runtime_metrics).to receive(:stop)
@@ -1067,7 +1062,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components but the tracer' do
           expect(components.tracer).to_not receive(:shutdown!)
-          expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
+          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
@@ -1086,7 +1081,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components but the tracer' do
           expect(components.tracer).to receive(:shutdown!)
-          expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
+          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
@@ -1106,7 +1101,7 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components but the tracer' do
           expect(components.tracer).to receive(:shutdown!)
-          expect(components.profiler).to receive(:shutdown!) unless profiler.nil?
+          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.runtime_metrics).to receive(:enabled=)
             .with(false)
           expect(components.runtime_metrics).to receive(:stop)
