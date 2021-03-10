@@ -56,7 +56,7 @@ RSpec.shared_context 'benchmark' do
                   @type
                 end
 
-    warn(@test, file_name, result)
+    warn(@test, file_name, result.to_s)
 
     directory = result_directory!(subtype)
     path = File.join(directory, file_name)

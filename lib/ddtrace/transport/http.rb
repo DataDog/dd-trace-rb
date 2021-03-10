@@ -7,6 +7,7 @@ require 'ddtrace/runtime/container'
 require 'ddtrace/transport/http/builder'
 require 'ddtrace/transport/http/api'
 
+require 'ddtrace/transport/http/adapters/ethon'
 require 'ddtrace/transport/http/adapters/net'
 require 'ddtrace/transport/http/adapters/test'
 require 'ddtrace/transport/http/adapters/unix_socket'
@@ -96,6 +97,7 @@ module Datadog
       end
 
       # Add adapters to registry
+      Builder::REGISTRY.set(Adapters::Ethon, :ethon)
       Builder::REGISTRY.set(Adapters::Net, :net_http)
       Builder::REGISTRY.set(Adapters::Test, :test)
       Builder::REGISTRY.set(Adapters::UnixSocket, :unix)

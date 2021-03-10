@@ -18,12 +18,24 @@ RSpec.describe 'Microbenchmark Transport' do
       # in a single method call. This would translate to
       # up to 1000 spans per second in a real application.
       let(:steps) { [1, 10, 100, 1000] }
-      let(:transport) { Datadog::Transport::HTTP.default }
-
-      include_examples 'benchmark'
+      let(:transport) { Datadog.tracer.writer.transport }
 
       def subject(i)
         transport.send_traces(span[i])
+      end
+
+      context 'with Net::HTTP adapter' do
+        include_examples 'benchmark'
+      end
+
+      context 'with Ethon adapter' do
+        before do
+          Datadog.configure do |c|
+            c.tracer.transport_options = ->(t) { t.adapter :ethon }
+          end
+        end
+
+        include_examples 'benchmark'
       end
     end
   end

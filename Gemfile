@@ -11,6 +11,7 @@ gem 'builder'
 gem 'climate_control', '~> 0.2.0'
 # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
 gem 'concurrent-ruby'
+gem 'ethon', '>= 0.8.0'
 gem 'memory_profiler', '~> 0.9'
 gem 'minitest', '= 5.10.1'
 gem 'minitest-around', '0.5.0'

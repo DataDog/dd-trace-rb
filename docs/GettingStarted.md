@@ -2361,9 +2361,27 @@ By default, the tracer submits trace data using `Net::HTTP` to `127.0.0.1:8126`,
 
 Some basic settings, such as hostname and port, can be configured using [tracer settings](#tracer-settings).
 
+#### Using the Ethon adapter
+
+The `:ethon` adapter submits traces using [`Ethon`](https://github.com/typhoeus/ethon) over TCP. It is more memory efficient than the default `Net::HTTP` adapter, and it's a recommended replacement for the default adapter.
+Requires `ethon` version `0.8.0` or later to be available in the environment.
+
+```ruby
+# Gemfile
+gem 'ethon', '>= 0.8.0'
+```
+
+```ruby
+Datadog.configure do |c|
+  c.tracer.transport_options = proc { |t|
+    t.adapter :ethon
+  }
+end
+```
+
 #### Using the Net::HTTP adapter
 
-The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default transport adapter.
+The `:net_http` adapter submits traces using `Net::HTTP` over TCP. It is the default transport adapter.
 
 ```ruby
 Datadog.configure do |c|
@@ -2376,7 +2394,7 @@ end
 
 #### Using the Unix socket adapter
 
-The `UnixSocket` adapter submits traces using `Net::HTTP` over Unix socket.
+The `:unix` adapter submits traces using `Net::HTTP` over Unix socket.
 
 To use, first configure your trace agent to listen by Unix socket, then configure the tracer with:
 
@@ -2391,7 +2409,7 @@ end
 
 #### Using the transport test adapter
 
-The `Test` adapter is a no-op transport that can optionally buffer requests. For use in test suites or other non-production environments.
+The `:test` adapter is a no-op transport that can optionally buffer requests. For use in test suites or other non-production environments.
 
 ```ruby
 Datadog.configure do |c|
