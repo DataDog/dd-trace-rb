@@ -110,10 +110,6 @@ module Datadog
       end
 
       settings :profiling do
-        settings :cpu do
-          option :enabled, default: true
-        end
-
         option :enabled do |o|
           o.default { env_to_bool(Ext::Profiling::ENV_ENABLED, false) }
           o.lazy
