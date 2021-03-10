@@ -13,7 +13,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
   describe '::new' do
     it 'with default settings' do
       is_expected.to have_attributes(
-        enabled?: false,
+        enabled?: true,
         exporters: exporters,
         fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
         loop_base_interval: described_class::DEFAULT_INTERVAL,

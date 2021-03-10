@@ -11,69 +11,32 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
   describe '#run' do
     subject(:run) { task.run }
 
-    it do
-      expect(task).to receive(:activate_main_extensions).ordered
-      expect(task).to receive(:autostart_profiler).ordered
-      run
-    end
-  end
-
-  describe '#activate_main_extensions' do
-    subject(:activate_main_extensions) { task.activate_main_extensions }
-
     before do
+      described_class.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+    end
+
+    it 'actives the forking and the CPU extensions before setting up the at_fork hooks' do
       expect(task).to receive(:activate_forking_extensions).ordered
       expect(task).to receive(:activate_cpu_extensions).ordered
+      expect(task).to receive(:setup_at_fork_hooks).ordered
+
+      run
     end
 
-    context 'and Process' do
-      context 'responds to #at_fork' do
-        it do
-          without_partial_double_verification do
-            allow(Process)
-              .to receive(:respond_to?)
-              .and_call_original
+    it 'only sets up the extensions and hooks once, even across different instances' do
+      expect_any_instance_of(described_class).to receive(:activate_forking_extensions).once
+      expect_any_instance_of(described_class).to receive(:activate_cpu_extensions).once
+      expect_any_instance_of(described_class).to receive(:setup_at_fork_hooks).once
 
-            allow(Process)
-              .to receive(:respond_to?)
-              .with(:at_fork)
-              .and_return(true)
-
-            expect(Process).to receive(:at_fork) do |stage, &block|
-              expect(stage).to eq(:child)
-              # Might be better to assert it attempts to update native IDs here
-              expect(block).to_not be nil
-            end
-
-            activate_main_extensions
-          end
-        end
-      end
-
-      context 'does not respond to #at_fork' do
-        before do
-          allow(Process)
-            .to receive(:respond_to?)
-            .and_call_original
-
-          allow(Process)
-            .to receive(:respond_to?)
-            .with(:at_fork, any_args)
-            .and_return(false)
-        end
-
-        it do
-          without_partial_double_verification do
-            expect(Process).to_not receive(:at_fork)
-            activate_main_extensions
-          end
-        end
-      end
+      task.run
+      task.run
+      described_class.new.run
+      described_class.new.run
     end
   end
 
   describe '#activate_forking_extensions' do
-    subject(:activate_forking_extensions) { task.activate_forking_extensions }
+    subject(:activate_forking_extensions) { task.send(:activate_forking_extensions) }
 
     context 'when forking extensions are supported' do
       before do
@@ -148,7 +111,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
   end
 
   describe '#activate_cpu_extensions' do
-    subject(:activate_cpu_extensions) { task.activate_cpu_extensions }
+    subject(:activate_cpu_extensions) { task.send(:activate_cpu_extensions) }
 
     context 'when CPU extensions are supported' do
       before do
@@ -222,126 +185,99 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     end
   end
 
-  describe '#autostart_profiler' do
-    subject(:autostart_profiler) { task.autostart_profiler }
+  describe '#setup_at_fork_hooks' do
+    subject(:setup_at_fork_hooks) { task.send(:setup_at_fork_hooks) }
 
-    context 'when profiling' do
-      context 'is supported' do
-        let(:profiler) { instance_double(Datadog::Profiler) }
+    context 'when Process#at_fork is available' do
+      before do
+        allow(Process).to receive(:respond_to?).with(:at_fork).and_return(true)
+        allow(Datadog).to receive(:profiler)
 
-        before do
-          skip 'Profiling not supported.' unless defined?(Datadog::Profiler)
-
-          allow(Datadog::Profiling)
-            .to receive(:supported?)
-            .and_return(true)
-
-          allow(Datadog)
-            .to receive(:profiler)
-            .and_return(profiler)
-        end
-
-        context 'and Process' do
-          context 'responds to #at_fork' do
-            it do
-              without_partial_double_verification do
-                allow(Process)
-                  .to receive(:respond_to?)
-                  .and_call_original
-
-                allow(Process)
-                  .to receive(:respond_to?)
-                  .with(:at_fork)
-                  .and_return(true)
-
-                expect(profiler).to receive(:start)
-
-                expect(Process).to receive(:at_fork) do |stage, &block|
-                  expect(stage).to eq(:child)
-                  # Might be better to assert it attempts to restart the profiler here
-                  expect(block).to_not be nil
-                end
-
-                autostart_profiler
-              end
-            end
-          end
-
-          context 'does not respond to #at_fork' do
-            before do
-              allow(Process)
-                .to receive(:respond_to?)
-                .and_call_original
-
-              allow(Process)
-                .to receive(:respond_to?)
-                .with(:at_fork, any_args)
-                .and_return(false)
-            end
-
-            it do
-              without_partial_double_verification do
-                expect(Process).to_not receive(:at_fork)
-                expect(profiler).to receive(:start)
-                autostart_profiler
-              end
-            end
-          end
-        end
-
-        context 'but it fails' do
-          before do
-            expect(Datadog)
-              .to receive(:profiler)
-              .and_raise(StandardError)
-          end
-
-          it 'displays a warning to STDOUT' do
-            expect(STDOUT).to receive(:puts) do |message|
-              expect(message).to include('Could not autostart profiling')
-            end
-
-            autostart_profiler
-          end
+        without_partial_double_verification do
+          allow(Process).to receive(:at_fork)
         end
       end
 
-      context 'isn\'t supported' do
+      let(:at_fork_hook) do
+        the_hook = nil
+
+        without_partial_double_verification do
+          expect(Process).to receive(:at_fork).with(:child) do |&block|
+            the_hook = block
+          end
+        end
+
+        setup_at_fork_hooks
+
+        the_hook
+      end
+
+      it 'sets up an at_fork hook that restarts the profiler' do
+        profiler = instance_double(Datadog::Profiler)
+
+        expect(Datadog).to receive(:profiler).and_return(profiler).at_least(:once)
+        expect(profiler).to receive(:start)
+
+        at_fork_hook.call
+      end
+
+      context 'when there is an issue starting the profiler' do
         before do
-          allow(Datadog::Profiling)
-            .to receive(:supported?)
-            .and_return(false)
+          expect(Datadog).to receive(:profiler).and_raise('Dummy exception')
         end
 
-        context 'and profiling is enabled' do
-          before do
-            allow(Datadog.configuration.profiling)
-              .to receive(:enabled)
-              .and_return(true)
+        it 'does not raise any error' do
+          at_fork_hook.call
+        end
+
+        it 'logs an exception' do
+          expect(STDOUT).to receive(:puts) do |message|
+            expect(message).to include('Dummy exception')
           end
 
-          it 'skips profiling autostart with warning' do
-            expect(Datadog).to_not receive(:profiler)
-            expect(STDOUT).to receive(:puts) do |message|
-              expect(message).to include('Profiling did not autostart')
-            end
+          at_fork_hook.call
+        end
+      end
 
-            autostart_profiler
+      it 'sets up an at_fork hook that updates the native id of the current thread' do
+        without_partial_double_verification do
+          expect(Thread.current).to receive(:update_native_ids)
+        end
+
+        at_fork_hook.call
+      end
+
+      context 'when there is an issue updating the native id of the current thread' do
+        before do
+          without_partial_double_verification do
+            expect(Thread.current).to receive(:update_native_ids).and_raise('Dummy exception')
           end
         end
 
-        context 'and profiling is disabled' do
-          before do
-            allow(Datadog.configuration.profiling)
-              .to receive(:enabled)
-              .and_return(false)
+        it 'does not raise any error' do
+          at_fork_hook.call
+        end
+
+        it 'logs an exception' do
+          expect(STDOUT).to receive(:puts) do |message|
+            expect(message).to include('Dummy exception')
           end
 
-          it 'skips profiling autostart without warning' do
-            expect(Datadog).to_not receive(:profiler)
-            expect(STDOUT).to_not receive(:puts)
-            autostart_profiler
-          end
+          at_fork_hook.call
+        end
+      end
+    end
+
+    context 'when #at_fork is not available' do
+      before do
+        allow(Process).to receive(:respond_to?).with(:at_fork).and_return(false)
+      end
+
+      it 'does nothing' do
+        without_partial_double_verification do
+          expect(Process).to_not receive(:at_fork)
+
+          setup_at_fork_hooks
         end
       end
     end
