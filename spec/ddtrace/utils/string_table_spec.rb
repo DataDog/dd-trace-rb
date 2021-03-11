@@ -10,6 +10,7 @@ RSpec.describe Datadog::Utils::StringTable do
 
     context 'given an empty string' do
       let(:string) { '' }
+
       it { is_expected.to be 0 }
     end
 
@@ -36,6 +37,7 @@ RSpec.describe Datadog::Utils::StringTable do
 
   describe '#fetch_string' do
     subject(:fetch_string) { string_table.fetch_string(string) }
+
     let(:string) { 'string' }
 
     it { is_expected.to eq(string) }
@@ -55,12 +57,14 @@ RSpec.describe Datadog::Utils::StringTable do
 
     context 'when ID doesn\'t exist in the string table' do
       let(:id) { double('unknown ID') }
+
       it { is_expected.to be nil }
     end
 
     context 'when the ID exsits in the string table' do
       let(:string) { 'string' }
       let(:id) { string_table.fetch(string) }
+
       it { is_expected.to eq(string) }
     end
   end

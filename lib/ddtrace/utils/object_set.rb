@@ -21,6 +21,7 @@ module Datadog
         # TODO: Ruby 2.0 doesn't like yielding here... switch when 2.0 is dropped.
         # rubocop:disable Performance/RedundantBlockCall
         @items[key] ||= block.call(@sequence.next, *args)
+        # rubocop:enable Performance/RedundantBlockCall
       end
 
       def length

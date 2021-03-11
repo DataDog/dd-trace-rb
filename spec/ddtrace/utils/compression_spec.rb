@@ -4,12 +4,14 @@ require 'ddtrace/utils/compression'
 RSpec.describe Datadog::Utils::Compression do
   describe '::gzip' do
     subject(:gzip) { described_class.gzip(unzipped) }
+
     let(:unzipped) { SecureRandom.uuid }
 
     it { is_expected.to be_a_kind_of(String) }
 
     context 'when result is unzipped' do
       subject(:gunzip) { described_class.gunzip(gzip) }
+
       it { is_expected.to eq(unzipped) }
     end
   end
@@ -20,6 +22,7 @@ RSpec.describe Datadog::Utils::Compression do
     context 'given a zipped string' do
       let(:zipped) { described_class.gzip(unzipped) }
       let(:unzipped) { SecureRandom.uuid }
+
       it { is_expected.to eq(unzipped) }
     end
   end

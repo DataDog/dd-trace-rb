@@ -91,11 +91,14 @@ RSpec.describe Datadog::Utils::ObjectSet do
 
   describe '#length' do
     subject(:length) { object_set.length }
+
     it { is_expected.to eq 0 }
 
     context 'when objects have been added' do
       let(:n) { 3 }
+
       before { n.times { object_set.fetch(rand) { rand } } }
+
       it { is_expected.to eq(n) }
     end
   end

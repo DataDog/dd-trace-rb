@@ -178,6 +178,7 @@ RSpec.describe Datadog::Transport::HTTP do
 
   describe '.default_adapter' do
     subject(:default_adapter) { described_class.default_adapter }
+
     it { is_expected.to be(:net_http) }
   end
 

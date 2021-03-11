@@ -196,6 +196,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
     describe '#reset_loop_wait_time' do
       context 'when the loop time has been changed' do
         let(:value) { rand }
+
         before { worker.loop_wait_time = value }
 
         it do

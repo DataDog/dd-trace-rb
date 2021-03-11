@@ -73,11 +73,13 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
 
       context 'with nil' do
         let(:ssl) { nil }
+
         it { is_expected.to have_attributes(ssl: false) }
       end
 
       context 'with true' do
         let(:ssl) { true }
+
         it { is_expected.to have_attributes(ssl: true) }
       end
     end

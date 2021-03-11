@@ -288,6 +288,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
   describe '#api_instance_class' do
     subject(:api_instance_class) { builder.api_instance_class }
+
     it { is_expected.to be(Datadog::Transport::HTTP::API::Instance) }
   end
 end
