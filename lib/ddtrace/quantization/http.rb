@@ -18,16 +18,18 @@ module Datadog
       def url!(url, options = {})
         options ||= {}
 
-        URI.parse(url).tap do |uri|
-          # Format the query string
-          if uri.query
-            query = query(uri.query, options[:query])
-            uri.query = (!query.nil? && query.empty? ? nil : query)
-          end
+        return url.sub(/\?.*/, ''.freeze) unless options[:query] || options[:fragment]
 
-          # Remove any URI framents
-          uri.fragment = nil unless options[:fragment] == :show
-        end.to_s
+        uri = URI.parse(url)
+        # Format the query string
+        if uri.query
+          query = query(uri.query, options[:query])
+          uri.query = (!query.nil? && query.empty? ? nil : query)
+        end
+
+        # Remove any URI fragments
+        uri.fragment = nil unless options[:fragment] == :show
+        uri.to_s
       end
 
       def query(query, options = {})

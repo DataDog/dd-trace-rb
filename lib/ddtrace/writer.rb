@@ -51,6 +51,8 @@ module Datadog
       # the host application from inadvertently start new
       # threads during shutdown.
       @stopped = false
+    rescue => e
+      puts e
     end
 
     def start

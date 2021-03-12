@@ -21,7 +21,7 @@ module Datadog
 
     # Extension for Datadog::Span
     module Span
-      def set_tag(key, value)
+      def set_tagx(key, value)
         case key
         when Ext::Analytics::TAG_ENABLED
           # If true, set rate to 1.0, otherwise set 0.0.
