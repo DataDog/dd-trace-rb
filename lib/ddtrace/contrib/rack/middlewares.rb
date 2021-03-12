@@ -192,27 +192,15 @@ module Datadog
             request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
           end
 
-          unless request_span.get_tag(Datadog::Ext::HTTP::BASE_URL)
+          if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
             request_obj = ::Rack::Request.new(env)
 
             base_url = if request_obj.respond_to?(:base_url)
-                         cache_key = env.fetch_values(BASE_URL_CACHE_KEYS){|_k| nil}
-                         value = @base_url_cache[cache_key]
-                         unless value
-                           value = @base_url_cache[cache_key] = request_obj.base_url
-                         end
-                         value
+                         request_obj.base_url
                        else
                          # Compatibility for older Rack versions
                          request_obj.url.chomp(request_obj.fullpath)
                        end
-
-            # base_url = if request_obj.respond_to?(:base_url)
-            #              request_obj.base_url # DEV: Expensive
-            #            else
-            #              # Compatibility for older Rack versions
-            #              request_obj.url.chomp(request_obj.fullpath)
-            #            end
 
             request_span.set_tag(Datadog::Ext::HTTP::BASE_URL, base_url)
           end
@@ -223,12 +211,12 @@ module Datadog
 
           # Request headers
           request_headers.each do |name, value|
-            request_span.set_tag(name, value) unless request_span.get_tag(name)
+            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
           end
 
           # Response headers
           response_headers.each do |name, value|
-            request_span.set_tag(name, value) unless request_span.get_tag(name)
+            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
           end
 
           # detect if the status code is a 5xx and flag the request span as an error
@@ -245,7 +233,7 @@ module Datadog
           This key will be removed in version 1.0).freeze
 
         def configuration
-          @configuration ||= Datadog.configuration[:rack].to_h
+          Datadog.configuration[:rack]
         end
 
         def add_deprecation_warnings(env)
@@ -286,33 +274,29 @@ module Datadog
         end
 
         def parse_request_headers(env)
-          request_headers = configuration[:headers][:processed_request]
-          return [] unless request_headers
-
-          result = {}
-          request_headers.each do |header|
-              rack_header = header[:rack_header]
-              result[header[:span_tag]] = env[rack_header] if env.key?(rack_header)
+          {}.tap do |result|
+            whitelist = configuration[:headers][:request] || []
+            whitelist.each do |header|
+              rack_header = header_to_rack_header(header)
+              result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header] if env.key?(rack_header)
+            end
           end
-          result
         end
 
         def parse_response_headers(headers)
-          response_headers = configuration[:headers][:processed_response]
-          return [] unless response_headers
-
-          result = {}
-          response_headers.each do |header|
-            if headers.key?(header)
-              result[header[:span_tag]] = headers[header]
-            else
-              # Try a case-insensitive lookup
-              upcased_header = header[:upcased_header]
-              matching_header = headers.any? { |h, _| h.upcase == upcased_header }
-              result[header[:span_tag]] = headers[matching_header] if matching_header
+          {}.tap do |result|
+            whitelist = configuration[:headers][:response] || []
+            whitelist.each do |header|
+              if headers.key?(header)
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
+              else
+                # Try a case-insensitive lookup
+                uppercased_header = header.to_s.upcase
+                matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header] if matching_header
+              end
             end
           end
-          result
         end
 
         def header_to_rack_header(name)

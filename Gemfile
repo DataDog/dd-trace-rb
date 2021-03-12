@@ -49,7 +49,7 @@ end
 gem 'dogstatsd-ruby', '>= 3.3.0'
 gem 'opentracing', '>= 0.4.1'
 
-#gem 'rack'
-#gem 'rack-test'
+# gem 'rack'
+# gem 'rack-test'
 # gem 'uri_parser'
 # gem 'ruby-uriparser'
