@@ -11,7 +11,6 @@ end
 
 require 'fileutils'
 require 'json'
-require 'set'
 
 RSpec.shared_context 'benchmark' do |options = { only: nil }|
   # When applicable, runs the test subject for different input sizes.
@@ -217,7 +216,6 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
       before do
         require 'ruby-prof'
         RubyProf.measure_mode = RubyProf::PROCESS_TIME
-        # RubyProf.measure_mode = RubyProf::WALL_TIME
       end
 
       it do
