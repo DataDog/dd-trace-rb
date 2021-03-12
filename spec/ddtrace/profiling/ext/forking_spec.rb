@@ -5,20 +5,6 @@ require 'ddtrace/profiling'
 require 'ddtrace/profiling/ext/forking'
 
 RSpec.describe Datadog::Profiling::Ext::Forking do
-  describe '::supported?' do
-    subject(:supported?) { described_class.supported? }
-
-    context 'when MRI Ruby is used' do
-      before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
-      it { is_expected.to be true }
-    end
-
-    context 'when JRuby is used' do
-      before { stub_const('RUBY_PLATFORM', 'java') }
-      it { is_expected.to be false }
-    end
-  end
-
   describe '::apply!' do
     subject(:apply!) { described_class.apply! }
 
@@ -30,36 +16,36 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
       end
     end
 
-    around do |example|
-      if ::Process.singleton_class.ancestors.include?(Datadog::Profiling::Ext::Forking::Kernel)
-        skip 'Unclean Process class state.'
+    context 'when forking is supported' do
+      around do |example|
+        if ::Process.singleton_class.ancestors.include?(Datadog::Profiling::Ext::Forking::Kernel)
+          skip 'Unclean Process class state.'
+        end
+
+        unmodified_process_class = ::Process.dup
+        unmodified_kernel_class = ::Kernel.dup
+
+        example.run
+
+        # Clean up classes
+        Object.send(:remove_const, :Process)
+        Object.const_set('Process', unmodified_process_class)
+
+        Object.send(:remove_const, :Kernel)
+        Object.const_set('Kernel', unmodified_kernel_class)
+
+        # Check for leaks (make sure test is properly cleaned up)
+        expect(::Process.ancestors.include?(described_class::Kernel)).to be false
+        expect(::Kernel.ancestors.include?(described_class::Kernel)).to be false
+        # Can't assert this because top level can't be reverted; can't guarantee pristine state.
+        # expect(toplevel_receiver.class.ancestors.include?(described_class::Kernel)).to be false
+
+        expect(::Process.method(:fork).source_location).to be nil
+        expect(::Kernel.method(:fork).source_location).to be nil
+        # Can't assert this because top level can't be reverted; can't guarantee pristine state.
+        # expect(toplevel_receiver.method(:fork).source_location).to be nil
       end
 
-      unmodified_process_class = ::Process.dup
-      unmodified_kernel_class = ::Kernel.dup
-
-      example.run
-
-      # Clean up classes
-      Object.send(:remove_const, :Process)
-      Object.const_set('Process', unmodified_process_class)
-
-      Object.send(:remove_const, :Kernel)
-      Object.const_set('Kernel', unmodified_kernel_class)
-
-      # Check for leaks (make sure test is properly cleaned up)
-      expect(::Process.ancestors.include?(described_class::Kernel)).to be false
-      expect(::Kernel.ancestors.include?(described_class::Kernel)).to be false
-      # Can't assert this because top level can't be reverted; can't guarantee pristine state.
-      # expect(toplevel_receiver.class.ancestors.include?(described_class::Kernel)).to be false
-
-      expect(::Process.method(:fork).source_location).to be nil
-      expect(::Kernel.method(:fork).source_location).to be nil
-      # Can't assert this because top level can't be reverted; can't guarantee pristine state.
-      # expect(toplevel_receiver.method(:fork).source_location).to be nil
-    end
-
-    context 'when forking is supported' do
       before { skip 'Forking not supported' unless described_class.supported? }
 
       it 'applies the Kernel patch' do
