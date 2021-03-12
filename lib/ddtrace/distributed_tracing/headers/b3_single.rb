@@ -35,17 +35,16 @@ module Datadog
           # DEV: `{SamplingState}` and `{ParentSpanId`}` are optional
 
           headers = Headers.new(env)
-          value = headers.header(RACK_B3_HEADER_SINGLE)
+          value = headers.header(B3_HEADER_SINGLE)
           return if value.nil?
 
           parts = value.split('-')
           trace_id = headers.value_to_id(parts[0], 16) unless parts.empty?
           span_id = headers.value_to_id(parts[1], 16) if parts.length > 1
+          sampling_priority = headers.value_to_number(parts[2]) if parts.length > 2
 
           # Return early if this propagation is not valid
           return unless trace_id && span_id
-
-          sampling_priority = headers.value_to_number(parts[2]) if parts.length > 2
 
           ::Datadog::Context.new(trace_id: trace_id,
                                  span_id: span_id,

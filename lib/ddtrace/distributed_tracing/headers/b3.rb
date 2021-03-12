@@ -26,14 +26,13 @@ module Datadog
           # Extract values from headers
           # DEV: B3 doesn't have "origin"
           headers = Headers.new(env)
-          trace_id = headers.id(RACK_B3_HEADER_TRACE_ID, 16)
-          span_id = headers.id(RACK_B3_HEADER_SPAN_ID, 16)
+          trace_id = headers.id(B3_HEADER_TRACE_ID, 16)
+          span_id = headers.id(B3_HEADER_SPAN_ID, 16)
+          # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
+          sampling_priority = headers.number(B3_HEADER_SAMPLED)
 
           # Return early if this propagation is not valid
           return unless trace_id && span_id
-
-          # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
-          sampling_priority = headers.number(RACK_B3_HEADER_SAMPLED)
 
           ::Datadog::Context.new(trace_id: trace_id,
                                  span_id: span_id,
