@@ -96,26 +96,31 @@ RSpec.describe 'Rack benchmark' do
 
           def subject(_i)
             get '/success?foo=bar#frag'
+            writer.clear
+            # tracer.provider.context = nil
           end
 
-          let(:tracer) { new_tracer(writer: FauxWriter.new(call_original: false)) }
+          let(:tracer) { new_tracer(writer: writer) }
+          let(:writer) { FauxWriter.new(call_original: false) }
 
           puts "REMOVE MOCK ON TRACER#WRITE"
 
           xcontext 'without instrumentation (baseline)' do
             let(:instrument) { false }
-            include_examples 'benchmark', only: [:ruby_prof, :timing]
+            # include_examples 'benchmark', only: [:ruby_prof, :timing]
             # include_examples 'benchmark', only: [:ruby_prof]
             # include_examples 'benchmark', only: [:timing]
+            include_examples 'benchmark', only: [:memory_report]
           end
 
           include_context 'distributed tracing headers'
 
           context 'with instrumentation' do
             let(:instrument) { true }
-            include_examples 'benchmark', only: [:ruby_prof, :timing]
+            # include_examples 'benchmark', only: [:ruby_prof, :timing]
             # include_examples 'benchmark', only: [:ruby_prof]
-            # include_examples 'benchmark', only: [:timing]
+            include_examples 'benchmark', only: [:timing]
+            include_examples 'benchmark', only: [:memory_report]
           end
 
           # baseline with all code paths - no instrumentation
@@ -153,6 +158,14 @@ RSpec.describe 'Rack benchmark' do
           # 1      4.751k (±11.2%) i/s -     23.769k in   5.081703s
           # + remove .nil?
           # 1      4.878k (±11.4%) i/s -     24.360k in   5.072605s
+          # + no .utc (HUGE)
+          # 1      5.137k (± 3.7%) i/s -     25.758k in   5.021417s
+          # + common precomputed resource name
+          # 1      5.189k (± 2.2%) i/s -     26.265k in   5.064537s
+          # + faster proxy header time extraction
+          # 1      5.289k (± 1.8%) i/s -     26.624k in   5.035659s
+
+
 
 
           # with distributed (cheap) + request queueing

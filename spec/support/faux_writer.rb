@@ -23,6 +23,12 @@ class FauxWriter < Datadog::Writer
     end
   end
 
+  def clear
+    @mutex.synchronize do
+      @spans = []
+    end
+  end
+
   def spans(action = :clear)
     @mutex.synchronize do
       spans = @spans

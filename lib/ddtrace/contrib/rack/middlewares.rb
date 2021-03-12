@@ -126,10 +126,15 @@ module Datadog
           tracer.provider.context = Datadog::Context.new if tracer
         end
 
+        PRECOMPUTED_COMMON_RESOURCE_NAMES = {
+          ['GET', 200] => 'GET 200'
+        }
+
         def resource_name_for(env, status)
           if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
             "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
           else
+            PRECOMPUTED_COMMON_RESOURCE_NAMES[[env['REQUEST_METHOD'], status]] ||
             "#{env['REQUEST_METHOD']} #{status}".strip
           end
         end
