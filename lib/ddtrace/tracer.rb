@@ -177,6 +177,9 @@ module Datadog
       [child_of.context, child_of]
     end
 
+    EMPTY_HASH = {}.freeze
+    PID = 'system.pid'.freeze
+
     # Return a span that will trace an operation called \name. This method allows
     # parenting passing \child_of as an option. If it's missing, the newly created span is a
     # root span. Available options are:
@@ -188,22 +191,28 @@ module Datadog
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
+      # DEV `hash[:key] || default` is a faster alternative to `#fetch`, but
+      # DEV still using as little memory as `#fetch(:key){default}`.
       start_time = options[:start_time]
-      tags = options.fetch(:tags, {})
+      tags = options[:tags] || EMPTY_HASH
 
-      span_options = options.select do |k, _v|
+      ctx, parent = guess_context_and_parent(options[:child_of])
+
+      # Prepare +options+ to be forwarded to +Span.new+
+      # Mutating the provided +options+ using +select!+ allows us to save on
+      # allocating a new hash and having to copy the contents of the original
+      # hash.
+      options.select! do |k, _v|
         # Filter options, we want no side effects with unexpected args.
         ALLOWED_SPAN_OPTIONS.include?(k)
       end
+      options[:context] = ctx unless ctx.nil?
 
-      ctx, parent = guess_context_and_parent(options[:child_of])
-      span_options[:context] = ctx unless ctx.nil?
-
-      span = Span.new(self, name, span_options)
+      span = Span.new(self, name, options)
       if parent.nil?
         # root span
         @sampler.sample!(span)
-        span.set_tag('system.pid', Process.pid)
+        span.set_metric(PID, Process.pid)
         span.set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Runtime::Identity.id)
 
         if ctx && ctx.trace_id
@@ -271,6 +280,9 @@ module Datadog
         span = nil
         return_value = nil
 
+        # Record this option as #start_span can modify the options hash
+        on_error = options[:on_error]
+
         begin
           begin
             span = start_span(name, options)
@@ -293,7 +305,7 @@ module Datadog
         # SignalException::Interrupt would still bubble up.
         # rubocop:disable Metrics/BlockNesting
         rescue Exception => e
-          if (on_error_handler = options[:on_error]) && on_error_handler.respond_to?(:call)
+          if (on_error_handler = on_error) && on_error_handler.respond_to?(:call)
             begin
               on_error_handler.call(span, e)
             rescue

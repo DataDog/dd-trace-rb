@@ -20,15 +20,16 @@ module Datadog
         def self.extract(env)
           # Extract values from headers
           headers = Headers.new(env)
-          trace_id = headers.id(HTTP_HEADER_TRACE_ID)
-          parent_id = headers.id(HTTP_HEADER_PARENT_ID)
-          origin = headers.header(HTTP_HEADER_ORIGIN)
-          sampling_priority = headers.number(HTTP_HEADER_SAMPLING_PRIORITY)
+          trace_id = headers.id(RACK_HTTP_HEADER_TRACE_ID)
+          parent_id = headers.id(RACK_HTTP_HEADER_PARENT_ID)
+          origin = headers.header(RACK_HTTP_HEADER_ORIGIN)
 
           # Return early if this propagation is not valid
           # DEV: To be valid we need to have a trace id and a parent id or when it is a synthetics trace, just the trace id
           # DEV: `DistributedHeaders#id` will not return 0
           return unless (trace_id && parent_id) || (origin && trace_id)
+
+          sampling_priority = headers.number(RACK_HTTP_HEADER_SAMPLING_PRIORITY)
 
           # Return new context
           ::Datadog::Context.new(trace_id: trace_id,

@@ -7,7 +7,7 @@ module Datadog
       TAG_SERVICE_NAME = 'service.name'.freeze
       TAG_SERVICE_VERSION = 'service.version'.freeze
 
-      def set_tag(key, value)
+      def set_tagx(key, value)
         # Configure sampling priority if they give us a forced tracing tag
         # DEV: Do not set if the value they give us is explicitly "false"
         case key

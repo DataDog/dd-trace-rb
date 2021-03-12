@@ -9,7 +9,7 @@ module Datadog
       # Checks whether analytics should be enabled.
       # `flag` is a truthy/falsey value that represents a setting on the integration.
       def enabled?(flag = nil)
-        (Datadog.configuration.analytics.enabled && flag != false) || flag == true
+        flag == true || (flag != false && Datadog.configuration.analytics.enabled)
       end
 
       def set_sample_rate(span, sample_rate)

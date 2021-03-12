@@ -11,8 +11,9 @@ end
 
 require 'fileutils'
 require 'json'
+require 'set'
 
-RSpec.shared_context 'benchmark' do
+RSpec.shared_context 'benchmark' do |options = { only: nil }|
   # When applicable, runs the test subject for different input sizes.
   # Similar to how N in Big O notation works.
   #
@@ -56,7 +57,7 @@ RSpec.shared_context 'benchmark' do
                   @type
                 end
 
-    warn(@test, file_name, result)
+    warn(@test, file_name, result.to_s)
 
     directory = result_directory!(subtype)
     path = File.join(directory, file_name)
@@ -70,11 +71,20 @@ RSpec.shared_context 'benchmark' do
   def result_directory!(subtype = nil)
     path = File.join('tmp', 'benchmark', @test)
     path = File.join(path, subtype.to_s) if subtype
+    path = File.join(path, '.%04d' % rand(10000))
 
     FileUtils.mkdir_p(path)
 
     path
   end
+
+  run = if options[:only]
+          Hash[options[:only].map do |type|
+            [type, true]
+          end]
+        else
+          Hash.new(true)
+        end
 
   # Measure execution time
   it 'timing' do
@@ -95,7 +105,7 @@ RSpec.shared_context 'benchmark' do
     end.to_h
 
     write_result(result)
-  end
+  end if run[:timing]
 
   # Measure memory usage (object creation and memory size)
   it 'memory' do
@@ -124,7 +134,7 @@ RSpec.shared_context 'benchmark' do
     end.to_h
 
     write_result(result)
-  end
+  end if run[:memory]
 
   # Measure GC cycles triggered during run
   it 'gc' do
@@ -149,7 +159,7 @@ RSpec.shared_context 'benchmark' do
 
     result = { count: data.size, time: data.sum { |d| d[:GC_TIME] } }
     write_result(result)
-  end
+  end if run[:gc]
 
   # Reports that generate non-aggregated data.
   # Useful for debugging.
@@ -173,7 +183,7 @@ RSpec.shared_context 'benchmark' do
 
         report_results(report, step)
       end
-    end
+    end if run[:memory_report]
 
     def report_results(report, step)
       puts "Report for step: #{step}"
@@ -207,6 +217,7 @@ RSpec.shared_context 'benchmark' do
       before do
         require 'ruby-prof'
         RubyProf.measure_mode = RubyProf::PROCESS_TIME
+        # RubyProf.measure_mode = RubyProf::WALL_TIME
       end
 
       it do
@@ -235,7 +246,7 @@ RSpec.shared_context 'benchmark' do
         warn('$ brew install qcachegrind')
         warn("$ qcachegrind '#{Dir["#{directory}/*"].min}'")
       end
-    end
+    end if run[:ruby_prof]
   end
 end
 

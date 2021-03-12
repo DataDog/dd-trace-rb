@@ -5,11 +5,11 @@ require 'support/faux_transport'
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Writer
   def initialize(options = {})
+    super()
     options[:transport] ||= FauxTransport.new
-    options[:call_original] ||= true
+    options[:call_original] = true unless options.key?(:call_original)
     @options = options
 
-    super if options[:call_original]
     @mutex = Mutex.new
 
     # easy access to registered components
