@@ -42,6 +42,9 @@ rescue LoadError
   puts 'warning suppressing gem not available, external library warnings will be displayed'
 end
 
+# Used by Net::HTTP integration specs to bypass WebMock patching
+OriginalNetHTTP = Net::HTTP
+
 WebMock.allow_net_connect!
 WebMock.disable!
 

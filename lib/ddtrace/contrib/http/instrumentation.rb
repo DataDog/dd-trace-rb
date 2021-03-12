@@ -29,7 +29,7 @@ module Datadog
         end
 
         # InstanceMethods - implementing instrumentation
-        module InstanceMethods
+        module InstanceMethods # rubocop:disable Metrics/ModuleLength:
           include Datadog::Contrib::HttpAnnotationHelper
 
           # :yield: +response+
@@ -73,6 +73,59 @@ module Datadog
 
               response
             end
+          end
+
+          def start
+            host, = host_and_port(nil)
+            request_options = datadog_configuration(host)
+            pin = datadog_pin(request_options)
+            return super unless pin && pin.tracer
+
+            return super if Datadog::Contrib::HTTP.should_skip_tracing?(nil, pin.tracer)
+
+            begin
+              super(&nil) # intentionally not passing the block to catch only start errors
+            rescue StandardError => e
+              pin.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
+                begin
+                  # even though service_name might already be in request_options,
+                  # we need to capture the name from the pin since it could be
+                  # overridden
+                  request_options[:service_name] = pin.service_name
+                  span.service = service_name(host, request_options)
+                  span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
+                  span.resource = Datadog::Contrib::HTTP::Ext::CONNECTION_ERROR_RESOURCE
+
+                  annotate_span_with_connection!(span, request_options)
+                rescue StandardError => e
+                  Datadog.logger.error("error preparing span for http request: #{e}")
+                ensure
+                  raise e
+                end
+              end
+            end
+
+            if block_given?
+              begin
+                return yield(self)
+              ensure
+                finish
+              end
+            end
+
+            self
+          end
+
+          def annotate_span_with_connection!(span, request_options)
+            host, port = host_and_port(nil)
+            span.set_tag(Datadog::Ext::NET::TARGET_HOST, host)
+            span.set_tag(Datadog::Ext::NET::TARGET_PORT, port.to_s)
+
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+
+            # Set analytics sample rate
+            set_analytics_sample_rate(span, request_options)
           end
 
           def annotate_span_with_request!(span, request, request_options)
