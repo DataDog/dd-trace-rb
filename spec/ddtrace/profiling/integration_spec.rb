@@ -16,8 +16,16 @@ RSpec.describe 'profiling integration test' do
   end
 
   shared_context 'StackSample events' do
-    let(:stack_one) { Thread.current.backtrace_locations[1..3] }
-    let(:stack_two) { Thread.current.backtrace_locations[1..3] }
+    # Note: Please do not convert stack_one or stack_two to let, because
+    # we want the method names on the resulting stacks to be stack_one or
+    # stack_two, not block in ... when showing up in the stack traces
+    def stack_one
+      @stack_one ||= Thread.current.backtrace_locations[1..3]
+    end
+
+    def stack_two
+      @stack_two ||= Thread.current.backtrace_locations[1..3]
+    end
 
     let(:trace_id) { 0 }
     let(:span_id) { 0 }
@@ -343,7 +351,7 @@ RSpec.describe 'profiling integration test' do
 
         it 'is well formed' do
           is_expected.to be_kind_of(Google::Protobuf::RepeatedField)
-          is_expected.to have(3).items
+          is_expected.to have(4).items
 
           unique_functions = (stack_one + stack_two).uniq { |f| [f.base_label, f.path] }
 
@@ -364,7 +372,7 @@ RSpec.describe 'profiling integration test' do
 
         it 'is well formed' do
           is_expected.to be_kind_of(Google::Protobuf::RepeatedField)
-          is_expected.to have(13).items
+          is_expected.to have(14).items
           expect(string_table.first).to eq('')
         end
       end
