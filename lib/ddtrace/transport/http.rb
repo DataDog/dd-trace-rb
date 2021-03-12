@@ -27,7 +27,7 @@ module Datadog
       # Pass a block to override any settings.
       def default(options = {})
         new do |transport|
-          transport.adapter :net_http, default_hostname, default_port
+          transport.adapter default_adapter, default_hostname, default_port, timeout: 1
           transport.headers default_headers
 
           apis = API.defaults
@@ -39,10 +39,15 @@ module Datadog
           # Apply any settings given by options
           unless options.empty?
             # Change hostname/port
-            if options.key?(:hostname) || options.key?(:port)
-              hostname = options.fetch(:hostname, default_hostname)
-              port = options.fetch(:port, default_port)
-              transport.adapter :net_http, hostname, port
+            if [:hostname, :port, :timeout, :ssl].any? { |key| options.key?(key) }
+              hostname = options[:hostname] || default_hostname
+              port = options[:port] || default_port
+
+              adapter_options = { timeout: 1 }
+              adapter_options[:timeout] = options[:timeout] if options.key?(:timeout)
+              adapter_options[:ssl] = options[:ssl] if options.key?(:ssl)
+
+              transport.adapter default_adapter, hostname, port, adapter_options
             end
 
             # Change default API
@@ -71,6 +76,10 @@ module Datadog
           container_id = Datadog::Runtime::Container.container_id
           headers[Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
         end
+      end
+
+      def default_adapter
+        :net_http
       end
 
       def default_hostname

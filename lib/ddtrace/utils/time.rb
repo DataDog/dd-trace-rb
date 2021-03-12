@@ -33,6 +33,13 @@ module Datadog
       def now_provider=(block)
         define_singleton_method(:now, &block)
       end
+
+      def measure
+        before = get_time
+        yield
+        after = get_time
+        after - before
+      end
     end
   end
 end
