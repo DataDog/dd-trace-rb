@@ -6,6 +6,10 @@ module Datadog
     # only once.
     #
     # Thread-safe when used correctly (e.g. be careful of races when lazily initializing instances of this class).
+    #
+    # Note: In its current state, this class is not Ractor-safe.
+    # In https://github.com/DataDog/dd-trace-rb/pull/1398#issuecomment-797378810 we have a discussion of alternatives,
+    # including an alternative implementation that is Ractor-safe once spent.
     class OnlyOnce
       def initialize
         @mutex = Mutex.new
