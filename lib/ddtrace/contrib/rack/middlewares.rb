@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
@@ -8,7 +6,6 @@ require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
 require 'ddtrace/environment'
 require 'date'
-require 'rack'
 
 module Datadog
   module Contrib
@@ -28,7 +25,6 @@ module Datadog
 
         def initialize(app)
           @app = app
-          @base_url_cache = {}
         end
 
         def compute_queue_time(env, tracer)
@@ -36,7 +32,7 @@ module Datadog
 
           # parse the request queue time
           request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
-          return unless request_start
+          return if request_start.nil?
 
           tracer.trace(
             Ext::SPAN_HTTP_SERVER_QUEUE,
@@ -83,9 +79,9 @@ module Datadog
           # end
           env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
 
-          # Store PATH_INFO before the rest of the stack executes.
-          # Its value may change; we want the value before that happens.
-          original_path_info = env['PATH_INFO']
+          # Copy the original env, before the rest of the stack executes.
+          # Values may change; we want values before that happens.
+          original_env = env.dup
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
@@ -101,7 +97,7 @@ module Datadog
           # catch exceptions that may be raised in the middleware chain
           # Note: if a middleware catches an Exception without re raising,
           # the Exception cannot be recorded here.
-          request_span.set_error(e) if request_span
+          request_span.set_error(e) unless request_span.nil?
           raise e
         ensure
           if request_span
@@ -111,14 +107,14 @@ module Datadog
             # the result for this request; `resource` and `tags` are expected to
             # be set in another level but if they're missing, reasonable defaults
             # are used.
-            set_request_tags!(request_span, env, status, headers, response, original_path_info)
+            set_request_tags!(request_span, env, status, headers, response, original_env || env)
 
             # ensure the request_span is finished and the context reset;
             # this assumes that the Rack middleware creates a root span
             request_span.finish
           end
 
-          frontend_span.finish if frontend_span
+          frontend_span.finish unless frontend_span.nil?
 
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding
@@ -126,35 +122,18 @@ module Datadog
           tracer.provider.context = Datadog::Context.new if tracer
         end
 
-        PRECOMPUTED_COMMON_RESOURCE_NAMES = {
-          ['GET', 200] => 'GET 200'
-        }
-
         def resource_name_for(env, status)
           if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
             "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
           else
-            PRECOMPUTED_COMMON_RESOURCE_NAMES[[env['REQUEST_METHOD'], status]] ||
             "#{env['REQUEST_METHOD']} #{status}".strip
           end
         end
 
-        BASE_URL_CACHE_KEYS = [
-          ::Rack::HTTPS,
-          ::Rack::RACK_URL_SCHEME,
-          ::Rack::HTTP_HOST,
-          ::Rack::SERVER_NAME,
-          ::Rack::SERVER_PORT,
-          ::Rack::Request::Helpers::HTTP_X_FORWARDED_SSL,
-          ::Rack::Request::Helpers::HTTP_X_FORWARDED_SCHEME,
-          ::Rack::Request::Helpers::HTTP_X_FORWARDED_PROTO,
-          ::Rack::Request::Helpers::HTTP_X_FORWARDED_HOST,
-        ].freeze
-
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/CyclomaticComplexity
         # rubocop:disable Metrics/PerceivedComplexity
-        def set_request_tags!(request_span, env, status, headers, response, original_path_info)
+        def set_request_tags!(request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
           # URL for the current request; but some frameworks may override that
@@ -166,7 +145,7 @@ module Datadog
           # REQUEST_URI is only available depending on what web server is running though.
           # So when its not available, we want the original, unmutated PATH_INFO, which
           # is just the relative path without query strings.
-          url = env['REQUEST_URI'] || original_path_info || env['PATH_INFO']
+          url = env['REQUEST_URI'] || original_env['PATH_INFO']
           request_headers = parse_request_headers(env)
           response_headers = parse_response_headers(headers || {})
 
@@ -183,36 +162,24 @@ module Datadog
           # Measure service stats
           Contrib::Analytics.set_measured(request_span)
 
-          unless request_span.get_tag(Datadog::Ext::HTTP::METHOD)
+          if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
           end
 
-          unless request_span.get_tag(Datadog::Ext::HTTP::URL)
+          if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
             options = configuration[:quantize]
             request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
           end
 
-          unless request_span.get_tag(Datadog::Ext::HTTP::BASE_URL)
+          if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
             request_obj = ::Rack::Request.new(env)
 
             base_url = if request_obj.respond_to?(:base_url)
-                         cache_key = env.fetch_values(BASE_URL_CACHE_KEYS){|_k| nil}
-                         value = @base_url_cache[cache_key]
-                         unless value
-                           value = @base_url_cache[cache_key] = request_obj.base_url
-                         end
-                         value
+                         request_obj.base_url
                        else
                          # Compatibility for older Rack versions
                          request_obj.url.chomp(request_obj.fullpath)
                        end
-
-            # base_url = if request_obj.respond_to?(:base_url)
-            #              request_obj.base_url # DEV: Expensive
-            #            else
-            #              # Compatibility for older Rack versions
-            #              request_obj.url.chomp(request_obj.fullpath)
-            #            end
 
             request_span.set_tag(Datadog::Ext::HTTP::BASE_URL, base_url)
           end
@@ -223,12 +190,12 @@ module Datadog
 
           # Request headers
           request_headers.each do |name, value|
-            request_span.set_tag(name, value) unless request_span.get_tag(name)
+            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
           end
 
           # Response headers
           response_headers.each do |name, value|
-            request_span.set_tag(name, value) unless request_span.get_tag(name)
+            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
           end
 
           # detect if the status code is a 5xx and flag the request span as an error
@@ -245,7 +212,7 @@ module Datadog
           This key will be removed in version 1.0).freeze
 
         def configuration
-          @configuration ||= Datadog.configuration[:rack].to_h
+          Datadog.configuration[:rack]
         end
 
         def add_deprecation_warnings(env)
@@ -286,33 +253,29 @@ module Datadog
         end
 
         def parse_request_headers(env)
-          request_headers = configuration[:headers][:processed_request]
-          return [] unless request_headers
-
-          result = {}
-          request_headers.each do |header|
-              rack_header = header[:rack_header]
-              result[header[:span_tag]] = env[rack_header] if env.key?(rack_header)
+          {}.tap do |result|
+            whitelist = configuration[:headers][:request] || []
+            whitelist.each do |header|
+              rack_header = header_to_rack_header(header)
+              result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header] if env.key?(rack_header)
+            end
           end
-          result
         end
 
         def parse_response_headers(headers)
-          response_headers = configuration[:headers][:processed_response]
-          return [] unless response_headers
-
-          result = {}
-          response_headers.each do |header|
-            if headers.key?(header)
-              result[header[:span_tag]] = headers[header]
-            else
-              # Try a case-insensitive lookup
-              upcased_header = header[:upcased_header]
-              matching_header = headers.any? { |h, _| h.upcase == upcased_header }
-              result[header[:span_tag]] = headers[matching_header] if matching_header
+          {}.tap do |result|
+            whitelist = configuration[:headers][:response] || []
+            whitelist.each do |header|
+              if headers.key?(header)
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
+              else
+                # Try a case-insensitive lookup
+                uppercased_header = header.to_s.upcase
+                matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header] if matching_header
+              end
             end
           end
-          result
         end
 
         def header_to_rack_header(name)

@@ -31,29 +31,7 @@ module Datadog
 
           option :application
           option :distributed_tracing, default: true
-          option :headers, default: DEFAULT_HEADERS do |o|
-            o.setter do |value, _old_value|
-              if (request = value[:request])
-                value = value.merge(processed_request: request.map do |header|
-                  {
-                    rack_header: "HTTP_#{header.to_s.upcase.gsub(/[-\s]/, '_')}",
-                    span_tag: Datadog::Ext::HTTP::RequestHeaders.to_tag(header),
-                  }
-                end)
-              end
-
-              if (response = value[:response])
-                value = value.merge(processed_response: response.map do |header|
-                  {
-                    upcase_header: header.to_s.upcase,
-                    span_tag: Datadog::Ext::HTTP::RequestHeaders.to_tag(header),
-                  }
-                end)
-              end
-
-              value
-            end
-          end
+          option :headers, default: DEFAULT_HEADERS
           option :middleware_names, default: false
           option :quantize, default: {}
           option :request_queuing, default: false
