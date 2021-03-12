@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Datadog
   module Contrib
     module Rack
@@ -16,7 +14,7 @@ module Datadog
 
         module_function
 
-        def get_request_start(env, now = Time.now)
+        def get_request_start(env, now = Time.now.utc)
           header = env[REQUEST_START] || env[QUEUE_START]
           return unless header
 
@@ -26,22 +24,14 @@ module Datadog
           time_string = header.to_s.delete('^0-9')
           return if time_string.nil?
 
-          # Adjust decimal place position for representation in seconds:
-          # We assume the integral part has 10 digits, which falls between
-          # 2001-09-09 and 2286-11-20 UTC.
-          # The remaining digits are considered fractional precision.
-          time_value = time_string.to_f
-          if (decimal_places = time_string.size - 10) > 0
-            time_value /= 10**decimal_places
-          end
-
           # Return nil if the time is clearly invalid
+          time_value = "#{time_string[0, 10]}.#{time_string[10, 6]}".to_f
           return if time_value.zero? || time_value < MINIMUM_ACCEPTABLE_TIME_VALUE
 
           # return the request_start only if it's lesser than
           # current time, to avoid significant clock skew
           request_start = Time.at(time_value)
-          request_start > now ? nil : request_start
+          request_start.utc > now ? nil : request_start
         rescue StandardError => e
           # in case of an Exception we don't create a
           # `request.queuing` span

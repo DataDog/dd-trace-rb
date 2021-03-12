@@ -28,7 +28,7 @@ module Datadog
       # @param key [String] the key of the tag
       # @param value [String, Numeric, Boolean] the value of the tag. If it's not
       # a String, Numeric, or Boolean it will be encoded with to_s
-      def set_tagx(key, value)
+      def set_tag(key, value)
         # Special cases to convert opentracing tags to datadog tags
         case key
         when 'error'

@@ -77,8 +77,8 @@ module Datadog
       @parent = nil
       @sampled = true
 
-      # @allocation_count_start = now_allocations
-      # @allocation_count_finish = @allocation_count_start
+      @allocation_count_start = now_allocations
+      @allocation_count_finish = @allocation_count_start
 
       # start_time and end_time track wall clock. In Ruby, wall clock
       # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -204,7 +204,7 @@ module Datadog
       # fallback to avoid very bad things and protect you in most common cases.
       return if finished?
 
-      # @allocation_count_finish = now_allocations
+      @allocation_count_finish = now_allocations
 
       now = Utils::Time.now.utc
 
@@ -276,7 +276,7 @@ module Datadog
         type: @span_type,
         meta: @meta,
         metrics: @metrics,
-        # allocations: allocations,
+        allocations: allocations,
         error: @status
       }
 
@@ -333,8 +333,8 @@ module Datadog
       packer.write(@meta)
       packer.write('metrics')
       packer.write(@metrics)
-      # packer.write('allocations')
-      # packer.write(allocations)
+      packer.write('allocations')
+      packer.write(allocations)
       packer.write('error')
       packer.write(@status)
       packer
@@ -363,7 +363,7 @@ module Datadog
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
         q.text "Duration: #{duration.to_f if finished?}\n"
-        # q.text "Allocations: #{allocations}\n"
+        q.text "Allocations: #{allocations}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
           q.seplist @meta.each do |key, value|
