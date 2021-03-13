@@ -49,7 +49,7 @@ end
 gem 'dogstatsd-ruby', '>= 3.3.0'
 gem 'opentracing', '>= 0.4.1'
 
-# gem 'rack'
-# gem 'rack-test'
+gem 'rack' if ENV['USER'] == 'marco.costa'
+gem 'rack-test' if ENV['USER'] == 'marco.costa'
 # gem 'uri_parser'
 # gem 'ruby-uriparser'
