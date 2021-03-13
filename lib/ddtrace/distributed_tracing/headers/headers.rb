@@ -16,12 +16,12 @@ module Datadog
         # TODO: Don't assume Rack format.
         #       Make distributed tracing headers apathetic.
         def header(name)
-          rack_header = "http-#{name}".upcase!.tr('-', '_')
+          rack_header = name # "http-#{name}".upcase!.tr('-'.freeze, '_'.freeze)
 
           hdr = @env[rack_header]
 
           # Only return the value if it is not an empty string
-          hdr if hdr != ''
+          hdr if hdr != ''.freeze
         end
 
         def id(hdr, base = 10)
@@ -32,12 +32,12 @@ module Datadog
           id = value_to_number(value, base)
 
           # Return early if we could not parse a number
-          return if id.nil?
+          return unless id
 
           # Zero or greater than max allowed value of 2**64
           return if id.zero? || id > Span::EXTERNAL_MAX_ID
 
-          id < 0 ? id + (2**64) : id
+          id < 0 ? id + Span::EXTERNAL_MAX_ID : id
         end
 
         def number(hdr, base = 10)
@@ -47,23 +47,20 @@ module Datadog
         def value_to_number(value, base = 10)
           # It's important to make a difference between no header,
           # and a header defined to zero.
-          return if value.nil?
+          return unless value
 
-          # Be sure we have a string
+          # Rack header values are already strings, but we play it safe
           value = value.to_s
 
           # If we are parsing base16 number then truncate to 64-bit
           value = DistributedTracing::Headers::Helpers.truncate_base16_number(value) if base == 16
 
           # Convert header to an integer
-          # DEV: Ruby `.to_i` will return `0` if a number could not be parsed
-          num = value.to_i(base)
-
-          # Ensure the parsed number is the same as the original string value
-          # e.g. We want to make sure to throw away `'nan'.to_i == 0`
-          return unless num.to_s(base) == value
-
-          num
+          begin
+            Integer(value, base)
+          rescue ArgumentError
+            nil
+          end
         end
       end
     end
