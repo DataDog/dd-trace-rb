@@ -274,33 +274,29 @@ module Datadog
         end
 
         def parse_request_headers(env)
-          request_headers = configuration[:headers][:processed_request]
-          return [] unless request_headers
-
-          result = {}
-          request_headers.each do |header|
-              rack_header = header[:rack_header]
-              result[header[:span_tag]] = env[rack_header] if env.key?(rack_header)
+          {}.tap do |result|
+            whitelist = configuration[:headers][:request] || []
+            whitelist.each do |header|
+              rack_header = header_to_rack_header(header)
+              result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header] if env.key?(rack_header)
+            end
           end
-          result
         end
 
         def parse_response_headers(headers)
-          response_headers = configuration[:headers][:processed_response]
-          return [] unless response_headers
-
-          result = {}
-          response_headers.each do |header|
-            if headers.key?(header)
-              result[header[:span_tag]] = headers[header]
-            else
-              # Try a case-insensitive lookup
-              upcased_header = header[:upcased_header]
-              matching_header = headers.any? { |h, _| h.upcase == upcased_header }
-              result[header[:span_tag]] = headers[matching_header] if matching_header
+          {}.tap do |result|
+            whitelist = configuration[:headers][:response] || []
+            whitelist.each do |header|
+              if headers.key?(header)
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
+              else
+                # Try a case-insensitive lookup
+                uppercased_header = header.to_s.upcase
+                matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header] if matching_header
+              end
             end
           end
-          result
         end
 
         def header_to_rack_header(name)
