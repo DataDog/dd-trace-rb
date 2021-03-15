@@ -9,7 +9,7 @@ module PlatformHelpers
     RUBY_ENGINE == 'jruby'.freeze
   end
 
-  def supports_fork?
-    !jruby?
+  def truffleruby?
+    RUBY_ENGINE == 'truffleruby'.freeze
   end
 end

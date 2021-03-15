@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'ddtrace/diagnostics/environment_logger'
 
 RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
-  subject(:env_logger) { Datadog::Diagnostics::EnvironmentLogger }
+  subject(:env_logger) { described_class }
 
   before { allow(DateTime).to receive(:now).and_return(DateTime.new(2020)) }
 
@@ -17,8 +17,9 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
     Datadog.configure.reset!
   end
 
-  context '#log!' do
+  describe '#log!' do
     subject(:log!) { env_logger.log!([response]) }
+
     let(:logger) do
       log!
       tracer_logger
@@ -117,8 +118,9 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
   end
 
   describe Datadog::Diagnostics::EnvironmentCollector do
-    context '#collect!' do
+    describe '#collect!' do
       subject(:collect!) { collector.collect!([response]) }
+
       let(:collector) { described_class.new }
       let(:response) { instance_double(Datadog::Transport::Response, ok?: true) }
 
@@ -151,6 +153,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
 
       context 'with tracer disabled' do
         before { Datadog.configure { |c| c.tracer.enabled = false } }
+
         after { Datadog.configure { |c| c.tracer.enabled = true } }
 
         it { is_expected.to include enabled: false }
@@ -193,7 +196,9 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       end
 
       context 'with runtime metrics enabled' do
-        before { Datadog.configure { |c| c.runtime_metrics_enabled = true } }
+        before { Datadog.configure { |c| c.runtime_metrics.enabled = true } }
+
+        after { Datadog.configure.runtime_metrics.reset! }
 
         it { is_expected.to include runtime_metrics_enabled: true }
       end
@@ -238,6 +243,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
 
       context 'with integrations loaded' do
         before { Datadog.configure { |c| c.use :http, options } }
+
         let(:options) { {} }
 
         it { is_expected.to include integrations_loaded: start_with('http') }
@@ -276,6 +282,12 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
         before { skip unless PlatformHelpers.jruby? }
 
         it { is_expected.to include vm: start_with('jruby') }
+      end
+
+      context 'with TruffleRuby' do
+        before { skip unless PlatformHelpers.truffleruby? }
+
+        it { is_expected.to include vm: start_with('truffleruby') }
       end
     end
   end

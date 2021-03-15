@@ -6,11 +6,12 @@ require 'ddtrace/contrib/rack/middlewares'
 
 RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
   subject(:middleware) { described_class.new(app) }
+
   let(:app) { instance_double(Rack::Builder) }
 
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :rack, configuration_options
     end
@@ -18,21 +19,22 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
 
   describe '#call' do
     subject(:middleware_call) { middleware.call(env) }
+
     let(:env) { { 'rack.url_scheme' => 'http' } } # Scheme necessary for Rack 1.4.7
     let(:response) { [200, { 'Content-Type' => 'text/plain' }, ['OK']] }
 
-    before(:each) do
+    before do
       allow(app).to receive(:call)
         .with(env)
         .and_return(response)
     end
 
     describe 'deprecation warnings' do
-      before(:each) { allow(Datadog.logger).to receive(:warn) }
+      before { allow(Datadog.logger).to receive(:warn) }
 
       # Expect this for backwards compatibility
       context 'backwards compatibility' do
-        before(:each) { middleware_call }
+        before { middleware_call }
 
         it do
           expect(env).to include(
@@ -43,7 +45,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
       end
 
       context 'when :datadog_rack_request_span is accessed on the span' do
-        before(:each) do
+        before do
           allow(app).to receive(:call).with(env) do |env|
             # Trigger deprecation warning
             env[:datadog_rack_request_span]
@@ -60,7 +62,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
       end
 
       context 'when the same Rack env object is run twice' do
-        before(:each) do
+        before do
           middleware.call(env)
           middleware.call(env)
         end
@@ -73,7 +75,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
     end
 
     context 'with fatal exception' do
-      let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
+      let(:fatal_error) { stub_const('FatalError', Class.new(RuntimeError)) }
 
       before do
         # Raise error at first line of #call

@@ -41,7 +41,7 @@ module Datadog
     end
 
     def default_statsd_client
-      require 'datadog/statsd' unless defined?(::Datadog::Statsd)
+      require 'datadog/statsd'
 
       # Create a StatsD client that points to the agent.
       Datadog::Statsd.new(default_hostname, default_port)
@@ -58,7 +58,8 @@ module Datadog
 
     def count(stat, value = nil, options = nil, &block)
       return unless send_stats? && statsd.respond_to?(:count)
-      value, options = yield if block_given?
+
+      value, options = yield if block
       raise ArgumentError if value.nil?
 
       statsd.count(stat, value, metric_options(options))
@@ -68,7 +69,8 @@ module Datadog
 
     def distribution(stat, value = nil, options = nil, &block)
       return unless send_stats? && statsd.respond_to?(:distribution)
-      value, options = yield if block_given?
+
+      value, options = yield if block
       raise ArgumentError if value.nil?
 
       statsd.distribution(stat, value, metric_options(options))
@@ -78,6 +80,7 @@ module Datadog
 
     def increment(stat, options = nil)
       return unless send_stats? && statsd.respond_to?(:increment)
+
       options = yield if block_given?
 
       statsd.increment(stat, metric_options(options))
@@ -87,7 +90,8 @@ module Datadog
 
     def gauge(stat, value = nil, options = nil, &block)
       return unless send_stats? && statsd.respond_to?(:gauge)
-      value, options = yield if block_given?
+
+      value, options = yield if block
       raise ArgumentError if value.nil?
 
       statsd.gauge(stat, value, metric_options(options))
@@ -100,7 +104,7 @@ module Datadog
 
       # Calculate time, send it as a distribution.
       start = Utils::Time.get_time
-      return yield
+      yield
     ensure
       begin
         if send_stats? && !start.nil?
@@ -186,7 +190,7 @@ module Datadog
         attr_accessor :logger
 
         def initialize(logger = nil)
-          @logger = logger || Logger.new(STDOUT).tap do |l|
+          @logger = logger || Logger.new($stdout).tap do |l|
             l.level = Logger::INFO
             l.progname = nil
             l.formatter = proc do |_severity, datetime, _progname, msg|

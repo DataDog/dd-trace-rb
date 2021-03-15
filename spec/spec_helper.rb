@@ -1,5 +1,5 @@
-$LOAD_PATH.unshift File.expand_path('../../', __FILE__)
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+$LOAD_PATH.unshift File.expand_path('..', __dir__)
+$LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 require 'pry'
 require 'rspec/collection_matchers'
 require 'webmock/rspec'
@@ -81,7 +81,111 @@ RSpec.configure do |config|
     # (e.g. via a command-line flag).
     config.default_formatter = 'doc'
   end
+
+  # Check for leaky test resources.
+  #
+  # Execute this after the test has finished
+  # teardown and mock verifications.
+  #
+  # Changing this to `config.after(:each)` would
+  # put this code inside the test scope, interfering
+  # with the test execution.
+  config.around do |example|
+    example.run.tap do
+      # Exclude acceptable background threads
+      background_threads = Thread.list.reject do |t|
+        group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
+        backtrace = t.backtrace || []
+
+        # Current thread
+        t == Thread.current ||
+          # Thread has shut down, but we caught it right as it was still alive
+          !t.alive? ||
+          # Internal JRuby thread
+          defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
+          # WEBrick singleton thread for handling timeouts
+          backtrace.find { |b| b.include?('/webrick/utils.rb') } ||
+          # WEBrick server thread
+          t[:WEBrickSocket] ||
+          # Rails connection reaper
+          backtrace.find { |b| b.include?('lib/active_record/connection_adapters/abstract/connection_pool.rb') } ||
+          # Ruby JetBrains debugger
+          t.class.name.include?('DebugThread') ||
+          # Categorized as a known leaky thread
+          !group_name.nil?
+      end
+
+      unless background_threads.empty?
+        # TODO: Temporarily disabled for `spec/ddtrace/workers`
+        # was meaningful changes are required to address clean
+        # teardown in those tests.
+        # They currently flood the output, making our test
+        # suite output unreadable.
+        if example.file_path.start_with?('./spec/ddtrace/workers/')
+          RSpec.warning("FIXME: #{example.file_path}:#{example.metadata[:line_number]} is leaking threads")
+          next
+        end
+
+        info = background_threads.each_with_index.flat_map do |t, idx|
+          caller = t.instance_variable_get(:@caller) || ['(Not available. Possibly a native thread.)']
+          backtrace = t.backtrace || ['(Not available. Possibly a native thread.)']
+          [
+            "#{idx + 1}: #{t} (#{t.class.name})",
+            'Thread Creation Site:',
+            caller.map { |l| "\t#{l}" }.join("\n"),
+            'Thread Backtrace:',
+            backtrace.map { |l| "\t#{l}" }.join("\n"),
+            "\n"
+          ]
+        end.join("\n")
+
+        # Warn about leakly thread
+        warn RSpec::Core::Formatters::ConsoleCodes.wrap(
+          "Spec leaked #{background_threads.size} threads in \"#{example.full_description}\".\n" \
+          "Ensure all threads are terminated when test finishes.\n" \
+          "For help fixing this issue, see \"Ensuring tests don't leak resources\" in docs/DevelopmentGuide.md.\n" \
+          "\n" \
+          "#{info}",
+          :red
+        )
+      end
+    end
+  end
+
+  # Closes the global testing tracer.
+  #
+  # Execute this after the test has finished
+  # teardown and mock verifications.
+  #
+  # Changing this to `config.after(:each)` would
+  # put this code inside the test scope, interfering
+  # with the test execution.
+  config.around do |example|
+    example.run.tap do
+      tracer_shutdown!
+    end
+  end
 end
+
+# Stores the caller thread backtrace,
+# To allow for leaky threads to be traced
+# back to their creation point.
+module DatadogThreadDebugger
+  def initialize(*args)
+    caller_ = caller
+    wrapped = lambda do |*thread_args|
+      Thread.current.instance_variable_set(:@caller, caller_)
+      yield(*thread_args)
+    end
+    wrapped.ruby2_keywords if wrapped.respond_to?(:ruby2_keywords, true)
+
+    super(*args, &wrapped)
+  end
+
+  ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
+end
+
+Thread.send(:prepend, DatadogThreadDebugger)
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be

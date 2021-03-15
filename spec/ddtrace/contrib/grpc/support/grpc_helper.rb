@@ -1,5 +1,7 @@
 require 'grpc'
 
+require 'spec/support/thread_helpers'
+
 module GRPCHelper
   def run_request_reply(address = available_endpoint, client = nil)
     runner(address, client) { |c| c.basic(TestMessage.new) }
@@ -24,7 +26,9 @@ module GRPCHelper
   end
 
   def runner(address, client)
-    server = GRPC::RpcServer.new
+    # GRPC native threads that are never cleaned up
+    server = ThreadHelpers.with_leaky_thread_creation(:grpc) { GRPC::RpcServer.new }
+
     server.add_http2_port(address, :this_port_is_insecure)
     server.handle(TestService)
 
@@ -68,7 +72,7 @@ module GRPCHelper
     end
 
     # provide implementations for each registered rpc interface
-    def basic(request, call)
+    def basic(_request, call)
       call.output_metadata.update(@trailing_metadata)
       @received_metadata << call.metadata unless call.metadata.nil?
       TestMessage.new
@@ -85,7 +89,7 @@ module GRPCHelper
       [TestMessage.new, TestMessage.new]
     end
 
-    def stream_both_ways(requests, call)
+    def stream_both_ways(_requests, call)
       call.output_metadata.update(@trailing_metadata)
       call.each_remote_read.each { |r| r }
       [TestMessage.new, TestMessage.new]

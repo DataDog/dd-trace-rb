@@ -56,6 +56,7 @@ module Datadog
 
         pid = Process.pid
         return if @worker && pid == @pid
+
         @pid = pid
 
         start_worker
@@ -90,6 +91,7 @@ module Datadog
       @stopped = true
 
       return if @worker.nil?
+
       @worker.stop
       @worker = nil
 
@@ -174,9 +176,7 @@ module Datadog
         next if trace.first.nil?
 
         hostname = Datadog::Runtime::Socket.hostname
-        unless hostname.nil? || hostname.empty?
-          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
-        end
+        trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
       end
     end
 

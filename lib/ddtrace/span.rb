@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require 'time'
-require 'thread'
-
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/priority'
@@ -38,14 +36,16 @@ module Datadog
     EXTERNAL_MAX_ID = 1 << 64
 
     # This limit is for numeric tags because uint64 could end up rounded.
-    NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53)
+    NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53).freeze
 
     attr_accessor :name, :service, :resource, :span_type,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
-                  :tracer, :context, :duration, :start_time, :end_time
+                  :tracer, :context
 
-    attr_reader :parent
+    attr_reader :parent, :start_time, :end_time
+
+    attr_writer :duration
 
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
     # and then <tt>finish()</tt> once the tracer operation is over.
@@ -180,7 +180,7 @@ module Datadog
       # behavior and so we maintain it for backward compatibility for those
       # who are using async manual instrumentation that may rely on this
 
-      @start_time = start_time || Time.now.utc
+      @start_time = start_time || Utils::Time.now.utc
       @duration_start = start_time.nil? ? duration_marker : nil
 
       self
@@ -206,7 +206,7 @@ module Datadog
 
       @allocation_count_finish = now_allocations
 
-      now = Time.now.utc
+      now = Utils::Time.now.utc
 
       # Provide a default start_time if unset.
       # Using `now` here causes duration to be 0; this is expected

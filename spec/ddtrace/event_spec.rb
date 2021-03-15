@@ -5,6 +5,7 @@ require 'ddtrace/event'
 
 RSpec.describe Datadog::Event do
   subject(:event) { described_class.new(name) }
+
   let(:name) { :test_event }
 
   describe '#initialize' do
@@ -18,6 +19,7 @@ RSpec.describe Datadog::Event do
 
   describe '#subscribe' do
     subject(:subscribe) { event.subscribe(key, &block) }
+
     let(:key) { :test_subscription }
 
     context 'when given a key and block' do
@@ -31,6 +33,7 @@ RSpec.describe Datadog::Event do
 
       context 'whose key already exists' do
         let(:old_block) { proc {} }
+
         before { event.subscribe(key, &old_block) }
 
         it 'replaces the original subscription' do
@@ -43,12 +46,14 @@ RSpec.describe Datadog::Event do
 
     context 'when not given a block' do
       let(:block) { nil }
+
       it { expect { subscribe }.to raise_error(ArgumentError) }
     end
   end
 
   describe '#unsubscribe' do
     subject(:unsubscribe) { event.unsubscribe(key) }
+
     let(:key) { :test_subscription }
 
     context 'when no subscription has been made' do
@@ -57,6 +62,7 @@ RSpec.describe Datadog::Event do
 
     context 'after a subscription has been made' do
       let(:block) { proc {} }
+
       before { event.subscribe(key, &block) }
 
       it 'removes the subscription' do
@@ -87,6 +93,7 @@ RSpec.describe Datadog::Event do
 
   describe '#publish' do
     subject(:publish) { event.publish(*args) }
+
     let(:args) { [:a, :b] }
 
     context 'when there are no subscribers' do
@@ -112,7 +119,7 @@ RSpec.describe Datadog::Event do
       it 'calls both subscribers' do
         publish
 
-        subscriptions.values.each do |block|
+        subscriptions.each_value do |block|
           expect(block).to have_received(:call).with(*args).ordered
         end
       end

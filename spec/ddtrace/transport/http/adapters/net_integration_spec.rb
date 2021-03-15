@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 require 'stringio'
-require 'thread'
 require 'webrick'
 
 require 'ddtrace/transport/http'
@@ -29,7 +28,7 @@ RSpec.describe 'Adapters::Net integration tests' do
     let(:access_log) { [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
     let(:server_proc) do
       proc do |req, res|
-        messages << req
+        messages << req.tap { req.body } # Read body, store message before socket closes.
         res.body = '{}'
       end
     end
@@ -39,11 +38,14 @@ RSpec.describe 'Adapters::Net integration tests' do
 
     before do
       server.mount_proc('/', &server_proc)
-      Thread.new { server.start }
+      @server_thread = Thread.new { server.start }
       init_signal.pop
     end
 
-    after { server.shutdown }
+    after do
+      server.shutdown
+      @server_thread.join
+    end
   end
 
   describe 'when sending traces through Net::HTTP adapter' do
@@ -78,6 +80,7 @@ RSpec.describe 'Adapters::Net integration tests' do
         end
 
         expect(http_request.header['content-length'].first.to_i).to be > 0
+        expect(http_request.body.length).to be > 0
       end
     end
   end

@@ -41,6 +41,7 @@ module Datadog
 
             def send_traces(env, &block)
               raise NoTraceEndpointDefinedError, self if traces.nil?
+
               traces.call(env, &block)
             end
 
@@ -121,9 +122,7 @@ module Datadog
                 # Parse service rates, if configured to do so.
                 if service_rates? && !http_response.payload.to_s.empty?
                   body = JSON.parse(http_response.payload)
-                  if body.is_a?(Hash) && body.key?(SERVICE_RATE_KEY)
-                    options[:service_rates] = body[SERVICE_RATE_KEY]
-                  end
+                  options[:service_rates] = body[SERVICE_RATE_KEY] if body.is_a?(Hash) && body.key?(SERVICE_RATE_KEY)
                 end
               end
 

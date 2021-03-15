@@ -7,8 +7,9 @@ RSpec.describe Datadog::DefaultContextProvider do
   let(:local_context) { instance_double(Datadog::ThreadLocalContext) }
   let(:trace_context) { Datadog::Context.new }
 
-  context '#context=' do
+  describe '#context=' do
     subject(:context=) { provider.context = ctx }
+
     let(:ctx) { double }
 
     before { expect(Datadog::ThreadLocalContext).to receive(:new).and_return(local_context) }
@@ -19,7 +20,7 @@ RSpec.describe Datadog::DefaultContextProvider do
     end
   end
 
-  context '#context' do
+  describe '#context' do
     subject(:context) { provider.context }
 
     before { expect(Datadog::ThreadLocalContext).to receive(:new).and_return(local_context) }
@@ -36,6 +37,7 @@ RSpec.describe Datadog::DefaultContextProvider do
 
     context 'when given a key' do
       subject(:context) { provider.context(key) }
+
       let(:key) { double('key') }
 
       it do
@@ -50,7 +52,7 @@ RSpec.describe Datadog::DefaultContextProvider do
   end
 
   context 'when fork occurs' do
-    before { skip 'Java not supported' if RUBY_PLATFORM == 'java' }
+    before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
     it 'clones the context and returns the clone' do
       # Initialize a context for the current process
@@ -106,7 +108,7 @@ RSpec.describe Datadog::ThreadLocalContext do
     context 'with a second ThreadLocalContext' do
       let(:thread_local_context2) { described_class.new }
 
-      it 'should not interfere with other ThreadLocalContext' do
+      it 'does not interfere with other ThreadLocalContext' do
         local_context = thread_local_context.local
         local_context2 = thread_local_context2.local
 
@@ -133,6 +135,7 @@ RSpec.describe Datadog::ThreadLocalContext do
 
     context 'given a thread' do
       subject(:local) { thread_local_context.local(thread) }
+
       let(:thread) { Thread.new {} }
 
       it 'retrieves the context for the provided thread' do
@@ -140,15 +143,11 @@ RSpec.describe Datadog::ThreadLocalContext do
         expect(local).to_not be(thread_local_context.local)
       end
     end
-
-    context 'given a bad argument' do
-      subject(:local) { thread_local_context.local('bad_arg') }
-      it { expect { local }.to raise_error(ArgumentError) }
-    end
   end
 
   describe '#local=' do
     subject(:local=) { thread_local_context.local = context }
+
     let(:context) { double }
 
     before { thread_local_context } # Force initialization

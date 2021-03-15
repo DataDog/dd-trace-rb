@@ -1,5 +1,3 @@
-require 'thread'
-
 # During development, we load `ddtrace` by through `ddtrace.gemspec`,
 # which in turn eager loads 'ddtrace/version'.
 #
@@ -15,13 +13,11 @@ require 'ddtrace/quantization/http'
 require 'ddtrace/pipeline'
 require 'ddtrace/configuration'
 require 'ddtrace/patcher'
-require 'ddtrace/augmentation'
 require 'ddtrace/metrics'
 require 'ddtrace/auto_instrument_base'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
-  extend Augmentation
   extend Configuration
   extend AutoInstrumentBase
 
@@ -85,4 +81,3 @@ require 'ddtrace/contrib/sidekiq/integration'
 require 'ddtrace/contrib/sinatra/integration'
 require 'ddtrace/contrib/sneakers/integration'
 require 'ddtrace/contrib/sucker_punch/integration'
-require 'ddtrace/monkey'

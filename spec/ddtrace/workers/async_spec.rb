@@ -16,6 +16,22 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     before { allow(worker_spy).to receive(:perform) }
 
+    after do
+      thread = worker.send(:worker)
+      if thread
+        # Avoid tripping RSpec expectations on the worker thread
+        # when calling `terminate` and `join` below.
+        RSpec::Mocks.space.proxy_for(thread).reset
+
+        thread.terminate
+        begin
+          thread.join
+        rescue error_class => _e
+          # Prevents test from erroring out during cleanup
+        end
+      end
+    end
+
     shared_context 'perform and wait' do
       let(:perform) { worker.perform(*args) }
       let(:args) { [:foo, :bar] }
@@ -56,6 +72,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     describe '#perform' do
       subject(:perform) { worker.perform(*args) }
+
       let(:args) { [:foo, :bar] }
 
       context 'given arguments' do
@@ -77,6 +94,10 @@ RSpec.describe Datadog::Workers::Async::Thread do
             started?: true,
             run_async?: true
           )
+        end
+
+        it 'returns nil' do
+          expect(perform).to be nil
         end
       end
     end
@@ -141,6 +162,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     describe '#fork_policy=' do
       subject(:set_fork_policy) { worker.fork_policy = policy }
+
       let(:policy) { double('policy') }
 
       it do
@@ -153,6 +175,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     describe '#join' do
       subject(:join) { worker.join }
+
       let(:thread) { worker.send(:worker) }
 
       context 'when not started' do
@@ -160,41 +183,33 @@ RSpec.describe Datadog::Workers::Async::Thread do
       end
 
       context 'when started' do
-        let(:task) { proc { sleep(1) } }
+        let(:task) { proc { sleep(0.1) } }
         let(:join_result) { double('join result') }
 
-        before { worker.perform }
+        before do
+          worker.perform
+
+          expect(thread).to receive(:join)
+            .with(timeout).and_call_original
+        end
 
         context 'given no arguments' do
-          before do
-            expect(thread).to receive(:join)
-              .with(nil)
-              .and_return(join_result)
-          end
+          let(:timeout) { nil }
 
           it { is_expected.to be true }
         end
 
         context 'given a timeout' do
           subject(:join) { worker.join(timeout) }
-          let(:timeout) { rand }
 
           context 'which is not reached' do
-            before do
-              expect(thread).to receive(:join)
-                .with(timeout)
-                .and_return(join_result)
-            end
+            let(:timeout) { 10 }
 
             it { is_expected.to be true }
           end
 
           context 'which is reached' do
-            before do
-              expect(thread).to receive(:join)
-                .with(timeout)
-                .and_return(nil)
-            end
+            let(:timeout) { 0 }
 
             it { is_expected.to be false }
           end
@@ -235,7 +250,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
       context 'when started' do
         before { worker.perform }
-        after { worker.terminate }
+
         it { is_expected.to be true }
       end
     end
@@ -249,7 +264,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
       context 'when started' do
         before { worker.perform }
-        after { worker.terminate }
+
         it { is_expected.to be true }
       end
     end
@@ -269,7 +284,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
           try_wait_until { worker.running? }
         end
 
-        after { worker.terminate }
         it { is_expected.to be true }
       end
     end
@@ -288,8 +302,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
           worker.perform
           try_wait_until { worker.running? }
         end
-
-        after { worker.terminate }
 
         it do
           expect(worker.running?).to be true
@@ -319,7 +331,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
         let(:task) { proc { sleep(1) } }
 
         before { worker.perform }
-        after { worker.terminate }
 
         it do
           expect(worker.running?).to be true
@@ -343,7 +354,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
     end
 
     describe '#forked?' do
-      before { skip unless PlatformHelpers.supports_fork? }
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       subject(:forked?) { worker.forked? }
 
@@ -355,7 +366,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
         let(:task) { proc { sleep(1) } }
 
         before { worker.perform }
-        after { worker.terminate }
 
         it do
           expect(worker.running?).to be true
@@ -367,7 +377,6 @@ RSpec.describe Datadog::Workers::Async::Thread do
         let(:task) { proc { sleep(1) } }
 
         before { worker.perform }
-        after { worker.terminate }
 
         it do
           expect(worker.running?).to be true
@@ -382,7 +391,7 @@ RSpec.describe Datadog::Workers::Async::Thread do
 
     describe 'integration tests' do
       describe 'forking' do
-        before { skip unless PlatformHelpers.supports_fork? }
+        before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
         context 'when the process forks' do
           context 'with FORK_POLICY_STOP fork policy' do
@@ -434,6 +443,42 @@ RSpec.describe Datadog::Workers::Async::Thread do
               end
             end
           end
+        end
+      end
+    end
+
+    describe 'thread naming' do
+      after { worker.terminate }
+
+      context 'on Ruby < 2.3' do
+        before do
+          skip 'Only applies to old Rubies' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
+        end
+
+        it 'does not try to set a thread name' do
+          without_partial_double_verification do
+            expect_any_instance_of(Thread).not_to receive(:name=)
+          end
+
+          worker.perform
+        end
+      end
+
+      context 'on Ruby >= 2.3' do
+        before do
+          skip 'Not supported on old Rubies' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+        end
+
+        class AsyncSpecThreadNaming < Datadog::Worker
+          include Datadog::Workers::Async::Thread
+        end
+
+        let(:worker_class) { AsyncSpecThreadNaming }
+
+        it 'sets the name of the created thread to match the worker class name' do
+          worker.perform
+
+          expect(worker.send(:worker).name).to eq worker_class.to_s
         end
       end
     end

@@ -27,11 +27,13 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Integration do
 
     context 'when ActiveSupport is defined' do
       before { stub_const('ActiveSupport', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when ActiveSupport is not defined' do
       before { hide_const('ActiveSupport') }
+
       it { is_expected.to be false }
     end
   end
@@ -63,11 +65,13 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Integration do
 
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveSupport::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::ActiveSupport::Patcher }
   end
 end

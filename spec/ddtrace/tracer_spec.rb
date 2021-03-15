@@ -4,7 +4,10 @@ require 'ddtrace'
 
 RSpec.describe Datadog::Tracer do
   let(:writer) { FauxWriter.new }
+
   subject(:tracer) { described_class.new(writer: writer) }
+
+  after { tracer.shutdown! }
 
   shared_context 'parent span' do
     let(:trace_id) { SecureRandom.uuid }
@@ -37,6 +40,7 @@ RSpec.describe Datadog::Tracer do
 
   describe '#configure' do
     subject!(:configure) { tracer.configure(options) }
+
     let(:options) { {} }
 
     it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Finished) }
@@ -50,6 +54,7 @@ RSpec.describe Datadog::Tracer do
 
   describe '#tags' do
     subject(:tags) { tracer.tags }
+
     let(:env_tags) { {} }
 
     before { allow(Datadog.configuration).to receive(:tags).and_return(env_tags) }
@@ -90,6 +95,7 @@ RSpec.describe Datadog::Tracer do
 
   describe '#start_span' do
     subject(:start_span) { tracer.start_span(name, options) }
+
     let(:span) { start_span }
     let(:name) { 'span.name' }
     let(:options) { {} }
@@ -151,6 +157,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'given a block' do
       subject(:trace) { tracer.trace(name, options, &block) }
+
       let(:block) { proc { result } }
       let(:result) { double('result') }
 
@@ -219,7 +226,7 @@ RSpec.describe Datadog::Tracer do
         end
 
         context 'with forking' do
-          before { skip 'Java not supported' if RUBY_PLATFORM == 'java' }
+          before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
           it 'only the top most span per process has a runtime ID tag' do
             tracer.trace(name) do |parent_span|
@@ -250,7 +257,7 @@ RSpec.describe Datadog::Tracer do
       end
 
       context 'when starting a span fails' do
-        before(:each) do
+        before do
           allow(tracer).to receive(:start_span).and_raise(error)
         end
 
@@ -268,7 +275,7 @@ RSpec.describe Datadog::Tracer do
         context 'with fatal exception' do
           let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
 
-          before(:each) do
+          before do
             # Raise error at first line of begin block
             allow(tracer).to receive(:start_span).and_raise(fatal_error)
           end
@@ -315,7 +322,8 @@ RSpec.describe Datadog::Tracer do
 
           context 'is a block that is not a Proc' do
             let(:not_a_proc_block) { 'not a proc' }
-            it 'should fallback to default error handler and log a debug message' do
+
+            it 'fallbacks to default error handler and log a debug message' do
               expect_any_instance_of(Datadog::Logger).to receive(:debug).at_least(:once)
               expect do
                 tracer.trace(name, on_error: not_a_proc_block, &block)
@@ -356,6 +364,7 @@ RSpec.describe Datadog::Tracer do
 
   describe '#call_context' do
     subject(:call_context) { tracer.call_context }
+
     let(:context) { instance_double(Datadog::Context) }
 
     context 'given no arguments' do
@@ -371,6 +380,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'given a key' do
       subject(:call_context) { tracer.call_context(key) }
+
       let(:key) { Thread.current }
 
       it do
@@ -399,6 +409,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'given a key' do
       subject(:active_span) { tracer.active_span(key) }
+
       let(:key) { double('key') }
 
       it do
@@ -431,6 +442,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'given a key' do
       subject(:active_root_span) { tracer.active_root_span(key) }
+
       let(:key) { double('key') }
 
       it do
@@ -454,7 +466,7 @@ RSpec.describe Datadog::Tracer do
     context 'when a trace is active' do
       let(:span) { @span }
 
-      around(:each) do |example|
+      around do |example|
         tracer.trace('test') do |span|
           @span = span
           example.run
@@ -498,10 +510,11 @@ RSpec.describe Datadog::Tracer do
 
     # Ensure we have a clean `@done_once` before and after each test
     # so we can properly test the behavior here, and we don't pollute other tests
-    before(:each) { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
-    after(:each) { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+    before { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
 
-    before(:each) do
+    after { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+
+    before do
       # Call multiple times to assert we only log once
       tracer.set_service_info('service-A', 'app-A', 'app_type-A')
       tracer.set_service_info('service-B', 'app-B', 'app_type-B')

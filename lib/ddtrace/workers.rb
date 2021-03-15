@@ -67,9 +67,13 @@ module Datadog
       def start
         @mutex.synchronize do
           return if @run
+
           @run = true
           Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
           @worker = Thread.new { perform }
+          @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+
+          nil
         end
       end
 
@@ -108,6 +112,7 @@ module Datadog
 
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty?
+
             @shutdown.wait(@mutex, @back_off) if @run # do not wait when shutting down
           end
         end

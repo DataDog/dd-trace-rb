@@ -96,6 +96,7 @@ module Datadog
         # @return [Hash]
         def self.default_connection_config
           return @default_connection_config if instance_variable_defined?(:@default_connection_config)
+
           current_connection_name = if ::ActiveRecord::Base.respond_to?(:connection_specification_name)
                                       ::ActiveRecord::Base.connection_specification_name
                                     else

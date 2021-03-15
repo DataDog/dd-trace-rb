@@ -22,6 +22,7 @@ module Datadog
       # undefined behavior.
       def close
         return unless equal?(manager.active)
+
         span.finish if finish_on_close
         manager.send(:set_scope, @previous_scope)
       end

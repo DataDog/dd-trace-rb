@@ -110,9 +110,7 @@ module Datadog
 
               span.set_tag(Ext::TAG_APP_NAME, settings.name || settings.superclass.name)
               span.set_tag(Ext::TAG_ROUTE_PATH, @datadog_route)
-              if request.script_name && !request.script_name.empty?
-                span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)
-              end
+              span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name) if request.script_name && !request.script_name.empty?
 
               rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
               rack_request_span.resource = span.resource if rack_request_span

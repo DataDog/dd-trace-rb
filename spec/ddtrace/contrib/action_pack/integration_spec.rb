@@ -27,11 +27,13 @@ RSpec.describe Datadog::Contrib::ActionPack::Integration do
 
     context 'when ActionPack is defined' do
       before { stub_const('ActionPack', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when ActionPack is not defined' do
       before { hide_const('ActionPack') }
+
       it { is_expected.to be false }
     end
   end
@@ -63,11 +65,13 @@ RSpec.describe Datadog::Contrib::ActionPack::Integration do
 
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::ActionPack::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::ActionPack::Patcher }
   end
 end

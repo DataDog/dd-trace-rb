@@ -20,7 +20,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
   end
 
-  context '#initialize' do
+  describe '#initialize' do
     subject(:rule_sampler) { described_class.new(rules) }
 
     it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
@@ -166,6 +166,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
   describe '#update' do
     subject(:update) { rule_sampler.update(rates) }
+
     let(:rates) { { 'service:my-service,env:test' => rand } }
 
     context 'when configured with a default sampler' do

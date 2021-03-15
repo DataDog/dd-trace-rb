@@ -1,6 +1,6 @@
 require 'bundler/gem_tasks'
 require 'ddtrace/version'
-require 'rubocop/rake_task' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
+require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'rspec/core/rake_task'
 require 'rake/testtask'
 require 'appraisal'
@@ -139,35 +139,20 @@ end
 
 namespace :test do
   task all: [:main,
-             :rails,
-             :monkey]
+             :rails]
 
   Rake::TestTask.new(:main) do |t|
     t.libs << %w[test lib]
     t.test_files = FileList['test/**/*_test.rb'].reject do |path|
       path.include?('contrib') ||
         path.include?('benchmark') ||
-        path.include?('redis') ||
-        path.include?('monkey_test.rb')
+        path.include?('redis')
     end
   end
 
   Rake::TestTask.new(:rails) do |t|
     t.libs << %w[test lib]
     t.test_files = FileList['test/contrib/rails/**/*_test.rb']
-  end
-
-  [
-  ].each do |contrib|
-    Rake::TestTask.new(contrib) do |t|
-      t.libs << %w[test lib]
-      t.test_files = FileList["test/contrib/#{contrib}/*_test.rb"]
-    end
-  end
-
-  Rake::TestTask.new(:monkey) do |t|
-    t.libs << %w[test lib]
-    t.test_files = FileList['test/monkey_test.rb']
   end
 end
 
@@ -176,7 +161,7 @@ Rake::TestTask.new(:benchmark) do |t|
   t.test_files = FileList['test/benchmark_test.rb']
 end
 
-if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
+if defined?(RuboCop::RakeTask)
   RuboCop::RakeTask.new(:rubocop) do |t|
     t.options << ['-D', '--force-exclusion']
     t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'spec/**/*.rb', 'Gemfile', 'Rakefile']
@@ -196,6 +181,7 @@ S3_DIR = ENV['S3_DIR']
 desc 'release the docs website'
 task :'release:docs' => :docs do
   raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
+
   sh "aws s3 cp --recursive doc/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
 end
 
@@ -226,8 +212,6 @@ task :ci do
     declare 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
-      # Contrib minitests
-      declare 'bundle exec appraisal contrib-old rake test:monkey'
       # Contrib specs
       declare 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       declare 'bundle exec appraisal contrib-old rake spec:active_record'
@@ -285,8 +269,6 @@ task :ci do
     declare 'bundle exec rake spec:opentracer'
 
     if RUBY_PLATFORM != 'java'
-      # Contrib minitests
-      declare 'bundle exec appraisal contrib-old rake test:monkey'
       # Contrib specs
       declare 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
       declare 'bundle exec appraisal contrib-old rake spec:active_record'

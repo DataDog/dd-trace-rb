@@ -25,7 +25,7 @@ RSpec.describe 'Mysql2::Client patcher' do
   let(:username) { ENV.fetch('TEST_MYSQL_USER') { 'root' } }
   let(:password) { ENV.fetch('TEST_MYSQL_PASSWORD') { 'root' } }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :mysql2, configuration_options
     end
@@ -51,7 +51,7 @@ RSpec.describe 'Mysql2::Client patcher' do
   describe 'tracing' do
     describe '#query' do
       context 'when the tracer is disabled' do
-        before(:each) { tracer.enabled = false }
+        before { tracer.enabled = false }
 
         it 'does not write spans' do
           client.query('SELECT 1')
@@ -60,7 +60,7 @@ RSpec.describe 'Mysql2::Client patcher' do
       end
 
       context 'when a successful query is made' do
-        before(:each) { client.query('SELECT 1') }
+        before { client.query('SELECT 1') }
 
         it 'produces a trace' do
           expect(spans.count).to eq(1)
@@ -80,7 +80,7 @@ RSpec.describe 'Mysql2::Client patcher' do
       end
 
       context 'when a failed query is made' do
-        before(:each) { expect { client.query('SELECT INVALID') }.to raise_error(Mysql2::Error) }
+        before { expect { client.query('SELECT INVALID') }.to raise_error(Mysql2::Error) }
 
         it 'traces failed queries' do
           expect(spans.count).to eq(1)

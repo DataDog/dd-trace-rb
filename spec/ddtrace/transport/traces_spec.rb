@@ -4,6 +4,7 @@ require 'ddtrace/transport/traces'
 
 RSpec.describe Datadog::Transport::Traces::EncodedParcel do
   subject(:parcel) { described_class.new(data, trace_count) }
+
   let(:data) { instance_double(Array) }
   let(:trace_count) { 123 }
 
@@ -15,6 +16,7 @@ RSpec.describe Datadog::Transport::Traces::EncodedParcel do
 
   describe '#count' do
     subject(:count) { parcel.count }
+
     let(:length) { double('length') }
 
     before { expect(data).to receive(:length).and_return(length) }
@@ -24,12 +26,14 @@ RSpec.describe Datadog::Transport::Traces::EncodedParcel do
 
   describe '#trace_count' do
     subject { parcel.trace_count }
+
     it { is_expected.to eq(trace_count) }
   end
 end
 
 RSpec.describe Datadog::Transport::Traces::Request do
   subject(:request) { described_class.new(parcel) }
+
   let(:parcel) { double }
 
   it { is_expected.to be_a_kind_of(Datadog::Transport::Request) }
@@ -61,7 +65,7 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
   let(:trace_encoder) { Datadog::Transport::Traces::Encoder }
   let(:max_size) { 10 }
 
-  context '#encode_in_chunks' do
+  describe '#encode_in_chunks' do
     subject(:encode_in_chunks) { chunker.encode_in_chunks(traces) }
 
     context 'with traces' do
@@ -226,10 +230,12 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     include_context 'APIs with fallbacks'
 
     subject(:downgrade?) { transport.send(:downgrade?, response) }
+
     let(:response) { instance_double(Datadog::Transport::Response) }
 
     context 'when there is no fallback' do
       let(:current_api_id) { :v1 }
+
       it { is_expected.to be false }
     end
 
@@ -269,6 +275,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     include_context 'APIs with fallbacks'
 
     subject(:current_api) { transport.current_api }
+
     it { is_expected.to be(api_v2) }
   end
 
@@ -279,11 +286,13 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
     context 'when the API ID does not match an API' do
       let(:api_id) { :v99 }
+
       it { expect { change_api! }.to raise_error(described_class::UnknownApiVersionError) }
     end
 
     context 'when the API ID matches an API' do
       let(:api_id) { :v1 }
+
       it { expect { change_api! }.to change { transport.current_api }.from(api_v2).to(api_v1) }
     end
   end
@@ -295,11 +304,13 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
     context 'when the API has no fallback' do
       let(:current_api_id) { :v1 }
+
       it { expect { downgrade! }.to raise_error(described_class::NoDowngradeAvailableError) }
     end
 
     context 'when the API has fallback' do
       let(:current_api_id) { :v2 }
+
       it { expect { downgrade! }.to change { transport.current_api }.from(api_v2).to(api_v1) }
     end
   end

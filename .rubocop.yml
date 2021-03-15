@@ -1,5 +1,11 @@
+inherit_from: .rubocop_todo.yml
+
+require:
+  - rubocop-performance
+  - rubocop-rspec
+
 AllCops:
-  TargetRubyVersion: 2.1
+  TargetRubyVersion: 2.4 # Lowest version supported currently
   Include:
     - 'lib/**/*.rb'
     - 'test/**/*.rb'
@@ -9,11 +15,14 @@ AllCops:
   Exclude:
     - 'Appraisals'
     - '*.gemspec'
-    - 'lib/ddtrace/vendor/**/*.rb'
+    - 'lib/ddtrace/**/vendor/**/*.rb'
+    - 'integration/apps/*/bin/*'
+    - 'integration/apps/*/Gemfile'
+  NewCops: disable # Don't allow new cops to be enabled implicitly.
 
 # 80 characters is a nice goal, but not worth currently changing in existing
 # code for the sake of changing it to conform to a length set in 1928 (IBM).
-Metrics/LineLength:
+Layout/LineLength:
   Max: 124
 
 # These exceptions are good goals to attain, and probably will over time,
@@ -34,10 +43,7 @@ Performance/Casecmp:
 # should enable again this rule but it will change the public API because
 # we're using set_ methods. We should work on that because also Rails
 # honors this rule.
-Style/AccessorMethodName:
-  Enabled: false
-
-Style/MethodCallWithoutArgsParentheses:
+Naming/AccessorMethodName:
   Enabled: false
 
 Style/RescueModifier:
@@ -67,6 +73,9 @@ Metrics/PerceivedComplexity:
 Lint/UnusedMethodArgument:
   Enabled: false
 
+Style/RescueStandardError:
+  Enabled: false
+
 # alias and alias_method are not equivalent
 Style/Alias:
   Enabled: false
@@ -82,4 +91,238 @@ Style/GuardClause:
 
 # Case equality is not intrinsically problematic.
 Style/CaseEquality:
+  Enabled: false
+
+# New cops since Rubocop 1.0.
+# We have to explicitly opt-in for new cops to apply
+# before the next major release.
+Gemspec/DateAssignment: # (new in 1.10)
+  Enabled: true
+Layout/SpaceBeforeBrackets: # (new in 1.7)
+  Enabled: true
+Lint/AmbiguousAssignment: # (new in 1.7)
+  Enabled: true
+Lint/DeprecatedConstants: # (new in 1.8)
+  Enabled: true
+Lint/DuplicateBranch: # (new in 1.3)
+  Enabled: true
+Lint/DuplicateRegexpCharacterClassElement: # (new in 1.1)
+  Enabled: true
+Lint/EmptyClass: # (new in 1.3)
+  Enabled: true
+Lint/LambdaWithoutLiteralBlock: # (new in 1.8)
+  Enabled: true
+Lint/NoReturnInBeginEndBlocks: # (new in 1.2)
+  Enabled: true
+Lint/NumberedParameterAssignment: # (new in 1.9)
+  Enabled: true
+Lint/OrAssignmentToConstant: # (new in 1.9)
+  Enabled: true
+Lint/RedundantDirGlobSort: # (new in 1.8)
+  Enabled: true
+Lint/SymbolConversion: # (new in 1.9)
+  Enabled: true
+Lint/ToEnumArguments: # (new in 1.1)
+  Enabled: true
+Lint/TripleQuotes: # (new in 1.9)
+  Enabled: true
+Lint/UnexpectedBlockArity: # (new in 1.5)
+  Enabled: true
+Lint/UnmodifiedReduceAccumulator: # (new in 1.1)
+  Enabled: true
+Style/ArgumentsForwarding: # (new in 1.1)
+  Enabled: true
+Style/DocumentDynamicEvalDefinition: # (new in 1.1)
+  Enabled: true
+Style/EndlessMethod: # (new in 1.8)
+  Enabled: true
+Style/HashExcept: # (new in 1.7)
+  Enabled: true
+Style/IfWithBooleanLiteralBranches: # (new in 1.9)
+  Enabled: true
+Style/NilLambda: # (new in 1.3)
+  Enabled: true
+Style/RedundantArgument: # (new in 1.4)
+  Enabled: true
+Style/SwapValues: # (new in 1.1)
+  Enabled: true
+Performance/AncestorsInclude: # (new in 1.7)
+  Enabled: true
+Performance/BigDecimalWithNumericArgument: # (new in 1.7)
+  Enabled: true
+Performance/BlockGivenWithExplicitBlock: # (new in 1.9)
+  Enabled: true
+Performance/CollectionLiteralInLoop: # (new in 1.8)
+  Enabled: true
+Performance/ConstantRegexp: # (new in 1.9)
+  Enabled: true
+Performance/MethodObjectAsBlock: # (new in 1.9)
+  Enabled: true
+Performance/RedundantSortBlock: # (new in 1.7)
+  Enabled: true
+Performance/RedundantStringChars: # (new in 1.7)
+  Enabled: true
+Performance/ReverseFirst: # (new in 1.7)
+  Enabled: true
+Performance/SortReverse: # (new in 1.7)
+  Enabled: true
+Performance/Squeeze: # (new in 1.7)
+  Enabled: true
+Performance/StringInclude: # (new in 1.7)
+  Enabled: true
+Performance/Sum: # (new in 1.8)
+  Enabled: true
+
+# Requires Ruby 2.1
+Style/HashConversion:
+  Enabled: false
+
+# Requires Ruby 2.1
+Lint/SendWithMixinArgument:
+  Enabled: false
+
+# Requires Ruby 2.2
+Style/HashSyntax:
+  Enabled: false
+
+# Requires Ruby 2.3
+Style/SafeNavigation:
+  Enabled: false
+
+# Requires Ruby 2.3
+Performance/UnfreezeString:
+  Enabled: false
+
+# Requires Ruby 2.4
+Style/HashTransformValues:
+  Enabled: false
+
+# Requires Ruby 2.4
+Style/CollectionCompact:
+  Enabled: false
+
+# Enforces negative/positive branching order,
+# which can hurt readability.
+Style/NegatedIfElseCondition:
+  Enabled: false
+
+# Converts `to change{foo.bar}` to `to change(foo, :bar)`.
+# It doesn't seem to make it more readable, and doesn't work
+# when `foo` has to be re-evaluated.
+RSpec/ExpectChange:
+  Enabled: false
+
+# Readability is not meaningfully affected by enforcing
+# `not_to` vs `to_not`.
+RSpec/NotToNot:
+  Enabled: false
+
+# Enforces `subject` above all else, even `include_context`
+# declarations.
+RSpec/LeadingSubject:
+  Enabled: false
+
+# Enforces usage of `expect(subject)` instead of `is_expected`.
+RSpec/ImplicitSubject:
+  Enabled: false
+
+# TODO: Disabling until we categorize which file are safe to do so.
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+# Replaces `x == 0` with `x.zero?` and similar.
+# These methods are ~2x slower than the simple math comparison.
+Style/NumericPredicate:
+  Enabled: false
+
+# Allow for empty blocks (without a comment) in tests.
+Lint/EmptyBlock:
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
+
+# Enforces that context description must start with 'when', 'with', or 'without'.
+RSpec/ContextWording:
+  Enabled: false
+
+# Enforces that examples should only have a limited amount of assertions.
+RSpec/MultipleExpectations:
+  Enabled: false
+
+# Enforces minimum character length for parameters.
+Naming/MethodParameterName:
+  Enabled: false
+
+# Enforces no instance variable in specs.
+RSpec/InstanceVariable:
+  Enabled: false
+
+# Enforces a maximum nested example group level.
+RSpec/NestedGroups:
+  Enabled: false
+
+# Enforces `receive` vs `have_received` expectation pattern.
+RSpec/MessageSpies:
+  Enabled: false
+
+# Enforces example line count limit.
+RSpec/ExampleLength:
+  Enabled: false
+
+# Enforces maximum let and subject calls.
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+# Enforces `allow` over `expect` when configuring a response.
+RSpec/StubbedMock:
+  Enabled: false
+
+# Enforces no use of `expect` in `before` hooks.
+RSpec/ExpectInHook:
+  Enabled: false
+
+# Enforces no stubbing using `allow_any_instance_of`.
+RSpec/AnyInstance:
+  Enabled: false
+
+# Enforces strict matching of example class with spec file name.
+# This does not work for our current namespacing as our gem is called
+# `ddtrace` while our namespace is `::Datadog`.
+# It would have to either be `ddtrace` + `::DDTrace` or
+# `datadog` + `::Datadog`.
+RSpec/FilePath:
+  Enabled: false
+
+# Enforces no stubbing of methods of the object under test.
+RSpec/SubjectStub:
+  Enabled: false
+
+# Enforces that the first argument to describe should
+# be the class or module being tested.
+RSpec/DescribeClass:
+  Enabled: false
+
+# Enforces to no use let! to setup objects not referenced in tests.
+# Fails to account for shared examples across files.
+RSpec/LetSetup:
+  Enabled: false
+
+# Identifies where `fetch(key) { value }` can be replaced by `fetch(key, value)`.
+# Can't differentiate between `Hash#fetch` and `RailsCache#fetch`,
+# passing in wrong parameters to these methods.
+Style/RedundantFetchBlock:
+  Enabled: false
+
+# Warns about usage of `before(:all)`
+RSpec/BeforeAfterAll:
+  Enabled: false
+
+# Enforces snake case file names.
+Naming/FileName:
+  Exclude:
+    - 'integration/**/Gemfile'
+    - 'integration/**/Rakefile'
+
+# Enforces boolean parameters with default to be keyword arguments.
+Style/OptionalBooleanParameter:
   Enabled: false

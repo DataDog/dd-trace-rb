@@ -75,6 +75,7 @@ RSpec.describe Datadog::Configuration do
 
       context 'when an object is configured' do
         subject(:configure) { test_class.configure(object, options) }
+
         let(:object) { double('object') }
         let(:options) { {} }
 
@@ -135,8 +136,8 @@ RSpec.describe Datadog::Configuration do
 
       context 'when the logger' do
         context 'is replaced' do
-          let(:old_logger) { Datadog::Logger.new(STDOUT) }
-          let(:new_logger) { Datadog::Logger.new(STDOUT) }
+          let(:old_logger) { Datadog::Logger.new($stdout) }
+          let(:new_logger) { Datadog::Logger.new($stdout) }
 
           before do
             # Expect old loggers to NOT be closed, as closing
@@ -153,7 +154,7 @@ RSpec.describe Datadog::Configuration do
         end
 
         context 'is reused' do
-          let(:logger) { Datadog::Logger.new(STDOUT) }
+          let(:logger) { Datadog::Logger.new($stdout) }
 
           before do
             expect(logger).to_not receive(:close)
@@ -168,7 +169,7 @@ RSpec.describe Datadog::Configuration do
         end
 
         context 'is not changed' do
-          let(:logger) { Datadog::Logger.new(STDOUT) }
+          let(:logger) { Datadog::Logger.new($stdout) }
 
           before do
             expect(logger).to_not receive(:close)
@@ -351,17 +352,20 @@ RSpec.describe Datadog::Configuration do
 
     describe '#health_metrics' do
       subject(:health_metrics) { test_class.health_metrics }
+
       it { is_expected.to be_a_kind_of(Datadog::Diagnostics::Health::Metrics) }
     end
 
     describe '#logger' do
       subject(:logger) { test_class.logger }
+
       it { is_expected.to be_a_kind_of(Datadog::Logger) }
       it { expect(logger.level).to be default_log_level }
     end
 
     describe '#runtime_metrics' do
       subject(:runtime_metrics) { test_class.runtime_metrics }
+
       it { is_expected.to be_a_kind_of(Datadog::Workers::RuntimeMetrics) }
       it { expect(runtime_metrics.enabled?).to be false }
       it { expect(runtime_metrics.running?).to be false }
@@ -369,6 +373,7 @@ RSpec.describe Datadog::Configuration do
 
     describe '#tracer' do
       subject(:tracer) { test_class.tracer }
+
       it { is_expected.to be_a_kind_of(Datadog::Tracer) }
       it { expect(tracer.context_flush).to be_a_kind_of(Datadog::ContextFlush::Finished) }
     end

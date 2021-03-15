@@ -5,6 +5,10 @@ require 'ddtrace/runtime/metrics'
 module Datadog
   # SyncWriter flushes both services and traces synchronously
   # DEV: To be replaced by Datadog::Workers::TraceWriter.
+  #
+  # Note: If you're wondering if this class is used at all, since there are no other references to it on the codebase,
+  # the separate `datadog-lambda` uses it as of February 2021:
+  # <https://github.com/DataDog/datadog-lambda-rb/blob/c15f0f0916c90123416dc44e7d6800ef4a7cfdbf/lib/datadog/lambda.rb#L38>
   class SyncWriter
     attr_reader \
       :priority_sampler,
@@ -29,9 +33,7 @@ module Datadog
         end
       end
 
-      perform_concurrently(
-        proc { flush_trace(trace) }
-      )
+      flush_trace(trace)
     rescue => e
       Datadog.logger.debug(e)
     end
@@ -44,13 +46,10 @@ module Datadog
 
     private
 
-    def perform_concurrently(*tasks)
-      tasks.map { |task| Thread.new(&task) }.each(&:join)
-    end
-
     def flush_trace(trace)
       processed_traces = Pipeline.process!([trace])
       return if processed_traces.empty?
+
       inject_hostname!(processed_traces.first) if Datadog.configuration.report_hostname
       transport.send_traces(processed_traces)
     end
@@ -58,9 +57,7 @@ module Datadog
     def inject_hostname!(trace)
       unless trace.first.nil?
         hostname = Datadog::Runtime::Socket.hostname
-        unless hostname.nil? || hostname.empty?
-          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
-        end
+        trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
       end
     end
   end

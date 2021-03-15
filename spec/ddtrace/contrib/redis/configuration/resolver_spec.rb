@@ -6,77 +6,187 @@ require 'ddtrace'
 RSpec.describe 'Redis configuration resolver' do
   let(:resolver) { Datadog::Contrib::Redis::Configuration::Resolver.new }
 
-  context 'when :default magic keyword' do
-    it { expect(resolver.resolve(:default)).to eq(:default) }
-  end
+  let(:config) { instance_double('config') }
+  let(:matcher) {}
 
-  context 'when unix socket provided' do
-    let(:options) { { url: 'unix://path/to/file' } }
+  describe '#add' do
+    subject(:add) { resolver.add(matcher, config) }
 
-    it do
-      expect(resolver.resolve(options)).to eq(url: 'unix://path/to/file')
+    before { add }
+
+    let(:parsed_key) do
+      expect(resolver.configurations.keys).to have(1).item
+      resolver.configurations.keys[0]
+    end
+
+    context 'when unix socket provided' do
+      let(:matcher) { { url: 'unix://path/to/file' } }
+
+      it { expect(parsed_key).to eq(url: 'unix://path/to/file') }
+    end
+
+    context 'when redis connexion string provided' do
+      context 'as a plain object' do
+        let(:matcher) { 'redis://127.0.0.1:6379/0' }
+
+        it do
+          expect(parsed_key).to eq(host: '127.0.0.1',
+                                   port: 6379,
+                                   db: 0,
+                                   scheme: 'redis')
+        end
+      end
+
+      context 'as a hash' do
+        let(:matcher) { { url: 'redis://127.0.0.1:6379/0' } }
+
+        it do
+          expect(parsed_key).to eq(host: '127.0.0.1',
+                                   port: 6379,
+                                   db: 0,
+                                   scheme: 'redis')
+        end
+      end
+    end
+
+    context 'when host, port, db and scheme provided' do
+      let(:matcher) do
+        {
+          host: '127.0.0.1',
+          port: 6379,
+          db: 0,
+          scheme: 'redis'
+        }
+      end
+
+      it do
+        expect(parsed_key).to eq(host: '127.0.0.1',
+                                 port: 6379,
+                                 db: 0,
+                                 scheme: 'redis')
+      end
+    end
+
+    context 'when host, port, and db are provided' do
+      let(:matcher) do
+        {
+          host: '127.0.0.1',
+          port: 6379,
+          db: 0
+        }
+      end
+
+      it do
+        expect(parsed_key).to eq(host: '127.0.0.1',
+                                 port: 6379,
+                                 db: 0,
+                                 scheme: 'redis')
+      end
+    end
+
+    context 'when host and port are provided' do
+      let(:matcher) do
+        {
+          host: '127.0.0.1',
+          port: 6379
+        }
+      end
+
+      it do
+        expect(parsed_key).to eq(host: '127.0.0.1',
+                                 port: 6379,
+                                 db: 0,
+                                 scheme: 'redis')
+      end
     end
   end
 
-  context 'when redis connexion string provided' do
-    let(:options) { { url: 'redis://127.0.0.1:6379/0' } }
+  describe '#resolve' do
+    subject(:resolve) { resolver.resolve(value) }
 
-    it do
-      expect(resolver.resolve(options)).to eq(host: '127.0.0.1',
-                                              port: 6379,
-                                              db: 0,
-                                              scheme: 'redis')
+    let(:value) { matcher }
+
+    context 'with a matcher' do
+      before { resolver.add(matcher, config) }
+
+      context 'when unix socket provided' do
+        let(:matcher) { { url: 'unix://path/to/file' } }
+
+        it_behaves_like 'a resolver with a matching pattern'
+      end
+
+      context 'when redis connexion string provided' do
+        context 'as a plain object' do
+          let(:matcher) { 'redis://127.0.0.1:6379/0' }
+
+          it_behaves_like 'a resolver with a matching pattern'
+        end
+
+        context 'as a hash' do
+          let(:matcher) { { url: 'redis://127.0.0.1:6379/0' } }
+
+          it_behaves_like 'a resolver with a matching pattern'
+        end
+      end
+
+      context 'when host, port, db and scheme provided' do
+        let(:matcher) do
+          {
+            host: '127.0.0.1',
+            port: 6379,
+            db: 0,
+            scheme: 'redis'
+          }
+        end
+
+        it_behaves_like 'a resolver with a matching pattern'
+      end
+
+      context 'when host, port, and db are provided' do
+        let(:matcher) do
+          {
+            host: '127.0.0.1',
+            port: 6379,
+            db: 0
+          }
+        end
+
+        it_behaves_like 'a resolver with a matching pattern'
+      end
+
+      context 'when host and port are provided' do
+        let(:matcher) do
+          {
+            host: '127.0.0.1',
+            port: 6379
+          }
+        end
+
+        it_behaves_like 'a resolver with a matching pattern'
+      end
     end
-  end
 
-  context 'when host, port, db and scheme provided' do
-    let(:options) do
-      {
-        host: '127.0.0.1',
-        port: 6379,
-        db: 0,
-        scheme: 'redis'
-      }
-    end
+    context 'with two matching matchers' do
+      before do
+        resolver.add(first_matcher, :first)
+        resolver.add(second_matcher, :second)
+      end
 
-    it do
-      expect(resolver.resolve(options)).to eq(host: '127.0.0.1',
-                                              port: 6379,
-                                              db: 0,
-                                              scheme: 'redis')
-    end
-  end
+      let(:first_matcher) { 'redis://127.0.0.1:6379/0' }
+      let(:second_matcher) { 'redis://127.0.0.1:6379' }
 
-  context 'when host, port and db provided' do
-    let(:options) do
-      {
-        host: '127.0.0.1',
-        port: 6379,
-        db: 0
-      }
-    end
+      let(:value) do
+        {
+          host: '127.0.0.1',
+          port: 6379,
+          db: 0,
+          scheme: 'redis'
+        }
+      end
 
-    it do
-      expect(resolver.resolve(options)).to eq(host: '127.0.0.1',
-                                              port: 6379,
-                                              db: 0,
-                                              scheme: 'redis')
-    end
-  end
-
-  context 'when host and portprovided' do
-    let(:options) do
-      {
-        host: '127.0.0.1',
-        port: 6379
-      }
-    end
-
-    it do
-      expect(resolver.resolve(options)).to eq(host: '127.0.0.1',
-                                              port: 6379,
-                                              db: 0,
-                                              scheme: 'redis')
+      it 'returns the latest added one' do
+        is_expected.to eq(:second)
+      end
     end
   end
 end

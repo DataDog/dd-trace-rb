@@ -7,13 +7,13 @@ module Datadog
     # A holistic collection of the environment in which ddtrace is running.
     # This logger should allow for easy reporting by users to Datadog support.
     #
-    # rubocop:disable Style/DoubleNegation
     module EnvironmentLogger
       class << self
         # Outputs environment information to {Datadog.logger}.
         # Executes only for the lifetime of the program.
         def log!(transport_responses)
           return if @executed || !log?
+
           @executed = true
 
           data = EnvironmentCollector.new.collect!(transport_responses)
@@ -165,6 +165,7 @@ module Datadog
       def tags
         tags = Datadog.configuration.tags
         return nil if tags.empty?
+
         hash_serializer(tags)
       end
 

@@ -39,19 +39,15 @@ RSpec.shared_context 'Rails base application' do
     proc do
       # ActiveSupport::TaggedLogging was introduced in 3.2
       # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
-      if Rails.version >= '3.2'
-        if ENV['USE_TAGGED_LOGGING'] == true
-          config.log_tags = ENV['LOG_TAGS'] || []
-          config.logger = ActiveSupport::TaggedLogging.new(logger)
-        end
+      if Rails.version >= '3.2' && (ENV['USE_TAGGED_LOGGING'] == true)
+        config.log_tags = ENV['LOG_TAGS'] || []
+        config.logger = ActiveSupport::TaggedLogging.new(logger)
       end
 
       if ENV['USE_LOGRAGE'] == true
         config.logger = logger
 
-        unless ENV['LOGRAGE_CUSTOM_OPTIONS'].nil?
-          config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS']
-        end
+        config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] unless ENV['LOGRAGE_CUSTOM_OPTIONS'].nil?
 
         if ENV['LOGRAGE_DISABLED'].nil?
           config.lograge.enabled = true

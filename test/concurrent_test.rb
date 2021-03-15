@@ -9,7 +9,7 @@ class ConcurrentTest < Minitest::Test
 
   def traced_task
     @tracer.trace('a-root-task') do |_root_span|
-      delay = rand()
+      delay = rand
       @tracer.trace('a-sub-task') do |sub_span|
         sub_span.set_tag('delay', delay)
       end
@@ -17,7 +17,7 @@ class ConcurrentTest < Minitest::Test
       # and the instant the root span is done.
       sleep delay
     end
-    @tracer.writer.trace0_spans()
+    @tracer.writer.trace0_spans
   end
 
   def test_parallel_tasks

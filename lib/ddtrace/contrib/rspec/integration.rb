@@ -21,7 +21,7 @@ module Datadog
 
         def self.loaded?
           !defined?(::RSpec).nil? && !defined?(::RSpec::Core).nil? && \
-            !defined?(::RSpec::Core::Example).nil? && !defined?(::RSpec::Core::ExampleGroup).nil?
+            !defined?(::RSpec::Core::Example).nil?
         end
 
         def self.compatible?
