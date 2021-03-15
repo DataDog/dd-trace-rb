@@ -49,6 +49,8 @@ RSpec.describe 'ddtrace integration' do
 
       context 'with OpenTracer' do
         before do
+          skip 'OpenTracing not supported' unless Datadog::OpenTracer.supported?
+
           OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
         end
 
