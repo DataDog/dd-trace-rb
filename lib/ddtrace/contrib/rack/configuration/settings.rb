@@ -36,6 +36,7 @@ module Datadog
               if (request = value[:request])
                 value = value.merge(processed_request: request.map do |header|
                   {
+                    header_str: header,
                     rack_header: "HTTP_#{header.to_s.upcase.gsub(/[-\s]/, '_')}",
                     span_tag: Datadog::Ext::HTTP::RequestHeaders.to_tag(header),
                   }
@@ -45,8 +46,9 @@ module Datadog
               if (response = value[:response])
                 value = value.merge(processed_response: response.map do |header|
                   {
-                    upcase_header: header.to_s.upcase,
-                    span_tag: Datadog::Ext::HTTP::RequestHeaders.to_tag(header),
+                    header_str: header,
+                    upcased_header: header.to_s.upcase,
+                    span_tag: Datadog::Ext::HTTP::ResponseHeaders.to_tag(header),
                   }
                 end)
               end
