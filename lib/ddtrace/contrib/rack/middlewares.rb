@@ -274,13 +274,15 @@ module Datadog
         end
 
         def parse_request_headers(env)
-          {}.tap do |result|
-            whitelist = configuration[:headers][:request] || []
-            whitelist.each do |header|
-              rack_header = header_to_rack_header(header)
-              result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header] if env.key?(rack_header)
-            end
+          request_headers = configuration[:headers][:processed_request]
+          return [] unless request_headers
+
+          result = {}
+          request_headers.each do |header|
+              rack_header = header[:rack_header]
+              result[header[:span_tag]] = env[rack_header] if env.key?(rack_header)
           end
+          result
         end
 
         def parse_response_headers(headers)
