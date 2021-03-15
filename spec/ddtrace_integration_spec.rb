@@ -1,6 +1,4 @@
-require 'spec_helper'
-
-RSpec.describe 'ddtrace integration' do
+RSpec.describe 'ddtrace integration', :integration do
   context 'graceful shutdown' do
     subject(:shutdown) { Datadog.shutdown! }
 
@@ -9,10 +7,13 @@ RSpec.describe 'ddtrace integration' do
       Datadog.tracer.trace('test.op') {}
     end
 
+    def wait_for_tracer_sent
+      try_wait_until { Datadog.tracer.writer.transport.stats.success > 0 }
+    end
+
     context 'for threads' do
       before do
         original_thread_count
-        start_tracer
       end
 
       let(:original_thread_count) { thread_count }
@@ -22,7 +23,8 @@ RSpec.describe 'ddtrace integration' do
       end
 
       it 'closes tracer threads' do
-        try_wait_until { thread_count > original_thread_count }
+        start_tracer
+        wait_for_tracer_sent
 
         shutdown
 
@@ -43,9 +45,8 @@ RSpec.describe 'ddtrace integration' do
       end
 
       it 'closes tracer file descriptors' do
-        # There's currently a short period of time when we open
-        # a socket to send traces to the agent.
-        try_wait_until(attempts: 5000, backoff: 0.001) { fd_count > original_fd_count }
+        start_tracer
+        wait_for_tracer_sent
 
         shutdown
 
