@@ -24,7 +24,7 @@ module Datadog
       class TraceMiddleware
         # DEPRECATED: Remove in 1.0 in favor of Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN
         # This constant will remain here until then, for backwards compatibility.
-        RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
+        RACK_REQUEST_SPAN = 'datadog.rack_request_span'
 
         def initialize(app)
           @app = app
@@ -126,30 +126,26 @@ module Datadog
           tracer.provider.context = Datadog::Context.new if tracer
         end
 
+        # Avoids string allocation for very common resource name
+        # combinations.
         PRECOMPUTED_COMMON_RESOURCE_NAMES = {
-          ['GET', 200] => 'GET 200'
-        }
+          ['GET', 200] => 'GET 200',
+          ['GET', 301] => 'GET 301',
+          ['GET', 302] => 'GET 302',
+          ['GET', 304] => 'GET 304',
+          ['GET', 404] => 'GET 404',
+          ['POST', 200] => 'POST 200',
+          ['PUT', 200] => 'PUT 200'
+        }.freeze
 
         def resource_name_for(env, status)
           if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
             "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
           else
             PRECOMPUTED_COMMON_RESOURCE_NAMES[[env['REQUEST_METHOD'], status]] ||
-            "#{env['REQUEST_METHOD']} #{status}".strip
+              "#{env['REQUEST_METHOD']} #{status}".strip
           end
         end
-
-        BASE_URL_CACHE_KEYS = [
-          ::Rack::HTTPS,
-          ::Rack::RACK_URL_SCHEME,
-          ::Rack::HTTP_HOST,
-          ::Rack::SERVER_NAME,
-          ::Rack::SERVER_PORT,
-          ::Rack::Request::Helpers::HTTP_X_FORWARDED_SSL,
-          ::Rack::Request::Helpers::HTTP_X_FORWARDED_SCHEME,
-          ::Rack::Request::Helpers::HTTP_X_FORWARDED_PROTO,
-          ::Rack::Request::Helpers::HTTP_X_FORWARDED_HOST,
-        ].freeze
 
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/CyclomaticComplexity
@@ -230,7 +226,7 @@ module Datadog
           :datadog_rack_request_span is considered an internal symbol in the Rack env,
           and has been been DEPRECATED. Public support for its usage is discontinued.
           If you need the Rack request span, try using `Datadog.tracer.active_span`.
-          This key will be removed in version 1.0).freeze
+          This key will be removed in version 1.0)
 
         def configuration
           @configuration ||= Datadog.configuration[:rack].to_h
@@ -279,13 +275,13 @@ module Datadog
 
           result = {}
           request_headers.each do |header|
-              header_str = header[:header_str]
-              if env.key?(header_str)
-                result[header[:span_tag]] = env[header_str]
-              else
-                rack_header = header[:rack_header]
-                result[header[:span_tag]] = env[rack_header] if env.key?(rack_header)
-              end
+            header_str = header[:header_str]
+            if env.key?(header_str)
+              result[header[:span_tag]] = env[header_str]
+            else
+              rack_header = header[:rack_header]
+              result[header[:span_tag]] = env[rack_header] if env.key?(rack_header)
+            end
           end
           result
         end

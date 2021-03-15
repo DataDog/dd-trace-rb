@@ -70,7 +70,9 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
   def result_directory!(subtype = nil)
     path = File.join('tmp', 'benchmark', @test)
     path = File.join(path, subtype.to_s) if subtype
-    path = File.join(path, '.%04d' % rand(10000))
+
+    # Generate unique name, so that successive runs don't override previous results.
+    path = File.join(path, format('%05d', rand(100000)))
 
     FileUtils.mkdir_p(path)
 
@@ -87,6 +89,8 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
 
   # Measure execution time
   it 'timing' do
+    skip unless run[:timing]
+
     report = Benchmark.ips do |x|
       x.config(time: timing_runtime, warmup: timing_runtime / 10.0)
 
@@ -104,15 +108,17 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
     end.to_h
 
     write_result(result)
-  end if run[:timing]
+  end
 
   # Measure memory usage (object creation and memory size)
   it 'memory' do
-    warm_up
+    skip unless run[:memory]
 
     if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
       skip("'benchmark/memory' not supported")
     end
+
+    warm_up
 
     report = Benchmark.memory do |x|
       steps.each do |s|
@@ -133,11 +139,12 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
     end.to_h
 
     write_result(result)
-  end if run[:memory]
+  end
 
   # Measure GC cycles triggered during run
   it 'gc' do
-    skip if PlatformHelpers.jruby?
+    skip unless run[:gc]
+    skip('JRuby does not support GC::Profiler') if PlatformHelpers.jruby?
 
     warm_up
 
@@ -158,7 +165,7 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
 
     result = { count: data.size, time: data.sum { |d| d[:GC_TIME] } }
     write_result(result)
-  end if run[:gc]
+  end
 
   # Reports that generate non-aggregated data.
   # Useful for debugging.
@@ -169,6 +176,8 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
 
     # Memory report with reference to each allocation site
     it 'memory report' do
+      skip unless run[:memory_report]
+
       if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
         skip("'benchmark/memory' not supported")
       end
@@ -182,7 +191,7 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
 
         report_results(report, step)
       end
-    end if run[:memory_report]
+    end
 
     def report_results(report, step)
       puts "Report for step: #{step}"
@@ -208,6 +217,8 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
     # CPU profiling report
     context 'RubyProf report' do
       before do
+        skip unless run[:ruby_prof]
+
         if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
           skip("'ruby-prof' not supported")
         end
@@ -244,7 +255,7 @@ RSpec.shared_context 'benchmark' do |options = { only: nil }|
         warn('$ brew install qcachegrind')
         warn("$ qcachegrind '#{Dir["#{directory}/*"].min}'")
       end
-    end if run[:ruby_prof]
+    end
   end
 end
 

@@ -8,12 +8,12 @@ module Datadog
       HTTP_HEADER_SAMPLING_PRIORITY = 'x-datadog-sampling-priority'.freeze
       SAMPLING_PRIORITY_KEY = '_sampling_priority_v1'.freeze
       HTTP_HEADER_ORIGIN = 'x-datadog-origin'.freeze
-      
+
       RACK_HTTP_HEADER_TRACE_ID = 'HTTP_X_DATADOG_TRACE_ID'.freeze
       RACK_HTTP_HEADER_PARENT_ID = 'HTTP_X_DATADOG_PARENT_ID'.freeze
       RACK_HTTP_HEADER_SAMPLING_PRIORITY = 'HTTP_X_DATADOG_SAMPLING_PRIORITY'.freeze
       RACK_HTTP_HEADER_ORIGIN = 'HTTP_X_DATADOG_ORIGIN'.freeze
-      
+
       ORIGIN_KEY = '_dd.origin'.freeze
 
       # B3 headers used for distributed tracing

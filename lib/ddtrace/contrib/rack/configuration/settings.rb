@@ -38,7 +38,7 @@ module Datadog
                   {
                     header_str: header,
                     rack_header: "HTTP_#{header.to_s.upcase.gsub(/[-\s]/, '_')}",
-                    span_tag: Datadog::Ext::HTTP::RequestHeaders.to_tag(header),
+                    span_tag: Datadog::Ext::HTTP::RequestHeaders.to_tag(header)
                   }
                 end)
               end
@@ -48,7 +48,7 @@ module Datadog
                   {
                     header_str: header,
                     upcased_header: header.to_s.upcase,
-                    span_tag: Datadog::Ext::HTTP::ResponseHeaders.to_tag(header),
+                    span_tag: Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)
                   }
                 end)
               end
