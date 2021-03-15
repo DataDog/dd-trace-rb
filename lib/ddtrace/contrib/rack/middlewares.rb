@@ -8,7 +8,6 @@ require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
 require 'ddtrace/environment'
 require 'date'
-require 'rack'
 
 module Datadog
   module Contrib
@@ -28,7 +27,6 @@ module Datadog
 
         def initialize(app)
           @app = app
-          @base_url_cache = {}
         end
 
         def compute_queue_time(env, tracer)
@@ -229,7 +227,7 @@ module Datadog
           This key will be removed in version 1.0)
 
         def configuration
-          @configuration ||= Datadog.configuration[:rack].to_h
+          Datadog.configuration[:rack]
         end
 
         def add_deprecation_warnings(env)

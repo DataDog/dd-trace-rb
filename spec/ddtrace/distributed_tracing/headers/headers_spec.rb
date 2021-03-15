@@ -12,24 +12,19 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
 
   let(:env) { {} }
 
-  # Helper to format env header keys
-  def env_header(name)
-    "http-#{name}".upcase!.tr('-', '_')
-  end
-
   describe '#header' do
     context 'header not present' do
       it { expect(headers.header('request_id')).to be_nil }
     end
 
     context 'header value is nil' do
-      let(:env) { { env_header('request_id') => nil } }
+      let(:env) { { 'request_id' => nil } }
 
       it { expect(headers.header('request_id')).to be_nil }
     end
 
     context 'header value is empty string' do
-      let(:env) { { env_header('request_id') => '' } }
+      let(:env) { { 'request_id' => '' } }
 
       it { expect(headers.header('request_id')).to be_nil }
     end
@@ -43,7 +38,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
         Request-ID
       ].each do |header|
         context "fetched as #{header}" do
-          let(:env) { { env_header('request_id') => 'rid' } }
+          let(:env) { { 'request_id' => 'rid' } }
 
           it { expect(headers.header(header)).to eq('rid') }
         end
@@ -80,7 +75,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
         ['1000', 1000]
       ].each do |value, expected|
         context value.inspect do
-          let(:env) { { env_header('trace_id') => value } }
+          let(:env) { { 'trace_id' => value } }
 
           it { expect(headers.id('trace_id')).to eq(expected) }
         end
@@ -100,7 +95,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
         ['3E8', 1000]
       ].each do |value, expected|
         context value.inspect do
-          let(:env) { { env_header('trace_id') => value } }
+          let(:env) { { 'trace_id' => value } }
 
           it { expect(headers.id('trace_id', 16)).to eq(expected) }
         end
@@ -138,7 +133,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
         ['1000', 1000]
       ].each do |value, expected|
         context value.inspect do
-          let(:env) { { env_header('trace_id') => value } }
+          let(:env) { { 'trace_id' => value } }
 
           it { expect(headers.number('trace_id')).to eq(expected) }
         end
@@ -162,7 +157,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
         ['invalid-base16', nil]
       ].each do |value, expected|
         context value.inspect do
-          let(:env) { { env_header('trace_id') => value } }
+          let(:env) { { 'trace_id' => value } }
 
           it { expect(headers.number('trace_id', 16)).to eq(expected) }
         end

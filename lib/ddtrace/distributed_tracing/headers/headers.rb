@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'ddtrace/configuration'
 require 'ddtrace/span'
 require 'ddtrace/ext/distributed'
@@ -5,7 +7,7 @@ require 'ddtrace/ext/distributed'
 module Datadog
   module DistributedTracing
     module Headers
-      # Headers provides easy access and validation methods for Rack headers
+      # Headers provides easy access and validation methods for headers
       class Headers
         include Ext::DistributedTracing
 
@@ -13,15 +15,11 @@ module Datadog
           @env = env
         end
 
-        # TODO: Don't assume Rack format.
-        #       Make distributed tracing headers apathetic.
         def header(name)
-          rack_header = name # "http-#{name}".upcase!.tr('-'.freeze, '_'.freeze)
-
-          hdr = @env[rack_header]
+          hdr = @env[name]
 
           # Only return the value if it is not an empty string
-          hdr if hdr != ''.freeze
+          hdr if hdr != ''
         end
 
         def id(hdr, base = 10)
@@ -49,7 +47,7 @@ module Datadog
           # and a header defined to zero.
           return unless value
 
-          # Rack header values are already strings, but we play it safe
+          # Be sure we have a string
           value = value.to_s
 
           # If we are parsing base16 number then truncate to 64-bit
