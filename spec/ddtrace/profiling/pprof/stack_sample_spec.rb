@@ -11,6 +11,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
   end
 
   subject(:converter) { described_class.new(builder, sample_type_mappings) }
+
   let(:builder) { Datadog::Profiling::Pprof::Builder.new }
   let(:sample_type_mappings) do
     described_class.sample_value_types.each_with_object({}) do |(key, _value), mappings|
@@ -78,6 +79,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
   describe '#stack_sample_group_key' do
     subject(:stack_sample_group_key) { converter.stack_sample_group_key(stack_sample) }
+
     let(:stack_sample) { build_stack_sample }
 
     it { is_expected.to be_kind_of(Integer) }
@@ -94,7 +96,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       context 'with identical threads, stacks, trace and span IDs' do
         let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
         let(:second) { build_stack_sample(stack, thread_id, trace_id, span_id) }
+
         before { expect(first.frames).to eq(second.frames) }
+
         it { expect(first_key).to eq(second_key) }
       end
 
@@ -103,7 +107,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           let(:other_trace_id) { 3 }
           let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
           let(:second) { build_stack_sample(stack, thread_id, other_trace_id, span_id) }
+
           before { expect(first.frames).to eq(second.frames) }
+
           it { expect(first_key).to_not eq(second_key) }
         end
 
@@ -111,7 +117,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           let(:other_span_id) { 4 }
           let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
           let(:second) { build_stack_sample(stack, thread_id, trace_id, other_span_id) }
+
           before { expect(first.frames).to eq(second.frames) }
+
           it { expect(first_key).to_not eq(second_key) }
         end
       end
@@ -120,7 +128,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
         context 'stacks' do
           let(:first) { build_stack_sample(nil, thread_id, trace_id, span_id) }
           let(:second) { build_stack_sample(nil, thread_id, trace_id, span_id) }
+
           before { expect(first.frames).to_not eq(second.frames) }
+
           it { expect(first_key).to_not eq(second_key) }
         end
 
@@ -152,6 +162,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           end
 
           before { expect(first.total_frame_count).to_not eq(second.total_frame_count) }
+
           it { expect(first_key).to_not eq(second_key) }
         end
       end
@@ -172,6 +183,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
   describe '#build_samples' do
     subject(:build_samples) { converter.build_samples(stack_samples) }
+
     let(:stack_samples) { [first, second] }
 
     context 'given stack samples' do
@@ -226,6 +238,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
         context 'stacks' do
           let(:first) { build_stack_sample(nil, thread_id, trace_id, span_id) }
           let(:second) { build_stack_sample(nil, thread_id, trace_id, span_id) }
+
           before { expect(first.frames).to_not eq(second.frames) }
 
           it_behaves_like 'independent stack samples'
@@ -280,6 +293,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
   describe '#build_sample' do
     subject(:build_sample) { converter.build_sample(stack_sample, values) }
+
     let(:stack_sample) { build_stack_sample }
     let(:values) { [stack_sample.wall_time_interval_ns] }
 
@@ -295,7 +309,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
       context 'whose locations' do
         subject(:locations) { build_sample.location_id }
+
         it { is_expected.to have(stack_sample.frames.length).items }
+
         it 'each map to a Location on the profile' do
           locations.each do |id|
             expect(builder.locations.messages[id - 1])
@@ -306,6 +322,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
       context 'whose labels' do
         subject(:locations) { build_sample.label }
+
         it { is_expected.to have(3).items }
       end
     end
@@ -313,7 +330,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
   describe '#build_sample_values' do
     subject(:build_sample_values) { converter.build_sample_values(stack_sample) }
+
     let(:stack_sample) { build_stack_sample }
+
     it do
       is_expected.to eq(
         [
@@ -326,11 +345,14 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
   describe '#build_sample_labels' do
     subject(:build_sample_labels) { converter.build_sample_labels(stack_sample) }
+
     let(:stack_sample) { build_stack_sample }
 
     shared_examples_for 'contains thread ID label' do |index = 0|
       subject(:thread_id_label) { build_sample_labels[index] }
+
       it { is_expected.to be_kind_of(Perftools::Profiles::Label) }
+
       it do
         is_expected.to have_attributes(
           key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_THREAD_ID),
@@ -341,7 +363,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
     shared_examples_for 'contains trace ID label' do |index = 1|
       subject(:trace_id_label) { build_sample_labels[index] }
+
       it { is_expected.to be_kind_of(Perftools::Profiles::Label) }
+
       it do
         is_expected.to have_attributes(
           key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
@@ -352,7 +376,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
     shared_examples_for 'contains span ID label' do |index = 2|
       subject(:span_id_label) { build_sample_labels[index] }
+
       it { is_expected.to be_kind_of(Perftools::Profiles::Label) }
+
       it do
         is_expected.to have_attributes(
           key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_SPAN_ID),

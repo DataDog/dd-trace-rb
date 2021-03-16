@@ -77,6 +77,7 @@ RSpec.describe Datadog::Transport::IO::Client do
 
   describe '#encode_data' do
     subject(:encode_data) { client.encode_data(encoder, request) }
+
     let(:request) { instance_double(Datadog::Transport::Request, parcel: parcel) }
     let(:parcel) { instance_double(Datadog::Transport::Parcel) }
     let(:data) { double('data') }
@@ -93,6 +94,7 @@ RSpec.describe Datadog::Transport::IO::Client do
 
   describe '#write_data' do
     subject(:write_data) { client.write_data(out, data) }
+
     let(:data) { double('data') }
     let(:result) { double('result') }
 
@@ -108,6 +110,7 @@ RSpec.describe Datadog::Transport::IO::Client do
 
   describe '#build_response' do
     subject(:build_response) { client.build_response(request, data, result) }
+
     let(:request) { instance_double(Datadog::Transport::Request) }
     let(:data) { double('data') }
     let(:result) { double('result') }

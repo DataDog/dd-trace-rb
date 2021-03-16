@@ -74,7 +74,7 @@ module Datadog
           # Load extensions needed to support some of the Profiling features
           Datadog::Profiling::Tasks::Setup.new.run
 
-          # Note: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
+          # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
           recorder = build_profiler_recorder(settings)
           collectors = build_profiler_collectors(settings, recorder)
@@ -118,7 +118,7 @@ module Datadog
         def build_profiler_collectors(settings, recorder)
           [
             Datadog::Profiling::Collectors::Stack.new(
-              recorder,
+              recorder
               # TODO: Provide proc that identifies Datadog worker threads?
               # ignore_thread: settings.profiling.ignore_profiler
             )

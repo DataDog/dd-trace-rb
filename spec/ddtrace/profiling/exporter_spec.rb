@@ -6,6 +6,7 @@ require 'ddtrace/profiling/transport/io'
 
 RSpec.describe Datadog::Profiling::Exporter do
   subject(:exporter) { described_class.new(transport) }
+
   let(:transport) { Datadog::Profiling::Transport::IO.default }
 
   describe '::new' do
@@ -29,6 +30,7 @@ RSpec.describe Datadog::Profiling::Exporter do
 
   describe '#export' do
     subject(:export) { exporter.export(flush) }
+
     let(:flush) { instance_double(Datadog::Profiling::Flush) }
     let(:result) { double('result') }
 

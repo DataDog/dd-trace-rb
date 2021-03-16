@@ -5,6 +5,7 @@ require 'ddtrace/transport/http/client'
 
 RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
   subject(:client) { described_class.new(api) }
+
   let(:api) { instance_double(Datadog::Profiling::Transport::HTTP::API::Instance) }
 
   describe '#initialize' do
@@ -31,6 +32,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
     include_context 'HTTP request'
 
     subject(:send_profiling_flush) { client.send_profiling_flush(flush) }
+
     let(:flush) { instance_double(Datadog::Profiling::Flush) }
 
     it do
@@ -42,6 +44,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
     include_context 'HTTP request'
 
     subject(:send_payload) { client.send_payload(request) }
+
     let(:request) { instance_double(Datadog::Profiling::Transport::Request) }
 
     it do

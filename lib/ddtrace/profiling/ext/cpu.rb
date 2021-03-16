@@ -31,16 +31,16 @@ module Datadog
         end
 
         def self.unsupported_reason
-          # Note: Only the first matching reason is returned, so try to keep a nice order on reasons -- e.g. tell users
+          # NOTE: Only the first matching reason is returned, so try to keep a nice order on reasons -- e.g. tell users
           # first that they can't use this on macOS before telling them that they have the wrong ffi version
 
           if RUBY_ENGINE == 'jruby'
             'JRuby is not supported'
-          elsif RUBY_PLATFORM =~ /darwin/
+          elsif RUBY_PLATFORM.include?('darwin')
             'Feature requires Linux; macOS is not supported'
           elsif RUBY_PLATFORM =~ /(mswin|mingw)/
             'Feature requires Linux; Windows is not supported'
-          elsif RUBY_PLATFORM !~ /linux/
+          elsif !RUBY_PLATFORM.include?('linux')
             "Feature requires Linux; #{RUBY_PLATFORM} is not supported"
           elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
             'Ruby >= 2.1 is required'
