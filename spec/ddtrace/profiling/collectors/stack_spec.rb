@@ -87,6 +87,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     context 'when enabled' do
       before { collector.enabled = true }
 
+      after { collector.terminate }
+
       it 'starts a worker thread' do
         allow(collector).to receive(:collect_events)
 
