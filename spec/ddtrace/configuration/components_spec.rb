@@ -622,10 +622,12 @@ RSpec.describe Datadog::Configuration::Components do
 
   describe '::build_profiler' do
     subject(:build_profiler) { described_class.build_profiler(settings) }
+
     let(:profiler) { build_profiler }
 
     context 'when profiling is not supported' do
       before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }
+
       it { is_expected.to be nil }
     end
 

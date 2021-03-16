@@ -6,6 +6,7 @@ RSpec.describe Datadog::Profiling do
 
   describe '::supported?' do
     subject(:supported?) { described_class.supported? }
+
     let(:google_protobuf_supported) { double('google-protobuf supported') }
 
     before do
@@ -73,6 +74,7 @@ RSpec.describe Datadog::Profiling do
 
     context 'when JRuby is used' do
       before { stub_const('RUBY_PLATFORM', 'java') }
+
       it { is_expected.to be false }
     end
   end

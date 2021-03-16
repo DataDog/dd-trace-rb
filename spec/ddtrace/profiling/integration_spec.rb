@@ -16,7 +16,7 @@ RSpec.describe 'profiling integration test' do
   end
 
   shared_context 'StackSample events' do
-    # Note: Please do not convert stack_one or stack_two to let, because
+    # NOTE: Please do not convert stack_one or stack_two to let, because
     # we want the method names on the resulting stacks to be stack_one or
     # stack_two, not block in ... when showing up in the stack traces
     def stack_one
@@ -110,7 +110,7 @@ RSpec.describe 'profiling integration test' do
     end
 
     context 'with tracing' do
-      around(:each) do |example|
+      around do |example|
         Datadog.tracer.trace('profiler.test') do |span|
           @current_span = span
           example.run
@@ -144,6 +144,7 @@ RSpec.describe 'profiling integration test' do
 
   describe 'building a Perftools::Profiles::Profile using Pprof::Template' do
     subject(:build_profile) { template.to_pprof }
+
     let(:template) { Datadog::Profiling::Pprof::Template.for_event_classes(event_classes) }
     let(:event_classes) { events.keys.uniq }
     let(:events) do

@@ -8,6 +8,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
   describe '::new' do
     context 'given a block' do
       subject(:new_http) { described_class.new(&block) }
+
       let(:block) { proc {} }
 
       let(:builder) { instance_double(Datadog::Profiling::Transport::HTTP::Builder) }
@@ -55,6 +56,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
 
       context 'that are empty' do
         let(:options) { {} }
+
         it_behaves_like 'default HTTP agent transport'
       end
 
@@ -102,6 +104,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
 
         context 'that is not defined' do
           let(:api_version) { double('non-existent API') }
+
           it { expect { default }.to raise_error(Datadog::Transport::HTTP::Builder::UnknownApiError) }
         end
       end
@@ -143,11 +146,13 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
 
       context 'is not nil' do
         let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
+
         it { is_expected.to include(Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID => container_id) }
       end
 
       context 'is nil' do
         let(:container_id) { nil }
+
         it { is_expected.to_not include(Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID) }
       end
     end
@@ -155,6 +160,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
 
   describe '::default_adapter' do
     subject(:default_adapter) { described_class.default_adapter }
+
     it { is_expected.to be(:net_http) }
   end
 

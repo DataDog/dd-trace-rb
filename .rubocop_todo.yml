@@ -86,13 +86,20 @@ Lint/MissingCopEnableDirective:
     - 'test/contrib/rails/errors_test.rb'
     - 'test/tracer_test.rb'
 
-# Offense count: 24
+# Offense count: 32
 Lint/MissingSuper:
   Exclude:
     - 'lib/ddtrace/contrib/grpc/datadog_interceptor.rb'
     - 'lib/ddtrace/opentracer/scope.rb'
     - 'lib/ddtrace/opentracer/span.rb'
     - 'lib/ddtrace/opentracer/span_context.rb'
+    - 'lib/ddtrace/profiling/collectors/stack.rb'
+    - 'lib/ddtrace/profiling/pprof/converter.rb'
+    - 'lib/ddtrace/profiling/pprof/template.rb'
+    - 'lib/ddtrace/profiling/recorder.rb'
+    - 'lib/ddtrace/profiling/scheduler.rb'
+    - 'lib/ddtrace/profiling/transport/http/api/instance.rb'
+    - 'lib/ddtrace/profiling/transport/http/api/spec.rb'
     - 'lib/ddtrace/sampler.rb'
     - 'lib/ddtrace/sampling/matcher.rb'
     - 'lib/ddtrace/sampling/rate_limiter.rb'
@@ -107,6 +114,11 @@ Lint/MissingSuper:
     - 'spec/support/faux_transport.rb'
     - 'spec/support/spy_transport.rb'
     - 'test/helper.rb'
+
+# Offense count: 1
+Lint/StructNewOverride:
+  Exclude:
+    - 'lib/ddtrace/profiling/pprof/converter.rb'
 
 # Offense count: 1
 # Configuration parameters: AllowComments.
@@ -149,12 +161,16 @@ Naming/VariableNumber:
     - 'spec/ddtrace/contrib/ethon/typhoeus_integration_spec.rb'
     - 'spec/ddtrace/contrib/resque/instrumentation_spec.rb'
 
-# Offense count: 12
+# Offense count: 18
 Performance/MethodObjectAsBlock:
   Exclude:
     - 'lib/ddtrace/contrib/cucumber/formatter.rb'
     - 'lib/ddtrace/contrib/delayed_job/plugin.rb'
     - 'lib/ddtrace/pipeline.rb'
+    - 'lib/ddtrace/profiling/collectors/stack.rb'
+    - 'lib/ddtrace/profiling/pprof/builder.rb'
+    - 'lib/ddtrace/profiling/pprof/stack_sample.rb'
+    - 'lib/ddtrace/profiling/pprof/template.rb'
     - 'spec/ddtrace/contrib/cucumber/patcher_spec.rb'
 
 # Offense count: 6
@@ -307,7 +323,7 @@ RSpec/UnspecifiedException:
     - 'spec/ddtrace/contrib/delayed_job/plugin_spec.rb'
     - 'spec/ddtrace/contrib/sidekiq/tracer_configure_spec.rb'
 
-# Offense count: 303
+# Offense count: 421
 # Configuration parameters: IgnoreNameless, IgnoreSymbolicNames.
 RSpec/VerifiedDoubles:
   Exclude:
@@ -351,7 +367,32 @@ RSpec/VerifiedDoubles:
     - 'spec/ddtrace/opentracer/tracer_spec.rb'
     - 'spec/ddtrace/patcher_spec.rb'
     - 'spec/ddtrace/pin_spec.rb'
+    - 'spec/ddtrace/profiling/backtrace_location_spec.rb'
+    - 'spec/ddtrace/profiling/collectors/stack_spec.rb'
+    - 'spec/ddtrace/profiling/encoding/profile_spec.rb'
+    - 'spec/ddtrace/profiling/events/stack_spec.rb'
+    - 'spec/ddtrace/profiling/exporter_spec.rb'
+    - 'spec/ddtrace/profiling/ext/cthread_spec.rb'
+    - 'spec/ddtrace/profiling/ext/forking_spec.rb'
+    - 'spec/ddtrace/profiling/flush_spec.rb'
+    - 'spec/ddtrace/profiling/pprof/builder_spec.rb'
+    - 'spec/ddtrace/profiling/pprof/converter_spec.rb'
+    - 'spec/ddtrace/profiling/pprof/message_set_spec.rb'
+    - 'spec/ddtrace/profiling/pprof/payload_spec.rb'
+    - 'spec/ddtrace/profiling/pprof/template_spec.rb'
+    - 'spec/ddtrace/profiling/transport/http/api/endpoint_spec.rb'
+    - 'spec/ddtrace/profiling/transport/http/api/instance_spec.rb'
+    - 'spec/ddtrace/profiling/transport/http/builder_spec.rb'
+    - 'spec/ddtrace/profiling/transport/http/client_spec.rb'
+    - 'spec/ddtrace/profiling/transport/http/response_spec.rb'
+    - 'spec/ddtrace/profiling/transport/http_spec.rb'
+    - 'spec/ddtrace/profiling/transport/io/client_spec.rb'
+    - 'spec/ddtrace/profiling/transport/io/response_spec.rb'
+    - 'spec/ddtrace/profiling/transport/io_spec.rb'
+    - 'spec/ddtrace/profiling/transport/parcel_spec.rb'
+    - 'spec/ddtrace/profiling_spec.rb'
     - 'spec/ddtrace/runtime/metrics_spec.rb'
+    - 'spec/ddtrace/tasks/exec_spec.rb'
     - 'spec/ddtrace/tracer_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/net_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/registry_spec.rb'
