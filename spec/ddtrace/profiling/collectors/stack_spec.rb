@@ -69,7 +69,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       before { collector.enabled = false }
 
       it 'does not start a worker thread' do
-        is_expected.to be nil
+        perform
+
+        expect(collector.send(:worker)).to be nil
 
         expect(collector).to have_attributes(
           run_async?: false,
@@ -88,7 +90,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       it 'starts a worker thread' do
         allow(collector).to receive(:collect_events)
 
-        is_expected.to be_a_kind_of(Thread)
+        perform
+
+        expect(collector.send(:worker)).to be_a_kind_of(Thread)
         try_wait_until { collector.running? }
 
         expect(collector).to have_attributes(

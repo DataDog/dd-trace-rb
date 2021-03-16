@@ -47,7 +47,9 @@ RSpec.describe Datadog::Profiling::Scheduler do
       before { scheduler.enabled = false }
 
       it 'does not start a worker thread' do
-        is_expected.to be nil
+        perform
+
+        expect(scheduler.send(:worker)).to be nil
 
         expect(scheduler).to have_attributes(
           run_async?: false,
@@ -66,7 +68,9 @@ RSpec.describe Datadog::Profiling::Scheduler do
       it 'starts a worker thread' do
         allow(scheduler).to receive(:flush_events)
 
-        is_expected.to be_a_kind_of(Thread)
+        perform
+
+        expect(scheduler.send(:worker)).to be_a_kind_of(Thread)
         try_wait_until { scheduler.running? }
 
         expect(scheduler).to have_attributes(
