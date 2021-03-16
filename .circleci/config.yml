@@ -439,7 +439,11 @@ job_configuration:
     image: marcotc/docker-library:ddtrace_rb_3.0.0
     jit: true
   # JRuby
-  - &config-jruby-9_2
+  - &config-jruby-9_2_0 # Oldest supported version
+      <<: *filters_all_branches_and_tags
+      ruby_version: 'jruby-9.2.0'
+      image: marcotc/docker-library:ddtrace_rb_jruby_9_2_0
+  - &config-jruby-9_2 # More recent release of 9.2
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2'
     image: marcotc/docker-library:ddtrace_rb_jruby_9_2
@@ -472,6 +476,7 @@ workflows:
             - test-2.6
             - test-2.7
             - test-3.0
+            - test-jruby-9.2.0
             - test-jruby-9.2
             # soon™️ - test-truffleruby-21.0.0
       - orb/changelog:
@@ -617,6 +622,14 @@ workflows:
             - build-3.0-jit
       # JRuby
       - orb/build:
+          <<: *config-jruby-9_2_0
+          name: build-jruby-9.2.0
+      - orb/test:
+          <<: *config-jruby-9_2_0
+          name: test-jruby-9.2.0
+          requires:
+            - build-jruby-9.2.0
+      - orb/build:
           <<: *config-jruby-9_2
           name: build-jruby-9.2
       - orb/test:
@@ -649,6 +662,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.0-jit
+            - test-jruby-9.2.0
             - test-jruby-9.2
             # soon™️ - test-truffleruby-21.0.0
       - "deploy release":
@@ -665,5 +679,6 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.0-jit
+            - test-jruby-9.2.0
             - test-jruby-9.2
             # soon™️ - test-truffleruby-21.0.0

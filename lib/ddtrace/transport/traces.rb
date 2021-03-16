@@ -123,7 +123,9 @@ module Datadog
                 return send_traces(traces)
               end
             end
-          end.force
+          end
+
+          responses = responses.to_a # Force resolution of lazy enumerator
 
           Datadog.health_metrics.transport_chunked(responses.size)
 
