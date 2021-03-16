@@ -65,6 +65,8 @@ RSpec.describe Datadog::Profiling::Scheduler do
     context 'when enabled' do
       before { scheduler.enabled = true }
 
+      after { scheduler.terminate }
+
       it 'starts a worker thread' do
         allow(scheduler).to receive(:flush_events)
 
