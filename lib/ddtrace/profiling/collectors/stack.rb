@@ -129,7 +129,7 @@ module Datadog
 
           current_cpu_time_ns = thread.cpu_time(:nanosecond)
 
-          # Note: This can still be nil even when all of the checks above passed because of a race: there's a bit of
+          # NOTE: This can still be nil even when all of the checks above passed because of a race: there's a bit of
           # initialization that needs to be done by the thread itself, and it's possible for us to try to sample
           # *before* the thread had time to finish the initialization
           return unless current_cpu_time_ns

@@ -35,8 +35,8 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         Object.const_set('Kernel', unmodified_kernel_class)
 
         # Check for leaks (make sure test is properly cleaned up)
-        expect(::Process.ancestors.include?(described_class::Kernel)).to be false
-        expect(::Kernel.ancestors.include?(described_class::Kernel)).to be false
+        expect(::Process <= described_class::Kernel).to be nil
+        expect(::Kernel <= described_class::Kernel).to be nil
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
         # expect(toplevel_receiver.class.ancestors.include?(described_class::Kernel)).to be false
 
@@ -79,230 +79,230 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
       end
     end
   end
-end
 
-RSpec.describe Datadog::Profiling::Ext::Forking::Kernel do
-  before { skip 'Forking not supported' unless Datadog::Profiling::Ext::Forking.supported? }
+  describe Datadog::Profiling::Ext::Forking::Kernel do
+    before { skip 'Forking not supported' unless Datadog::Profiling::Ext::Forking.supported? }
 
-  shared_context 'fork class' do
-    def new_fork_class
-      Class.new.tap do |c|
-        c.singleton_class.class_eval do
-          prepend Datadog::Profiling::Ext::Forking::Kernel
+    shared_context 'fork class' do
+      def new_fork_class
+        Class.new.tap do |c|
+          c.singleton_class.class_eval do
+            prepend Datadog::Profiling::Ext::Forking::Kernel
 
-          def fork(&block)
-            Kernel.fork(&block)
-          end
-        end
-      end
-    end
-
-    subject(:fork_class) { new_fork_class }
-    let(:fork_result) { :fork_result }
-
-    before do
-      # Stub out actual forking, return mock result.
-      # This also makes callback order deterministic.
-      allow(Kernel).to receive(:fork) do |*_args, &b|
-        b.call unless b.nil?
-        fork_result
-      end
-    end
-
-    before do
-      # TODO: This test breaks other tests when Forking#apply! runs first in Ruby < 2.3
-      #       Unclear whether its the setup from this test, or cleanup elsewhere (e.g. spec_helper.rb)
-      #       Either way, #apply! causes callbacks not to work; Forking patch is
-      #       not hooking in properly. See `fork_class.method(:fork).source_location`
-      #       and `fork.class.ancestors` vs `fork.singleton_class.ancestors`.
-      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
-        skip 'Test is unstable for Ruby < 2.3'
-      end
-    end
-  end
-
-  shared_context 'at_fork callbacks' do
-    let(:prepare) { double('prepare') }
-    let(:child) { double('child') }
-    let(:parent) { double('parent') }
-
-    before do
-      fork_class.at_fork(:prepare) { prepare.call }
-      fork_class.at_fork(:child) { child.call }
-      fork_class.at_fork(:parent) { parent.call }
-    end
-
-    after do
-      described_class.at_fork_blocks.clear
-    end
-  end
-
-  context 'when applied to a class with forking' do
-    include_context 'fork class'
-
-    it do
-      is_expected.to respond_to(:fork)
-      is_expected.to respond_to(:at_fork)
-    end
-
-    describe '#fork' do
-      context 'when a block is not provided' do
-        include_context 'at_fork callbacks'
-
-        subject(:fork) { fork_class.fork }
-
-        context 'and returns from the parent context' do
-          # By setting the fork result = integer, we're
-          # simulating #fork running in the parent process.
-          let(:fork_result) { rand(100) }
-
-          it do
-            expect(prepare).to receive(:call).ordered
-            expect(child).to_not receive(:call)
-            expect(parent).to receive(:call).ordered
-
-            is_expected.to be fork_result
-          end
-        end
-
-        context 'and returns from the child context' do
-          # By setting the fork result = nil, we're
-          # simulating #fork running in the child process.
-          let(:fork_result) { nil }
-
-          it do
-            expect(prepare).to receive(:call).ordered
-            expect(child).to receive(:call).ordered
-            expect(parent).to_not receive(:call)
-
-            is_expected.to be nil
+            def fork(&block)
+              Kernel.fork(&block)
+            end
           end
         end
       end
 
-      context 'when a block is provided' do
-        subject(:fork) { fork_class.fork(&block) }
-        let(:block) { proc {} }
+      subject(:fork_class) { new_fork_class }
 
-        context 'when no callbacks are configured' do
-          it 'passes through to original #fork' do
-            expect { |b| fork_class.fork(&b) }.to yield_control
-            is_expected.to be fork_result
-          end
+      let(:fork_result) { :fork_result }
+
+      before do
+        # Stub out actual forking, return mock result.
+        # This also makes callback order deterministic.
+        allow(Kernel).to receive(:fork) do |*_args, &b|
+          b.call unless b.nil?
+          fork_result
         end
+      end
 
-        context 'when callbacks are configured' do
+      before do
+        # TODO: This test breaks other tests when Forking#apply! runs first in Ruby < 2.3
+        #       Unclear whether its the setup from this test, or cleanup elsewhere (e.g. spec_helper.rb)
+        #       Either way, #apply! causes callbacks not to work; Forking patch is
+        #       not hooking in properly. See `fork_class.method(:fork).source_location`
+        #       and `fork.class.ancestors` vs `fork.singleton_class.ancestors`.
+        skip 'Test is unstable for Ruby < 2.3' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+      end
+    end
+
+    shared_context 'at_fork callbacks' do
+      let(:prepare) { double('prepare') }
+      let(:child) { double('child') }
+      let(:parent) { double('parent') }
+
+      before do
+        fork_class.at_fork(:prepare) { prepare.call }
+        fork_class.at_fork(:child) { child.call }
+        fork_class.at_fork(:parent) { parent.call }
+      end
+
+      after do
+        described_class.at_fork_blocks.clear
+      end
+    end
+
+    context 'when applied to a class with forking' do
+      include_context 'fork class'
+
+      it do
+        is_expected.to respond_to(:fork)
+        is_expected.to respond_to(:at_fork)
+      end
+
+      describe '#fork' do
+        context 'when a block is not provided' do
           include_context 'at_fork callbacks'
 
-          it 'invokes all the callbacks in order' do
+          subject(:fork) { fork_class.fork }
+
+          context 'and returns from the parent context' do
+            # By setting the fork result = integer, we're
+            # simulating #fork running in the parent process.
+            let(:fork_result) { rand(100) }
+
+            it do
+              expect(prepare).to receive(:call).ordered
+              expect(child).to_not receive(:call)
+              expect(parent).to receive(:call).ordered
+
+              is_expected.to be fork_result
+            end
+          end
+
+          context 'and returns from the child context' do
+            # By setting the fork result = nil, we're
+            # simulating #fork running in the child process.
+            let(:fork_result) { nil }
+
+            it do
+              expect(prepare).to receive(:call).ordered
+              expect(child).to receive(:call).ordered
+              expect(parent).to_not receive(:call)
+
+              is_expected.to be nil
+            end
+          end
+        end
+
+        context 'when a block is provided' do
+          subject(:fork) { fork_class.fork(&block) }
+
+          let(:block) { proc {} }
+
+          context 'when no callbacks are configured' do
+            it 'passes through to original #fork' do
+              expect { |b| fork_class.fork(&b) }.to yield_control
+              is_expected.to be fork_result
+            end
+          end
+
+          context 'when callbacks are configured' do
+            include_context 'at_fork callbacks'
+
+            it 'invokes all the callbacks in order' do
+              expect(prepare).to receive(:call).ordered
+              expect(child).to receive(:call).ordered
+              expect(parent).to receive(:call).ordered
+
+              is_expected.to be fork_result
+            end
+          end
+        end
+      end
+
+      describe '#at_fork' do
+        include_context 'at_fork callbacks'
+
+        let(:callback) { double('callback') }
+        let(:block) { proc { callback.call } }
+
+        context 'by default' do
+          subject(:at_fork) do
+            fork_class.at_fork(&block)
+          end
+
+          it 'adds a :prepare callback' do
+            at_fork
+
             expect(prepare).to receive(:call).ordered
+            expect(callback).to receive(:call).ordered
             expect(child).to receive(:call).ordered
             expect(parent).to receive(:call).ordered
 
-            is_expected.to be fork_result
+            fork_class.fork {}
+          end
+        end
+
+        context 'given a stage' do
+          subject(:at_fork) do
+            fork_class.at_fork(stage, &block)
+          end
+
+          context ':prepare' do
+            let(:stage) { :prepare }
+
+            it 'adds a prepare callback' do
+              at_fork
+
+              expect(prepare).to receive(:call).ordered
+              expect(callback).to receive(:call).ordered
+              expect(child).to receive(:call).ordered
+              expect(parent).to receive(:call).ordered
+
+              fork_class.fork {}
+            end
+          end
+
+          context ':child' do
+            let(:stage) { :child }
+
+            it 'adds a child callback' do
+              at_fork
+
+              expect(prepare).to receive(:call).ordered
+              expect(child).to receive(:call).ordered
+              expect(callback).to receive(:call).ordered
+              expect(parent).to receive(:call).ordered
+
+              fork_class.fork {}
+            end
+          end
+
+          context ':parent' do
+            let(:stage) { :parent }
+
+            it 'adds a parent callback' do
+              at_fork
+
+              expect(prepare).to receive(:call).ordered
+              expect(child).to receive(:call).ordered
+              expect(parent).to receive(:call).ordered
+              expect(callback).to receive(:call).ordered
+
+              fork_class.fork {}
+            end
           end
         end
       end
     end
 
-    describe '#at_fork' do
-      include_context 'at_fork callbacks'
+    context 'when applied to multiple classes with forking' do
+      include_context 'fork class'
 
-      let(:callback) { double('callback') }
-      let(:block) { proc { callback.call } }
+      let(:other_fork_class) { new_fork_class }
 
-      context 'by default' do
-        subject(:at_fork) do
-          fork_class.at_fork(&block)
-        end
+      context 'and #at_fork is called in one' do
+        include_context 'at_fork callbacks'
 
-        it 'adds a :prepare callback' do
-          at_fork
-
+        it 'applies the callback to the original class' do
           expect(prepare).to receive(:call).ordered
-          expect(callback).to receive(:call).ordered
           expect(child).to receive(:call).ordered
           expect(parent).to receive(:call).ordered
 
           fork_class.fork {}
         end
-      end
 
-      context 'given a stage' do
-        subject(:at_fork) do
-          fork_class.at_fork(stage, &block)
+        it 'applies the callback to the other class' do
+          expect(prepare).to receive(:call).ordered
+          expect(child).to receive(:call).ordered
+          expect(parent).to receive(:call).ordered
+
+          other_fork_class.fork {}
         end
-
-        context ':prepare' do
-          let(:stage) { :prepare }
-
-          it 'adds a prepare callback' do
-            at_fork
-
-            expect(prepare).to receive(:call).ordered
-            expect(callback).to receive(:call).ordered
-            expect(child).to receive(:call).ordered
-            expect(parent).to receive(:call).ordered
-
-            fork_class.fork {}
-          end
-        end
-
-        context ':child' do
-          let(:stage) { :child }
-
-          it 'adds a child callback' do
-            at_fork
-
-            expect(prepare).to receive(:call).ordered
-            expect(child).to receive(:call).ordered
-            expect(callback).to receive(:call).ordered
-            expect(parent).to receive(:call).ordered
-
-            fork_class.fork {}
-          end
-        end
-
-        context ':parent' do
-          let(:stage) { :parent }
-
-          it 'adds a parent callback' do
-            at_fork
-
-            expect(prepare).to receive(:call).ordered
-            expect(child).to receive(:call).ordered
-            expect(parent).to receive(:call).ordered
-            expect(callback).to receive(:call).ordered
-
-            fork_class.fork {}
-          end
-        end
-      end
-    end
-  end
-
-  context 'when applied to multiple classes with forking' do
-    include_context 'fork class'
-
-    let(:other_fork_class) { new_fork_class }
-
-    context 'and #at_fork is called in one' do
-      include_context 'at_fork callbacks'
-
-      it 'applies the callback to the original class' do
-        expect(prepare).to receive(:call).ordered
-        expect(child).to receive(:call).ordered
-        expect(parent).to receive(:call).ordered
-
-        fork_class.fork {}
-      end
-
-      it 'applies the callback to the other class' do
-        expect(prepare).to receive(:call).ordered
-        expect(child).to receive(:call).ordered
-        expect(parent).to receive(:call).ordered
-
-        other_fork_class.fork {}
       end
     end
   end

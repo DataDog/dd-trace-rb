@@ -9,6 +9,7 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
   end
 
   subject(:template) { described_class.new(mappings) }
+
   let(:mappings) { described_class::DEFAULT_MAPPINGS }
 
   describe '::for_event_classes' do
@@ -31,6 +32,7 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
 
       context 'that don\'t have known mappings' do
         let(:event_classes) { [Class.new] }
+
         it { expect { for_event_classes }.to raise_error(described_class::NoProfilingEventConversionError) }
       end
     end
@@ -98,6 +100,7 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
 
   describe '#add_events!' do
     subject(:add_events!) { template.add_events!(event_class, events) }
+
     let(:events) { double('events') }
 
     context 'given events' do
@@ -115,6 +118,7 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
 
       context 'that does not have a matching converter' do
         let(:event_class) { Class.new }
+
         it { expect { add_events! }.to raise_error(described_class::NoProfilingEventConversionError) }
       end
     end

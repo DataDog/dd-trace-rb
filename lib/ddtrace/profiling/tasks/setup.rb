@@ -53,9 +53,7 @@ module Datadog
                 # execution context of the thread that owns it.
                 # This hook will update the IDs for the main thread
                 # after a fork occurs.
-                if Thread.current.respond_to?(:update_native_ids, true)
-                  Thread.current.send(:update_native_ids)
-                end
+                Thread.current.send(:update_native_ids) if Thread.current.respond_to?(:update_native_ids, true)
 
                 # Restart profiler, if enabled
                 Datadog.profiler.start if Datadog.profiler

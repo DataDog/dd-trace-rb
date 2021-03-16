@@ -24,6 +24,7 @@ module Datadog
           mappings = event_classes.each_with_object({}) do |event_class, m|
             converter_class = DEFAULT_MAPPINGS[event_class]
             raise NoProfilingEventConversionError, event_class unless converter_class
+
             m[event_class] = converter_class
           end
 

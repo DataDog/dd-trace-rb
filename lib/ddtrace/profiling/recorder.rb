@@ -27,11 +27,13 @@ module Datadog
           # Push multiple events
           event_class = events.first.class
           raise UnknownEventError, event_class unless @buffers.key?(event_class)
+
           @buffers[event_class].concat(events)
         else
           # Push single event
           event_class = events.class
           raise UnknownEventError, event_class unless @buffers.key?(event_class)
+
           @buffers[event_class].push(events)
         end
       end
@@ -43,6 +45,7 @@ module Datadog
           @buffers.collect do |event_class, buffer|
             events = buffer.pop
             next if events.empty?
+
             event_count += events.length
             EventGroup.new(event_class, events)
           end.compact
