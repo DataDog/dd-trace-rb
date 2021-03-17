@@ -36,7 +36,7 @@ RSpec.describe 'ddtrace integration' do
       end
 
       it 'does not error on logging' do
-        expect(Datadog.logger.info('test')).to be_truthy
+        expect(Datadog.logger.info('test')).to be true
       end
 
       it 'does not error on configuration access' do
