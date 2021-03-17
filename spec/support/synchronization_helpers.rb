@@ -9,7 +9,7 @@ module SynchronizationHelpers
       read_io.close
 
       # Capture test failures
-      STDERR.reopen(write_io)
+      $stderr.reopen(write_io)
 
       yield
     end
