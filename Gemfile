@@ -16,9 +16,15 @@ gem 'minitest', '= 5.10.1'
 gem 'minitest-around', '0.5.0'
 gem 'minitest-stub_any_instance', '1.0.2'
 gem 'pimpmychangelog', '>= 0.1.2'
-gem 'pry', '~> 0.12.2'
-gem 'pry-nav', '~> 0.3.0'
-gem 'pry-stack_explorer', '~> 0.4.9' if RUBY_PLATFORM != 'java'
+gem 'pry'
+if RUBY_PLATFORM != 'java'
+  # There's a few incompatibilities between pry/pry-byebug on older Rubies
+  gem 'pry-byebug' if RUBY_VERSION >= '2.6.0' && RUBY_ENGINE != 'truffleruby'
+  gem 'pry-nav' if RUBY_VERSION < '2.6.0'
+  gem 'pry-stack_explorer'
+else
+  gem 'pry-debugger-jruby'
+end
 gem 'rake', '>= 10.5'
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.10'

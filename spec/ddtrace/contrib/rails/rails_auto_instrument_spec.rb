@@ -16,7 +16,7 @@ RSpec.describe 'Datadog::Contrib::AutoInstrument' do
 
   context 'when auto patching is included' do
     before do
-      skip if PlatformHelpers.jruby?
+      skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
     end
 
     let(:config) { Datadog.configuration[:rails] }

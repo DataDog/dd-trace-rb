@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/httpclient/instrumentation'
+require 'ddtrace/utils/only_once'
 
 module Datadog
   module Contrib
@@ -9,10 +10,12 @@ module Datadog
       module Patcher
         include Contrib::Patcher
 
+        PATCH_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+
         module_function
 
         def patched?
-          done?(:httpclient)
+          PATCH_ONLY_ONCE.ran?
         end
 
         def target_version
@@ -21,7 +24,7 @@ module Datadog
 
         # patch applies our patch
         def patch
-          do_once(:httpclient) do
+          PATCH_ONLY_ONCE.run do
             begin
               ::HTTPClient.send(:include, Instrumentation)
             rescue StandardError => e

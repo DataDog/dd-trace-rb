@@ -10,6 +10,7 @@ require 'ddtrace/runtime/identity'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
+require 'ddtrace/utils/only_once'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -19,6 +20,9 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
+    SERVICES_DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+
     attr_reader :sampler, :tags, :provider, :context_flush
     attr_accessor :enabled, :writer
     attr_writer :default_service
@@ -27,8 +31,7 @@ module Datadog
     DEFAULT_ON_ERROR = proc { |span, error| span.set_error(error) unless span.nil? }
 
     def services
-      # Only log each deprecation warning once (safeguard against log spam)
-      Datadog::Patcher.do_once('Tracer#set_service_info') do
+      SERVICES_DEPRECATION_WARN_ONLY_ONCE.run do
         Datadog.logger.warn('services: Usage of Tracer.services has been deprecated')
       end
 
@@ -129,8 +132,7 @@ module Datadog
     #
     # set_service_info is deprecated, no service information needs to be tracked
     def set_service_info(service, app, app_type)
-      # Only log each deprecation warning once (safeguard against log spam)
-      Datadog::Patcher.do_once('Tracer#set_service_info') do
+      SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE.run do
         Datadog.logger.warn(%(
           set_service_info: Usage of set_service_info has been deprecated,
           service information no longer needs to be reported to the trace agent.
