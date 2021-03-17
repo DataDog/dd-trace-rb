@@ -14,6 +14,13 @@ RSpec.describe 'ddtrace integration' do
       try_wait_until { Datadog.tracer.writer.transport.stats.success > 0 }
     end
 
+    before do
+      # Ensure tracer is not running before test starts.
+      # This shouldn't be necessary if all other tests
+      # always terminate the tracer.
+      Datadog.shutdown!
+    end
+
     context 'for threads' do
       let!(:original_thread_count) { thread_count }
 
