@@ -460,7 +460,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     context 'when linking is unavailable' do
       context 'because the tracer is unavailable' do
-        let(:datadog) { Module.new }
+        let(:datadog) { Module.new { const_set('Utils', Datadog::Utils) } }
 
         before { stub_const('Datadog', datadog, transfer_nested_constant: true) }
 

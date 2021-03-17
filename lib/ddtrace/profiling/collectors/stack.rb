@@ -1,5 +1,6 @@
 require 'ddtrace/profiling/backtrace_location'
 require 'ddtrace/profiling/events/stack'
+require 'ddtrace/utils/only_once'
 require 'ddtrace/utils/time'
 require 'ddtrace/worker'
 require 'ddtrace/workers/polling'
@@ -39,7 +40,7 @@ module Datadog
           # Workers::Polling settings
           self.enabled = options.key?(:enabled) ? options[:enabled] == true : true
 
-          @warned_about_missing_cpu_time_instrumentation = false
+          @warn_about_missing_cpu_time_instrumentation_only_once = Datadog::Utils::OnlyOnce.new
         end
 
         def start
@@ -189,32 +190,27 @@ module Datadog
         private
 
         def warn_about_missing_cpu_time_instrumentation(thread)
-          return if @warned_about_missing_cpu_time_instrumentation
-
-          # make sure we warn only once
-          @warned_about_missing_cpu_time_instrumentation = true
-
-          # Is the profiler thread instrumented? If it is, then we know instrumentation is available, but seems to be
-          # missing on this thread we just found.
-          #
-          # As far as we know, it can be missing due to one the following:
-          #
-          # a) The thread was started before we installed our instrumentation.
-          #    In this case, the fix is to make sure ddtrace gets loaded before any other parts of the application.
-          #
-          # b) The thread was started using the Ruby native APIs (e.g. from a C extension such as ffi).
-          #    We currently have no solution for this case; these threads will always be missing our CPU instrumentation.
-          #
-          # c) The thread was started with `Thread.start`/`Thread.fork` and hasn't yet enabled the instrumentation.
-          #    When threads are started using these APIs, there's a small time window during which the thread has started
-          #    but our code to apply the instrumentation hasn't run yet; in these cases it's just a matter of allowing
-          #    it to run and our instrumentation to be applied.
-          #
-          if Thread.current.respond_to?(:cpu_time) && Thread.current.cpu_time
-            Datadog.logger.debug("Detected thread ('#{thread}') with missing CPU profiling instrumentation.")
+          @warn_about_missing_cpu_time_instrumentation_only_once.run do
+            # Is the profiler thread instrumented? If it is, then we know instrumentation is available, but seems to be
+            # missing on this thread we just found.
+            #
+            # As far as we know, it can be missing due to one the following:
+            #
+            # a) The thread was started before we installed our instrumentation.
+            #    In this case, the fix is to make sure ddtrace gets loaded before any other parts of the application.
+            #
+            # b) The thread was started using the Ruby native APIs (e.g. from a C extension such as ffi).
+            #    We currently have no solution for this case; these threads will always be missing our CPU instrumentation.
+            #
+            # c) The thread was started with `Thread.start`/`Thread.fork` and hasn't yet enabled the instrumentation.
+            #    When threads are started using these APIs, there's a small time window during which the thread has started
+            #    but our code to apply the instrumentation hasn't run yet; in these cases it's just a matter of allowing
+            #    it to run and our instrumentation to be applied.
+            #
+            if Thread.current.respond_to?(:cpu_time) && Thread.current.cpu_time
+              Datadog.logger.debug("Detected thread ('#{thread}') with missing CPU profiling instrumentation.")
+            end
           end
-
-          nil
         end
       end
     end
