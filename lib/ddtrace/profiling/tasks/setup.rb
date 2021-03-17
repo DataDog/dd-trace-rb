@@ -1,4 +1,5 @@
 require 'ddtrace'
+require 'ddtrace/utils/only_once'
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/ext/cpu'
 require 'ddtrace/profiling/ext/forking'
@@ -8,8 +9,10 @@ module Datadog
     module Tasks
       # Takes care of loading our extensions/monkey patches to handle fork() and CPU profiling.
       class Setup
+        ACTIVATE_EXTENSIONS_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+
         def run
-          ONLY_ONCE.run do
+          ACTIVATE_EXTENSIONS_ONLY_ONCE.run do
             begin
               activate_forking_extensions
               activate_cpu_extensions
@@ -68,34 +71,6 @@ module Datadog
           # Print to STDOUT for now because logging may not be setup yet...
           puts message
         end
-
-        # Small helper class to allow some piece of code to be run only once
-        class OnlyOnce
-          def initialize
-            @mutex = Mutex.new
-            @ran_once = false
-          end
-
-          def run
-            @mutex.synchronize do
-              return if @ran_once
-
-              @ran_once = true
-
-              yield
-            end
-          end
-
-          private
-
-          def reset_ran_once_state_for_tests
-            @ran_once = false
-          end
-        end
-        ONLY_ONCE = OnlyOnce.new
-
-        private_constant :OnlyOnce
-        private_constant :ONLY_ONCE
       end
     end
   end
