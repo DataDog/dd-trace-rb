@@ -444,13 +444,43 @@ RSpec.describe Datadog::Configuration do
       end
     end
 
+    describe '#components' do
+      context 'when components are not initialized' do
+        it 'initializes the components' do
+          test_class.send(:components)
+
+          expect(test_class.send(:components?)).to be true
+        end
+
+        context 'when allow_initialization is false' do
+          it 'does not initialize the components' do
+            test_class.send(:components, allow_initialization: false)
+
+            expect(test_class.send(:components?)).to be false
+          end
+        end
+      end
+
+      context 'when components are initialized' do
+        before { test_class.send(:components) }
+
+        after { described_class.const_get(:COMPONENTS_WRITE_LOCK).tap { |lock| lock.unlock if lock.owned? } }
+
+        it 'returns the components without touching the COMPONENTS_WRITE_LOCK' do
+          described_class.const_get(:COMPONENTS_WRITE_LOCK).lock
+
+          expect(test_class.send(:components)).to_not be_nil
+        end
+      end
+    end
+
     describe '#safely_synchronize' do
-      it 'runs the given block while holding the COMPONENTS_LOCK' do
+      it 'runs the given block while holding the COMPONENTS_WRITE_LOCK' do
         block_ran = false
 
         test_class.send(:safely_synchronize) do
           block_ran = true
-          expect(described_class.const_get(:COMPONENTS_LOCK)).to be_owned
+          expect(described_class.const_get(:COMPONENTS_WRITE_LOCK)).to be_owned
         end
 
         expect(block_ran).to be true
@@ -458,6 +488,14 @@ RSpec.describe Datadog::Configuration do
 
       it 'returns the value of the given block' do
         expect(test_class.send(:safely_synchronize) { :returned_value }).to be :returned_value
+      end
+
+      it 'provides a write_components callback that can be used to update the components' do
+        test_class.send(:safely_synchronize) do |write_components|
+          write_components.call(:updated_components)
+        end
+
+        expect(test_class.send(:components)).to be :updated_components
       end
 
       context 'when recursive execution triggers a deadlock' do
