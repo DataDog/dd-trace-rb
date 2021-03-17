@@ -105,6 +105,12 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
     context 'with a lazy enumerator' do
       let(:traces) { [].lazy }
 
+      before do
+        if PlatformHelpers.jruby? && PlatformHelpers.engine_version < Gem::Version.new('9.2.9.0')
+          skip 'This runtime returns eager enumerators on Enumerator::Lazy methods calls'
+        end
+      end
+
       it 'does not force enumerator expansion' do
         expect(subject).to be_a(Enumerator::Lazy)
       end
@@ -151,6 +157,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     let(:encoded_traces) { double }
     let(:trace_count) { 1 }
     let(:chunks) { [[encoded_traces, trace_count]] }
+    let(:lazy_chunks) { chunks.lazy }
 
     let(:request) { instance_double(Datadog::Transport::Traces::Request) }
     let(:client_v2) { instance_double(Datadog::Transport::HTTP::Client) }
@@ -162,7 +169,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
       allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v1).and_return(chunker)
       allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v2).and_return(chunker)
 
-      allow(chunker).to receive(:encode_in_chunks).and_return(chunks.lazy)
+      allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
 
       allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v1).and_return(client_v1)
       allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v2).and_return(client_v2)
@@ -180,6 +187,23 @@ RSpec.describe Datadog::Transport::Traces::Transport do
         expect(client_v2).to have_received(:send_payload).with(request).once
 
         expect(health_metrics).to have_received(:transport_chunked).with(1)
+      end
+
+      context 'with a runtime that returns eagerly loaded chunks' do
+        before do
+          if !PlatformHelpers.jruby? || PlatformHelpers.engine_version >= Gem::Version.new('9.2.9.0')
+            skip 'This runtime correctly returns lazy enumerators on Enumerator::Lazy#slice_before calls'
+          end
+        end
+
+        let(:lazy_chunks) { chunks }
+
+        it 'successfully sends a single request' do
+          is_expected.to eq(responses)
+          expect(client_v2).to have_received(:send_payload).with(request).once
+
+          expect(health_metrics).to have_received(:transport_chunked).with(1)
+        end
       end
 
       context 'with many chunks' do
