@@ -125,7 +125,19 @@ module Datadog
             end
           end
 
-          responses = responses.to_a # Force resolution of lazy enumerator
+          # Force resolution of lazy enumerator.
+          #
+          # The "correct" method to call here would be `#force`,
+          # as this method was created to force the eager loading
+          # of a lazy enumerator.
+          #
+          # Unfortunately, JRuby < 9.2.9.0 erroneously eagerly loads
+          # the lazy Enumerator during intermediate steps.
+          # This forces us to use `#to_a`, as this method works for both
+          # lazy and regular Enumerators.
+          # Using `#to_a` can mask the fact that we expect a lazy
+          # Enumerator.
+          responses = responses.to_a
 
           Datadog.health_metrics.transport_chunked(responses.size)
 
