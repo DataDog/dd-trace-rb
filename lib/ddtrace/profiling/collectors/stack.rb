@@ -105,7 +105,13 @@ module Datadog
           # Convert backtrace locations into structs
           locations = convert_backtrace_locations(locations)
 
-          thread_id = thread.respond_to?(:native_thread_id) ? thread.native_thread_id : thread.object_id
+          thread_id =
+            if thread.respond_to?(:native_thread_id)
+              thread.native_thread_id
+            else
+              thread.object_id
+            end
+
           trace_id, span_id = get_trace_identifiers(thread)
           cpu_time = get_cpu_time_interval!(thread)
 
