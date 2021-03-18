@@ -162,5 +162,7 @@ module TracerHelpers
       @tracer.shutdown!
       @tracer = nil
     end
+
+    Datadog.reset!
   end
 end
