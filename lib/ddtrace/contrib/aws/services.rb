@@ -99,6 +99,7 @@ module Datadog
         STS
         SWF
         ServiceCatalog
+        Schemas
         Shield
         SimpleDB
         Snowball
