@@ -53,6 +53,8 @@ module Datadog
             'You have an incompatible rollbar gem version installed; ensure that you have rollbar >= 3.1.2 by ' \
             "adding `gem 'rollbar', '>= 3.1.2'` to your Gemfile or gems.rb file. " \
             'See https://github.com/rollbar/rollbar-gem/pull/1018 for details.'
+          elsif ENV['DD_PROFILING_NO_CPU'] == 'true'
+            'Manually disabled via DD_PROFILING_NO_CPU=true environment variable'
           end
         end
       end
