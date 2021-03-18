@@ -103,6 +103,7 @@ module Datadog
       safely_synchronize do |write_components|
         @components.shutdown! if components?
         write_components.call(nil)
+        configuration.reset!
       end
     end
 

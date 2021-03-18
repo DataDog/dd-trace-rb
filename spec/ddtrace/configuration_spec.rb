@@ -442,6 +442,20 @@ RSpec.describe Datadog::Configuration do
 
         expect(test_class.send(:components)).to_not be(original_components)
       end
+
+      context 'with configuration values set' do
+        let(:default_value) { 100 }
+        let(:custom_value) { 777 }
+
+        before do
+          test_class.configuration.sampling.rate_limit = custom_value
+        end
+
+        it 'resets the configuration' do
+          expect { reset! }.to change { test_class.configuration.sampling.rate_limit }
+            .from(custom_value).to(default_value)
+        end
+      end
     end
 
     describe '#components' do
