@@ -3,7 +3,6 @@ require 'ddtrace/profiling/spec_helper'
 
 require 'stringio'
 require 'securerandom'
-require 'thread'
 require 'webrick'
 
 require 'ddtrace/transport/http'
@@ -12,8 +11,10 @@ require 'ddtrace/profiling/transport/http'
 require 'ddtrace/transport/http/adapters/net'
 
 RSpec.describe 'Adapters::Net profiling integration tests' do
-  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
-  before { skip 'Profiling is not supported.' unless Datadog::Profiling.supported? }
+  before do
+    skip unless ENV['TEST_DATADOG_INTEGRATION']
+    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+  end
 
   subject(:adapter) { Datadog::Transport::HTTP::Adapters::Net.new(hostname, port) }
 
@@ -62,6 +63,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
     shared_examples_for 'profile HTTP request' do
       subject(:request) { messages.first }
 
+      # rubocop:disable Layout/LineLength
       it 'sends profiles successfully' do
         client.send_profiling_flush(flush)
 
@@ -70,7 +72,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           'datadog-meta-lang-version' => [Datadog::Ext::Runtime::LANG_VERSION],
           'datadog-meta-lang-interpreter' => [Datadog::Ext::Runtime::LANG_INTERPRETER],
           'datadog-meta-tracer-version' => [Datadog::Ext::Runtime::TRACER_VERSION],
-          'content-type' => [%r{^multipart\/form-data; boundary=(.+)}]
+          'content-type' => [%r{^multipart/form-data; boundary=(.+)}]
         )
 
         unless Datadog::Runtime::Container.container_id.nil?
@@ -82,7 +84,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         expect(request.header['content-length'].first.to_i).to be > 0
 
         # Check body
-        boundary = request['content-type'][%r{^multipart\/form-data; boundary=(.+)}, 1]
+        boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
         expect(body).to include(
@@ -95,17 +97,16 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           'format' => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT_PPROF
         )
 
-        # rubocop:disable Metrics/LineLength
         tags = body["#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS}[]"].list
         expect(tags).to be_a_kind_of(Array)
         expect(tags).to include(
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Ext::Runtime::LANG}/,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Ext::Runtime::LANG}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ID}:#{uuid_regex.source}/,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{Datadog::Ext::Runtime::LANG_ENGINE}/,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{Datadog::Ext::Runtime::LANG_PLATFORM}/,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Ext::Runtime::LANG_VERSION}/,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Ext::Runtime::TRACER_VERSION}/,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Ext::Runtime::LANG}/
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{Datadog::Ext::Runtime::LANG_ENGINE}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{Datadog::Ext::Runtime::LANG_PLATFORM}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Ext::Runtime::LANG_VERSION}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Ext::Runtime::TRACER_VERSION}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Ext::Runtime::LANG}/o
         )
 
         if Datadog::Runtime::Container.container_id
@@ -113,6 +114,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           expect(tags).to include(/#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_HOST}:#{container_id}/)
         end
       end
+      # rubocop:enable Layout/LineLength
     end
 
     context 'via agent' do

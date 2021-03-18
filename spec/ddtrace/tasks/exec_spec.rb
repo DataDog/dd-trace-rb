@@ -3,6 +3,7 @@ require 'ddtrace/tasks/exec'
 
 RSpec.describe Datadog::Tasks::Exec do
   subject(:task) { described_class.new(args) }
+
   let(:args) { ['ruby', '-e', '"RUBY_VERSION"'] }
 
   describe '::new' do
@@ -11,6 +12,7 @@ RSpec.describe Datadog::Tasks::Exec do
 
   describe '#run' do
     subject(:run) { task.run }
+
     let(:result) { double('result') }
 
     around do |example|
@@ -47,6 +49,7 @@ RSpec.describe Datadog::Tasks::Exec do
 
         ENV['RUBYOPT'] = start_opts
       end
+
       let(:start_opts) { 'start_opts' }
 
       it 'runs the task with additional preloads' do
@@ -65,7 +68,7 @@ RSpec.describe Datadog::Tasks::Exec do
     context 'when exec fails' do
       before do
         allow(Kernel).to receive(:exit)
-        allow(STDERR).to receive(:puts)
+        allow(Kernel).to receive(:warn)
       end
 
       context 'when command does not exist' do
@@ -79,8 +82,8 @@ RSpec.describe Datadog::Tasks::Exec do
           run
         end
 
-        it 'logs an error message to stderr' do
-          expect(STDERR).to receive(:puts) do |message|
+        it 'logs an error message' do
+          expect(Kernel).to receive(:warn) do |message|
             expect(message).to include('ddtracerb exec failed')
           end
 
@@ -101,8 +104,8 @@ RSpec.describe Datadog::Tasks::Exec do
               run
             end
 
-            it 'logs an error message to stderr' do
-              expect(STDERR).to receive(:puts) do |message|
+            it 'logs an error message' do
+              expect(Kernel).to receive(:warn) do |message|
                 expect(message).to include('ddtracerb exec failed')
               end
 
@@ -116,6 +119,7 @@ RSpec.describe Datadog::Tasks::Exec do
 
   describe '#rubyopts' do
     subject(:rubyopts) { task.rubyopts }
+
     it { is_expected.to eq(['-rddtrace/profiling/preload']) }
   end
 end

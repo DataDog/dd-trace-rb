@@ -36,6 +36,7 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
 
   describe '#encode_profile' do
     subject(:build_profile) { builder.encode_profile(profile) }
+
     let(:profile) { instance_double(Perftools::Profiles::Profile) }
     let(:encoded_profile) { instance_double(String) }
     let(:encoded_string) { instance_double(String) }
@@ -77,6 +78,7 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
 
   describe '#build_value_type' do
     subject(:build_value_type) { builder.build_value_type(type, unit) }
+
     let(:type) { 'type' }
     let(:unit) { 'unit' }
 
@@ -181,6 +183,7 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
 
   describe '#build_line' do
     subject(:build_line) { builder.build_line(function_id, line_number) }
+
     let(:function_id) { id_sequence.next }
     let(:line_number) { rand_int }
 
@@ -195,6 +198,7 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
 
   describe '#build_function' do
     subject(:build_function) { builder.build_function(id, filename, function_name) }
+
     let(:id) { id_sequence.next }
     let(:filename) { double('filename') }
     let(:function_name) { double('function name') }
@@ -211,6 +215,7 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
 
   describe '#build_mapping' do
     subject(:build_mapping) { builder.build_mapping(id, filename) }
+
     let(:id) { id_sequence.next }
     let(:filename) { double('filename') }
 

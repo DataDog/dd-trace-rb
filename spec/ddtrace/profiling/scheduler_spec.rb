@@ -6,6 +6,7 @@ require 'ddtrace/profiling/scheduler'
 
 RSpec.describe Datadog::Profiling::Scheduler do
   subject(:scheduler) { described_class.new(recorder, exporters, options) }
+
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
   let(:exporters) { [instance_double(Datadog::Profiling::Exporter)] }
   let(:options) { {} }
@@ -23,6 +24,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     context 'given a single exporter' do
       let(:exporters) { instance_double(Datadog::Profiling::Exporter) }
+
       it { is_expected.to have_attributes(exporters: [exporters]) }
     end
   end
@@ -38,13 +40,16 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
   describe '#perform' do
     subject(:perform) { scheduler.perform }
+
     after { scheduler.stop(true, 0) }
 
     context 'when disabled' do
       before { scheduler.enabled = false }
 
       it 'does not start a worker thread' do
-        is_expected.to be nil
+        perform
+
+        expect(scheduler.send(:worker)).to be nil
 
         expect(scheduler).to have_attributes(
           run_async?: false,
@@ -60,10 +65,14 @@ RSpec.describe Datadog::Profiling::Scheduler do
     context 'when enabled' do
       before { scheduler.enabled = true }
 
+      after { scheduler.terminate }
+
       it 'starts a worker thread' do
         allow(scheduler).to receive(:flush_events)
 
-        is_expected.to be_a_kind_of(Thread)
+        perform
+
+        expect(scheduler.send(:worker)).to be_a_kind_of(Thread)
         try_wait_until { scheduler.running? }
 
         expect(scheduler).to have_attributes(
@@ -80,6 +89,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
   describe '#loop_back_off?' do
     subject(:loop_back_off?) { scheduler.loop_back_off? }
+
     it { is_expected.to be false }
   end
 
@@ -94,6 +104,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
   describe '#flush_and_wait' do
     subject(:flush_and_wait) { scheduler.flush_and_wait }
+
     let(:flush_time) { 0.05 }
 
     before do
@@ -126,6 +137,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
   describe '#flush_events' do
     subject(:flush_events) { scheduler.flush_events }
+
     let(:flush) { instance_double(Datadog::Profiling::Flush, event_count: event_count) }
 
     before do
@@ -152,11 +164,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
         it 'returns the flush' do
           is_expected.to be flush
 
-          exporters.each do |exporter|
-            expect(exporter)
-              .to have_received(:export)
-              .with(flush)
-          end
+          expect(exporters).to all(have_received(:export).with(flush))
         end
       end
 
@@ -173,11 +181,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
         it 'returns the number of events flushed' do
           is_expected.to be flush
 
-          exporters.each do |exporter|
-            expect(exporter)
-              .to have_received(:export)
-              .with(flush)
-          end
+          expect(exporters).to all(have_received(:export).with(flush))
         end
       end
     end

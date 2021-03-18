@@ -4,18 +4,22 @@ require 'ddtrace/profiling/buffer'
 
 RSpec.describe Datadog::Profiling::Buffer do
   subject(:buffer) { described_class.new(max_size) }
+
   let(:max_size) { 0 }
 
   it { is_expected.to be_a_kind_of(Datadog::ThreadSafeBuffer) }
 
   describe '#cache' do
     subject(:cache) { buffer.cache(name) }
+
     let(:name) { :test }
+
     it { is_expected.to be_a_kind_of(Datadog::Utils::ObjectSet) }
   end
 
   describe '#string_table' do
     subject(:string_table) { buffer.string_table }
+
     it { is_expected.to be_a_kind_of(Datadog::Utils::StringTable) }
   end
 

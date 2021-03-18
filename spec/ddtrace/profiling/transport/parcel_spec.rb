@@ -4,6 +4,7 @@ require 'ddtrace/profiling/transport/parcel'
 
 RSpec.describe Datadog::Profiling::Transport::Parcel do
   subject(:parcel) { described_class.new(data) }
+
   let(:data) { instance_double(Array) }
 
   it { is_expected.to be_a_kind_of(Datadog::Transport::Parcel) }
@@ -14,6 +15,7 @@ RSpec.describe Datadog::Profiling::Transport::Parcel do
 
   describe '#encode_with' do
     subject(:encode_with) { parcel.encode_with(encoder) }
+
     let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
     let(:encoded_data) { double('encoded data') }
 

@@ -19,7 +19,7 @@ module Datadog
           options = options.dup
 
           new(
-            options.delete(:out) || STDOUT,
+            options.delete(:out) || $stdout,
             options.delete(:encoder) || Profiling::Encoding::Profile::Protobuf,
             options
           )

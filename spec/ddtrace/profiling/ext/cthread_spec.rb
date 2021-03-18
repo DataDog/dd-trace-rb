@@ -187,6 +187,7 @@ if Datadog::Profiling::Ext::CPU.supported?
 
             context 'given a unit' do
               subject(:cpu_time) { thread.cpu_time(unit) }
+
               let(:unit) { double('unit') }
 
               it 'gets time in specified unit' do

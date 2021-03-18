@@ -10,12 +10,15 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Spec do
 
   describe '#profiles=' do
     subject(:profiles) { spec.profiles = endpoint }
+
     let(:endpoint) { instance_double(Datadog::Profiling::Transport::HTTP::API::Endpoint) }
+
     it { expect { profiles }.to change { spec.profiles }.from(nil).to(endpoint) }
   end
 
   describe '#send_profiling_flush' do
     subject(:send_profiling_flush) { spec.send_profiling_flush(env, &block) }
+
     let(:env) { instance_double(Datadog::Transport::HTTP::Env) }
     let(:block) { proc {} }
 

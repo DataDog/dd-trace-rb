@@ -12,7 +12,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     subject(:run) { task.run }
 
     before do
-      described_class.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+      described_class::ACTIVATE_EXTENSIONS_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
     end
 
     it 'actives the forking and the CPU extensions before setting up the at_fork hooks' do
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       context 'and succeeds' do
         it 'applies forking extensions' do
           expect(Datadog::Profiling::Ext::Forking).to receive(:apply!)
-          expect(STDOUT).to_not receive(:puts)
+          expect($stdout).to_not receive(:puts)
           activate_forking_extensions
         end
       end
@@ -60,8 +60,8 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
             .and_raise(StandardError)
         end
 
-        it 'displays a warning to STDOUT' do
-          expect(STDOUT).to receive(:puts) do |message|
+        it 'displays a warning to $stdout' do
+          expect($stdout).to receive(:puts) do |message|
             expect(message).to include('Forking extensions unavailable')
           end
 
@@ -86,7 +86,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
         it 'skips forking extensions with warning' do
           expect(Datadog::Profiling::Ext::Forking).to_not receive(:apply!)
-          expect(STDOUT).to receive(:puts) do |message|
+          expect($stdout).to receive(:puts) do |message|
             expect(message).to include('Forking extensions skipped')
           end
 
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
         it 'skips forking extensions without warning' do
           expect(Datadog::Profiling::Ext::Forking).to_not receive(:apply!)
-          expect(STDOUT).to_not receive(:puts)
+          expect($stdout).to_not receive(:puts)
           activate_forking_extensions
         end
       end
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       context 'and succeeds' do
         it 'applies CPU extensions' do
           expect(Datadog::Profiling::Ext::CPU).to receive(:apply!)
-          expect(STDOUT).to_not receive(:puts)
+          expect($stdout).to_not receive(:puts)
           activate_cpu_extensions
         end
       end
@@ -135,8 +135,8 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
             .and_raise(StandardError)
         end
 
-        it 'displays a warning to STDOUT' do
-          expect(STDOUT).to receive(:puts) do |message|
+        it 'displays a warning to $stdout' do
+          expect($stdout).to receive(:puts) do |message|
             expect(message).to include('CPU profiling unavailable')
           end
 
@@ -161,7 +161,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
         it 'skips CPU extensions with warning' do
           expect(Datadog::Profiling::Ext::CPU).to_not receive(:apply!)
-          expect(STDOUT).to receive(:puts) do |message|
+          expect($stdout).to receive(:puts) do |message|
             expect(message).to include('CPU profiling skipped')
           end
 
@@ -178,7 +178,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
         it 'skips CPU extensions without warning' do
           expect(Datadog::Profiling::Ext::CPU).to_not receive(:apply!)
-          expect(STDOUT).to_not receive(:puts)
+          expect($stdout).to_not receive(:puts)
           activate_cpu_extensions
         end
       end
@@ -231,7 +231,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
         end
 
         it 'logs an exception' do
-          expect(STDOUT).to receive(:puts) do |message|
+          expect($stdout).to receive(:puts) do |message|
             expect(message).to include('Dummy exception')
           end
 
@@ -259,7 +259,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
         end
 
         it 'logs an exception' do
-          expect(STDOUT).to receive(:puts) do |message|
+          expect($stdout).to receive(:puts) do |message|
             expect(message).to include('Dummy exception')
           end
 

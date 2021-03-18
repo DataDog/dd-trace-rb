@@ -5,6 +5,7 @@ require 'ddtrace/profiling/event'
 
 RSpec.describe Datadog::Profiling::Recorder do
   subject(:recorder) { described_class.new(event_classes, max_size) }
+
   let(:event_classes) { [] }
   let(:max_size) { 0 }
 
@@ -65,6 +66,7 @@ RSpec.describe Datadog::Profiling::Recorder do
 
     context 'given an event' do
       subject(:push) { recorder.push(event) }
+
       let(:event) { event_class.new }
 
       context 'whose class has not been registered' do
@@ -85,6 +87,7 @@ RSpec.describe Datadog::Profiling::Recorder do
 
     context 'given an Array of events' do
       subject(:push) { recorder.push(events) }
+
       let(:events) { Array.new(2) { event_class.new } }
 
       context 'whose class has not been registered' do
@@ -142,12 +145,14 @@ RSpec.describe Datadog::Profiling::Recorder do
 
       context 'whose buffer returns no events' do
         let(:events) { [] }
+
         it { is_expected.to be_a_kind_of(Datadog::Profiling::Flush) }
         it { expect(flush.event_groups).to be_empty }
       end
 
       context 'called back to back' do
         subject(:flush) { Array.new(3) { recorder.flush } }
+
         let(:events) { [] }
 
         it 'has its start and end times line up' do

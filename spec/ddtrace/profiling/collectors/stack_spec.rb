@@ -6,6 +6,7 @@ require 'ddtrace/profiling/recorder'
 
 RSpec.describe Datadog::Profiling::Collectors::Stack do
   subject(:collector) { described_class.new(recorder, options) }
+
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
   let(:options) { {} }
 
@@ -61,13 +62,16 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe '#perform' do
     subject(:perform) { collector.perform }
+
     after { collector.stop(true, 0) }
 
     context 'when disabled' do
       before { collector.enabled = false }
 
       it 'does not start a worker thread' do
-        is_expected.to be nil
+        perform
+
+        expect(collector.send(:worker)).to be nil
 
         expect(collector).to have_attributes(
           run_async?: false,
@@ -83,10 +87,14 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     context 'when enabled' do
       before { collector.enabled = true }
 
+      after { collector.terminate }
+
       it 'starts a worker thread' do
         allow(collector).to receive(:collect_events)
 
-        is_expected.to be_a_kind_of(Thread)
+        perform
+
+        expect(collector.send(:worker)).to be_a_kind_of(Thread)
         try_wait_until { collector.running? }
 
         expect(collector).to have_attributes(
@@ -103,11 +111,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe '#loop_back_off?' do
     subject(:loop_back_off?) { collector.loop_back_off? }
+
     it { is_expected.to be false }
   end
 
   describe '#collect_and_wait' do
     subject(:collect_and_wait) { collector.collect_and_wait }
+
     let(:collect_time) { 0.05 }
     let(:updated_wait_time) { rand }
 
@@ -208,11 +218,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe '#collect_thread_event' do
     subject(:collect_events) { collector.collect_thread_event(thread, wall_time_interval_ns) }
+
     let(:thread) { double('Thread', backtrace_locations: backtrace) }
     let(:wall_time_interval_ns) { double('wall time interval in nanoseconds') }
 
     context 'when the backtrace is empty' do
       let(:backtrace) { nil }
+
       it { is_expected.to be nil }
     end
 
@@ -322,6 +334,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe '#get_cpu_time_interval!' do
     subject(:get_cpu_time_interval!) { collector.get_cpu_time_interval!(thread) }
+
     let(:thread) { double('Thread') }
 
     context 'when CPU timing is not supported' do
@@ -412,6 +425,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           end
 
           let(:current_cpu_time) { rand(1e4) }
+
           it { is_expected.to eq 0 }
         end
 
@@ -435,23 +449,29 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe '#get_trace_identifiers' do
     subject(:get_trace_identifiers) { collector.get_trace_identifiers(thread) }
+
     let(:thread) { Thread.new {} }
 
     context 'given a non-thread' do
       let(:thread) { nil }
+
       it { is_expected.to be nil }
     end
 
     context 'when linking is unavailable' do
       context 'because the tracer is unavailable' do
-        let(:datadog) { Module.new }
+        let(:datadog) { Module.new { const_set('Utils', Datadog::Utils) } }
+
         before { stub_const('Datadog', datadog, transfer_nested_constant: true) }
+
         it { is_expected.to be nil }
       end
 
       context 'because correlations are unavailable' do
         let(:tracer) { instance_double(Datadog::Tracer) }
+
         before { allow(Datadog).to receive(:tracer).and_return(tracer) }
+
         it { is_expected.to be nil }
       end
     end
@@ -499,6 +519,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe '#compute_wait_time' do
     subject(:compute_wait_time) { collector.compute_wait_time(used_time) }
+
     let(:used_time) { 1 }
 
     context 'when max time usage' do
@@ -514,11 +535,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       context 'is 50%' do
         let(:max_time_usage_pct) { 50.0 }
+
         it { is_expected.to eq 1.0 }
       end
 
       context 'is 2%' do
         let(:max_time_usage_pct) { 2.0 }
+
         it { is_expected.to eq 49.0 }
       end
     end

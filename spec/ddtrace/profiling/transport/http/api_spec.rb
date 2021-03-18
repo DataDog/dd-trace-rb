@@ -5,6 +5,7 @@ require 'ddtrace/profiling/transport/http/api'
 RSpec.describe Datadog::Profiling::Transport::HTTP::API do
   describe '::agent_defaults' do
     subject(:agent_defaults) { described_class.agent_defaults }
+
     it { is_expected.to be_a_kind_of(Datadog::Transport::HTTP::API::Map) }
 
     it do
@@ -23,6 +24,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API do
 
   describe '::api_defaults' do
     subject(:api_defaults) { described_class.api_defaults }
+
     it { is_expected.to be_a_kind_of(Datadog::Transport::HTTP::API::Map) }
 
     it do

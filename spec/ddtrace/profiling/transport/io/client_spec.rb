@@ -5,6 +5,7 @@ require 'ddtrace/profiling/transport/io/client'
 
 RSpec.describe Datadog::Profiling::Transport::IO::Client do
   subject(:client) { described_class.new(out, encoder) }
+
   let(:out) { instance_double(IO) }
   let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
 
@@ -36,6 +37,7 @@ RSpec.describe Datadog::Profiling::Transport::IO::Client do
 
   describe '#build_response' do
     subject(:build_response) { client.build_response(request, data, result) }
+
     let(:request) { instance_double(Datadog::Profiling::Transport::Request) }
     let(:data) { double('data') }
     let(:result) { double('result') }
