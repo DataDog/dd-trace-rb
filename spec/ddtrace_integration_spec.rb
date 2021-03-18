@@ -6,7 +6,14 @@ RSpec.describe 'ddtrace integration' do
     subject(:shutdown) { Datadog.shutdown! }
 
     let(:start_tracer) do
-      Datadog.configure {}
+      # TODO: We manually unset the tracer instance here as
+      # we don't have a mechanism to deeply reset the
+      # `Datadog.configuration` object.
+
+      # Ensure we terminate the existing tracer instance, if any
+      Datadog.configuration.tracer.instance.shutdown! if Datadog.configuration.tracer.instance
+      Datadog.configure { |c| c.tracer.instance = nil }
+
       Datadog.tracer.trace('test.op') {}
     end
 
