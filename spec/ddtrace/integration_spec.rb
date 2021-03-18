@@ -121,6 +121,10 @@ RSpec.describe 'Tracer integration tests' do
   describe 'rule sampler' do
     include_context 'agent-based test'
 
+    after do
+      Datadog.configuration.sampling.reset!
+    end
+
     shared_examples 'priority sampled' do |sampling_priority|
       it { expect(@sampling_priority).to eq(sampling_priority) }
     end
@@ -167,13 +171,33 @@ RSpec.describe 'Tracer integration tests' do
       end
     end
 
+    context 'with rate set through DD_TRACE_SAMPLE_RATE environment variable' do
+      let(:initialize_options) { {} }
+
+      around do |example|
+        ClimateControl.modify('DD_TRACE_SAMPLE_RATE' => '1.0') do
+          example.run
+        end
+      end
+
+      it_behaves_like 'flushed trace'
+      it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
+      it_behaves_like 'rule sampling rate metric', 1.0
+      it_behaves_like 'rate limit metric', 1.0
+
+      it 'test' do
+        puts "Datadog.configuration.sampling.default_rate: #{Datadog.configuration.sampling.default_rate}:" \
+          "#{Datadog.configuration.sampling.default_rate.class}"
+      end
+    end
+
     context 'with low default sample rate' do
       let(:rule_sampler) { Datadog::Sampling::RuleSampler.new(default_sample_rate: Float::MIN) }
 
       it_behaves_like 'flushed trace'
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
-      it_behaves_like 'rule sampling rate metric', nil
-      it_behaves_like 'rate limit metric', nil
+      it_behaves_like 'rule sampling rate metric', Float::MIN
+      it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
     end
 
     context 'with rule' do
@@ -194,7 +218,7 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'flushed trace'
           it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
           it_behaves_like 'rule sampling rate metric', Float::MIN
-          it_behaves_like 'rate limit metric', nil
+          it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
         end
 
         context 'rate limited' do
@@ -212,8 +236,8 @@ RSpec.describe 'Tracer integration tests' do
 
         it_behaves_like 'flushed trace'
         it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
-        it_behaves_like 'rule sampling rate metric', nil
-        it_behaves_like 'rate limit metric', nil
+        it_behaves_like 'rule sampling rate metric', nil # Rule sampler is never reached, thus has no value to provide
+        it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
       end
     end
   end
