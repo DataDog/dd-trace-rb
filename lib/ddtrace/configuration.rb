@@ -16,12 +16,26 @@ module Datadog
     # a threaded webserver), and we don't want their initialization to clash (for instance, starting two profilers...).
     #
     # Note that a Mutex **IS NOT** reentrant: the same thread cannot grab the same Mutex more than once.
-    # This means below we are careful not to nest calls to methods that grab the lock.
+    # This means below we are careful not to nest calls to methods that would trigger initialization and grab the lock.
     #
-    # Every method that directly or indirectly accesses/mutates @components should be holding the lock (through
+    # Every method that directly or indirectly mutates @components should be holding the lock (through
     # #safely_synchronize) while doing so.
-    COMPONENTS_LOCK = Mutex.new
-    private_constant :COMPONENTS_LOCK
+    COMPONENTS_WRITE_LOCK = Mutex.new
+    private_constant :COMPONENTS_WRITE_LOCK
+
+    # We use a separate lock when reading the @components, so that they continue to be accessible during initialization/
+    # reconfiguration. This was needed because we ran into several issues where we still needed to read the old
+    # components while the COMPONENTS_WRITE_LOCK was being held (see https://github.com/DataDog/dd-trace-rb/pull/1387
+    # and https://github.com/DataDog/dd-trace-rb/pull/1373#issuecomment-799593022 ).
+    #
+    # Technically on MRI we could get away without this lock, but on non-MRI Rubies, we may run into issues because
+    # we fall into the "UnsafeDCLFactory" case of https://shipilev.net/blog/2014/safe-public-construction/ .
+    # Specifically, on JRuby reads from the @components do have volatile semantics, and on TruffleRuby they do
+    # but just as an implementation detail, see https://github.com/jruby/jruby/wiki/Concurrency-in-jruby#volatility and
+    # https://github.com/DataDog/dd-trace-rb/pull/1329#issuecomment-776750377 .
+    # Concurrency is hard.
+    COMPONENTS_READ_LOCK = Mutex.new
+    private_constant :COMPONENTS_READ_LOCK
 
     attr_writer :configuration
 
@@ -33,14 +47,14 @@ module Datadog
       if target.is_a?(Settings)
         yield(target) if block_given?
 
-        safely_synchronize do
-          # Build immutable components from settings
-          @components ||= nil
-          @components = if @components
-                          replace_components!(target, @components)
-                        else
-                          build_components(target)
-                        end
+        safely_synchronize do |write_components|
+          write_components.call(
+            if components?
+              replace_components!(target, @components)
+            else
+              build_components(target)
+            end
+          )
         end
 
         target
@@ -57,16 +71,13 @@ module Datadog
 
     def logger
       # avoid initializing components if they didn't already exist
-      return logger_without_components unless components?
+      current_components = components(allow_initialization: false)
 
-      @temp_logger = nil
-
-      if COMPONENTS_LOCK.owned?
-        # components are in the process of being replaced by this thread, avoid a deadlock and return the old logger
-        @components.logger
+      if current_components
+        @temp_logger = nil
+        current_components.logger
       else
-        # grab the lock and retrieve the latest logger
-        components.logger
+        logger_without_components
       end
     end
 
@@ -91,26 +102,35 @@ module Datadog
     # In contrast with +#shutdown!+, components will be automatically
     # reinitialized after a reset.
     def reset!
-      safely_synchronize do
+      safely_synchronize do |write_components|
         @components.shutdown! if components?
-        @components = nil
+        write_components.call(nil)
       end
     end
 
     protected
 
-    def components
-      safely_synchronize do
-        @components ||= build_components(configuration)
+    def components(allow_initialization: true)
+      current_components = COMPONENTS_READ_LOCK.synchronize { defined?(@components) && @components }
+      return current_components if current_components || !allow_initialization
+
+      safely_synchronize do |write_components|
+        @components || write_components.call(build_components(configuration))
       end
     end
 
     private
 
     def safely_synchronize
-      COMPONENTS_LOCK.synchronize do
+      # Writes to @components should only happen through this proc. Because this proc is only accessible to callers of
+      # safely_synchronize, this forces all writers to go through this method.
+      write_components = proc do |new_value|
+        COMPONENTS_READ_LOCK.synchronize { @components = new_value }
+      end
+
+      COMPONENTS_WRITE_LOCK.synchronize do
         begin
-          yield
+          yield write_components
         rescue ThreadError => e
           logger_without_components.error(
             'Detected deadlock during ddtrace initialization. ' \
@@ -123,7 +143,7 @@ module Datadog
     end
 
     def components?
-      # This does not need to grab the COMPONENTS_LOCK because it's not returning the components
+      # This does not need to grab the COMPONENTS_READ_LOCK because it's not returning the components
       (defined?(@components) && @components) != nil
     end
 
