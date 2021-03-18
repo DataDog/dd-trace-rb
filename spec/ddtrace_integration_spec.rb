@@ -1,9 +1,55 @@
-require 'spec_helper'
-
 require 'ddtrace/opentracer'
 require 'datadog/statsd'
 
 RSpec.describe 'ddtrace integration' do
+  context 'graceful shutdown', :integration do
+    subject(:shutdown) { Datadog.shutdown! }
+
+    let(:start_tracer) do
+      Datadog.configure {}
+      Datadog.tracer.trace('test.op') {}
+    end
+
+    def wait_for_tracer_sent
+      try_wait_until { Datadog.tracer.writer.transport.stats.success > 0 }
+    end
+
+    context 'for threads' do
+      let!(:original_thread_count) { thread_count }
+
+      def thread_count
+        Thread.list.count
+      end
+
+      it 'closes tracer threads' do
+        start_tracer
+        wait_for_tracer_sent
+
+        shutdown
+
+        expect(thread_count).to eq(original_thread_count)
+      end
+    end
+
+    context 'for file descriptors' do
+      let!(:original_fd_count) { fd_count }
+
+      def fd_count
+        # Unix-specific way to get the current process' open file descriptors
+        Dir['/dev/fd/*'].size
+      end
+
+      it 'closes tracer file descriptors' do
+        start_tracer
+        wait_for_tracer_sent
+
+        shutdown
+
+        expect(fd_count).to eq(original_fd_count)
+      end
+    end
+  end
+
   context 'after shutdown' do
     subject(:shutdown!) { Datadog.shutdown! }
 
@@ -17,6 +63,7 @@ RSpec.describe 'ddtrace integration' do
 
     after do
       Datadog.configuration.diagnostics.health_metrics.reset!
+      Datadog.shutdown!
     end
 
     context 'calling public apis' do
