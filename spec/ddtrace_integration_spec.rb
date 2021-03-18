@@ -63,6 +63,7 @@ RSpec.describe 'ddtrace integration' do
 
     after do
       Datadog.configuration.diagnostics.health_metrics.reset!
+      Datadog.shutdown!
     end
 
     context 'calling public apis' do
