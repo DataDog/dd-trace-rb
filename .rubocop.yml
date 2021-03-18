@@ -202,6 +202,10 @@ Style/HashTransformValues:
 Style/CollectionCompact:
   Enabled: false
 
+# Requires Ruby 2.4
+Performance/RegexpMatch:
+  Enabled: false
+
 # Enforces negative/positive branching order,
 # which can hurt readability.
 Style/NegatedIfElseCondition:

@@ -52,6 +52,7 @@ module Datadog
         def sample_value_index(type)
           index = @sample_type_mappings[type]
           raise UnknownSampleTypeMappingError, type unless index
+
           index
         end
 

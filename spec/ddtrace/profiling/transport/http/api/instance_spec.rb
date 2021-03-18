@@ -7,14 +7,17 @@ require 'ddtrace/profiling/transport/http/response'
 
 RSpec.describe Datadog::Profiling::Transport::HTTP::API::Instance do
   subject(:instance) { described_class.new(spec, adapter) }
+
   let(:adapter) { double('adapter') }
 
   describe '#send_profiling_flush' do
     subject(:send_profiling_flush) { instance.send_profiling_flush(env) }
+
     let(:env) { instance_double(Datadog::Transport::HTTP::Env) }
 
     context 'when specification does not support traces' do
       let(:spec) { double('spec') }
+
       it do
         expect { send_profiling_flush }
           .to raise_error(Datadog::Profiling::Transport::HTTP::API::Instance::ProfilesNotSupportedError)

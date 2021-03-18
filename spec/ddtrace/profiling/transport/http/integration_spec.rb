@@ -12,18 +12,21 @@ RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
 
   describe 'HTTP#default' do
     subject(:transport) { Datadog::Profiling::Transport::HTTP.default(options, &option_block) }
+
     let(:options) { {} }
     let(:option_block) { proc { |_client| } }
+
     it { is_expected.to be_a(Datadog::Profiling::Transport::HTTP::Client) }
 
     describe '#send_profiling_flush' do
       subject(:response) { transport.send_profiling_flush(flush) }
+
       let(:flush) { get_test_profiling_flush }
 
       shared_examples_for 'a successful profile flush' do
         it do
           is_expected.to be_a(Datadog::Profiling::Transport::HTTP::Response)
-          expect([200, 403]).to include(response.code)
+          expect(response.code).to eq(200).or eq(403)
         end
       end
 
@@ -33,6 +36,7 @@ RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
 
       context 'agentless' do
         let(:options) { { site: 'datadoghq.com', api_key: ENV['DD_API_KEY'] } }
+
         it_behaves_like 'a successful profile flush'
       end
     end

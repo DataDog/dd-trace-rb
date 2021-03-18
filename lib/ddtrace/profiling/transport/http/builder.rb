@@ -15,6 +15,7 @@ module Datadog
 
           def to_transport
             raise Datadog::Transport::HTTP::Builder::NoDefaultApiError if @default_api.nil?
+
             # TODO: Profiling doesn't have multiple APIs yet.
             #       When it does, we should build it out with these APIs.
             #       Just use :default_api for now.

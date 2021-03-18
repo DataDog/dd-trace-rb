@@ -5,8 +5,8 @@ RSpec.describe Datadog::Tasks::Help do
   subject(:task) { described_class.new }
 
   describe '#run' do
-    it 'prints a help message to STDOUT' do
-      expect(STDOUT).to receive(:puts) do |message|
+    it 'prints a help message to stdout' do
+      expect($stdout).to receive(:puts) do |message|
         expect(message).to include('Usage: ddtrace')
       end
 

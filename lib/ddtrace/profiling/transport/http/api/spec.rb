@@ -12,6 +12,7 @@ module Datadog
 
             def send_profiling_flush(env, &block)
               raise NoProfilesEndpointDefinedError, self if profiles.nil?
+
               profiles.call(env, &block)
             end
 
