@@ -8,9 +8,10 @@ require 'ddtrace/profiling/transport/http/response'
 require 'ddtrace/profiling/transport/request'
 require 'ddtrace/transport/http/env'
 
-# rubocop:disable Metrics/LineLength
+# rubocop:disable Layout/LineLength
 RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
   subject(:endpoint) { described_class.new(path, encoder, options) }
+
   let(:path) { double('path') }
   let(:encoder) { class_double(Datadog::Profiling::Encoding::Profile::Protobuf) }
   let(:options) { {} }
@@ -121,3 +122,4 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
     end
   end
 end
+# rubocop:enable Layout/LineLength

@@ -4,6 +4,7 @@ require 'ddtrace/profiling/pprof/payload'
 
 RSpec.describe Datadog::Profiling::Pprof::Payload do
   subject(:payload) { described_class.new(data, types) }
+
   let(:data) { double('data') }
   let(:types) { [] }
 
@@ -18,6 +19,7 @@ RSpec.describe Datadog::Profiling::Pprof::Payload do
 
   describe '#to_s' do
     subject(:to_s) { payload.to_s }
+
     it { is_expected.to be(data) }
   end
 end

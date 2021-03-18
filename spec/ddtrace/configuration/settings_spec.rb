@@ -449,11 +449,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
         context 'is not defined' do
           let(:environment) { nil }
+
           it { is_expected.to be false }
         end
 
         context 'is defined' do
           let(:environment) { 'true' }
+
           it { is_expected.to be true }
         end
       end
@@ -471,6 +473,7 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#exporter' do
       describe '#instances' do
         subject(:instances) { settings.profiling.exporter.instances }
+
         it { is_expected.to be nil }
       end
 
@@ -487,6 +490,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       describe '#transport' do
         subject(:transport) { settings.profiling.exporter.transport }
+
         it { is_expected.to be nil }
       end
 
@@ -503,6 +507,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       describe '#transport_options' do
         subject(:transport_options) { settings.profiling.exporter.transport_options }
+
         it { is_expected.to eq({}) }
       end
 
@@ -520,6 +525,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     describe '#max_events' do
       subject(:max_events) { settings.profiling.max_events }
+
       it { is_expected.to eq(32768) }
     end
 
@@ -545,11 +551,13 @@ RSpec.describe Datadog::Configuration::Settings do
 
           context 'is not defined' do
             let(:environment) { nil }
+
             it { is_expected.to eq(30.0) }
           end
 
           context 'is defined' do
             let(:environment) { '10.0' }
+
             it { is_expected.to eq(10.0) }
           end
         end

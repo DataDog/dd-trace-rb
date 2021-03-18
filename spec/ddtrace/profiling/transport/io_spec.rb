@@ -5,6 +5,7 @@ require 'ddtrace/profiling/transport/io'
 RSpec.describe Datadog::Profiling::Transport::IO do
   describe '.new' do
     subject(:new_io) { described_class.new(out, encoder, options) }
+
     let(:out) { instance_double(IO) }
     let(:encoder) { double('encoder') }
     let(:options) { {} }
@@ -27,7 +28,7 @@ RSpec.describe Datadog::Profiling::Transport::IO do
 
       before do
         expect(Datadog::Profiling::Transport::IO::Client).to receive(:new)
-          .with(STDOUT, Datadog::Profiling::Encoding::Profile::Protobuf, {})
+          .with($stdout, Datadog::Profiling::Encoding::Profile::Protobuf, {})
           .and_return(client)
       end
 
@@ -36,6 +37,7 @@ RSpec.describe Datadog::Profiling::Transport::IO do
 
     context 'given overrides' do
       subject(:default) { described_class.default(options) }
+
       let(:options) { { out: out, encoder: encoder, custom_option: 'custom_option' } }
       let(:out) { instance_double(IO) }
       let(:encoder) { double('encoder') }

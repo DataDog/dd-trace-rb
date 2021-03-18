@@ -5,6 +5,7 @@ require 'ddtrace/profiling/pprof/converter'
 
 RSpec.describe Datadog::Profiling::Pprof::Converter do
   subject(:converter) { described_class.new(builder, sample_type_mappings) }
+
   let(:builder) { instance_double(Datadog::Profiling::Pprof::Builder) }
   let(:sample_type_mappings) { { wall_time: 0, cpu_time: 1 } }
 
@@ -17,6 +18,7 @@ RSpec.describe Datadog::Profiling::Pprof::Converter do
 
   describe '::sample_value_types' do
     subject(:sample_value_types) { described_class.sample_value_types }
+
     it { expect { sample_value_types }.to raise_error(NotImplementedError) }
   end
 
@@ -30,6 +32,7 @@ RSpec.describe Datadog::Profiling::Pprof::Converter do
 
   describe '#group_events' do
     subject(:group_events) { converter.group_events(events, &block) }
+
     let(:events) { [double('event'), double('event')] }
 
     context 'given events and a block' do
@@ -105,12 +108,15 @@ RSpec.describe Datadog::Profiling::Pprof::Converter do
 
   describe '#add_events!' do
     subject(:add_events!) { converter.add_events!(events) }
+
     let(:events) { double('events') }
+
     it { expect { add_events! }.to raise_error(NotImplementedError) }
   end
 
   describe '#build_sample_values' do
     subject(:build_sample_values) { converter.build_sample_values(event) }
+
     let(:event) { double('event') }
 
     # Builds a value Array matching number of sample types

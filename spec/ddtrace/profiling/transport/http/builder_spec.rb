@@ -12,11 +12,13 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Builder do
 
     shared_context 'default adapter' do
       before { builder.adapter(adapter) }
+
       let(:adapter) { double('adapter') }
     end
 
     context 'when an API is defined' do
       before { builder.api(key, spec, options) }
+
       let(:key) { :v2 }
       let(:spec) { instance_double(Datadog::Profiling::Transport::HTTP::API::Spec) }
       let(:options) { {} }
@@ -60,6 +62,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Builder do
 
   describe '#api_instance_class' do
     subject(:api_instance_class) { builder.api_instance_class }
+
     it { is_expected.to be(Datadog::Profiling::Transport::HTTP::API::Instance) }
   end
 end

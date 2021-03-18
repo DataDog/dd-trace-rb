@@ -10,11 +10,13 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
 
     context 'when there is an unsupported_reason' do
       before { allow(described_class).to receive(:unsupported_reason).and_return('Unsupported, sorry :(') }
+
       it { is_expected.to be false }
     end
 
     context 'when there is no unsupported_reason' do
       before { allow(described_class).to receive(:unsupported_reason).and_return(nil) }
+
       it { is_expected.to be true }
     end
   end
@@ -24,6 +26,7 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
 
     context 'when JRuby is used' do
       before { stub_const('RUBY_ENGINE', 'jruby') }
+
       it { is_expected.to include 'JRuby' }
     end
 
@@ -32,16 +35,19 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
 
       context 'when running on macOS' do
         before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
+
         it { is_expected.to include 'macOS' }
       end
 
       context 'when running on Windows' do
         before { stub_const('RUBY_PLATFORM', 'mswin') }
+
         it { is_expected.to include 'Windows' }
       end
 
       context 'when running on a non-Linux platform' do
         before { stub_const('RUBY_PLATFORM', 'my-homegrown-os') }
+
         it { is_expected.to include 'my-homegrown-os' }
       end
 
@@ -50,6 +56,7 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
 
         context 'when running on MRI < 2.1' do
           before { stub_const('RUBY_VERSION', '2.0.0') }
+
           it { is_expected.to include 'Ruby >= 2.1' }
         end
 
