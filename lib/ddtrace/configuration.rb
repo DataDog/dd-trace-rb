@@ -1,6 +1,4 @@
 require 'forwardable'
-require 'thread'
-
 require 'ddtrace/configuration/pin_setup'
 require 'ddtrace/configuration/settings'
 require 'ddtrace/configuration/components'
