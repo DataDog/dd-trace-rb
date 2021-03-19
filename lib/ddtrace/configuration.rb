@@ -21,15 +21,15 @@ module Datadog
     COMPONENTS_WRITE_LOCK = Mutex.new
     private_constant :COMPONENTS_WRITE_LOCK
 
-    # We use a separate lock when reading the @components, so that they continue to be accessible during initialization/
-    # reconfiguration. This was needed because we ran into several issues where we still needed to read the old
+    # We use a separate lock when reading the @components, so that they continue to be accessible during reconfiguration.
+    # This was needed because we ran into several issues where we still needed to read the old
     # components while the COMPONENTS_WRITE_LOCK was being held (see https://github.com/DataDog/dd-trace-rb/pull/1387
     # and https://github.com/DataDog/dd-trace-rb/pull/1373#issuecomment-799593022 ).
     #
     # Technically on MRI we could get away without this lock, but on non-MRI Rubies, we may run into issues because
     # we fall into the "UnsafeDCLFactory" case of https://shipilev.net/blog/2014/safe-public-construction/ .
-    # Specifically, on JRuby reads from the @components do have volatile semantics, and on TruffleRuby they do
-    # but just as an implementation detail, see https://github.com/jruby/jruby/wiki/Concurrency-in-jruby#volatility and
+    # Specifically, on JRuby reads from the @components do NOT have volatile semantics, and on TruffleRuby they do
+    # BUT just as an implementation detail, see https://github.com/jruby/jruby/wiki/Concurrency-in-jruby#volatility and
     # https://github.com/DataDog/dd-trace-rb/pull/1329#issuecomment-776750377 .
     # Concurrency is hard.
     COMPONENTS_READ_LOCK = Mutex.new
@@ -161,8 +161,7 @@ module Datadog
 
     def logger_without_components
       # Use default logger without initializing components.
-      # This prevents recursive loops while initializing.
-      # e.g. Get logger --> Build components --> Log message --> Repeat...
+      # This enables logging during initialization, otherwise we'd run into deadlocks.
       @temp_logger ||= begin
         logger = configuration.logger.instance || Datadog::Logger.new($stdout)
         logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
