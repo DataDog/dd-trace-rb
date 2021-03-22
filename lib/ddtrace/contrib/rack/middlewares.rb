@@ -302,10 +302,6 @@ module Datadog
           end
           result
         end
-
-        def header_to_rack_header(name)
-          "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
-        end
       end
     end
   end

@@ -1,5 +1,6 @@
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/contrib/rack/ext'
+require 'ddtrace/contrib/rack/support/header'
 
 module Datadog
   module Contrib
@@ -37,7 +38,7 @@ module Datadog
                 value = value.merge(processed_request: request.map do |header|
                   {
                     header_str: header,
-                    rack_header: "HTTP_#{header.to_s.upcase.gsub(/[-\s]/, '_')}",
+                    rack_header: Support::Header.to_rack(header),
                     span_tag: Datadog::Ext::HTTP::RequestHeaders.to_tag(header)
                   }
                 end)

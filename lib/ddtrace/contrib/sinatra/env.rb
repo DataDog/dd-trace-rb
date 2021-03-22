@@ -1,5 +1,6 @@
 require 'ddtrace/ext/http'
 require 'ddtrace/contrib/sinatra/ext'
+require 'ddtrace/contrib/rack/support/header'
 
 module Datadog
   module Contrib
@@ -22,14 +23,10 @@ module Datadog
 
           {}.tap do |result|
             headers.each do |header|
-              rack_header = header_to_rack_header(header)
+              rack_header = Contrib::Rack::Support::Header.to_rack(header)
               result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header] if env.key?(rack_header)
             end
           end
-        end
-
-        def header_to_rack_header(name)
-          "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
         end
 
         # Was a Sinatra already traced in this request?
