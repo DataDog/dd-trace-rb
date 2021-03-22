@@ -35,8 +35,36 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
 
     let(:flush) { instance_double(Datadog::Profiling::Flush) }
 
-    it do
-      is_expected.to be response
+    context 'when request was successful' do
+      before do
+        allow(response).to receive(:ok?).and_return(true)
+      end
+
+      it 'returns the response object' do
+        is_expected.to be response
+      end
+
+      it 'debug logs the successful report' do
+        expect(Datadog.logger).to receive(:debug).with(/Success/)
+
+        send_profiling_flush
+      end
+    end
+
+    context 'when request was not successful' do
+      before do
+        allow(response).to receive(:ok?).and_return(nil)
+      end
+
+      it 'returns the response object' do
+        is_expected.to be response
+      end
+
+      it 'debug logs the failed report' do
+        expect(Datadog.logger).to receive(:debug) { |&block| expect(block.call).to match(/Fail/) }
+
+        send_profiling_flush
+      end
     end
   end
 
@@ -47,7 +75,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
 
     let(:request) { instance_double(Datadog::Profiling::Transport::Request) }
 
-    it do
+    it 'returns the response object' do
       is_expected.to be response
     end
   end
