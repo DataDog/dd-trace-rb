@@ -113,7 +113,7 @@ module Datadog
       return current_components if current_components || !allow_initialization
 
       safely_synchronize do |write_components|
-        @components || write_components.call(build_components(configuration))
+        (defined?(@components) && @components) || write_components.call(build_components(configuration))
       end
     end
 
