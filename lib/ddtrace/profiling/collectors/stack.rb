@@ -154,6 +154,13 @@ module Datadog
         end
 
         def compute_wait_time(used_time)
+          # We took used_time to get the last sample.
+          #
+          # What we're computing here is -- if used_time corresponds to max_time_usage_pct of the time we should
+          # spend working, how much is (100% - max_time_usage_pct) of the time?
+          #
+          # For instance, if we took 10ms to sample, and max_time_usage_pct is 1%, then the other 99% is 990ms, which
+          # means we need to sleep for 990ms to guarantee that we don't spend more than 1% of the time working.
           used_time_ns = used_time * 1e9
           interval = (used_time_ns / (max_time_usage_pct / 100.0)) - used_time_ns
           [interval / 1e9, MIN_INTERVAL].max
