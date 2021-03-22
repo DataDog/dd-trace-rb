@@ -145,6 +145,7 @@ module Datadog
         [buffer.pop]
       end
 
+      # Are there more traces to be processed next?
       def work_pending?
         !buffer.empty?
       end
