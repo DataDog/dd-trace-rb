@@ -548,7 +548,7 @@ Datadog.configure do |c|
   # Symbol matching your database connection in config/database.yml
   # Only available if you are using Rails with ActiveRecord.
   c.use :active_record, describes: :secondary_database, service_name: 'secondary-db'
-  
+
   # Block configuration pattern.
   c.use :active_record, describes: :secondary_database do |second_db|
     second_db.service_name = 'secondary-db'
@@ -582,7 +582,7 @@ Datadog.configure do |c|
 
   # Matches any `mysql2` connection.
   c.use :active_record, describes: { adapter: 'mysql2'}, service_name: 'mysql-db'
-  
+
   # Matches any `mysql2` connection to the `reports` database.
   #
   # In case of multiple matching `describe` configurations, the latest one applies.
@@ -1176,6 +1176,37 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `quantize` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
 | `service_name` | Service name used for `mongo` instrumentation | `'mongodb'` |
 
+**Configuring trace settings per connection**
+
+You can configure trace settings per connection by using the `describes` option:
+
+```ruby
+# Provide a `:describes` option with a connection key.
+# Any of the following keys are acceptable and equivalent to one another.
+# If a block is provided, it yields a Settings object that
+# accepts any of the configuration options listed above.
+
+Datadog.configure do |c|
+  # Network connection string
+  c.use :mongo, describes: '127.0.0.1:27017', service_name: 'mongo-primary'
+
+  # Network connection regular expression
+  c.use :mongo, describes: /localhost.*/, service_name: 'mongo-secondary'
+end
+
+client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'artists')
+collection = client[:people]
+collection.insert_one({ name: 'Steve' })
+# Traced call will belong to `mongo-primary` service
+
+client = Mongo::Client.new([ 'localhost:27017' ], :database => 'artists')
+collection = client[:people]
+collection.insert_one({ name: 'Steve' })
+# Traced call will belong to `mongo-secondary` service
+```
+
+When multiple `describes` configurations match a connection, the latest configured rule that matches will be applied.
+
 ### MySQL2
 
 The MySQL2 integration traces any SQL command sent through `mysql2` gem.
@@ -1588,7 +1619,7 @@ Datadog.configure do |c|
   # For network connections, only these fields are considered during matching:
   # scheme, host, port, db
   # Other fields are ignored.
-  
+
   # Network connection string
   c.use :redis, describes: 'redis://127.0.0.1:6379/0', service_name: 'redis-connection-string'
   c.use :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, service_name: 'redis-connection-url'
