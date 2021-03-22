@@ -17,7 +17,8 @@ module Datadog
     def google_protobuf_supported?
       RUBY_PLATFORM != 'java' \
         && !Gem.loaded_specs['google-protobuf'].nil? \
-        && Gem.loaded_specs['google-protobuf'].version >= GOOGLE_PROTOBUF_MINIMUM_VERSION
+        && Gem.loaded_specs['google-protobuf'].version >= GOOGLE_PROTOBUF_MINIMUM_VERSION \
+        && !defined?(@failed_to_load_protobuf)
     end
 
     def load_profiling
@@ -33,7 +34,19 @@ module Datadog
       require 'ddtrace/profiling/transport/http'
       require 'ddtrace/profiling/profiler'
 
-      require 'ddtrace/profiling/pprof/pprof_pb' if google_protobuf_supported?
+      begin
+        require 'ddtrace/profiling/pprof/pprof_pb' if google_protobuf_supported?
+      rescue LoadError => e
+        @failed_to_load_protobuf = true
+        Kernel.warn(
+          "[DDTRACE] Error while loading google-protobuf gem. Cause: '#{e.message}' Location: '#{e.backtrace.first}'. " \
+          'This can happen when google-protobuf is missing its native components. ' \
+          'To fix this, try removing and reinstalling the gem, forcing it to recompile the components: ' \
+          '`gem uninstall google-protobuf -a; BUNDLE_FORCE_RUBY_PLATFORM=true bundle install`. ' \
+          'If the error persists, please contact support via <https://docs.datadoghq.com/help/> or ' \
+          'file a bug at <https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug>.'
+        )
+      end
     end
 
     load_profiling if supported?
