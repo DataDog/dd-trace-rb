@@ -31,6 +31,13 @@ module Datadog
           new_limit = Process.getrlimit(:CORE)[1]
           Process.setrlimit(:CORE, Process.getrlimit(:CORE)[1])
           log "[DDTRACE] Core dump limit changed from #{previous_limit} to #{new_limit}"
+
+          begin
+            require 'open3'
+            log "[DDTRACE] Kernel core pattern is #{Open3.capture3('sysctl kernel.core_pattern').inspect}"
+          rescue StandardError => e
+            log "[DDTRACE] Error while listing kernel core pattern. Cause: #{e.message} Location: #{e.backtrace.first}"
+          end
         end
 
         def activate_forking_extensions
