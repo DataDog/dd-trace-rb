@@ -45,6 +45,13 @@ RSpec.describe Datadog::Profiling do
   describe '::google_protobuf_supported?' do
     subject(:google_protobuf_supported?) { described_class.google_protobuf_supported? }
 
+    before do
+      # Ignore any actual loading failures in the local environment
+      if described_class.instance_variable_defined?(:@failed_to_load_protobuf)
+        described_class.remove_instance_variable(:@failed_to_load_protobuf)
+      end
+    end
+
     context 'when MRI Ruby is used' do
       before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
 

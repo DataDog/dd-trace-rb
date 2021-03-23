@@ -12,9 +12,13 @@ module Datadog
           def send_profiling_flush(flush)
             # Build a request
             request = Profiling::Transport::Request.new(flush)
-            response = send_payload(request)
-            Datadog.logger.debug('Successfully reported profiling data')
-            response
+            send_payload(request).tap do |response|
+              if response.ok?
+                Datadog.logger.debug('Successfully reported profiling data')
+              else
+                Datadog.logger.debug { "Failed to report profiling data -- #{response.inspect}" }
+              end
+            end
           end
 
           def send_payload(request)
