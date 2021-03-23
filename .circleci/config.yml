@@ -638,10 +638,10 @@ workflows:
           requires:
             - build-jruby-9.2-latest
       # TruffleRuby
-      - orb/build:
-          <<: *config-truffleruby-21_0_0
-          name: build-truffleruby-21.0.0
       # soon™️
+      # - orb/build:
+      #     <<: *config-truffleruby-21_0_0
+      #     name: build-truffleruby-21.0.0
       # - orb/test:
       #     <<: *config-truffleruby-21_0_0
       #     name: test-truffleruby-21.0.0
