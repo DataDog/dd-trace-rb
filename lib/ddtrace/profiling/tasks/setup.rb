@@ -14,6 +14,7 @@ module Datadog
         def run
           ACTIVATE_EXTENSIONS_ONLY_ONCE.run do
             begin
+              enable_core_dumps
               activate_forking_extensions
               activate_cpu_extensions
               setup_at_fork_hooks
@@ -24,6 +25,13 @@ module Datadog
         end
 
         private
+
+        def enable_core_dumps
+          previous_limit = Process.getrlimit(:CORE)[0]
+          new_limit = Process.getrlimit(:CORE)[1]
+          Process.setrlimit(:CORE, Process.getrlimit(:CORE)[1])
+          log "[DDTRACE] Core dump limit changed from #{previous_limit} to #{new_limit}"
+        end
 
         def activate_forking_extensions
           if Ext::Forking.supported?
