@@ -1,10 +1,12 @@
 require 'ddtrace/contrib/rails/support/base'
+require 'spec/ddtrace/contrib/rails/support/deprecation'
 
 RSpec.shared_context 'Rails test application' do
   include_context 'Rails base application'
 
   before do
     reset_rails_configuration!
+    raise_on_rails_deprecation!
   end
 
   after do
@@ -42,7 +44,7 @@ RSpec.shared_context 'Rails test application' do
   end
 
   if Rails.version < '4.0'
-    around(:each) do |example|
+    around do |example|
       without_warnings do
         example.run
       end

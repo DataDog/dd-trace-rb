@@ -123,7 +123,21 @@ module Datadog
                 return send_traces(traces)
               end
             end
-          end.force
+          end
+
+          # Force resolution of lazy enumerator.
+          #
+          # The "correct" method to call here would be `#force`,
+          # as this method was created to force the eager loading
+          # of a lazy enumerator.
+          #
+          # Unfortunately, JRuby < 9.2.9.0 erroneously eagerly loads
+          # the lazy Enumerator during intermediate steps.
+          # This forces us to use `#to_a`, as this method works for both
+          # lazy and regular Enumerators.
+          # Using `#to_a` can mask the fact that we expect a lazy
+          # Enumerator.
+          responses = responses.to_a
 
           Datadog.health_metrics.transport_chunked(responses.size)
 
@@ -142,17 +156,20 @@ module Datadog
 
         def downgrade?(response)
           return false unless apis.fallbacks.key?(@current_api_id)
+
           response.not_found? || response.unsupported?
         end
 
         def downgrade!
           downgrade_api_id = apis.fallbacks[@current_api_id]
           raise NoDowngradeAvailableError, @current_api_id if downgrade_api_id.nil?
+
           change_api!(downgrade_api_id)
         end
 
         def change_api!(api_id)
           raise UnknownApiVersionError, api_id unless apis.key?(api_id)
+
           @current_api_id = api_id
           @client = HTTP::Client.new(current_api)
         end

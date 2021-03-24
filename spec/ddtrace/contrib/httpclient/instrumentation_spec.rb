@@ -3,12 +3,15 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace'
 require 'ddtrace/contrib/httpclient/instrumentation'
-require 'http'
+require 'httpclient'
 require 'webrick'
 require 'json'
 
+require 'spec/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
   before(:all) do
+    # TODO: Consolidate mock webserver code
     @log_buffer = StringIO.new # set to $stderr to debug
     log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
     access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
@@ -21,19 +24,24 @@ RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
       req.each do |header_name|
         # webrick formats header values as 1 length arrays
         header_in_array = req.header[header_name]
-        if header_in_array.is_a?(Array)
-          res.header[header_name] = header_in_array.join('')
-        end
+        res.header[header_name] = header_in_array.join if header_in_array.is_a?(Array)
       end
 
       res.body = req.body
     end
 
-    Thread.new { server.start }
+    ThreadHelpers.with_leaky_thread_creation(:httpclient_test_server) do
+      @thread = Thread.new { server.start }
+    end
+
     @server = server
     @port = server[:Port]
   end
-  after(:all) { @server.shutdown }
+
+  after(:all) do
+    @server.shutdown
+    @thread.join
+  end
 
   let(:configuration_options) { {} }
 
@@ -143,6 +151,7 @@ RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
         context 'response has not found status' do
           let(:code) { 404 }
           let(:message) { 'Not Found' }
+
           before { response }
 
           it 'has tag with status code' do

@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require_relative 'matchers'
+require_relative 'resolver_helpers'
 require_relative 'tracer_helpers'
 
 RSpec.configure do |config|
@@ -9,7 +10,7 @@ RSpec.configure do |config|
   # Raise error when patching an integration fails.
   # This can be disabled by unstubbing +CommonMethods#on_patch_error+
   require 'ddtrace/contrib/patcher'
-  config.before(:each) do
+  config.before do
     allow_any_instance_of(Datadog::Contrib::Patcher::CommonMethods).to(receive(:on_patch_error)) { |_, e| raise e }
   end
 
@@ -18,7 +19,7 @@ RSpec.configure do |config|
   # This is done :before and not :after because doing so after
   # can create noise for test assertions. For example:
   # +expect(Datadog).to receive(:shutdown!).once+
-  config.before(:each) do
+  config.before do
     Datadog.shutdown!
     Datadog.configuration.reset!
   end

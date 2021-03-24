@@ -4,7 +4,7 @@ module StatsdHelpers
     let(:stats) { Hash.new(0) }
     let(:stats_mutex) { Mutex.new }
 
-    before(:each) do
+    before do
       allow(statsd).to receive(:distribution) do |name, _value, _options = {}|
         stats_mutex.synchronize do
           stats[name] = 0 unless stats.key?(name)

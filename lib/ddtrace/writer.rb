@@ -8,10 +8,13 @@ require 'ddtrace/transport/io'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
 require 'ddtrace/diagnostics/environment_logger'
+require 'ddtrace/utils/only_once'
 
 module Datadog
   # Processor that sends traces and metadata to the agent
   class Writer
+    DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+
     attr_reader \
       :priority_sampler,
       :transport,
@@ -56,6 +59,7 @@ module Datadog
 
         pid = Process.pid
         return if @worker && pid == @pid
+
         @pid = pid
 
         start_worker
@@ -90,6 +94,7 @@ module Datadog
       @stopped = true
 
       return if @worker.nil?
+
       @worker.stop
       @worker = nil
 
@@ -125,7 +130,7 @@ module Datadog
     # enqueue the trace for submission to the API
     def write(trace, services = nil)
       unless services.nil?
-        Datadog::Patcher.do_once('Writer#write') do
+        DEPRECATION_WARN_ONLY_ONCE.run do
           Datadog.logger.warn(%(
             write: Writing services has been deprecated and no longer need to be provided.
             write(traces, services) can be updated to write(traces)
@@ -174,9 +179,7 @@ module Datadog
         next if trace.first.nil?
 
         hostname = Datadog::Runtime::Socket.hostname
-        unless hostname.nil? || hostname.empty?
-          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
-        end
+        trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
       end
     end
 

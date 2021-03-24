@@ -6,9 +6,7 @@ module ActiveModelSerializersHelpers
     end
 
     def disable_logging
-      if ams_0_10_or_newer?
-        ActiveModelSerializers.logger.level = Logger::Severity::UNKNOWN
-      end
+      ActiveModelSerializers.logger.level = Logger::Severity::UNKNOWN if ams_0_10_or_newer?
     end
   end
 end
@@ -18,7 +16,7 @@ RSpec.shared_context 'AMS serializer' do
   end
 
   if ActiveModelSerializersHelpers.ams_0_10_or_newer?
-    before(:each) do
+    before do
       stub_const('Model', Class.new(ActiveModelSerializers::Model) do
         attr_writer :id
       end)
@@ -32,7 +30,7 @@ RSpec.shared_context 'AMS serializer' do
       end)
     end
   else
-    before(:each) do
+    before do
       stub_const('Model', Class.new do
         attr_writer :id
 

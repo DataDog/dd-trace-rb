@@ -39,6 +39,7 @@ MESSAGE
     # For redis-activesupport, get the Redis pin accessing private methods (only Rails 3.x)
     Rails.cache.respond_to?(:redis) ? Rails.cache.redis : Rails.cache.instance_variable_get(:@data)
   end
+  let(:key) { 'custom-key' }
 
   let(:cache_store_name) do
     if Gem.loaded_specs['redis-activesupport'] \
@@ -50,9 +51,8 @@ MESSAGE
   end
 
   let(:cache) { Rails.cache }
-  after { cache.clear }
 
-  let(:key) { 'custom-key' }
+  after { cache.clear }
 
   shared_examples 'reader method' do |method|
     subject(:read) { cache.public_send(method, key) }
@@ -81,11 +81,11 @@ MESSAGE
     end
   end
 
-  context '#read' do
+  describe '#read' do
     it_behaves_like 'reader method', :read
   end
 
-  context '#fetch' do
+  describe '#fetch' do
     it_behaves_like 'reader method', :fetch
 
     context 'with block' do
@@ -121,7 +121,7 @@ MESSAGE
     end
   end
 
-  context '#write' do
+  describe '#write' do
     subject!(:write) { cache.write(key, 50) }
 
     it do
@@ -145,7 +145,7 @@ MESSAGE
     end
   end
 
-  context '#delete' do
+  describe '#delete' do
     subject!(:write) { cache.delete(key) }
 
     it do

@@ -70,7 +70,7 @@ rescue LoadError
 end
 
 # logger
-logger = Logger.new(STDOUT)
+logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
 # Rails settings

@@ -18,12 +18,14 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
     "http-#{name}".upcase!.tr('-', '_')
   end
 
-  context '#inject!' do
+  describe '#inject!' do
     subject(:env) { {} }
-    before(:each) { described_class.inject!(context, env) }
+
+    before { described_class.inject!(context, env) }
 
     context 'with nil context' do
       let(:context) { nil }
+
       it { is_expected.to eq({}) }
     end
 
@@ -64,8 +66,9 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
     end
   end
 
-  context '#extract' do
+  describe '#extract' do
     subject(:context) { described_class.extract(env) }
+
     let(:env) { {} }
 
     context 'with empty env' do
@@ -82,6 +85,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
 
       context 'with sampling priority' do
         let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => '15f90-186a0-1' } }
+
         it { expect(context.trace_id).to eq(90000) }
         it { expect(context.span_id).to eq(100000) }
         it { expect(context.sampling_priority).to eq(1) }
@@ -89,6 +93,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
 
         context 'with parent_id' do
           let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => '15f90-186a0-1-4e20' } }
+
           it { expect(context.trace_id).to eq(90000) }
           it { expect(context.span_id).to eq(100000) }
           it { expect(context.sampling_priority).to eq(1) }
@@ -99,6 +104,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
 
     context 'with trace_id' do
       let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => '15f90' } }
+
       it { is_expected.to be_nil }
     end
   end

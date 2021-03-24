@@ -46,6 +46,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [gRPC](#grpc)
      - [http.rb](#http-rb)
      - [httpclient](#httpclient)
+     - [httpx](#httpx)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#net-http)
@@ -184,7 +185,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 #### Automatic instrumentation
 
 1. Install the gem with `gem install ddtrace`
-2. Requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented. 
+2. Requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented.
 3. Add `require 'ddtrace/auto_instrument'` to your application. _Note:_ This must be done _after_ requiring any supported libraries or frameworks.
 
     ```ruby
@@ -195,7 +196,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
     require 'ddtrace/auto_instrument'
     ```
- 
+
     You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).
 
 #### Manual instrumentation
@@ -398,6 +399,7 @@ For a list of available integrations, and their configuration options, please re
 | gRPC                     | `grpc`                     | `>= 1.7`                 | *gem not available*       | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
 | http.rb                  | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#http-rb)*                  | *[Link](https://github.com/httprb/http)*                                       |
 | httpclient                | `httpclient`              | `>= 2.2`                 | `>= 2.2`                  | *[Link](#httpclient)*               | *[Link](https://github.com/nahi/httpclient)*                                     |
+| httpx                     | `httpx`                   | `>= 0.11`                | `>= 0.11`                 | *[Link](#httpx)*                    | *[Link](https://gitlab.com/honeyryderchuck/httpx)*                             |
 | Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | `>= 0.7.10`               | *[Link](#kafka)*                    | *[Link](https://github.com/zendesk/ruby-kafka)*                                |
 | MongoDB                  | `mongo`                    | `>= 2.1`                 | `>= 2.1`                  | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
@@ -546,17 +548,20 @@ Datadog.configure do |c|
   # Symbol matching your database connection in config/database.yml
   # Only available if you are using Rails with ActiveRecord.
   c.use :active_record, describes: :secondary_database, service_name: 'secondary-db'
-
+  
+  # Block configuration pattern.
   c.use :active_record, describes: :secondary_database do |second_db|
     second_db.service_name = 'secondary-db'
   end
 
   # Connection string with the following connection settings:
-  # Adapter, user, host, port, database
+  # adapter, username, host, port, database
+  # Other fields are ignored.
   c.use :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', service_name: 'secondary-db'
 
-  # Hash with following connection settings
-  # Adapter, user, host, port, database
+  # Hash with following connection settings:
+  # adapter, username, host, port, database
+  # Other fields are ignored.
   c.use :active_record, describes: {
       adapter:  'mysql2',
       host:     '127.0.0.1',
@@ -567,6 +572,27 @@ Datadog.configure do |c|
     service_name: 'secondary-db'
 end
 ```
+
+You can also create configurations based on partial matching of database connection fields:
+
+```ruby
+Datadog.configure do |c|
+  # Matches any connection on host `127.0.0.1`.
+  c.use :active_record, describes: { host:  '127.0.0.1' }, service_name: 'local-db'
+
+  # Matches any `mysql2` connection.
+  c.use :active_record, describes: { adapter: 'mysql2'}, service_name: 'mysql-db'
+  
+  # Matches any `mysql2` connection to the `reports` database.
+  #
+  # In case of multiple matching `describe` configurations, the latest one applies.
+  # In this case a connection with both adapter `mysql` and database `reports`
+  # will be configured `service_name: 'reports-db'`, not `service_name: 'mysql-db'`.
+  c.use :active_record, describes: { adapter: 'mysql2', database:  'reports'}, service_name: 'reports-db'
+end
+```
+
+When multiple `describes` configurations match a connection, the latest configured rule that matches will be applied.
 
 If ActiveRecord traces an event that uses a connection that matches a key defined by `describes`, it will use the trace settings assigned to that connection. If the connection does not match any of the described connections, it will use default settings defined by `c.use :active_record` instead.
 
@@ -673,7 +699,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `true` |
 | `enabled` | Defines whether Cucumber tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `cucumber` instrumentation. | `'cucumber'` |
 | `operation_name` | Operation name used for `cucumber` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'cucumber.test'` |
@@ -1058,7 +1083,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 The httpclient integration will trace any HTTP call using the httpclient gem.
 
 ```ruby
-require 'http'
+require 'httpclient'
 require 'ddtrace'
 Datadog.configure do |c|
   c.use :httpclient, options
@@ -1078,6 +1103,25 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `httpclient` instrumentation. | `'httpclient'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+
+### httpx
+
+`httpx` maintains its [own integration with `ddtrace`](https://honeyryderchuck.gitlab.io/httpx/wiki/Datadog-Adapter):
+
+```ruby
+require "ddtrace"
+require "httpx/adapters/datadog"
+
+Datadog.configure do |c|
+  c.use :httpx
+
+  # optionally, specify a different service name for hostnames matching a regex
+  c.use :httpx, describes: /user-[^.]+\.example\.com/ do |http|
+    http.service_name = 'user.example.com'
+    http.split_by_domain = false # Only necessary if split_by_domain is true by default
+  end
+end
+```
 
 ### Kafka
 
@@ -1538,18 +1582,25 @@ Datadog.configure do |c|
   # The default configuration for any redis client
   c.use :redis, service_name: 'redis-default'
 
-  # The configuration matching a given unix socket
+  # The configuration matching a given unix socket.
   c.use :redis, describes: { url: 'unix://path/to/file' }, service_name: 'redis-unix'
 
-  # Connection string
-  c.use :redis, describes: { url: 'redis://127.0.0.1:6379/0' }, service_name: 'redis-connection-string'
-  # Client host, port, db, scheme
+  # For network connections, only these fields are considered during matching:
+  # scheme, host, port, db
+  # Other fields are ignored.
+  
+  # Network connection string
+  c.use :redis, describes: 'redis://127.0.0.1:6379/0', service_name: 'redis-connection-string'
+  c.use :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, service_name: 'redis-connection-url'
+  # Network client hash
   c.use :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, service_name: 'redis-connection-hash'
   # Only a subset of the connection hash
   c.use :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, service_name: 'redis-cache'
   c.use :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, service_name: 'redis-sidekiq'
 end
 ```
+
+When multiple `describes` configurations match a connection, the latest configured rule that matches will be applied.
 
 ### Resque
 
@@ -1621,7 +1672,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `true` |
 | `enabled` | Defines whether RSpec tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `rspec` instrumentation. | `'rspec'` |
 | `operation_name` | Operation name used for `rspec` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'rspec.example'` |
@@ -2089,6 +2139,7 @@ For more details on how to activate distributed tracing for integrations, see th
 - [Sinatra](#sinatra)
 - [http.rb](#http-rb)
 - [httpclient](#httpclient)
+- [httpx](#httpx)
 
 **Using the HTTP propagator**
 

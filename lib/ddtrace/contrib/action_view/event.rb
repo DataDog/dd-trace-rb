@@ -21,7 +21,7 @@ module Datadog
           end
 
           def record_exception(span, payload)
-            if payload [:exception_object]
+            if payload[:exception_object]
               span.set_error(payload[:exception_object])
             elsif payload[:exception]
               # Fallback for ActiveSupport < 5.0

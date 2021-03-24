@@ -26,11 +26,13 @@ RSpec.describe Datadog::Contrib::Httpclient::Integration do
 
     context 'when HTTPClient is defined' do
       before { stub_const('HTTPClient', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when HTTPClient is not defined' do
       before { hide_const('HTTPClient') }
+
       it { is_expected.to be false }
     end
   end
@@ -58,11 +60,13 @@ RSpec.describe Datadog::Contrib::Httpclient::Integration do
 
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::Httpclient::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::Httpclient::Patcher }
   end
 end

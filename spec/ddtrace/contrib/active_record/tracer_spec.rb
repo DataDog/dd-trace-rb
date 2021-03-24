@@ -3,12 +3,14 @@ require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace'
 
+require 'spec/ddtrace/contrib/rails/support/deprecation'
+
 require_relative 'app'
 
 RSpec.describe 'ActiveRecord instrumentation' do
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     # Prevent extra spans during tests
     Article.count
 
@@ -18,6 +20,8 @@ RSpec.describe 'ActiveRecord instrumentation' do
     Datadog.configure do |c|
       c.use :active_record, configuration_options
     end
+
+    raise_on_rails_deprecation!
   end
 
   around do |example|
@@ -28,7 +32,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
   end
 
   context 'when query is made' do
-    before(:each) { Article.count }
+    before { Article.count }
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }

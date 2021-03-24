@@ -7,7 +7,7 @@ require 'ddtrace/workers/runtime_metrics'
 module Datadog
   module Configuration
     # Global components for the trace library.
-    # rubocop:disable Metrics/LineLength
+    # rubocop:disable Layout/LineLength
     class Components
       class << self
         def build_health_metrics(settings)
@@ -19,7 +19,7 @@ module Datadog
         end
 
         def build_logger(settings)
-          logger = settings.logger.instance || Datadog::Logger.new(STDOUT)
+          logger = settings.logger.instance || Datadog::Logger.new($stdout)
           logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
 
           logger

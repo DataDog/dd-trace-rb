@@ -4,7 +4,7 @@ require 'ddtrace/contrib/rails/rails_helper'
 RSpec.describe 'Rails trace analytics' do
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :rails, configuration_options
       # Manually activate ActionPack to trigger patching.
@@ -26,6 +26,7 @@ RSpec.describe 'Rails trace analytics' do
 
   describe 'for a controller action' do
     subject(:result) { action.call(env) }
+
     let(:controller) do
       stub_const('TestController', Class.new(base_class) do
         def index
@@ -50,6 +51,7 @@ RSpec.describe 'Rails trace analytics' do
 
     it_behaves_like 'analytics for integration', ignore_global_flag: false do
       before { expect { result }.to_not raise_error }
+
       let(:analytics_enabled_var) { Datadog::Contrib::Rails::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Rails::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       it_behaves_like 'a successful dispatch'

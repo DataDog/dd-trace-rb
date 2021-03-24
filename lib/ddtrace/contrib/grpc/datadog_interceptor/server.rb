@@ -44,6 +44,7 @@ module Datadog
           def annotate!(span, metadata)
             metadata.each do |header, value|
               next if reserved_headers.include?(header)
+
               span.set_tag(header, value)
             end
 

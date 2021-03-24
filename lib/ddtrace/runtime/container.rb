@@ -8,8 +8,8 @@ module Datadog
       UUID_PATTERN = '[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}'.freeze
       CONTAINER_PATTERN = '[0-9a-f]{64}'.freeze
 
-      POD_REGEX = /(pod)?(#{UUID_PATTERN})(?:.slice)?$/
-      CONTAINER_REGEX = /(#{UUID_PATTERN}|#{CONTAINER_PATTERN})(?:.scope)?$/
+      POD_REGEX = /(pod)?(#{UUID_PATTERN})(?:.slice)?$/.freeze
+      CONTAINER_REGEX = /(#{UUID_PATTERN}|#{CONTAINER_PATTERN})(?:.scope)?$/.freeze
 
       Descriptor = Struct.new(
         :platform,

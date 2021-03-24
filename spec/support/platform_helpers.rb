@@ -9,7 +9,12 @@ module PlatformHelpers
     RUBY_ENGINE == 'jruby'.freeze
   end
 
-  def supports_fork?
-    !jruby?
+  def truffleruby?
+    RUBY_ENGINE == 'truffleruby'.freeze
+  end
+
+  def engine_version
+    version = defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
+    Gem::Version.new(version)
   end
 end

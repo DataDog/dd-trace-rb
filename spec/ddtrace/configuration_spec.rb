@@ -75,6 +75,7 @@ RSpec.describe Datadog::Configuration do
 
       context 'when an object is configured' do
         subject(:configure) { test_class.configure(object, options) }
+
         let(:object) { double('object') }
         let(:options) { {} }
 
@@ -135,8 +136,8 @@ RSpec.describe Datadog::Configuration do
 
       context 'when the logger' do
         context 'is replaced' do
-          let(:old_logger) { Datadog::Logger.new(STDOUT) }
-          let(:new_logger) { Datadog::Logger.new(STDOUT) }
+          let(:old_logger) { Datadog::Logger.new($stdout) }
+          let(:new_logger) { Datadog::Logger.new($stdout) }
 
           before do
             # Expect old loggers to NOT be closed, as closing
@@ -153,7 +154,7 @@ RSpec.describe Datadog::Configuration do
         end
 
         context 'is reused' do
-          let(:logger) { Datadog::Logger.new(STDOUT) }
+          let(:logger) { Datadog::Logger.new($stdout) }
 
           before do
             expect(logger).to_not receive(:close)
@@ -168,7 +169,7 @@ RSpec.describe Datadog::Configuration do
         end
 
         context 'is not changed' do
-          let(:logger) { Datadog::Logger.new(STDOUT) }
+          let(:logger) { Datadog::Logger.new($stdout) }
 
           before do
             expect(logger).to_not receive(:close)
@@ -351,17 +352,50 @@ RSpec.describe Datadog::Configuration do
 
     describe '#health_metrics' do
       subject(:health_metrics) { test_class.health_metrics }
+
       it { is_expected.to be_a_kind_of(Datadog::Diagnostics::Health::Metrics) }
     end
 
     describe '#logger' do
       subject(:logger) { test_class.logger }
+
       it { is_expected.to be_a_kind_of(Datadog::Logger) }
       it { expect(logger.level).to be default_log_level }
+
+      context 'when components are not initialized' do
+        it 'does not cause them to be initialized' do
+          logger
+
+          expect(test_class.send(:components?)).to be false
+        end
+      end
+
+      context 'when components are being replaced' do
+        before do
+          test_class.configure
+          allow(test_class.send(:components)).to receive(:shutdown!)
+        end
+
+        it 'returns the old logger' do
+          old_logger = test_class.logger
+          logger_during_component_replacement = nil
+
+          allow(Datadog::Configuration::Components).to receive(:new) do
+            # simulate getting the logger during reinitialization
+            logger_during_component_replacement = test_class.logger
+            instance_double(Datadog::Configuration::Components, startup!: nil)
+          end
+
+          test_class.configure
+
+          expect(logger_during_component_replacement).to be old_logger
+        end
+      end
     end
 
     describe '#runtime_metrics' do
       subject(:runtime_metrics) { test_class.runtime_metrics }
+
       it { is_expected.to be_a_kind_of(Datadog::Workers::RuntimeMetrics) }
       it { expect(runtime_metrics.enabled?).to be false }
       it { expect(runtime_metrics.running?).to be false }
@@ -369,6 +403,7 @@ RSpec.describe Datadog::Configuration do
 
     describe '#tracer' do
       subject(:tracer) { test_class.tracer }
+
       it { is_expected.to be_a_kind_of(Datadog::Tracer) }
       it { expect(tracer.context_flush).to be_a_kind_of(Datadog::ContextFlush::Finished) }
     end
@@ -397,7 +432,7 @@ RSpec.describe Datadog::Configuration do
       let!(:original_components) { test_class.send(:components) }
 
       it 'gracefully shuts down components' do
-        expect(test_class).to receive(:shutdown!)
+        expect(original_components).to receive(:shutdown!)
 
         reset!
       end
@@ -406,6 +441,83 @@ RSpec.describe Datadog::Configuration do
         reset!
 
         expect(test_class.send(:components)).to_not be(original_components)
+      end
+    end
+
+    describe '#components' do
+      context 'when components are not initialized' do
+        it 'initializes the components' do
+          test_class.send(:components)
+
+          expect(test_class.send(:components?)).to be true
+        end
+
+        context 'when allow_initialization is false' do
+          it 'does not initialize the components' do
+            test_class.send(:components, allow_initialization: false)
+
+            expect(test_class.send(:components?)).to be false
+          end
+        end
+      end
+
+      context 'when components are initialized' do
+        before { test_class.send(:components) }
+
+        after { described_class.const_get(:COMPONENTS_WRITE_LOCK).tap { |lock| lock.unlock if lock.owned? } }
+
+        it 'returns the components without touching the COMPONENTS_WRITE_LOCK' do
+          described_class.const_get(:COMPONENTS_WRITE_LOCK).lock
+
+          expect(test_class.send(:components)).to_not be_nil
+        end
+      end
+    end
+
+    describe '#safely_synchronize' do
+      it 'runs the given block while holding the COMPONENTS_WRITE_LOCK' do
+        block_ran = false
+
+        test_class.send(:safely_synchronize) do
+          block_ran = true
+          expect(described_class.const_get(:COMPONENTS_WRITE_LOCK)).to be_owned
+        end
+
+        expect(block_ran).to be true
+      end
+
+      it 'returns the value of the given block' do
+        expect(test_class.send(:safely_synchronize) { :returned_value }).to be :returned_value
+      end
+
+      it 'provides a write_components callback that can be used to update the components' do
+        test_class.send(:safely_synchronize) do |write_components|
+          write_components.call(:updated_components)
+        end
+
+        expect(test_class.send(:components)).to be :updated_components
+      end
+
+      context 'when recursive execution triggers a deadlock' do
+        subject(:safely_synchronize) { test_class.send(:safely_synchronize) { test_class.send(:safely_synchronize) } }
+
+        before do
+          allow(test_class.send(:logger_without_components)).to receive(:error)
+        end
+
+        it 'logs an error' do
+          expect(test_class.send(:logger_without_components)).to receive(:error).with(/Detected deadlock/)
+
+          safely_synchronize
+        end
+
+        it 'does not let the exception propagate' do
+          expect { safely_synchronize }.to_not raise_error
+        end
+
+        it 'returns nil' do
+          expect(safely_synchronize).to be nil
+        end
       end
     end
   end

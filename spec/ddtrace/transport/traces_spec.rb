@@ -4,6 +4,7 @@ require 'ddtrace/transport/traces'
 
 RSpec.describe Datadog::Transport::Traces::EncodedParcel do
   subject(:parcel) { described_class.new(data, trace_count) }
+
   let(:data) { instance_double(Array) }
   let(:trace_count) { 123 }
 
@@ -15,6 +16,7 @@ RSpec.describe Datadog::Transport::Traces::EncodedParcel do
 
   describe '#count' do
     subject(:count) { parcel.count }
+
     let(:length) { double('length') }
 
     before { expect(data).to receive(:length).and_return(length) }
@@ -24,12 +26,14 @@ RSpec.describe Datadog::Transport::Traces::EncodedParcel do
 
   describe '#trace_count' do
     subject { parcel.trace_count }
+
     it { is_expected.to eq(trace_count) }
   end
 end
 
 RSpec.describe Datadog::Transport::Traces::Request do
   subject(:request) { described_class.new(parcel) }
+
   let(:parcel) { double }
 
   it { is_expected.to be_a_kind_of(Datadog::Transport::Request) }
@@ -61,7 +65,7 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
   let(:trace_encoder) { Datadog::Transport::Traces::Encoder }
   let(:max_size) { 10 }
 
-  context '#encode_in_chunks' do
+  describe '#encode_in_chunks' do
     subject(:encode_in_chunks) { chunker.encode_in_chunks(traces) }
 
     context 'with traces' do
@@ -100,6 +104,12 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
 
     context 'with a lazy enumerator' do
       let(:traces) { [].lazy }
+
+      before do
+        if PlatformHelpers.jruby? && PlatformHelpers.engine_version < Gem::Version.new('9.2.9.0')
+          skip 'This runtime returns eager enumerators on Enumerator::Lazy methods calls'
+        end
+      end
 
       it 'does not force enumerator expansion' do
         expect(subject).to be_a(Enumerator::Lazy)
@@ -147,6 +157,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     let(:encoded_traces) { double }
     let(:trace_count) { 1 }
     let(:chunks) { [[encoded_traces, trace_count]] }
+    let(:lazy_chunks) { chunks.lazy }
 
     let(:request) { instance_double(Datadog::Transport::Traces::Request) }
     let(:client_v2) { instance_double(Datadog::Transport::HTTP::Client) }
@@ -158,7 +169,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
       allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v1).and_return(chunker)
       allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v2).and_return(chunker)
 
-      allow(chunker).to receive(:encode_in_chunks).and_return(chunks.lazy)
+      allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
 
       allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v1).and_return(client_v1)
       allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v2).and_return(client_v2)
@@ -176,6 +187,23 @@ RSpec.describe Datadog::Transport::Traces::Transport do
         expect(client_v2).to have_received(:send_payload).with(request).once
 
         expect(health_metrics).to have_received(:transport_chunked).with(1)
+      end
+
+      context 'with a runtime that returns eagerly loaded chunks' do
+        before do
+          if !PlatformHelpers.jruby? || PlatformHelpers.engine_version >= Gem::Version.new('9.2.9.0')
+            skip 'This runtime correctly returns lazy enumerators on Enumerator::Lazy#slice_before calls'
+          end
+        end
+
+        let(:lazy_chunks) { chunks }
+
+        it 'successfully sends a single request' do
+          is_expected.to eq(responses)
+          expect(client_v2).to have_received(:send_payload).with(request).once
+
+          expect(health_metrics).to have_received(:transport_chunked).with(1)
+        end
       end
 
       context 'with many chunks' do
@@ -226,10 +254,12 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     include_context 'APIs with fallbacks'
 
     subject(:downgrade?) { transport.send(:downgrade?, response) }
+
     let(:response) { instance_double(Datadog::Transport::Response) }
 
     context 'when there is no fallback' do
       let(:current_api_id) { :v1 }
+
       it { is_expected.to be false }
     end
 
@@ -269,6 +299,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     include_context 'APIs with fallbacks'
 
     subject(:current_api) { transport.current_api }
+
     it { is_expected.to be(api_v2) }
   end
 
@@ -279,11 +310,13 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
     context 'when the API ID does not match an API' do
       let(:api_id) { :v99 }
+
       it { expect { change_api! }.to raise_error(described_class::UnknownApiVersionError) }
     end
 
     context 'when the API ID matches an API' do
       let(:api_id) { :v1 }
+
       it { expect { change_api! }.to change { transport.current_api }.from(api_v2).to(api_v1) }
     end
   end
@@ -295,11 +328,13 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
     context 'when the API has no fallback' do
       let(:current_api_id) { :v1 }
+
       it { expect { downgrade! }.to raise_error(described_class::NoDowngradeAvailableError) }
     end
 
     context 'when the API has fallback' do
       let(:current_api_id) { :v2 }
+
       it { expect { downgrade! }.to change { transport.current_api }.from(api_v2).to(api_v1) }
     end
   end

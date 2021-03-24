@@ -11,7 +11,7 @@ RSpec.describe 'Rack integration configuration' do
 
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :rack, configuration_options
     end
@@ -41,6 +41,7 @@ RSpec.describe 'Rack integration configuration' do
   it_behaves_like 'analytics for integration', ignore_global_flag: false do
     include_context 'an incoming HTTP request'
     before { is_expected.to be_ok }
+
     let(:analytics_enabled_var) { Datadog::Contrib::Rack::Ext::ENV_ANALYTICS_ENABLED }
     let(:analytics_sample_rate_var) { Datadog::Contrib::Rack::Ext::ENV_ANALYTICS_SAMPLE_RATE }
   end
@@ -55,7 +56,7 @@ RSpec.describe 'Rack integration configuration' do
       let(:queue_value) { "t=#{queue_time}" }
       let(:queue_time) { (Time.now.utc - 5).to_i }
 
-      before(:each) do
+      before do
         header queue_header, queue_value
       end
     end
@@ -148,13 +149,15 @@ RSpec.describe 'Rack integration configuration' do
         # Ensure a queuing Span is NOT created if there is a clock skew
         # where the starting time is greater than current host Time.now
         context 'with a skewed queue header' do
-          before(:each) { header 'X-Request-Start', (Time.now.utc + 5).to_i }
+          before { header 'X-Request-Start', (Time.now.utc + 5).to_i }
+
           it_behaves_like 'a Rack request without queuing'
         end
 
         # Ensure a queuing Span is NOT created if the header is wrong
         context 'with a invalid queue header' do
-          before(:each) { header 'X-Request-Start', 'foobar' }
+          before { header 'X-Request-Start', 'foobar' }
+
           it_behaves_like 'a Rack request without queuing'
         end
 

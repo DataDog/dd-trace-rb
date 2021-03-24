@@ -23,11 +23,13 @@ RSpec.describe Datadog::Sampling::Rule do
 
     context 'with matching span' do
       let(:matched) { true }
+
       it { is_expected.to eq(true) }
     end
 
     context 'with span not matching' do
       let(:matched) { false }
+
       it { is_expected.to eq(false) }
     end
 

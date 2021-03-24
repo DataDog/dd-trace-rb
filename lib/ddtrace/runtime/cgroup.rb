@@ -4,7 +4,7 @@ module Datadog
   module Runtime
     # For control groups
     module Cgroup
-      LINE_REGEX = /^(\d+):([^:]*):(.+)$/
+      LINE_REGEX = /^(\d+):([^:]*):(.+)$/.freeze
 
       Descriptor = Struct.new(
         :id,
@@ -21,7 +21,7 @@ module Datadog
             filepath = "/proc/#{process}/cgroup"
 
             if File.exist?(filepath)
-              File.open("/proc/#{process}/cgroup").each do |line|
+              File.foreach("/proc/#{process}/cgroup") do |line|
                 line = line.strip
                 descriptors << parse(line) unless line.empty?
               end

@@ -38,7 +38,7 @@ RSpec.shared_context 'benchmark' do
     @test = e.metadata[:example_group][:full_description]
     @type = e.description
 
-    STDERR.puts "Test:#{e.metadata[:example_group][:full_description]} #{e.description}"
+    warn "Test:#{e.metadata[:example_group][:full_description]} #{e.description}"
   end
 
   def warm_up
@@ -56,14 +56,14 @@ RSpec.shared_context 'benchmark' do
                   @type
                 end
 
-    STDERR.puts(@test, file_name, result)
+    warn(@test, file_name, result)
 
     directory = result_directory!(subtype)
     path = File.join(directory, file_name)
 
     File.write(path, JSON.pretty_generate(result))
 
-    STDERR.puts("Result written to #{path}")
+    warn("Result written to #{path}")
   end
 
   # Create result directory for current benchmark
@@ -147,7 +147,7 @@ RSpec.shared_context 'benchmark' do
 
     puts io.string
 
-    result = { count: data.size, time: data.map { |d| d[:GC_TIME] }.inject(0, &:+) }
+    result = { count: data.size, time: data.sum { |d| d[:GC_TIME] } }
     write_result(result)
   end
 
@@ -229,11 +229,11 @@ RSpec.shared_context 'benchmark' do
         printer = RubyProf::CallTreePrinter.new(result)
         printer.print(path: directory)
 
-        STDERR.puts("Results written in Callgrind format to #{directory}")
-        STDERR.puts('You can use KCachegrind or QCachegrind to read these results.')
-        STDERR.puts('On MacOS:')
-        STDERR.puts('$ brew install qcachegrind')
-        STDERR.puts("$ qcachegrind '#{Dir["#{directory}/*"].sort[0]}'")
+        warn("Results written in Callgrind format to #{directory}")
+        warn('You can use KCachegrind or QCachegrind to read these results.')
+        warn('On MacOS:')
+        warn('$ brew install qcachegrind')
+        warn("$ qcachegrind '#{Dir["#{directory}/*"].min}'")
       end
     end
   end
@@ -286,7 +286,7 @@ RSpec.shared_context 'minimal agent' do
   before do
     # Initializes server in a fork, to allow for true concurrency.
     # In JRuby, threads are not supported, but true thread concurrency is.
-    @agent_runner = if PlatformHelpers.supports_fork?
+    @agent_runner = if Process.respond_to?(:fork)
                       fork { server_runner }
                     else
                       Thread.new { server_runner }
@@ -294,8 +294,7 @@ RSpec.shared_context 'minimal agent' do
   end
 
   after do
-    if PlatformHelpers.supports_fork?
-      # rubocop:disable Lint/RescueWithoutErrorClass
+    if Process.respond_to?(:fork)
       Process.kill('TERM', @agent_runner) rescue nil
       Process.wait(@agent_runner)
     else

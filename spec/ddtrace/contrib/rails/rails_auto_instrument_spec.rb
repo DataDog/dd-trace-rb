@@ -16,7 +16,7 @@ RSpec.describe 'Datadog::Contrib::AutoInstrument' do
 
   context 'when auto patching is included' do
     before do
-      skip if PlatformHelpers.jruby?
+      skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
     end
 
     let(:config) { Datadog.configuration[:rails] }
@@ -28,7 +28,7 @@ RSpec.describe 'Datadog::Contrib::AutoInstrument' do
         expect(config[:service_name]).to eq(config[:controller_service])
         expect("#{app_name}-cache").to eq(config[:cache_service])
         expect(Datadog.configuration[:rails][:database_service]).to be_present
-        expect('views/').to eq(config[:template_base_path])
+        expect(config[:template_base_path]).to eq('views/')
         expect(Datadog.configuration[:rails][:tracer]).to be_present
       end
     end
