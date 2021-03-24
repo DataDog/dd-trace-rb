@@ -32,7 +32,16 @@ gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec_junit_formatter', '>= 0.4.1'
 gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.3.0'
 gem 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java' && RUBY_VERSION >= '2.4.0'
-gem 'simplecov', '~> 0.17'
+if RUBY_VERSION >= '2.5.0'
+  # Merging branch coverage results does not work for old, unsupported rubies.
+  # We have a fix up for review, https://github.com/simplecov-ruby/simplecov/pull/972,
+  # but given it only affects unsupported version of Ruby, it might not get merged.
+  gem 'simplecov', git: 'https://github.com/marcotc/simplecov', ref: '3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db'
+else
+  # Compatible with older rubies. This version still produces compatible output
+  # with a newer version when the reports are merged.
+  gem 'simplecov', '~> 0.17'
+end
 gem 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
