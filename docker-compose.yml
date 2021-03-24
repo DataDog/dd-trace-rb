@@ -429,7 +429,8 @@ services:
     ports:
       - "${TEST_POSTGRES_PORT}:5432"
   presto:
-    image:  trinodb/trino:354
+    # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
+    image: starburstdata/presto:332-e.9
     expose:
       - "8080"
     ports:

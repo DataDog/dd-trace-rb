@@ -50,7 +50,8 @@ test_containers:
       - POSTGRES_DB=postgres
   - &postgres_port 5432
   - &container_presto
-    image: trinodb/trino:354
+    # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
+    image: starburstdata/presto:332-e.9
   - &presto_port 8080
   - &container_mysql
     image: mysql:5.6
