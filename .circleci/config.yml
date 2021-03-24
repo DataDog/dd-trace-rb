@@ -50,7 +50,7 @@ test_containers:
       - POSTGRES_DB=postgres
   - &postgres_port 5432
   - &container_presto
-    image: prestosql/presto
+    image: trinodb/trino:354
   - &presto_port 8080
   - &container_mysql
     image: mysql:5.6

@@ -429,7 +429,7 @@ services:
     ports:
       - "${TEST_POSTGRES_PORT}:5432"
   presto:
-    image:  prestosql/presto
+    image:  trinodb/trino:354
     expose:
       - "8080"
     ports:
