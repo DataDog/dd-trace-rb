@@ -14,10 +14,8 @@ module Datadog
       # Class behavior for a configuration object with options
       module ClassMethods
         def options
-          @options ||= begin
-            # Allows for class inheritance of option definitions
-            superclass <= Options ? superclass.options.dup : OptionDefinitionSet.new
-          end
+          # Allows for class inheritance of option definitions
+          @options ||= superclass <= Options ? superclass.options.dup : OptionDefinitionSet.new
         end
 
         protected
