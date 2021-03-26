@@ -16,7 +16,8 @@ RUN set -ex; \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
             tzdata rsync vim \
-            build-essential; \
+            build-essential \
+            shared-mime-info; \
         rm -rf /var/lib/apt/lists/*;
 
 # Set timezone to UTC by default
