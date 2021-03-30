@@ -5,7 +5,7 @@ require 'ddtrace/profiling/collectors/stack'
 require 'ddtrace/profiling/recorder'
 
 RSpec.describe Datadog::Profiling::Collectors::Stack do
-  subject(:collector) { described_class.new(recorder, options) }
+  subject(:collector) { described_class.new(recorder, **options) }
 
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
   let(:options) { {} }
