@@ -24,21 +24,28 @@ module Datadog
           :max_time_usage_pct,
           :recorder
 
-        def initialize(recorder, options = {})
+        def initialize(
+          recorder,
+          max_frames: DEFAULT_MAX_FRAMES,
+          ignore_thread: nil,
+          max_time_usage_pct: DEFAULT_MAX_TIME_USAGE_PCT,
+          fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
+          interval: MIN_INTERVAL,
+          enabled: true
+        )
           @recorder = recorder
-          @max_frames = options[:max_frames] || DEFAULT_MAX_FRAMES
-          @ignore_thread = options[:ignore_thread]
-          @max_time_usage_pct = options[:max_time_usage_pct] || DEFAULT_MAX_TIME_USAGE_PCT
+          @max_frames = max_frames
+          @ignore_thread = ignore_thread
+          @max_time_usage_pct = max_time_usage_pct
 
           # Workers::Async::Thread settings
-          # Restart in forks by default
-          self.fork_policy = options[:fork_policy] || Workers::Async::Thread::FORK_POLICY_RESTART
+          self.fork_policy = fork_policy
 
           # Workers::IntervalLoop settings
-          self.loop_base_interval = options[:interval] || MIN_INTERVAL
+          self.loop_base_interval = interval
 
           # Workers::Polling settings
-          self.enabled = options.key?(:enabled) ? options[:enabled] == true : true
+          self.enabled = enabled
 
           @warn_about_missing_cpu_time_instrumentation_only_once = Datadog::Utils::OnlyOnce.new
         end
