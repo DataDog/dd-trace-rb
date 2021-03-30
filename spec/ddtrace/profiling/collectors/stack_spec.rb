@@ -63,7 +63,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   describe '#perform' do
     subject(:perform) { collector.perform }
 
-    after { collector.stop(true, 0) }
+    after do
+      collector.stop(true, 0)
+      collector.join
+    end
 
     context 'when disabled' do
       before { collector.enabled = false }
