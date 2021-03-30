@@ -54,9 +54,48 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   describe '#start' do
     subject(:start) { collector.start }
 
+    before do
+      allow(collector).to receive(:perform)
+    end
+
     it 'starts the worker' do
       expect(collector).to receive(:perform)
       start
+    end
+
+    describe 'cpu time tracking state handling' do
+      let(:options) { { **super(), thread_api: thread_api } }
+
+      let(:thread_api) { class_double(Thread) }
+      let(:thread) { instance_double(Thread) }
+
+      before do
+        expect(thread_api).to receive(:list).and_return([thread])
+      end
+
+      context 'when there is existing cpu time tracking state in threads' do
+        before do
+          expect(thread).to receive(:[]).with(described_class::THREAD_LAST_CPU_TIME_KEY).and_return(12345)
+        end
+
+        it 'resets the existing state back to nil' do
+          expect(thread).to receive(:[]=).with(described_class::THREAD_LAST_CPU_TIME_KEY, nil)
+
+          start
+        end
+      end
+
+      context 'when there is no cpu time tracking state in threads' do
+        before do
+          allow(thread).to receive(:[]).and_return(nil)
+        end
+
+        it 'does nothing' do
+          expect(thread).to_not receive(:[]=)
+
+          start
+        end
+      end
     end
   end
 

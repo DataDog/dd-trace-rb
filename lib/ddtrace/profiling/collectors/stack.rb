@@ -10,6 +10,8 @@ module Datadog
     module Collectors
       # Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
       # Runs on its own background thread.
+      #
+      # rubocop:disable Metrics/ClassLength
       class Stack < Worker
         include Workers::Polling
 
@@ -19,16 +21,18 @@ module Datadog
         THREAD_LAST_CPU_TIME_KEY = :datadog_profiler_last_cpu_time
 
         attr_reader \
-          :ignore_thread,
+          :recorder,
           :max_frames,
+          :ignore_thread,
           :max_time_usage_pct,
-          :recorder
+          :thread_api
 
         def initialize(
           recorder,
           max_frames: DEFAULT_MAX_FRAMES,
           ignore_thread: nil,
           max_time_usage_pct: DEFAULT_MAX_TIME_USAGE_PCT,
+          thread_api: Thread,
           fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
           interval: MIN_INTERVAL,
           enabled: true
@@ -37,6 +41,7 @@ module Datadog
           @max_frames = max_frames
           @ignore_thread = ignore_thread
           @max_time_usage_pct = max_time_usage_pct
+          @thread_api = thread_api
 
           # Workers::Async::Thread settings
           self.fork_policy = fork_policy
@@ -52,6 +57,7 @@ module Datadog
 
         def start
           @last_wall_time = Datadog::Utils::Time.get_time
+          reset_cpu_time_tracking
           perform
         end
 
@@ -87,7 +93,7 @@ module Datadog
           @last_wall_time = current_wall_time
 
           # Collect backtraces from each thread
-          Thread.list.each do |thread|
+          thread_api.list.each do |thread|
             next unless thread.alive?
             next if ignore_thread.is_a?(Proc) && ignore_thread.call(thread)
 
@@ -221,12 +227,29 @@ module Datadog
             #    but our code to apply the instrumentation hasn't run yet; in these cases it's just a matter of allowing
             #    it to run and our instrumentation to be applied.
             #
-            if Thread.current.respond_to?(:cpu_time) && Thread.current.cpu_time
+            if thread_api.current.respond_to?(:cpu_time) && thread_api.current.cpu_time
               Datadog.logger.debug("Detected thread ('#{thread}') with missing CPU profiling instrumentation.")
             end
           end
         end
+
+        # If the profiler is started for a while, stopped and then restarted OR whenever the process forks, we need to
+        # clean up the per-thread cpu time counters we keep, so that the first sample after starting doesn't end up with:
+        #
+        # a) negative time: At least on my test docker container, and on the reliability environment, after the process
+        #    forks, the clock reference changes and (old cpu time - new cpu time) can be < 0
+        #
+        # b) large amount of time: if the profiler was started, then stopped for some amount of time, and then
+        #    restarted, we don't want the first sample to be "blamed" for multiple minutes of CPU time
+        #
+        # By resetting the last cpu time seen, we start with a clean slate every time we start the stack collector.
+        def reset_cpu_time_tracking
+          thread_api.list.each do |thread|
+            thread[THREAD_LAST_CPU_TIME_KEY] = nil if thread[THREAD_LAST_CPU_TIME_KEY]
+          end
+        end
       end
+      # rubocop:enable Metrics/ClassLength
     end
   end
 end
