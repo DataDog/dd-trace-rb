@@ -452,6 +452,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     let(:thread) { Thread.new {} }
 
+    after do
+      thread && thread.join
+    end
+
     context 'given a non-thread' do
       let(:thread) { nil }
 
