@@ -18,6 +18,9 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
     context 'when forking is supported' do
       around do |example|
+        # NOTE: Do not move this to a before, since we also want to skip the around as well
+        skip 'Forking not supported' unless described_class.supported?
+
         if ::Process.singleton_class.ancestors.include?(Datadog::Profiling::Ext::Forking::Kernel)
           skip 'Unclean Process class state.'
         end
@@ -45,8 +48,6 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
         # expect(toplevel_receiver.method(:fork).source_location).to be nil
       end
-
-      before { skip 'Forking not supported' unless described_class.supported? }
 
       it 'applies the Kernel patch' do
         # NOTE: There's no way to undo a modification of the TOPLEVEL_BINDING.
