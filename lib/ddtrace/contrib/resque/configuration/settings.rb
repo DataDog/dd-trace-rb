@@ -24,15 +24,14 @@ module Datadog
 
           option :service_name, default: Ext::SERVICE_NAME
 
-          # TODO: 1.0: When moving to auto patching all workers by default
-          # we should remove this setting, as it will be a no-op.
-          option :workers, default: []
-          option :error_handler, default: Datadog::Tracer::DEFAULT_ON_ERROR
-
+          # A list Ruby worker classes to be instrumented.
+          # The value of `nil` has special semantics: it instruments all workers dynamically.
+          #
           # TODO: 1.0: Automatic patching should be the default behavior.
-          # We should not provide this option anymore when making it the default,
+          # We should not provide this option in the future,
           # as our integrations should always instrument all possible scenarios when feasible.
-          option :auto_instrument, default: false
+          option :workers, default: nil
+          option :error_handler, default: Datadog::Tracer::DEFAULT_ON_ERROR
         end
       end
     end

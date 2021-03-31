@@ -204,13 +204,13 @@ RSpec.describe 'Resque instrumentation' do
   end
 
   describe 'with auto instrumentation' do
-    let(:configuration_options) { { auto_instrument: true } }
+    let(:configuration_options) { {} } # The default is enabled
 
     it_behaves_like 'job execution tracing'
   end
 
   describe 'with auto instrumentation disabled' do
-    let(:configuration_options) { {} } # The default is disabled
+    let(:configuration_options) { { workers: [] } }
 
     before { perform_job(job_class, job_args) }
 

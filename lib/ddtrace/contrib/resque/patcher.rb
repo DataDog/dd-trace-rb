@@ -20,11 +20,8 @@ module Datadog
 
           ::Resque::Job.send(:prepend, Resque::Job)
 
-          get_option(:workers).each { |worker| worker.extend(ResqueJob) }
-        end
-
-        def get_option(option)
-          Datadog.configuration[:resque].get_option(option)
+          workers = Datadog.configuration[:resque][:workers] || []
+          workers.each { |worker| worker.extend(ResqueJob) }
         end
       end
     end
