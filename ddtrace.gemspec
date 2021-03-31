@@ -38,22 +38,4 @@ Gem::Specification.new do |spec|
     # msgpack 1.4 fails for Ruby 2.0 and 2.1: https://github.com/msgpack/msgpack-ruby/issues/205
     spec.add_dependency 'msgpack', '< 1.4'
   end
-
-  # Optional extensions
-  spec.add_development_dependency 'ffi', '~> 1.0'
-
-  if RUBY_PLATFORM != 'java'
-    # NOTE: Exclude 3.7.x because the required_ruby_version mismatches
-    #       actual Ruby support. It would break Ruby < 2.3.
-    google_protobuf_versions = [
-      '~> 3.0',
-      '!= 3.7.0.rc.2',
-      '!= 3.7.0.rc.3',
-      '!= 3.7.0',
-      '!= 3.7.1',
-      '!= 3.8.0.rc.1'
-    ]
-
-    spec.add_development_dependency 'google-protobuf', *google_protobuf_versions
-  end
 end
