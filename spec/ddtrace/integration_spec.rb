@@ -3,6 +3,7 @@ require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/tracer'
 require 'datadog/statsd'
+
 RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
     before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }

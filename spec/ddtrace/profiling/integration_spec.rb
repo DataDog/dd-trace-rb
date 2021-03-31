@@ -115,6 +115,8 @@ RSpec.describe 'profiling integration test' do
           @current_span = span
           example.run
         end
+
+        Datadog.tracer.shutdown!
       end
 
       before do
