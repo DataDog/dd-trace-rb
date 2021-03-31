@@ -348,6 +348,33 @@ RSpec.describe Datadog::Configuration do
           end
         end
       end
+
+      context 'deprecation warning' do
+        before { described_class.const_get('RUBY_VERSION_DEPRECATION_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
+        after { described_class.const_get('RUBY_VERSION_DEPRECATION_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
+
+        context 'with a deprecated Ruby version' do
+          before { skip unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1') }
+
+          it 'emits deprecation warning once' do
+            expect(Datadog.logger).to receive(:warn)
+              .with(/Support for Ruby versions < 2\.1 in dd-trace-rb is DEPRECATED/).once
+
+            test_class.configure
+            test_class.configure
+          end
+        end
+
+        context 'with a supported Ruby version' do
+          before { skip if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1') }
+
+          it 'emits no warnings' do
+            expect(Datadog.logger).to_not receive(:warn)
+
+            configure
+          end
+        end
+      end
     end
 
     describe '#health_metrics' do

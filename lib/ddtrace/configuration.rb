@@ -2,10 +2,11 @@ require 'forwardable'
 require 'ddtrace/configuration/pin_setup'
 require 'ddtrace/configuration/settings'
 require 'ddtrace/configuration/components'
+require 'ddtrace/utils/only_once'
 
 module Datadog
   # Configuration provides a unique access point for configurations
-  module Configuration
+  module Configuration # rubocop:disable Metrics/ModuleLength
     extend Forwardable
 
     # Used to ensure that @components initialization/reconfiguration is performed one-at-a-time, by a single thread.
@@ -42,6 +43,8 @@ module Datadog
     end
 
     def configure(target = configuration, opts = {})
+      ruby_version_deprecation_warning
+
       if target.is_a?(Settings)
         yield(target) if block_given?
 
@@ -166,6 +169,25 @@ module Datadog
         logger = configuration.logger.instance || Datadog::Logger.new($stdout)
         logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
         logger
+      end
+    end
+
+    # Perform version check only once
+    DEPRECATED_RUBY_VERSION = Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
+    private_constant :DEPRECATED_RUBY_VERSION
+
+    RUBY_VERSION_DEPRECATION_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    private_constant :RUBY_VERSION_DEPRECATION_ONLY_ONCE
+
+    def ruby_version_deprecation_warning
+      return unless DEPRECATED_RUBY_VERSION
+
+      RUBY_VERSION_DEPRECATION_ONLY_ONCE.run do
+        Datadog.logger.warn(
+          "Support for Ruby versions < 2.1 in dd-trace-rb is DEPRECATED.\n" \
+          "Last version to support Ruby < 2.1 will be 0.49.x, which will only receive critical bugfixes.\n" \
+          'Support for Ruby versions < 2.1 will be REMOVED in version 0.50.0.'
+        )
       end
     end
   end
