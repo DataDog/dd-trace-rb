@@ -217,5 +217,13 @@ RSpec.describe 'Resque instrumentation' do
     it 'no tracing happens' do
       expect(spans).to be_empty
     end
+
+    it 'emits deprecation warning for explicit workers setting' do
+      expect(Datadog.logger).to receive(:warn).with(/DEPRECATED: Resque integration now instruments all workers/)
+
+      Datadog.configure do |c|
+        c.use(:resque, workers: [job_class])
+      end
+    end
   end
 end

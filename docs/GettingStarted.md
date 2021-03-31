@@ -1582,7 +1582,7 @@ require 'resque'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :resque, auto_instrument: true, **options
+  c.use :resque, **options
 end
 ```
 
@@ -1592,9 +1592,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `resque` instrumentation | `'resque'` |
-| `auto_instrument` | Instrument all Resque jobs (recommended). | `false` |
-| `workers` | An array including all worker classes you want to trace (e.g. `[MyJob]`). Use `auto_instrument` instead if you'd like to instrument all jobs. | `[]` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `workers` | **[DEPRECATED]** Limits instrumented worker classes to only the ones specified in an array (e.g. `[MyJob]`). If not provided, instruments all workers. | `nil` |
 
 ### Rest Client
 
