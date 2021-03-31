@@ -9,7 +9,8 @@ gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '~> 0.1'
 gem 'builder'
 gem 'climate_control', '~> 0.2.0'
-gem 'concurrent-ruby' # Leave it open; it's integration too, and we want Appraisal to set the version.
+# Leave it open as we also have it as an integration and want Appraisal to control the version under test.
+gem 'concurrent-ruby'
 gem 'memory_profiler', '~> 0.9'
 gem 'minitest', '= 5.10.1'
 gem 'minitest-around', '0.5.0'
@@ -59,3 +60,11 @@ end
 # TODO: Move this to Appraisals?
 gem 'dogstatsd-ruby', '>= 3.3.0'
 gem 'opentracing', '>= 0.4.1'
+
+# Profiler optional dependencies
+gem 'ffi', '~> 1.0'
+# NOTE: We're excluding versions 3.7.0 and 3.7.1 for the reasons documented in #1424 and the big comment in
+#       lib/ddtrace/profiling.rb: it breaks for some older rubies in CI without BUNDLE_FORCE_RUBY_PLATFORM=true.
+#       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
+#       to our CI, so we just shortcut and exclude specific versions that were affecting our CI.
+gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1'] if RUBY_PLATFORM != 'java'
