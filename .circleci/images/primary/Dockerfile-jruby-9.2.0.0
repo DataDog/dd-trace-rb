@@ -1,5 +1,5 @@
 # Current version: https://github.com/cpuguy83/docker-jruby/blob/db08637839406420a254a9c825d94994cded5021/9000/jre/Dockerfile
-FROM jruby:9.2.11.1
+FROM jruby:9.2.0.0
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -62,10 +62,6 @@ RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cac
 # Install RubyGems
 RUN gem update --system
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
-
-# Upgrade RubyGems and Bundler
-RUN gem uninstall -i /opt/jruby/lib/ruby/gems/shared bundler -v 2.1.4 # Remove when https://github.com/thoughtbot/appraisal/issues/162 is fixed
-RUN gem install bundler -v 2.1.2 # Remove when https://github.com/thoughtbot/appraisal/issues/162 is fixed
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Ensure JRuby is available when running "bash --login"

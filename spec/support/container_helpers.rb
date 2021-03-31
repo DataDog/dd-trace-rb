@@ -2,6 +2,10 @@ require 'stringio'
 
 # rubocop:disable Metrics/ModuleLength
 module ContainerHelpers
+  def uuid_regex
+    /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
+  end
+
   shared_context 'cgroup file' do
     let(:cgroup_file) { StringIO.new }
 
@@ -10,10 +14,10 @@ module ContainerHelpers
         .with('/proc/self/cgroup')
         .and_return(true)
 
-      allow(File).to receive(:open).and_call_original
-      allow(File).to receive(:open)
-        .with('/proc/self/cgroup')
-        .and_return(cgroup_file)
+      allow(File).to receive(:foreach)
+        .with('/proc/self/cgroup') do |&block|
+          cgroup_file.each { |line| block.call(line) }
+        end
     end
   end
 

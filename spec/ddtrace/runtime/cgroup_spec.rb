@@ -28,7 +28,7 @@ RSpec.describe Datadog::Runtime::Cgroup do
         let(:error) { stub_const('TestError', Class.new(StandardError)) }
 
         before do
-          expect(File).to receive(:open)
+          expect(File).to receive(:foreach)
             .with('/proc/self/cgroup')
             .and_raise(error)
 

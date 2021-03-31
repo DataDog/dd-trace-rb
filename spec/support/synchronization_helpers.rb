@@ -1,16 +1,30 @@
 require 'English'
 
 module SynchronizationHelpers
-  def expect_in_fork(&block)
+  def expect_in_fork
+    read_io, write_io = IO.pipe
+
     # Start in fork
-    pid = fork(&block)
+    pid = fork do
+      read_io.close
+
+      # Capture test failures
+      $stderr.reopen(write_io)
+
+      yield
+    end
+
+    write_io.close
 
     # Wait for fork to finish, retrieve its status.
     Process.wait(pid)
     status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
 
+    # Read test failures
+    fork_stderr = read_io.read
+
     # Expect fork and assertions to have completed successfully.
-    expect(status && status.success?).to be true
+    expect(status && status.success?).to be(true), fork_stderr
   end
 
   def expect_in_thread(&block)

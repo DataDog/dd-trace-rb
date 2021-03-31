@@ -5,8 +5,7 @@ require 'rspec/collection_matchers'
 require 'webmock/rspec'
 require 'climate_control'
 
-# Skip for benchmarks, as coverage collection slows them down.
-unless RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/') }
+if (ENV['SKIP_SIMPLECOV'] != '1') && !RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/') }
   # +SimpleCov.start+ must be invoked before any application code is loaded
   require 'simplecov'
   SimpleCov.start do
@@ -112,7 +111,10 @@ RSpec.configure do |config|
           # Ruby JetBrains debugger
           t.class.name.include?('DebugThread') ||
           # Categorized as a known leaky thread
-          !group_name.nil?
+          !group_name.nil? ||
+          # Internal TruffleRuby thread, defined in
+          # https://github.com/oracle/truffleruby/blob/02f568556ca4dd9056b0114b750ab848ac52943b/src/main/java/org/truffleruby/core/ReferenceProcessingService.java#L221
+          RUBY_ENGINE == 'truffleruby' && t.to_s.include?('Ruby-reference-processor')
       end
 
       unless background_threads.empty?

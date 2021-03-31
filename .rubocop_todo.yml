@@ -86,10 +86,9 @@ Lint/MissingCopEnableDirective:
     - 'test/contrib/rails/errors_test.rb'
     - 'test/tracer_test.rb'
 
-# Offense count: 25
+# Offense count: 24
 Lint/MissingSuper:
   Exclude:
-    - 'lib/ddtrace/contrib/active_record/configuration/resolver.rb'
     - 'lib/ddtrace/contrib/grpc/datadog_interceptor.rb'
     - 'lib/ddtrace/opentracer/scope.rb'
     - 'lib/ddtrace/opentracer/span.rb'
@@ -371,6 +370,8 @@ RSpec/VerifiedDoubles:
     - 'spec/ddtrace/transport/io/traces_spec.rb'
     - 'spec/ddtrace/transport/parcel_spec.rb'
     - 'spec/ddtrace/transport/traces_spec.rb'
+    - 'spec/ddtrace/utils/object_set_spec.rb'
+    - 'spec/ddtrace/utils/string_table_spec.rb'
     - 'spec/ddtrace/worker_spec.rb'
     - 'spec/ddtrace/workers/async_spec.rb'
     - 'spec/ddtrace/workers/loop_spec.rb'

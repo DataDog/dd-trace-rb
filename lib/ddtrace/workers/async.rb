@@ -18,7 +18,7 @@ module Datadog
         # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
-            start { self.result = super(*args) } unless started?
+            start_async { self.result = super(*args) } unless started?
           end
         end
 
@@ -105,7 +105,7 @@ module Datadog
           @worker ||= nil
         end
 
-        def start(&block)
+        def start_async(&block)
           mutex.synchronize do
             return if running?
 
@@ -126,7 +126,7 @@ module Datadog
           @run_async = true
           @pid = Process.pid
           @error = nil
-          Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
+          Datadog.logger.debug("Starting thread in the process: #{Process.pid} for: #{self}")
 
           @worker = ::Thread.new do
             begin

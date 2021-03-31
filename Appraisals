@@ -901,7 +901,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'pg', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
     gem 'presto-client', '>=  0.5.14'
-    gem 'qless'
+    gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-test'
