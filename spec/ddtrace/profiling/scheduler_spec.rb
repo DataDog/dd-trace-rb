@@ -41,7 +41,10 @@ RSpec.describe Datadog::Profiling::Scheduler do
   describe '#perform' do
     subject(:perform) { scheduler.perform }
 
-    after { scheduler.stop(true, 0) }
+    after do
+      scheduler.stop(true, 0)
+      scheduler.join
+    end
 
     context 'when disabled' do
       before { scheduler.enabled = false }
