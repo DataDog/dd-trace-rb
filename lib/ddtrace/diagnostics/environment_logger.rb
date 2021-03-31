@@ -12,7 +12,7 @@ module Datadog
         # Outputs environment information to {Datadog.logger}.
         # Executes only for the lifetime of the program.
         def log!(transport_responses)
-          return if @executed || !log?
+          return if (defined?(@executed) && @executed) || !log?
 
           @executed = true
 
