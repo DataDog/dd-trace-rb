@@ -1,8 +1,35 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
-require_relative 'job'
+
+LogHelpers.without_warnings do
+  require 'resque'
+end
 
 require 'ddtrace'
+require 'ddtrace/contrib/resque/resque_job'
+
+RSpec.shared_context 'Resque job' do
+  def perform_job(klass, *args)
+    job = Resque::Job.new(queue_name, 'class' => klass, 'args' => args)
+    worker.perform(job)
+  end
+
+  let(:queue_name) { :test_queue }
+  let(:worker) { Resque::Worker.new(queue_name) }
+  let(:job_class) do
+    stub_const('TestJob', Class.new).tap do |mod|
+      mod.send(:define_singleton_method, :perform) do |*args|
+        # Do nothing by default.
+      end
+    end
+  end
+  let(:job_args) { nil }
+
+  before do
+    Resque.after_fork { Datadog::Pin.get_from(Resque).tracer.writer = FauxWriter.new }
+    Resque.before_first_fork.each(&:call)
+  end
+end
 
 RSpec.describe 'Resque instrumentation' do
   include_context 'Resque job'

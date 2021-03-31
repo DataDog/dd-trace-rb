@@ -21,7 +21,16 @@ module Datadog
 
       # Uses Resque job hooks to create traces
       module ResqueJob
-        def around_perform(*args)
+        # `around_perform` hooks are executed in alphabetical order.
+        # we use the lowest printable character that allows for an inline
+        # method definition ('0'), alongside our naming prefix for identification.
+        #
+        # We could, in theory, use any character (e.g "\x00"), but this will lead
+        # to unreadable stack traces that contain this method call.
+        #
+        # We could also just use `around_perform` but this might override the user's
+        # own method.
+        def around_perform0ddtrace(*args)
           return yield unless datadog_configuration && tracer
 
           tracer.trace(Ext::SPAN_JOB, span_options) do |span|
