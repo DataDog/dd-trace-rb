@@ -50,7 +50,6 @@ gem 'dogstatsd-ruby', '>= 3.3.0'
 gem 'opentracing', '>= 0.4.1'
 
 # Profiler optional dependencies
-gem 'ffi', '~> 1.0'
 # NOTE: We're excluding versions 3.7.0 and 3.7.1 for the reasons documented in #1424 and the big comment in
 #       lib/ddtrace/profiling.rb: it breaks for some older rubies in CI without BUNDLE_FORCE_RUBY_PLATFORM=true.
 #       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
