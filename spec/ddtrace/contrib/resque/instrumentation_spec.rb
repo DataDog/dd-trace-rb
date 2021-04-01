@@ -1,8 +1,35 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
-require_relative 'job'
+
+LogHelpers.without_warnings do
+  require 'resque'
+end
 
 require 'ddtrace'
+
+RSpec.shared_context 'Resque job' do
+  def perform_job(klass, *args)
+    job = Resque::Job.new(queue_name, 'class' => klass, 'args' => args)
+    worker.perform(job)
+  end
+
+  let(:queue_name) { :test_queue }
+  let(:worker) { Resque::Worker.new(queue_name) }
+  let(:job_class) do
+    stub_const('TestJob', Class.new).tap do |mod|
+      mod.send(:define_singleton_method, :perform) do |*args|
+        # Do nothing by default.
+      end
+    end
+  end
+  let(:job_args) { nil }
+
+  before do
+    require 'ddtrace/contrib/resque/resque_job'
+    Resque.after_fork { Datadog::Pin.get_from(Resque).tracer.writer = FauxWriter.new }
+    Resque.before_first_fork.each(&:call)
+  end
+end
 
 RSpec.describe 'Resque instrumentation' do
   include_context 'Resque job'
@@ -92,7 +119,7 @@ RSpec.describe 'Resque instrumentation' do
       end
 
       context 'with custom error handler' do
-        let(:configuration_options) { { error_handler: error_handler } }
+        let(:configuration_options) { super().merge(error_handler: error_handler) }
         let(:error_handler) { proc {} }
 
         it 'uses custom error handler' do
@@ -114,6 +141,8 @@ RSpec.describe 'Resque instrumentation' do
       end
     end
 
+    let(:configuration_options) { { auto_instrument: true } }
+
     it_behaves_like 'job execution tracing'
 
     it 'ensures worker is not using forking' do
@@ -123,6 +152,8 @@ RSpec.describe 'Resque instrumentation' do
 
   context 'with forking' do
     before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+
+    let(:configuration_options) { { auto_instrument: true } }
 
     it_behaves_like 'job execution tracing'
 
@@ -159,22 +190,40 @@ RSpec.describe 'Resque instrumentation' do
   end
 
   describe 'patching for workers' do
-    let(:worker_class_1) { Class.new }
-    let(:worker_class_2) { Class.new }
-
     before do
       # Remove the patch so it applies new patch
       remove_patch!(:resque)
 
       # Re-apply patch, to workers
       Datadog.configure do |c|
-        c.use(:resque, workers: [worker_class_1, worker_class_2])
+        c.use(:resque, workers: [job_class])
       end
     end
 
-    it 'adds the instrumentation module' do
-      expect(worker_class_1.singleton_class.included_modules).to include(Datadog::Contrib::Resque::ResqueJob)
-      expect(worker_class_2.singleton_class.included_modules).to include(Datadog::Contrib::Resque::ResqueJob)
+    it_behaves_like 'job execution tracing'
+  end
+
+  describe 'with auto instrumentation' do
+    let(:configuration_options) { {} } # The default is enabled
+
+    it_behaves_like 'job execution tracing'
+  end
+
+  describe 'with auto instrumentation disabled' do
+    let(:configuration_options) { { workers: [] } }
+
+    before { perform_job(job_class, job_args) }
+
+    it 'no tracing happens' do
+      expect(spans).to be_empty
+    end
+
+    it 'emits deprecation warning for explicit workers setting' do
+      expect(Datadog.logger).to receive(:warn).with(/DEPRECATED: Resque integration now instruments all workers/)
+
+      Datadog.configure do |c|
+        c.use(:resque, workers: [job_class])
+      end
     end
   end
 end
