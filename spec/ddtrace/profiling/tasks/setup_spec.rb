@@ -224,6 +224,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       context 'when there is an issue starting the profiler' do
         before do
           expect(Datadog).to receive(:profiler).and_raise('Dummy exception')
+          allow($stdout).to receive(:puts) # Silence logging during tests
         end
 
         it 'does not raise any error' do
@@ -252,6 +253,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
           without_partial_double_verification do
             expect(Thread.current).to receive(:update_native_ids).and_raise('Dummy exception')
           end
+          allow($stdout).to receive(:puts) # Silence logging during tests
         end
 
         it 'does not raise any error' do

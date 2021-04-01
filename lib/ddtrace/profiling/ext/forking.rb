@@ -14,6 +14,8 @@ module Datadog
           modules = [::Process, ::Kernel]
           # TODO: Ruby < 2.3 doesn't support Binding#receiver.
           #       Remove "else #eval" clause when Ruby < 2.3 support is dropped.
+          # NOTE: Modifying the "main" object as we do here is (as far as I know) irreversible. During tests, this change
+          #       will stick around even if we otherwise stub `Process` and `Kernel`.
           modules << (TOPLEVEL_BINDING.respond_to?(:receiver) ? TOPLEVEL_BINDING.receiver : TOPLEVEL_BINDING.eval('self'))
 
           # Patch top-level binding, Kernel, Process.

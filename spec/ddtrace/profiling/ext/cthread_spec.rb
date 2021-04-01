@@ -50,7 +50,12 @@ if Datadog::Profiling::Ext::CPU.supported?
     let(:thread_class) { thread_class_with_instrumentation }
 
     # Kill any spawned threads
-    after { thread.kill if instance_variable_defined?(:@thread_started) && @thread_started }
+    after do
+      if instance_variable_defined?(:@thread_started) && @thread_started
+        thread.kill
+        thread.join
+      end
+    end
 
     shared_context 'with main thread' do
       let(:thread_class) { ::Thread }
