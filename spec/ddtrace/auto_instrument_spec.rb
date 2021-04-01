@@ -16,6 +16,11 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
   include Rack::Test::Methods
 
   before do
+    RSpec.configure do |config|
+      unless config.files_to_run.one?
+        raise 'auto_instrument_spec.rb should be run on a separate RSpec process, do not run it together with other specs'
+      end
+    end
     require 'ddtrace/auto_instrument'
   end
 

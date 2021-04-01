@@ -427,7 +427,7 @@ RSpec.describe Datadog::Configuration do
     end
 
     describe '#reset!' do
-      subject(:reset!) { test_class.reset! }
+      subject(:reset!) { test_class.send(:reset!) }
 
       let!(:original_components) { test_class.send(:components) }
 

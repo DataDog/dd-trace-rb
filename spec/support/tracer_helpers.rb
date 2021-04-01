@@ -161,6 +161,6 @@ module TracerHelpers
       @tracer = nil
     end
 
-    Datadog.reset!
+    Datadog.send(:reset!)
   end
 end
