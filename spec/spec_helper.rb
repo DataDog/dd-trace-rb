@@ -191,3 +191,14 @@ Thread.send(:prepend, DatadogThreadDebugger)
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be
+
+if RUBY_VERSION < '2.1.0'
+  # Extend YAML.safe_load support to Ruby 2.0
+  require 'safe_yaml'
+
+  # Allow gems to use continue using YAML.load without `safe_yaml`
+  # raising the error "Called 'load' without the :safe option".
+  # This should be removed when this explicit `safe_yaml`
+  # requirement is removed.
+  SafeYAML::OPTIONS[:default_mode] = :unsafe
+end

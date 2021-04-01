@@ -114,6 +114,12 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Configuration::Resolver do
     shared_examples 'a matching pattern' do
       it 'matches the pattern' do
         is_expected.to be(matcher)
+
+        unless matcher == match_all
+          expect(resolver.resolve({ host: Object.new }))
+            .to be_nil, "Expected pattern to match only the input, but it's matching everything. "\
+                        'Unless you explicitly wanted to match all patterns, this is unlikely to be desired.'
+        end
       end
     end
 
@@ -156,6 +162,38 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Configuration::Resolver do
         end
 
         it { is_expected.to be_nil }
+      end
+
+      context 'with a makara connection' do
+        let(:actual) do
+          {
+            name: 'master/1'
+          }
+        end
+
+        let(:matcher) do
+          {
+            makara_role: 'master'
+          }
+        end
+
+        it_behaves_like 'a matching pattern'
+
+        context 'with a name not respecting the makara role pattern' do
+          let(:actual) do
+            {
+              name: 'a14%_ #9(]'
+            }
+          end
+
+          let(:matcher) do
+            {
+              makara_role: 'a14%_ #9(]'
+            }
+          end
+
+          it_behaves_like 'a matching pattern'
+        end
       end
     end
 

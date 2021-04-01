@@ -41,6 +41,8 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-cache', '1.7.1'
       gem 'sqlite3', '~> 1.3.5'
       gem 'lograge', '< 0.4'
+      gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
+      gem 'safe_yaml' # Required for makara, as YAML.safe_load is not available in Ruby 2.0
     end
 
     appraise 'rails32-postgres' do
@@ -88,6 +90,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'pg', '< 1.0', platform: :ruby
@@ -99,6 +102,7 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rest-client'
       gem 'resque', '< 2.0'
       gem 'rspec', '>= 3.0.0'
+      gem 'safe_yaml' # Required for makara, as YAML.safe_load is not available in Ruby 2.0
       gem 'sequel', '~> 4.0', '< 4.37'
       gem 'sidekiq', '~> 3.5.4'
       gem 'sinatra', '1.4.5'
@@ -139,6 +143,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-cache', '1.7.1'
       gem 'sqlite3', '~> 1.3.5'
       gem 'lograge', '< 0.4'
+      gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     end
 
     appraise 'rails32-postgres' do
@@ -213,6 +218,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'pg', '< 1.0', platform: :ruby
@@ -395,6 +401,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'qless'
@@ -589,6 +596,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'pg', platform: :ruby
@@ -694,6 +702,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'pg', platform: :ruby
@@ -895,6 +904,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'http'
     gem 'httpclient'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'makara'
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
@@ -1070,6 +1080,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
@@ -1246,6 +1257,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
@@ -1338,6 +1350,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'hiredis'
     gem 'http'
     gem 'httpclient'
+    gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'pg', '>= 1.1', platform: :ruby
