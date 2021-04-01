@@ -3,8 +3,6 @@ module Datadog
     module Ext
       # Monkey patches Ruby's `Thread` with our `Ext::CThread` to enable CPU-time profiling
       module CPU
-        FFI_MINIMUM_VERSION = Gem::Version.new('1.0')
-
         # We cannot apply our CPU extension if a broken rollbar is around because that can cause customer apps to fail
         # with a SystemStackError: stack level too deep.
         #
@@ -44,11 +42,6 @@ module Datadog
             "Feature requires Linux; #{RUBY_PLATFORM} is not supported"
           elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
             'Ruby >= 2.1 is required'
-          elsif Gem.loaded_specs['ffi'].nil?
-            "Missing ffi gem dependency; please add `gem 'ffi', '~> 1.0'` to your Gemfile or gems.rb file"
-          elsif Gem.loaded_specs['ffi'].version < FFI_MINIMUM_VERSION
-            'Your ffi gem dependency is too old; ensure that you have ffi >= 1.0 by ' \
-            "adding `gem 'ffi', '~> 1.0'` to your Gemfile or gems.rb file"
           elsif Gem::Specification.find_all_by_name('rollbar', ROLLBAR_INCOMPATIBLE_VERSIONS).any?
             'You have an incompatible rollbar gem version installed; ensure that you have rollbar >= 3.1.2 by ' \
             "adding `gem 'rollbar', '>= 3.1.2'` to your Gemfile or gems.rb file. " \
