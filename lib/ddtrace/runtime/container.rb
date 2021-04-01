@@ -32,39 +32,37 @@ module Datadog
       end
 
       def descriptor
-        @descriptor ||= begin
-          Descriptor.new.tap do |descriptor|
-            begin
-              Cgroup.descriptors.each do |cgroup_descriptor|
-                # Parse container data from cgroup descriptor
-                path = cgroup_descriptor.path
-                next if path.nil?
+        @descriptor ||= Descriptor.new.tap do |descriptor|
+          begin
+            Cgroup.descriptors.each do |cgroup_descriptor|
+              # Parse container data from cgroup descriptor
+              path = cgroup_descriptor.path
+              next if path.nil?
 
-                # Split path into parts
-                parts = path.split('/')
-                parts.shift # Remove leading empty part
-                next if parts.length < 2
+              # Split path into parts
+              parts = path.split('/')
+              parts.shift # Remove leading empty part
+              next if parts.length < 2
 
-                # Read info from path
-                platform = parts[0]
-                container_id = parts[-1][CONTAINER_REGEX]
-                task_uid = parts[-2][POD_REGEX]
+              # Read info from path
+              platform = parts[0]
+              container_id = parts[-1][CONTAINER_REGEX]
+              task_uid = parts[-2][POD_REGEX]
 
-                # If container ID wasn't found, ignore.
-                # Path might describe a non-container environment.
-                next if container_id.nil?
+              # If container ID wasn't found, ignore.
+              # Path might describe a non-container environment.
+              next if container_id.nil?
 
-                descriptor.platform = platform
-                descriptor.container_id = container_id
-                descriptor.task_uid = task_uid
+              descriptor.platform = platform
+              descriptor.container_id = container_id
+              descriptor.task_uid = task_uid
 
-                break
-              end
-            rescue StandardError => e
-              Datadog.logger.error(
-                "Error while parsing container info. Cause: #{e.message} Location: #{e.backtrace.first}"
-              )
+              break
             end
+          rescue StandardError => e
+            Datadog.logger.error(
+              "Error while parsing container info. Cause: #{e.message} Location: #{e.backtrace.first}"
+            )
           end
         end
       end

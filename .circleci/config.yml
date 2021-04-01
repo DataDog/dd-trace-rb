@@ -50,7 +50,8 @@ test_containers:
       - POSTGRES_DB=postgres
   - &postgres_port 5432
   - &container_presto
-    image: prestosql/presto
+    # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
+    image: starburstdata/presto:332-e.9
   - &presto_port 8080
   - &container_mysql
     image: mysql:5.6
@@ -638,10 +639,10 @@ workflows:
           requires:
             - build-jruby-9.2-latest
       # TruffleRuby
-      - orb/build:
-          <<: *config-truffleruby-21_0_0
-          name: build-truffleruby-21.0.0
       # soon™️
+      # - orb/build:
+      #     <<: *config-truffleruby-21_0_0
+      #     name: build-truffleruby-21.0.0
       # - orb/test:
       #     <<: *config-truffleruby-21_0_0
       #     name: test-truffleruby-21.0.0
