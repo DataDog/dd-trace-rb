@@ -4,8 +4,8 @@ require 'ddtrace/runtime/object_space'
 # Trace buffer that accumulates traces for a consumer.
 # Consumption can happen from a different thread.
 module Datadog
-  # Bounded buffer used to store profiling events.
-  # The buffer has a maximum size and when the buffer is full, a random object is discarded.
+  # Buffer that stores objects. The buffer has a maximum size and when
+  # the buffer is full, a random object is discarded.
   class Buffer
     def initialize(max_size)
       @max_size = max_size
