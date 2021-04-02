@@ -95,6 +95,24 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
         it { expect(span.resource).to eq('TestWorker') }
       end
     end
+
+    describe 'span tagging' do
+      let(:body) { 'message body' }
+
+      context 'with default configuration options' do
+        it 'includes the body in the span' do
+          expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to eq(body)
+        end
+      end
+
+      context 'when tag_body is false' do
+        let(:configuration_options) { { tag_body: false } }
+
+        it 'does not include the message body in the span' do
+          expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to be_nil
+        end
+      end
+    end
   end
 
   context 'when a Shoryuken::Worker class' do

@@ -26,7 +26,7 @@ module Datadog
             span.set_tag(Ext::TAG_JOB_ID, sqs_msg.message_id)
             span.set_tag(Ext::TAG_JOB_QUEUE, queue)
             span.set_tag(Ext::TAG_JOB_ATTRIBUTES, sqs_msg.attributes) if sqs_msg.respond_to?(:attributes)
-            span.set_tag(Ext::TAG_JOB_BODY, body)
+            span.set_tag(Ext::TAG_JOB_BODY, body) if configuration[:tag_body]
 
             yield
           end
