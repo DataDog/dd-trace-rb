@@ -43,10 +43,10 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
       end
     end
 
-    # TODO: Convert this to an instance double, to verify stub.
-    let(:sqs_msg) { double('sqs_msg', message_id: message_id, attributes: attributes) }
+    let(:sqs_msg) { instance_double('Shoryuken::Message', message_id: message_id, attributes: attributes) }
     let(:message_id) { SecureRandom.uuid }
     let(:attributes) { {} }
+    let(:body) { 'message body' }
 
     include_context 'Shoryuken::Worker'
 
@@ -90,27 +90,23 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
       end
 
       context 'that is a String' do
-        let(:body) { 'my body' }
-
         it { expect(span.resource).to eq('TestWorker') }
       end
     end
 
-    describe 'span tagging' do
-      let(:body) { 'message body' }
+    context 'when tag_body is true' do
+      let(:configuration_options) { { tag_body: true } }
 
-      context 'with default configuration options' do
-        it 'includes the body in the span' do
-          expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to eq(body)
-        end
+      it 'includes the body in the span' do
+        expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to eq(body)
       end
+    end
 
-      context 'when tag_body is false' do
-        let(:configuration_options) { { tag_body: false } }
+    context 'when tag_body is false' do
+      let(:configuration_options) { { tag_body: false } }
 
-        it 'does not include the message body in the span' do
-          expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to be_nil
-        end
+      it 'does not include the message body in the span' do
+        expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to be_nil
       end
     end
   end
