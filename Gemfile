@@ -44,6 +44,9 @@ else
 end
 gem 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 gem 'webmock', '>= 3.10.0'
+if RUBY_VERSION < '2.3.0'
+  gem 'rexml', '< 3.2.5' # Pinned due to https://github.com/ruby/rexml/issues/69
+end
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
 gem 'yard', '~> 0.9'
 
