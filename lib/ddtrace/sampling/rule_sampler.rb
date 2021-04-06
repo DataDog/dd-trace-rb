@@ -5,6 +5,7 @@ require 'ddtrace/ext/priority'
 require 'ddtrace/ext/sampling'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling/rate_limiter'
+require 'ddtrace/sampling/rule'
 
 module Datadog
   module Sampling
@@ -45,15 +46,8 @@ module Datadog
         @default_sampler = if default_sampler
                              default_sampler
                            elsif default_sample_rate
-                             # We want to allow 0.0 to drop all traces, but \RateSampler
-                             # considers 0.0 an invalid rate and falls back to 100% sampling.
-                             #
-                             # We address that here by not setting the rate in the constructor,
-                             # but using the setter method.
-                             #
-                             # We don't want to make this change directly to \RateSampler
-                             # because it breaks its current contract to existing users.
-                             Datadog::RateSampler.new.tap { |s| s.sample_rate = default_sample_rate }
+                             # Add to the end of the rule list a rule always matches any span
+                             @rules << SimpleRule.new(sample_rate: default_sample_rate)
                            else
                              RateByServiceSampler.new(1.0, env: -> { Datadog.tracer.tags[:env] })
                            end
