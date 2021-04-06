@@ -351,6 +351,7 @@ RSpec.describe Datadog::Configuration do
 
       context 'deprecation warning' do
         before { described_class.const_get('RUBY_VERSION_DEPRECATION_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
+
         after { described_class.const_get('RUBY_VERSION_DEPRECATION_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
 
         context 'with a deprecated Ruby version' do
