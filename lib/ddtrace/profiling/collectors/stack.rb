@@ -11,11 +11,9 @@ module Datadog
       # Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
       # Runs on its own background thread.
       #
-      # rubocop:disable Metrics/ClassLength
       class Stack < Worker
         include Workers::Polling
 
-        DEFAULT_MAX_FRAMES = 128
         DEFAULT_MAX_TIME_USAGE_PCT = 2.0
         MIN_INTERVAL = 0.01
         THREAD_LAST_CPU_TIME_KEY = :datadog_profiler_last_cpu_time
@@ -29,7 +27,7 @@ module Datadog
 
         def initialize(
           recorder,
-          max_frames: DEFAULT_MAX_FRAMES,
+          max_frames: nil,
           ignore_thread: nil,
           max_time_usage_pct: DEFAULT_MAX_TIME_USAGE_PCT,
           thread_api: Thread,
@@ -38,7 +36,8 @@ module Datadog
           enabled: true
         )
           @recorder = recorder
-          @max_frames = max_frames
+          # TODO: Make this a required named argument after we drop support for Ruby 2.0
+          @max_frames = max_frames || raise(ArgumentError, 'missing keyword :max_frames')
           @ignore_thread = ignore_thread
           @max_time_usage_pct = max_time_usage_pct
           @thread_api = thread_api
@@ -249,7 +248,6 @@ module Datadog
           end
         end
       end
-      # rubocop:enable Metrics/ClassLength
     end
   end
 end

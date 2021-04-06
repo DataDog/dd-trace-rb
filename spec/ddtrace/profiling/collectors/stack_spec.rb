@@ -8,7 +8,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   subject(:collector) { described_class.new(recorder, **options) }
 
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
-  let(:options) { {} }
+  let(:options) { { max_frames: 50 } }
 
   let(:buffer) { instance_double(Datadog::Profiling::Buffer) }
   let(:string_table) { Datadog::Utils::StringTable.new }
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
         ignore_thread: nil,
         loop_base_interval: described_class::MIN_INTERVAL,
-        max_frames: described_class::DEFAULT_MAX_FRAMES,
+        max_frames: options.fetch(:max_frames),
         max_time_usage_pct: described_class::DEFAULT_MAX_TIME_USAGE_PCT,
         recorder: recorder
       )
@@ -217,7 +217,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'is ignored' do
-        let(:options) { { ignore_thread: ->(t) { t == thread } } }
+        let(:options) { { **super(), ignore_thread: ->(t) { t == thread } } }
 
         it 'skips the thread' do
           expect(collector).to_not receive(:collect_thread_event)
@@ -359,8 +359,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'and max_frames is 0' do
-        let(:options) { { max_frames: 0 } }
-        let(:backtrace_size) { described_class::DEFAULT_MAX_FRAMES * 2 }
+        let(:options) { { **super(), max_frames: 0 } }
+        let(:backtrace_size) { 500 }
 
         it 'does not constrain the size of the backtrace' do
           is_expected.to have_attributes(total_frame_count: backtrace.length)
@@ -569,7 +569,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:used_time) { 1 }
 
     context 'when max time usage' do
-      let(:options) { { max_time_usage_pct: max_time_usage_pct } }
+      let(:options) { { **super(), max_time_usage_pct: max_time_usage_pct } }
 
       context 'is 100%' do
         let(:max_time_usage_pct) { 100.0 }

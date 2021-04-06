@@ -538,6 +538,39 @@ RSpec.describe Datadog::Configuration::Settings do
       end
     end
 
+    describe '#max_frames' do
+      subject(:max_frames) { settings.profiling.max_frames }
+
+      context "when #{Datadog::Ext::Profiling::ENV_MAX_FRAMES}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Profiling::ENV_MAX_FRAMES => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to eq(400) }
+        end
+
+        context 'is defined' do
+          let(:environment) { '123' }
+
+          it { is_expected.to eq(123) }
+        end
+      end
+    end
+
+    describe '#max_frames=' do
+      it 'updates the #max_frames setting' do
+        expect { settings.profiling.max_frames = 456 }
+          .to change { settings.profiling.max_frames }
+          .from(400)
+          .to(456)
+      end
+    end
+
     describe '#upload' do
       describe '#timeout' do
         subject(:timeout) { settings.profiling.upload.timeout }

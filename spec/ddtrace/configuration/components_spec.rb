@@ -659,7 +659,7 @@ RSpec.describe Datadog::Configuration::Components do
             enabled?: true,
             started?: false,
             ignore_thread: nil,
-            max_frames: 128,
+            max_frames: settings.profiling.max_frames,
             max_time_usage_pct: 2.0
           )
         end
