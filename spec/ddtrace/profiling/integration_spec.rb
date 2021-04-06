@@ -55,7 +55,8 @@ RSpec.describe 'profiling integration test' do
     let(:collector) do
       Datadog::Profiling::Collectors::Stack.new(
         recorder,
-        enabled: true
+        enabled: true,
+        max_frames: 400
       )
     end
     let(:exporter) do

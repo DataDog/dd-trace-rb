@@ -123,6 +123,13 @@ module Datadog
 
         option :max_events, default: 32768
 
+        # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
+        # produced profiles. Increasing this may increase the overhead of profiling.
+        option :max_frames do |o|
+          o.default { env_to_int(Ext::Profiling::ENV_MAX_FRAMES, 400) }
+          o.lazy
+        end
+
         settings :upload do
           option :timeout do |o|
             o.setter { |value| value.nil? ? 30.0 : value.to_f }

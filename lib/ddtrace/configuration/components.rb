@@ -118,7 +118,8 @@ module Datadog
         def build_profiler_collectors(settings, recorder)
           [
             Datadog::Profiling::Collectors::Stack.new(
-              recorder
+              recorder,
+              max_frames: settings.profiling.max_frames
               # TODO: Provide proc that identifies Datadog worker threads?
               # ignore_thread: settings.profiling.ignore_profiler
             )
