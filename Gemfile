@@ -58,5 +58,7 @@ end
 
 # Optional extensions
 # TODO: Move this to Appraisals?
-gem 'dogstatsd-ruby', '>= 3.3.0'
+
+# Unpin when https://github.com/DataDog/dogstatsd-ruby/pull/175 is released
+gem 'dogstatsd-ruby', git: 'https://github.com/marcotc/dogstatsd-ruby.git', ref: 'dd7ef5dfe4ff9336ec27dc3736e0bbd2acede767'
 gem 'opentracing', '>= 0.4.1'
