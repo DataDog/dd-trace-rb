@@ -23,7 +23,7 @@ module Datadog
       elsif Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
         'Your google-protobuf is too old; ensure that you have google-protobuf >= 3.0 by ' \
         "adding `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
-      elsif !self.protobuf_loaded_successfully?
+      elsif !protobuf_loaded_successfully?
         'There was an error loading the google-protobuf library; see previous warning message for details'
       end
     end
@@ -73,7 +73,7 @@ module Datadog
 
       require 'ddtrace/profiling/pprof/pprof_pb'
 
-      return true
+      true
     end
 
     load_profiling if supported?

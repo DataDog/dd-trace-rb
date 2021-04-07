@@ -19,7 +19,8 @@ namespace :spec do
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,opentelemetry,auto_instrument}/**/*_spec.rb,'\
                         ' spec/**/auto_instrument_spec.rb'
-    t.exclude_pattern += ',spec/**/profiling/**/*_spec.rb' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0') # Profiler is Ruby 2.1+ only
+    # Profiler is Ruby 2.1+ only
+    t.exclude_pattern += ',spec/**/profiling/**/*_spec.rb' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
     t.rspec_opts = args.to_a.join(' ')
   end
 
