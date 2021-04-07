@@ -9,11 +9,6 @@ module Datadog
       google_protobuf_supported?
     end
 
-    def native_cpu_time_supported?
-      require 'ddtrace/profiling/ext/cpu'
-      Ext::CPU.supported?
-    end
-
     def google_protobuf_supported?
       RUBY_PLATFORM != 'java' \
         && !Gem.loaded_specs['google-protobuf'].nil? \

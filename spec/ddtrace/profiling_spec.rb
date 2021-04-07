@@ -18,30 +18,6 @@ RSpec.describe Datadog::Profiling do
     it { is_expected.to be(google_protobuf_supported) }
   end
 
-  describe 'native_cpu_time_supported?' do
-    subject(:native_cpu_time_supported?) { described_class.native_cpu_time_supported? }
-
-    context 'when the CPU extension is supported' do
-      before do
-        allow(Datadog::Profiling::Ext::CPU)
-          .to receive(:supported?)
-          .and_return(true)
-      end
-
-      it { is_expected.to be true }
-    end
-
-    context 'when the CPU extension is not supported' do
-      before do
-        allow(Datadog::Profiling::Ext::CPU)
-          .to receive(:supported?)
-          .and_return(false)
-      end
-
-      it { is_expected.to be false }
-    end
-  end
-
   describe '::google_protobuf_supported?' do
     subject(:google_protobuf_supported?) { described_class.google_protobuf_supported? }
 
