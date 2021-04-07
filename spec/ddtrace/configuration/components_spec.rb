@@ -904,8 +904,8 @@ RSpec.describe Datadog::Configuration::Components do
       context 'is unsupported' do
         before do
           allow(Datadog::Profiling)
-            .to receive(:supported?)
-            .and_return(false)
+            .to receive(:unsupported_reason)
+            .and_return('Disabled for testing')
         end
 
         context 'and enabled' do
