@@ -32,33 +32,43 @@ RSpec.describe Datadog::Profiling do
     context 'when not using JRuby' do
       before { stub_const('RUBY_ENGINE', 'ruby') }
 
-      context 'and \'google-protobuf\'' do
-        context 'is not available' do
-          include_context 'loaded gems', 'google-protobuf': nil
+      context 'when running on MRI < 2.1' do
+        before { stub_const('RUBY_VERSION', '2.0.0') }
 
-          it { is_expected.to include 'Missing google-protobuf' }
-        end
+        it { is_expected.to include 'Ruby >= 2.1' }
+      end
 
-        context 'is available' do
-          context 'but is below the minimum version' do
-            include_context 'loaded gems', 'google-protobuf': Gem::Version.new('2.9')
+      context 'when running on MRI >= 2.1' do
+        before { stub_const('RUBY_VERSION', '2.1.0') }
 
-            it { is_expected.to include 'google-protobuf >= 3.0' }
+        context 'and \'google-protobuf\'' do
+          context 'is not available' do
+            include_context 'loaded gems', :'google-protobuf' => nil
+
+            it { is_expected.to include 'Missing google-protobuf' }
           end
 
-          context 'and meeting the minimum version' do
-            include_context 'loaded gems', 'google-protobuf': Gem::Version.new('3.0')
+          context 'is available' do
+            context 'but is below the minimum version' do
+              include_context 'loaded gems', :'google-protobuf' => Gem::Version.new('2.9')
 
-            context 'when protobuf does not load correctly' do
-              before { allow(described_class).to receive(:protobuf_loaded_successfully?).and_return(false) }
-
-              it { is_expected.to include 'error loading' }
+              it { is_expected.to include 'google-protobuf >= 3.0' }
             end
 
-            context 'when protobuf loads successfully' do
-              before { allow(described_class).to receive(:protobuf_loaded_successfully?).and_return(true) }
+            context 'and meeting the minimum version' do
+              include_context 'loaded gems', :'google-protobuf' => Gem::Version.new('3.0')
 
-              it { is_expected.to be nil }
+              context 'when protobuf does not load correctly' do
+                before { allow(described_class).to receive(:protobuf_loaded_successfully?).and_return(false) }
+
+                it { is_expected.to include 'error loading' }
+              end
+
+              context 'when protobuf loads successfully' do
+                before { allow(described_class).to receive(:protobuf_loaded_successfully?).and_return(true) }
+
+                it { is_expected.to be nil }
+              end
             end
           end
         end

@@ -27,7 +27,7 @@ module Datadog
 
         def initialize(
           recorder,
-          max_frames: nil,
+          max_frames:,
           ignore_thread: nil,
           max_time_usage_pct: DEFAULT_MAX_TIME_USAGE_PCT,
           thread_api: Thread,
@@ -36,8 +36,7 @@ module Datadog
           enabled: true
         )
           @recorder = recorder
-          # TODO: Make this a required named argument after we drop support for Ruby 2.0
-          @max_frames = max_frames || raise(ArgumentError, 'missing keyword :max_frames')
+          @max_frames = max_frames
           @ignore_thread = ignore_thread
           @max_time_usage_pct = max_time_usage_pct
           @thread_api = thread_api

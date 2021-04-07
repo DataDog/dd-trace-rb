@@ -16,6 +16,8 @@ module Datadog
 
       if RUBY_ENGINE == 'jruby'
         'JRuby is not supported'
+      elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
+        'Ruby >= 2.1 is required'
       elsif Gem.loaded_specs['google-protobuf'].nil?
         "Missing google-protobuf dependency; please add `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
       elsif Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
