@@ -678,6 +678,28 @@ RSpec.describe Datadog::Metrics do
       end
     end
   end
+
+  describe '#close' do
+    subject(:close) { metrics.close }
+
+    context 'with a closeable statsd instance' do
+      let(:statsd) { instance_double(Datadog::Statsd, close: nil) }
+
+      it 'closes statsd' do
+        close
+
+        expect(statsd).to have_received(:close)
+      end
+    end
+
+    context 'without a non-closeable statsd instance' do
+      let(:statsd) { double }
+
+      it 'does not call nonexistent method #close' do
+        close
+      end
+    end
+  end
 end
 
 RSpec.describe Datadog::Metrics::Options do

@@ -113,7 +113,7 @@ RSpec.describe 'ddtrace integration' do
       end
 
       it 'does not error on reporting health metrics' do
-        expect(Datadog.health_metrics.queue_accepted(1)).to be_a(Integer)
+        expect(Datadog.health_metrics.queue_accepted(1)).to be(true)
       end
 
       context 'with OpenTracer' do
