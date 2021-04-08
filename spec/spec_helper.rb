@@ -91,6 +91,10 @@ RSpec.configure do |config|
   # with the test execution.
   config.around do |example|
     example.run.tap do
+      # Background thread leak checking is currently too verbose for CI,
+      # slowing down builds to the point of causing CircleCI timeouts.
+      next if ENV.key?('CI')
+
       # Exclude acceptable background threads
       background_threads = Thread.list.reject do |t|
         group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
