@@ -112,6 +112,8 @@ module Datadog
     #
     # In contrast with +#shutdown!+, components will be automatically
     # reinitialized after a reset.
+    #
+    # Used internally to ensure a clean environment between test runs.
     def reset!
       safely_synchronize do |write_components|
         @components.shutdown! if components?

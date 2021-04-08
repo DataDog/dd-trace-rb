@@ -6,7 +6,6 @@ RSpec.describe 'ddtrace integration' do
     subject(:shutdown) { Datadog.shutdown! }
 
     let(:start_tracer) do
-      Datadog.configure {}
       Datadog.tracer.trace('test.op') {}
     end
 
