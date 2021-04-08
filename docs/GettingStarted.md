@@ -2474,19 +2474,24 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 
 ### Payload too large
 
-If you suspect that not all traces from your application are being captured, this might be due to traces that are too large to be processed.
+By default, Datadog limits the size of trace payloads to prevent memory overhead within instrumented applications.  However, if your application creates long running traces, measured in minutes, or traces with thousands of operations, these traces may not be sent to Datadog due to these size limits.
 
-If your application creates long running traces, measured in minutes, or traces with a thousands of operations, such traces can go over our processing limit.
-You can enable [debug mode](#tracer-settings) and check if messages similar to `"Dropping trace. Payload too large"` are being emitted. Keep in mind that debug mode is very verbose. You can also inspect the [Datadog agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
+If traces are missing and to confirm this behavior is occurring, enable [debug mode](#tracer-settings) and check if messages similar to `"Dropping trace. Payload too large"` are being emitted.
 
-For cases where the payload is too large, you have the option to enable [partial_flush](#tracer-settings) in the tracer. This will break down large traces into smaller chunks that get streamed to Datadog. The side-effect of partial flushing is that service metrics will count a single large trace multiple times: once per chunk streamed.
+Debug mode is very verbose and it is not recommended to leave this enabled, so disable it after confirming. You can also inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
+
+Once you have confirmed traces are being dropped due to large payloads, enable the [partial_flush](#tracer-settings) setting as a tracer configuration. This will break down large traces into smaller chunks that get streamed to Datadog.
 
 ### Stack level too deep
 
-`ddtrace` uses [Module#prepend](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) when instrumenting gems, as this approach allows for non-competing overriding of the same method by different parties.
+`ddtrace` uses [Module#prepend](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) when instrumenting gems, as this approach allows for non-competing overriding of the same method by other libraries present in the same application.
 
-A few libraries use [alias](https://ruby-doc.org/core-3.0.0/doc/syntax/miscellaneous_rdoc.html#label-alias) and [Module#alias_method](https://ruby-doc.org/core-3.0.0/Module.html#method-i-alias_method) for overriding methods, which destructively replaces the original method being overridden. This approach is also incompatible with `Module#prepend` overriding, causing, for example, `SystemStackError`.
+The presence of other libraries that use [alias](https://ruby-doc.org/core-3.0.0/doc/syntax/miscellaneous_rdoc.html#label-alias) or [Module#alias_method](https://ruby-doc.org/core-3.0.0/Module.html#method-i-alias_method) to override methods can cause issues to manifest in your application, often referred to as “noisy neighbor” issues.  The two methods above destructively replace the original method being overridden.  This approach is also incompatible with `Module#prepend` overriding, causing, for example, `SystemStackError`.
 
-There's no simple solution if you are seeing `SystemStackError` being raised, but a few libraries have known workarounds:
+A few libraries have known workarounds for these types of noisy neighbor issues:
 
 * `rack-mini-profiler`: [Net::HTTP stack level too deep errors](https://github.com/MiniProfiler/rack-mini-profiler#nethttp-stack-level-too-deep-errors).
+
+For libraries without a known workaround, consider removing the library using `alias` or `Module#alias_method`, separating libraries into different environments for testing, or creating a github issue with the affected libraries.
+
+For any further questions on these issues, please [reach out to Datadog support](https://docs.datadoghq.com/help)
