@@ -49,12 +49,15 @@ RSpec.describe 'net/http requests' do
       before { server.set_next_response(status: 200, body: '{}') }
 
       let(:content) { JSON.parse(response.body) }
-      let(:span) { spans.first }
+      let(:span) { spans[1] }
+      let(:connect_span) { spans[0] }
 
       it 'generates a well-formed trace' do
         expect(response.code).to eq('200')
         expect(content).to be_a_kind_of(Hash)
-        expect(spans).to have(1).items
+        expect(spans).to have(2).items
+        expect(connect_span.name).to eq('http.connect')
+        expect(connect_span.service).to eq('net/http')
         expect(span.name).to eq('http.request')
         expect(span.service).to eq('net/http')
         expect(span.resource).to eq('GET')
@@ -83,11 +86,14 @@ RSpec.describe 'net/http requests' do
       before { server.set_next_response(status: 404, body: body) }
 
       let(:body) { '{ "code": 404, message": "Not found!" }' }
-      let(:span) { spans.first }
+      let(:span) { spans[1] }
+      let(:connect_span) { spans[0] }
 
       it 'generates a well-formed trace' do
         expect(response.code).to eq('404')
-        expect(spans).to have(1).items
+        expect(spans).to have(2).items
+        expect(connect_span.name).to eq('http.connect')
+        expect(connect_span.service).to eq('net/http')
         expect(span.name).to eq('http.request')
         expect(span.service).to eq('net/http')
         expect(span.resource).to eq('GET')
@@ -145,17 +151,23 @@ RSpec.describe 'net/http requests' do
   end
 
   describe '#post' do
+    subject(:response) { client.post(path, payload) }
+
     let(:path) { '/my/path' }
     let(:payload) { '{ "foo": "bar" }' }
 
     context 'that returns 201' do
       before { server.set_next_response(status: 201, body: "{}") }
 
-      let(:span) { spans.first }
+      let(:span) { spans[1] }
+      let(:connect_span) { spans[0] }
 
       it 'generates a well-formed trace' do
         expect(response.code).to eq('201')
-        expect(spans).to have(1).items
+        expect(spans).to have(2).items
+        expect(connect_span.name).to eq('http.connect')
+        expect(connect_span.service).to eq('net/http')
+
         expect(span.name).to eq('http.request')
         expect(span.service).to eq('net/http')
         expect(span.resource).to eq('POST')
@@ -174,7 +186,7 @@ RSpec.describe 'net/http requests' do
   describe '#start' do
     context 'which applies a pin to the Net::HTTP object' do
       before do
-        server.set_next_response(status: 201, body: "{}")
+        server.set_next_response(status: 200, body: "{}")
 
         Net::HTTP.start(host, port) do |http|
           http.request(request)
@@ -183,10 +195,14 @@ RSpec.describe 'net/http requests' do
 
       let(:request) { Net::HTTP::Get.new(path) }
       let(:path) { '/my/path' }
-      let(:span) { spans.first }
+      let(:span) { spans[1] }
+      let(:connect_span) { spans.first }
 
       it 'generates a well-formed trace' do
-        expect(spans).to have(1).items
+        expect(spans).to have(2).items
+        expect(connect_span.name).to eq('http.connect')
+        expect(connect_span.service).to eq('net/http')
+
         expect(span.name).to eq('http.request')
         expect(span.service).to eq('net/http')
         expect(span.resource).to eq('GET')
@@ -213,11 +229,14 @@ RSpec.describe 'net/http requests' do
 
       let(:path) { '/my/path' }
       let(:service_name) { 'bar' }
-      let(:span) { spans.first }
+      let(:span) { spans[1] }
+      let(:connect_span) { spans[0] }
 
       it 'generates a well-formed trace' do
         expect(response.code).to eq('200')
-        expect(spans).to have(1).items
+        expect(spans).to have(2).items
+        expect(connect_span.name).to eq('http.connect')
+        expect(connect_span.service).to eq(service_name)
         expect(span.name).to eq('http.request')
         expect(span.service).to eq(service_name)
       end
@@ -230,7 +249,8 @@ RSpec.describe 'net/http requests' do
     subject(:response) { client.get(path) }
 
     let(:path) { '/my/path' }
-    let(:span) { spans.first }
+    let(:connect_span) { spans[0] }
+    let(:span) { spans[1] }
     let(:configuration_options) { super().merge(split_by_domain: true) }
 
     before { server.set_next_response(status: 200, body: "{}") }
