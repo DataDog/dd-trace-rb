@@ -615,8 +615,6 @@ RSpec.describe Datadog::Configuration::Components do
 
       it 'shuts down all components' do
         expect(components.tracer).to receive(:shutdown!)
-        expect(components.runtime_metrics).to receive(:enabled=)
-          .with(false)
         expect(components.runtime_metrics).to receive(:stop)
           .with(true, close_metrics: false)
         expect(components.runtime_metrics.metrics.statsd).to receive(:close)
@@ -647,8 +645,6 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components' do
           expect(components.tracer).to receive(:shutdown!)
-          expect(components.runtime_metrics).to receive(:enabled=)
-            .with(false)
           expect(components.runtime_metrics).to receive(:stop)
             .with(true, close_metrics: false)
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)
@@ -666,8 +662,6 @@ RSpec.describe Datadog::Configuration::Components do
 
           it 'shuts down all components' do
             expect(components.tracer).to receive(:shutdown!)
-            expect(components.runtime_metrics).to receive(:enabled=)
-              .with(false)
             expect(components.runtime_metrics).to receive(:stop)
               .with(true, close_metrics: false)
             expect(components.health_metrics.statsd).to receive(:close)
@@ -684,8 +678,6 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components but the tracer' do
           expect(components.tracer).to_not receive(:shutdown!)
-          expect(components.runtime_metrics).to receive(:enabled=)
-            .with(false)
           expect(components.runtime_metrics).to receive(:stop)
             .with(true, close_metrics: false)
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)
@@ -702,8 +694,6 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components but the tracer' do
           expect(components.tracer).to receive(:shutdown!)
-          expect(components.runtime_metrics).to receive(:enabled=)
-            .with(false)
           expect(components.runtime_metrics).to receive(:stop)
             .with(true, close_metrics: false)
           expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
@@ -721,8 +711,6 @@ RSpec.describe Datadog::Configuration::Components do
 
         it 'shuts down all components but the tracer' do
           expect(components.tracer).to receive(:shutdown!)
-          expect(components.runtime_metrics).to receive(:enabled=)
-            .with(false)
           expect(components.runtime_metrics).to receive(:stop)
             .with(true, close_metrics: false)
           expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)

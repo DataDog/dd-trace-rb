@@ -217,6 +217,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     it 'closes metrics and stops worker' do
       stop
 
+      expect(worker.enabled?).to be(false)
       expect(worker.running?).to be(false)
       expect(worker.metrics).to have_received(:close)
     end
@@ -229,6 +230,19 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
         expect(worker.running?).to be(false)
         expect(worker.metrics).to_not have_received(:close)
+      end
+    end
+
+    context 'with async thread not started'do
+      it 'does not lazily initialize stopped worker' do
+        expect(worker.running?).to be(false)
+
+        stop
+
+        # Try to initialize async thread
+        worker.perform
+
+        expect(worker.running?).to be(false)
       end
     end
   end

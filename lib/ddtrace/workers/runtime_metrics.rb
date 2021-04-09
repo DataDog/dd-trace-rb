@@ -50,6 +50,7 @@ module Datadog
       # ensuring correct resource decommission of its internal
       # dependencies.
       def stop(*args, close_metrics: true)
+        self.enabled = false
         result = super(*args)
         @metrics.close if close_metrics
         result

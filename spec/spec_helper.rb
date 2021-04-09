@@ -90,14 +90,21 @@ RSpec.configure do |config|
   # put this code inside the test scope, interfering
   # with the test execution.
   #
-  # rubocop:disable Style/ClassVars
+  # rubocop:disable Style/GlobalVars
   config.around do |example|
     example.run.tap do
       # Stop reporting on background thread leaks after too many
       # successive failures. The output is very verbose and, at that point,
       # it's better to work on fixing the very first occurrences.
-      @@background_thread_leak_reports ||= 0
-      next if @@background_thread_leak_reports > 10
+      $background_thread_leak_reports ||= 0
+      if $background_thread_leak_reports >= 10
+        if $background_thread_leak_reports == 10
+          warn "Too many leak thread reports! Suppressing further reports.\n" \
+               'Consider addressing the previously reported leaks before proceeding.'
+        end
+
+        next
+      end
 
       # Exclude acceptable background threads
       background_threads = Thread.list.reject do |t|
@@ -159,11 +166,11 @@ RSpec.configure do |config|
           :red
         )
 
-        @@background_thread_leak_reports += 1
+        $background_thread_leak_reports += 1
       end
     end
   end
-  # rubocop:enable Style/ClassVars
+  # rubocop:enable Style/GlobalVars
 
   # Closes the global testing tracer.
   #
