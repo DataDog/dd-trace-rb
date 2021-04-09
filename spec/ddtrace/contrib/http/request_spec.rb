@@ -469,5 +469,29 @@ RSpec.describe 'net/http requests' do
         expect(span).to have_error_message(expected_error)
       end
     end
+
+    context 'read timeout' do
+      let(:span) { spans[1] }
+
+      before do
+        client.read_timeout = 1
+        server.set_response_delay 1.25
+      end
+
+      it 'generates a well-formed trace with span tags available from request object' do
+        expect { response }.to raise_error(Net::ReadTimeout)
+        expect(spans).to have(2).items
+        expect(span.name).to eq('http.request')
+        expect(span.service).to eq('net/http')
+        expect(span.resource).to eq("GET")
+        expect(span.get_tag('http.url')).to eq(path)
+        expect(span.get_tag('http.method')).to eq('GET')
+        expect(span.get_tag('out.host')).to eq(host)
+        expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span).to have_error
+        expect(span).to have_error_type(Net::ReadTimeout.to_s)
+        expect(span).to have_error_message("Net::ReadTimeout")
+      end
+    end
   end
 end

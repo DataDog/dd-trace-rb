@@ -14,6 +14,8 @@ class TestHTTPServer
         request = session.gets
         @requests << request.strip
 
+        Thread.sleep @delay if @delay
+
         @next_response.each { |line| session.print line }
 
         session.close
@@ -42,5 +44,9 @@ class TestHTTPServer
 
   def reset_next_response
     set_next_response(status: 200, body: "Hello world! Time is #{Time.now}")
+  end
+
+  def set_response_delay(seconds)
+    @delay = seconds
   end
 end
