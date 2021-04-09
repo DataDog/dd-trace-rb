@@ -53,6 +53,7 @@ RSpec.describe 'net/http patcher' do
     end
 
     it_behaves_like 'a peer service span' do
+      let(:span) { request_span }
       let(:service) { request_span }
     end
   end
