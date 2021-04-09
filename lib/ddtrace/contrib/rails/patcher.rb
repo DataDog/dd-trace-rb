@@ -3,6 +3,7 @@ require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
 require 'ddtrace/contrib/rails/log_injection'
 require 'ddtrace/contrib/rack/middlewares'
+require 'ddtrace/utils/only_once'
 
 module Datadog
   module Contrib
@@ -10,6 +11,9 @@ module Datadog
       # Patcher enables patching of 'rails' module.
       module Patcher
         include Contrib::Patcher
+
+        BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
+        AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
 
         module_function
 
@@ -29,7 +33,7 @@ module Datadog
         end
 
         def before_intialize(app)
-          do_once(:rails_before_initialize, for: app) do
+          BEFORE_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
             # Middleware must be added before the application is initialized.
             # Otherwise the middleware stack will be frozen.
             # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
@@ -86,7 +90,7 @@ module Datadog
         end
 
         def after_intialize(app)
-          do_once(:rails_after_initialize, for: app) do
+          AFTER_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
             # Finish configuring the tracer after the application is initialized.
             # We need to wait for some things, like application name, middleware stack, etc.
             setup_tracer

@@ -26,6 +26,7 @@ module Datadog
         buffer.shift
       end
 
+      # Are there more items to be processed next?
       def work_pending?
         !buffer.empty?
       end

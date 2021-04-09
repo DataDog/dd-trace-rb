@@ -98,7 +98,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.3     | Full                                 | Latest              |
 |       |                            | 2.2     | Full                                 | Latest              |
 |       |                            | 2.1     | Full                                 | Latest              |
-|       |                            | 2.0     | Full                                 | Latest              |
+|       |                            | 2.0     | Deprecated                           | < 0.50.0            |
 |       |                            | 1.9.3   | EOL since August 6th, 2020           | < 0.27.0            |
 |       |                            | 1.9.1   | EOL since August 6th, 2020           | < 0.27.0            |
 | JRuby | https://www.jruby.org      | 9.2     | Full                                 | Latest              |
@@ -1609,16 +1609,11 @@ The Resque integration uses Resque hooks that wraps the `perform` method.
 To add tracing to a Resque job:
 
 ```ruby
+require 'resque'
 require 'ddtrace'
 
-class MyJob
-  def self.perform(*args)
-    # do_something
-  end
-end
-
 Datadog.configure do |c|
-  c.use :resque, options
+  c.use :resque, **options
 end
 ```
 
@@ -1628,8 +1623,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `resque` instrumentation | `'resque'` |
-| `workers` | An array including all worker classes you want to trace (e.g. `[MyJob]`) | `[]` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `workers` | **[DEPRECATED]** Limits instrumented worker classes to only the ones specified in an array (e.g. `[MyJob]`). If not provided, instruments all workers. | `nil` |
 
 ### Rest Client
 
