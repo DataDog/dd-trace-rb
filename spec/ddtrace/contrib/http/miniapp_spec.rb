@@ -10,25 +10,30 @@ RSpec.describe 'net/http miniapp tests' do
   let(:port) { 1234 }
   let(:uri) { "http://#{host}:#{port}" }
 
+  before do
+    original_verbosity = $VERBOSE
+    $VERBOSE = nil
+    Net.send(:const_set, :HTTP, ::OriginalNetHTTP)
+    $VERBOSE = original_verbosity
+
+    Datadog::Contrib::HTTP::Patcher.remove_instance_variable(:@done_once) if Datadog::Contrib::HTTP::Patcher.patched?
+    Datadog.configure { |c| c.use :http }
+  end
+
+  after do
+    original_verbosity = $VERBOSE
+    $VERBOSE = nil
+    Net.send(:const_set, :HTTP, ::OriginalNetHTTP)
+    $VERBOSE = original_verbosity
+    Datadog::Contrib::HTTP::Patcher.remove_instance_variable(:@done_once) if Datadog::Contrib::HTTP::Patcher.patched?
+  end
+
   context 'when performing a trace around HTTP calls' do
+    let(:client) { Net::HTTP.new(host, port) }
     let(:server) { TestHTTPServer.new host, port }
 
-    before do
-      server
-      original_verbosity = $VERBOSE
-      $VERBOSE = nil
-      Net.send(:const_set, :HTTP, ::OriginalNetHTTP)
-      $VERBOSE = original_verbosity
-
-      Datadog::Contrib::HTTP::Patcher.remove_instance_variable(:@done_once) if Datadog::Contrib::HTTP::Patcher.patched?
-      Datadog.configure { |c| c.use :http }
-    end
-
-    after do
-      server.close
-    end
-
-    let(:client) { Net::HTTP.new(host, port) }
+    before { server }
+    after { server.close }
 
     shared_examples_for 'a trace with connection and two HTTP requests spans' do
       before do
@@ -39,7 +44,7 @@ RSpec.describe 'net/http miniapp tests' do
           http_calls
         end
 
-        expect(server.requests_paths).to eq ["GET /my/path HTTP/1.1", "GET /my/path HTTP/1.1"]
+        expect(server.requests).to have(2).items
       end
 
       let(:connect_count) { 1 }
@@ -125,16 +130,6 @@ RSpec.describe 'net/http miniapp tests' do
   context 'when error during connection' do
     let(:host) { 'nonexisting.dns.name.ddtrace.example.local' }
     let(:client) { Net::HTTP.new(host, port) }
-
-    before do
-      original_verbosity = $VERBOSE
-      $VERBOSE = nil
-      Net.send(:const_set, :HTTP, ::OriginalNetHTTP)
-      $VERBOSE = original_verbosity
-
-      Datadog::Contrib::HTTP::Patcher.remove_instance_variable(:@done_once) if Datadog::Contrib::HTTP::Patcher.patched?
-      Datadog.configure { |c| c.use :http }
-    end
 
     before do
       allow(TCPSocket).to receive(:open)

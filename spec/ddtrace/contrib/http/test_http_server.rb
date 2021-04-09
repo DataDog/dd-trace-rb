@@ -20,13 +20,14 @@ class TestHTTPServer
   def process_request
     session = @server.accept
 
-    request = []
+    request_header = []
     while (line = session.gets.strip) != ""
-      request << line
+      request_header << line
     end
+    request = parse_request(request_header)
     @requests << request
 
-    session.read(requests.last[:headers]["Content-Length"].to_i) if requests.last[:method] == "POST"
+    session.read(request[:headers]["Content-Length"].to_i) if request[:method] == "POST"
     sleep @delay if @delay
 
     @next_response.each { |line| session.print line }
@@ -38,19 +39,17 @@ class TestHTTPServer
   end
 
   def requests
-    @requests.map do |request|
-      method, path, http_version = request[0].split(" ", 3)
-      {
-        method: method,
-        path: path,
-        http_version: http_version,
-        headers: request[1..-1].map { |header| header.split(":", 2).map { |value| value.strip} }.to_h
-      }
-    end
+    @requests
   end
 
-  def requests_paths
-    @requests.map { |request| request[0] }
+  def parse_request(request)
+    method, path, http_version = request[0].split(" ", 3)
+    {
+      method: method,
+      path: path,
+      http_version: http_version,
+      headers: request[1..-1].map { |header| header.split(":", 2).map { |value| value.strip} }.to_h
+    }
   end
 
   def close
