@@ -156,11 +156,11 @@ module TracerHelpers
   def tracer_shutdown!
     if defined?(@use_real_tracer) && @use_real_tracer
       Datadog.tracer.shutdown!
-    else
-      return unless defined?(@tracer) && @tracer
-
+    elsif defined?(@tracer) && @tracer
       @tracer.shutdown!
       @tracer = nil
     end
+
+    Datadog.send(:reset!)
   end
 end
