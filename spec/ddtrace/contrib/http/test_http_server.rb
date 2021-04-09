@@ -11,9 +11,7 @@ class TestHTTPServer
 
   def start_listen_thread
     @thread = Thread.new do
-      while Thread.current.alive? && !@server.closed?
-        process_request
-      end
+      process_request while Thread.current.alive? && !@server.closed?
     end
   end
 
@@ -21,16 +19,16 @@ class TestHTTPServer
     session = @server.accept
 
     request_header = []
-    while (line = session.gets.strip) != ""
+    while (line = session.gets.strip) != ''
       request_header << line
     end
     request = parse_request(request_header)
     @requests << request
 
-    session.read(request[:headers]["Content-Length"].to_i) if request[:method] == "POST"
+    session.read(request[:headers]['Content-Length'].to_i) if request[:method] == 'POST'
     sleep @delay if @delay
 
-    @next_response.each { |line| session.print line }
+    @next_response.each { |response| session.print response }
 
     session.close
     reset_next_response
@@ -38,17 +36,15 @@ class TestHTTPServer
     nil
   end
 
-  def requests
-    @requests
-  end
+  attr_reader :requests
 
   def parse_request(request)
-    method, path, http_version = request[0].split(" ", 3)
+    method, path, http_version = request[0].split(' ', 3)
     {
       method: method,
       path: path,
       http_version: http_version,
-      headers: request[1..-1].map { |header| header.split(":", 2).map { |value| value.strip} }.to_h
+      headers: request[1..-1].map { |header| header.split(':', 2).map(&:strip) }.to_h
     }
   end
 
@@ -63,7 +59,7 @@ class TestHTTPServer
       "HTTP/1.1 #{status}\r\n",
       "Content-Type: text/plain\r\n",
       "\r\n",
-      body,
+      body
     ]
   end
 

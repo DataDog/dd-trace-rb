@@ -33,6 +33,7 @@ RSpec.describe 'net/http miniapp tests' do
     let(:server) { TestHTTPServer.new host, port }
 
     before { server }
+
     after { server.close }
 
     shared_examples_for 'a trace with connection and two HTTP requests spans' do
@@ -50,14 +51,15 @@ RSpec.describe 'net/http miniapp tests' do
       let(:connect_count) { 1 }
       let(:path) { '/my/path' }
       let(:parent_span) { spans.last }
-      let(:connect_spans) { spans[0..connect_count-1] }
+      let(:connect_spans) { spans[0..connect_count - 1] }
       let(:request_spans) { spans[connect_count..-2] }
       let(:trace_id) { parent_span.trace_id }
       let(:span_id) { parent_span.span_id }
 
       it 'generates a trace with connection and two request spans' do
         expect(spans).to have(connect_count + 3).items
-        expect(spans.map {|span| span.name}).to eq(connect_count.times.map { "http.connect" } + ["http.request", "http.request", "page"])
+        connect_spans_expected = Array.new(connect_count) { 'http.connect' }
+        expect(spans.map(&:name)).to eq(connect_spans_expected + ['http.request', 'http.request', 'page'])
 
         # Parent span
         expect(parent_span.name).to eq('page')

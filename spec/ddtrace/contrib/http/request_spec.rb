@@ -9,7 +9,6 @@ require 'json'
 require_relative './test_http_server'
 
 RSpec.describe 'net/http requests' do
-
   let(:host) { '127.0.0.1' }
   let(:port) { 5678 }
   let(:uri) { "http://#{host}:#{port}" }
@@ -157,7 +156,7 @@ RSpec.describe 'net/http requests' do
     let(:payload) { '{ "foo": "bar" }' }
 
     context 'that returns 201' do
-      before { server.set_next_response(status: 201, body: "{}") }
+      before { server.set_next_response(status: 201, body: '{}') }
 
       let(:span) { spans[1] }
       let(:connect_span) { spans[0] }
@@ -186,7 +185,7 @@ RSpec.describe 'net/http requests' do
   describe '#start' do
     context 'which applies a pin to the Net::HTTP object' do
       before do
-        server.set_next_response(status: 200, body: "{}")
+        server.set_next_response(status: 200, body: '{}')
 
         Net::HTTP.start(host, port) do |http|
           http.request(request)
@@ -223,7 +222,7 @@ RSpec.describe 'net/http requests' do
       subject(:response) { client.get(path) }
 
       before do
-        server.set_next_response(status: 200, body: "{}")
+        server.set_next_response(status: 200, body: '{}')
         Datadog::Pin.get_from(client).service = service_name
       end
 
@@ -253,7 +252,7 @@ RSpec.describe 'net/http requests' do
     let(:span) { spans[1] }
     let(:configuration_options) { super().merge(split_by_domain: true) }
 
-    before { server.set_next_response(status: 200, body: "{}") }
+    before { server.set_next_response(status: 200, body: '{}') }
 
     it do
       response
@@ -289,11 +288,11 @@ RSpec.describe 'net/http requests' do
     let(:path) { '/my/path' }
 
     before do
-      server.set_next_response(status: 200, body: "{}")
+      server.set_next_response(status: 200, body: '{}')
     end
 
     def expect_request_without_distributed_headers
-      expect(server.requests[0][:method]).to eq "GET"
+      expect(server.requests[0][:method]).to eq 'GET'
       expect(server.requests[0][:path]).to eq path
       [
         Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID,
@@ -327,7 +326,7 @@ RSpec.describe 'net/http requests' do
         let(:span) { spans.last }
 
         it 'adds distributed tracing headers' do
-          expect(server.requests[0][:method]).to eq "GET"
+          expect(server.requests[0][:method]).to eq 'GET'
           expect(server.requests[0][:path]).to eq path
           distributed_tracing_headers.all? do |(header, value)|
             header_name = header.split('-').map(&:capitalize).join('-')
@@ -367,7 +366,7 @@ RSpec.describe 'net/http requests' do
         let(:span) { spans.last }
 
         it 'adds distributed tracing headers' do
-          expect(server.requests[0][:method]).to eq "GET"
+          expect(server.requests[0][:method]).to eq 'GET'
           expect(server.requests[0][:path]).to eq path
           distributed_tracing_headers.all? do |(header, value)|
             header_name = header.split('-').map(&:capitalize).join('-')
@@ -469,14 +468,14 @@ RSpec.describe 'net/http requests' do
         expect(spans).to have(2).items
         expect(span.name).to eq('http.request')
         expect(span.service).to eq('net/http')
-        expect(span.resource).to eq("GET")
+        expect(span.resource).to eq('GET')
         expect(span.get_tag('http.url')).to eq(path)
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span).to have_error
         expect(span).to have_error_type(Net::ReadTimeout.to_s)
-        expect(span).to have_error_message("Net::ReadTimeout")
+        expect(span).to have_error_message('Net::ReadTimeout')
       end
     end
   end
