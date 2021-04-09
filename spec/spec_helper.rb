@@ -98,9 +98,14 @@ RSpec.configure do |config|
       # it's better to work on fixing the very first occurrences.
       $background_thread_leak_reports ||= 0
       if $background_thread_leak_reports >= 10
-        if $background_thread_leak_reports == 10
-          warn "Too many leak thread reports! Suppressing further reports.\n" \
-               'Consider addressing the previously reported leaks before proceeding.'
+        unless $background_thread_leak_warned ||= false
+          warn RSpec::Core::Formatters::ConsoleCodes.wrap(
+            "Too many leaky thread reports! Suppressing further reports.\n" \
+            'Consider addressing the previously reported leaks before proceeding.',
+            :red
+          )
+
+          $background_thread_leak_warned = true
         end
 
         next
@@ -163,7 +168,7 @@ RSpec.configure do |config|
           "For help fixing this issue, see \"Ensuring tests don't leak resources\" in docs/DevelopmentGuide.md.\n" \
           "\n" \
           "#{info}",
-          :red
+          :yellow
         )
 
         $background_thread_leak_reports += 1
