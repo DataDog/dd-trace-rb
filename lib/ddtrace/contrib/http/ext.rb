@@ -11,7 +11,7 @@ module Datadog
         ENV_ANALYTICS_SAMPLE_RATE_OLD = 'DD_HTTP_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'net/http'.freeze
         SPAN_REQUEST = 'http.request'.freeze
-        CONNECTION_ERROR_RESOURCE = 'UNKNOWN'.freeze
+        SPAN_START = 'http.connect'.freeze
       end
     end
   end

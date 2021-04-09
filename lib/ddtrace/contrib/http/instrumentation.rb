@@ -34,6 +34,8 @@ module Datadog
 
           # :yield: +response+
           def request(req, body = nil, &block)
+            return super(req, body, &block) unless started?
+
             host, = host_and_port(req)
             request_options = datadog_configuration(host)
             pin = datadog_pin(request_options)
@@ -76,32 +78,28 @@ module Datadog
           end
 
           def start
-            host, = host_and_port(nil)
+            host, port = host_and_port(nil)
             request_options = datadog_configuration(host)
             pin = datadog_pin(request_options)
             return super unless pin && pin.tracer
 
             return super if Datadog::Contrib::HTTP.should_skip_tracing?(nil, pin.tracer)
 
-            begin
-              super(&nil) # intentionally not passing the block to catch only start errors
-            rescue StandardError => e
-              pin.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
-                begin
-                  # even though service_name might already be in request_options,
-                  # we need to capture the name from the pin since it could be
-                  # overridden
-                  request_options[:service_name] = pin.service_name
-                  span.service = service_name(host, request_options)
-                  span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
-                  span.resource = Datadog::Contrib::HTTP::Ext::CONNECTION_ERROR_RESOURCE
+            pin.tracer.trace(Ext::SPAN_START, on_error: method(:annotate_span_with_error!)) do |span|
+              begin
+                # even though service_name might already be in request_options,
+                # we need to capture the name from the pin since it could be
+                # overridden
+                request_options[:service_name] = pin.service_name
+                span.service = service_name(host, request_options)
+                span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
+                span.resource = "#{host}:#{port}"
 
-                  annotate_span_with_connection!(span, request_options)
-                rescue StandardError => e
-                  Datadog.logger.error("error preparing span for http request: #{e}")
-                ensure
-                  raise e
-                end
+                annotate_span_with_connection!(span, request_options)
+              rescue StandardError => e
+                Datadog.logger.error("error preparing span for http start: #{e}")
+              ensure
+                super(&nil) # intentionally not passing the block to only start the connection
               end
             end
 

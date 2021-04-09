@@ -6,23 +6,26 @@ require 'ddtrace'
 require 'net/http'
 require 'time'
 require 'json'
+require_relative './test_http_server'
 
 RSpec.describe 'net/http requests' do
-  before { WebMock.enable! }
-
-  after do
-    WebMock.reset!
-    WebMock.disable!
-  end
 
   let(:host) { '127.0.0.1' }
-  let(:port) { 1234 }
+  let(:port) { 5678 }
   let(:uri) { "http://#{host}:#{port}" }
+  let(:server) { TestHTTPServer.new(host, port) }
 
   let(:client) { Net::HTTP.new(host, port) }
   let(:configuration_options) { {} }
 
   before do
+    original_verbosity = $VERBOSE
+    $VERBOSE = nil
+    Net.send(:const_set, :HTTP, ::OriginalNetHTTP)
+    $VERBOSE = original_verbosity
+    server
+
+    Datadog::Contrib::HTTP::Patcher.remove_instance_variable(:@done_once) if Datadog::Contrib::HTTP::Patcher.patched?
     Datadog.configure { |c| c.use :http, configuration_options }
   end
 
@@ -33,13 +36,17 @@ RSpec.describe 'net/http requests' do
     Datadog.registry[:http].reset_configuration!
   end
 
+  after do
+    server.close
+  end
+
   describe '#get' do
     subject(:response) { client.get(path) }
 
     let(:path) { '/my/path' }
 
     context 'that returns 200' do
-      before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
+      before { server.set_next_response(status: 200, body: '{}') }
 
       let(:content) { JSON.parse(response.body) }
       let(:span) { spans.first }
@@ -73,7 +80,7 @@ RSpec.describe 'net/http requests' do
     end
 
     context 'that returns 404' do
-      before { stub_request(:get, "#{uri}#{path}").to_return(status: 404, body: body) }
+      before { server.set_next_response(status: 404, body: body) }
 
       let(:body) { '{ "code": 404, message": "Not found!" }' }
       let(:span) { spans.first }
@@ -138,13 +145,11 @@ RSpec.describe 'net/http requests' do
   end
 
   describe '#post' do
-    subject(:response) { client.post(path, payload) }
-
     let(:path) { '/my/path' }
     let(:payload) { '{ "foo": "bar" }' }
 
     context 'that returns 201' do
-      before { stub_request(:post, "#{uri}#{path}").to_return(status: 201) }
+      before { server.set_next_response(status: 201, body: "{}") }
 
       let(:span) { spans.first }
 
@@ -169,7 +174,7 @@ RSpec.describe 'net/http requests' do
   describe '#start' do
     context 'which applies a pin to the Net::HTTP object' do
       before do
-        stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
+        server.set_next_response(status: 201, body: "{}")
 
         Net::HTTP.start(host, port) do |http|
           http.request(request)
@@ -202,7 +207,7 @@ RSpec.describe 'net/http requests' do
       subject(:response) { client.get(path) }
 
       before do
-        stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
+        server.set_next_response(status: 200, body: "{}")
         Datadog::Pin.get_from(client).service = service_name
       end
 
@@ -228,7 +233,7 @@ RSpec.describe 'net/http requests' do
     let(:span) { spans.first }
     let(:configuration_options) { super().merge(split_by_domain: true) }
 
-    before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
+    before { server.set_next_response(status: 200, body: "{}") }
 
     it do
       response
@@ -264,7 +269,7 @@ RSpec.describe 'net/http requests' do
     let(:path) { '/my/path' }
 
     before do
-      stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
+      server.set_next_response(status: 200, body: "{}")
     end
 
     def expect_request_without_distributed_headers
@@ -393,7 +398,8 @@ RSpec.describe 'net/http requests' do
     end
   end
 
-  describe 'request exceptions' do
+  describe 'connection exceptions' do
+    # requests never raises exception by documentation of Net::HTTP
     subject(:response) { client.get(path) }
 
     let(:path) { '/my/path' }
@@ -402,16 +408,16 @@ RSpec.describe 'net/http requests' do
       let(:timeout_error) { Net::OpenTimeout.new('execution expired') }
       let(:span) { spans.first }
 
-      before { stub_request(:get, "#{uri}#{path}").to_raise(timeout_error) }
+      before { allow(TCPSocket).to receive(:open).and_raise(timeout_error) }
 
       it 'generates a well-formed trace with span tags available from request object' do
         expect { response }.to raise_error(timeout_error)
         expect(spans).to have(1).items
-        expect(span.name).to eq('http.request')
+        expect(span.name).to eq('http.connect')
         expect(span.service).to eq('net/http')
-        expect(span.resource).to eq('GET')
-        expect(span.get_tag('http.url')).to eq(path)
-        expect(span.get_tag('http.method')).to eq('GET')
+        expect(span.resource).to eq("#{host}:#{port}")
+        # expect(span.get_tag('http.url')).to eq(path)
+        # expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span).to have_error
@@ -424,22 +430,23 @@ RSpec.describe 'net/http requests' do
       let(:custom_error_message) { 'example error' }
       let(:custom_error) { StandardError.new(custom_error_message) }
       let(:span) { spans.first }
+      let(:expected_error) { "Failed to open TCP connection to #{host}:#{port} (#{custom_error_message})" }
 
-      before { stub_request(:get, "#{uri}#{path}").to_raise(custom_error) }
+      before { allow(TCPSocket).to receive(:open).and_raise(custom_error) }
 
       it 'generates a well-formed trace with span tags available from request object' do
-        expect { response }.to raise_error(custom_error)
+        expect { response }.to raise_error(StandardError, expected_error)
         expect(spans).to have(1).items
-        expect(span.name).to eq('http.request')
+        expect(span.name).to eq('http.connect')
         expect(span.service).to eq('net/http')
-        expect(span.resource).to eq('GET')
-        expect(span.get_tag('http.url')).to eq(path)
-        expect(span.get_tag('http.method')).to eq('GET')
+        expect(span.resource).to eq("#{host}:#{port}")
+        # expect(span.get_tag('http.url')).to eq(path)
+        # expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span).to have_error
         expect(span).to have_error_type(custom_error.class.to_s)
-        expect(span).to have_error_message(custom_error.message)
+        expect(span).to have_error_message(expected_error)
       end
     end
   end
