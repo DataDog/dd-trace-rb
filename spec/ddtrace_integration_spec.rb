@@ -113,7 +113,7 @@ RSpec.describe 'ddtrace integration' do
       end
 
       it 'does not error on reporting health metrics', if: Datadog::Statsd::VERSION >= '5.0.0' do
-        expect(Datadog.health_metrics.queue_accepted(1)).to be(true)
+        expect(Datadog.health_metrics.queue_accepted(1)).to be_truthy
       end
 
       it 'does not error on reporting health metrics', if: Datadog::Statsd::VERSION < '5.0.0' do

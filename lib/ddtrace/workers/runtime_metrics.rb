@@ -50,8 +50,9 @@ module Datadog
       # ensuring correct resource decommission of its internal
       # dependencies.
       def stop(*args, close_metrics: true)
+        result = super(*args)
         @metrics.close if close_metrics
-        super(*args)
+        result
       end
 
       def_delegators \

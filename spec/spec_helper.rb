@@ -89,11 +89,15 @@ RSpec.configure do |config|
   # Changing this to `config.after(:each)` would
   # put this code inside the test scope, interfering
   # with the test execution.
+  #
+  # rubocop:disable Style/ClassVars
   config.around do |example|
     example.run.tap do
-      # Background thread leak checking is currently too verbose for CI,
-      # slowing down builds to the point of causing CircleCI timeouts.
-      next if ENV.key?('CI')
+      # Stop reporting on background thread leaks after too many
+      # successive failures. The output is very verbose and, at that point,
+      # it's better to work on fixing the very first occurrences.
+      @@background_thread_leak_reports ||= 0
+      next if @@background_thread_leak_reports > 10
 
       # Exclude acceptable background threads
       background_threads = Thread.list.reject do |t|
@@ -154,9 +158,12 @@ RSpec.configure do |config|
           "#{info}",
           :red
         )
+
+        @@background_thread_leak_reports += 1
       end
     end
   end
+  # rubocop:enable Style/ClassVars
 
   # Closes the global testing tracer.
   #

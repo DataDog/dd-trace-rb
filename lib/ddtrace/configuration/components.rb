@@ -124,7 +124,6 @@ module Datadog
         tracer.shutdown! unless replacement && tracer == replacement.tracer
 
         # Shutdown workers
-        runtime_metrics.enabled = false
         runtime_metrics.stop(true, close_metrics: false)
 
         # Shutdown the old metrics, unless they are still being used.
