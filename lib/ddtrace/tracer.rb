@@ -10,6 +10,7 @@ require 'ddtrace/runtime/identity'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
+require 'ddtrace/event'
 require 'ddtrace/utils/only_once'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
@@ -315,6 +316,10 @@ module Datadog
       end
     end
 
+    def trace_completed
+      @trace_completed ||= TraceCompleted.new
+    end
+
     # Record the given +context+. For compatibility with previous versions,
     # +context+ can also be a span. It is similar to the +child_of+ argument,
     # method will figure out what to do, submitting a +span+ for recording
@@ -366,6 +371,22 @@ module Datadog
       end
 
       @writer.write(trace)
+      trace_completed.publish(trace)
+    end
+
+    # Triggered whenever a trace is completed
+    class TraceCompleted < Datadog::Event
+      def initialize
+        super(:trace_completed)
+      end
+
+      # NOTE: Ignore Rubocop rule. This definition allows for
+      #       description of and constraints on arguments.
+      # rubocop:disable Lint/UselessMethodDefinition
+      def publish(trace)
+        super(trace)
+      end
+      # rubocop:enable Lint/UselessMethodDefinition
     end
 
     # TODO: Move this kind of configuration building out of the tracer.

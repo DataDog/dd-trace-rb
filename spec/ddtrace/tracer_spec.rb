@@ -532,8 +532,11 @@ RSpec.describe Datadog::Tracer do
 
   describe '#record' do
     subject(:record) { tracer.record(context) }
-
     let(:context) { instance_double(Datadog::Context) }
+
+    before do
+      allow(tracer.trace_completed).to receive(:publish)
+    end
 
     context 'with trace' do
       let(:trace) { [Datadog::Span.new(tracer, 'dummy')] }
@@ -545,19 +548,49 @@ RSpec.describe Datadog::Tracer do
         subject
       end
 
-      it { expect(writer.spans).to eq(trace) }
+      it 'writes the trace' do
+        expect(writer.spans).to eq(trace)
+
+        expect(tracer.trace_completed)
+          .to have_received(:publish)
+          .with(trace)
+      end
     end
 
     context 'with empty trace' do
       let(:trace) { [] }
 
-      it { expect(writer.spans).to be_empty }
+      it 'does not write a trace' do
+        expect(writer.spans).to be_empty
+
+        expect(tracer.trace_completed)
+          .to_not have_received(:publish)
+      end
     end
 
     context 'with nil trace' do
       let(:trace) { nil }
 
-      it { expect(writer.spans).to be_empty }
+      it 'does not write a trace' do
+        expect(writer.spans).to be_empty
+
+        expect(tracer.trace_completed)
+          .to_not have_received(:publish)
+      end
     end
+  end
+
+  describe '#trace_completed' do
+    subject(:trace_completed) { tracer.trace_completed }
+    it { is_expected.to be_a_kind_of(described_class::TraceCompleted) }
+  end
+end
+
+RSpec.describe Datadog::Tracer::TraceCompleted do
+  subject(:event) { described_class.new }
+
+  describe '#name' do
+    subject(:name) { event.name }
+    it { is_expected.to be :trace_completed }
   end
 end
