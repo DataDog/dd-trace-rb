@@ -15,7 +15,10 @@ RSpec.describe 'net/http miniapp tests' do
 
     before do
       server
+      original_verbosity = $VERBOSE
+      $VERBOSE = nil
       Net.send(:const_set, :HTTP, ::OriginalNetHTTP)
+      $VERBOSE = original_verbosity
 
       Datadog::Contrib::HTTP::Patcher.remove_instance_variable(:@done_once) if Datadog::Contrib::HTTP::Patcher.patched?
       Datadog.configure { |c| c.use :http }
@@ -23,11 +26,9 @@ RSpec.describe 'net/http miniapp tests' do
 
     after do
       server.close
-      Net.send(:const_set, :HTTP, ::OriginalNetHTTP)
-      Datadog::Contrib::HTTP::Patcher.remove_instance_variable(:@done_once) if Datadog::Contrib::HTTP::Patcher.patched?
     end
 
-    let(:client) { Net::HTTP.new(host, port).tap {|c| c.set_debug_output($stdout) } }
+    let(:client) { Net::HTTP.new(host, port) }
 
     shared_examples_for 'a trace with connection and two HTTP requests spans' do
       before do
@@ -38,7 +39,7 @@ RSpec.describe 'net/http miniapp tests' do
           http_calls
         end
 
-        expect(server.requests).to eq ["GET /my/path HTTP/1.1", "GET /my/path HTTP/1.1"]
+        expect(server.requests_paths).to eq ["GET /my/path HTTP/1.1", "GET /my/path HTTP/1.1"]
       end
 
       let(:connect_count) { 1 }
@@ -126,15 +127,13 @@ RSpec.describe 'net/http miniapp tests' do
     let(:client) { Net::HTTP.new(host, port) }
 
     before do
+      original_verbosity = $VERBOSE
+      $VERBOSE = nil
       Net.send(:const_set, :HTTP, ::OriginalNetHTTP)
+      $VERBOSE = original_verbosity
 
       Datadog::Contrib::HTTP::Patcher.remove_instance_variable(:@done_once) if Datadog::Contrib::HTTP::Patcher.patched?
       Datadog.configure { |c| c.use :http }
-    end
-
-    after do
-      Net.send(:const_set, :HTTP, ::OriginalNetHTTP)
-      Datadog::Contrib::HTTP::Patcher.remove_instance_variable(:@done_once) if Datadog::Contrib::HTTP::Patcher.patched?
     end
 
     before do

@@ -293,16 +293,16 @@ RSpec.describe 'net/http requests' do
     end
 
     def expect_request_without_distributed_headers
-      # rubocop:disable Style/BlockDelimiters
-      expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
-        [
-          Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID,
-          Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID,
-          Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY
-        ].none? do |header|
-          req.headers.key?(header.split('-').map(&:capitalize).join('-'))
-        end
-      })
+      expect(server.requests[0][:method]).to eq "GET"
+      expect(server.requests[0][:path]).to eq path
+      [
+        Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID,
+        Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID,
+        Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY
+      ].each do |header|
+        header_name = header.split('-').map(&:capitalize).join('-')
+        expect(server.requests[0][:headers].keys).to_not include header_name
+      end
     end
 
     context 'by default' do
@@ -327,16 +327,11 @@ RSpec.describe 'net/http requests' do
         let(:span) { spans.last }
 
         it 'adds distributed tracing headers' do
-          # The block syntax only works with Ruby < 2.3 and the hash syntax
-          # only works with Ruby >= 2.3, so we need to support both.
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
-            expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
-              distributed_tracing_headers.all? do |(header, value)|
-                req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
-              end
-            })
-          else
-            expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
+          expect(server.requests[0][:method]).to eq "GET"
+          expect(server.requests[0][:path]).to eq path
+          distributed_tracing_headers.all? do |(header, value)|
+            header_name = header.split('-').map(&:capitalize).join('-')
+            expect(server.requests[0][:headers][header_name]).to eq value.to_s
           end
         end
       end
@@ -372,16 +367,11 @@ RSpec.describe 'net/http requests' do
         let(:span) { spans.last }
 
         it 'adds distributed tracing headers' do
-          # The block syntax only works with Ruby < 2.3 and the hash syntax
-          # only works with Ruby >= 2.3, so we need to support both.
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
-            expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
-              distributed_tracing_headers.all? do |(header, value)|
-                req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
-              end
-            })
-          else
-            expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
+          expect(server.requests[0][:method]).to eq "GET"
+          expect(server.requests[0][:path]).to eq path
+          distributed_tracing_headers.all? do |(header, value)|
+            header_name = header.split('-').map(&:capitalize).join('-')
+            expect(server.requests[0][:headers][header_name]).to eq value.to_s
           end
         end
       end
@@ -436,8 +426,6 @@ RSpec.describe 'net/http requests' do
         expect(span.name).to eq('http.connect')
         expect(span.service).to eq('net/http')
         expect(span.resource).to eq("#{host}:#{port}")
-        # expect(span.get_tag('http.url')).to eq(path)
-        # expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span).to have_error
@@ -460,8 +448,6 @@ RSpec.describe 'net/http requests' do
         expect(span.name).to eq('http.connect')
         expect(span.service).to eq('net/http')
         expect(span.resource).to eq("#{host}:#{port}")
-        # expect(span.get_tag('http.url')).to eq(path)
-        # expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span).to have_error
