@@ -107,6 +107,10 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'timers', '< 4.2'
       gem 'typhoeus'
     end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
+    end
   end
 elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
@@ -233,6 +237,10 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sucker_punch'
       gem 'timers', '< 4.2'
       gem 'typhoeus'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -421,6 +429,10 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sucker_punch'
       gem 'typhoeus'
       gem 'que', '>= 1.0.0.beta2'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -622,6 +634,10 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
     end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
+    end
   end
 elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
@@ -726,6 +742,10 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -931,6 +951,10 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
   end
+
+  appraise 'core-old' do
+    gem 'dogstatsd-ruby', '~> 4'
+  end
 elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
   if RUBY_PLATFORM != 'java'
@@ -1102,6 +1126,10 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -1279,6 +1307,10 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
     end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
+    end
   end
 elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
   appraise 'rails61-mysql2' do
@@ -1366,5 +1398,9 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'
+  end
+
+  appraise 'core-old' do
+    gem 'dogstatsd-ruby', '~> 4'
   end
 end

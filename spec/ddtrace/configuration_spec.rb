@@ -337,7 +337,7 @@ RSpec.describe Datadog::Configuration do
             end
           end
 
-          it 'deactivates the old runtime metrics worker' do
+          it 'stops the old runtime metrics worker' do
             expect(@old_runtime_metrics.enabled?).to be false
             expect(@old_runtime_metrics.running?).to be false
 

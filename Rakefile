@@ -209,6 +209,7 @@ task :ci do
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
+    declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
 
     if RUBY_PLATFORM != 'java'
@@ -265,6 +266,7 @@ task :ci do
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
+    declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
 
@@ -331,6 +333,7 @@ task :ci do
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
+    declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
 
@@ -413,6 +416,7 @@ task :ci do
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
+    declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
 
@@ -500,6 +504,7 @@ task :ci do
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
+    declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
     declare 'bundle exec rake spec:opentelemetry'
@@ -574,6 +579,7 @@ task :ci do
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
+    declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
     declare 'bundle exec rake spec:opentelemetry'
@@ -667,6 +673,7 @@ task :ci do
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
+    declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
     declare 'bundle exec rake spec:opentelemetry'
@@ -764,6 +771,7 @@ task :ci do
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
+    declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
     declare 'bundle exec rake spec:opentelemetry'
@@ -859,6 +867,7 @@ task :ci do
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
+    declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
     declare 'bundle exec rake spec:opentracer'
     declare 'bundle exec rake spec:opentelemetry'
