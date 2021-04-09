@@ -233,7 +233,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
       end
     end
 
-    context 'with async thread not started'do
+    context 'with async thread not started' do
       it 'does not lazily initialize stopped worker' do
         expect(worker.running?).to be(false)
 
