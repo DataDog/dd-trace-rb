@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 bash /vendor/dd-demo/http-health-check
 
 # Start the load test

@@ -436,6 +436,185 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#profiling' do
+    describe '#enabled' do
+      subject(:enabled) { settings.profiling.enabled }
+
+      context "when #{Datadog::Ext::Profiling::ENV_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Profiling::ENV_ENABLED => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'true' }
+
+          it { is_expected.to be true }
+        end
+      end
+    end
+
+    describe '#enabled=' do
+      it 'updates the #enabled setting' do
+        expect { settings.profiling.enabled = true }
+          .to change { settings.profiling.enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
+    describe '#exporter' do
+      describe '#instances' do
+        subject(:instances) { settings.profiling.exporter.instances }
+
+        it { is_expected.to be nil }
+      end
+
+      describe '#instances=' do
+        let(:instances) { [double('exporter')] }
+
+        it 'updates the #instances setting' do
+          expect { settings.profiling.exporter.instances = instances }
+            .to change { settings.profiling.exporter.instances }
+            .from(nil)
+            .to(instances)
+        end
+      end
+
+      describe '#transport' do
+        subject(:transport) { settings.profiling.exporter.transport }
+
+        it { is_expected.to be nil }
+      end
+
+      describe '#transport=' do
+        let(:transport) { double('transport') }
+
+        it 'updates the #transport setting' do
+          expect { settings.profiling.exporter.transport = transport }
+            .to change { settings.profiling.exporter.transport }
+            .from(nil)
+            .to(transport)
+        end
+      end
+
+      describe '#transport_options' do
+        subject(:transport_options) { settings.profiling.exporter.transport_options }
+
+        it { is_expected.to eq({}) }
+      end
+
+      describe '#transport_options=' do
+        let(:transport_options) { { timeout: 10 } }
+
+        it 'updates the #transport_options setting' do
+          expect { settings.profiling.exporter.transport_options = transport_options }
+            .to change { settings.profiling.exporter.transport_options }
+            .from({})
+            .to(transport_options)
+        end
+      end
+    end
+
+    describe '#max_events' do
+      subject(:max_events) { settings.profiling.max_events }
+
+      it { is_expected.to eq(32768) }
+    end
+
+    describe '#max_events=' do
+      it 'updates the #max_events setting' do
+        expect { settings.profiling.max_events = 1234 }
+          .to change { settings.profiling.max_events }
+          .from(32768)
+          .to(1234)
+      end
+    end
+
+    describe '#max_frames' do
+      subject(:max_frames) { settings.profiling.max_frames }
+
+      context "when #{Datadog::Ext::Profiling::ENV_MAX_FRAMES}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Profiling::ENV_MAX_FRAMES => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to eq(400) }
+        end
+
+        context 'is defined' do
+          let(:environment) { '123' }
+
+          it { is_expected.to eq(123) }
+        end
+      end
+    end
+
+    describe '#max_frames=' do
+      it 'updates the #max_frames setting' do
+        expect { settings.profiling.max_frames = 456 }
+          .to change { settings.profiling.max_frames }
+          .from(400)
+          .to(456)
+      end
+    end
+
+    describe '#upload' do
+      describe '#timeout' do
+        subject(:timeout) { settings.profiling.upload.timeout }
+
+        context "when #{Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT}" do
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq(30.0) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '10.0' }
+
+            it { is_expected.to eq(10.0) }
+          end
+        end
+      end
+
+      describe '#timeout=' do
+        it 'updates the #timeout setting' do
+          expect { settings.profiling.upload.timeout = 10 }
+            .to change { settings.profiling.upload.timeout }
+            .from(30.0)
+            .to(10.0)
+        end
+
+        context 'given nil' do
+          it 'uses the default setting' do
+            expect { settings.profiling.upload.timeout = nil }
+              .to_not change { settings.profiling.upload.timeout }
+              .from(30.0)
+          end
+        end
+      end
+    end
+  end
+
   describe '#report_hostname' do
     subject(:report_hostname) { settings.report_hostname }
 

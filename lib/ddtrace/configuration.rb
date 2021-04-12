@@ -67,6 +67,7 @@ module Datadog
     def_delegators \
       :components,
       :health_metrics,
+      :profiler,
       :runtime_metrics,
       :tracer
 

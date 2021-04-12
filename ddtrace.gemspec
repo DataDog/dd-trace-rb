@@ -29,8 +29,7 @@ Gem::Specification.new do |spec|
   end
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
-  spec.bindir        = 'exe'
-  spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  spec.executables   = ['ddtracerb']
   spec.require_paths = ['lib']
 
   if RUBY_VERSION >= '2.2.0'
@@ -39,4 +38,7 @@ Gem::Specification.new do |spec|
     # msgpack 1.4 fails for Ruby 2.0 and 2.1: https://github.com/msgpack/msgpack-ruby/issues/205
     spec.add_dependency 'msgpack', '< 1.4'
   end
+
+  # Used by the profiler
+  spec.add_dependency 'ffi', '~> 1.0'
 end
