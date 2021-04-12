@@ -337,7 +337,7 @@ RSpec.describe Datadog::Configuration do
             end
           end
 
-          it 'deactivates the old runtime metrics worker' do
+          it 'stops the old runtime metrics worker' do
             expect(@old_runtime_metrics.enabled?).to be false
             expect(@old_runtime_metrics.running?).to be false
 
@@ -455,7 +455,7 @@ RSpec.describe Datadog::Configuration do
     end
 
     describe '#reset!' do
-      subject(:reset!) { test_class.reset! }
+      subject(:reset!) { test_class.send(:reset!) }
 
       let!(:original_components) { test_class.send(:components) }
 
@@ -469,6 +469,20 @@ RSpec.describe Datadog::Configuration do
         reset!
 
         expect(test_class.send(:components)).to_not be(original_components)
+      end
+
+      context 'with configuration values set' do
+        let(:default_value) { 100 }
+        let(:custom_value) { 777 }
+
+        before do
+          test_class.configuration.sampling.rate_limit = custom_value
+        end
+
+        it 'resets the configuration' do
+          expect { reset! }.to change { test_class.configuration.sampling.rate_limit }
+            .from(custom_value).to(default_value)
+        end
       end
     end
 

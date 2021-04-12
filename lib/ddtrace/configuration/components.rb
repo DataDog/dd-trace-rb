@@ -124,11 +124,16 @@ module Datadog
         tracer.shutdown! unless replacement && tracer == replacement.tracer
 
         # Shutdown workers
-        runtime_metrics.enabled = false
-        runtime_metrics.stop(true)
+        runtime_metrics.stop(true, close_metrics: false)
 
         # Shutdown the old metrics, unless they are still being used.
         # (e.g. custom Statsd instances.)
+        #
+        # TODO: This violates the encapsulation created by Runtime::Metrics and
+        # Health::Metrics, by directly manipulating `statsd` and changing
+        # it's lifecycle management.
+        # If we need to directly have ownership of `statsd` lifecycle, we should
+        # have direct ownership of it.
         old_statsd = [
           runtime_metrics.metrics.statsd,
           health_metrics.statsd

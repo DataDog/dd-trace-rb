@@ -120,6 +120,10 @@ module Datadog
       metrics.each { |m| send(m.type, *[m.name, m.value, m.options].compact) }
     end
 
+    def close
+      @statsd.close if @statsd && @statsd.respond_to?(:close)
+    end
+
     Metric = Struct.new(:type, :name, :value, :options) do
       def initialize(*args)
         super

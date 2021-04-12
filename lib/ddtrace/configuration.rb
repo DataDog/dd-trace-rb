@@ -97,18 +97,6 @@ module Datadog
       end
     end
 
-    # Gracefully shuts down the tracer and disposes of component references,
-    # allowing execution to start anew.
-    #
-    # In contrast with +#shutdown!+, components will be automatically
-    # reinitialized after a reset.
-    def reset!
-      safely_synchronize do |write_components|
-        @components.shutdown! if components?
-        write_components.call(nil)
-      end
-    end
-
     protected
 
     def components(allow_initialization: true)
@@ -121,6 +109,21 @@ module Datadog
     end
 
     private
+
+    # Gracefully shuts down the tracer and disposes of component references,
+    # allowing execution to start anew.
+    #
+    # In contrast with +#shutdown!+, components will be automatically
+    # reinitialized after a reset.
+    #
+    # Used internally to ensure a clean environment between test runs.
+    def reset!
+      safely_synchronize do |write_components|
+        @components.shutdown! if components?
+        write_components.call(nil)
+        configuration.reset!
+      end
+    end
 
     def safely_synchronize
       # Writes to @components should only happen through this proc. Because this proc is only accessible to callers of

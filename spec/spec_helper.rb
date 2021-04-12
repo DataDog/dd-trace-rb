@@ -92,8 +92,28 @@ RSpec.configure do |config|
   # Changing this to `config.after(:each)` would
   # put this code inside the test scope, interfering
   # with the test execution.
+  #
+  # rubocop:disable Style/GlobalVars
   config.around do |example|
     example.run.tap do
+      # Stop reporting on background thread leaks after too many
+      # successive failures. The output is very verbose and, at that point,
+      # it's better to work on fixing the very first occurrences.
+      $background_thread_leak_reports ||= 0
+      if $background_thread_leak_reports >= 10
+        unless $background_thread_leak_warned ||= false
+          warn RSpec::Core::Formatters::ConsoleCodes.wrap(
+            "Too many leaky thread reports! Suppressing further reports.\n" \
+            'Consider addressing the previously reported leaks before proceeding.',
+            :red
+          )
+
+          $background_thread_leak_warned = true
+        end
+
+        next
+      end
+
       # Exclude acceptable background threads
       background_threads = Thread.list.reject do |t|
         group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
@@ -151,11 +171,14 @@ RSpec.configure do |config|
           "For help fixing this issue, see \"Ensuring tests don't leak resources\" in docs/DevelopmentGuide.md.\n" \
           "\n" \
           "#{info}",
-          :red
+          :yellow
         )
+
+        $background_thread_leak_reports += 1
       end
     end
   end
+  # rubocop:enable Style/GlobalVars
 
   # Closes the global testing tracer.
   #
@@ -176,11 +199,14 @@ end
 # To allow for leaky threads to be traced
 # back to their creation point.
 module DatadogThreadDebugger
-  def initialize(*args)
+  # DEV: we have to use an explicit `block`, argument
+  # instead of the implicit `yield` call, as calling
+  # `yield` here crashes the Ruby VM in Ruby < 2.2.
+  def initialize(*args, &block)
     caller_ = caller
     wrapped = lambda do |*thread_args|
       Thread.current.instance_variable_set(:@caller, caller_)
-      yield(*thread_args)
+      block.call(*thread_args) # rubocop:disable Performance/RedundantBlockCall
     end
     wrapped.ruby2_keywords if wrapped.respond_to?(:ruby2_keywords, true)
 
