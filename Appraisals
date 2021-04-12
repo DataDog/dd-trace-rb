@@ -111,6 +111,10 @@ elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'timers', '< 4.2'
       gem 'typhoeus'
     end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
+    end
   end
 elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
@@ -240,6 +244,10 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'timers', '< 4.2'
       gem 'typhoeus'
     end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
+    end
   end
 elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
@@ -345,6 +353,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'rails5-postgres' do
@@ -352,6 +361,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'rails5-postgres-redis' do
@@ -360,6 +370,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'rails5-postgres-redis-activesupport' do
@@ -368,6 +379,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'rails5-postgres-sidekiq' do
@@ -377,6 +389,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activejob'
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'contrib' do
@@ -397,7 +410,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'faraday'
       gem 'grape'
       gem 'graphql', '>= 1.12.0'
-      gem 'grpc', '~> 1.21.0' # Last version to support Ruby < 2.3
+      gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
@@ -423,6 +436,10 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sucker_punch'
       gem 'typhoeus'
       gem 'que', '>= 1.0.0.beta2'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -625,6 +642,10 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
     end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
+    end
   end
 elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
@@ -730,6 +751,10 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -936,6 +961,10 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
   end
+
+  appraise 'core-old' do
+    gem 'dogstatsd-ruby', '~> 4'
+  end
 elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
   if RUBY_PLATFORM != 'java'
@@ -1108,6 +1137,10 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -1286,6 +1319,10 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
     end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
+    end
   end
 elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
   appraise 'rails61-mysql2' do
@@ -1374,5 +1411,9 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'
+  end
+
+  appraise 'core-old' do
+    gem 'dogstatsd-ruby', '~> 4'
   end
 end

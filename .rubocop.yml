@@ -18,6 +18,7 @@ AllCops:
     - 'lib/ddtrace/**/vendor/**/*.rb'
     - 'integration/apps/*/bin/*'
     - 'integration/apps/*/Gemfile'
+    - 'lib/ddtrace/profiling/pprof/pprof_pb.rb'
   NewCops: disable # Don't allow new cops to be enabled implicitly.
 
 # 80 characters is a nice goal, but not worth currently changing in existing
@@ -199,6 +200,10 @@ Style/HashTransformValues:
 
 # Requires Ruby 2.4
 Style/CollectionCompact:
+  Enabled: false
+
+# Requires Ruby 2.4
+Performance/RegexpMatch:
   Enabled: false
 
 # Enforces negative/positive branching order,

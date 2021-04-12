@@ -323,6 +323,30 @@ RSpec.describe Datadog::Configuration do
         end
       end
 
+      context 'when the profiler' do
+        context 'is not changed' do
+          before { skip 'Profiling is not supported.' unless Datadog::Profiling.supported? }
+
+          context 'and profiling is enabled' do
+            before do
+              allow(test_class.configuration.profiling)
+                .to receive(:enabled)
+                .and_return(true)
+
+              allow_any_instance_of(Datadog::Profiler)
+                .to receive(:start)
+              allow_any_instance_of(Datadog::Profiling::Tasks::Setup)
+                .to receive(:run)
+            end
+
+            it 'starts the profiler' do
+              configure
+              expect(test_class.profiler).to have_received(:start)
+            end
+          end
+        end
+      end
+
       context 'when reconfigured multiple times' do
         context 'with runtime metrics active' do
           before do
@@ -337,7 +361,7 @@ RSpec.describe Datadog::Configuration do
             end
           end
 
-          it 'deactivates the old runtime metrics worker' do
+          it 'stops the old runtime metrics worker' do
             expect(@old_runtime_metrics.enabled?).to be false
             expect(@old_runtime_metrics.running?).to be false
 
@@ -345,6 +369,34 @@ RSpec.describe Datadog::Configuration do
 
             expect(test_class.runtime_metrics.enabled?).to be true
             expect(test_class.runtime_metrics.running?).to be false
+          end
+        end
+      end
+
+      context 'deprecation warning' do
+        before { described_class.const_get('RUBY_VERSION_DEPRECATION_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
+
+        after { described_class.const_get('RUBY_VERSION_DEPRECATION_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
+
+        context 'with a deprecated Ruby version' do
+          before { skip unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1') }
+
+          it 'emits deprecation warning once' do
+            expect(Datadog.logger).to receive(:warn)
+              .with(/Support for Ruby versions < 2\.1 in dd-trace-rb is DEPRECATED/).once
+
+            test_class.configure
+            test_class.configure
+          end
+        end
+
+        context 'with a supported Ruby version' do
+          before { skip if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1') }
+
+          it 'emits no warnings' do
+            expect(Datadog.logger).to_not receive(:warn)
+
+            configure
           end
         end
       end
@@ -427,7 +479,7 @@ RSpec.describe Datadog::Configuration do
     end
 
     describe '#reset!' do
-      subject(:reset!) { test_class.reset! }
+      subject(:reset!) { test_class.send(:reset!) }
 
       let!(:original_components) { test_class.send(:components) }
 
@@ -441,6 +493,20 @@ RSpec.describe Datadog::Configuration do
         reset!
 
         expect(test_class.send(:components)).to_not be(original_components)
+      end
+
+      context 'with configuration values set' do
+        let(:default_value) { 100 }
+        let(:custom_value) { 777 }
+
+        before do
+          test_class.configuration.sampling.rate_limit = custom_value
+        end
+
+        it 'resets the configuration' do
+          expect { reset! }.to change { test_class.configuration.sampling.rate_limit }
+            .from(custom_value).to(default_value)
+        end
       end
     end
 

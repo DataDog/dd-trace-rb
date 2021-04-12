@@ -50,8 +50,6 @@ module Contrib
     RSpec.configure do |config|
       # Capture spans from the global tracer
       config.before do
-        Datadog.reset!
-
         # DEV `*_any_instance_of` has concurrency issues when running with parallelism (e.g. JRuby).
         # DEV Single object `allow` and `expect` work as intended with parallelism.
         allow(Datadog::Tracer).to receive(:new).and_wrap_original do |method, *args, &block|

@@ -10,10 +10,19 @@ else
   require 'sqlite3'
 end
 
-require 'ddtrace/auto_instrument'
-
+# Loading 'ddtrace/auto_instrument' has side effects and can't
+# easily be undone. This test should run on its own process.
 RSpec.describe 'Auto Instrumentation of non Rails' do
   include Rack::Test::Methods
+
+  before do
+    RSpec.configure do |config|
+      unless config.files_to_run.one?
+        raise 'auto_instrument_spec.rb should be run on a separate RSpec process, do not run it together with other specs'
+      end
+    end
+    require 'ddtrace/auto_instrument'
+  end
 
   after { Datadog.registry[:sinatra].reset_configuration! }
 

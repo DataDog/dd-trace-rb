@@ -6,8 +6,7 @@ Integration tests for `ddtrace` that use a variety of real applications.
 
 1. Build Docker base images:
 
-    ```sh
-    #!/bin/bash
+    ```bash
     ./script/build-images
     ```
 

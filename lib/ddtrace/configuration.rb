@@ -2,10 +2,11 @@ require 'forwardable'
 require 'ddtrace/configuration/pin_setup'
 require 'ddtrace/configuration/settings'
 require 'ddtrace/configuration/components'
+require 'ddtrace/utils/only_once'
 
 module Datadog
   # Configuration provides a unique access point for configurations
-  module Configuration
+  module Configuration # rubocop:disable Metrics/ModuleLength
     extend Forwardable
 
     # Used to ensure that @components initialization/reconfiguration is performed one-at-a-time, by a single thread.
@@ -42,6 +43,8 @@ module Datadog
     end
 
     def configure(target = configuration, opts = {})
+      ruby_version_deprecation_warning
+
       if target.is_a?(Settings)
         yield(target) if block_given?
 
@@ -64,6 +67,7 @@ module Datadog
     def_delegators \
       :components,
       :health_metrics,
+      :profiler,
       :runtime_metrics,
       :tracer
 
@@ -94,18 +98,6 @@ module Datadog
       end
     end
 
-    # Gracefully shuts down the tracer and disposes of component references,
-    # allowing execution to start anew.
-    #
-    # In contrast with +#shutdown!+, components will be automatically
-    # reinitialized after a reset.
-    def reset!
-      safely_synchronize do |write_components|
-        @components.shutdown! if components?
-        write_components.call(nil)
-      end
-    end
-
     protected
 
     def components(allow_initialization: true)
@@ -118,6 +110,21 @@ module Datadog
     end
 
     private
+
+    # Gracefully shuts down the tracer and disposes of component references,
+    # allowing execution to start anew.
+    #
+    # In contrast with +#shutdown!+, components will be automatically
+    # reinitialized after a reset.
+    #
+    # Used internally to ensure a clean environment between test runs.
+    def reset!
+      safely_synchronize do |write_components|
+        @components.shutdown! if components?
+        write_components.call(nil)
+        configuration.reset!
+      end
+    end
 
     def safely_synchronize
       # Writes to @components should only happen through this proc. Because this proc is only accessible to callers of
@@ -166,6 +173,25 @@ module Datadog
         logger = configuration.logger.instance || Datadog::Logger.new($stdout)
         logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
         logger
+      end
+    end
+
+    # Perform version check only once
+    DEPRECATED_RUBY_VERSION = Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
+    private_constant :DEPRECATED_RUBY_VERSION
+
+    RUBY_VERSION_DEPRECATION_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    private_constant :RUBY_VERSION_DEPRECATION_ONLY_ONCE
+
+    def ruby_version_deprecation_warning
+      return unless DEPRECATED_RUBY_VERSION
+
+      RUBY_VERSION_DEPRECATION_ONLY_ONCE.run do
+        Datadog.logger.warn(
+          "Support for Ruby versions < 2.1 in dd-trace-rb is DEPRECATED.\n" \
+          "Last version to support Ruby < 2.1 will be 0.49.x, which will only receive critical bugfixes.\n" \
+          'Support for Ruby versions < 2.1 will be REMOVED in version 0.50.0.'
+        )
       end
     end
   end
