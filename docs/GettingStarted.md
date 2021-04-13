@@ -2470,7 +2470,7 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 | `OpenTracing::FORMAT_RACK`     | Yes        | Because of the loss of resolution in the Rack format, please note that baggage items with names containing either upper case characters or `-` will be converted to lower case and `_` in a round-trip respectively. We recommend avoiding these characters or accommodating accordingly on the receiving end. |
 | `OpenTracing::FORMAT_BINARY`   | No         |                        |
 
-## Common issues
+## Known issues and suggested configurations
 
 ### Payload too large
 
@@ -2492,6 +2492,6 @@ A few libraries have known workarounds for these types of noisy neighbor issues:
 
 * `rack-mini-profiler`: [Net::HTTP stack level too deep errors](https://github.com/MiniProfiler/rack-mini-profiler#nethttp-stack-level-too-deep-errors).
 
-For libraries without a known workaround, consider removing the library using `alias` or `Module#alias_method`, separating libraries into different environments for testing, or creating a github issue with the affected libraries.
+For libraries without a known workaround, consider removing the library using `alias` or `Module#alias_method` or separating libraries into different environments for testing.
 
-For any further questions on these issues, please [reach out to Datadog support](https://docs.datadoghq.com/help)
+For any further questions on these issues or to report a noisy neighbor issue so we can investigate if Datadog is able to mitigate the issue, please [reach out to Datadog support](https://docs.datadoghq.com/help)
