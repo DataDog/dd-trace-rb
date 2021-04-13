@@ -231,6 +231,14 @@ RSpec/LeadingSubject:
 RSpec/ImplicitSubject:
   Enabled: false
 
+# Enforces empty line after subject declaration.
+RSpec/EmptyLineAfterSubject:
+  Enabled: false
+
+# Enforces empty line after last let declaration.
+RSpec/EmptyLineAfterFinalLet:
+  Enabled: false
+
 # TODO: Disabling until we categorize which file are safe to do so.
 Style/FrozenStringLiteralComment:
   Enabled: false
@@ -248,6 +256,12 @@ Lint/EmptyBlock:
 
 # Enforces that context description must start with 'when', 'with', or 'without'.
 RSpec/ContextWording:
+  Enabled: false
+
+# Checks for multiple top-level example groups.
+# Multiple descriptions for the same class or module should either
+# be nested or separated into different test files.
+RSpec/MultipleDescribes:
   Enabled: false
 
 # Enforces that examples should only have a limited amount of assertions.
