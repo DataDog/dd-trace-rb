@@ -10,6 +10,7 @@ module Datadog
 
       POD_REGEX = /(pod)?(#{UUID_PATTERN})(?:.slice)?$/.freeze
       CONTAINER_REGEX = /(#{UUID_PATTERN}|#{CONTAINER_PATTERN})(?:.scope)?$/.freeze
+      FARGATE_14_CONTAINER_REGEX = /[0-9a-f]{32}-[0-9]{10}/.freeze
 
       Descriptor = Struct.new(
         :platform,
@@ -42,12 +43,19 @@ module Datadog
               # Split path into parts
               parts = path.split('/')
               parts.shift # Remove leading empty part
-              next if parts.length < 2
 
               # Read info from path
               platform = parts[0]
-              container_id = parts[-1][CONTAINER_REGEX]
-              task_uid = parts[-2][POD_REGEX]
+              container_id, task_uid = nil
+
+              case parts.length
+              when 2
+                container_id = parts[-1][CONTAINER_REGEX] || parts[-1][FARGATE_14_CONTAINER_REGEX]
+              else
+                platform = parts[0]
+                container_id = parts[-1][CONTAINER_REGEX]
+                task_uid = parts[-2][POD_REGEX]
+              end
 
               # If container ID wasn't found, ignore.
               # Path might describe a non-container environment.

@@ -149,8 +149,21 @@ RSpec.configure do |config|
         end
 
         info = background_threads.each_with_index.flat_map do |t, idx|
+          backtrace = t.backtrace
+          if backtrace.nil? && t.alive? # Maybe the thread hasn't run yet? Let's give it a second chance
+            Thread.pass
+            backtrace = t.backtrace
+          end
+          if backtrace.nil? || backtrace.empty?
+            backtrace =
+              if t.alive?
+                ['(Not available. Possibly a native thread.)']
+              else
+                ['(Thread finished before we could collect a backtrace)']
+              end
+          end
+
           caller = t.instance_variable_get(:@caller) || ['(Not available. Possibly a native thread.)']
-          backtrace = t.backtrace || ['(Not available. Possibly a native thread.)']
           [
             "#{idx + 1}: #{t} (#{t.class.name})",
             'Thread Creation Site:',
@@ -200,9 +213,8 @@ module DatadogThreadDebugger
   # instead of the implicit `yield` call, as calling
   # `yield` here crashes the Ruby VM in Ruby < 2.2.
   def initialize(*args, &block)
-    caller_ = caller
+    @caller = caller
     wrapped = lambda do |*thread_args|
-      Thread.current.instance_variable_set(:@caller, caller_)
       block.call(*thread_args) # rubocop:disable Performance/RedundantBlockCall
     end
     wrapped.ruby2_keywords if wrapped.respond_to?(:ruby2_keywords, true)

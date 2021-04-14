@@ -16,6 +16,8 @@ module Datadog
 
     def initialize(type = nil, message = nil, backtrace = nil)
       backtrace = Array(backtrace).join("\n")
+
+      # DEV: We should measure if `Utils.utf8_encode` is still needed in practice.
       @type = Utils.utf8_encode(type)
       @message = Utils.utf8_encode(message)
       @backtrace = Utils.utf8_encode(backtrace)
