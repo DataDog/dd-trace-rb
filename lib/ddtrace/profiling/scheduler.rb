@@ -5,13 +5,13 @@ require 'ddtrace/workers/polling'
 
 module Datadog
   module Profiling
-    # Periodically (every DEFAULT_INTERVAL seconds) takes data from the `Recorder` and pushes them to all configured
+    # Periodically (every DEFAULT_INTERVAL_SECONDS) takes data from the `Recorder` and pushes them to all configured
     # `Exporter`s. Runs on its own background thread.
     class Scheduler < Worker
       include Workers::Polling
 
-      DEFAULT_INTERVAL = 60
-      MIN_INTERVAL = 0
+      DEFAULT_INTERVAL_SECONDS = 60
+      MIN_INTERVAL_SECONDS = 0
 
       attr_reader \
         :exporters,
@@ -26,7 +26,7 @@ module Datadog
         self.fork_policy = options[:fork_policy] || Workers::Async::Thread::FORK_POLICY_RESTART
 
         # Workers::IntervalLoop settings
-        self.loop_base_interval = options[:interval] || DEFAULT_INTERVAL
+        self.loop_base_interval = options[:interval] || DEFAULT_INTERVAL_SECONDS
 
         # Workers::Polling settings
         self.enabled = options.key?(:enabled) ? options[:enabled] == true : true
@@ -60,7 +60,7 @@ module Datadog
 
         # Update wait time to try to wake consistently on time.
         # Don't drop below the minimum interval.
-        self.loop_wait_time = [loop_base_interval - run_time, MIN_INTERVAL].max
+        self.loop_wait_time = [loop_base_interval - run_time, MIN_INTERVAL_SECONDS].max
       end
 
       def flush_events

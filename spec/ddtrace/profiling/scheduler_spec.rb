@@ -17,7 +17,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
         enabled?: true,
         exporters: exporters,
         fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
-        loop_base_interval: described_class::DEFAULT_INTERVAL,
+        loop_base_interval: described_class::DEFAULT_INTERVAL_SECONDS,
         recorder: recorder
       )
     end
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     it 'changes its wait interval after flushing' do
       expect(scheduler).to receive(:loop_wait_time=) do |value|
-        expected_interval = described_class::DEFAULT_INTERVAL - flush_time
+        expected_interval = described_class::DEFAULT_INTERVAL_SECONDS - flush_time
         expect(value).to be <= expected_interval
       end
 
@@ -129,9 +129,9 @@ RSpec.describe Datadog::Profiling::Scheduler do
       let(:options) { { interval: 0.01 } }
 
       # Assert that the interval isn't set below the min interval
-      it "floors the wait interval to #{described_class::MIN_INTERVAL}" do
+      it "floors the wait interval to #{described_class::MIN_INTERVAL_SECONDS}" do
         expect(scheduler).to receive(:loop_wait_time=)
-          .with(described_class::MIN_INTERVAL)
+          .with(described_class::MIN_INTERVAL_SECONDS)
 
         flush_and_wait
       end
