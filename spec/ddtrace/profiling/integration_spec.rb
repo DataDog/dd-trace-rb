@@ -71,6 +71,7 @@ RSpec.describe 'profiling integration test' do
       Datadog::Profiling::Scheduler.new(
         recorder,
         exporter,
+        skip_next_flush: false,
         enabled: true
       )
     end

@@ -98,10 +98,20 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
   describe '#after_fork' do
     subject(:after_fork) { scheduler.after_fork }
+    let(:options) { { **super(), skip_next_flush: false } }
+
+    before { allow(recorder).to receive(:flush) }
 
     it 'clears the buffer' do
       expect(recorder).to receive(:flush)
       after_fork
+    end
+
+    it 'enables the skip_next_flush flag' do
+      expect { after_fork }
+        .to change { scheduler.send(:skip_next_flush?) }
+        .from(false)
+        .to(true)
     end
   end
 
@@ -126,7 +136,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
     end
 
     context 'when the flush takes longer than an interval' do
-      let(:options) { {**super(), interval: 0.01 } }
+      let(:options) { { **super(), interval: 0.01 } }
 
       # Assert that the interval isn't set below the min interval
       it "floors the wait interval to #{described_class::MIN_INTERVAL_SECONDS}" do
@@ -143,9 +153,30 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     let(:flush) { instance_double(Datadog::Profiling::Flush, event_count: event_count) }
 
+    context 'the first time that flush_events is called' do
+      let(:event_count) { 123 }
+
+      it 'does not flush the recorder' do
+        expect(recorder).to_not receive(:flush)
+
+        flush_events
+      end
+
+      context 'the next time that flush_events is called' do
+        before { scheduler.send(:flush_events) }
+
+        it 'flushes the recorder and exports the results' do
+          expect(recorder).to receive(:flush).and_return(flush)
+          expect(exporters).to all(receive(:export).with(flush))
+
+          flush_events
+        end
+      end
+    end
 
     context 'when no events are available' do
       let(:event_count) { 0 }
+      let(:options) { { **super(), skip_next_flush: false } }
 
       before { expect(recorder).to receive(:flush).and_return(flush) }
 
@@ -160,6 +191,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     context 'when events are available' do
       let(:event_count) { 4 }
+      let(:options) { { **super(), skip_next_flush: false } }
 
       before { expect(recorder).to receive(:flush).and_return(flush) }
 
@@ -187,6 +219,20 @@ RSpec.describe Datadog::Profiling::Scheduler do
           expect(exporters).to all(have_received(:export).with(flush))
         end
       end
+    end
+  end
+
+  describe '#skip_next_flush?' do
+    subject(:skip_next_flush?) { scheduler.send(:skip_next_flush?) }
+
+    context 'by default' do
+      it { is_expected.to be true }
+    end
+
+    context 'when skip_next_flush: false is specified in the constructor' do
+      let(:options) { { **super(), skip_next_flush: false } }
+
+      it { is_expected.to be false }
     end
   end
 end
