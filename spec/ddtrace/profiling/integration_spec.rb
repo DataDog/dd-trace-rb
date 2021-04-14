@@ -82,7 +82,7 @@ RSpec.describe 'profiling integration test' do
     it 'produces a profile' do
       expect(out).to receive(:puts)
       collector.collect_events
-      scheduler.flush_events
+      scheduler.send(:flush_events)
     end
   end
 
@@ -104,7 +104,7 @@ RSpec.describe 'profiling integration test' do
 
             expect(out).to receive(:puts)
             collector.collect_events
-            scheduler.flush_events
+            scheduler.send(:flush_events)
           end
         end
       end
