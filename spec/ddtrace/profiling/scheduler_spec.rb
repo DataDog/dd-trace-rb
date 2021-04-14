@@ -106,7 +106,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
   end
 
   describe '#flush_and_wait' do
-    subject(:flush_and_wait) { scheduler.flush_and_wait }
+    subject(:flush_and_wait) { scheduler.send(:flush_and_wait) }
 
     let(:flush_time) { 0.05 }
 
@@ -139,7 +139,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
   end
 
   describe '#flush_events' do
-    subject(:flush_events) { scheduler.flush_events }
+    subject(:flush_events) { scheduler.send(:flush_events) }
 
     let(:flush) { instance_double(Datadog::Profiling::Flush, event_count: event_count) }
 

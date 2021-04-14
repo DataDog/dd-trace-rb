@@ -51,6 +51,8 @@ module Datadog
         recorder.flush
       end
 
+      private
+
       def flush_and_wait
         run_time = Datadog::Utils::Time.measure do
           flush_events
