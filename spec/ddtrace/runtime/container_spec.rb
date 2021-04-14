@@ -64,8 +64,8 @@ RSpec.describe Datadog::Runtime::Container do
       end
     end
 
-    context 'when in a Fargate environment' do
-      include_context 'Fargate environment'
+    context 'when in a Fargate 1.3- environment' do
+      include_context 'Fargate 1.3- environment'
 
       it do
         is_expected.to be_a_kind_of(described_class::Descriptor)
@@ -73,6 +73,21 @@ RSpec.describe Datadog::Runtime::Container do
           platform: 'ecs',
           container_id: container_id,
           task_uid: task_arn
+        )
+      end
+    end
+
+    context 'when in a Fargate 1.4+ environment' do
+      include_context 'Fargate 1.4+ environment'
+
+      it do
+        # allow(File).to receive(:exist?)
+
+        is_expected.to be_a_kind_of(described_class::Descriptor)
+        is_expected.to have_attributes(
+          platform: 'ecs',
+          container_id: container_id,
+          task_uid: nil
         )
       end
     end

@@ -107,7 +107,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'Fargate environment' do
+  shared_context 'Fargate 1.3- environment' do
     include_context 'cgroup file'
 
     let(:container_id) { '432624d2150b349fe35ba397284dea788c2bf66b885d14dfc1569b01890ca7da' }
@@ -125,6 +125,27 @@ module ContainerHelpers
       cgroup_file.puts "3:blkio:/ecs/#{task_arn}/#{container_id}"
       cgroup_file.puts "2:memory:/ecs/#{task_arn}/#{container_id}"
       cgroup_file.puts "1:name=systemd:/ecs/#{task_arn}/#{container_id}"
+      cgroup_file.rewind
+    end
+  end
+
+  shared_context 'Fargate 1.4+ environment' do
+    include_context 'cgroup file'
+
+    let(:container_id) { '34dc0b5e626f2c5c4c5170e34b10e765-1234567890' }
+
+    before do
+      cgroup_file.puts "11:hugetlb:/ecs/#{container_id}"
+      cgroup_file.puts "10:pids:/ecs/#{container_id}"
+      cgroup_file.puts "9:cpuset:/ecs/#{container_id}"
+      cgroup_file.puts "8:net_cls,net_prio:/ecs/#{container_id}"
+      cgroup_file.puts "7:cpu,cpuacct:/ecs/#{container_id}"
+      cgroup_file.puts "6:perf_event:/ecs/#{container_id}"
+      cgroup_file.puts "5:freezer:/ecs/#{container_id}"
+      cgroup_file.puts "4:devices:/ecs/#{container_id}"
+      cgroup_file.puts "3:blkio:/ecs/#{container_id}"
+      cgroup_file.puts "2:memory:/ecs/#{container_id}"
+      cgroup_file.puts "1:name=systemd:/ecs/#{container_id}"
       cgroup_file.rewind
     end
   end
