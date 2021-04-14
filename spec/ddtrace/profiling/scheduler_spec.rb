@@ -143,31 +143,31 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     let(:flush) { instance_double(Datadog::Profiling::Flush, event_count: event_count) }
 
-    before do
-      expect(recorder).to receive(:flush).and_return(flush)
-      exporters.each { |exporter| allow(exporter).to receive(:export) }
-    end
 
     context 'when no events are available' do
       let(:event_count) { 0 }
 
-      it 'does not export' do
-        is_expected.to be flush
+      before { expect(recorder).to receive(:flush).and_return(flush) }
 
+      it 'does not export' do
         exporters.each do |exporter|
-          expect(exporter).to_not have_received(:export)
+          expect(exporter).to_not receive(:export)
         end
+
+        is_expected.to be flush
       end
     end
 
     context 'when events are available' do
       let(:event_count) { 4 }
 
+      before { expect(recorder).to receive(:flush).and_return(flush) }
+
       context 'and all the exporters succeed' do
         it 'returns the flush' do
-          is_expected.to be flush
+          expect(exporters).to all(receive(:export).with(flush))
 
-          expect(exporters).to all(have_received(:export).with(flush))
+          is_expected.to be flush
         end
       end
 
