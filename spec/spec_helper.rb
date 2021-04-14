@@ -241,6 +241,6 @@ if RUBY_VERSION < '2.1.0'
     # requirement is removed.
     SafeYAML::OPTIONS[:default_mode] = :unsafe
   rescue LoadError
-    STDERR.puts 'safe_yaml not available to load. Makara tests might fail.'
+    warn 'safe_yaml not available to load. Makara tests might fail.'
   end
 end
