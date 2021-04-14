@@ -5,7 +5,7 @@ require 'ddtrace/profiling/recorder'
 require 'ddtrace/profiling/scheduler'
 
 RSpec.describe Datadog::Profiling::Scheduler do
-  subject(:scheduler) { described_class.new(recorder, exporters, options) }
+  subject(:scheduler) { described_class.new(recorder, exporters, **options) }
 
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
   let(:exporters) { [instance_double(Datadog::Profiling::Exporter)] }
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
     end
 
     context 'when the flush takes longer than an interval' do
-      let(:options) { { interval: 0.01 } }
+      let(:options) { {**super(), interval: 0.01 } }
 
       # Assert that the interval isn't set below the min interval
       it "floors the wait interval to #{described_class::MIN_INTERVAL_SECONDS}" do

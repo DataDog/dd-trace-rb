@@ -17,19 +17,24 @@ module Datadog
         :exporters,
         :recorder
 
-      def initialize(recorder, exporters, options = {})
+      def initialize(
+        recorder,
+        exporters,
+        fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
+        interval: DEFAULT_INTERVAL_SECONDS,
+        enabled: true
+      )
         @recorder = recorder
         @exporters = [exporters].flatten
 
         # Workers::Async::Thread settings
-        # Restart in forks by default
-        self.fork_policy = options[:fork_policy] || Workers::Async::Thread::FORK_POLICY_RESTART
+        self.fork_policy = fork_policy
 
         # Workers::IntervalLoop settings
-        self.loop_base_interval = options[:interval] || DEFAULT_INTERVAL_SECONDS
+        self.loop_base_interval = interval
 
         # Workers::Polling settings
-        self.enabled = options.key?(:enabled) ? options[:enabled] == true : true
+        self.enabled = enabled
       end
 
       def start
