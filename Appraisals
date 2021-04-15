@@ -1417,3 +1417,13 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'dogstatsd-ruby', '~> 4'
   end
 end
+
+ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
+                 "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
+               else
+                 "#{RUBY_ENGINE}-#{RUBY_VERSION}" # For Ruby < 2.3
+               end
+
+appraisals.each do |appraisal|
+  appraisal.name.prepend("#{ruby_runtime}-")
+end
