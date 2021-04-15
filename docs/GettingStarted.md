@@ -2529,3 +2529,9 @@ Profiling requires:
     ```ruby
     require 'ddtrace/profiling/preload'
     ```
+
+#### Profiling Resque jobs
+
+When profiling [Resque](https://github.com/resque/resque) jobs, you should set the `RUN_AT_EXIT_HOOKS=1` option described in the [Resque](https://github.com/resque/resque/blob/v2.0.0/docs/HOOKS.md#worker-hooks) documentation.
+
+Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
