@@ -2490,16 +2490,10 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 
 **Compatibility**
 
-Basic profiling requires:
-
-- MRI Ruby 2.0+
-- `google-protobuf` gem installed
-
-In addition, CPU time measurements require:
+Profiling requires:
 
 - MRI Ruby 2.1+
-- Linux OS with `pthread` support
-- `ffi` gem installed
+- `google-protobuf` gem installed
 
 **Setup**
 
@@ -2507,8 +2501,7 @@ In addition, CPU time measurements require:
 
     ```ruby
     gem 'ddtrace'
-    gem 'google-protobuf'
-    gem 'ffi'
+    gem 'google-protobuf', '~> 3.0'
     ```
 
 2. Enable profiling flag:
