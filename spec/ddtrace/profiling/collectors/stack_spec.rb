@@ -376,6 +376,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     context 'Process::Waiter crash regression tests' do
       # See cthread.rb for more details
 
+      before do
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
+          skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
+        end
+      end
+
       it 'can sample an instance of Process::Waiter without crashing' do
         with_profiling_extensions_in_fork do
           Process.detach(fork {})

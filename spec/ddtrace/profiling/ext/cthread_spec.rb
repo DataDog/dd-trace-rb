@@ -245,6 +245,12 @@ if Datadog::Profiling::Ext::CPU.supported?
     end
 
     context 'Process::Waiter crash regression tests' do
+      before do
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
+          skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
+        end
+      end
+
       let(:process_waiter_thread) do
         Process.detach(fork {})
         Thread.list.find { |thread| thread.instance_of?(Process::Waiter) }
