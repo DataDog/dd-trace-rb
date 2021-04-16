@@ -380,6 +380,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
           skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
         end
+        skip 'Test case only applies to MRI Ruby' if RUBY_ENGINE != 'ruby'
       end
 
       it 'can sample an instance of Process::Waiter without crashing' do
