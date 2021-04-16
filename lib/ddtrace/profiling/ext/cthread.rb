@@ -8,13 +8,33 @@ module Datadog
         layout :value, :int
       end
 
-      # Extension used to enable CPU-time profiling via use of Pthread's `getcpuclockid`.
-      module CThread
+      # Enables interfacing with pthread via FFI
+      module NativePthread
         extend FFI::Library
         ffi_lib ['pthread', 'libpthread.so.0']
         attach_function :pthread_self, [], :ulong
         attach_function :pthread_getcpuclockid, [:ulong, CClockId], :int
 
+        # NOTE: Only returns thread ID for thread that evaluates this call.
+        #       a.k.a. evaluating `get_native_thread_id(thread_a)` from within
+        #       `thread_b` will return `thread_b`'s thread ID, not `thread_a`'s.
+        def self.get_native_thread_id(thread)
+          return unless ::Thread.current == thread
+
+          pthread_self
+        end
+
+        def self.get_clock_id(thread, pthread_id)
+          return unless ::Thread.current == thread && pthread_id
+
+          clock = CClockId.new
+          clock[:value] = 0
+          pthread_getcpuclockid(pthread_id, clock).zero? ? clock[:value] : nil
+        end
+      end
+
+      # Extension used to enable CPU-time profiling via use of pthread's `getcpuclockid`.
+      module CThread
         def self.prepended(base)
           # Threads that have already been created, will not have resolved
           # a thread/clock ID. This is because these IDs can only be resolved
@@ -48,11 +68,6 @@ module Datadog
         end
         ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
 
-        def clock_id
-          update_native_ids if forked?
-          defined?(@clock_id) && @clock_id
-        end
-
         def cpu_time(unit = :float_second)
           return unless clock_id && ::Process.respond_to?(:clock_gettime)
 
@@ -71,36 +86,22 @@ module Datadog
 
         private
 
-        # Retrieves number of classes from runtime
+        def clock_id
+          update_native_ids if forked?
+          defined?(@clock_id) && @clock_id
+        end
+
         def forked?
           ::Process.pid != (@pid ||= nil)
         end
 
         def update_native_ids
-          # Can only resolve if invoked from same thread.
+          # Can only resolve if invoked from same thread
           return unless ::Thread.current == self
 
           @pid = ::Process.pid
-          @native_thread_id = get_native_thread_id
-          @clock_id = get_clock_id(@native_thread_id)
-        end
-
-        def get_native_thread_id
-          return unless ::Thread.current == self
-
-          # NOTE: Only returns thread ID for thread that evaluates this call.
-          #       a.k.a. evaluating `thread_a.get_native_thread_id` from within
-          #       `thread_b` will return `thread_b`'s thread ID, not `thread_a`'s.
-          pthread_self
-        end
-
-        def get_clock_id(pthread_id)
-          return unless pthread_id && alive?
-
-          # Build a struct, pass it to Pthread's getcpuclockid function.
-          clock = CClockId.new
-          clock[:value] = 0
-          pthread_getcpuclockid(pthread_id, clock).zero? ? clock[:value] : nil
+          @native_thread_id = NativePthread.get_native_thread_id(self)
+          @clock_id = NativePthread.get_clock_id(self, @native_thread_id)
         end
       end
 

@@ -89,10 +89,10 @@ if Datadog::Profiling::Ext::CPU.supported?
     describe '::new' do
       it 'has native thread IDs available' do
         is_expected.to have_attributes(
-          clock_id: kind_of(Integer),
           native_thread_id: kind_of(Integer),
           cpu_time: kind_of(Float)
         )
+        expect(thread.send(:clock_id)).to be_kind_of(Integer)
       end
 
       it 'correctly forwards all received arguments to the passed proc' do
@@ -131,7 +131,7 @@ if Datadog::Profiling::Ext::CPU.supported?
     end
 
     describe '#clock_id' do
-      subject(:clock_id) { thread.clock_id }
+      subject(:clock_id) { thread.send(:clock_id) }
 
       it { is_expected.to be_a_kind_of(Integer) }
 
@@ -142,12 +142,12 @@ if Datadog::Profiling::Ext::CPU.supported?
           it 'returns a new clock ID' do
             on_main_thread do
               # Get main thread clock ID
-              original_clock_id = thread_class.current.clock_id
+              original_clock_id = thread_class.current.send(:clock_id)
 
               expect_in_fork do
                 # Expect main thread clock ID to change (to match fork's main thread)
-                expect(thread_class.current.clock_id).to be_a_kind_of(Integer)
-                expect(thread_class.current.clock_id).to_not eq(original_clock_id)
+                expect(thread_class.current.send(:clock_id)).to be_a_kind_of(Integer)
+                expect(thread_class.current.send(:clock_id)).to_not eq(original_clock_id)
               end
             end
           end
