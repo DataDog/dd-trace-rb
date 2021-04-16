@@ -23,9 +23,9 @@ module ProfilingFeatureHelpers
   # lingering side effects (since patching occurs within a fork.)
   # Useful for profiling tests involving the main Thread, which cannot
   # be unpatched after applying profiling extensions.
-  def with_profiling_extensions_in_fork
+  def with_profiling_extensions_in_fork(fork_expectations: nil)
     # Apply extensions in a fork so we don't modify the original Thread class
-    expect_in_fork do
+    expect_in_fork(fork_expectations: fork_expectations) do
       require 'ddtrace/profiling/tasks/setup'
       Datadog::Profiling::Tasks::Setup::ACTIVATE_EXTENSIONS_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
       Datadog::Profiling::Tasks::Setup.new.run

@@ -372,6 +372,19 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
     end
+
+    context 'Process::Waiter crash regression tests' do
+      # See cthread.rb for more details
+
+      it 'can sample an instance of Process::Waiter without crashing' do
+        with_profiling_extensions_in_fork do
+          Process.detach(fork {})
+          process_waiter_thread = Thread.list.find { |thread| thread.instance_of?(Process::Waiter) }
+
+          expect(collector.collect_thread_event(process_waiter_thread, 0)).to be_truthy
+        end
+      end
+    end
   end
 
   describe '#get_cpu_time_interval!' do

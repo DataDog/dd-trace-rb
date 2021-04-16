@@ -1,7 +1,11 @@
 require 'English'
 
 module SynchronizationHelpers
-  def expect_in_fork
+  def expect_in_fork(fork_expectations: nil)
+    fork_expectations ||= proc { |status, stderr|
+      expect(status && status.success?).to be(true), stderr
+    }
+
     fork_stderr = Tempfile.new('ddtrace-rspec-expect-in-fork')
     begin
       # Start in fork
@@ -19,7 +23,7 @@ module SynchronizationHelpers
       status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
 
       # Expect fork and assertions to have completed successfully.
-      expect(status && status.success?).to be(true), File.read(fork_stderr.path)
+      fork_expectations.call(status, File.read(fork_stderr.path))
     ensure
       fork_stderr.unlink
     end

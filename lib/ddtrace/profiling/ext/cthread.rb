@@ -47,8 +47,30 @@ module Datadog
           base.current.send(:update_native_ids) if base.current.is_a?(CThread)
         end
 
-        attr_reader \
-          :native_thread_id
+        # Process::Waiter crash workaround:
+        #
+        # This is a workaround for a Ruby VM segfault (usually something like
+        # "[BUG] Segmentation fault at 0x0000000000000008") in the affected Ruby versions.
+        # See https://bugs.ruby-lang.org/issues/17807 and the regression tests added to this module's specs for details.
+        #
+        # In those Ruby versions, there's a very special subclass of `Thread` called `Process::Waiter` that causes VM
+        # crashes whenever something tries to read its instance variables. This subclass of thread only shows up when
+        # the `Process.detach` API gets used.
+        # In this module's specs you can find crash regression tests that include a way of reproducing it.
+        #
+        # The workaround is to use `defined?` to check first if the instance variable exists. This seems to be fine
+        # with Ruby.
+        # Note that this crash doesn't affect `@foo ||=` nor instance variable writes (after the first write ever of any
+        # instance variable on a `Process::Waiter`, then further reads and writes to that or any other instance are OK;
+        # it looks like there's some lazily-created structure that is missing and did not get created).
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3') &&
+           Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
+          attr_reader :native_thread_id
+        else
+          def native_thread_id
+            defined?(@native_thread_id) && @native_thread_id
+          end
+        end
 
         def initialize(*args)
           @pid = ::Process.pid

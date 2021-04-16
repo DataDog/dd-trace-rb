@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'ddtrace/profiling'
+require 'ddtrace/profiling/spec_helper'
 
 if Datadog::Profiling::Ext::CPU.supported?
   require 'ddtrace/profiling/ext/cthread'
@@ -239,6 +240,52 @@ if Datadog::Profiling::Ext::CPU.supported?
 
         it do
           expect(thread.cpu_time_instrumentation_installed?).to be false
+        end
+      end
+    end
+
+    context 'Process::Waiter crash regression tests' do
+      let(:process_waiter_thread) do
+        Process.detach(fork {})
+        Thread.list.find { |thread| thread.instance_of?(Process::Waiter) }
+      end
+
+      describe 'the crash' do
+        # Let's not get surprised if this shows up in other Ruby versions
+
+        it 'does not affect Ruby < 2.3 nor Ruby >= 2.7' do
+          unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3') &&
+                 Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
+            skip 'Test case only applies to Ruby < 2.3 or Ruby >= 2.7'
+          end
+
+          with_profiling_extensions_in_fork do
+            expect(process_waiter_thread.instance_variable_get(:@hello)).to be nil
+          end
+        end
+
+        it 'affects Ruby >= 2.3 and < 2.7' do
+          unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3') &&
+                 Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
+            skip 'Test case only applies to Ruby >= 2.3 and < 2.7'
+          end
+
+          with_profiling_extensions_in_fork(
+            fork_expectations: proc do |status, stderr|
+              expect(Signal.signame(status.termsig)).to eq 'ABRT'
+              expect(stderr).to include('[BUG] Segmentation fault')
+            end
+          ) do
+            process_waiter_thread.instance_variable_get(:@hello)
+          end
+        end
+      end
+
+      describe '#native_thread_id' do
+        it 'can be read without crashing the Ruby VM' do
+          with_profiling_extensions_in_fork do
+            expect(process_waiter_thread.native_thread_id).to be nil
+          end
         end
       end
     end
