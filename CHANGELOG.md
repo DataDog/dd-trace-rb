@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+## [0.48.0] - 2021-04-19
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.48.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.47.0...v0.48.0
+
+### Added
+
+- Makara support with ActiveRecord ([#1447][])
+- `tag_body` configuration for Shoryuken ([#1449][]) ([@gkampjes][])
+
+### Changed
+
+- Add deprecation warning for Ruby 2.0 support ([#1441][])
+
+  Support for Ruby 2.0 will be available up to release `0.49.x`, and dropped from release `0.50.0` and greater.
+  Users are welcome to continue using version `< 0.50.0` for their Ruby 2.0 deployments going forward.
+
+- Auto instrument Resque workers by default ([#1400][])
+
+### Fixed
+
+- Ensure DD_TRACE_SAMPLE_RATE enables full RuleSampler ([#1416][])
+- Fix Fargate 1.4 container ID not being read ([#1457][])
+- Correctly close all StatsD clients ([#1429][])
+
+### Refactored
+- Improvements to test suite & CI ([#1421][], [#1435][], [#1445][], [#1453][], [#1456][], [#1461][])
+- Improvements to documentation ([#1455][])
+
 ## [0.47.0] - 2021-03-29
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.47.0
@@ -1632,7 +1662,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.47.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.48.0...master
+[0.48.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.47.0...v0.48.0
 [0.47.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.46.0...v0.47.0
 [0.46.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.45.0...v0.46.0
 [0.45.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.44.0...v0.45.0
@@ -2280,6 +2311,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1396]: https://github.com/DataDog/dd-trace-rb/issues/1396
 [#1398]: https://github.com/DataDog/dd-trace-rb/issues/1398
 [#1399]: https://github.com/DataDog/dd-trace-rb/issues/1399
+[#1400]: https://github.com/DataDog/dd-trace-rb/issues/1400
 [#1403]: https://github.com/DataDog/dd-trace-rb/issues/1403
 [#1406]: https://github.com/DataDog/dd-trace-rb/issues/1406
 [#1408]: https://github.com/DataDog/dd-trace-rb/issues/1408
@@ -2287,17 +2319,30 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1412]: https://github.com/DataDog/dd-trace-rb/issues/1412
 [#1414]: https://github.com/DataDog/dd-trace-rb/issues/1414
 [#1415]: https://github.com/DataDog/dd-trace-rb/issues/1415
+[#1416]: https://github.com/DataDog/dd-trace-rb/issues/1416
 [#1417]: https://github.com/DataDog/dd-trace-rb/issues/1417
 [#1418]: https://github.com/DataDog/dd-trace-rb/issues/1418
 [#1419]: https://github.com/DataDog/dd-trace-rb/issues/1419
 [#1420]: https://github.com/DataDog/dd-trace-rb/issues/1420
+[#1421]: https://github.com/DataDog/dd-trace-rb/issues/1421
 [#1422]: https://github.com/DataDog/dd-trace-rb/issues/1422
 [#1426]: https://github.com/DataDog/dd-trace-rb/issues/1426
 [#1427]: https://github.com/DataDog/dd-trace-rb/issues/1427
 [#1428]: https://github.com/DataDog/dd-trace-rb/issues/1428
+[#1429]: https://github.com/DataDog/dd-trace-rb/issues/1429
 [#1430]: https://github.com/DataDog/dd-trace-rb/issues/1430
 [#1431]: https://github.com/DataDog/dd-trace-rb/issues/1431
 [#1432]: https://github.com/DataDog/dd-trace-rb/issues/1432
+[#1435]: https://github.com/DataDog/dd-trace-rb/issues/1435
+[#1441]: https://github.com/DataDog/dd-trace-rb/issues/1441
+[#1445]: https://github.com/DataDog/dd-trace-rb/issues/1445
+[#1447]: https://github.com/DataDog/dd-trace-rb/issues/1447
+[#1449]: https://github.com/DataDog/dd-trace-rb/issues/1449
+[#1453]: https://github.com/DataDog/dd-trace-rb/issues/1453
+[#1455]: https://github.com/DataDog/dd-trace-rb/issues/1455
+[#1456]: https://github.com/DataDog/dd-trace-rb/issues/1456
+[#1457]: https://github.com/DataDog/dd-trace-rb/issues/1457
+[#1461]: https://github.com/DataDog/dd-trace-rb/issues/1461
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -2352,6 +2397,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@gaborszakacs]: https://github.com/gaborszakacs
 [@giancarlocosta]: https://github.com/giancarlocosta
 [@gingerlime]: https://github.com/gingerlime
+[@gkampjes]: https://github.com/gkampjes
 [@gottfrois]: https://github.com/gottfrois
 [@guizmaii]: https://github.com/guizmaii
 [@hawknewton]: https://github.com/hawknewton
