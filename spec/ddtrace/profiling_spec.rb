@@ -77,7 +77,7 @@ RSpec.describe Datadog::Profiling do
   end
 
   describe '::protobuf_loaded_successfully?' do
-    subject(:protobuf_loaded_successfully?) { described_class.protobuf_loaded_successfully? }
+    subject(:protobuf_loaded_successfully?) { described_class.send(:protobuf_loaded_successfully?) }
 
     before do
       # Remove any previous state

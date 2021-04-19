@@ -14,19 +14,41 @@ module Datadog
       # NOTE: Only the first matching reason is returned, so try to keep a nice order on reasons -- e.g. tell users
       # first that they can't use this on JRuby before telling them that they are missing protobuf
 
-      if RUBY_ENGINE == 'jruby'
-        'JRuby is not supported'
-      elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
-        'Ruby >= 2.1 is required'
-      elsif Gem.loaded_specs['google-protobuf'].nil?
+      ruby_engine_unsupported? || ruby_version_unsupported? ||
+        protobuf_gem_unavailable? || protobuf_version_unsupported? || protobuf_failed_to_load?
+    end
+
+    def self.ruby_engine_unsupported?
+      'JRuby is not supported' if RUBY_ENGINE == 'jruby'
+    end
+    private_class_method :ruby_engine_unsupported?
+
+    def self.ruby_version_unsupported?
+      'Ruby >= 2.1 is required' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
+    end
+    private_class_method :ruby_version_unsupported?
+
+    def self.protobuf_gem_unavailable?
+      if Gem.loaded_specs['google-protobuf'].nil?
         "Missing google-protobuf dependency; please add `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
-      elsif Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
+      end
+    end
+    private_class_method :protobuf_gem_unavailable?
+
+    def self.protobuf_version_unsupported?
+      if Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
         'Your google-protobuf is too old; ensure that you have google-protobuf >= 3.0 by ' \
         "adding `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
-      elsif !protobuf_loaded_successfully?
+      end
+    end
+    private_class_method :protobuf_version_unsupported?
+
+    def self.protobuf_failed_to_load?
+      unless protobuf_loaded_successfully?
         'There was an error loading the google-protobuf library; see previous warning message for details'
       end
     end
+    private_class_method :protobuf_failed_to_load?
 
     # The `google-protobuf` gem depends on a native component, and its creators helpfully tried to provide precompiled
     # versions of this extension on rubygems.org.
@@ -37,7 +59,7 @@ module Datadog
     #
     # Thus, the gem can still be installed, but can be in a broken state. To avoid breaking customer applications, we
     # use this helper to load it and gracefully handle failures.
-    def protobuf_loaded_successfully?
+    def self.protobuf_loaded_successfully?
       return @protobuf_loaded if defined?(@protobuf_loaded)
 
       begin
@@ -55,8 +77,9 @@ module Datadog
         @protobuf_loaded = false
       end
     end
+    private_class_method :protobuf_loaded_successfully?
 
-    def load_profiling
+    def self.load_profiling
       return false unless supported?
 
       require 'ddtrace/profiling/ext/cpu'
@@ -75,6 +98,7 @@ module Datadog
 
       true
     end
+    private_class_method :load_profiling
 
     load_profiling if supported?
   end
