@@ -2476,9 +2476,9 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 
 By default, Datadog limits the size of trace payloads to prevent memory overhead within instrumented applications. As a result, traces containing thousands of operations may not be sent to Datadog.
 
-To confirm this behavior is occurring, enable [debug mode](#tracer-settings) and check if messages similar to `"Dropping trace. Payload too large"` are being emitted.
+If traces are missing, enable [debug mode](#tracer-settings) to check if messages containing `"Dropping trace. Payload too large"` are logged.
 
-Debug mode is verbose, and Datadog does not recommend leaving this enabled, so disable it after confirming. You can inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
+Since debug mode is verbose, Datadog does not recommend leaving this enabled or enabling this in production. Disable it after confirming. You can inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
 
 If you have confirmed that traces are dropped due to large payloads, then enable the [partial_flush](#tracer-settings) setting to break down large traces into smaller chunks.
 
