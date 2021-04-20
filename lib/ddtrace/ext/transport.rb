@@ -4,6 +4,7 @@ module Datadog
       module HTTP
         DEFAULT_HOST = '127.0.0.1'.freeze
         DEFAULT_PORT = 8126
+        DEFAULT_TIMEOUT_SECONDS = 1
         ENV_DEFAULT_HOST = 'DD_AGENT_HOST'.freeze
         ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'.freeze
         ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'.freeze

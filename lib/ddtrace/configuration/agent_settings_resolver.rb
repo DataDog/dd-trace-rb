@@ -26,7 +26,8 @@ module Datadog
           ssl: ssl?,
           hostname: hostname,
           port: port,
-        }
+          timeout_seconds: timeout_seconds
+        }.freeze
       end
 
       private
@@ -86,6 +87,10 @@ module Datadog
 
       def ssl?
         !parsed_url.nil? && parsed_url.scheme == "https"
+      end
+
+      def timeout_seconds
+        Datadog::Ext::Transport::HTTP::DEFAULT_TIMEOUT_SECONDS
       end
 
       def parsed_url

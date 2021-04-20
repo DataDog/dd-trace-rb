@@ -20,7 +20,8 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       adapter: :http,
       ssl: false,
       hostname: '127.0.0.1',
-      port: 8126
+      port: 8126,
+      timeout_seconds: 1
     }
   }
 
@@ -187,6 +188,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
     it 'contacts the agent using the http adapter, using the custom hostname and port' do
       expect(subject.call).to eq(
+        **default_settings,
         adapter: :http,
         ssl: false,
         hostname: 'custom-hostname',
