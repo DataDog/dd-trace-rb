@@ -30,7 +30,6 @@ services:
     volumes:
       - .:/app
       - bundle-2.0:/usr/local/bundle
-      - gemfiles-2.0:/app/gemfiles
   tracer-2.1:
     image: palazzem/docker-library:ddtrace_rb_2_1_10
     command: /bin/bash
@@ -61,7 +60,6 @@ services:
     volumes:
       - .:/app
       - bundle-2.1:/usr/local/bundle
-      - gemfiles-2.1:/app/gemfiles
   tracer-2.2:
     image: palazzem/docker-library:ddtrace_rb_2_2_10
     command: /bin/bash
@@ -92,7 +90,6 @@ services:
     volumes:
       - .:/app
       - bundle-2.2:/usr/local/bundle
-      - gemfiles-2.2:/app/gemfiles
   tracer-2.3:
     image: palazzem/docker-library:ddtrace_rb_2_3_8
     command: /bin/bash
@@ -123,7 +120,6 @@ services:
     volumes:
       - .:/app
       - bundle-2.3:/usr/local/bundle
-      - gemfiles-2.3:/app/gemfiles
   tracer-2.4:
     image: palazzem/docker-library:ddtrace_rb_2_4_6
     command: /bin/bash
@@ -154,7 +150,6 @@ services:
     volumes:
       - .:/app
       - bundle-2.4:/usr/local/bundle
-      - gemfiles-2.4:/app/gemfiles
   tracer-2.5:
     image: marcotc/docker-library:ddtrace_rb_2_5_6
     command: /bin/bash
@@ -185,7 +180,6 @@ services:
     volumes:
       - .:/app
       - bundle-2.5:/usr/local/bundle
-      - gemfiles-2.5:/app/gemfiles
   tracer-2.6:
     image: marcotc/docker-library:ddtrace_rb_2_6_4
     command: /bin/bash
@@ -216,7 +210,6 @@ services:
     volumes:
       - .:/app
       - bundle-2.6:/usr/local/bundle
-      - gemfiles-2.6:/app/gemfiles
   tracer-2.7:
     image: marcotc/docker-library:ddtrace_rb_2_7_0
     command: /bin/bash
@@ -247,7 +240,6 @@ services:
     volumes:
       - .:/app
       - bundle-2.7:/usr/local/bundle
-      - gemfiles-2.7:/app/gemfiles
   tracer-3.0:
     image: marcotc/docker-library:ddtrace_rb_3.0.0
     command: /bin/bash
@@ -275,7 +267,6 @@ services:
     volumes:
       - .:/app
       - bundle-3.0:/usr/local/bundle
-      - gemfiles-3.0:/app/gemfiles
   # JRuby
   tracer-jruby-9.2.0.0:
     image: marcotc/docker-library:ddtrace_rb_jruby_9_2_0_0
@@ -307,7 +298,6 @@ services:
     volumes:
       - .:/app
       - bundle-jruby-9.2.0.0:/usr/local/bundle
-      - gemfiles-jruby-9.2.0.0:/app/gemfiles
   tracer-jruby-9.2-latest:
     image: marcotc/docker-library:ddtrace_rb_jruby_9_2_11_1
     command: /bin/bash
@@ -338,7 +328,6 @@ services:
     volumes:
       - .:/app
       - bundle-jruby-9.2-latest:/usr/local/bundle
-      - gemfiles-jruby-9.2-latest:/app/gemfiles
   # TruffleRuby
   tracer-truffleruby-21.0.0:
     image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_0_0
@@ -370,7 +359,6 @@ services:
     volumes:
       - .:/app
       - bundle-truffleruby-21.0.0:/usr/local/bundle
-      - gemfiles-truffleruby-21.0.0:/app/gemfiles
   ddagent:
     image: datadog/agent
     environment:
@@ -454,15 +442,3 @@ volumes:
   bundle-jruby-9.2.0.0:
   bundle-jruby-9.2-latest:
   bundle-truffleruby-21.0.0:
-  gemfiles-2.0:
-  gemfiles-2.1:
-  gemfiles-2.2:
-  gemfiles-2.3:
-  gemfiles-2.4:
-  gemfiles-2.5:
-  gemfiles-2.6:
-  gemfiles-2.7:
-  gemfiles-3.0:
-  gemfiles-jruby-9.2.0.0:
-  gemfiles-jruby-9.2-latest:
-  gemfiles-truffleruby-21.0.0:

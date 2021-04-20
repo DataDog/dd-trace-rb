@@ -120,7 +120,7 @@ ensure_lockfile_committed: &ensure_lockfile_committed
         >&2 echo "Affected files:"
         >&2 echo $CHANGED_FILES
         >&2 git diff HEAD
-        exit -1
+        exit 1
       fi
 step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
