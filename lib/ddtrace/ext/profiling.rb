@@ -29,6 +29,7 @@ module Datadog
           FORM_FIELD_TAG_ENV = 'env'.freeze
           FORM_FIELD_TAG_HOST = 'host'.freeze
           FORM_FIELD_TAG_LANGUAGE = 'language'.freeze
+          FORM_FIELD_TAG_PID = 'pid'.freeze
           FORM_FIELD_TAG_PROFILER_VERSION = 'profiler_version'.freeze
           FORM_FIELD_TAG_RUNTIME = 'runtime'.freeze
           FORM_FIELD_TAG_RUNTIME_ENGINE = 'runtime_engine'.freeze
