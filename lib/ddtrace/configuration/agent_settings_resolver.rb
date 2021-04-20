@@ -32,30 +32,23 @@ module Datadog
       private
 
       def hostname
-        detected_configurations_in_priority_order = [
-          DetectedConfiguration.new(
-            friendly_name: "'settings.tracer.hostname'",
-            value: settings.tracer.hostname
-          ),
-          DetectedConfiguration.new(
-            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
-            value: parsed_url && parsed_url.hostname
-          ),
-          DetectedConfiguration.new(
-            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST} environment variable",
-            value: ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
-          )
-        ].select(&:value?)
-
-        if detected_configurations_in_priority_order.any?
-          warn_if_configuration_mismatch(detected_configurations_in_priority_order)
-
-          # The configurations above are listed in priority, so we only need to look at the first; if there's more than
-          # one, we emit a warning above
-          detected_configurations_in_priority_order.first.value
-        else
-          Datadog::Ext::Transport::HTTP::DEFAULT_HOST
-        end
+        pick_from(
+          configurations_in_priority_order: [
+            DetectedConfiguration.new(
+              friendly_name: "'settings.tracer.hostname'",
+              value: settings.tracer.hostname
+            ),
+            DetectedConfiguration.new(
+              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
+              value: parsed_url && parsed_url.hostname
+            ),
+            DetectedConfiguration.new(
+              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST} environment variable",
+              value: ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
+            )
+          ],
+          or_use_default: Datadog::Ext::Transport::HTTP::DEFAULT_HOST
+        )
       end
 
       def port
@@ -72,26 +65,19 @@ module Datadog
             end
           end
 
-        detected_configurations_in_priority_order = [
-          DetectedConfiguration.new(
-            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
-            value: parsed_url && parsed_url.port
-          ),
-          DetectedConfiguration.new(
-            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable",
-            value: parsed_port_from_env
-          )
-        ].select(&:value?)
-
-        if detected_configurations_in_priority_order.any?
-          warn_if_configuration_mismatch(detected_configurations_in_priority_order)
-
-          # The configurations above are listed in priority, so we only need to look at the first; if there's more than
-          # one, we emit a warning above
-          detected_configurations_in_priority_order.first.value
-        else
-          Datadog::Ext::Transport::HTTP::DEFAULT_PORT
-        end
+        pick_from(
+          configurations_in_priority_order: [
+            DetectedConfiguration.new(
+              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
+              value: parsed_url && parsed_url.port
+            ),
+            DetectedConfiguration.new(
+              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable",
+              value: parsed_port_from_env
+            )
+          ],
+          or_use_default: Datadog::Ext::Transport::HTTP::DEFAULT_PORT
+        )
       end
 
       def ssl?
@@ -124,6 +110,24 @@ module Datadog
       # directly without parsing, is when displaying in warning messages, to show users what it actually contains.
       def unparsed_url_from_env
         @unparsed_url_from_env ||= ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL]
+      end
+
+      def pick_from(
+        # Hacky required kw args, we can get rid of this when we drop Ruby 2.0
+        configurations_in_priority_order: raise(ArgumentError, 'missing keyword :configurations'),
+        or_use_default: raise(ArgumentError, 'missing keyword :or_use_default')
+      )
+        detected_configurations_in_priority_order = configurations_in_priority_order.select(&:value?)
+
+        if detected_configurations_in_priority_order.any?
+          warn_if_configuration_mismatch(detected_configurations_in_priority_order)
+
+          # The configurations are listed in priority, so we only need to look at the first; if there's more than
+          # one, we emit a warning above
+          detected_configurations_in_priority_order.first.value
+        else
+          or_use_default
+        end
       end
 
       def warn_if_configuration_mismatch(detected_configurations_in_priority_order)
