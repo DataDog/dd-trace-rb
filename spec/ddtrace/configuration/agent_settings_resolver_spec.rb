@@ -12,6 +12,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     }
   }
   let(:environment) { Hash.new }
+  let(:ddtrace_settings) { Datadog::Configuration::Settings.new }
   let(:logger) { instance_double(Datadog::Logger) }
 
   let(:default_settings) {
@@ -23,7 +24,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     }
   }
 
-  subject { described_class.new(logger: logger) }
+  subject { described_class.new(ddtrace_settings, logger: logger) }
 
   context 'by default' do
     it 'contacts the agent using the http adapter, using hostname 127.0.0.1 and port 8126' do
@@ -31,11 +32,59 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     end
   end
 
-  context 'when a custom hostname is specified via environment variable' do
-    let(:environment) { {'DD_AGENT_HOST' => 'custom-hostname'} }
+  describe 'http adapter hostname' do
+    context 'when a custom hostname is specified via environment variable' do
+      let(:environment) { {'DD_AGENT_HOST' => 'custom-hostname'} }
 
-    it 'contacts the agent using the http adapter, using the custom hostname' do
-      expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+      it 'contacts the agent using the http adapter, using the custom hostname' do
+        expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+      end
+    end
+
+    context 'when a custom hostname is specified via code using tracer.hostname =' do
+      before do
+        ddtrace_settings.tracer.hostname = 'custom-hostname'
+      end
+
+      it 'contacts the agent using the http adapter, using the custom hostname' do
+        expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+      end
+
+      context 'when a different hostname is also specified via the DD_AGENT_HOST environment variable' do
+        let(:environment) { {'DD_AGENT_HOST' => 'this-is-a-different-hostname'} }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'prioritizes the hostname specified via code' do
+          expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          subject.call
+        end
+      end
+
+      context 'when a different hostname is also specified via the DD_TRACE_AGENT_URL environment variable' do
+        let(:environment) { {'DD_TRACE_AGENT_URL' => 'http://this-is-a-different-hostname:8126'} }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'prioritizes the hostname specified via code' do
+          expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          subject.call
+        end
+      end
     end
   end
 
@@ -77,7 +126,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       )
     end
 
-    context 'when a custom hostname is also specified' do
+    context 'when a different hostname is also specified via the DD_AGENT_HOST environment variable' do
       let(:environment) {
         {
           'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234',
@@ -89,7 +138,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         allow(logger).to receive(:warn)
       end
 
-      it 'contacts the agent using the http adapter, using the hostname specified via DD_TRACE_AGENT_URL' do
+      it 'it prioritizes the hostname specified via DD_TRACE_AGENT_URL' do
         expect(subject.call).to include(hostname: 'custom-hostname')
       end
 
@@ -100,7 +149,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a custom port is also specified' do
+    context 'when a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
       let(:environment) {
         {
           'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234',
@@ -112,7 +161,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         allow(logger).to receive(:warn)
       end
 
-      it 'contacts the agent using the http adapter, using the port specified via DD_TRACE_AGENT_URL' do
+      it 'prioritizes the port specified via DD_TRACE_AGENT_URL' do
         expect(subject.call).to include(port: 1234)
       end
 

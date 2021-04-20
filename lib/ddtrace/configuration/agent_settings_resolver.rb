@@ -10,11 +10,13 @@ module Datadog
       private
 
       attr_reader \
-        :logger
+        :logger,
+        :settings
 
       public
 
-      def initialize(logger: Datadog.logger)
+      def initialize(settings, logger: Datadog.logger)
+        @settings = settings
         @logger = logger
       end
 
@@ -32,12 +34,30 @@ module Datadog
       def hostname
         hostname_from_env = ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
 
-        if parsed_url
+        if settings.tracer.hostname
+          if parsed_url && parsed_url.hostname != settings.tracer.hostname
+            logger.warn(
+              "Configuration mismatch: both 'tracer.hostname' ('#{settings.tracer.hostname}') and " \
+              "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} ('#{unparsed_url_from_env}') were specified, " \
+              "and their values differ. Using '#{settings.tracer.hostname}'."
+            )
+          end
+
+          if hostname_from_env && hostname_from_env != settings.tracer.hostname
+            logger.warn(
+              "Configuration mismatch: both 'tracer.hostname' ('#{settings.tracer.hostname}') and " \
+              "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST} ('#{hostname_from_env}') were specified, " \
+              "and their values differ. Using '#{settings.tracer.hostname}'."
+            )
+          end
+
+          settings.tracer.hostname
+        elsif parsed_url
           if hostname_from_env && hostname_from_env != parsed_url.hostname
             logger.warn(
               "Configuration mismatch: both the #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} ('#{unparsed_url_from_env}') " \
               "and the #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST} ('#{hostname_from_env}') were specified, " \
-              "and their values differ. Using #{unparsed_url_from_env}."
+              "and their values differ. Using '#{unparsed_url_from_env}'."
             )
           end
 
@@ -55,7 +75,7 @@ module Datadog
             logger.warn(
               "Configuration mismatch: both the #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} ('#{unparsed_url_from_env}') " \
               "and the #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} ('#{port_from_env}') were specified, " \
-              "and their values differ. Using #{unparsed_url_from_env}."
+              "and their values differ. Using '#{unparsed_url_from_env}'."
             )
           end
 
