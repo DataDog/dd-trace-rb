@@ -68,6 +68,10 @@ module Datadog
         pick_from(
           configurations_in_priority_order: [
             DetectedConfiguration.new(
+              friendly_name: '"settings.tracer.port"',
+              value: settings.tracer.port
+            ),
+            DetectedConfiguration.new(
               friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
               value: parsed_url && parsed_url.port
             ),

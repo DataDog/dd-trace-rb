@@ -88,28 +88,76 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     end
   end
 
-  context 'when a custom port is specified via environment variable' do
-    let(:environment) { {'DD_TRACE_AGENT_PORT' => '1234'} }
+  describe 'http adapter port' do
+    context 'when a custom port is specified via environment variable' do
+      let(:environment) { {'DD_TRACE_AGENT_PORT' => '1234'} }
 
-    it 'contacts the agent using the http adapter, using the custom port' do
-      expect(subject.call).to eq(**default_settings, port: 1234)
+      it 'contacts the agent using the http adapter, using the custom port' do
+        expect(subject.call).to eq(**default_settings, port: 1234)
+      end
+
+      context 'when the custom port is invalid' do
+        let(:environment) { {'DD_TRACE_AGENT_PORT' => 'this-is-an-invalid-port'} }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          subject.call
+        end
+
+        it 'falls back to the defaults' do
+          expect(subject.call).to eq default_settings
+        end
+      end
     end
 
-    context 'when the custom port is invalid' do
-      let(:environment) { {'DD_TRACE_AGENT_PORT' => 'this-is-an-invalid-port'} }
-
+    context 'when a custom port is specified via code using "tracer.port = "' do
       before do
-        allow(logger).to receive(:warn)
+        ddtrace_settings.tracer.port = 1234
       end
 
-      it 'logs a warning' do
-        expect(logger).to receive(:warn).with(/Invalid value/)
-
-        subject.call
+      it 'contacts the agent using the http adapter, using the custom port' do
+        expect(subject.call).to eq(**default_settings, port: 1234)
       end
 
-      it 'falls back to the defaults' do
-        expect(subject.call).to eq default_settings
+      context 'and a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
+        let(:environment) { {'DD_TRACE_AGENT_PORT' => '5678'} }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'prioritizes the port specified via code' do
+          expect(subject.call).to eq(**default_settings, port: 1234)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          subject.call
+        end
+      end
+
+      context 'and a different port is also specified via the DD_TRACE_AGENT_URL environment variable' do
+        let(:environment) { {'DD_TRACE_AGENT_URL' => 'http://127.0.0.1:5678'} }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'prioritizes the port specified via code' do
+          expect(subject.call).to eq(**default_settings, port: 1234)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          subject.call
+        end
       end
     end
   end
