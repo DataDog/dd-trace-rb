@@ -93,7 +93,9 @@ RSpec.describe 'profiling integration test' do
       end
     end
 
-    if Datadog::Profiling.native_cpu_time_supported?
+    require 'ddtrace/profiling/ext/cpu'
+
+    if Datadog::Profiling::Ext::CPU.supported?
       context 'with CPU profiling' do
         # include_context 'with profiling extensions'
         include_context 'end-to-end profiler'

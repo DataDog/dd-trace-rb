@@ -8,11 +8,13 @@ RSpec.describe Datadog::Configuration::Components do
 
   let(:settings) { Datadog::Configuration::Settings.new }
 
-  let(:profiler_setup_task) { instance_double(Datadog::Profiling::Tasks::Setup) }
+  let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
 
   before do
     # Ensure the real task never gets run (so it doesn't apply our thread patches and other extensions to our test env)
-    allow(Datadog::Profiling::Tasks::Setup).to receive(:new).and_return(profiler_setup_task)
+    if Datadog::Profiling.supported?
+      allow(Datadog::Profiling::Tasks::Setup).to receive(:new).and_return(profiler_setup_task)
+    end
   end
 
   describe '::new' do
@@ -904,8 +906,8 @@ RSpec.describe Datadog::Configuration::Components do
       context 'is unsupported' do
         before do
           allow(Datadog::Profiling)
-            .to receive(:supported?)
-            .and_return(false)
+            .to receive(:unsupported_reason)
+            .and_return('Disabled for testing')
         end
 
         context 'and enabled' do
