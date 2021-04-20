@@ -60,30 +60,38 @@ module Datadog
 
       def port
         port_from_env = ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT]
-
-        if parsed_url
-          if port_from_env && port_from_env != parsed_url.port
-            logger.warn(
-              "Configuration mismatch: both the #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} ('#{unparsed_url_from_env}') " \
-              "and the #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} ('#{port_from_env}') were specified, " \
-              "and their values differ. Using '#{unparsed_url_from_env}'."
-            )
+        parsed_port_from_env =
+          if port_from_env
+            begin
+              Integer(port_from_env)
+            rescue ArgumentError
+              logger.warn(
+                "Invalid value for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable ('#{port_from_env}'). " \
+                "Ignoring this configuration."
+              )
+            end
           end
 
-          return parsed_url.port
+        detected_configurations_in_priority_order = [
+          DetectedConfiguration.new(
+            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
+            value: parsed_url && parsed_url.port
+          ),
+          DetectedConfiguration.new(
+            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable",
+            value: parsed_port_from_env
+          )
+        ].select(&:value?)
+
+        if detected_configurations_in_priority_order.any?
+          warn_if_configuration_mismatch(detected_configurations_in_priority_order)
+
+          # The configurations above are listed in priority, so we only need to look at the first; if there's more than
+          # one, we emit a warning above
+          detected_configurations_in_priority_order.first.value
+        else
+          Datadog::Ext::Transport::HTTP::DEFAULT_PORT
         end
-
-        default_value = Datadog::Ext::Transport::HTTP::DEFAULT_PORT
-
-        if port_from_env
-          begin
-            return Integer(port_from_env)
-          rescue ArgumentError
-            logger.warn("Invalid value for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable ('#{port_from_env}'). Falling back to default value #{default_value}.")
-          end
-        end
-
-        default_value
       end
 
       def ssl?
