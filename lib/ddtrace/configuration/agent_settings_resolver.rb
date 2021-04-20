@@ -4,6 +4,11 @@ module Datadog
   module Configuration
     # This class unifies all the different ways that users can configure how we talk to the agent.
     #
+    # It has quite a lot of complexity, but this complexity just reflects the actual complexity we have around our
+    # configuration today. E.g., this is just all of the complexity regarding agent settings gathered together in a
+    # single place. As we deprecate more and more of the different ways that these things can be configured,
+    # this class will reflect that simplification as well.
+    #
     # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
     # about it and pick a value based on the following priority: code > environment variable > defaults.
     class AgentSettingsResolver
