@@ -111,7 +111,7 @@ ensure_lockfile_committed: &ensure_lockfile_committed
   run:
     name: Ensure Gem lock files are commited
     command: |
-      CHANGED_FILES=$(git status --porcelain)
+      CHANGED_FILES=$(git status gemfiles/ --porcelain)
       if [[ $CHANGED_FILES ]]
       then
         >&2 echo "Gem lock files were modified or new lock files were created during"
