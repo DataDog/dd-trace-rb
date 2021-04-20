@@ -41,7 +41,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a custom hostname is specified via code using tracer.hostname =' do
+    context 'when a custom hostname is specified via code using "tracer.hostname ="' do
       before do
         ddtrace_settings.tracer.hostname = 'custom-hostname'
       end
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
       end
 
-      context 'when a different hostname is also specified via the DD_AGENT_HOST environment variable' do
+      context 'and a different hostname is also specified via the DD_AGENT_HOST environment variable' do
         let(:environment) { {'DD_AGENT_HOST' => 'this-is-a-different-hostname'} }
 
         before do
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
       end
 
-      context 'when a different hostname is also specified via the DD_TRACE_AGENT_URL environment variable' do
+      context 'and a different hostname is also specified via the DD_TRACE_AGENT_URL environment variable' do
         let(:environment) { {'DD_TRACE_AGENT_URL' => 'http://this-is-a-different-hostname:8126'} }
 
         before do
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       )
     end
 
-    context 'when a different hostname is also specified via the DD_AGENT_HOST environment variable' do
+    context 'and a different hostname is also specified via the DD_AGENT_HOST environment variable' do
       let(:environment) {
         {
           'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234',
@@ -149,7 +149,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
+    context 'and a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
       let(:environment) {
         {
           'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234',
