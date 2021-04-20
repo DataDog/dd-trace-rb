@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (0.47.0)
+    ddtrace (0.48.0)
       ffi (~> 1.0)
       msgpack
 
@@ -1258,6 +1258,8 @@ GEM
     loofah (2.9.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
+    makara (0.5.0)
+      activerecord (>= 3.0.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     metriks (0.9.9.8)
@@ -1497,6 +1499,7 @@ DEPENDENCIES
   hiredis
   http
   httpclient
+  makara
   memory_profiler (~> 0.9)
   minitest (= 5.10.1)
   minitest-around (= 0.5.0)
