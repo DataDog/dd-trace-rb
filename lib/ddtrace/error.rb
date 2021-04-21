@@ -13,7 +13,7 @@ module Datadog
         case value
         when Error then value
         when Array then new(*value)
-        when Exception then from_exception(value.class, value.message, full_backtrace(value))
+        when Exception then new(value.class, value.message, full_backtrace(value))
         when ContainsMessage then new(value.class, value.message)
         else BlankError
         end
@@ -26,6 +26,7 @@ module Datadog
         # Only current exception stack trace is reported.
         # This is the same behavior as before.
         def full_backtrace(ex)
+          backtrace = ex.backtrace
           ex.backtrace.join("\n")
         end
       elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
@@ -88,21 +89,11 @@ module Datadog
     end
 
     def initialize(type = nil, message = nil, backtrace = nil)
-      backtrace = Array(backtrace).join("\n")
+      backtrace = Array(backtrace).join("\n") unless backtrace.is_a?(String)
 
       @type = Utils.utf8_encode(type)
       @message = Utils.utf8_encode(message)
       @backtrace = Utils.utf8_encode(backtrace)
-    end
-
-    # Optimized version for Exception objects.
-    #
-    # Exceptions return UTF-8 strings for their class name
-    # and backtrace, or return an ASCII strings that is byte
-    # equivalent to its UTF-8 counterpart:
-    # `str.encode('ASCII').bytes == str.encode('UTF-8').bytes`
-    def self.from_exception(clazz, message, backtrace)
-      new(clazz, Utils.utf8_encode(message), backtrace)
     end
 
     BlankError = Error.new
