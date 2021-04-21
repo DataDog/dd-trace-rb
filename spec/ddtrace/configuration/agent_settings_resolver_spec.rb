@@ -17,7 +17,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
   let(:default_settings) {
     {
-      adapter: :http,
       ssl: false,
       hostname: '127.0.0.1',
       port: 8126,
@@ -191,7 +190,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     it 'contacts the agent using the http adapter, using the custom hostname and port' do
       expect(subject.call).to eq(
         **default_settings,
-        adapter: :http,
         ssl: false,
         hostname: 'custom-hostname',
         port: 1234

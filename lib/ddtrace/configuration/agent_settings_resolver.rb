@@ -27,7 +27,6 @@ module Datadog
 
       def call
         {
-          adapter: :http,
           ssl: ssl?,
           hostname: hostname,
           port: port,
