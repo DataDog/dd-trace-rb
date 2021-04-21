@@ -719,6 +719,9 @@ workflows:
             - test-jruby-9.2.0.0
             - test-jruby-9.2-latest
             # soon™️ - test-truffleruby-21.0.0
+  # This workflow runs the same `build` and `test` jobs as above on a schedule.
+  # Tasks related to housekeeping (e.g. prerelease) are not relevant
+  # to this daily check, as they are not expected to be impacted here.
   edge:
     triggers:
       - schedule:
