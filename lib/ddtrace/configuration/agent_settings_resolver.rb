@@ -109,7 +109,7 @@ module Datadog
         if options.is_a?(Hash) && !options.empty?
           logger.warn(
             "Configuring the tracer via a settings.tracer.transport_options hash is deprecated for removal in a future " \
-            "ddtrace version."
+            "ddtrace version (settings.tracer.transport_options contained '#{options.inspect}')."
           )
 
           options
