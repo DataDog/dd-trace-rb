@@ -40,8 +40,6 @@ module Datadog
             'Feature requires Linux; Windows is not supported'
           elsif !RUBY_PLATFORM.include?('linux')
             "Feature requires Linux; #{RUBY_PLATFORM} is not supported"
-          elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
-            'Ruby >= 2.1 is required'
           elsif Gem::Specification.find_all_by_name('rollbar', ROLLBAR_INCOMPATIBLE_VERSIONS).any?
             'You have an incompatible rollbar gem version installed; ensure that you have rollbar >= 3.1.2 by ' \
             "adding `gem 'rollbar', '>= 3.1.2'` to your Gemfile or gems.rb file. " \

@@ -12,7 +12,7 @@ require 'ddtrace/transport/http/adapters/net'
 
 RSpec.describe 'Adapters::Net profiling integration tests' do
   before do
-    skip unless ENV['TEST_DATADOG_INTEGRATION']
+    skip 'TEST_DATADOG_INTEGRATION is not defined' unless ENV['TEST_DATADOG_INTEGRATION']
     skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
   end
 
@@ -50,8 +50,13 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
     end
 
     after do
-      server.shutdown
-      @server_thread.join
+      unless RSpec.current_example.skipped?
+        # When the test is skipped, server has not been initialized and @server_thread would be nil; thus we only
+        # want to touch them when the test actually run, otherwise we would cause the server to start (incorrectly)
+        # and join to be called on a nil @server_thread
+        server.shutdown
+        @server_thread.join
+      end
     end
   end
 
@@ -105,6 +110,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{Datadog::Ext::Runtime::LANG_ENGINE}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{Datadog::Ext::Runtime::LANG_PLATFORM}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Ext::Runtime::LANG_VERSION}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PID}:#{Process.pid}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Ext::Runtime::TRACER_VERSION}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Ext::Runtime::LANG}/o
         )

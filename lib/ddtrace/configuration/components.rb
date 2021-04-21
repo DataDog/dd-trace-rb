@@ -180,9 +180,9 @@ module Datadog
             @logger.debug('Profiling started')
             profiler.start
           else
-            # Display a warning for users who expected profiling to autostart
-            protobuf = Datadog::Profiling.google_protobuf_supported?
-            logger.warn("Profiling was enabled but is not supported; profiling disabled. (google-protobuf?: #{protobuf})")
+            # Display a warning for users who expected profiling to be enabled
+            unsupported_reason = Datadog::Profiling.unsupported_reason
+            logger.warn("Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}")
           end
         else
           @logger.debug('Profiling is disabled')

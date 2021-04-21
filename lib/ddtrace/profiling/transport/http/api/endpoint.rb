@@ -48,6 +48,7 @@ module Datadog
                   "#{FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
                   "#{FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
                   "#{FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
+                  "#{FORM_FIELD_TAG_PID}:#{Process.pid}",
                   "#{FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
                   # NOTE: Redundant w/ 'runtime'; may want to remove this later.
                   "#{FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",

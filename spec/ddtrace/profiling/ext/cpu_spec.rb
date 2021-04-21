@@ -54,40 +54,30 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
       context 'when running on Linux' do
         before { stub_const('RUBY_PLATFORM', 'x86_64-linux-gnu') }
 
-        context 'when running on MRI < 2.1' do
-          before { stub_const('RUBY_VERSION', '2.0.0') }
+        let(:last_version_of_rollbar_affected) { '3.1.1' }
 
-          it { is_expected.to include 'Ruby >= 2.1' }
+        context 'when incompatible rollbar gem is installed' do
+          before do
+            expect(Gem::Specification)
+              .to receive(:find_all_by_name)
+              .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
+              .and_return([instance_double(Gem::Specification), instance_double(Gem::Specification)])
+          end
+
+          it { is_expected.to include 'rollbar >= 3.1.2' }
         end
 
-        context 'when running on MRI >= 2.1' do
-          before { stub_const('RUBY_VERSION', '2.1.0') }
-
-          let(:last_version_of_rollbar_affected) { '3.1.1' }
-
-          context 'when incompatible rollbar gem is installed' do
-            before do
-              expect(Gem::Specification)
-                .to receive(:find_all_by_name)
-                .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
-                .and_return([instance_double(Gem::Specification), instance_double(Gem::Specification)])
-            end
-
-            it { is_expected.to include 'rollbar >= 3.1.2' }
+        context 'when compatible rollbar gem is installed or no version at all is installed' do
+          before do
+            # Because we search with a <= requirement, both not installed as well as only compatible versions
+            # installed show up in the API in the same way -- an empty return
+            expect(Gem::Specification)
+              .to receive(:find_all_by_name)
+              .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
+              .and_return([])
           end
 
-          context 'when compatible rollbar gem is installed or no version at all is installed' do
-            before do
-              # Because we search with a <= requirement, both not installed as well as only compatible versions
-              # installed show up in the API in the same way -- an empty return
-              expect(Gem::Specification)
-                .to receive(:find_all_by_name)
-                .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
-                .and_return([])
-            end
-
-            it { is_expected.to be nil }
-          end
+          it { is_expected.to be nil }
         end
       end
     end
