@@ -2115,7 +2115,7 @@ For more details on how to activate distributed tracing for integrations, see th
 
 - [Excon](#excon)
 - [Faraday](#faraday)
-- [Rest Client](#restclient)
+- [Rest Client](#rest-client)
 - [Net/HTTP](#nethttp)
 - [Rack](#rack)
 - [Rails](#rails)
