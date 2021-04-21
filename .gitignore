@@ -55,7 +55,6 @@ build-iPhoneSimulator/
 
 # lock files
 Gemfile.lock
-gemfiles/*
 
 # bundle config
 gemfiles/.bundle

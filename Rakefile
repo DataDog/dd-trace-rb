@@ -193,6 +193,14 @@ def declare(*args)
   total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
   current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
 
+  ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
+                   "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
+                 else
+                   "#{RUBY_ENGINE}-#{RUBY_VERSION}" # For Ruby < 2.3
+                 end
+
+  args[0].sub!(/^bundle exec appraisal /, "bundle exec appraisal #{ruby_runtime}-")
+
   if total_executors && current_executor && total_executors > 1
     @execution_count ||= 0
     @execution_count += 1
