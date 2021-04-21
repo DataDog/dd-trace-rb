@@ -21,7 +21,8 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       ssl: false,
       hostname: '127.0.0.1',
       port: 8126,
-      timeout_seconds: 1
+      timeout_seconds: 1,
+      transport_configuration_proc: nil
     }
   }
 
@@ -266,6 +267,18 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
         subject.call
       end
+    end
+  end
+
+  context 'when a proc is configured in tracer.transport_options' do
+    let(:transport_configuration_proc) { proc { } }
+
+    before do
+      ddtrace_settings.tracer.transport_options = transport_configuration_proc
+    end
+
+    it 'includes the given proc in the resolved settings as the transport_configuration_proc entry' do
+      expect(subject.call).to eq(**default_settings, transport_configuration_proc: transport_configuration_proc)
     end
   end
 end

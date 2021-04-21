@@ -31,7 +31,8 @@ module Datadog
           ssl: ssl?,
           hostname: hostname,
           port: port,
-          timeout_seconds: timeout_seconds
+          timeout_seconds: timeout_seconds,
+          transport_configuration_proc: transport_configuration_proc
         }.freeze
       end
 
@@ -96,6 +97,10 @@ module Datadog
 
       def timeout_seconds
         Datadog::Ext::Transport::HTTP::DEFAULT_TIMEOUT_SECONDS
+      end
+
+      def transport_configuration_proc
+        settings.tracer.transport_options if settings.tracer.transport_options.is_a?(Proc)
       end
 
       def parsed_url
