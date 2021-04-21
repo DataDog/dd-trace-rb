@@ -26,11 +26,11 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     }
   }
 
-  subject { described_class.new(ddtrace_settings, logger: logger) }
+  subject(:resolver) { described_class.call(ddtrace_settings, logger: logger) }
 
   context 'by default' do
     it 'contacts the agent using the http adapter, using hostname 127.0.0.1 and port 8126' do
-      expect(subject.call).to eq default_settings
+      expect(resolver).to have_attributes default_settings
     end
   end
 
@@ -39,7 +39,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       let(:environment) { {'DD_AGENT_HOST' => 'custom-hostname'} }
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+        expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
       end
     end
 
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+        expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
       end
 
       context 'and a different hostname is also specified via the DD_AGENT_HOST environment variable' do
@@ -60,13 +60,13 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
 
         it 'prioritizes the hostname specified via code' do
-          expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+          expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
         end
 
         it 'logs a warning' do
           expect(logger).to receive(:warn).with(/Configuration mismatch/)
 
-          subject.call
+          resolver
         end
       end
 
@@ -78,13 +78,13 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
 
         it 'prioritizes the hostname specified via code' do
-          expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+          expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
         end
 
         it 'logs a warning' do
           expect(logger).to receive(:warn).with(/Configuration mismatch/)
 
-          subject.call
+          resolver
         end
       end
     end
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(subject.call).to eq(**default_settings, hostname: 'custom-hostname')
+        expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
       end
     end
   end
@@ -105,7 +105,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       let(:environment) { {'DD_TRACE_AGENT_PORT' => '1234'} }
 
       it 'contacts the agent using the http adapter, using the custom port' do
-        expect(subject.call).to eq(**default_settings, port: 1234)
+        expect(resolver).to have_attributes(**default_settings, port: 1234)
       end
 
       context 'when the custom port is invalid' do
@@ -118,11 +118,11 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         it 'logs a warning' do
           expect(logger).to receive(:warn).with(/Invalid value/)
 
-          subject.call
+          resolver
         end
 
         it 'falls back to the defaults' do
-          expect(subject.call).to eq default_settings
+          expect(resolver).to have_attributes default_settings
         end
       end
     end
@@ -133,7 +133,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'contacts the agent using the http adapter, using the custom port' do
-        expect(subject.call).to eq(**default_settings, port: 1234)
+        expect(resolver).to have_attributes(**default_settings, port: 1234)
       end
 
       context 'and a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
@@ -144,13 +144,13 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
 
         it 'prioritizes the port specified via code' do
-          expect(subject.call).to eq(**default_settings, port: 1234)
+          expect(resolver).to have_attributes(**default_settings, port: 1234)
         end
 
         it 'logs a warning' do
           expect(logger).to receive(:warn).with(/Configuration mismatch/)
 
-          subject.call
+          resolver
         end
       end
 
@@ -162,13 +162,13 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
 
         it 'prioritizes the port specified via code' do
-          expect(subject.call).to eq(**default_settings, port: 1234)
+          expect(resolver).to have_attributes(**default_settings, port: 1234)
         end
 
         it 'logs a warning' do
           expect(logger).to receive(:warn).with(/Configuration mismatch/)
 
-          subject.call
+          resolver
         end
       end
     end
@@ -179,7 +179,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'contacts the agent using the http adapter, using the custom port' do
-        expect(subject.call).to eq(**default_settings, port: 1234)
+        expect(resolver).to have_attributes(**default_settings, port: 1234)
       end
     end
   end
@@ -188,7 +188,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     let(:environment) { {'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234'} }
 
     it 'contacts the agent using the http adapter, using the custom hostname and port' do
-      expect(subject.call).to eq(
+      expect(resolver).to have_attributes(
         **default_settings,
         ssl: false,
         hostname: 'custom-hostname',
@@ -209,13 +209,13 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'it prioritizes the hostname specified via DD_TRACE_AGENT_URL' do
-        expect(subject.call).to include(hostname: 'custom-hostname')
+        expect(resolver).to have_attributes(hostname: 'custom-hostname')
       end
 
       it 'logs a warning' do
         expect(logger).to receive(:warn).with(/Configuration mismatch/)
 
-        subject.call
+        resolver
       end
     end
 
@@ -232,13 +232,13 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'prioritizes the port specified via DD_TRACE_AGENT_URL' do
-        expect(subject.call).to include(port: 1234)
+        expect(resolver).to have_attributes(port: 1234)
       end
 
       it 'logs a warning' do
         expect(logger).to receive(:warn).with(/Configuration mismatch/)
 
-        subject.call
+        resolver
       end
     end
 
@@ -246,7 +246,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       let(:environment) { {'DD_TRACE_AGENT_URL' => 'https://custom-hostname:1234'} }
 
       it 'contacts the agent using the http adapter, using ssl: true' do
-        expect(subject.call).to include(ssl: true)
+        expect(resolver).to have_attributes(ssl: true)
       end
     end
 
@@ -254,7 +254,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       let(:environment) { {'DD_TRACE_AGENT_URL' => 'steam://custom-hostname:1234'} }
 
       it 'falls back to the defaults' do
-        expect(subject.call).to eq default_settings
+        expect(resolver).to have_attributes default_settings
       end
 
       before do
@@ -264,7 +264,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       it 'logs a warning' do
         expect(logger).to receive(:warn).with(/Invalid URI scheme/)
 
-        subject.call
+        resolver
       end
     end
   end
@@ -277,7 +277,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     end
 
     it 'includes the given proc in the resolved settings as the transport_configuration_proc entry' do
-      expect(subject.call).to eq(**default_settings, transport_configuration_proc: transport_configuration_proc)
+      expect(resolver).to have_attributes(**default_settings, transport_configuration_proc: transport_configuration_proc)
     end
   end
 
@@ -290,7 +290,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     end
 
     it 'includes the given hash in the resolved settings as the deprecated_for_removal_transport_configuration_options entry' do
-      expect(subject.call).to eq(
+      expect(resolver).to have_attributes(
         **default_settings,
         deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
       )
@@ -299,7 +299,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     it 'logs a deprecation warning' do
       expect(logger).to receive(:warn).with(/deprecated for removal/)
 
-      subject.call
+      resolver
     end
   end
 end

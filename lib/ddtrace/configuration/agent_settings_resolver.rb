@@ -12,13 +12,15 @@ module Datadog
     # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
     # about it and pick a value based on the following priority: code > environment variable > defaults.
     class AgentSettingsResolver
+      def self.call(settings, logger: Datadog.logger)
+        new(settings, logger: logger).send(:call)
+      end
+
       private
 
       attr_reader \
         :logger,
         :settings
-
-      public
 
       def initialize(settings, logger: Datadog.logger)
         @settings = settings
@@ -26,17 +28,15 @@ module Datadog
       end
 
       def call
-        {
+        AgentSettings.new(
           ssl: ssl?,
           hostname: hostname,
           port: port,
           timeout_seconds: timeout_seconds,
           transport_configuration_proc: transport_configuration_proc,
           deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
-        }.freeze
+        )
       end
-
-      private
 
       def hostname
         pick_from(
@@ -185,6 +185,29 @@ module Datadog
         end
       end
       private_constant :DetectedConfiguration
+
+      class AgentSettings < \
+          Struct.new(
+            :ssl,
+            :hostname,
+            :port,
+            :timeout_seconds,
+            :transport_configuration_proc,
+            :deprecated_for_removal_transport_configuration_options
+          )
+        def initialize(
+          # Hacky required kw args, we can get rid of this when we drop Ruby 2.0
+          ssl: raise(ArgumentError, 'missing keyword :ssl'),
+          hostname: raise(ArgumentError, 'missing keyword :hostname'),
+          port: raise(ArgumentError, 'missing keyword :port'),
+          timeout_seconds: raise(ArgumentError, 'missing keyword :timeout_seconds'),
+          transport_configuration_proc: raise(ArgumentError, 'missing keyword :transport_configuration_proc'),
+          deprecated_for_removal_transport_configuration_options: raise(ArgumentError, 'missing keyword :deprecated_for_removal_transport_configuration_options')
+        )
+          super(ssl, hostname, port, timeout_seconds, transport_configuration_proc, deprecated_for_removal_transport_configuration_options)
+          freeze
+        end
+      end
     end
   end
 end
