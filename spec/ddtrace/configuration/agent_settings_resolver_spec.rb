@@ -302,4 +302,26 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       resolver
     end
   end
+
+  describe '#log_warning' do
+    let(:message) { "this is a test warning" }
+
+    subject(:log_warning) {
+      described_class.new(ddtrace_settings, logger: logger).send(:log_warning, message)
+    }
+
+    it 'logs a warning used the configured logger' do
+      expect(logger).to receive(:warn).with("this is a test warning")
+
+      log_warning
+    end
+
+    context 'when logger is nil' do
+      let(:logger) { nil }
+
+      it 'does not log anything' do
+        log_warning
+      end
+    end
+  end
 end

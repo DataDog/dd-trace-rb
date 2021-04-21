@@ -1,5 +1,7 @@
 require 'uri'
 
+require 'ddtrace/ext/transport'
+
 module Datadog
   module Configuration
     # This class unifies all the different ways that users can configure how we talk to the agent.
@@ -65,7 +67,7 @@ module Datadog
             begin
               Integer(port_from_env)
             rescue ArgumentError
-              logger.warn(
+              log_warning(
                 "Invalid value for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable ('#{port_from_env}'). " \
                 "Ignoring this configuration."
               )
@@ -107,7 +109,7 @@ module Datadog
         options = settings.tracer.transport_options
 
         if options.is_a?(Hash) && !options.empty?
-          logger.warn(
+          log_warning(
             "Configuring the tracer via a settings.tracer.transport_options hash is deprecated for removal in a future " \
             "ddtrace version (settings.tracer.transport_options contained '#{options.inspect}')."
           )
@@ -125,7 +127,7 @@ module Datadog
           result = URI.parse(unparsed_url_from_env)
 
           unless ["http", "https"].include?(result.scheme)
-            logger.warn(
+            log_warning(
               "Invalid URI scheme '#{result.scheme}' for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} " \
               "environment variable ('#{unparsed_url_from_env}'). " \
               "Ignoring the contents of #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL}."
@@ -165,13 +167,17 @@ module Datadog
       def warn_if_configuration_mismatch(detected_configurations_in_priority_order)
         return unless detected_configurations_in_priority_order.map(&:value).uniq.size > 1
 
-        logger.warn(
+        log_warning(
           "Configuration mismatch: values differ between " +
           detected_configurations_in_priority_order.map { |config|
             "#{config.friendly_name} ('#{config.value}')"
           }.join(" and ") +
           ". Using '#{detected_configurations_in_priority_order.first.value}'."
         )
+      end
+
+      def log_warning(message)
+        logger.warn(message) if logger
       end
 
       class DetectedConfiguration < Struct.new(:friendly_name, :value)
