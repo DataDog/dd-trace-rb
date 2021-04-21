@@ -32,7 +32,8 @@ module Datadog
           hostname: hostname,
           port: port,
           timeout_seconds: timeout_seconds,
-          transport_configuration_proc: transport_configuration_proc
+          transport_configuration_proc: transport_configuration_proc,
+          deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
         }.freeze
       end
 
@@ -101,6 +102,19 @@ module Datadog
 
       def transport_configuration_proc
         settings.tracer.transport_options if settings.tracer.transport_options.is_a?(Proc)
+      end
+
+      def deprecated_for_removal_transport_configuration_options
+        options = settings.tracer.transport_options
+
+        if options.is_a?(Hash) && !options.empty?
+          logger.warn(
+            "Configuring the tracer via a settings.tracer.transport_options hash is deprecated for removal in a future " \
+            "ddtrace version."
+          )
+
+          options
+        end
       end
 
       def parsed_url

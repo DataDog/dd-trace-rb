@@ -22,7 +22,8 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       hostname: '127.0.0.1',
       port: 8126,
       timeout_seconds: 1,
-      transport_configuration_proc: nil
+      transport_configuration_proc: nil,
+      deprecated_for_removal_transport_configuration_options: nil
     }
   }
 
@@ -279,6 +280,28 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
     it 'includes the given proc in the resolved settings as the transport_configuration_proc entry' do
       expect(subject.call).to eq(**default_settings, transport_configuration_proc: transport_configuration_proc)
+    end
+  end
+
+  context 'when a non-empty hash is configured in tracer.transport_options' do
+    let(:deprecated_for_removal_transport_configuration_options) { {batman: :cool} }
+
+    before do
+      ddtrace_settings.tracer.transport_options = deprecated_for_removal_transport_configuration_options
+      allow(logger).to receive(:warn)
+    end
+
+    it 'includes the given hash in the resolved settings as the deprecated_for_removal_transport_configuration_options entry' do
+      expect(subject.call).to eq(
+        **default_settings,
+        deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
+      )
+    end
+
+    it 'logs a deprecation warning' do
+      expect(logger).to receive(:warn).with(/deprecated for removal/)
+
+      subject.call
     end
   end
 end
