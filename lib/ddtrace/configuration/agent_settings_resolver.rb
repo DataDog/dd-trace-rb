@@ -147,23 +147,22 @@ module Datadog
       def parsed_url
         return @parsed_url if defined?(@parsed_url)
 
-        result = nil
+        @parsed_url =
+          if unparsed_url_from_env
+            parsed = URI.parse(unparsed_url_from_env)
 
-        if unparsed_url_from_env
-          result = URI.parse(unparsed_url_from_env)
+            if %w[http https].include?(parsed.scheme)
+              parsed
+            else
+              log_warning(
+                "Invalid URI scheme '#{parsed.scheme}' for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} " \
+                "environment variable ('#{unparsed_url_from_env}'). " \
+                "Ignoring the contents of #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL}."
+              )
 
-          unless %w[http https].include?(result.scheme)
-            log_warning(
-              "Invalid URI scheme '#{result.scheme}' for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} " \
-              "environment variable ('#{unparsed_url_from_env}'). " \
-              "Ignoring the contents of #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL}."
-            )
-
-            result = nil
+              nil
+            end
           end
-        end
-
-        @parsed_url = result
       end
 
       # NOTE: This should only be used AFTER parsing, via `#parsed_url`. The only other use-case where this can be used
