@@ -208,7 +208,11 @@ module Datadog
       end
 
       DetectedConfiguration = Struct.new(:friendly_name, :value) do
-        def initialize(friendly_name:, value:)
+        def initialize(
+          # Hacky required kw args, we can get rid of this when we drop Ruby 2.0
+          friendly_name: raise(ArgumentError, 'missing keyword :friendly_name'),
+          value: raise(ArgumentError, 'missing keyword :value')
+        )
           super(friendly_name, value)
           freeze
         end
