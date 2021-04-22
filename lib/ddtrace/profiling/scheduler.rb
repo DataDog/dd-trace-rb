@@ -20,15 +20,12 @@ module Datadog
       def initialize(
         recorder,
         exporters,
-        # Should we flush immediately on the next call to flush_events, or loop/sleep at least once before doing it?
-        skip_next_flush: true,
         fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
         interval: DEFAULT_INTERVAL_SECONDS,
         enabled: true
       )
         @recorder = recorder
         @exporters = [exporters].flatten
-        @skip_next_flush = skip_next_flush
 
         # Workers::Async::Thread settings
         self.fork_policy = fork_policy
@@ -57,9 +54,15 @@ module Datadog
         # Objects from parent process will copy-on-write,
         # and we don't want to send events for the wrong process.
         recorder.flush
+      end
 
-        # Force loop/sleep before next report
-        @skip_next_flush = true
+      # Configure Workers::IntervalLoop to not report immediately when scheduler starts
+      #
+      # When a scheduler gets created (or reset), we don't want it to immediately try to flush; we want it to wait for
+      # the loop wait time first. This avoids an issue where the scheduler reported a mostly-empty profile if the
+      # application just started but this thread took a bit longer so there's already samples in the recorder.
+      def loop_wait_before_first_iteration?
+        true
       end
 
       private
@@ -75,14 +78,6 @@ module Datadog
       end
 
       def flush_events
-        # When a scheduler gets created (or reset), we don't want it to immediately try to flush; we want it to wait for
-        # the loop wait time first. This avoids an issue where the scheduler reported a mostly-empty profile if the
-        # application just started but this thread took a bit longer so there's already samples in the recorder.
-        if skip_next_flush?
-          @skip_next_flush = false
-          return
-        end
-
         # Get events from recorder
         flush = recorder.flush
 
@@ -100,10 +95,6 @@ module Datadog
         end
 
         flush
-      end
-
-      def skip_next_flush?
-        @skip_next_flush
       end
     end
   end
