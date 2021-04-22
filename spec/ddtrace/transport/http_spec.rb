@@ -65,7 +65,7 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:deprecated_for_removal_transport_configuration_proc) { nil }
       let(:deprecated_for_removal_transport_configuration_options) { nil }
 
-      let(:agent_settings) {
+      let(:agent_settings) do
         instance_double(
           Datadog::Configuration::AgentSettingsResolver::AgentSettings,
           ssl: ssl,
@@ -75,7 +75,7 @@ RSpec.describe Datadog::Transport::HTTP do
           deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
           deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
         )
-      }
+      end
 
       context 'that specifies host, port, timeout and ssl' do
         let(:hostname) { double('hostname') }
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Transport::HTTP do
       end
 
       context 'that specifies an API version' do
-        let(:deprecated_for_removal_transport_configuration_options) { {api_version: api_version} }
+        let(:deprecated_for_removal_transport_configuration_options) { { api_version: api_version } }
 
         context 'that is defined' do
           let(:api_version) { Datadog::Transport::HTTP::API::V2 }
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Transport::HTTP do
 
         context 'when the options also try to set the api_version' do
           let(:api_version) { Datadog::Transport::HTTP::API::V2 }
-          let(:options) { {api_version: Datadog::Transport::HTTP::API::V4} }
+          let(:options) { { api_version: Datadog::Transport::HTTP::API::V4 } }
 
           it 'prioritizes the version in the agent_settings' do
             expect(default.current_api_id).to eq(api_version)
@@ -120,7 +120,7 @@ RSpec.describe Datadog::Transport::HTTP do
       end
 
       context 'that specifies headers' do
-        let(:deprecated_for_removal_transport_configuration_options) { {headers: headers} }
+        let(:deprecated_for_removal_transport_configuration_options) { { headers: headers } }
 
         let(:headers) { { 'Test-Header' => 'foo' } }
 
@@ -132,7 +132,7 @@ RSpec.describe Datadog::Transport::HTTP do
         end
 
         context 'when the options also try to set the headers' do
-          let(:options) { {headers: { 'Some-Other-Test-Header' => 'foo' }} }
+          let(:options) { { headers: { 'Some-Other-Test-Header' => 'foo' } } }
 
           it 'prioritizes the headers in the agent_settings' do
             default.apis.each_value do |api|
@@ -144,7 +144,7 @@ RSpec.describe Datadog::Transport::HTTP do
       end
 
       context 'that specifies a deprecated_for_removal_transport_configuration_proc' do
-        let(:deprecated_for_removal_transport_configuration_proc) { proc { } }
+        let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
 
         it 'calls the deprecated_for_removal_transport_configuration_proc with a transport' do
           expect(deprecated_for_removal_transport_configuration_proc).to receive(:call).with(an_instance_of(Datadog::Transport::HTTP::Builder))

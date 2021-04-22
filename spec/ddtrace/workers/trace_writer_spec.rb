@@ -20,7 +20,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
     context 'given :transport_options' do
       let(:options) { { transport_options: transport_options } }
 
-      let(:transport_options) { {example_transport_option: true} }
+      let(:transport_options) { { example_transport_option: true } }
 
       before do
         expect(Datadog::Transport::HTTP).to receive(:default)
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
     end
 
     context 'given :agent_settings' do
-      let(:options) { {agent_settings: agent_settings} }
+      let(:options) { { agent_settings: agent_settings } }
       let(:agent_settings) { double('AgentSettings') }
 
       it 'configures a transport with the agent_settings' do
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
       context 'and also :transport_options' do
         let(:options) { { **super(), transport_options: transport_options } }
 
-        let(:transport_options) { {example_transport_option: true} }
+        let(:transport_options) { { example_transport_option: true } }
 
         before do
           expect(Datadog::Transport::HTTP).to receive(:default)

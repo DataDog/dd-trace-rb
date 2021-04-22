@@ -391,9 +391,6 @@ module Datadog
 
     # TODO: Move this kind of configuration building out of the tracer.
     #       Tracer should not have this kind of knowledge of writer.
-    # rubocop:disable Metrics/PerceivedComplexity
-    # rubocop:disable Metrics/CyclomaticComplexity
-    # rubocop:disable Metrics/MethodLength
     def configure_writer(options = {})
       sampler = options.fetch(:sampler, nil)
       priority_sampling = options.fetch(:priority_sampling, nil)

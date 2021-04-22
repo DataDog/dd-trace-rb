@@ -4,18 +4,18 @@ require 'ddtrace/configuration/settings'
 RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   around { |example| ClimateControl.modify(**default_environment, **environment) { example.run } }
 
-  let(:default_environment) {
+  let(:default_environment) do
     {
       'DD_AGENT_HOST' => nil,
       'DD_TRACE_AGENT_PORT' => nil,
-      'DD_TRACE_AGENT_URL' => nil,
+      'DD_TRACE_AGENT_URL' => nil
     }
-  }
-  let(:environment) { Hash.new }
+  end
+  let(:environment) { {} }
   let(:ddtrace_settings) { Datadog::Configuration::Settings.new }
   let(:logger) { instance_double(Datadog::Logger) }
 
-  let(:default_settings) {
+  let(:default_settings) do
     {
       ssl: false,
       hostname: '127.0.0.1',
@@ -24,7 +24,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       deprecated_for_removal_transport_configuration_proc: nil,
       deprecated_for_removal_transport_configuration_options: nil
     }
-  }
+  end
 
   subject(:resolver) { described_class.call(ddtrace_settings, logger: logger) }
 
@@ -36,7 +36,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
   describe 'http adapter hostname' do
     context 'when a custom hostname is specified via environment variable' do
-      let(:environment) { {'DD_AGENT_HOST' => 'custom-hostname'} }
+      let(:environment) { { 'DD_AGENT_HOST' => 'custom-hostname' } }
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
         expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       context 'and a different hostname is also specified via the DD_AGENT_HOST environment variable' do
-        let(:environment) { {'DD_AGENT_HOST' => 'this-is-a-different-hostname'} }
+        let(:environment) { { 'DD_AGENT_HOST' => 'this-is-a-different-hostname' } }
 
         before do
           allow(logger).to receive(:warn)
@@ -71,7 +71,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       context 'and a different hostname is also specified via the DD_TRACE_AGENT_URL environment variable' do
-        let(:environment) { {'DD_TRACE_AGENT_URL' => 'http://this-is-a-different-hostname:8126'} }
+        let(:environment) { { 'DD_TRACE_AGENT_URL' => 'http://this-is-a-different-hostname:8126' } }
 
         before do
           allow(logger).to receive(:warn)
@@ -102,14 +102,14 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
   describe 'http adapter port' do
     context 'when a custom port is specified via environment variable' do
-      let(:environment) { {'DD_TRACE_AGENT_PORT' => '1234'} }
+      let(:environment) { { 'DD_TRACE_AGENT_PORT' => '1234' } }
 
       it 'contacts the agent using the http adapter, using the custom port' do
         expect(resolver).to have_attributes(**default_settings, port: 1234)
       end
 
       context 'when the custom port is invalid' do
-        let(:environment) { {'DD_TRACE_AGENT_PORT' => 'this-is-an-invalid-port'} }
+        let(:environment) { { 'DD_TRACE_AGENT_PORT' => 'this-is-an-invalid-port' } }
 
         before do
           allow(logger).to receive(:warn)
@@ -137,7 +137,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       context 'and a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
-        let(:environment) { {'DD_TRACE_AGENT_PORT' => '5678'} }
+        let(:environment) { { 'DD_TRACE_AGENT_PORT' => '5678' } }
 
         before do
           allow(logger).to receive(:warn)
@@ -155,7 +155,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       context 'and a different port is also specified via the DD_TRACE_AGENT_URL environment variable' do
-        let(:environment) { {'DD_TRACE_AGENT_URL' => 'http://127.0.0.1:5678'} }
+        let(:environment) { { 'DD_TRACE_AGENT_URL' => 'http://127.0.0.1:5678' } }
 
         before do
           allow(logger).to receive(:warn)
@@ -185,7 +185,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
 
   context 'when a custom url is specified via environment variable' do
-    let(:environment) { {'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234'} }
+    let(:environment) { { 'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234' } }
 
     it 'contacts the agent using the http adapter, using the custom hostname and port' do
       expect(resolver).to have_attributes(
@@ -197,18 +197,18 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     end
 
     context 'and a different hostname is also specified via the DD_AGENT_HOST environment variable' do
-      let(:environment) {
+      let(:environment) do
         {
           'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234',
-          'DD_AGENT_HOST' => 'this-is-a-different-hostname',
+          'DD_AGENT_HOST' => 'this-is-a-different-hostname'
         }
-      }
+      end
 
       before do
         allow(logger).to receive(:warn)
       end
 
-      it 'it prioritizes the hostname specified via DD_TRACE_AGENT_URL' do
+      it 'prioritizes the hostname specified via DD_TRACE_AGENT_URL' do
         expect(resolver).to have_attributes(hostname: 'custom-hostname')
       end
 
@@ -220,12 +220,12 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     end
 
     context 'and a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
-      let(:environment) {
+      let(:environment) do
         {
           'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234',
-          'DD_TRACE_AGENT_PORT' => '5678',
+          'DD_TRACE_AGENT_PORT' => '5678'
         }
-      }
+      end
 
       before do
         allow(logger).to receive(:warn)
@@ -243,7 +243,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     end
 
     context 'when the uri scheme is https' do
-      let(:environment) { {'DD_TRACE_AGENT_URL' => 'https://custom-hostname:1234'} }
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => 'https://custom-hostname:1234' } }
 
       it 'contacts the agent using the http adapter, using ssl: true' do
         expect(resolver).to have_attributes(ssl: true)
@@ -251,14 +251,14 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     end
 
     context 'when the uri scheme is not http OR https' do
-      let(:environment) { {'DD_TRACE_AGENT_URL' => 'steam://custom-hostname:1234'} }
-
-      it 'falls back to the defaults' do
-        expect(resolver).to have_attributes default_settings
-      end
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => 'steam://custom-hostname:1234' } }
 
       before do
         allow(logger).to receive(:warn)
+      end
+
+      it 'falls back to the defaults' do
+        expect(resolver).to have_attributes default_settings
       end
 
       it 'logs a warning' do
@@ -270,19 +270,20 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
 
   context 'when a proc is configured in tracer.transport_options' do
-    let(:deprecated_for_removal_transport_configuration_proc) { proc { } }
+    let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
 
     before do
       ddtrace_settings.tracer.transport_options = deprecated_for_removal_transport_configuration_proc
     end
 
     it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc entry' do
-      expect(resolver).to have_attributes(**default_settings, deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc)
+      expect(resolver).to have_attributes(**default_settings,
+deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc)
     end
   end
 
   context 'when a non-empty hash is configured in tracer.transport_options' do
-    let(:deprecated_for_removal_transport_configuration_options) { {batman: :cool} }
+    let(:deprecated_for_removal_transport_configuration_options) { { batman: :cool } }
 
     before do
       ddtrace_settings.tracer.transport_options = deprecated_for_removal_transport_configuration_options
@@ -304,14 +305,14 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
 
   describe '#log_warning' do
-    let(:message) { "this is a test warning" }
+    let(:message) { 'this is a test warning' }
 
-    subject(:log_warning) {
+    subject(:log_warning) do
       described_class.new(ddtrace_settings, logger: logger).send(:log_warning, message)
-    }
+    end
 
     it 'logs a warning used the configured logger' do
-      expect(logger).to receive(:warn).with("this is a test warning")
+      expect(logger).to receive(:warn).with('this is a test warning')
 
       log_warning
     end

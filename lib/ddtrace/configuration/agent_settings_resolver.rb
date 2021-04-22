@@ -15,28 +15,30 @@ module Datadog
     # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
     # about it and pick a value based on the following priority: code > environment variable > defaults.
     class AgentSettingsResolver
-      class AgentSettings < \
-          Struct.new(
-            :ssl,
-            :hostname,
-            :port,
-            :timeout_seconds,
-            :deprecated_for_removal_transport_configuration_proc,
-            :deprecated_for_removal_transport_configuration_options
+      AgentSettings = \
+        Struct.new(
+          :ssl,
+          :hostname,
+          :port,
+          :timeout_seconds,
+          :deprecated_for_removal_transport_configuration_proc,
+          :deprecated_for_removal_transport_configuration_options
+        ) do
+          def initialize(
+            # Hacky required kw args, we can get rid of this when we drop Ruby 2.0
+            ssl: raise(ArgumentError, 'missing keyword :ssl'),
+            hostname: raise(ArgumentError, 'missing keyword :hostname'),
+            port: raise(ArgumentError, 'missing keyword :port'),
+            timeout_seconds: raise(ArgumentError, 'missing keyword :timeout_seconds'),
+            deprecated_for_removal_transport_configuration_proc: raise(ArgumentError,
+                                                                       'missing keyword :deprecated_for_removal_transport_configuration_proc'),
+            deprecated_for_removal_transport_configuration_options: raise(ArgumentError,
+                                                                          'missing keyword :deprecated_for_removal_transport_configuration_options')
           )
-        def initialize(
-          # Hacky required kw args, we can get rid of this when we drop Ruby 2.0
-          ssl: raise(ArgumentError, 'missing keyword :ssl'),
-          hostname: raise(ArgumentError, 'missing keyword :hostname'),
-          port: raise(ArgumentError, 'missing keyword :port'),
-          timeout_seconds: raise(ArgumentError, 'missing keyword :timeout_seconds'),
-          deprecated_for_removal_transport_configuration_proc: raise(ArgumentError, 'missing keyword :deprecated_for_removal_transport_configuration_proc'),
-          deprecated_for_removal_transport_configuration_options: raise(ArgumentError, 'missing keyword :deprecated_for_removal_transport_configuration_options')
-        )
-          super(ssl, hostname, port, timeout_seconds, deprecated_for_removal_transport_configuration_proc, deprecated_for_removal_transport_configuration_options)
-          freeze
+            super(ssl, hostname, port, timeout_seconds, deprecated_for_removal_transport_configuration_proc, deprecated_for_removal_transport_configuration_options)
+            freeze
+          end
         end
-      end
 
       def self.call(settings, logger: Datadog.logger)
         new(settings, logger: logger).send(:call)
@@ -93,7 +95,7 @@ module Datadog
             rescue ArgumentError
               log_warning(
                 "Invalid value for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable ('#{port_from_env}'). " \
-                "Ignoring this configuration."
+                'Ignoring this configuration.'
               )
             end
           end
@@ -118,7 +120,7 @@ module Datadog
       end
 
       def ssl?
-        !parsed_url.nil? && parsed_url.scheme == "https"
+        !parsed_url.nil? && parsed_url.scheme == 'https'
       end
 
       def timeout_seconds
@@ -134,7 +136,7 @@ module Datadog
 
         if options.is_a?(Hash) && !options.empty?
           log_warning(
-            "Configuring the tracer via a settings.tracer.transport_options hash is deprecated for removal in a future " \
+            'Configuring the tracer via a settings.tracer.transport_options hash is deprecated for removal in a future ' \
             "ddtrace version (settings.tracer.transport_options contained '#{options.inspect}')."
           )
 
@@ -150,7 +152,7 @@ module Datadog
         if unparsed_url_from_env
           result = URI.parse(unparsed_url_from_env)
 
-          unless ["http", "https"].include?(result.scheme)
+          unless %w[http https].include?(result.scheme)
             log_warning(
               "Invalid URI scheme '#{result.scheme}' for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} " \
               "environment variable ('#{unparsed_url_from_env}'). " \
@@ -192,10 +194,10 @@ module Datadog
         return unless detected_configurations_in_priority_order.map(&:value).uniq.size > 1
 
         log_warning(
-          "Configuration mismatch: values differ between " +
-          detected_configurations_in_priority_order.map { |config|
+          'Configuration mismatch: values differ between ' +
+          detected_configurations_in_priority_order.map do |config|
             "#{config.friendly_name} ('#{config.value}')"
-          }.join(" and ") +
+          end.join(' and ') +
           ". Using '#{detected_configurations_in_priority_order.first.value}'."
         )
       end
@@ -204,7 +206,7 @@ module Datadog
         logger.warn(message) if logger
       end
 
-      class DetectedConfiguration < Struct.new(:friendly_name, :value)
+      DetectedConfiguration = Struct.new(:friendly_name, :value) do
         def initialize(friendly_name:, value:)
           super(friendly_name, value)
           freeze

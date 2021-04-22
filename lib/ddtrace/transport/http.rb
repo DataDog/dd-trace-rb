@@ -39,7 +39,7 @@ module Datadog
           if agent_settings.deprecated_for_removal_transport_configuration_options
             # The deprecated_for_removal_transport_configuration_options take precedence over any options the caller
             # specifies
-            options = {**options, **agent_settings.deprecated_for_removal_transport_configuration_options}
+            options = { **options, **agent_settings.deprecated_for_removal_transport_configuration_options }
           end
 
           apis = API.defaults
@@ -54,7 +54,9 @@ module Datadog
             transport.headers options[:headers] if options.key?(:headers)
           end
 
-          agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport) if agent_settings.deprecated_for_removal_transport_configuration_proc
+          if agent_settings.deprecated_for_removal_transport_configuration_proc
+            agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
+          end
 
           # Call block to apply any customization, if provided
           yield(transport) if block_given?
