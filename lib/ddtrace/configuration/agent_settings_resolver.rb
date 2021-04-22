@@ -21,7 +21,7 @@ module Datadog
             :hostname,
             :port,
             :timeout_seconds,
-            :transport_configuration_proc,
+            :deprecated_for_removal_transport_configuration_proc,
             :deprecated_for_removal_transport_configuration_options
           )
         def initialize(
@@ -30,10 +30,10 @@ module Datadog
           hostname: raise(ArgumentError, 'missing keyword :hostname'),
           port: raise(ArgumentError, 'missing keyword :port'),
           timeout_seconds: raise(ArgumentError, 'missing keyword :timeout_seconds'),
-          transport_configuration_proc: raise(ArgumentError, 'missing keyword :transport_configuration_proc'),
+          deprecated_for_removal_transport_configuration_proc: raise(ArgumentError, 'missing keyword :deprecated_for_removal_transport_configuration_proc'),
           deprecated_for_removal_transport_configuration_options: raise(ArgumentError, 'missing keyword :deprecated_for_removal_transport_configuration_options')
         )
-          super(ssl, hostname, port, timeout_seconds, transport_configuration_proc, deprecated_for_removal_transport_configuration_options)
+          super(ssl, hostname, port, timeout_seconds, deprecated_for_removal_transport_configuration_proc, deprecated_for_removal_transport_configuration_options)
           freeze
         end
       end
@@ -59,7 +59,7 @@ module Datadog
           hostname: hostname,
           port: port,
           timeout_seconds: timeout_seconds,
-          transport_configuration_proc: transport_configuration_proc,
+          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
           deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
         )
       end
@@ -125,7 +125,7 @@ module Datadog
         Datadog::Ext::Transport::HTTP::DEFAULT_TIMEOUT_SECONDS
       end
 
-      def transport_configuration_proc
+      def deprecated_for_removal_transport_configuration_proc
         settings.tracer.transport_options if settings.tracer.transport_options.is_a?(Proc)
       end
 

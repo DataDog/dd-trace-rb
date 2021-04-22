@@ -62,7 +62,7 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:hostname) { nil }
       let(:port) { nil }
       let(:timeout_seconds) { nil }
-      let(:transport_configuration_proc) { nil }
+      let(:deprecated_for_removal_transport_configuration_proc) { nil }
       let(:deprecated_for_removal_transport_configuration_options) { nil }
 
       let(:agent_settings) {
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Transport::HTTP do
           hostname: hostname,
           port: port,
           timeout_seconds: timeout_seconds,
-          transport_configuration_proc: transport_configuration_proc,
+          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
           deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
         )
       }
@@ -143,11 +143,11 @@ RSpec.describe Datadog::Transport::HTTP do
         end
       end
 
-      context 'that specifies a transport_configuration_proc' do
-        let(:transport_configuration_proc) { proc { } }
+      context 'that specifies a deprecated_for_removal_transport_configuration_proc' do
+        let(:deprecated_for_removal_transport_configuration_proc) { proc { } }
 
-        it 'calls the transport_configuration_proc with a transport' do
-          expect(transport_configuration_proc).to receive(:call).with(an_instance_of(Datadog::Transport::HTTP::Builder))
+        it 'calls the deprecated_for_removal_transport_configuration_proc with a transport' do
+          expect(deprecated_for_removal_transport_configuration_proc).to receive(:call).with(an_instance_of(Datadog::Transport::HTTP::Builder))
 
           default
         end

@@ -21,7 +21,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       hostname: '127.0.0.1',
       port: 8126,
       timeout_seconds: 1,
-      transport_configuration_proc: nil,
+      deprecated_for_removal_transport_configuration_proc: nil,
       deprecated_for_removal_transport_configuration_options: nil
     }
   }
@@ -270,14 +270,14 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
 
   context 'when a proc is configured in tracer.transport_options' do
-    let(:transport_configuration_proc) { proc { } }
+    let(:deprecated_for_removal_transport_configuration_proc) { proc { } }
 
     before do
-      ddtrace_settings.tracer.transport_options = transport_configuration_proc
+      ddtrace_settings.tracer.transport_options = deprecated_for_removal_transport_configuration_proc
     end
 
-    it 'includes the given proc in the resolved settings as the transport_configuration_proc entry' do
-      expect(resolver).to have_attributes(**default_settings, transport_configuration_proc: transport_configuration_proc)
+    it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc entry' do
+      expect(resolver).to have_attributes(**default_settings, deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc)
     end
   end
 
