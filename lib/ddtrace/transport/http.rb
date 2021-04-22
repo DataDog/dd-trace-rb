@@ -39,7 +39,7 @@ module Datadog
           if agent_settings.deprecated_for_removal_transport_configuration_options
             # The deprecated_for_removal_transport_configuration_options take precedence over any options the caller
             # specifies
-            options = { **options, **agent_settings.deprecated_for_removal_transport_configuration_options }
+            options = options.merge(**agent_settings.deprecated_for_removal_transport_configuration_options)
           end
 
           apis = API.defaults
