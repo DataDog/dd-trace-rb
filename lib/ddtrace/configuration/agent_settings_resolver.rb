@@ -1,6 +1,7 @@
 require 'uri'
 
 require 'ddtrace/ext/transport'
+require 'ddtrace/configuration/settings'
 
 module Datadog
   module Configuration
@@ -215,6 +216,13 @@ module Datadog
       end
       private_constant :DetectedConfiguration
 
+      # NOTE: Due to... legacy reasons... Some classes like having an `AgentSettings` instance to fall back to.
+      # Because we generate this instance with an empty instance of `Settings`, the resulting `AgentSettings` below
+      # represents only settings specified via environment variables + the usual defaults.
+      #
+      # YOU DO NOT WANT TO USE THE BELOW INSTANCE ON ANY NEWLY WRITTEN CODE, as it ignores any settings specified
+      # by users via `Datadog.configure`.
+      ENVIRONMENT_AGENT_SETTINGS = call(Settings.new, logger: nil)
     end
   end
 end

@@ -43,6 +43,18 @@ RSpec.describe Datadog::Writer do
             end
           end
         end
+
+        context 'with agent_settings' do
+          let(:agent_settings) { double('AgentSettings') }
+
+          let(:options) { { agent_settings: agent_settings } }
+
+          it 'configures the transport using the agent_settings' do
+            expect(Datadog::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings)
+
+            writer
+          end
+        end
       end
 
       describe '#send_spans' do

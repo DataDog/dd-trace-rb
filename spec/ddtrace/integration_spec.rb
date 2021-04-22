@@ -497,17 +497,26 @@ RSpec.describe 'Tracer integration tests' do
     subject(:configure) do
       tracer.configure(
         priority_sampling: true,
-        hostname: hostname,
-        port: port,
-        transport_options: transport_options
+        agent_settings: agent_settings
       )
     end
 
     let(:tracer) { Datadog::Tracer.new }
     let(:hostname) { double('hostname') }
     let(:port) { double('port') }
+    let(:settings) { Datadog::Configuration::Settings.new }
+    let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+
+    before do
+      settings.tracer.hostname = hostname
+      settings.tracer.port = port
+    end
 
     context 'when :transport_options' do
+      before do
+        settings.tracer.transport_options = transport_options
+      end
+
       context 'is a Proc' do
         let(:transport_options) { proc { |t| on_build.call(t) } }
         let(:on_build) { double('on_build') }

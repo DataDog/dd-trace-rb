@@ -18,7 +18,6 @@ RSpec.describe Datadog::Configuration::Components do
   end
 
   describe '::new' do
-    let(:settings) { instance_double(Datadog::Configuration::Settings) }
     let(:logger) { instance_double(Datadog::Logger) }
     let(:tracer) { instance_double(Datadog::Tracer) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
@@ -31,7 +30,7 @@ RSpec.describe Datadog::Configuration::Components do
         .and_return(logger)
 
       expect(described_class).to receive(:build_tracer)
-        .with(settings)
+        .with(settings, instance_of(Datadog::Configuration::AgentSettingsResolver::AgentSettings))
         .and_return(tracer)
 
       expect(described_class).to receive(:build_profiler)
@@ -309,7 +308,9 @@ RSpec.describe Datadog::Configuration::Components do
   end
 
   describe '::build_tracer' do
-    subject(:build_tracer) { described_class.build_tracer(settings) }
+    let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+
+    subject(:build_tracer) { described_class.build_tracer(settings, agent_settings) }
 
     context 'given an instance' do
       let(:instance) { instance_double(Datadog::Tracer) }
@@ -319,7 +320,7 @@ RSpec.describe Datadog::Configuration::Components do
           .and_return(instance)
       end
 
-      it 'uses the logger instance' do
+      it 'uses the tracer instance' do
         expect(Datadog::Tracer).to_not receive(:new)
         is_expected.to be(instance)
       end
@@ -340,8 +341,8 @@ RSpec.describe Datadog::Configuration::Components do
 
         let(:default_configure_options) do
           {
+            agent_settings: agent_settings,
             partial_flush: settings.tracer.partial_flush.enabled,
-            transport_options: settings.tracer.transport_options,
             writer_options: settings.tracer.writer_options
           }
         end
@@ -391,20 +392,6 @@ RSpec.describe Datadog::Configuration::Components do
         end
       end
 
-      context 'with :hostname' do
-        let(:hostname) { double('hostname') }
-
-        before do
-          allow(settings.tracer)
-            .to receive(:hostname)
-            .and_return(hostname)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { hostname: hostname } }
-        end
-      end
-
       context 'with :partial_flush :enabled' do
         let(:enabled) { double('enabled') }
 
@@ -431,20 +418,6 @@ RSpec.describe Datadog::Configuration::Components do
 
         it_behaves_like 'new tracer' do
           let(:configure_options) { { min_spans_before_partial_flush: min_spans_threshold } }
-        end
-      end
-
-      context 'with :port' do
-        let(:port) { double('port') }
-
-        before do
-          allow(settings.tracer)
-            .to receive(:port)
-            .and_return(port)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { port: port } }
         end
       end
 
@@ -537,20 +510,6 @@ RSpec.describe Datadog::Configuration::Components do
         end
       end
 
-      context 'with :transport_options' do
-        let(:transport_options) { { custom_option: :custom_value } }
-
-        before do
-          allow(settings.tracer)
-            .to receive(:transport_options)
-            .and_return(transport_options)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { transport_options: transport_options } }
-        end
-      end
-
       context 'with :version' do
         let(:version) { double('version') }
 
@@ -577,8 +536,8 @@ RSpec.describe Datadog::Configuration::Components do
         it_behaves_like 'new tracer' do
           let(:default_configure_options) do
             {
+              agent_settings: agent_settings,
               partial_flush: settings.tracer.partial_flush.enabled,
-              transport_options: settings.tracer.transport_options,
               writer: writer
             }
           end
@@ -611,8 +570,8 @@ RSpec.describe Datadog::Configuration::Components do
             # Ignores the writer options in favor of the writer
             let(:default_configure_options) do
               {
+                agent_settings: agent_settings,
                 partial_flush: settings.tracer.partial_flush.enabled,
-                transport_options: settings.tracer.transport_options,
                 writer: writer
               }
             end

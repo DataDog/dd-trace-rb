@@ -1,3 +1,4 @@
+require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/logger'
 require 'ddtrace/profiling'
@@ -45,7 +46,7 @@ module Datadog
           Datadog::Workers::RuntimeMetrics.new(options)
         end
 
-        def build_tracer(settings)
+        def build_tracer(settings, agent_settings)
           # If a custom tracer has been provided, use it instead.
           # Ignore all other options (they should already be configured.)
           tracer = settings.tracer.instance
@@ -63,7 +64,7 @@ module Datadog
           #       tracer initialization for now. Just reconfigure using the
           #       existing mutable #configure function. Remove when these components
           #       are extracted.
-          tracer.configure(build_tracer_options(settings))
+          tracer.configure(agent_settings: agent_settings, **build_tracer_options(settings))
 
           tracer
         end
@@ -97,13 +98,10 @@ module Datadog
           settings = settings.tracer
 
           {}.tap do |opts|
-            opts[:hostname] = settings.hostname unless settings.hostname.nil?
             opts[:min_spans_before_partial_flush] = settings.partial_flush.min_spans_threshold unless settings.partial_flush.min_spans_threshold.nil?
             opts[:partial_flush] = settings.partial_flush.enabled unless settings.partial_flush.enabled.nil?
-            opts[:port] = settings.port unless settings.port.nil?
             opts[:priority_sampling] = settings.priority_sampling unless settings.priority_sampling.nil?
             opts[:sampler] = settings.sampler unless settings.sampler.nil?
-            opts[:transport_options] = settings.transport_options
             opts[:writer] = settings.writer unless settings.writer.nil?
             opts[:writer_options] = settings.writer_options if settings.writer.nil?
           end
@@ -160,8 +158,10 @@ module Datadog
         # Logger
         @logger = self.class.build_logger(settings)
 
+        agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
+
         # Tracer
-        @tracer = self.class.build_tracer(settings)
+        @tracer = self.class.build_tracer(settings, agent_settings)
 
         # Profiler
         @profiler = self.class.build_profiler(settings)

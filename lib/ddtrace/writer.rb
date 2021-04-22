@@ -3,6 +3,7 @@ require 'json'
 require 'ddtrace/ext/net'
 require 'ddtrace/runtime/socket'
 
+require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
 require 'ddtrace/encoding'
@@ -26,6 +27,8 @@ module Datadog
       @flush_interval = options.fetch(:flush_interval, Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL)
       transport_options = options.fetch(:transport_options, {})
 
+      transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
+
       # priority sampling
       if options[:priority_sampler]
         @priority_sampler = options[:priority_sampler]
@@ -34,7 +37,7 @@ module Datadog
 
       # transport and buffers
       @transport = options.fetch(:transport) do
-        Transport::HTTP.default(transport_options)
+        Transport::HTTP.default(**transport_options)
       end
 
       # handles the thread creation after an eventual fork
