@@ -45,9 +45,11 @@ RSpec.describe Datadog::Transport::HTTP do
       default.apis.each_value do |api|
         expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
         expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-        expect(api.adapter.hostname).to eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.hostname)
+        expect(api.adapter.hostname).to \
+          eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.hostname)
         expect(api.adapter.port).to eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.port)
-        expect(api.adapter.timeout).to eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.timeout_seconds)
+        expect(api.adapter.timeout).to \
+          eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.timeout_seconds)
         expect(api.adapter.ssl).to be(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.ssl)
         expect(api.headers).to include(described_class.default_headers)
       end
@@ -147,7 +149,8 @@ RSpec.describe Datadog::Transport::HTTP do
         let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
 
         it 'calls the deprecated_for_removal_transport_configuration_proc with a transport' do
-          expect(deprecated_for_removal_transport_configuration_proc).to receive(:call).with(an_instance_of(Datadog::Transport::HTTP::Builder))
+          expect(deprecated_for_removal_transport_configuration_proc).to \
+            receive(:call).with(an_instance_of(Datadog::Transport::HTTP::Builder))
 
           default
         end

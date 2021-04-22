@@ -276,9 +276,11 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       ddtrace_settings.tracer.transport_options = deprecated_for_removal_transport_configuration_proc
     end
 
-    it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc entry' do
-      expect(resolver).to have_attributes(**default_settings,
-deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc)
+    it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc' do
+      expect(resolver).to have_attributes(
+        **default_settings,
+        deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc
+      )
     end
   end
 
@@ -290,7 +292,7 @@ deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_tran
       allow(logger).to receive(:warn)
     end
 
-    it 'includes the given hash in the resolved settings as the deprecated_for_removal_transport_configuration_options entry' do
+    it 'includes the given hash in the resolved settings as the deprecated_for_removal_transport_configuration_options' do
       expect(resolver).to have_attributes(
         **default_settings,
         deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options

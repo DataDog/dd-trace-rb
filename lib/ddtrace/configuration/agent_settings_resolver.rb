@@ -14,6 +14,8 @@ module Datadog
     #
     # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
     # about it and pick a value based on the following priority: code > environment variable > defaults.
+    #
+    # rubocop:disable Metrics/ClassLength
     class AgentSettingsResolver
       AgentSettings = \
         Struct.new(
@@ -30,12 +32,13 @@ module Datadog
             hostname: raise(ArgumentError, 'missing keyword :hostname'),
             port: raise(ArgumentError, 'missing keyword :port'),
             timeout_seconds: raise(ArgumentError, 'missing keyword :timeout_seconds'),
-            deprecated_for_removal_transport_configuration_proc: raise(ArgumentError,
-                                                                       'missing keyword :deprecated_for_removal_transport_configuration_proc'),
-            deprecated_for_removal_transport_configuration_options: raise(ArgumentError,
-                                                                          'missing keyword :deprecated_for_removal_transport_configuration_options')
+            deprecated_for_removal_transport_configuration_proc: \
+              raise(ArgumentError, 'missing keyword :deprecated_for_removal_transport_configuration_proc'),
+            deprecated_for_removal_transport_configuration_options: \
+              raise(ArgumentError, 'missing keyword :deprecated_for_removal_transport_configuration_options')
           )
-            super(ssl, hostname, port, timeout_seconds, deprecated_for_removal_transport_configuration_proc, deprecated_for_removal_transport_configuration_options)
+            super(ssl, hostname, port, timeout_seconds, deprecated_for_removal_transport_configuration_proc, \
+              deprecated_for_removal_transport_configuration_options)
             freeze
           end
         end
@@ -94,8 +97,8 @@ module Datadog
               Integer(port_from_env)
             rescue ArgumentError
               log_warning(
-                "Invalid value for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable ('#{port_from_env}'). " \
-                'Ignoring this configuration.'
+                "Invalid value for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable " \
+                "('#{port_from_env}'). Ignoring this configuration."
               )
             end
           end
@@ -193,10 +196,9 @@ module Datadog
         return unless detected_configurations_in_priority_order.map(&:value).uniq.size > 1
 
         log_warning(
-          'Configuration mismatch: values differ between ' +
-          detected_configurations_in_priority_order.map do |config|
-            "#{config.friendly_name} ('#{config.value}')"
-          end.join(' and ') +
+          'Configuration mismatch: values differ between ' \
+          "#{detected_configurations_in_priority_order
+            .map { |config| "#{config.friendly_name} ('#{config.value}')" }.join(' and ')}" \
           ". Using '#{detected_configurations_in_priority_order.first.value}'."
         )
       end
@@ -225,5 +227,6 @@ module Datadog
       # by users via `Datadog.configure`.
       ENVIRONMENT_AGENT_SETTINGS = call(Settings.new, logger: nil)
     end
+    # rubocop:enable Metrics/ClassLength
   end
 end
