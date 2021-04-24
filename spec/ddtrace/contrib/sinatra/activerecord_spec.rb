@@ -96,6 +96,9 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
       expect(sqlite_span.get_tag('active_record.db.name')).to eq(':memory:')
       expect(sqlite_span.get_tag('out.host')).to eq(adapter_host.to_s) unless adapter_host.nil?
       expect(sqlite_span.get_tag('out.port')).to eq(adapter_port.to_s) unless adapter_port.nil?
+      expect(
+        sqlite_span.get_tag('active_record.query_caller_stack').split("\n").size
+      ).to eq(5)
       expect(sqlite_span.span_type).to eq(Datadog::Ext::SQL::TYPE)
       expect(sqlite_span).to_not have_error
       expect(sqlite_span.parent).to eq(route_span)
