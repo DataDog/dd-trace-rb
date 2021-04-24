@@ -68,8 +68,8 @@ module Datadog
 
           def extract_caller_path(callers)
             caller_path = callers
-              .select {|c| c =~ /^#{Rails.root.to_s}\/(lib|app|scripts|config)/ }
-              .map { |c| c.gsub Rails.root.to_s, '' }[0...10]
+                          .select { |c| c =~ %r{^#{Rails.root}/(lib|app|scripts|config)} }
+                          .map { |c| c.gsub Rails.root.to_s, '' }[0...10]
 
             # Handle cases when the db query is triggered from inside of a Rubygem
             caller_path = callers[0...10] if caller_path.nil?
