@@ -26,6 +26,7 @@ module Datadog
           end
 
           def process(span, event, _id, payload)
+            caller_path = extract_caller_path(caller)
             config = Utils.connection_config(payload[:connection], payload[:connection_id])
             settings = Datadog.configuration[:active_record, config]
             adapter_name = Datadog::Utils::Database.normalize_vendor(config[:adapter])
@@ -58,8 +59,22 @@ module Datadog
             span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, config[:host]) if config[:host]
             span.set_tag(Datadog::Ext::NET::TARGET_PORT, config[:port]) if config[:port]
+            span.set_tag('query_caller_stack', caller_path) if caller_path.present?
           rescue StandardError => e
             Datadog.logger.debug(e.message)
+          end
+
+          private
+
+          def extract_caller_path(callers)
+            caller_path = callers
+              .select {|c| c =~ /^#{Rails.root.to_s + '\/(lib|app|scripts|config)\/'}/ }
+              .map {|c| c.gsub Rails.root.to_s, ''}[0...10]
+
+            # Handle cases when the db query is triggered from inside of a Rubygem
+            caller_path = callers[0...10] if caller_path.nil?
+
+            caller_path.join(",\n")
           end
         end
       end
