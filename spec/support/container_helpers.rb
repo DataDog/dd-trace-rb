@@ -30,6 +30,7 @@ module ContainerHelpers
     include_context 'cgroup file'
 
     let(:platform) { nil }
+
     before do
       cgroup_file.puts '12:hugetlb:/'
       cgroup_file.puts '11:devices:/user.slice'
@@ -44,6 +45,30 @@ module ContainerHelpers
       cgroup_file.puts '2:net_cls,net_prio:/'
       cgroup_file.puts '1:name=systemd:/user.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service'
       cgroup_file.puts '0::/user.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service'
+      cgroup_file.rewind
+    end
+  end
+
+  shared_context 'non-containerized environment with VTE' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'user' }
+    let(:terminal_id) { '6fec48c4-1f82-4313-a1c2-29e205a96958' }
+
+    before do
+      cgroup_file.puts '12:hugetlb:/'
+      cgroup_file.puts "11:devices:/#{platform}.slice"
+      cgroup_file.puts "10:pids:/#{platform}.slice/user-1000.slice/user@1000.service"
+      cgroup_file.puts "9:memory:/#{platform}.slice"
+      cgroup_file.puts '8:cpuset:/'
+      cgroup_file.puts '7:rdma:/'
+      cgroup_file.puts '6:freezer:/'
+      cgroup_file.puts '5:perf_event:/'
+      cgroup_file.puts "4:cpu,cpuacct:/#{platform}.slice"
+      cgroup_file.puts "3:blkio:/#{platform}.slice"
+      cgroup_file.puts '2:net_cls,net_prio:/'
+      cgroup_file.puts "1:name=systemd:/#{platform}.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service"
+      cgroup_file.puts "0::/#{platform}.slice/user-1000.slice/user@1000.service/app.slice/app-org.gnome.Terminal.slice/vte-spawn-#{terminal_id}.scope"
       cgroup_file.rewind
     end
   end

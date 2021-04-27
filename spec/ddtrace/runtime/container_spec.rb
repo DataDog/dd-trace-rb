@@ -34,6 +34,15 @@ RSpec.describe Datadog::Runtime::Container do
       end
     end
 
+    context 'when in a non-containerized environment with VTE' do
+      include_context 'non-containerized environment with VTE'
+
+      it_behaves_like 'container descriptor' do
+        let(:container_id) { terminal_id }
+        let(:task_uid) { nil }
+      end
+    end
+
     context 'when in a Docker environment' do
       include_context 'Docker environment'
 

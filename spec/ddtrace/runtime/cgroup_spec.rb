@@ -53,6 +53,16 @@ RSpec.describe Datadog::Runtime::Cgroup do
         end
       end
 
+      context 'in a non-containerized environment with VTE' do
+        include_context 'non-containerized environment with VTE'
+
+        it do
+          is_expected.to be_a_kind_of(Array)
+          is_expected.to have(13).items
+          is_expected.to include(be_a_kind_of(described_class::Descriptor))
+        end
+      end
+
       context 'in a Docker environment' do
         include_context 'Docker environment'
 
