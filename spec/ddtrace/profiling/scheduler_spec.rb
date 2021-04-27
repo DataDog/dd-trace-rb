@@ -5,7 +5,7 @@ require 'ddtrace/profiling/recorder'
 require 'ddtrace/profiling/scheduler'
 
 RSpec.describe Datadog::Profiling::Scheduler do
-  subject(:scheduler) { described_class.new(recorder, exporters, options) }
+  subject(:scheduler) { described_class.new(recorder, exporters, **options) }
 
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
   let(:exporters) { [instance_double(Datadog::Profiling::Exporter)] }
@@ -17,7 +17,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
         enabled?: true,
         exporters: exporters,
         fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
-        loop_base_interval: described_class::DEFAULT_INTERVAL,
+        loop_base_interval: described_class::DEFAULT_INTERVAL_SECONDS,
         recorder: recorder
       )
     end
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
   end
 
   describe '#flush_and_wait' do
-    subject(:flush_and_wait) { scheduler.flush_and_wait }
+    subject(:flush_and_wait) { scheduler.send(:flush_and_wait) }
 
     let(:flush_time) { 0.05 }
 
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     it 'changes its wait interval after flushing' do
       expect(scheduler).to receive(:loop_wait_time=) do |value|
-        expected_interval = described_class::DEFAULT_INTERVAL - flush_time
+        expected_interval = described_class::DEFAULT_INTERVAL_SECONDS - flush_time
         expect(value).to be <= expected_interval
       end
 
@@ -126,12 +126,12 @@ RSpec.describe Datadog::Profiling::Scheduler do
     end
 
     context 'when the flush takes longer than an interval' do
-      let(:options) { { interval: 0.01 } }
+      let(:options) { { **super(), interval: 0.01 } }
 
       # Assert that the interval isn't set below the min interval
-      it "floors the wait interval to #{described_class::MIN_INTERVAL}" do
+      it "floors the wait interval to #{described_class::MIN_INTERVAL_SECONDS}" do
         expect(scheduler).to receive(:loop_wait_time=)
-          .with(described_class::MIN_INTERVAL)
+          .with(described_class::MIN_INTERVAL_SECONDS)
 
         flush_and_wait
       end
@@ -139,24 +139,21 @@ RSpec.describe Datadog::Profiling::Scheduler do
   end
 
   describe '#flush_events' do
-    subject(:flush_events) { scheduler.flush_events }
+    subject(:flush_events) { scheduler.send(:flush_events) }
 
     let(:flush) { instance_double(Datadog::Profiling::Flush, event_count: event_count) }
 
-    before do
-      expect(recorder).to receive(:flush).and_return(flush)
-      exporters.each { |exporter| allow(exporter).to receive(:export) }
-    end
+    before { expect(recorder).to receive(:flush).and_return(flush) }
 
     context 'when no events are available' do
       let(:event_count) { 0 }
 
       it 'does not export' do
-        is_expected.to be flush
-
         exporters.each do |exporter|
-          expect(exporter).to_not have_received(:export)
+          expect(exporter).to_not receive(:export)
         end
+
+        is_expected.to be flush
       end
     end
 
@@ -165,9 +162,9 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
       context 'and all the exporters succeed' do
         it 'returns the flush' do
-          is_expected.to be flush
+          expect(exporters).to all(receive(:export).with(flush))
 
-          expect(exporters).to all(have_received(:export).with(flush))
+          is_expected.to be flush
         end
       end
 
@@ -187,6 +184,12 @@ RSpec.describe Datadog::Profiling::Scheduler do
           expect(exporters).to all(have_received(:export).with(flush))
         end
       end
+    end
+  end
+
+  describe '#loop_wait_before_first_iteration?' do
+    it 'enables this feature of IntervalLoop' do
+      expect(scheduler.loop_wait_before_first_iteration?).to be true
     end
   end
 end
