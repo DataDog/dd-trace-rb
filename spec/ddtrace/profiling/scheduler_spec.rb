@@ -196,26 +196,16 @@ RSpec.describe Datadog::Profiling::Scheduler do
   describe '#work_pending?' do
     subject(:work_pending?) { scheduler.work_pending? }
 
-    context 'when scheduler will skip_next_flush?' do
-      let(:options) { { **super(), skip_next_flush: true } }
+    context 'when the recorder has no events' do
+      before { expect(recorder).to receive(:empty?).and_return(true) }
 
-      it { is_expected.to be true }
+      it { is_expected.to be false }
     end
 
-    context 'when skip_next_flush? is false' do
-      let(:options) { { **super(), skip_next_flush: false } }
+    context 'when the recorder has events' do
+      before { expect(recorder).to receive(:empty?).and_return(false) }
 
-      context 'when the recorder has no events' do
-        before { expect(recorder).to receive(:empty?).and_return(true) }
-
-        it { is_expected.to be false }
-      end
-
-      context 'when the recorder has events' do
-        before { expect(recorder).to receive(:empty?).and_return(false) }
-
-        it { is_expected.to be true }
-      end
+      it { is_expected.to be true }
     end
   end
 end

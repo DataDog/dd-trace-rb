@@ -66,7 +66,7 @@ module Datadog
       end
 
       def work_pending?
-        skip_next_flush? || !recorder.empty?
+        !recorder.empty?
       end
 
       private
