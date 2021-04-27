@@ -49,10 +49,11 @@ module Datadog
               container_id, task_uid = nil
 
               case parts.length
+              when 0..1
+                next
               when 2
                 container_id = parts[-1][CONTAINER_REGEX] || parts[-1][FARGATE_14_CONTAINER_REGEX]
               else
-                platform = parts[0]
                 container_id = parts[-1][CONTAINER_REGEX]
                 task_uid = parts[-2][POD_REGEX]
               end
