@@ -8,9 +8,10 @@ module Datadog
       UUID_PATTERN = '[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}'.freeze
       CONTAINER_PATTERN = '[0-9a-f]{64}'.freeze
 
-      POD_REGEX = /(pod)?(#{UUID_PATTERN})(?:.slice)?$/.freeze
-      CONTAINER_REGEX = /(#{UUID_PATTERN}|#{CONTAINER_PATTERN})(?:.scope)?$/.freeze
-      FARGATE_14_CONTAINER_REGEX = /[0-9a-f]{32}-[0-9]{10}/.freeze
+      PLATFORM_REGEX = /(?<platform>.*?)(?:.slice)?$/.freeze
+      POD_REGEX = /(?<pod>(pod)?#{UUID_PATTERN})(?:.slice)?$/.freeze
+      CONTAINER_REGEX = /(?<container>#{UUID_PATTERN}|#{CONTAINER_PATTERN})(?:.scope)?$/.freeze
+      FARGATE_14_CONTAINER_REGEX = /(?<container>[0-9a-f]{32}-[0-9]{10})/.freeze
 
       Descriptor = Struct.new(
         :platform,
@@ -45,17 +46,20 @@ module Datadog
               parts.shift # Remove leading empty part
 
               # Read info from path
-              platform = parts[0]
+              next if parts.empty?
+
+              platform = parts[0][PLATFORM_REGEX, :platform]
               container_id, task_uid = nil
 
               case parts.length
               when 0..1
                 next
               when 2
-                container_id = parts[-1][CONTAINER_REGEX] || parts[-1][FARGATE_14_CONTAINER_REGEX]
+                container_id = parts[-1][CONTAINER_REGEX, :container] \
+                               || parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
               else
-                container_id = parts[-1][CONTAINER_REGEX]
-                task_uid = parts[-2][POD_REGEX]
+                container_id = parts[-1][CONTAINER_REGEX, :container]
+                task_uid = parts[-2][POD_REGEX, :pod]
               end
 
               # If container ID wasn't found, ignore.

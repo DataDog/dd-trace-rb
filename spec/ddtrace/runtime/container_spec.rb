@@ -29,7 +29,6 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'non-containerized environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { nil }
         let(:container_id) { nil }
         let(:task_uid) { nil }
       end
@@ -39,8 +38,15 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'Docker environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'docker' }
         let(:task_uid) { nil }
+      end
+    end
+
+    context 'when in a Kubernetes burstable environment' do
+      include_context 'Kubernetes burstable environment'
+
+      it_behaves_like 'container descriptor' do
+        let(:task_uid) { pod_id }
       end
     end
 
@@ -48,7 +54,6 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'Kubernetes environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'kubepods' }
         let(:task_uid) { pod_id }
       end
     end
@@ -57,7 +62,6 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'ECS environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'ecs' }
         let(:task_uid) { task_arn }
       end
     end
@@ -66,7 +70,6 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'Fargate 1.3- environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'ecs' }
         let(:task_uid) { task_arn }
       end
     end
@@ -75,7 +78,6 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'Fargate 1.4+ environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'ecs' }
         let(:task_uid) { nil }
       end
     end

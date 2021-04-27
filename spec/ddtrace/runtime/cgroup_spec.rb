@@ -73,6 +73,16 @@ RSpec.describe Datadog::Runtime::Cgroup do
         end
       end
 
+      context 'in a Kubernetes burstable environment' do
+        include_context 'Kubernetes burstable environment'
+
+        it do
+          is_expected.to be_a_kind_of(Array)
+          is_expected.to have(11).items
+          is_expected.to include(be_a_kind_of(described_class::Descriptor))
+        end
+      end
+
       context 'in an ECS environment' do
         include_context 'ECS environment'
 
