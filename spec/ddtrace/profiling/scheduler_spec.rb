@@ -192,4 +192,20 @@ RSpec.describe Datadog::Profiling::Scheduler do
       expect(scheduler.loop_wait_before_first_iteration?).to be true
     end
   end
+
+  describe '#work_pending?' do
+    subject(:work_pending?) { scheduler.work_pending? }
+
+    context 'when the recorder has no events' do
+      before { expect(recorder).to receive(:empty?).and_return(true) }
+
+      it { is_expected.to be false }
+    end
+
+    context 'when the recorder has events' do
+      before { expect(recorder).to receive(:empty?).and_return(false) }
+
+      it { is_expected.to be true }
+    end
+  end
 end

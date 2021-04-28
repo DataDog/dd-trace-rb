@@ -16,6 +16,8 @@ module Datadog
     end
 
     def shutdown!
+      Datadog.logger.debug('Shutting down profiler')
+
       collectors.each do |collector|
         collector.enabled = false
         collector.stop(true)

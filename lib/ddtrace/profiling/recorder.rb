@@ -59,6 +59,11 @@ module Datadog
         )
       end
 
+      # NOTE: Remember that if the recorder is being accessed by multiple threads, this is an inherently racy operation.
+      def empty?
+        @buffers.values.all?(&:empty?)
+      end
+
       # Error when event of an unknown type is used with the Recorder
       class UnknownEventError < StandardError
         attr_reader :event_class

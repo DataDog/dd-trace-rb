@@ -65,6 +65,10 @@ module Datadog
         true
       end
 
+      def work_pending?
+        !recorder.empty?
+      end
+
       private
 
       def flush_and_wait
