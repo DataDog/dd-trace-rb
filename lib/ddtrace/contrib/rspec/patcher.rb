@@ -20,7 +20,8 @@ module Datadog
             config.after(:suite) do
               tracer = Datadog.configuration[:rspec][:tracer]
               # force blocking flush before at_exit shutdown! hook
-              tracer.writer.worker.callback_traces
+              worker = tracer.writer.worker
+              callback_traces unless worker.nil?
             end
           end
         end
