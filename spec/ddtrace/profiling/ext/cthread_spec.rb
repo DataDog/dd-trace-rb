@@ -278,7 +278,7 @@ if Datadog::Profiling::Ext::CPU.supported?
 
           with_profiling_extensions_in_fork(
             fork_expectations: proc do |status, stderr|
-              expect(Signal.signame(status.termsig)).to eq 'ABRT'
+              expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
               expect(stderr).to include('[BUG] Segmentation fault')
             end
           ) do
