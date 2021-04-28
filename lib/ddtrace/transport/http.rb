@@ -80,6 +80,33 @@ module Datadog
         :net_http
       end
 
+      def default_hostname(logger: Datadog.logger)
+        logger.warn(
+          'Deprecated for removal: Using #default_hostname for configuration is deprecated and will ' \
+          'be removed on a future ddtrace release.'
+        )
+
+        Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.hostname
+      end
+
+      def default_port(logger: Datadog.logger)
+        logger.warn(
+          'Deprecated for removal: Using #default_hostname for configuration is deprecated and will ' \
+          'be removed on a future ddtrace release.'
+        )
+
+        Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.port
+      end
+
+      def default_url(logger: Datadog.logger)
+        logger.warn(
+          'Deprecated for removal: Using #default_url for configuration is deprecated and will ' \
+          'be removed on a future ddtrace release.'
+        )
+
+        nil
+      end
+
       # Add adapters to registry
       Builder::REGISTRY.set(Adapters::Net, :net_http)
       Builder::REGISTRY.set(Adapters::Test, :test)
