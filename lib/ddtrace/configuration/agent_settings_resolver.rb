@@ -64,6 +64,11 @@ module Datadog
           hostname: hostname,
           port: port,
           timeout_seconds: timeout_seconds,
+          # NOTE: When provided, the deprecated_for_removal_transport_configuration_proc can override all
+          # values above (ssl, hostname, port, timeout), or even make them irrelevant (by using an unix socket or
+          # enabling test mode instead).
+          # That is the main reason why it is deprecated -- it's an opaque function that may set a bunch of settings
+          # that we know nothing of until we actually call it.
           deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
           deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
         )
