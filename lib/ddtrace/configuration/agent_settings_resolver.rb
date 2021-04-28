@@ -73,7 +73,7 @@ module Datadog
         pick_from(
           configurations_in_priority_order: [
             DetectedConfiguration.new(
-              friendly_name: "'settings.tracer.hostname'",
+              friendly_name: "'c.tracer.hostname'",
               value: settings.tracer.hostname
             ),
             DetectedConfiguration.new(
@@ -106,7 +106,7 @@ module Datadog
         pick_from(
           configurations_in_priority_order: [
             DetectedConfiguration.new(
-              friendly_name: '"settings.tracer.port"',
+              friendly_name: '"c.tracer.port"',
               value: settings.tracer.port
             ),
             DetectedConfiguration.new(
@@ -139,8 +139,8 @@ module Datadog
 
         if options.is_a?(Hash) && !options.empty?
           log_warning(
-            'Configuring the tracer via a settings.tracer.transport_options hash is deprecated for removal in a future ' \
-            "ddtrace version (settings.tracer.transport_options contained '#{options.inspect}')."
+            'Configuring the tracer via a c.tracer.transport_options hash is deprecated for removal in a future ' \
+            "ddtrace version (c.tracer.transport_options contained '#{options.inspect}')."
           )
 
           options
