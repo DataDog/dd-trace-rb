@@ -239,6 +239,10 @@ RSpec/LeadingSubject:
 RSpec/ImplicitSubject:
   Enabled: false
 
+# Enforces empty line after hook declaration.
+RSpec/EmptyLineAfterHook:
+  Enabled: false
+
 # Enforces empty line after subject declaration.
 RSpec/EmptyLineAfterSubject:
   Enabled: false
