@@ -14,9 +14,6 @@ module Datadog
     class Settings
       include Base
 
-      #
-      # Configuration options
-      #
       settings :analytics do
         option :enabled do |o|
           o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
