@@ -13,7 +13,6 @@ require 'ddtrace/transport/http/adapters/unix_socket'
 module Datadog
   module Profiling
     module Transport
-      # TODO: Consolidate with Datadog::Transport::HTTP
       # Namespace for HTTP transport components
       module HTTP
         module_function
