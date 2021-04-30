@@ -85,7 +85,7 @@ module Datadog
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
       @tags = options.fetch(:tags, {})
-      @writer = options.fetch(:writer, Datadog::Writer.new)
+      @writer = options.fetch(:writer) { Datadog::Writer.new }
 
       # Instance variables
       @mutex = Mutex.new
@@ -391,20 +391,14 @@ module Datadog
 
     # TODO: Move this kind of configuration building out of the tracer.
     #       Tracer should not have this kind of knowledge of writer.
-    # rubocop:disable Metrics/PerceivedComplexity
-    # rubocop:disable Metrics/CyclomaticComplexity
-    # rubocop:disable Metrics/MethodLength
     def configure_writer(options = {})
-      hostname = options.fetch(:hostname, nil)
-      port = options.fetch(:port, nil)
       sampler = options.fetch(:sampler, nil)
       priority_sampling = options.fetch(:priority_sampling, nil)
       writer = options.fetch(:writer, nil)
-      transport_options = options.fetch(:transport_options, {}).dup
+      agent_settings = options.fetch(:agent_settings, nil)
 
       # Compile writer options
       writer_options = options.fetch(:writer_options, {}).dup
-      rebuild_writer = !writer_options.empty?
 
       # Re-build the sampler and writer if priority sampling is enabled,
       # but neither are configured. Verify the sampler isn't already a
@@ -417,35 +411,20 @@ module Datadog
         end
       elsif priority_sampling != false && !@sampler.is_a?(PrioritySampler)
         writer_options[:priority_sampler] = activate_priority_sampling!(@sampler)
-        rebuild_writer = true
       elsif priority_sampling == false
         deactivate_priority_sampling!(sampler)
-        rebuild_writer = true
       elsif @sampler.is_a?(PrioritySampler)
         # Make sure to add sampler to options if transport is rebuilt.
         writer_options[:priority_sampler] = @sampler
       end
 
-      # Apply options to transport
-      if transport_options.is_a?(Proc)
-        transport_options = { on_build: transport_options }
-        rebuild_writer = true
-      end
+      writer_options[:agent_settings] = agent_settings if agent_settings
 
-      if hostname || port
-        transport_options[:hostname] = hostname unless hostname.nil?
-        transport_options[:port] = port unless port.nil?
-        rebuild_writer = true
-      end
+      # Make sure old writer is shut down before throwing away.
+      # Don't want additional threads running...
+      @writer.stop unless writer.nil?
 
-      writer_options[:transport_options] = transport_options
-
-      if rebuild_writer || writer
-        # Make sure old writer is shut down before throwing away.
-        # Don't want additional threads running...
-        @writer.stop unless writer.nil?
-        @writer = writer || Writer.new(writer_options)
-      end
+      @writer = writer || Writer.new(writer_options)
     end
 
     def activate_priority_sampling!(base_sampler = nil)

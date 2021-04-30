@@ -25,10 +25,22 @@ module Datadog
 
       # Builds a new Transport::HTTP::Client with default settings
       # Pass a block to override any settings.
-      def default(options = {})
+      def default(agent_settings: Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS, **options)
         new do |transport|
-          transport.adapter default_adapter, default_hostname, default_port, timeout: 1
+          transport.adapter(
+            default_adapter,
+            agent_settings.hostname,
+            agent_settings.port,
+            timeout: agent_settings.timeout_seconds,
+            ssl: agent_settings.ssl
+          )
           transport.headers default_headers
+
+          if agent_settings.deprecated_for_removal_transport_configuration_options
+            # The deprecated_for_removal_transport_configuration_options take precedence over any options the caller
+            # specifies
+            options = options.merge(**agent_settings.deprecated_for_removal_transport_configuration_options)
+          end
 
           apis = API.defaults
 
@@ -38,29 +50,15 @@ module Datadog
 
           # Apply any settings given by options
           unless options.empty?
-            # Change hostname/port
-            if [:hostname, :port, :timeout, :ssl].any? { |key| options.key?(key) }
-              hostname = options[:hostname] || default_hostname
-              port = options[:port] || default_port
-
-              adapter_options = { timeout: 1 }
-              adapter_options[:timeout] = options[:timeout] if options.key?(:timeout)
-              adapter_options[:ssl] = options[:ssl] if options.key?(:ssl)
-
-              transport.adapter default_adapter, hostname, port, adapter_options
-            end
-
-            # Change default API
             transport.default_api = options[:api_version] if options.key?(:api_version)
-
-            # Add headers
             transport.headers options[:headers] if options.key?(:headers)
-
-            # Execute on_build callback
-            options[:on_build].call(transport) if options[:on_build].is_a?(Proc)
           end
 
-          # Call block to apply any customization, if provided.
+          if agent_settings.deprecated_for_removal_transport_configuration_proc
+            agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
+          end
+
+          # Call block to apply any customization, if provided
           yield(transport) if block_given?
         end
       end
@@ -82,26 +80,31 @@ module Datadog
         :net_http
       end
 
-      def default_hostname
-        return default_url.hostname if default_url
+      def default_hostname(logger: Datadog.logger)
+        logger.warn(
+          'Deprecated for removal: Using #default_hostname for configuration is deprecated and will ' \
+          'be removed on a future ddtrace release.'
+        )
 
-        ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST, Datadog::Ext::Transport::HTTP::DEFAULT_HOST)
+        Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.hostname
       end
 
-      def default_port
-        return default_url.port if default_url
+      def default_port(logger: Datadog.logger)
+        logger.warn(
+          'Deprecated for removal: Using #default_hostname for configuration is deprecated and will ' \
+          'be removed on a future ddtrace release.'
+        )
 
-        ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT, Datadog::Ext::Transport::HTTP::DEFAULT_PORT).to_i
+        Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.port
       end
 
-      def default_url
-        url_env = ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL, nil)
+      def default_url(logger: Datadog.logger)
+        logger.warn(
+          'Deprecated for removal: Using #default_url for configuration is deprecated and will ' \
+          'be removed on a future ddtrace release.'
+        )
 
-        if url_env
-          uri_parsed = URI.parse(url_env)
-
-          uri_parsed if %w[http https].include?(uri_parsed.scheme)
-        end
+        nil
       end
 
       # Add adapters to registry
