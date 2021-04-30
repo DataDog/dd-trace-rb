@@ -27,7 +27,7 @@ module Datadog
         # This is the same behavior as before.
         def full_backtrace(ex)
           backtrace = ex.backtrace
-          ex.backtrace.join("\n")
+          backtrace.join("\n") if backtrace
         end
       elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
         # Backports Ruby >= 2.6 output to older versions.
