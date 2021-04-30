@@ -15,6 +15,7 @@ RSpec.describe Datadog::Configuration::Components do
     if Datadog::Profiling.supported?
       allow(Datadog::Profiling::Tasks::Setup).to receive(:new).and_return(profiler_setup_task)
     end
+    allow(Datadog::Statsd).to receive(:new) { instance_double(Datadog::Statsd) }
   end
 
   describe '::new' do
