@@ -72,7 +72,7 @@ module Datadog
           ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT, Datadog::Ext::Transport::HTTP::DEFAULT_PORT).to_i
         end
 
-        def configure_for_agent(transport, options = {})
+        private_class_method def configure_for_agent(transport, options = {})
           apis = API.agent_defaults
 
           hostname = options[:hostname] || default_hostname
@@ -86,7 +86,7 @@ module Datadog
           transport.api API::V1, apis[API::V1], default: true
         end
 
-        def configure_for_agentless(transport, options = {})
+        private_class_method def configure_for_agentless(transport, options = {})
           apis = API.api_defaults
 
           site_uri = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, options[:site]))
@@ -106,10 +106,6 @@ module Datadog
         Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net, :net_http)
         Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test, :test)
         Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket, :unix)
-
-        private \
-          :configure_for_agent,
-          :configure_for_agentless
       end
     end
   end
