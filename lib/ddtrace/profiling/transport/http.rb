@@ -73,7 +73,7 @@ module Datadog
           end
         end
 
-        def default_adapter
+        private_class_method def default_adapter
           :net_http
         end
 

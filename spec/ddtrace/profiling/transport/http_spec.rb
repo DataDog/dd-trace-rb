@@ -105,10 +105,4 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
       end
     end
   end
-
-  describe '::default_adapter' do
-    subject(:default_adapter) { described_class.default_adapter }
-
-    it { is_expected.to be(:net_http) }
-  end
 end
