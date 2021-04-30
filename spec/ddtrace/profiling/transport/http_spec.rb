@@ -119,14 +119,6 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
         end
       end
     end
-
-    context 'when given a block' do
-      it do
-        expect { |b| described_class.default(&b) }.to yield_with_args(
-          kind_of(Datadog::Profiling::Transport::HTTP::Builder)
-        )
-      end
-    end
   end
 
   describe '::default_headers' do

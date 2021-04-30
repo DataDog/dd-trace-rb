@@ -47,9 +47,6 @@ module Datadog
               # Execute on_build callback
               options[:on_build].call(transport) if options[:on_build].is_a?(Proc)
             end
-
-            # Call block to apply any customization, if provided.
-            yield(transport) if block_given?
           end
         end
 
