@@ -25,17 +25,20 @@ module Datadog
 
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
-        def default(profiling_upload_timeout_seconds:, **options)
+        def default(profiling_upload_timeout_seconds:, site: nil, api_key: nil, **options)
           new do |transport|
             transport.headers default_headers
 
-            options[:profiling_upload_timeout_seconds] = profiling_upload_timeout_seconds
-
             # Configure adapter & API
-            if options[:site] && options[:api_key]
-              configure_for_agentless(transport, **options)
+            if site && api_key
+              configure_for_agentless(
+                transport,
+                profiling_upload_timeout_seconds: profiling_upload_timeout_seconds,
+                site: site,
+                api_key: api_key
+              )
             else
-              configure_for_agent(transport, **options)
+              configure_for_agent(transport, profiling_upload_timeout_seconds: profiling_upload_timeout_seconds, **options)
             end
 
             # Additional options
@@ -88,20 +91,22 @@ module Datadog
           transport.api API::V1, apis[API::V1], default: true
         end
 
-        private_class_method def configure_for_agentless(transport, profiling_upload_timeout_seconds:, **options)
+        private_class_method def configure_for_agentless(transport, profiling_upload_timeout_seconds:, site:, api_key:)
           apis = API.api_defaults
 
-          site_uri = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, options[:site]))
-          hostname = options[:hostname] || site_uri.host
-          port = options[:port] || site_uri.port
+          site_uri = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, site))
+          hostname = site_uri.host
+          port = site_uri.port
 
-          adapter_options = {}
-          adapter_options[:timeout] = profiling_upload_timeout_seconds
-          adapter_options[:ssl] = options[:ssl] || (site_uri.scheme == 'https'.freeze)
-
-          transport.adapter default_adapter, hostname, port, adapter_options
-          transport.api API::V1, apis[API::V1], default: true
-          transport.headers(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => options[:api_key])
+          transport.adapter(
+            default_adapter,
+            hostname,
+            port,
+            timeout: profiling_upload_timeout_seconds,
+            ssl: site_uri.scheme == 'https'
+          )
+          transport.api(API::V1, apis[API::V1], default: true)
+          transport.headers(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
         end
 
         # Add adapters to registry
