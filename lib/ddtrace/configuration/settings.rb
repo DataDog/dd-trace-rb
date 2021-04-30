@@ -116,7 +116,6 @@ module Datadog
         end
 
         settings :exporter do
-          option :instances
           option :transport
           option :transport_options, default: ->(_o) { {} }, lazy: true
         end

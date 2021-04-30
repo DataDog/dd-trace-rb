@@ -703,44 +703,6 @@ RSpec.describe Datadog::Configuration::Components do
           end
         end
 
-        # TODO: :ignore_profiler is not implemented.
-        #       when it is, it shouldn't behave like a default collector.
-        #       It should define a proc that excludes Datadog profiler.
-        # context 'and :cpu.ignore_profiler' do
-        #   context 'true' do
-        #     before do
-        #       allow(settings.profiling.cpu)
-        #         .to receive(:ignore_profiler)
-        #         .and_return(true)
-        #     end
-        #
-        #     it_behaves_like 'profiler with default collectors'
-        #     it_behaves_like 'profiler with default scheduler'
-        #     it_behaves_like 'profiler with default recorder'
-        #     it_behaves_like 'profiler with default exporters'
-        #   end
-        # end
-
-        context 'and :exporter.instances' do
-          context 'with custom exporters' do
-            let(:instances) { Array.new(2) { double('collector') } }
-
-            before do
-              allow(settings.profiling.exporter)
-                .to receive(:instances)
-                .and_return(instances)
-            end
-
-            it_behaves_like 'profiler with default collectors'
-            it_behaves_like 'profiler with default scheduler'
-            it_behaves_like 'profiler with default recorder'
-
-            it 'uses the custom exporters instead' do
-              expect(profiler.scheduler.exporters).to eq(instances)
-            end
-          end
-        end
-
         context 'and :site + :api_key' do
           context 'are set' do
             let(:site) { 'test.datadoghq.com' }

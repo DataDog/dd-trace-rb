@@ -125,21 +125,17 @@ module Datadog
         end
 
         def build_profiler_exporters(settings)
-          if settings.profiling.exporter.instances.is_a?(Array)
-            settings.profiling.exporter.instances
-          else
-            transport = if settings.profiling.exporter.transport
-                          settings.profiling.exporter.transport
-                        else
-                          transport_options = settings.profiling.exporter.transport_options.dup
-                          transport_options[:site] ||= settings.site if settings.site
-                          transport_options[:api_key] ||= settings.api_key if settings.api_key
-                          transport_options[:timeout] ||= settings.profiling.upload.timeout
-                          Datadog::Profiling::Transport::HTTP.default(transport_options)
-                        end
+          transport = if settings.profiling.exporter.transport
+                        settings.profiling.exporter.transport
+                      else
+                        transport_options = settings.profiling.exporter.transport_options.dup
+                        transport_options[:site] ||= settings.site if settings.site
+                        transport_options[:api_key] ||= settings.api_key if settings.api_key
+                        transport_options[:timeout] ||= settings.profiling.upload.timeout
+                        Datadog::Profiling::Transport::HTTP.default(transport_options)
+                      end
 
-            [Datadog::Profiling::Exporter.new(transport)]
-          end
+          [Datadog::Profiling::Exporter.new(transport)]
         end
 
         def build_profiler_scheduler(settings, recorder, exporters)

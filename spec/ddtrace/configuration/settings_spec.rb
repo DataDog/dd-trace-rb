@@ -471,23 +471,6 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     describe '#exporter' do
-      describe '#instances' do
-        subject(:instances) { settings.profiling.exporter.instances }
-
-        it { is_expected.to be nil }
-      end
-
-      describe '#instances=' do
-        let(:instances) { [double('exporter')] }
-
-        it 'updates the #instances setting' do
-          expect { settings.profiling.exporter.instances = instances }
-            .to change { settings.profiling.exporter.instances }
-            .from(nil)
-            .to(instances)
-        end
-      end
-
       describe '#transport' do
         subject(:transport) { settings.profiling.exporter.transport }
 
