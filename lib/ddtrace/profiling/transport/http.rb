@@ -38,9 +38,6 @@ module Datadog
 
             # Additional options
             unless options.empty?
-              # Change default API
-              transport.default_api = options[:api_version] if options.key?(:api_version)
-
               # Add headers
               transport.headers options[:headers] if options.key?(:headers)
 

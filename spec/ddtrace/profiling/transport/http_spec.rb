@@ -99,16 +99,6 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
         end
       end
 
-      context 'that specify an API version' do
-        let(:options) { { api_version: api_version } }
-
-        context 'that is not defined' do
-          let(:api_version) { double('non-existent API') }
-
-          it { expect { default }.to raise_error(Datadog::Transport::HTTP::Builder::UnknownApiError) }
-        end
-      end
-
       context 'that specify headers' do
         let(:options) { { headers: headers } }
         let(:headers) { { 'Test-Header' => 'foo' } }
