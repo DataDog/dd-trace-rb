@@ -61,7 +61,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
           hostname: hostname,
           port: port,
           ssl: ssl,
-          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
+          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc
         )
       end
       let(:hostname) { double('hostname') }

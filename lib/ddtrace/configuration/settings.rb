@@ -124,7 +124,8 @@ module Datadog
               Datadog.logger.warn(
                 'Configuring the profiler c.profiling.exporter.transport_options is no longer needed, as the profiler ' \
                 'will reuse your existing global or tracer configuration. ' \
-                'This setting is deprecated for removal in a future ddtrace version (1.0 or profiling GA, whichever comes first).'
+                'This setting is deprecated for removal in a future ddtrace version ' \
+                '(1.0 or profiling GA, whichever comes first).'
               )
               nil
             end
