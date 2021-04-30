@@ -25,7 +25,7 @@ module Datadog
 
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
-        def default(profiling_upload_timeout_seconds:, agent_settings: nil, site: nil, api_key: nil, **options)
+        def default(profiling_upload_timeout_seconds:, agent_settings: nil, site: nil, api_key: nil)
           new do |transport|
             transport.headers default_headers
 
@@ -50,12 +50,6 @@ module Datadog
                 profiling_upload_timeout_seconds: profiling_upload_timeout_seconds,
                 agent_settings: agent_settings
               )
-            end
-
-            # TODO: Change this to use the deprecated_for_removal_transport_configuration_proc
-            if !options.empty? && options[:on_build].is_a?(Proc)
-              # Execute on_build callback
-              options[:on_build].call(transport)
             end
           end
         end
@@ -90,6 +84,10 @@ module Datadog
             ssl: agent_settings.ssl
           )
           transport.api(API::V1, apis[API::V1], default: true)
+
+          if agent_settings.deprecated_for_removal_transport_configuration_proc
+            agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
+          end
         end
 
         private_class_method def configure_for_agentless(transport, profiling_upload_timeout_seconds:, site:, api_key:)

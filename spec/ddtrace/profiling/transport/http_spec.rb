@@ -57,13 +57,18 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
 
       let(:agent_settings) do
         instance_double(
-          Datadog::Configuration::AgentSettingsResolver::AgentSettings, hostname: hostname, port: port, ssl: ssl
+          Datadog::Configuration::AgentSettingsResolver::AgentSettings,
+          hostname: hostname,
+          port: port,
+          ssl: ssl,
+          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
         )
       end
       let(:hostname) { double('hostname') }
       let(:port) { double('port') }
       let(:profiling_upload_timeout_seconds) { double('timeout') }
       let(:ssl) { true }
+      let(:deprecated_for_removal_transport_configuration_proc) { nil }
 
       it 'returns a transport with provided options' do
         expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
@@ -73,6 +78,17 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
         expect(default.api.adapter.ssl).to be true
         expect(default.api.headers).to include(described_class.default_headers)
         expect(default.api.headers).to_not include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY)
+      end
+
+      context 'when agent_settings has a deprecated_for_removal_transport_configuration_proc' do
+        let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
+
+        it 'calls the deprecated_for_removal_transport_configuration_proc with the transport builder' do
+          expect(deprecated_for_removal_transport_configuration_proc).to \
+            receive(:call).with(an_instance_of(Datadog::Profiling::Transport::HTTP::Builder))
+
+          default
+        end
       end
     end
   end

@@ -148,7 +148,7 @@ RSpec.describe Datadog::Transport::HTTP do
       context 'that specifies a deprecated_for_removal_transport_configuration_proc' do
         let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
 
-        it 'calls the deprecated_for_removal_transport_configuration_proc with a transport' do
+        it 'calls the deprecated_for_removal_transport_configuration_proc with the transport builder' do
           expect(deprecated_for_removal_transport_configuration_proc).to \
             receive(:call).with(an_instance_of(Datadog::Transport::HTTP::Builder))
 
