@@ -31,83 +31,48 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
   describe '::default' do
     subject(:default) { described_class.default(profiling_upload_timeout_seconds: timeout_seconds, **options) }
 
-    let(:timeout_seconds) { nil }
+    let(:timeout_seconds) { double('Timeout in seconds') }
     let(:options) { {} }
 
-    shared_examples_for 'default HTTP agent transport' do
-      it 'returns default configuration' do
-        is_expected.to be_a_kind_of(Datadog::Profiling::Transport::HTTP::Client)
-        expect(default.api.spec).to eq(
-          Datadog::Profiling::Transport::HTTP::API.agent_defaults[Datadog::Profiling::Transport::HTTP::API::V1]
-        )
+    context 'when called with a site and api' do
+      let(:options) { { site: site, api_key: api_key } }
 
-        expect(default.api).to be_a_kind_of(Datadog::Profiling::Transport::HTTP::API::Instance)
+      let(:site) { 'test.datadoghq.com' }
+      let(:api_key) { SecureRandom.uuid }
+
+      it 'returns a transport configured for agentless' do
+        expected_host = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, site)).host
         expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-        expect(default.api.adapter.hostname).to eq(described_class.default_hostname)
-        expect(default.api.adapter.port).to eq(described_class.default_port)
-        expect(default.api.adapter.timeout).to eq(30)
-        expect(default.api.adapter.ssl).to be false
+        expect(default.api.adapter.hostname).to eq(expected_host)
+        expect(default.api.adapter.port).to eq(443)
+        expect(default.api.adapter.timeout).to be timeout_seconds
+        expect(default.api.adapter.ssl).to be true
         expect(default.api.headers).to include(described_class.default_headers)
-        expect(default.api.headers).to_not include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY)
+        expect(default.api.headers).to include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
       end
     end
 
-    it_behaves_like 'default HTTP agent transport'
+    context 'when called with agent_settings' do
+      let(:options) { { agent_settings: agent_settings } }
 
-    context 'when given options' do
-      context 'that are empty' do
-        let(:options) { {} }
-
-        it_behaves_like 'default HTTP agent transport'
+      let(:agent_settings) do
+        instance_double(
+          Datadog::Configuration::AgentSettingsResolver::AgentSettings, hostname: hostname, port: port, ssl: ssl
+        )
       end
+      let(:hostname) { double('hostname') }
+      let(:port) { double('port') }
+      let(:profiling_upload_timeout_seconds) { double('timeout') }
+      let(:ssl) { true }
 
-      context 'that specify site and API key' do
-        let(:options) { { site: site, api_key: api_key } }
-        let(:site) { 'test.datadoghq.com' }
-        let(:api_key) { SecureRandom.uuid }
-
-        it 'returns a transport configured for agentless' do
-          expected_host = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, site)).host
-          expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-          expect(default.api.adapter.hostname).to eq(expected_host)
-          expect(default.api.adapter.port).to eq(443)
-          expect(default.api.adapter.ssl).to be true
-          expect(default.api.headers).to include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
-        end
-      end
-
-      context 'that specify host, port, profiling_upload_timeout_seconds or ssl' do
-        let(:options) do
-          {
-            hostname: hostname,
-            port: port,
-            profiling_upload_timeout_seconds: timeout,
-            ssl: ssl
-          }
-        end
-
-        let(:hostname) { double('hostname') }
-        let(:port) { double('port') }
-        let(:timeout) { double('timeout') }
-        let(:ssl) { true }
-
-        it 'returns a transport with provided options' do
-          expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-          expect(default.api.adapter.hostname).to eq(hostname)
-          expect(default.api.adapter.port).to eq(port)
-          expect(default.api.adapter.timeout).to be(timeout)
-          expect(default.api.adapter.ssl).to be true
-        end
-      end
-
-      context 'that specify headers' do
-        let(:options) { { headers: headers } }
-        let(:headers) { { 'Test-Header' => 'foo' } }
-
-        it do
-          expect(default.api.headers).to include(described_class.default_headers)
-          expect(default.api.headers).to include(headers)
-        end
+      it 'returns a transport with provided options' do
+        expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
+        expect(default.api.adapter.hostname).to eq(hostname)
+        expect(default.api.adapter.port).to eq(port)
+        expect(default.api.adapter.timeout).to be timeout_seconds
+        expect(default.api.adapter.ssl).to be true
+        expect(default.api.headers).to include(described_class.default_headers)
+        expect(default.api.headers).to_not include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY)
       end
     end
   end
@@ -145,61 +110,5 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
     subject(:default_adapter) { described_class.default_adapter }
 
     it { is_expected.to be(:net_http) }
-  end
-
-  describe '::default_hostname' do
-    subject(:default_hostname) { described_class.default_hostname }
-
-    context 'when environment variable is' do
-      context 'set' do
-        let(:value) { 'my-hostname' }
-
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST => value) do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(value) }
-      end
-
-      context 'not set' do
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST => nil) do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_HOST) }
-      end
-    end
-  end
-
-  describe '::default_port' do
-    subject(:default_port) { described_class.default_port }
-
-    context 'when environment variable is' do
-      context 'set' do
-        let(:value) { '1234' }
-
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => value) do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(value.to_i) }
-      end
-
-      context 'not set' do
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => nil) do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_PORT) }
-      end
-    end
   end
 end

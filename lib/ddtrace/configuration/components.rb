@@ -68,7 +68,7 @@ module Datadog
           tracer
         end
 
-        def build_profiler(settings)
+        def build_profiler(settings, agent_settings)
           return unless Datadog::Profiling.supported? && settings.profiling.enabled
 
           # Load extensions needed to support some of the Profiling features
@@ -78,7 +78,7 @@ module Datadog
 
           recorder = build_profiler_recorder(settings)
           collectors = build_profiler_collectors(settings, recorder)
-          exporters = build_profiler_exporters(settings)
+          exporters = build_profiler_exporters(settings, agent_settings)
           scheduler = build_profiler_scheduler(settings, recorder, exporters)
 
           Datadog::Profiler.new(collectors, scheduler)
@@ -123,16 +123,14 @@ module Datadog
           ]
         end
 
-        def build_profiler_exporters(settings)
-          transport = if settings.profiling.exporter.transport
-                        settings.profiling.exporter.transport
-                      else
-                        transport_options = settings.profiling.exporter.transport_options.dup
-                        transport_options[:site] ||= settings.site if settings.site
-                        transport_options[:api_key] ||= settings.api_key if settings.api_key
-                        transport_options[:profiling_upload_timeout_seconds] ||= settings.profiling.upload.timeout_seconds
-                        Datadog::Profiling::Transport::HTTP.default(**transport_options)
-                      end
+        def build_profiler_exporters(settings, agent_settings)
+          transport =
+            settings.profiling.exporter.transport || Datadog::Profiling::Transport::HTTP.default(
+              agent_settings: agent_settings,
+              site: settings.site,
+              api_key: settings.api_key,
+              profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds
+            )
 
           [Datadog::Profiling::Exporter.new(transport)]
         end
@@ -159,7 +157,7 @@ module Datadog
         @tracer = self.class.build_tracer(settings, agent_settings)
 
         # Profiler
-        @profiler = self.class.build_profiler(settings)
+        @profiler = self.class.build_profiler(settings, agent_settings)
 
         # Runtime metrics
         @runtime_metrics = self.class.build_runtime_metrics_worker(settings)

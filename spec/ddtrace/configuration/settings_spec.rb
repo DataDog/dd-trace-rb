@@ -491,17 +491,24 @@ RSpec.describe Datadog::Configuration::Settings do
       describe '#transport_options' do
         subject(:transport_options) { settings.profiling.exporter.transport_options }
 
-        it { is_expected.to eq({}) }
+        before do
+          allow(Datadog.logger).to receive(:warn)
+        end
+
+        it { is_expected.to be nil }
+
+        it 'logs a deprecation warning' do
+          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+
+          transport_options
+        end
       end
 
       describe '#transport_options=' do
-        let(:transport_options) { { timeout: 10 } }
+        it 'logs a deprecation warning' do
+          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
 
-        it 'updates the #transport_options setting' do
-          expect { settings.profiling.exporter.transport_options = transport_options }
-            .to change { settings.profiling.exporter.transport_options }
-            .from({})
-            .to(transport_options)
+          settings.profiling.exporter.transport_options = :foo
         end
       end
     end

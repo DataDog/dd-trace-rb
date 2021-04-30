@@ -35,7 +35,7 @@ RSpec.describe Datadog::Configuration::Components do
         .and_return(tracer)
 
       expect(described_class).to receive(:build_profiler)
-        .with(settings)
+        .with(settings, instance_of(Datadog::Configuration::AgentSettingsResolver::AgentSettings))
         .and_return(profiler)
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
@@ -583,9 +583,10 @@ RSpec.describe Datadog::Configuration::Components do
   end
 
   describe '::build_profiler' do
-    subject(:build_profiler) { described_class.build_profiler(settings) }
-
+    let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
     let(:profiler) { build_profiler }
+
+    subject(:build_profiler) { described_class.build_profiler(settings, agent_settings) }
 
     context 'when profiling is not supported' do
       before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }
@@ -665,9 +666,9 @@ RSpec.describe Datadog::Configuration::Components do
             spec: Datadog::Profiling::Transport::HTTP::API.agent_defaults[default_api]
           )
           expect(http_exporter.transport.api.adapter).to have_attributes(
-            hostname: Datadog::Profiling::Transport::HTTP.default_hostname,
-            port: Datadog::Profiling::Transport::HTTP.default_port,
-            ssl: false,
+            hostname: agent_settings.hostname,
+            port: agent_settings.port,
+            ssl: agent_settings.ssl,
             timeout: settings.profiling.upload.timeout_seconds
           )
         end
@@ -769,50 +770,6 @@ RSpec.describe Datadog::Configuration::Components do
 
               expect(http_exporter).to have_attributes(
                 transport: transport
-              )
-            end
-          end
-        end
-
-        context 'and :transport_options' do
-          context 'are provided' do
-            # Must be a kind of Datadog::Profiling::Transport::Client
-            let(:transport_options) do
-              {
-                profiling_upload_timeout_seconds: 10.0
-              }
-            end
-
-            before do
-              allow(settings.profiling.exporter)
-                .to receive(:transport_options)
-                .and_return(transport_options)
-            end
-
-            it_behaves_like 'profiler with default collectors'
-            it_behaves_like 'profiler with default scheduler'
-            it_behaves_like 'profiler with default recorder'
-
-            it 'uses the transport options' do
-              expect(profiler.scheduler.exporters).to have(1).item
-              expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
-              http_exporter = profiler.scheduler.exporters.first
-
-              expect(http_exporter).to have_attributes(
-                transport: kind_of(Datadog::Profiling::Transport::HTTP::Client)
-              )
-
-              # Should be configured for agent transport
-              default_api = Datadog::Profiling::Transport::HTTP::API::V1
-              expect(http_exporter.transport.api).to have_attributes(
-                adapter: kind_of(Datadog::Transport::HTTP::Adapters::Net),
-                spec: Datadog::Profiling::Transport::HTTP::API.agent_defaults[default_api]
-              )
-              expect(http_exporter.transport.api.adapter).to have_attributes(
-                hostname: Datadog::Profiling::Transport::HTTP.default_hostname,
-                port: Datadog::Profiling::Transport::HTTP.default_port,
-                ssl: false,
-                timeout: transport_options.fetch(:profiling_upload_timeout_seconds)
               )
             end
           end
