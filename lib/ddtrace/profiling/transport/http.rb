@@ -25,15 +25,17 @@ module Datadog
 
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
-        def default(options = {})
+        def default(profiling_upload_timeout_seconds:, **options)
           new do |transport|
             transport.headers default_headers
 
+            options[:profiling_upload_timeout_seconds] = profiling_upload_timeout_seconds
+
             # Configure adapter & API
             if options[:site] && options[:api_key]
-              configure_for_agentless(transport, options)
+              configure_for_agentless(transport, **options)
             else
-              configure_for_agent(transport, options)
+              configure_for_agent(transport, **options)
             end
 
             # Additional options
@@ -72,21 +74,21 @@ module Datadog
           ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT, Datadog::Ext::Transport::HTTP::DEFAULT_PORT).to_i
         end
 
-        private_class_method def configure_for_agent(transport, options = {})
+        private_class_method def configure_for_agent(transport, profiling_upload_timeout_seconds:, **options)
           apis = API.agent_defaults
 
           hostname = options[:hostname] || default_hostname
           port = options[:port] || default_port
 
           adapter_options = {}
-          adapter_options[:timeout] = options[:timeout] if options.key?(:timeout)
+          adapter_options[:timeout] = profiling_upload_timeout_seconds
           adapter_options[:ssl] = options[:ssl] if options.key?(:ssl)
 
           transport.adapter default_adapter, hostname, port, adapter_options
           transport.api API::V1, apis[API::V1], default: true
         end
 
-        private_class_method def configure_for_agentless(transport, options = {})
+        private_class_method def configure_for_agentless(transport, profiling_upload_timeout_seconds:, **options)
           apis = API.api_defaults
 
           site_uri = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, options[:site]))
@@ -94,7 +96,7 @@ module Datadog
           port = options[:port] || site_uri.port
 
           adapter_options = {}
-          adapter_options[:timeout] = options[:timeout] if options.key?(:timeout)
+          adapter_options[:timeout] = profiling_upload_timeout_seconds
           adapter_options[:ssl] = options[:ssl] || (site_uri.scheme == 'https'.freeze)
 
           transport.adapter default_adapter, hostname, port, adapter_options

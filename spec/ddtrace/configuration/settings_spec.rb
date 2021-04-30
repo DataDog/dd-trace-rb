@@ -555,8 +555,8 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     describe '#upload' do
-      describe '#timeout' do
-        subject(:timeout) { settings.profiling.upload.timeout }
+      describe '#timeout_seconds' do
+        subject(:timeout_seconds) { settings.profiling.upload.timeout_seconds }
 
         context "when #{Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT}" do
           around do |example|
@@ -579,18 +579,18 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
-      describe '#timeout=' do
-        it 'updates the #timeout setting' do
-          expect { settings.profiling.upload.timeout = 10 }
-            .to change { settings.profiling.upload.timeout }
+      describe '#timeout_seconds=' do
+        it 'updates the #timeout_seconds setting' do
+          expect { settings.profiling.upload.timeout_seconds = 10 }
+            .to change { settings.profiling.upload.timeout_seconds }
             .from(30.0)
             .to(10.0)
         end
 
         context 'given nil' do
           it 'uses the default setting' do
-            expect { settings.profiling.upload.timeout = nil }
-              .to_not change { settings.profiling.upload.timeout }
+            expect { settings.profiling.upload.timeout_seconds = nil }
+              .to_not change { settings.profiling.upload.timeout_seconds }
               .from(30.0)
           end
         end

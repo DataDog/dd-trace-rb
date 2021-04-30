@@ -130,7 +130,7 @@ module Datadog
         end
 
         settings :upload do
-          option :timeout do |o|
+          option :timeout_seconds do |o|
             o.setter { |value| value.nil? ? 30.0 : value.to_f }
             o.default { env_to_float(Ext::Profiling::ENV_UPLOAD_TIMEOUT, 30.0) }
             o.lazy

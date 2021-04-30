@@ -29,7 +29,10 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
   end
 
   describe '::default' do
-    subject(:default) { described_class.default }
+    subject(:default) { described_class.default(profiling_upload_timeout_seconds: timeout_seconds, **options) }
+
+    let(:timeout_seconds) { nil }
+    let(:options) { {} }
 
     shared_examples_for 'default HTTP agent transport' do
       it 'returns default configuration' do
@@ -52,8 +55,6 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
     it_behaves_like 'default HTTP agent transport'
 
     context 'when given options' do
-      subject(:default) { described_class.default(options) }
-
       context 'that are empty' do
         let(:options) { {} }
 
@@ -75,12 +76,12 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
         end
       end
 
-      context 'that specify host, port, timeout or ssl' do
+      context 'that specify host, port, profiling_upload_timeout_seconds or ssl' do
         let(:options) do
           {
             hostname: hostname,
             port: port,
-            timeout: timeout,
+            profiling_upload_timeout_seconds: timeout,
             ssl: ssl
           }
         end

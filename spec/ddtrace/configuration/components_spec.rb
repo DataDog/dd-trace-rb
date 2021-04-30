@@ -668,7 +668,7 @@ RSpec.describe Datadog::Configuration::Components do
             hostname: Datadog::Profiling::Transport::HTTP.default_hostname,
             port: Datadog::Profiling::Transport::HTTP.default_port,
             ssl: false,
-            timeout: settings.profiling.upload.timeout
+            timeout: settings.profiling.upload.timeout_seconds
           )
         end
       end
@@ -741,7 +741,7 @@ RSpec.describe Datadog::Configuration::Components do
                 hostname: "intake.profile.#{site}",
                 port: 443,
                 ssl: true,
-                timeout: settings.profiling.upload.timeout
+                timeout: settings.profiling.upload.timeout_seconds
               )
             end
           end
@@ -779,7 +779,7 @@ RSpec.describe Datadog::Configuration::Components do
             # Must be a kind of Datadog::Profiling::Transport::Client
             let(:transport_options) do
               {
-                timeout: 10.0
+                profiling_upload_timeout_seconds: 10.0
               }
             end
 
@@ -812,7 +812,7 @@ RSpec.describe Datadog::Configuration::Components do
                 hostname: Datadog::Profiling::Transport::HTTP.default_hostname,
                 port: Datadog::Profiling::Transport::HTTP.default_port,
                 ssl: false,
-                timeout: transport_options[:timeout]
+                timeout: transport_options.fetch(:profiling_upload_timeout_seconds)
               )
             end
           end
