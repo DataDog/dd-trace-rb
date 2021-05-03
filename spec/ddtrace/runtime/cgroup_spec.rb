@@ -122,6 +122,16 @@ RSpec.describe Datadog::Runtime::Cgroup do
           is_expected.to include(be_a_kind_of(described_class::Descriptor))
         end
       end
+
+      context 'in a Fargate 1.4+ (2-part) environment' do
+        include_context 'Fargate 1.4+ (2-part) environment'
+
+        it do
+          is_expected.to be_a_kind_of(Array)
+          is_expected.to have(11).items
+          is_expected.to include(be_a_kind_of(described_class::Descriptor))
+        end
+      end
     end
   end
 
@@ -274,6 +284,21 @@ RSpec.describe Datadog::Runtime::Cgroup do
             id: '1',
             groups: 'name=systemd',
             path: '/ecs/34dc0b5e626f2c5c4c5170e34b10e765-1234567890',
+            controllers: ['name=systemd']
+          )
+        end
+      end
+
+      context 'in Fargate format 1.4+ (2-part)' do
+        let(:line) { '1:name=systemd:/ecs/34dc0b5e626f2c5c4c5170e34b10e765/34dc0b5e626f2c5c4c5170e34b10e765-1234567890' }
+
+        it { is_expected.to be_a_kind_of(described_class::Descriptor) }
+
+        it do
+          is_expected.to have_attributes(
+            id: '1',
+            groups: 'name=systemd',
+            path: '/ecs/34dc0b5e626f2c5c4c5170e34b10e765/34dc0b5e626f2c5c4c5170e34b10e765-1234567890',
             controllers: ['name=systemd']
           )
         end

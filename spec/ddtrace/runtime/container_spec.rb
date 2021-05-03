@@ -87,6 +87,16 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'Fargate 1.4+ environment'
 
       it_behaves_like 'container descriptor' do
+        let(:container_id) { container_id_with_random }
+        let(:task_uid) { nil }
+      end
+    end
+
+    context 'when in a Fargate 1.4+ (2-part) environment' do
+      include_context 'Fargate 1.4+ (2-part) environment'
+
+      it_behaves_like 'container descriptor' do
+        let(:container_id) { container_id_with_random }
         let(:task_uid) { nil }
       end
     end

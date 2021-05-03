@@ -191,20 +191,44 @@ module ContainerHelpers
     include_context 'cgroup file'
 
     let(:platform) { 'ecs' }
-    let(:container_id) { '34dc0b5e626f2c5c4c5170e34b10e765-1234567890' }
+    let(:container_id_with_random) { "#{container_id_without_random}-1234567890" }
+    let(:container_id_without_random) { '34dc0b5e626f2c5c4c5170e34b10e765' }
 
     before do
-      cgroup_file.puts "11:hugetlb:/#{platform}/#{container_id}"
-      cgroup_file.puts "10:pids:/#{platform}/#{container_id}"
-      cgroup_file.puts "9:cpuset:/#{platform}/#{container_id}"
-      cgroup_file.puts "8:net_cls,net_prio:/#{platform}/#{container_id}"
-      cgroup_file.puts "7:cpu,cpuacct:/#{platform}/#{container_id}"
-      cgroup_file.puts "6:perf_event:/#{platform}/#{container_id}"
-      cgroup_file.puts "5:freezer:/#{platform}/#{container_id}"
-      cgroup_file.puts "4:devices:/#{platform}/#{container_id}"
-      cgroup_file.puts "3:blkio:/#{platform}/#{container_id}"
-      cgroup_file.puts "2:memory:/#{platform}/#{container_id}"
-      cgroup_file.puts "1:name=systemd:/#{platform}/#{container_id}"
+      cgroup_file.puts "11:hugetlb:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "10:pids:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "9:cpuset:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "8:net_cls,net_prio:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "7:cpu,cpuacct:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "6:perf_event:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "5:freezer:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "4:devices:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "3:blkio:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "2:memory:/#{platform}/#{container_id_with_random}"
+      cgroup_file.puts "1:name=systemd:/#{platform}/#{container_id_with_random}"
+      cgroup_file.rewind
+    end
+  end
+
+  shared_context 'Fargate 1.4+ (2-part) environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'ecs' }
+    let(:container_id_with_random) { "#{container_id_without_random}-1234567890" }
+    let(:container_id_without_random) { '34dc0b5e626f2c5c4c5170e34b10e765' }
+
+    before do
+      cgroup_file.puts "11:hugetlb:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "10:pids:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "9:cpuset:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "8:net_cls,net_prio:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "7:cpu,cpuacct:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "6:perf_event:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "5:freezer:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "4:devices:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "3:blkio:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "2:memory:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "1:name=systemd:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
       cgroup_file.rewind
     end
   end

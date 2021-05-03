@@ -58,8 +58,11 @@ module Datadog
                 container_id = parts[-1][CONTAINER_REGEX, :container] \
                                || parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
               else
-                container_id = parts[-1][CONTAINER_REGEX, :container]
-                task_uid = parts[-2][POD_REGEX, :pod]
+                if (container_id = parts[-1][CONTAINER_REGEX, :container])
+                  task_uid = parts[-2][POD_REGEX, :pod]
+                else
+                  container_id = parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
+                end
               end
 
               # If container ID wasn't found, ignore.
