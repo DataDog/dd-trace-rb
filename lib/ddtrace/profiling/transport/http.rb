@@ -78,12 +78,13 @@ module Datadog
             agent_settings.hostname,
             agent_settings.port,
             # We explictly use profiling_upload_timeout_seconds instead of agent_settings.timeout because profile
-            # uploads are bigger and thus have different defaults/specific knobs.
+            # uploads are bigger and thus we employ a separate configuration.
             timeout: profiling_upload_timeout_seconds,
             ssl: agent_settings.ssl
           )
           transport.api(API::V1, apis[API::V1], default: true)
 
+          # NOTE: This proc, when it exists, usually overrides the transport specified above
           if agent_settings.deprecated_for_removal_transport_configuration_proc
             agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
           end
