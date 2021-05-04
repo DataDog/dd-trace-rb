@@ -55,6 +55,8 @@ module Datadog
 
           # Cache this proc, since it's pretty expensive to keep recreating it
           @build_backtrace_location = method(:build_backtrace_location).to_proc
+          # Cache this buffer, since it's pretty expensive to keep accessing it
+          @stack_sample_event_recorder = recorder[Events::StackSample]
         end
 
         def start
@@ -186,7 +188,7 @@ module Datadog
         def convert_backtrace_locations(locations)
           locations.collect do |location|
             # Re-use existing BacktraceLocation if identical copy, otherwise build a new one.
-            recorder[Events::StackSample].cache(:backtrace_locations).fetch(
+            @stack_sample_event_recorder.cache(:backtrace_locations).fetch(
               # Function name
               location.base_label,
               # Line number
@@ -200,7 +202,7 @@ module Datadog
         end
 
         def build_backtrace_location(_id, base_label, lineno, path)
-          string_table = recorder[Events::StackSample].string_table
+          string_table = @stack_sample_event_recorder.string_table
 
           Profiling::BacktraceLocation.new(
             string_table.fetch_string(base_label),
