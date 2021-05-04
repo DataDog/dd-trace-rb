@@ -11,6 +11,7 @@ module Datadog
       # Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
       # Runs on its own background thread.
       #
+      # rubocop:disable Metrics/ClassLength
       class Stack < Worker
         include Workers::Polling
 
@@ -51,6 +52,9 @@ module Datadog
           self.enabled = enabled
 
           @warn_about_missing_cpu_time_instrumentation_only_once = Datadog::Utils::OnlyOnce.new
+
+          # Cache this proc, since it's pretty expensive to keep recreating it
+          @build_backtrace_location = method(:build_backtrace_location).to_proc
         end
 
         def start
@@ -190,7 +194,7 @@ module Datadog
               # Filename
               location.path,
               # Build function
-              &method(:build_backtrace_location)
+              &@build_backtrace_location
             )
           end
         end
@@ -247,6 +251,7 @@ module Datadog
           end
         end
       end
+      # rubocop:enable Metrics/ClassLength
     end
   end
 end
