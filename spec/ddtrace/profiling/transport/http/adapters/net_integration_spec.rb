@@ -16,7 +16,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
     skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
   end
 
-  subject(:adapter) { Datadog::Transport::HTTP::Adapters::Net.new(hostname, port) }
+  let(:settings) { Datadog::Configuration::Settings.new }
 
   shared_context 'HTTP server' do
     # HTTP
@@ -124,11 +124,19 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
     end
 
     context 'via agent' do
-      let(:client) do
-        Datadog::Profiling::Transport::HTTP.default do |t|
-          t.adapter adapter
-        end
+      before do
+        settings.tracer.hostname = hostname
+        settings.tracer.port = port
       end
+
+      let(:client) do
+        Datadog::Profiling::Transport::HTTP.default(
+          profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+          agent_settings: agent_settings
+        )
+      end
+
+      let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings) }
 
       it_behaves_like 'profile HTTP request' do
         it 'is formatted for the agent' do
@@ -140,11 +148,17 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
     end
 
     context 'via agentless' do
+      before do
+        stub_const('Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API', "http://%s:#{port}/")
+      end
+
       let(:api_key) { SecureRandom.uuid }
       let(:client) do
-        Datadog::Profiling::Transport::HTTP.default(site: hostname, api_key: api_key) do |t|
-          t.adapter adapter
-        end
+        Datadog::Profiling::Transport::HTTP.default(
+          profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+          api_key: api_key,
+          site: hostname
+        )
       end
 
       it_behaves_like 'profile HTTP request' do
