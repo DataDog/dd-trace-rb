@@ -16,6 +16,9 @@ module Datadog
         event_classes.each do |event_class|
           @buffers[event_class] = Profiling::Buffer.new(max_size)
         end
+
+        # Event classes can only be added ahead of time
+        @buffers.freeze
       end
 
       def [](event_class)
