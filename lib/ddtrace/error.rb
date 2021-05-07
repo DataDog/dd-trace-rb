@@ -29,10 +29,18 @@ module Datadog
           backtrace = ex.backtrace
           backtrace.join("\n") if backtrace
         end
-      elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
-        # Backports Ruby >= 2.6 output to older versions.
-        # This exposes the 'cause' chain in the stack trace,
-        # allowing for complete visibility of the error stack.
+      else
+        # Returns a stack trace with nested error causes and details.
+        #
+        # This manually implements Ruby >= 2.6 error output for two reasons:
+        #
+        # 1. It is not available in Ruby < 2.6.
+        # 2. It's measurably faster to manually implement it in Ruby.
+        #
+        # This method mimics the exact output of
+        # `ex.full_message(highlight: false, order: :top)`
+        # but it's around 3x faster in our benchmark test
+        # at `error_spec.rb`.
         def full_backtrace(ex)
           backtrace = String.new
           backtrace_for(ex, backtrace)
@@ -63,25 +71,24 @@ module Datadog
 
           if trace[0]
             # Add Exception information to error line
-            backtrace << "#{trace[0]}: #{ex.message} (#{ex.class})"
+            backtrace << trace[0]
+            backtrace << ': '
+            backtrace << ex.message
+            backtrace << ' ('
+            backtrace << ex.class.to_s
+            backtrace << ')'
           end
 
           if trace[1]
             # Ident stack trace for caller lines, to separate
             # them from the main error lines.
             trace[1..-1].each do |line|
-              backtrace << "\n from "
+              backtrace << "\n\tfrom "
               backtrace << line
             end
           end
 
           backtrace << "\n"
-        end
-      else # Ruby >= 2.6.0
-        # Full stack trace, with each cause reported with its
-        # respective stack trace.
-        def full_backtrace(ex)
-          ex.full_message(highlight: false, order: :top)
         end
       end
     end
