@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'set'
-
 # Datadog global namespace
 module Datadog
   # Error is a value-object responsible for sanitizing/encapsulating error data
@@ -46,7 +44,7 @@ module Datadog
           backtrace_for(ex, backtrace)
 
           # Avoid circular causes
-          causes = Hash.new
+          causes = {}
           causes[ex] = true
 
           while (cause = ex.cause) && !causes.key?(cause)
