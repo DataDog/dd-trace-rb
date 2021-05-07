@@ -34,19 +34,19 @@ module Datadog
         # This exposes the 'cause' chain in the stack trace,
         # allowing for complete visibility of the error stack.
         def full_backtrace(ex)
-          backtrace = []
+          backtrace = String.new
           backtrace_for(ex, backtrace)
 
           # Avoid circular causes
-          causes = Set.new
-          causes.add(ex)
+          causes = Hash.new
+          causes[ex] = true
 
-          while (cause = ex.cause) && !causes.include?(cause)
+          while (cause = ex.cause) && !causes.key?(cause)
             backtrace_for(cause, backtrace)
-            causes.add(cause)
+            causes[cause] = true
           end
 
-          backtrace.join("\n")
+          backtrace
         end
 
         # Outputs the following format for exceptions:
@@ -61,23 +61,21 @@ module Datadog
           trace = ex.backtrace
           return unless trace
 
-          error_line, *caller_lines = trace
-
-          if error_line
+          if trace[0]
             # Add Exception information to error line
-            error_line = "#{error_line}: #{ex.message} (#{ex.class})"
-            backtrace << error_line
+            backtrace << "#{trace[0]}: #{ex.message} (#{ex.class})"
           end
 
-          if caller_lines
+          if trace[1]
             # Ident stack trace for caller lines, to separate
             # them from the main error lines.
-            caller_lines = caller_lines.map do |line|
-              "	from #{line}"
+            trace[1..-1].each do |line|
+              backtrace << "\n from "
+              backtrace << line
             end
-
-            backtrace.concat(caller_lines)
           end
+
+          backtrace << "\n"
         end
       else # Ruby >= 2.6.0
         # Full stack trace, with each cause reported with its
