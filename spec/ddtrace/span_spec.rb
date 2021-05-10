@@ -663,7 +663,9 @@ RSpec.describe Datadog::Span do
       expect(span).to have_error
       expect(span).to have_error_message('oops')
       expect(span).to have_error_type('RuntimeError')
-      expect(span).to have_error_stack(backtrace.join($RS))
+      backtrace.each do |method|
+        expect(span).to have_error_stack(include(method))
+      end
     end
   end
 
