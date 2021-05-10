@@ -19,7 +19,6 @@ module Datadog
           else
             AutoInstrument.patch_all
           end
-          AutoInstrument.patch_all
         end
       end
 
