@@ -2366,6 +2366,8 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1457]: https://github.com/DataDog/dd-trace-rb/issues/1457
 [#1461]: https://github.com/DataDog/dd-trace-rb/issues/1461
 [#1472]: https://github.com/DataDog/dd-trace-rb/issues/1472
+[#1473]: https://github.com/DataDog/dd-trace-rb/issues/1473
+[#1475]: https://github.com/DataDog/dd-trace-rb/issues/1475
 [#1480]: https://github.com/DataDog/dd-trace-rb/issues/1480
 [#1487]: https://github.com/DataDog/dd-trace-rb/issues/1487
 [#1489]: https://github.com/DataDog/dd-trace-rb/issues/1489
@@ -2439,6 +2441,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@jpaulgs]: https://github.com/jpaulgs
 [@jvalanen]: https://github.com/jvalanen
 [@kelvin-acosta]: https://github.com/kelvin-acosta
+[@kexoth]: https://github.com/kexoth
 [@kissrobber]: https://github.com/kissrobber
 [@kitop]: https://github.com/kitop
 [@letiesperon]: https://github.com/letiesperon
