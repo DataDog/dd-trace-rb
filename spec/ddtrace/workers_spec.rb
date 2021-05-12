@@ -1,5 +1,7 @@
 require 'spec_helper'
 
+require 'ddtrace'
+
 RSpec.describe Datadog::Workers::AsyncTransport do
   let(:task) { proc { true } }
   let(:worker) do

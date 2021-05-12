@@ -1,5 +1,6 @@
 require 'set'
 require 'ddtrace/contrib/registry'
+require 'ddtrace/tracing/runtime'
 
 module Datadog
   module Contrib
@@ -8,14 +9,28 @@ module Datadog
     module Extensions
       def self.extended(base)
         Datadog.extend(Helpers)
-        Datadog.extend(Configuration)
+        Datadog::Tracing::Runtime.prepend(Configuration)
         Datadog::Configuration::Settings.include(Configuration::Settings)
       end
 
       # Helper methods for Datadog module.
       module Helpers
+        # Registry is a global, declarative repository of all available integrations.
+        #
+        # Integrations should register themselves with the registry as early as
+        # possible as the initial tracer configuration can only activate integrations
+        # if they have already been registered.
+        #
+        # Despite that, integrations *can* be appended to the registry at any point
+        # of the program execution. Newly appended integrations can then be
+        # activated during tracer reconfiguration.
+        #
+        # The registry itself is stateless: it does not depend on runtime configuration
+        # and must execute correctly after successive configuration changes.
+        # The registered integrations themselves can depend on the stateful configuration
+        # of the tracer.
         def registry
-          configuration.registry
+          @registry ||= Registry.new
         end
       end
 
@@ -59,13 +74,6 @@ module Datadog
         # Extensions for Datadog::Configuration::Settings
         module Settings
           InvalidIntegrationError = Class.new(StandardError)
-
-          def self.included(base)
-            # Add the additional options to the global configuration settings
-            base.instance_eval do
-              option :registry, default: Registry.new
-            end
-          end
 
           # For the provided `integration_name`, resolves a matching configuration
           # for the provided integration from an integration-specific `key`.
@@ -125,7 +133,7 @@ module Datadog
           end
 
           def fetch_integration(name)
-            registry[name] ||
+            Datadog.registry[name] ||
               raise(InvalidIntegrationError, "'#{name}' is not a valid integration.")
           end
 
@@ -140,4 +148,7 @@ module Datadog
       end
     end
   end
+
+  # Load and extend Contrib by default
+  extend Contrib::Extensions
 end

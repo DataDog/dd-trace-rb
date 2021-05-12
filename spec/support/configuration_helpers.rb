@@ -1,3 +1,5 @@
+require 'ddtrace/pin'
+
 module ConfigurationHelpers
   shared_context 'loaded gems' do |gems = {}|
     before do

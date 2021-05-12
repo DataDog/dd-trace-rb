@@ -1,7 +1,6 @@
 require 'concurrent/future'
 
 require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace'
 require 'spec/support/thread_helpers'
 
 RSpec.describe 'ConcurrentRuby integration tests' do

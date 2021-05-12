@@ -7,6 +7,7 @@ require 'ddtrace/tracer'
 require 'ddtrace/workers/runtime_metrics'
 
 module Datadog
+  # TODO: move away from {Configuration} into {Runtime}
   module Configuration
     # Global components for the trace library.
     # rubocop:disable Layout/LineLength
@@ -55,7 +56,14 @@ module Datadog
             default_service: settings.service,
             enabled: settings.tracer.enabled,
             partial_flush: settings.tracer.partial_flush.enabled,
-            tags: build_tracer_tags(settings)
+            tags: build_tracer_tags(settings),
+            sampler: PrioritySampler.new(
+              base_sampler: AllSampler.new,
+              post_sampler: Sampling::RuleSampler.new(
+                rate_limit: settings.sampling.rate_limit,
+                default_sample_rate: settings.sampling.default_rate,
+              )
+            )
           )
 
           # TODO: We reconfigure the tracer here because it has way too many
@@ -147,6 +155,9 @@ module Datadog
         :runtime_metrics,
         :tracer
 
+      # Creates components that do need depend on other components
+      # to be initialized (e.g. do not invoke `Datadog.logger` on
+      # initialization).
       def initialize(settings)
         # Logger
         @logger = self.class.build_logger(settings)
@@ -166,7 +177,11 @@ module Datadog
         @health_metrics = self.class.build_health_metrics(settings)
       end
 
-      # Starts up components
+      # Starts up components that depend on other components to be
+      # initialized.
+      #
+      # This separation from #initalized ensure that basic components,
+      # like `Datadog.logger`, are available at this point.
       def startup!(settings)
         if settings.profiling.enabled
           if profiler

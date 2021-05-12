@@ -2,6 +2,8 @@ require 'spec_helper'
 
 require 'ddtrace/diagnostics/environment_logger'
 
+require 'ddtrace'
+
 RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
 

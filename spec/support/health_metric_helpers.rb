@@ -1,5 +1,4 @@
 require 'support/metric_helpers'
-require 'ddtrace'
 require 'ddtrace/ext/diagnostics'
 
 module HealthMetricHelpers

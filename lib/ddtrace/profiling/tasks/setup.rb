@@ -1,6 +1,6 @@
-require 'ddtrace'
+# require 'ddtrace' # Circular dependency
 require 'ddtrace/utils/only_once'
-require 'ddtrace/profiling'
+# require 'ddtrace/profiling' # Circular dependency
 require 'ddtrace/profiling/ext/cpu'
 require 'ddtrace/profiling/ext/forking'
 

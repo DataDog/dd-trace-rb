@@ -11,20 +11,17 @@ require 'ddtrace/error'
 require 'ddtrace/quantization/hash'
 require 'ddtrace/quantization/http'
 require 'ddtrace/pipeline'
-require 'ddtrace/configuration'
 require 'ddtrace/patcher'
 require 'ddtrace/metrics'
 require 'ddtrace/auto_instrument_base'
 require 'ddtrace/profiling'
+require 'ddtrace/life_cycle'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
-  extend Configuration
-  extend AutoInstrumentBase
+  extend LifeCycle
 
-  # Load and extend Contrib by default
-  require 'ddtrace/contrib/extensions'
-  extend Contrib::Extensions
+  extend AutoInstrumentBase
 
   # Load and extend OpenTelemetry compatibility by default
   require 'ddtrace/opentelemetry/extensions'
@@ -82,3 +79,9 @@ require 'ddtrace/contrib/sidekiq/integration'
 require 'ddtrace/contrib/sinatra/integration'
 require 'ddtrace/contrib/sneakers/integration'
 require 'ddtrace/contrib/sucker_punch/integration'
+
+require 'ddtrace/initialization'
+
+# Performs any required initialization work before
+# returning control to the caller
+Datadog::Initialization.new(Datadog).initialize!

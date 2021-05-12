@@ -21,10 +21,10 @@ RSpec.shared_context 'Rails test application' do
       Rails.cache = nil
     end
 
-    Datadog.configuration.reset!
-    Datadog.configuration[:rails].reset_options!
-    Datadog.configuration[:rack].reset_options!
-    Datadog.configuration[:redis].reset_options!
+    # Datadog.configuration.reset!
+    # Datadog.configuration[:rails].reset_options!
+    # Datadog.configuration[:rack].reset_options!
+    # Datadog.configuration[:redis].reset_options!
   end
 
   let(:app) do
@@ -33,6 +33,9 @@ RSpec.shared_context 'Rails test application' do
   end
 
   def initialize_app!
+    # Ensure tracer is loaded here if not eagerly loaded
+    require 'ddtrace' unless preload_ddtrace
+
     # Reinitializing Rails applications generates a lot of warnings.
     without_warnings do
       # Initialize the application and stub Rails with the test app

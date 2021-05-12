@@ -13,7 +13,18 @@ RSpec.describe 'ddtrace integration' do
 
     subject(:shutdown) { Datadog.shutdown! }
 
+    before do
+      # Shut down tracer before starting test, to ensure
+      # we can capture environment data before tracer
+      # internals start execution.
+      Datadog.shutdown!
+    end
+
     let(:start_tracer) do
+      # Because we explicitly shut down the tracer above, we have to
+      # manually start it here.
+      Datadog.send(:start!)
+
       Datadog.tracer.trace('test.op') {}
     end
 
@@ -22,13 +33,15 @@ RSpec.describe 'ddtrace integration' do
     end
 
     context 'for threads' do
-      let!(:original_thread_count) { thread_count }
+      let(:original_thread_count) { thread_count }
 
       def thread_count
         Thread.list.count
       end
 
       it 'closes tracer threads' do
+        original_thread_count
+
         start_tracer
         wait_for_tracer_sent
 

@@ -1,5 +1,5 @@
 require 'rails/all'
-require 'ddtrace'
+# require 'ddtrace'
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
@@ -9,6 +9,8 @@ end
 require 'lograge' if ENV['USE_LOGRAGE'] == true
 
 RSpec.shared_context 'Rails base application' do
+  let(:preload_ddtrace) { ENV['TEST_AUTO_INSTRUMENT'] != 'true' }
+
   if Rails.version >= '6.0'
     require 'ddtrace/contrib/rails/support/rails6'
     include_context 'Rails 6 base application'

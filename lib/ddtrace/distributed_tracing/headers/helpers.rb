@@ -1,5 +1,3 @@
-require 'ddtrace/configuration'
-require 'ddtrace/span'
 require 'ddtrace/ext/priority'
 
 module Datadog

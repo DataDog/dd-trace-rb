@@ -335,7 +335,12 @@ RSpec.describe Datadog::Configuration::Components do
             default_service: settings.service,
             enabled: settings.tracer.enabled,
             partial_flush: settings.tracer.partial_flush.enabled,
-            tags: settings.tags
+            tags: settings.tags,
+            sampler: ->(sampler) do
+              expect(sampler.pre_sampler).to be_a(Datadog::AllSampler)
+              expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.sampling.rate_limit)
+              expect(sampler.priority_sampler.default_sampler).to be_a(Datadog::RateByServiceSampler)
+            end
           }
         end
         let(:options) { {} }
@@ -877,6 +882,9 @@ RSpec.describe Datadog::Configuration::Components do
         expect(components.runtime_metrics.metrics.statsd).to receive(:close)
         expect(components.health_metrics.statsd).to receive(:close)
 
+        # Do not shut down these components, as they are normally externally managed
+        expect(components.logger).to_not receive(:close)
+
         shutdown!
       end
     end
@@ -910,6 +918,9 @@ RSpec.describe Datadog::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)
           expect(components.health_metrics.statsd).to receive(:close)
 
+          # Do not shut down these components, as they are normally externally managed
+          expect(components.logger).to_not receive(:close)
+
           shutdown!
         end
 
@@ -926,6 +937,9 @@ RSpec.describe Datadog::Configuration::Components do
             expect(components.runtime_metrics).to receive(:stop)
               .with(true, close_metrics: false)
             expect(components.health_metrics.statsd).to receive(:close)
+
+            # Do not shut down these components, as they are normally externally managed
+            expect(components.logger).to_not receive(:close)
 
             shutdown!
           end
@@ -945,6 +959,9 @@ RSpec.describe Datadog::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)
           expect(components.health_metrics.statsd).to receive(:close)
 
+          # Do not shut down these components, as they are normally externally managed
+          expect(components.logger).to_not receive(:close)
+
           shutdown!
         end
       end
@@ -961,6 +978,9 @@ RSpec.describe Datadog::Configuration::Components do
             .with(true, close_metrics: false)
           expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
           expect(components.health_metrics.statsd).to receive(:close)
+
+          # Do not shut down these components, as they are normally externally managed
+          expect(components.logger).to_not receive(:close)
 
           shutdown!
         end
@@ -979,6 +999,9 @@ RSpec.describe Datadog::Configuration::Components do
             .with(true, close_metrics: false)
           expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
           expect(components.health_metrics.statsd).to_not receive(:close)
+
+          # Do not shut down these components, as they are normally externally managed
+          expect(components.logger).to_not receive(:close)
 
           shutdown!
         end
