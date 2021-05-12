@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [0.49.0] - 2021-05-12
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.49.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.48.0...v0.49.0
+
+### Added
+
+- Add cause to error stack trace ([#1472][])
+
+### Changed
+
+### Fixed
+
+- Prevent double initialization when auto instrumenting non-Rails applications ([#1497][])
+- Support kwargs in Ruby 3.0 for sucker_punch ([#1495][]) ([@lloeki][])
+- Fargate fixes and Container parsing for CGroups ([#1487][][#1480][][#1475][])
+- Fix ActionPack instrumentation `#starts_with?` error([#1489][])
+- Doc fixes ([#1473][]) ([@kexoth][])
+
+### Refactored
+
 ## [0.48.0] - 2021-04-19
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.48.0
@@ -2343,6 +2365,14 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1456]: https://github.com/DataDog/dd-trace-rb/issues/1456
 [#1457]: https://github.com/DataDog/dd-trace-rb/issues/1457
 [#1461]: https://github.com/DataDog/dd-trace-rb/issues/1461
+[#1472]: https://github.com/DataDog/dd-trace-rb/issues/1472
+[#1473]: https://github.com/DataDog/dd-trace-rb/issues/1473
+[#1475]: https://github.com/DataDog/dd-trace-rb/issues/1475
+[#1480]: https://github.com/DataDog/dd-trace-rb/issues/1480
+[#1487]: https://github.com/DataDog/dd-trace-rb/issues/1487
+[#1489]: https://github.com/DataDog/dd-trace-rb/issues/1489
+[#1495]: https://github.com/DataDog/dd-trace-rb/issues/1495
+[#1497]: https://github.com/DataDog/dd-trace-rb/issues/1497
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -2411,10 +2441,12 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@jpaulgs]: https://github.com/jpaulgs
 [@jvalanen]: https://github.com/jvalanen
 [@kelvin-acosta]: https://github.com/kelvin-acosta
+[@kexoth]: https://github.com/kexoth
 [@kissrobber]: https://github.com/kissrobber
 [@kitop]: https://github.com/kitop
 [@letiesperon]: https://github.com/letiesperon
 [@link04]: https://github.com/link04
+[@lloeki]: https://github.com/lloeki
 [@mantrala]: https://github.com/mantrala
 [@matchbookmac]: https://github.com/matchbookmac
 [@mberlanda]: https://github.com/mberlanda
