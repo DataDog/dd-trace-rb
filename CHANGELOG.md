@@ -18,7 +18,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.48.0...v0.49.0
 
 - Prevent double initialization when auto instrumenting non-Rails applications ([#1497][])
 - Support kwargs in Ruby 3.0 for sucker_punch ([#1495][]) ([@lloeki][])
-- Container parsing for CGroups ([#1487][][#1480][])
+- Fargate fixes and Container parsing for CGroups ([#1487][][#1480][])
 - Fix ActionPack instrumentation `#starts_with?` error([#1489][])
 
 ### Refactored
