@@ -20,7 +20,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.48.0...v0.49.0
 - Support kwargs in Ruby 3.0 for sucker_punch ([#1495][]) ([@lloeki][])
 - Fargate fixes and Container parsing for CGroups ([#1487][][#1480][][#1475][])
 - Fix ActionPack instrumentation `#starts_with?` error([#1489][])
-- Doc fixes ([#1473][])
+- Doc fixes ([#1473][]) ([@kexoth][])
 
 ### Refactored
 
