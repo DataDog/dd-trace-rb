@@ -8,6 +8,7 @@ module Datadog
         configuration_options[:split_by_domain] ? hostname : configuration_options[:service_name]
       end
 
+      # [WIP]
       # resource_name 
       # should_quantize attempts to replace the following
       #   sequence of decimal digits of any length
