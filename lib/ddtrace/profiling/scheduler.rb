@@ -82,7 +82,10 @@ module Datadog
       end
 
       def flush_events
+        current_thread = Thread.current
+
         before_timing = Time.now.utc
+        before_cpu_time = current_thread.respond_to?(:cpu_time) ? current_thread.cpu_time : 0
 
         # Get events from recorder
         flush = recorder.flush
@@ -101,7 +104,10 @@ module Datadog
         end
 
         if ENV['DD_PROFILING_FLUSHTIME'] == 'true'
-          Datadog.logger.info("Finished reporting profile, took #{(Time.now.utc - before_timing) * 1000} ms")
+          after_timing = ((Time.now.utc - before_timing) * 1000)
+          after_cpu_time = (((current_thread.respond_to?(:cpu_time) ? current_thread.cpu_time : 0) - before_cpu_time) * 1000)
+
+          Datadog.logger.info("Finished reporting profile, took #{after_timing} ms (cpu #{after_cpu_time} ms)")
         end
 
         flush
