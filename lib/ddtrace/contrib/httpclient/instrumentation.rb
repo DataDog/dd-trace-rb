@@ -57,7 +57,8 @@ module Datadog
             http_method = req.header.request_method.upcase
             uri = req.header.request_uri
 
-            span.resource = http_method
+            span.resource = resource_name(http_method, uri.host, uri.path, request_options[:ruby_http_client_resource_quantize], request_options[:ruby_http_client_resource_quantize])
+
             span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
             span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)

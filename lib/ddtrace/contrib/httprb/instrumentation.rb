@@ -56,6 +56,7 @@ module Datadog
           def annotate_span_with_request!(span, req, req_options)
             if req.verb && req.verb.is_a?(String) || req.verb.is_a?(Symbol)
               http_method = req.verb.to_s.upcase
+
               span.resource = http_method
               span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
             else
@@ -64,6 +65,10 @@ module Datadog
 
             if req.uri
               uri = req.uri
+              # check if http_method was set above to be defensive
+              if defined?(http_method)
+                span.resource = resource_name(req.verb.to_s.upcase, uri.host, uri.path, request_options[:ruby_http_client_resource_quantize], request_options[:ruby_http_client_resource_quantize])
+              end
               span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
               span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
               span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)

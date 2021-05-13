@@ -22,10 +22,17 @@ module Datadog
       # 4. Compare performance tradeoffs and strictness/approaches of detecting hexadecimal strings of certain length, 
       #    either by the dotnet approach or by regex
       #    https://github.com/open-telemetry/opentelemetry-ruby/blob/94b4207637d69a43d18fc54916b7067bda0a1678/instrumentation/mysql2/lib/opentelemetry/instrumentation/mysql2/patches/client.rb#L38
-      def resource_name(method, hostname, uri, should_quantize = false, should_use_host = false)
+      def resource_name(method, hostname, uri_path, should_quantize = false, should_use_host = false)
         if should_quantize 
-          # TODO: update to wrap this with some rough code to mimic the dotnet hexademical work
-          quantized_path = Datadog::Contrib::Elasticsearch::Quantize.format_url(uri.path)
+          # Remove a sequence of decimal digits of any length
+          quantized_path = Datadog::Contrib::Elasticsearch::Quantize.format_url(uri_path)
+
+          quantized_path_dashes_removed = quantized_path.gsub("-","")
+          # Remoe sequencce of hexadecimal digits of 8 or more characters (ignore hyphens). 
+          # TODO: What is appropriate? Should it be 16 to match dotnet implementation?
+          if quantized_path_dashes_removed != quantized_path_dashes_removed.gsub(%r{[\h]{8}}, "?") 
+            quantized_path = quantized_path_dashes_removed.gsub(%r{[\h]{8}}, "?") 
+          end
 
           if should_use_host
 
