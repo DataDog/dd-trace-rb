@@ -111,7 +111,13 @@ module Datadog
         end
 
         def annotate!(span, datum)
-          span.resource = resource_name(datum[:method].to_s.upcase, datum[:host], datum[:path], @options[:ruby_http_client_resource_quantize], @options[:ruby_http_client_resource_quantize])
+          span.resource = resource_name(
+            datum[:method].to_s.upcase,
+            datum[:host],
+            datum[:path],
+            @options[:ruby_http_client_resource_quantize],
+            @options[:ruby_http_client_resource_quantize]
+          )
           span.service = service_name(datum[:host], @options)
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 

@@ -37,7 +37,13 @@ module Datadog
         attr_reader :app
 
         def annotate!(span, env, options)
-          span.resource = resource_name(env)
+          span.resource = resource_name(
+            resource_name_old(env),
+            env[:url].host,
+            env[:url].path,
+            options[:ruby_http_client_resource_quantize],
+            options[:ruby_http_client_resource_quantize]
+          )
           service_name(env[:url].host, options)
           span.service = options[:split_by_domain] ? env[:url].host : options[:service_name]
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
@@ -66,7 +72,7 @@ module Datadog
           Datadog::HTTPPropagator.inject!(span.context, env[:request_headers])
         end
 
-        def resource_name(env)
+        def resource_name_old(env)
           env[:method].to_s.upcase
         end
 

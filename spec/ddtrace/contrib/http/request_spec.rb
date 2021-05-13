@@ -260,6 +260,63 @@ RSpec.describe 'net/http requests' do
     end
   end
 
+  context 'when resource is quantized' do
+    shared_examples_for 'a quantized URL' do |url, expected_url|
+      subject(:response) { client.get(url) }
+
+      before { stub_request(:get, "#{uri}#{url}").to_return(status: 200, body: '{}') }
+
+      let(:span) { spans.first }
+      let(:configuration_options) { super().merge(ruby_http_client_resource_quantize: true) }
+
+      it do
+        response
+        expect(span.name).to eq(Datadog::Contrib::HTTP::Ext::SPAN_REQUEST)
+        expect(span.resource).to eq("GET #{host}#{expected_url}")
+      end
+    end
+
+    context 'when the URL contains known cases' do
+      it_behaves_like 'a quantized URL', '/',
+                      '/'
+      it_behaves_like 'a quantized URL', '/controller/action/b37855d4bae34bd3b3357fc554ad334e',
+                      '/controller/action/?'
+      it_behaves_like 'a quantized URL', '/controller/action/14bb2eed-34f0-4aa2-b2c3-09c0e2166d4d',
+                      '/controller/action/?'
+      it_behaves_like 'a quantized URL', '/controller/action/14bb2eed-34f0X4aa2-b2c3-09c0e2166d4d',
+                      '/controller/action/14bb2eed-34f0X4aa2-b2c3-09c0e2166d4d' # contains non-hex letters
+      it_behaves_like 'a quantized URL', '/controller/action/14bb2eed-34f0-4aa2Xb2c3-09c0e2166d4d',
+                      '/controller/action/14bb2eed-34f0-4aa2Xb2c3-09c0e2166d4d' # contains non-hex letters
+      it_behaves_like 'a quantized URL', '/controller/action/14bb2eed-34f0A4aa2Bb2c3C09c0e2166d4d',
+                      '/controller/action/?'
+      it_behaves_like 'a quantized URL', '/controller/action/12345678901234567890123456789012345678901234567890',
+                      '/controller/action/?'
+      it_behaves_like 'a quantized URL', '/controller/action/eeeee123',
+                      '/controller/action/eeeee123' # Too short
+      it_behaves_like 'a quantized URL', '/controller/action/0123456789ABCDE',
+                      '/controller/action/0123456789ABCDE' # Too short
+      it_behaves_like 'a quantized URL', '/controller/action/01234567890ABCDEFGH',
+                      '/controller/action/01234567890ABCDEFGH' # Contains non-hex letters
+      it_behaves_like 'a quantized URL', '/controller/action/0123456789ABCDEF',
+                      '/controller/action/?'
+      it_behaves_like 'a quantized URL', '/controller/action/0123456789ABCDEF0',
+                      '/controller/action/?'
+      it_behaves_like 'a quantized URL', '/controller/action/01234567_89ABCDEF',
+                      '/controller/action/01234567_89ABCDEF' # only hyphen '-' allowed other than hex
+      it_behaves_like 'a quantized URL', '/controller/action/123-456-789',
+                      '/controller/action/?'
+      it_behaves_like 'a quantized URL', '/controller/action/eeeeeeeeeeeeeeeee',
+                      '/controller/action/eeeeeeeeeeeeeeeee' # No numbers
+      it_behaves_like 'a quantized URL',
+                      '/DataDog/dd-trace-dotnet/e2d83dec7d6862d4181937776ddaf72819e291ce/src/Datadog.Trace/UriHelpers.cs',
+                      '/DataDog/dd-trace-dotnet/?/src/Datadog.Trace/UriHelpers.cs'
+      it_behaves_like 'a quantized URL', '/controller/action/2022',
+                      '/controller/action/?'
+      it_behaves_like 'a quantized URL', '/controller/action/',
+                      '/controller/action/'
+    end
+  end
+
   describe 'distributed tracing' do
     let(:path) { '/my/path' }
 

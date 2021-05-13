@@ -10,6 +10,7 @@ module Datadog
   module Contrib
     module Httprb
       # Instrumentation for Httprb
+      # rubocop:disable Metrics/ModuleLength:
       module Instrumentation
         def self.included(base)
           base.send(:prepend, InstanceMethods)
@@ -67,7 +68,12 @@ module Datadog
               uri = req.uri
               # check if http_method was set above to be defensive
               if defined?(http_method)
-                span.resource = resource_name(req.verb.to_s.upcase, uri.host, uri.path, request_options[:ruby_http_client_resource_quantize], request_options[:ruby_http_client_resource_quantize])
+                span.resource = resource_name(
+                  req.verb.to_s.upcase,
+                  uri.host,
+                  uri.path,
+                  request_options[:ruby_http_client_resource_quantize], request_options[:ruby_http_client_resource_quantize]
+                )
               end
               span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
               span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)

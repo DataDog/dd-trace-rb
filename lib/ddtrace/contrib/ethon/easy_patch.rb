@@ -15,7 +15,7 @@ module Datadog
         end
 
         # InstanceMethods - implementing instrumentation
-        module InstanceMethods
+        module InstanceMethods # rubocop:disable Metrics/ModuleLength
           include Datadog::Contrib::HttpAnnotationHelper
 
           def http_request(url, action_name, options = {})
@@ -103,9 +103,11 @@ module Datadog
             span = @datadog_span
             method = Ext::NOT_APPLICABLE_METHOD
             method = @datadog_method.to_s if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
-
-            span.resource = resource_name(method, uri.host, uri.path, datadog_configuration[:ruby_http_client_resource_quantize], datadog_configuration[:ruby_http_client_resource_quantize])
-            
+            span.resource = resource_name(method,
+                                          uri.host,
+                                          uri.path,
+                                          datadog_configuration[:ruby_http_client_resource_quantize],
+                                          datadog_configuration[:ruby_http_client_resource_quantize])
             # Tag as an external peer service
             span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
             # Set analytics sample rate

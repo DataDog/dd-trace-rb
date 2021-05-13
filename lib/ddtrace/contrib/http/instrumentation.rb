@@ -29,7 +29,7 @@ module Datadog
         end
 
         # InstanceMethods - implementing instrumentation
-        module InstanceMethods
+        module InstanceMethods # rubocop:disable Metrics/ModuleLength
           include Datadog::Contrib::HttpAnnotationHelper
 
           # :yield: +response+
@@ -50,9 +50,14 @@ module Datadog
                 span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
-                host, _ = host_and_port(request)
-                span.resource = resource_name(req.method, host, request.path, request_options[:ruby_http_client_resource_quantize], request_options[:ruby_http_client_resource_quantize])
-
+                host, = host_and_port(req)
+                span.resource = resource_name(
+                  req.method,
+                  host,
+                  req.path,
+                  request_options[:ruby_http_client_resource_quantize],
+                  request_options[:ruby_http_client_resource_quantize]
+                )
                 if pin.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(span.context, req)
                 end
