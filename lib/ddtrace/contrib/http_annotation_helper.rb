@@ -16,7 +16,7 @@ module Datadog
       #
       # TODO: 
       # 1. Generalize Quantize.format_url into common(contrib?) utils
-      # 2. Does Quantize.format_url handle hexadecimal currently? I don't believe so?
+      # 2. Does Quantize.format_url handle hexadecimal strings of certain length currently? (I don't believe so)
       # 3. Should this be based more strictly on implementation in dotnet? 
       #    https://github.com/DataDog/dd-trace-dotnet/blob/4db4c05cef64eb2930ec72bbfb20c806593b83ee/src/Datadog.Trace.ClrProfiler.Managed/ScopeFactory.cs#L105
       # 4. Compare performance tradeoffs and strictness/approaches of detecting hexadecimal strings of certain length, 
@@ -40,7 +40,7 @@ module Datadog
         end
 
         # Can we formalize quantization implementation in datadog-agent and simply use full url?
-        # Additional Obfuscation code
+        # Should we add additional Obfuscation code for known other cases
 
         # default behavior returns just method
         should_use_host ? "#{method} #{hostname}" : method
