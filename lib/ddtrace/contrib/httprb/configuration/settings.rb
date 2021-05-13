@@ -25,6 +25,7 @@ module Datadog
           option :distributed_tracing, default: true
           option :service_name, default: Ext::SERVICE_NAME
           option :split_by_domain, default: false
+          option :ruby_http_client_resource_quantize, default: false
         end
       end
     end
