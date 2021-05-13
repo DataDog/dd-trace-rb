@@ -82,6 +82,8 @@ module Datadog
       end
 
       def flush_events
+        before_timing = Time.now.utc
+
         # Get events from recorder
         flush = recorder.flush
 
@@ -96,6 +98,10 @@ module Datadog
               )
             end
           end
+        end
+
+        if ENV['DD_PROFILING_FLUSHTIME'] == 'true'
+          Datadog.logger.info("Finished reporting profile, took #{(Time.now.utc - before_timing) * 1000} ms")
         end
 
         flush
