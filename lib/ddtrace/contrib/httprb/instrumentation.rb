@@ -72,7 +72,7 @@ module Datadog
                   req.verb.to_s.upcase,
                   uri.host,
                   uri.path,
-                  request_options[:ruby_http_client_resource_quantize], request_options[:ruby_http_client_resource_quantize]
+                  req_options[:ruby_http_client_resource_quantize], req_options[:ruby_http_client_resource_quantize]
                 )
               end
               span.set_tag(Datadog::Ext::HTTP::URL, uri.path)

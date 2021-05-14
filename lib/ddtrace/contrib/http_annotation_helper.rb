@@ -41,10 +41,10 @@ module Datadog
                 segment_length = current_index - previous_index
               end
 
-              if path_to_build << identifier_segment?(quantized_path, previous_index, segment_length) # rubocop:disable Metrics/BlockNesting
-                '?'
+              if identifier_segment?(quantized_path, previous_index, segment_length) # rubocop:disable Metrics/BlockNesting
+                path_to_build << '?'
               else
-                quantized_path[previous_index, segment_length]
+                path_to_build << quantized_path[previous_index, segment_length]
               end
 
               path_to_build << '/' if current_index != -1 # rubocop:disable Metrics/BlockNesting

@@ -61,8 +61,8 @@ module Datadog
               http_method,
               uri.host,
               uri.path,
-              request_options[:ruby_http_client_resource_quantize],
-              request_options[:ruby_http_client_resource_quantize]
+              req_options[:ruby_http_client_resource_quantize],
+              req_options[:ruby_http_client_resource_quantize]
             )
 
             span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
