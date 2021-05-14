@@ -82,6 +82,8 @@ module Datadog
       end
 
       def flush_events
+        @times_flushed ||= 0
+        @times_flushed += 1
         current_thread = Thread.current
 
         before_timing = Time.now.utc
@@ -108,6 +110,18 @@ module Datadog
           after_cpu_time = (((current_thread.respond_to?(:cpu_time) ? current_thread.cpu_time : 0) - before_cpu_time) * 1000)
 
           Datadog.logger.info("Finished reporting profile, took #{after_timing} ms (cpu #{after_cpu_time} ms)")
+        end
+
+        if ENV['DD_PROFILING_LOOPFLUSH'] && Integer(ENV['DD_PROFILING_LOOPFLUSH']) == @times_flushed
+          loop do
+            begin
+              exporters.first.export(flush)
+            rescue StandardError => e
+              Datadog.logger.error(
+                "Unable to export #{flush.event_count} profiling events. Cause: #{e} Location: #{e.backtrace.first}"
+              )
+            end
+          end
         end
 
         flush
