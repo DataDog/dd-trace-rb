@@ -112,6 +112,12 @@ module Datadog
           Datadog.logger.info("Finished reporting profile, took #{after_timing} ms (cpu #{after_cpu_time} ms)")
         end
 
+        if ENV['DD_PROFILING_DUMPFLUSH'] && Integer(ENV['DD_PROFILING_DUMPFLUSH']) == @times_flushed
+          dump_file = "marshal-#{Time.now.utc.to_i}.dump"
+          File.open(dump_file, "w") { |f| Marshal.dump(flush, f) }
+          Datadog.logger.info("Dumped to #{dump_file}")
+        end
+
         if ENV['DD_PROFILING_LOOPFLUSH'] && Integer(ENV['DD_PROFILING_LOOPFLUSH']) == @times_flushed
           loop do
             begin
