@@ -4,6 +4,7 @@ require 'ddtrace/logger'
 require 'ddtrace/profiling'
 require 'ddtrace/runtime/metrics'
 require 'ddtrace/tracer'
+require 'ddtrace/sync_writer'
 require 'ddtrace/workers/runtime_metrics'
 
 module Datadog
@@ -64,7 +65,7 @@ module Datadog
           #       tracer initialization for now. Just reconfigure using the
           #       existing mutable #configure function. Remove when these components
           #       are extracted.
-          tracer.configure(agent_settings: agent_settings, **build_tracer_options(settings))
+          tracer.configure(agent_settings: agent_settings, **build_tracer_options(settings, agent_settings))
 
           tracer
         end
@@ -94,16 +95,37 @@ module Datadog
           end
         end
 
-        def build_tracer_options(settings)
-          settings = settings.tracer
+        def build_tracer_options(settings, agent_settings)
+          tracer_options = {}.tap do |opts|
+            tset = settings.tracer
+            opts[:min_spans_before_partial_flush] = tset.partial_flush.min_spans_threshold unless tset.partial_flush.min_spans_threshold.nil?
+            opts[:partial_flush] = tset.partial_flush.enabled unless tset.partial_flush.enabled.nil?
+            opts[:priority_sampling] = tset.priority_sampling unless tset.priority_sampling.nil?
+            opts[:sampler] = tset.sampler unless tset.sampler.nil?
+            opts[:writer] = tset.writer unless tset.writer.nil?
+            opts[:writer_options] = tset.writer_options if tset.writer.nil?
+          end
 
-          {}.tap do |opts|
-            opts[:min_spans_before_partial_flush] = settings.partial_flush.min_spans_threshold unless settings.partial_flush.min_spans_threshold.nil?
-            opts[:partial_flush] = settings.partial_flush.enabled unless settings.partial_flush.enabled.nil?
-            opts[:priority_sampling] = settings.priority_sampling unless settings.priority_sampling.nil?
-            opts[:sampler] = settings.sampler unless settings.sampler.nil?
-            opts[:writer] = settings.writer unless settings.writer.nil?
-            opts[:writer_options] = settings.writer_options if settings.writer.nil?
+          # Apply test mode settings if test mode is activated
+          if settings.test_mode.enabled
+            build_tracer_test_mode_options(tracer_options, settings, agent_settings)
+          else
+            tracer_options
+          end
+        end
+
+        def build_tracer_test_mode_options(tracer_options, settings, agent_settings)
+          tracer_options.tap do |opts|
+            # Do not sample any spans for tests; all must be preserved.
+            opts[:sampler] = Datadog::AllSampler.new
+
+            # If context flush behavior is provided, use it instead.
+            opts[:context_flush] = settings.test_mode.context_flush if settings.test_mode.context_flush
+
+            # Flush traces synchronously, to guarantee they are written.
+            writer_options = settings.test_mode.writer_options || {}
+            writer_options[:agent_settings] = agent_settings if agent_settings
+            opts[:writer] = Datadog::SyncWriter.new(writer_options)
           end
         end
 
