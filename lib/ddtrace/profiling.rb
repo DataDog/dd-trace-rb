@@ -14,19 +14,13 @@ module Datadog
       # NOTE: Only the first matching reason is returned, so try to keep a nice order on reasons -- e.g. tell users
       # first that they can't use this on JRuby before telling them that they are missing protobuf
 
-      ruby_engine_unsupported? || ruby_version_unsupported? ||
-        protobuf_gem_unavailable? || protobuf_version_unsupported? || protobuf_failed_to_load?
+      ruby_engine_unsupported? || protobuf_gem_unavailable? || protobuf_version_unsupported? || protobuf_failed_to_load?
     end
 
     def self.ruby_engine_unsupported?
       'JRuby is not supported' if RUBY_ENGINE == 'jruby'
     end
     private_class_method :ruby_engine_unsupported?
-
-    def self.ruby_version_unsupported?
-      'Ruby >= 2.1 is required' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
-    end
-    private_class_method :ruby_version_unsupported?
 
     def self.protobuf_gem_unavailable?
       if Gem.loaded_specs['google-protobuf'].nil?

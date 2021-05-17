@@ -192,7 +192,6 @@ RSpec.describe Datadog::Tracer do
 
         it 'tracks the number of allocations made in the span' do
           skip 'Test unstable; improve stability before re-enabling.'
-          skip 'Not supported for Ruby < 2.0' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
 
           # Create and discard first trace.
           # When warming up, it might have more allocations than subsequent traces.

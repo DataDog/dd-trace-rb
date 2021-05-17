@@ -19,8 +19,6 @@ namespace :spec do
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,opentelemetry,auto_instrument}/**/*_spec.rb,'\
                         ' spec/**/auto_instrument_spec.rb'
-    # Profiler is Ruby 2.1+ only
-    t.exclude_pattern += ',spec/**/profiling/**/*_spec.rb' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -214,63 +212,6 @@ desc 'CI task; it runs all tests for current version of Ruby'
 task :ci do
   if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
     raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
-  elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
-    # Main library
-    declare 'bundle exec rake test:main'
-    declare 'bundle exec rake spec:main'
-    declare 'bundle exec appraisal core-old rake spec:main'
-    declare 'bundle exec rake spec:contrib'
-
-    if RUBY_PLATFORM != 'java'
-      # Contrib specs
-      declare 'bundle exec appraisal contrib-old rake spec:active_model_serializers'
-      declare 'bundle exec appraisal contrib-old rake spec:active_record'
-      declare 'bundle exec appraisal contrib-old rake spec:active_support'
-      declare 'bundle exec appraisal contrib-old rake spec:autoinstrument'
-      declare 'bundle exec appraisal contrib-old rake spec:aws'
-      declare 'bundle exec appraisal contrib-old rake spec:concurrent_ruby'
-      declare 'bundle exec appraisal contrib-old rake spec:dalli'
-      declare 'bundle exec appraisal contrib-old rake spec:delayed_job'
-      declare 'bundle exec appraisal contrib-old rake spec:elasticsearch'
-      declare 'bundle exec appraisal contrib-old rake spec:ethon'
-      declare 'bundle exec appraisal contrib-old rake spec:excon'
-      declare 'bundle exec appraisal contrib-old rake spec:faraday'
-      declare 'bundle exec appraisal contrib-old rake spec:http'
-      declare 'bundle exec appraisal contrib-old rake spec:httpclient'
-      declare 'bundle exec appraisal contrib-old rake spec:httprb'
-      declare 'bundle exec appraisal contrib-old rake spec:mongodb'
-      declare 'bundle exec appraisal contrib-old rake spec:mysql2'
-      declare 'bundle exec appraisal contrib-old rake spec:rack'
-      declare 'bundle exec appraisal contrib-old rake spec:rake'
-      declare 'bundle exec appraisal contrib-old rake spec:redis'
-      declare 'bundle exec appraisal contrib-old rake spec:resque'
-      declare 'bundle exec appraisal contrib-old rake spec:rest_client'
-      declare 'bundle exec appraisal contrib-old rake spec:rspec'
-      declare 'bundle exec appraisal contrib-old rake spec:sequel'
-      declare 'bundle exec appraisal contrib-old rake spec:sidekiq'
-      declare 'bundle exec appraisal contrib-old rake spec:sinatra'
-      declare 'bundle exec appraisal contrib-old rake spec:sucker_punch'
-      declare 'bundle exec appraisal contrib-old rake spec:suite'
-      # Rails minitests
-      declare 'bundle exec appraisal rails30-postgres rake test:rails'
-      declare 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
-      declare 'bundle exec appraisal rails30-postgres rake spec:railsautoinstrument'
-      declare 'bundle exec appraisal rails32-mysql2 rake test:rails'
-      declare 'bundle exec appraisal rails32-postgres rake test:rails'
-      declare 'bundle exec appraisal rails32-postgres-redis rake spec:railsredis'
-      declare 'bundle exec appraisal rails32-postgres rake spec:railsdisableenv'
-      declare 'bundle exec appraisal rails32-postgres rake spec:railsautoinstrument'
-      # Rails specs
-      declare 'bundle exec appraisal rails30-postgres rake spec:rails'
-      declare 'bundle exec appraisal rails32-mysql2 rake spec:rails'
-      declare 'bundle exec appraisal rails32-postgres rake spec:rails'
-      # Rails suite specs
-      declare 'bundle exec appraisal rails32-postgres rake spec:action_pack'
-      declare 'bundle exec appraisal rails32-postgres rake spec:action_view'
-      declare 'bundle exec appraisal rails32-mysql2 rake spec:active_record'
-      declare 'bundle exec appraisal rails32-postgres rake spec:active_support'
-    end
   elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
         && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
     # Main library

@@ -4,7 +4,7 @@ require 'datadog/statsd'
 require 'ddtrace'
 
 require 'benchmark/ips'
-if !PlatformHelpers.jruby? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
+unless PlatformHelpers.jruby?
   require 'benchmark/memory'
   require 'memory_profiler'
 end
@@ -101,9 +101,7 @@ RSpec.shared_context 'benchmark' do
   it 'memory' do
     warm_up
 
-    if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
-      skip("'benchmark/memory' not supported")
-    end
+    skip("'benchmark/memory' not supported") if PlatformHelpers.jruby?
 
     report = Benchmark.memory do |x|
       steps.each do |s|
@@ -160,9 +158,7 @@ RSpec.shared_context 'benchmark' do
 
     # Memory report with reference to each allocation site
     it 'memory report' do
-      if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
-        skip("'benchmark/memory' not supported")
-      end
+      skip("'benchmark/memory' not supported") if PlatformHelpers.jruby?
 
       warm_up
 
