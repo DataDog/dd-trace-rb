@@ -71,7 +71,7 @@ module Datadog
             # Add Exception information to error line
             backtrace << trace[0]
             backtrace << ': '
-            backtrace << ex.message
+            backtrace << ex.message.to_s
             backtrace << ' ('
             backtrace << ex.class.to_s
             backtrace << ')'

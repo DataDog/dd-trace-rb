@@ -131,6 +131,28 @@ RSpec.describe Datadog::Error do
           end
         end
 
+        context 'with nil message' do
+          let(:cause) do
+            Class.new(StandardError) do
+              def message; end
+            end
+          end
+          let(:value) { begin; raise cause; rescue => e; e; end }
+          before do
+            stub_const('NilMessageError', cause)
+          end
+
+          it 'is expected to message is empty' do
+            expect(error.type).to eq('NilMessageError')
+            expect(error.message).to eq('')
+            expect(error.backtrace).to include('error_spec.rb')
+          end
+
+          it 'is expected to include class name in backtrace', if: RUBY_VERSION >= '2.1.0' do
+            expect(error.backtrace).to include(':  (NilMessageError)') # :[space][nil][space](NilMessageError)
+          end
+        end
+
         context 'benchmark' do
           before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
 
