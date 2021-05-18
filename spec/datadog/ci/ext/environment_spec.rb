@@ -1,6 +1,9 @@
-require 'json'
+require 'spec_helper'
 
-RSpec.describe Datadog::Ext::CI do
+require 'json'
+require 'datadog/ci/ext/environment'
+
+RSpec.describe Datadog::CI::Ext::Environment do
   describe '::tags' do
     def self.match(env, tags)
       it "matches tags from #{env}" do

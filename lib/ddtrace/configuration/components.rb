@@ -9,6 +9,7 @@ require 'ddtrace/workers/runtime_metrics'
 module Datadog
   module Configuration
     # Global components for the trace library.
+    # rubocop:disable Metrics/ClassLength
     # rubocop:disable Layout/LineLength
     class Components
       class << self

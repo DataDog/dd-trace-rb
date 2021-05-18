@@ -1,8 +1,8 @@
 require 'ddtrace/contrib/support/spec_helper'
 
-require 'ddtrace/contrib/rspec/integration'
+require 'datadog/ci/contrib/rspec/integration'
 
-RSpec.describe Datadog::Contrib::RSpec::Integration do
+RSpec.describe Datadog::CI::Contrib::RSpec::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:rspec) }
@@ -59,12 +59,12 @@ RSpec.describe Datadog::Contrib::RSpec::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::RSpec::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::CI::Contrib::RSpec::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::RSpec::Patcher }
+    it { is_expected.to be Datadog::CI::Contrib::RSpec::Patcher }
   end
 end

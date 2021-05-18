@@ -6,6 +6,7 @@ require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/profiling'
 require 'ddtrace/ext/runtime'
 require 'ddtrace/ext/sampling'
+require 'ddtrace/ext/test'
 
 module Datadog
   module Configuration

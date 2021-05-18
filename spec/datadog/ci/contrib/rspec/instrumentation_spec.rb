@@ -1,8 +1,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/ext/integration'
 
-require 'rspec'
-require 'ddtrace'
+require 'datadog/ci/contrib/rspec/integration'
 
 RSpec.describe 'RSpec hooks' do
   let(:configuration_options) { {} }
@@ -34,15 +33,15 @@ RSpec.describe 'RSpec hooks' do
       end.tap(&:run)
     end
 
-    expect(span.span_type).to eq(Datadog::Ext::AppTypes::TEST)
-    expect(span.name).to eq(Datadog::Contrib::RSpec::Ext::OPERATION_NAME)
+    expect(span.span_type).to eq(Datadog::CI::Ext::AppTypes::TEST)
+    expect(span.name).to eq(Datadog::CI::Contrib::RSpec::Ext::OPERATION_NAME)
     expect(span.resource).to eq('some test foo')
-    expect(span.get_tag(Datadog::Ext::Test::TAG_NAME)).to eq('some test foo')
-    expect(span.get_tag(Datadog::Ext::Test::TAG_SUITE)).to eq(spec.file_path)
-    expect(span.get_tag(Datadog::Ext::Test::TAG_SPAN_KIND)).to eq(Datadog::Ext::AppTypes::TEST)
-    expect(span.get_tag(Datadog::Ext::Test::TAG_TYPE)).to eq(Datadog::Contrib::RSpec::Ext::TEST_TYPE)
-    expect(span.get_tag(Datadog::Ext::Test::TAG_FRAMEWORK)).to eq(Datadog::Contrib::RSpec::Ext::FRAMEWORK)
-    expect(span.get_tag(Datadog::Ext::Test::TAG_STATUS)).to eq(Datadog::Ext::Test::Status::PASS)
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_NAME)).to eq('some test foo')
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE)).to eq(spec.file_path)
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND)).to eq(Datadog::CI::Ext::AppTypes::TEST)
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_TYPE)).to eq(Datadog::CI::Contrib::RSpec::Ext::TEST_TYPE)
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK)).to eq(Datadog::CI::Contrib::RSpec::Ext::FRAMEWORK)
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_STATUS)).to eq(Datadog::CI::Ext::Test::Status::PASS)
   end
 
   it 'creates spans for several examples' do
@@ -65,7 +64,7 @@ RSpec.describe 'RSpec hooks' do
       end.run
     end
 
-    expect(span.get_tag(Datadog::Ext::Test::TAG_NAME)).to match(/some unnamed test example at .+/)
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_NAME)).to match(/some unnamed test example at .+/)
   end
 
   it 'creates span for deeply nested examples' do
@@ -96,13 +95,13 @@ RSpec.describe 'RSpec hooks' do
     end
 
     expect(span.resource).to eq('some nested test 1 2 3 4 5 6 7 8 9 10 foo')
-    expect(span.get_tag(Datadog::Ext::Test::TAG_NAME)).to eq('some nested test 1 2 3 4 5 6 7 8 9 10 foo')
-    expect(span.get_tag(Datadog::Ext::Test::TAG_SUITE)).to eq(spec.file_path)
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_NAME)).to eq('some nested test 1 2 3 4 5 6 7 8 9 10 foo')
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE)).to eq(spec.file_path)
   end
 
   context 'catches failures' do
     def expect_failure
-      expect(span.get_tag(Datadog::Ext::Test::TAG_STATUS)).to eq(Datadog::Ext::Test::Status::FAIL)
+      expect(span.get_tag(Datadog::CI::Ext::Test::TAG_STATUS)).to eq(Datadog::CI::Ext::Test::Status::FAIL)
       expect(span).to have_error
       expect(span).to have_error_type
       expect(span).to have_error_message

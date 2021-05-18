@@ -1,8 +1,8 @@
 require 'ddtrace/contrib/support/spec_helper'
 
-require 'ddtrace/contrib/cucumber/integration'
+require 'datadog/ci/contrib/cucumber/integration'
 
-RSpec.describe Datadog::Contrib::Cucumber::Integration do
+RSpec.describe Datadog::CI::Contrib::Cucumber::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:cucumber) }
@@ -67,12 +67,12 @@ RSpec.describe Datadog::Contrib::Cucumber::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Cucumber::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::CI::Contrib::Cucumber::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Cucumber::Patcher }
+    it { is_expected.to be Datadog::CI::Contrib::Cucumber::Patcher }
   end
 end

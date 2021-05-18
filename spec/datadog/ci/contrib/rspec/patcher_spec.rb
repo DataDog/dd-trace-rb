@@ -1,9 +1,9 @@
 require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace/contrib/rspec/patcher'
+require 'datadog/ci/contrib/rspec/patcher'
 
 require 'rspec'
 
-RSpec.describe Datadog::Contrib::RSpec::Patcher do
+RSpec.describe Datadog::CI::Contrib::RSpec::Patcher do
   describe '.patch' do
     subject!(:patch) { described_class.patch }
 
@@ -11,7 +11,7 @@ RSpec.describe Datadog::Contrib::RSpec::Patcher do
 
     context 'is patched' do
       it 'has a custom bases' do
-        expect(example.ancestors).to include(Datadog::Contrib::RSpec::Example::InstanceMethods)
+        expect(example.ancestors).to include(Datadog::CI::Contrib::RSpec::Example::InstanceMethods)
       end
     end
   end

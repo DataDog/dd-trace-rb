@@ -87,6 +87,7 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  # Datadog Tracing integrations
   [
     :action_cable,
     :action_pack,
@@ -132,6 +133,17 @@ namespace :spec do
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
+      t.rspec_opts = args.to_a.join(' ')
+    end
+  end
+
+  # Datadog CI integrations
+  [
+    :cucumber,
+    :rspec
+  ].each do |contrib|
+    RSpec::Core::RakeTask.new(contrib) do |t, args|
+      t.pattern = "spec/datadog/ci/contrib/#{contrib}/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
   end

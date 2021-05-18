@@ -1,0 +1,101 @@
+require 'ddtrace/contrib/analytics'
+
+require 'datadog/ci/ext/app_types'
+require 'datadog/ci/ext/environment'
+require 'datadog/ci/ext/test'
+require 'datadog/ci/contrib/cucumber/ext'
+
+module Datadog
+  module CI
+    module Contrib
+      module Cucumber
+        # Defines collection of instrumented Cucumber events
+        class Formatter
+          attr_reader :config, :current_feature_span, :current_step_span
+          private :config
+          private :current_feature_span, :current_step_span
+
+          def initialize(config)
+            @config = config
+
+            bind_events(config)
+          end
+
+          def bind_events(config)
+            config.on_event :test_case_started, &method(:on_test_case_started)
+            config.on_event :test_case_finished, &method(:on_test_case_finished)
+            config.on_event :test_step_started, &method(:on_test_step_started)
+            config.on_event :test_step_finished, &method(:on_test_step_finished)
+          end
+
+          def on_test_case_started(event)
+            trace_options = {
+              app: Ext::APP,
+              resource: event.test_case.name,
+              service: configuration[:service_name],
+              span_type: Datadog::CI::Ext::AppTypes::TEST,
+              tags: tags.merge(Datadog.configuration.tags)
+            }
+            @current_feature_span = tracer.trace(configuration[:operation_name], trace_options)
+            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK, Ext::FRAMEWORK)
+            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_NAME, event.test_case.name)
+            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_SUITE, event.test_case.location.file)
+            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_TYPE, Ext::TEST_TYPE)
+            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND, Datadog::CI::Ext::AppTypes::TEST)
+
+            # Measure service stats
+            Datadog::Contrib::Analytics.set_measured(@current_feature_span)
+          end
+
+          def on_test_case_finished(event)
+            return if @current_feature_span.nil?
+
+            @current_feature_span.status = 1 if event.result.failed?
+            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_STATUS, status_from_result(event.result))
+            @current_feature_span.finish
+          end
+
+          def on_test_step_started(event)
+            trace_options = {
+              resource: event.test_step.to_s,
+              span_type: Ext::STEP_SPAN_TYPE
+            }
+            @current_step_span = tracer.trace(Ext::STEP_SPAN_TYPE, trace_options)
+          end
+
+          def on_test_step_finished(event)
+            return if @current_step_span.nil?
+
+            @current_step_span.set_error event.result.exception unless event.result.passed?
+            @current_step_span.set_tag(Datadog::CI::Ext::Test::TAG_STATUS, status_from_result(event.result))
+            @current_step_span.finish
+          end
+
+          private
+
+          def status_from_result(result)
+            if result.skipped?
+              return Datadog::CI::Ext::Test::Status::SKIP
+            elsif result.ok?
+              return Datadog::CI::Ext::Test::Status::PASS
+            end
+
+            Datadog::CI::Ext::Test::Status::FAIL
+          end
+
+          def configuration
+            Datadog.configuration[:cucumber]
+          end
+
+          def tracer
+            configuration[:tracer]
+          end
+
+          def tags
+            @tags ||= Datadog::CI::Ext::Environment.tags(ENV)
+          end
+        end
+      end
+    end
+  end
+end
