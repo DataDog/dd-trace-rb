@@ -30,6 +30,7 @@ module Datadog
         tags ||= {}
 
         # Set default tags
+        span.context.origin = Ext::Test::CONTEXT_ORIGIN if span.context
         Datadog::Contrib::Analytics.set_measured(span)
         span.set_tag(Ext::Test::TAG_SPAN_KIND, Ext::AppTypes::TEST)
         Ext::Environment.tags(ENV).each { |k, v| span.set_tag(k, v) }

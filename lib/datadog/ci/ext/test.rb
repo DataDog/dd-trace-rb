@@ -3,6 +3,8 @@ module Datadog
     module Ext
       # Defines constants for test tags
       module Test
+        CONTEXT_ORIGIN = 'ciapp-test'.freeze
+
         TAG_ARGUMENTS = 'test.arguments'.freeze
         TAG_FRAMEWORK = 'test.framework'.freeze
         TAG_NAME = 'test.name'.freeze
