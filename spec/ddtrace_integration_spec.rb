@@ -3,6 +3,13 @@ require 'datadog/statsd'
 
 RSpec.describe 'ddtrace integration' do
   context 'graceful shutdown', :integration do
+    before do
+      # TODO: Restore test for JRuby after further investigation on why it's flaky
+      # It currently breaks CI too frequently, with the only practical recourse
+      # being to rerun the build.
+      skip('Flaky test on JRuby. Requires further investigation.') if PlatformHelpers.jruby?
+    end
+
     subject(:shutdown) { Datadog.shutdown! }
 
     let(:start_tracer) do
@@ -31,11 +38,6 @@ RSpec.describe 'ddtrace integration' do
     end
 
     context 'for file descriptors' do
-      before do
-        # TODO: Restore test for JRuby after further investigation on why it's flaky
-        skip('Flaky test on JRuby. Requires further investigation.') if PlatformHelpers.jruby?
-      end
-
       def open_file_descriptors
         # Unix-specific way to get the current process' open file descriptors and the files (if any) they correspond to
         Dir['/dev/fd/*'].each_with_object({}) do |fd, hash|
