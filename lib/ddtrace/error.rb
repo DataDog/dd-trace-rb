@@ -19,75 +19,65 @@ module Datadog
 
       private
 
-      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
-        # Ruby 2.0 exceptions don't have `cause`.
-        # Only current exception stack trace is reported.
-        # This is the same behavior as before.
-        def full_backtrace(ex)
-          backtrace = ex.backtrace
-          backtrace.join("\n") if backtrace
-        end
-      else
-        # Returns a stack trace with nested error causes and details.
-        #
-        # This manually implements Ruby >= 2.6 error output for two reasons:
-        #
-        # 1. It is not available in Ruby < 2.6.
-        # 2. It's measurably faster to manually implement it in Ruby.
-        #
-        # This method mimics the exact output of
-        # `ex.full_message(highlight: false, order: :top)`
-        # but it's around 3x faster in our benchmark test
-        # at `error_spec.rb`.
-        def full_backtrace(ex)
-          backtrace = String.new
-          backtrace_for(ex, backtrace)
+      # Returns a stack trace with nested error causes and details.
+      #
+      # This manually implements Ruby >= 2.6 error output for two reasons:
+      #
+      # 1. It is not available in Ruby < 2.6.
+      # 2. It's measurably faster to manually implement it in Ruby.
+      #
+      # This method mimics the exact output of
+      # `ex.full_message(highlight: false, order: :top)`
+      # but it's around 3x faster in our benchmark test
+      # at `error_spec.rb`.
+      def full_backtrace(ex)
+        backtrace = String.new
+        backtrace_for(ex, backtrace)
 
-          # Avoid circular causes
-          causes = {}
-          causes[ex] = true
+        # Avoid circular causes
+        causes = {}
+        causes[ex] = true
 
-          while (cause = ex.cause) && !causes.key?(cause)
-            backtrace_for(cause, backtrace)
-            causes[cause] = true
-          end
-
-          backtrace
+        while (cause = ex.cause) && !causes.key?(cause)
+          backtrace_for(cause, backtrace)
+          causes[cause] = true
         end
 
-        # Outputs the following format for exceptions:
-        #
-        # ```
-        # error_spec.rb:55:in `wrapper': wrapper layer (RuntimeError)
-        # 	from error_spec.rb:40:in `wrapper'
-        # 	from error_spec.rb:61:in `caller'
-        #   ...
-        # ```
-        def backtrace_for(ex, backtrace)
-          trace = ex.backtrace
-          return unless trace
+        backtrace
+      end
 
-          if trace[0]
-            # Add Exception information to error line
-            backtrace << trace[0]
-            backtrace << ': '
-            backtrace << ex.message.to_s
-            backtrace << ' ('
-            backtrace << ex.class.to_s
-            backtrace << ')'
-          end
+      # Outputs the following format for exceptions:
+      #
+      # ```
+      # error_spec.rb:55:in `wrapper': wrapper layer (RuntimeError)
+      # 	from error_spec.rb:40:in `wrapper'
+      # 	from error_spec.rb:61:in `caller'
+      #   ...
+      # ```
+      def backtrace_for(ex, backtrace)
+        trace = ex.backtrace
+        return unless trace
 
-          if trace[1]
-            # Ident stack trace for caller lines, to separate
-            # them from the main error lines.
-            trace[1..-1].each do |line|
-              backtrace << "\n\tfrom "
-              backtrace << line
-            end
-          end
-
-          backtrace << "\n"
+        if trace[0]
+          # Add Exception information to error line
+          backtrace << trace[0]
+          backtrace << ': '
+          backtrace << ex.message.to_s
+          backtrace << ' ('
+          backtrace << ex.class.to_s
+          backtrace << ')'
         end
+
+        if trace[1]
+          # Ident stack trace for caller lines, to separate
+          # them from the main error lines.
+          trace[1..-1].each do |line|
+            backtrace << "\n\tfrom "
+            backtrace << line
+          end
+        end
+
+        backtrace << "\n"
       end
     end
 

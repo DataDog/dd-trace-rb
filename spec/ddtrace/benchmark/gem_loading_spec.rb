@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-if !PlatformHelpers.jruby? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
+unless PlatformHelpers.jruby?
   require 'benchmark/memory'
   require 'memory_profiler'
 end
@@ -90,9 +90,7 @@ RSpec.describe 'Gem loading' do
 
     # Memory report with reference to each allocation site
     it 'memory report' do
-      if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
-        skip("'benchmark/memory' not supported")
-      end
+      skip("'benchmark/memory' not supported") if PlatformHelpers.jruby?
 
       puts subject
     end

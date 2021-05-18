@@ -73,24 +73,22 @@ RSpec.describe Datadog::Error do
           expect(error.type).to eq('RuntimeError')
           expect(error.message).to eq('wrapper layer')
 
-          if RUBY_VERSION >= '2.1.0'
-            wrapper_error_message = /error_spec.rb:\d+:in.*wrapper': wrapper layer \(RuntimeError\)/
-            caller_stack = /from.*error_spec.rb:\d+:in `call'/
-            root_error_message = /error_spec.rb:\d+:in.*root': root cause \(RuntimeError\)/
-            wrapper_stack = /from.*error_spec.rb:\d+:in `wrapper'/
+          wrapper_error_message = /error_spec.rb:\d+:in.*wrapper': wrapper layer \(RuntimeError\)/
+          caller_stack = /from.*error_spec.rb:\d+:in `call'/
+          root_error_message = /error_spec.rb:\d+:in.*root': root cause \(RuntimeError\)/
+          wrapper_stack = /from.*error_spec.rb:\d+:in `wrapper'/
 
-            expect(error.backtrace)
-              .to match(/
-                         #{wrapper_error_message}.*
-                         #{caller_stack}.*
-                         #{root_error_message}.*
-                         #{wrapper_stack}.*
-                         #{caller_stack}.*
-                         /mx)
+          expect(error.backtrace)
+            .to match(/
+                       #{wrapper_error_message}.*
+                       #{caller_stack}.*
+                       #{root_error_message}.*
+                       #{wrapper_stack}.*
+                       #{caller_stack}.*
+                       /mx)
 
-            # Expect 2 "first-class" exception lines: 'root cause' and 'wrapper layer'.
-            expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
-          end
+          # Expect 2 "first-class" exception lines: 'root cause' and 'wrapper layer'.
+          expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
         end
 
         context 'that is reused' do
@@ -148,7 +146,7 @@ RSpec.describe Datadog::Error do
             expect(error.backtrace).to include('error_spec.rb')
           end
 
-          it 'is expected to include class name in backtrace', if: RUBY_VERSION >= '2.1.0' do
+          it 'is expected to include class name in backtrace' do
             expect(error.backtrace).to include(':  (NilMessageError)') # :[space][nil][space](NilMessageError)
           end
         end
