@@ -1,5 +1,4 @@
-require 'ddtrace/contrib/analytics'
-
+require 'datadog/ci/test'
 require 'datadog/ci/ext/app_types'
 require 'datadog/ci/ext/environment'
 require 'datadog/ci/ext/test'
@@ -29,29 +28,34 @@ module Datadog
           end
 
           def on_test_case_started(event)
-            trace_options = {
-              app: Ext::APP,
-              resource: event.test_case.name,
-              service: configuration[:service_name],
-              span_type: Datadog::CI::Ext::AppTypes::TEST,
-              tags: tags.merge(Datadog.configuration.tags)
-            }
-            @current_feature_span = tracer.trace(configuration[:operation_name], trace_options)
-            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK, Ext::FRAMEWORK)
-            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_NAME, event.test_case.name)
-            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_SUITE, event.test_case.location.file)
-            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_TYPE, Ext::TEST_TYPE)
-            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND, Datadog::CI::Ext::AppTypes::TEST)
-
-            # Measure service stats
-            Datadog::Contrib::Analytics.set_measured(@current_feature_span)
+            @current_feature_span = CI::Test.trace(
+              tracer,
+              configuration[:operation_name],
+              {
+                span_options: {
+                  app: Ext::APP,
+                  resource: event.test_case.name,
+                  service: configuration[:service_name]
+                },
+                framework: Ext::FRAMEWORK,
+                test_name: event.test_case.name,
+                test_suite: event.test_case.location.file,
+                test_type: Ext::TEST_TYPE
+              }
+            )
           end
 
           def on_test_case_finished(event)
             return if @current_feature_span.nil?
 
-            @current_feature_span.status = 1 if event.result.failed?
-            @current_feature_span.set_tag(Datadog::CI::Ext::Test::TAG_STATUS, status_from_result(event.result))
+            if event.result.skipped?
+              CI::Test.skipped!(@current_feature_span)
+            elsif event.result.ok?
+              CI::Test.passed!(@current_feature_span)
+            elsif event.result.failed?
+              CI::Test.failed!(@current_feature_span)
+            end
+
             @current_feature_span.finish
           end
 
@@ -66,22 +70,18 @@ module Datadog
           def on_test_step_finished(event)
             return if @current_step_span.nil?
 
-            @current_step_span.set_error event.result.exception unless event.result.passed?
-            @current_step_span.set_tag(Datadog::CI::Ext::Test::TAG_STATUS, status_from_result(event.result))
+            if event.result.skipped?
+              CI::Test.skipped!(@current_step_span, event.result.exception)
+            elsif event.result.ok?
+              CI::Test.passed!(@current_step_span)
+            elsif event.result.failed?
+              CI::Test.failed!(@current_step_span, event.result.exception)
+            end
+
             @current_step_span.finish
           end
 
           private
-
-          def status_from_result(result)
-            if result.skipped?
-              return Datadog::CI::Ext::Test::Status::SKIP
-            elsif result.ok?
-              return Datadog::CI::Ext::Test::Status::PASS
-            end
-
-            Datadog::CI::Ext::Test::Status::FAIL
-          end
 
           def configuration
             Datadog.configuration[:cucumber]
@@ -89,10 +89,6 @@ module Datadog
 
           def tracer
             configuration[:tracer]
-          end
-
-          def tags
-            @tags ||= Datadog::CI::Ext::Environment.tags(ENV)
           end
         end
       end

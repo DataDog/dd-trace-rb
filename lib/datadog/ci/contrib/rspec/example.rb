@@ -1,4 +1,4 @@
-require 'ddtrace/contrib/analytics'
+require 'datadog/ci/test'
 
 require 'datadog/ci/ext/app_types'
 require 'datadog/ci/ext/environment'
@@ -26,37 +26,30 @@ module Datadog
                 test_name += " #{description}"
               end
 
-              trace_options = {
-                app: Ext::APP,
-                resource: test_name,
-                service: configuration[:service_name],
-                span_type: Datadog::CI::Ext::AppTypes::TEST,
-                tags: tags.merge(Datadog.configuration.tags)
-              }
-
-              tracer.trace(configuration[:operation_name], trace_options) do |span|
-                span.set_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK, Ext::FRAMEWORK)
-                span.set_tag(Datadog::CI::Ext::Test::TAG_NAME, test_name)
-                span.set_tag(Datadog::CI::Ext::Test::TAG_SUITE, file_path)
-                span.set_tag(Datadog::CI::Ext::Test::TAG_TYPE, Ext::TEST_TYPE)
-                span.set_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND, Datadog::CI::Ext::AppTypes::TEST)
-
-                # Measure service stats
-                Datadog::Contrib::Analytics.set_measured(span)
-
+              CI::Test.trace(
+                tracer,
+                configuration[:operation_name],
+                {
+                  span_options: {
+                    app: Ext::APP,
+                    resource: test_name,
+                    service: configuration[:service_name]
+                  },
+                  framework: Ext::FRAMEWORK,
+                  test_name: test_name,
+                  test_suite: file_path,
+                  test_type: Ext::TEST_TYPE
+                }
+              ) do |span|
                 result = super
 
                 case execution_result.status
                 when :passed
-                  span.set_tag(Datadog::CI::Ext::Test::TAG_STATUS, Datadog::CI::Ext::Test::Status::PASS)
+                  CI::Test.passed!(span)
                 when :failed
-                  span.status = 1
-                  span.set_tag(Datadog::CI::Ext::Test::TAG_STATUS, Datadog::CI::Ext::Test::Status::FAIL)
-                  span.set_error(execution_result.exception)
+                  CI::Test.failed!(span, execution_result.exception)
                 else
-                  if execution_result.example_skipped?
-                    span.set_tag(Datadog::CI::Ext::Test::TAG_STATUS, Datadog::CI::Ext::Test::Status::SKIP)
-                  end
+                  CI::Test.skipped!(span, execution_result.exception) if execution_result.example_skipped?
                 end
 
                 result
@@ -71,10 +64,6 @@ module Datadog
 
             def tracer
               configuration[:tracer]
-            end
-
-            def tags
-              @tags ||= Datadog::CI::Ext::Environment.tags(ENV)
             end
           end
         end
