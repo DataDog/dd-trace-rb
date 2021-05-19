@@ -27,15 +27,19 @@ RSpec.describe Datadog::Metrics do
 
     context 'when the dogstatsd gem' do
       before do
-        allow(Gem.loaded_specs).to receive(:[])
-          .with('dogstatsd-ruby')
-          .and_return(spec)
+        stub_const 'Datadog::Statsd::VERSION', spec
       end
 
       context 'is not loaded' do
         let(:spec) { nil }
 
         it { is_expected.to be false }
+
+        context 'is loaded outside of default Gem setup' do
+          let(:spec) { '3.3.0' }
+
+          it { is_expected.to be true }
+        end
       end
 
       context 'is loaded' do

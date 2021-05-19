@@ -18,8 +18,7 @@ module Datadog
     end
 
     def supported?
-      version = Gem.loaded_specs['dogstatsd-ruby'] \
-                  && Gem.loaded_specs['dogstatsd-ruby'].version
+      version = defined?(Datadog::Statsd::VERSION) && Gem::Version.new(Datadog::Statsd::VERSION)
 
       !version.nil? && (version >= Gem::Version.new('3.3.0'))
     end
