@@ -90,7 +90,7 @@ module Datadog
         end
 
         # Add traces behavior to transport components
-        IO::Client.send(:include, Traces::Client)
+        IO::Client.include(Traces::Client)
       end
     end
   end

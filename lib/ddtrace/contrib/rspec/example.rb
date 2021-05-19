@@ -4,7 +4,7 @@ module Datadog
       # Instrument RSpec::Core::Example
       module Example
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Instance methods for configuration

@@ -19,7 +19,7 @@ module Datadog
         end
 
         def patch_mysql2_client
-          ::Mysql2::Client.send(:include, Instrumentation)
+          ::Mysql2::Client.include(Instrumentation)
         end
       end
     end

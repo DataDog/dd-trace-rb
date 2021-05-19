@@ -7,7 +7,7 @@ module Datadog
       # Instrumentation for Rake tasks
       module Instrumentation
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Instance methods for Rake instrumentation

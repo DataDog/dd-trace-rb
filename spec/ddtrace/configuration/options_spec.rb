@@ -6,7 +6,7 @@ RSpec.describe Datadog::Configuration::Options do
   describe 'implemented' do
     subject(:options_class) do
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
       end
     end
 
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Configuration::Options do
         context 'on class inheriting from a class implementing Options' do
           let(:parent_class) do
             Class.new.tap do |klass|
-              klass.send(:include, described_class)
+              klass.include(described_class)
             end
           end
           let(:options_class) { Class.new(parent_class) }

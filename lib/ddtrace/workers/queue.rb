@@ -4,7 +4,7 @@ module Datadog
     # to which items can be queued then dequeued.
     module Queue
       def self.included(base)
-        base.send(:prepend, PrependedMethods)
+        base.prepend(PrependedMethods)
       end
 
       # Methods that must be prepended

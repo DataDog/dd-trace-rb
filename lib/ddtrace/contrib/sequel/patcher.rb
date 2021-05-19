@@ -21,11 +21,11 @@ module Datadog
         end
 
         def patch_sequel_database
-          ::Sequel::Database.send(:include, Database)
+          ::Sequel::Database.include(Database)
         end
 
         def patch_sequel_dataset
-          ::Sequel::Dataset.send(:include, Dataset)
+          ::Sequel::Dataset.include(Dataset)
         end
       end
     end

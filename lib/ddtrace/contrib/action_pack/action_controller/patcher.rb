@@ -16,7 +16,7 @@ module Datadog
           end
 
           def patch
-            ::ActionController::Metal.send(:prepend, ActionController::Instrumentation::Metal)
+            ::ActionController::Metal.prepend(ActionController::Instrumentation::Metal)
           end
         end
       end

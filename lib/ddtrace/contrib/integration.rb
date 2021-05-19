@@ -7,9 +7,9 @@ module Datadog
     # Base provides features that are shared across all integrations
     module Integration
       def self.included(base)
-        base.send(:include, Configurable)
-        base.send(:include, Patchable)
-        base.send(:include, Registerable)
+        base.include(Configurable)
+        base.include(Patchable)
+        base.include(Registerable)
       end
     end
   end

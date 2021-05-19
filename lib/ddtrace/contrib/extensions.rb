@@ -7,9 +7,9 @@ module Datadog
     # Adds registry, configuration access for integrations.
     module Extensions
       def self.extended(base)
-        Datadog.send(:extend, Helpers)
-        Datadog.send(:extend, Configuration)
-        Datadog::Configuration::Settings.send(:include, Configuration::Settings)
+        Datadog.extend(Helpers)
+        Datadog.extend(Configuration)
+        Datadog::Configuration::Settings.include(Configuration::Settings)
       end
 
       # Helper methods for Datadog module.

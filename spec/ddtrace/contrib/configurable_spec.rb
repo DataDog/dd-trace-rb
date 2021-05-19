@@ -6,7 +6,7 @@ RSpec.describe Datadog::Contrib::Configurable do
   describe 'implemented' do
     subject(:configurable_class) do
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
       end
     end
 
