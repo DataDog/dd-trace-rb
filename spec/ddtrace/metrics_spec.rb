@@ -34,25 +34,17 @@ RSpec.describe Datadog::Metrics do
         let(:spec) { nil }
 
         it { is_expected.to be false }
-
-        context 'is loaded outside of default Gem setup' do
-          let(:spec) { '3.3.0' }
-
-          it { is_expected.to be true }
-        end
       end
 
       context 'is loaded' do
-        let(:spec) { instance_double(Gem::Specification, version: version) }
-
         context 'with version < 3.3.0' do
-          let(:version) { Gem::Version.new('3.2.9') }
+          let(:spec) { '3.2.9' }
 
           it { is_expected.to be false }
         end
 
         context 'with version 3.3.0' do
-          let(:version) { Gem::Version.new('3.3.0') }
+          let(:spec) { '3.3.0' }
 
           it { is_expected.to be true }
         end
