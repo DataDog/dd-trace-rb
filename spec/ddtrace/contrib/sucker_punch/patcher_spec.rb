@@ -155,9 +155,7 @@ RSpec.describe 'sucker_punch instrumentation' do
       clazz = Class.new do
         include SuckerPunch::Job
 
-        def perform(*args, required: nil)
-          raise ArgumentError if required.nil? # Ruby 2.0 doesn't support `required:`
-
+        def perform(*args, required:)
           self.class.instance_variable_get(:@recorded) << [args, required]
         end
       end
