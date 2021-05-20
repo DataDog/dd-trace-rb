@@ -5,8 +5,8 @@ module Datadog
     # Common behavior for patcher modules
     module Patcher
       def self.included(base)
-        base.singleton_class.send(:prepend, CommonMethods)
-        base.send(:prepend, CommonMethods) if base.instance_of?(Class)
+        base.singleton_class.prepend(CommonMethods)
+        base.prepend(CommonMethods) if base.instance_of?(Class)
       end
 
       # Prepended instance methods for all patchers

@@ -15,7 +15,7 @@ module Datadog
           require 'ddtrace/ext/app_types'
           require 'ddtrace/contrib/rest_client/request_patch'
 
-          ::RestClient::Request.send(:include, RequestPatch)
+          ::RestClient::Request.include(RequestPatch)
         end
       end
     end

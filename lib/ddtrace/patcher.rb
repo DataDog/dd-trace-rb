@@ -16,8 +16,8 @@ module Datadog
         )
       end
 
-      base.send(:extend, CommonMethods)
-      base.send(:include, CommonMethods)
+      base.extend(CommonMethods)
+      base.include(CommonMethods)
     end
 
     # Defines some common methods for patching, that can be used

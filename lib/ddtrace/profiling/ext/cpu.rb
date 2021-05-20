@@ -24,8 +24,8 @@ module Datadog
           # Applying CThread to Thread will ensure any new threads
           # will provide a thread/clock ID for CPU timing.
           require 'ddtrace/profiling/ext/cthread'
-          ::Thread.send(:prepend, Profiling::Ext::CThread)
-          ::Thread.singleton_class.send(:prepend, Datadog::Profiling::Ext::WrapThreadStartFork)
+          ::Thread.prepend(Profiling::Ext::CThread)
+          ::Thread.singleton_class.prepend(Datadog::Profiling::Ext::WrapThreadStartFork)
         end
 
         def self.unsupported_reason

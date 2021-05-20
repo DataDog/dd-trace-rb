@@ -6,7 +6,7 @@ RSpec.describe Datadog::Configuration::Base do
   describe 'implemented' do
     subject(:base_class) do
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
       end
     end
 

@@ -17,7 +17,7 @@ module Datadog
         end
 
         def patch
-          ::Dalli::Server.send(:include, Instrumentation)
+          ::Dalli::Server.include(Instrumentation)
         end
       end
     end

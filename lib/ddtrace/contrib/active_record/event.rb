@@ -6,8 +6,8 @@ module Datadog
       # Defines basic behaviors for an ActiveRecord event.
       module Event
         def self.included(base)
-          base.send(:include, ActiveSupport::Notifications::Event)
-          base.send(:extend, ClassMethods)
+          base.include(ActiveSupport::Notifications::Event)
+          base.extend(ClassMethods)
         end
 
         # Class methods for ActiveRecord events.

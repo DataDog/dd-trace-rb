@@ -21,7 +21,7 @@ if Datadog::Profiling::Ext::CPU.supported?
       expect(::Thread.ancestors).to_not include(described_class)
 
       klass = ::Thread.dup
-      klass.send(:prepend, described_class)
+      klass.prepend(described_class)
       klass
     end
 
@@ -35,7 +35,7 @@ if Datadog::Profiling::Ext::CPU.supported?
       klass.send(:alias_method, :original_initialize, :initialize)
 
       # Add the module under test (Ext::CThread)
-      klass.send(:prepend, described_class)
+      klass.prepend(described_class)
 
       # Add a module that skips over the module under test's initialize changes
       skip_instrumentation = Module.new do
@@ -43,7 +43,7 @@ if Datadog::Profiling::Ext::CPU.supported?
           original_initialize(*args, &block) # directly call original initialize, skipping the one in Ext::CThread
         end
       end
-      klass.send(:prepend, skip_instrumentation)
+      klass.prepend(skip_instrumentation)
 
       klass
     end
@@ -64,7 +64,7 @@ if Datadog::Profiling::Ext::CPU.supported?
       def on_main_thread
         # Patch thread in a fork so we don't modify the original Thread class
         expect_in_fork do
-          thread_class.send(:prepend, described_class)
+          thread_class.prepend(described_class)
           yield
         end
 
@@ -82,7 +82,7 @@ if Datadog::Profiling::Ext::CPU.supported?
         # Skip verification because the thread will not have been patched with the method yet
         without_partial_double_verification do
           expect(thread).to receive(:update_native_ids)
-          thread_class.send(:prepend, described_class)
+          thread_class.prepend(described_class)
         end
       end
     end
@@ -302,8 +302,8 @@ if Datadog::Profiling::Ext::CPU.supported?
       expect(Thread.singleton_class.ancestors).to_not include(described_class)
 
       klass = ::Thread.dup
-      klass.send(:prepend, Datadog::Profiling::Ext::CThread)
-      klass.singleton_class.send(:prepend, described_class)
+      klass.prepend(Datadog::Profiling::Ext::CThread)
+      klass.singleton_class.prepend(described_class)
       klass
     end
 

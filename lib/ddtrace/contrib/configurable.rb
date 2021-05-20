@@ -10,7 +10,7 @@ module Datadog
     # fallback.
     module Configurable
       def self.included(base)
-        base.send(:include, InstanceMethods)
+        base.include(InstanceMethods)
       end
 
       # Configurable instance behavior for integrations
