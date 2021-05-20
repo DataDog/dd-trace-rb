@@ -4,10 +4,9 @@ require 'datadog/statsd'
 RSpec.describe 'ddtrace integration' do
   context 'graceful shutdown', :integration do
     before do
-      # TODO: Restore test for JRuby after further investigation on why it's flaky
-      # It currently breaks CI too frequently, with the only practical recourse
-      # being to rerun the build.
-      skip('Flaky test on JRuby. Requires further investigation.') if PlatformHelpers.jruby?
+      # TODO: This test is flaky, and the flakiness affects JRuby really often.
+      # Until we can investigate it, let's skip it as the constant failures impact unrelated development.
+      skip('TODO: This test is flaky, and triggers very often on JRuby. Requires further investigation.') if PlatformHelpers.jruby?
     end
 
     subject(:shutdown) { Datadog.shutdown! }
