@@ -6,7 +6,9 @@ RSpec.describe 'ddtrace integration' do
     before do
       # TODO: This test is flaky, and the flakiness affects JRuby really often.
       # Until we can investigate it, let's skip it as the constant failures impact unrelated development.
-      skip('TODO: This test is flaky, and triggers very often on JRuby. Requires further investigation.') if PlatformHelpers.jruby?
+      if PlatformHelpers.jruby?
+        skip('TODO: This test is flaky, and triggers very often on JRuby. Requires further investigation.')
+      end
     end
 
     subject(:shutdown) { Datadog.shutdown! }
