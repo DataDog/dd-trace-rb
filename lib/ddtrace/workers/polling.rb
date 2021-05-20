@@ -8,9 +8,9 @@ module Datadog
       SHUTDOWN_TIMEOUT = 1
 
       def self.included(base)
-        base.send(:include, Workers::IntervalLoop)
-        base.send(:include, Workers::Async::Thread)
-        base.send(:prepend, PrependedMethods)
+        base.include(Workers::IntervalLoop)
+        base.include(Workers::Async::Thread)
+        base.prepend(PrependedMethods)
       end
 
       # Methods that must be prepended

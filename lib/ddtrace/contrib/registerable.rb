@@ -5,8 +5,8 @@ module Datadog
     # Defines registerable behavior for integrations
     module Registerable
       def self.included(base)
-        base.send(:extend, ClassMethods)
-        base.send(:include, InstanceMethods)
+        base.extend(ClassMethods)
+        base.include(InstanceMethods)
       end
 
       # Class methods for registerable behavior

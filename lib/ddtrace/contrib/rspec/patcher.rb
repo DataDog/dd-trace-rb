@@ -15,7 +15,7 @@ module Datadog
         end
 
         def patch
-          ::RSpec::Core::Example.send(:include, Example)
+          ::RSpec::Core::Example.include(Example)
         end
       end
     end

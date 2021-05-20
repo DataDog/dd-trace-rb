@@ -12,7 +12,7 @@ module Datadog
         SHUTDOWN_TIMEOUT = 1
 
         def self.included(base)
-          base.send(:prepend, PrependedMethods)
+          base.prepend(PrependedMethods)
         end
 
         # Methods that must be prepended

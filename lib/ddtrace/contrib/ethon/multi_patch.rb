@@ -11,7 +11,7 @@ module Datadog
       module MultiPatch
         def self.included(base)
           # No need to prepend here since add method is included into Multi class
-          base.send(:include, InstanceMethods)
+          base.include(InstanceMethods)
         end
 
         # InstanceMethods - implementing instrumentation

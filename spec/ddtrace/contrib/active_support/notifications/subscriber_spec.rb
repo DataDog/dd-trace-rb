@@ -7,7 +7,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
   describe 'implemented' do
     subject(:test_class) do
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
       end
     end
 

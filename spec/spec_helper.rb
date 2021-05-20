@@ -225,7 +225,7 @@ module DatadogThreadDebugger
   ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
 end
 
-Thread.send(:prepend, DatadogThreadDebugger)
+Thread.prepend(DatadogThreadDebugger)
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be

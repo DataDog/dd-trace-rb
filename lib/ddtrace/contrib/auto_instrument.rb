@@ -6,7 +6,7 @@ module Datadog
     # AutoInstrumentation enables all integration
     module AutoInstrument
       def self.extended(base)
-        base.send(:extend, Patch)
+        base.extend(Patch)
       end
 
       # Patch adds method for invoking auto_instrumentation

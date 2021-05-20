@@ -29,7 +29,7 @@ module Datadog
                 prepend Kernel
               end
             else
-              mod.class.send(:prepend, Kernel)
+              mod.class.prepend(Kernel)
             end
           end
         end

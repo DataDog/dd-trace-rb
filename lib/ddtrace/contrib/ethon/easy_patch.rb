@@ -11,7 +11,7 @@ module Datadog
       # Ethon EasyPatch
       module EasyPatch
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # InstanceMethods - implementing instrumentation

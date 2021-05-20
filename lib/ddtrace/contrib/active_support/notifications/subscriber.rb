@@ -9,7 +9,7 @@ module Datadog
         # Creates subscriptions that are wrapped with tracing.
         module Subscriber
           def self.included(base)
-            base.send(:extend, ClassMethods)
+            base.extend(ClassMethods)
           end
 
           # Class methods that are implemented in the inheriting class.

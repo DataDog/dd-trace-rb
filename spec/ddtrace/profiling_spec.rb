@@ -36,10 +36,18 @@ RSpec.describe Datadog::Profiling do
         context 'is not available' do
           include_context 'loaded gems', :'google-protobuf' => nil
 
+          before do
+            hide_const('::Google::Protobuf')
+          end
+
           it { is_expected.to include 'Missing google-protobuf' }
         end
 
-        context 'is available' do
+        context 'is available but not yet loaded' do
+          before do
+            hide_const('::Google::Protobuf')
+          end
+
           context 'but is below the minimum version' do
             include_context 'loaded gems', :'google-protobuf' => Gem::Version.new('2.9')
 
@@ -61,6 +69,15 @@ RSpec.describe Datadog::Profiling do
               it { is_expected.to be nil }
             end
           end
+        end
+
+        context 'is already loaded' do
+          before do
+            stub_const('::Google::Protobuf', Module.new)
+            allow(described_class).to receive(:protobuf_loaded_successfully?).and_return(true)
+          end
+
+          it { is_expected.to be nil }
         end
       end
     end
