@@ -26,6 +26,9 @@ module Datadog
           @sample_types = MessageSet.new
           @samples = []
           @string_table = StringTable.new
+          # Cache these procs, since it's pretty expensive to keep recreating them
+          @build_location = method(:build_location).to_proc
+          @build_function = method(:build_function).to_proc
         end
 
         def encode_profile(profile)
@@ -60,7 +63,7 @@ module Datadog
               # Function name
               backtrace_location.base_label,
               # Build function
-              &method(:build_location)
+              &@build_location
             )
           end
 
@@ -73,7 +76,7 @@ module Datadog
               ''.freeze,
               0,
               "#{omitted} #{desc}",
-              &method(:build_location)
+              &@build_location
             )
           end
 
@@ -87,7 +90,7 @@ module Datadog
               @functions.fetch(
                 filename,
                 function_name,
-                &method(:build_function)
+                &@build_function
               ).id,
               line_number
             )]
