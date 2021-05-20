@@ -27,7 +27,11 @@ RSpec.describe Datadog::Metrics do
 
     context 'when the dogstatsd gem' do
       before do
-        stub_const 'Datadog::Statsd::VERSION', spec
+        allow(Gem.loaded_specs).to receive(:[])
+          .with('dogstatsd-ruby')
+          .and_return(spec)
+
+        stub_const 'Datadog::Statsd::VERSION', nil
       end
 
       context 'is not loaded' do
@@ -37,14 +41,36 @@ RSpec.describe Datadog::Metrics do
       end
 
       context 'is loaded' do
+        let(:spec) { instance_double(Gem::Specification, version: version) }
+
         context 'with version < 3.3.0' do
-          let(:spec) { '3.2.9' }
+          let(:version) { Gem::Version.new('3.2.9') }
 
           it { is_expected.to be false }
         end
 
         context 'with version 3.3.0' do
-          let(:spec) { '3.3.0' }
+          let(:version) { Gem::Version.new('3.3.0') }
+
+          it { is_expected.to be true }
+        end
+      end
+
+      context 'is loaded but ruby is not using rubygems' do
+        before do
+          stub_const 'Datadog::Statsd::VERSION', gem_version_number
+        end
+
+        let(:spec) { nil }
+
+        context 'with version < 3.3.0' do
+          let(:gem_version_number) { '3.2.9' }
+
+          it { is_expected.to be false }
+        end
+
+        context 'with version 3.3.0' do
+          let(:gem_version_number) { '3.3.0' }
 
           it { is_expected.to be true }
         end
