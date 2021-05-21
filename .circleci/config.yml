@@ -98,7 +98,9 @@ step_bundle_install: &step_bundle_install
   run:
     name: Install gem dependencies
     command: |
-      "$CI_BUNDLE_CACHE_HIT" == 'true' || bundle install
+      if [ "$CI_BUNDLE_CACHE_HIT" != 'true' ]; then
+        bundle install
+      fi
 step_rubocop: &step_rubocop
   run:
     name: Delint with Rubocop
@@ -107,7 +109,9 @@ step_appraisal_install: &step_appraisal_install
   run:
     name: Install Appraisal gems
     command: |
-      "$CI_BUNDLE_CACHE_HIT" == 'true' || bundle exec appraisal install
+      if [ "$CI_BUNDLE_CACHE_HIT" != 'true' ]; then
+        bundle exec appraisal install
+      fi
 step_appraisal_update: &step_appraisal_update
   run:
     name: Update Appraisal gems
