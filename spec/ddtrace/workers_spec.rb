@@ -19,18 +19,14 @@ RSpec.describe Datadog::Workers::AsyncTransport do
 
   describe 'callbacks' do
     describe 'when raising errors' do
-      let(:task) { proc { raise StandardError } }
+      let(:task) { proc { raise StandardError.new('test error') } }
 
       it 'does not re-raise' do
-        buf = StringIO.new
-        Datadog.configure { |c| c.logger = Datadog::Logger.new(buf) }
+        expect(Datadog.logger).to receive(:error).with(/Cause: test error/)
 
         worker.enqueue_trace(get_test_traces(1))
 
         expect { worker.callback_traces }.to_not raise_error
-
-        lines = buf.string.lines
-        expect(lines.count).to eq(1), "Expected single line, got #{lines.inspect}"
       end
     end
   end
