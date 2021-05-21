@@ -27,15 +27,12 @@ module Datadog
           :deprecated_for_removal_transport_configuration_options
         ) do
           def initialize(
-            # Hacky required kw args, we can get rid of this when we drop Ruby 2.0
-            ssl: raise(ArgumentError, 'missing keyword :ssl'),
-            hostname: raise(ArgumentError, 'missing keyword :hostname'),
-            port: raise(ArgumentError, 'missing keyword :port'),
-            timeout_seconds: raise(ArgumentError, 'missing keyword :timeout_seconds'),
-            deprecated_for_removal_transport_configuration_proc: \
-              raise(ArgumentError, 'missing keyword :deprecated_for_removal_transport_configuration_proc'),
-            deprecated_for_removal_transport_configuration_options: \
-              raise(ArgumentError, 'missing keyword :deprecated_for_removal_transport_configuration_options')
+            ssl:,
+            hostname:,
+            port:,
+            timeout_seconds:,
+            deprecated_for_removal_transport_configuration_proc:,
+            deprecated_for_removal_transport_configuration_options:
           )
             super(ssl, hostname, port, timeout_seconds, deprecated_for_removal_transport_configuration_proc, \
               deprecated_for_removal_transport_configuration_options)
@@ -179,11 +176,7 @@ module Datadog
         @unparsed_url_from_env ||= ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL]
       end
 
-      def pick_from(
-        # Hacky required kw args, we can get rid of this when we drop Ruby 2.0
-        configurations_in_priority_order: raise(ArgumentError, 'missing keyword :configurations'),
-        or_use_default: raise(ArgumentError, 'missing keyword :or_use_default')
-      )
+      def pick_from(configurations_in_priority_order:, or_use_default:)
         detected_configurations_in_priority_order = configurations_in_priority_order.select(&:value?)
 
         if detected_configurations_in_priority_order.any?
@@ -213,11 +206,7 @@ module Datadog
       end
 
       DetectedConfiguration = Struct.new(:friendly_name, :value) do
-        def initialize(
-          # Hacky required kw args, we can get rid of this when we drop Ruby 2.0
-          friendly_name: raise(ArgumentError, 'missing keyword :friendly_name'),
-          value: raise(ArgumentError, 'missing keyword :value')
-        )
+        def initialize(friendly_name:, value:)
           super(friendly_name, value)
           freeze
         end

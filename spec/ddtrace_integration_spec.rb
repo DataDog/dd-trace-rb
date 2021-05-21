@@ -3,6 +3,14 @@ require 'datadog/statsd'
 
 RSpec.describe 'ddtrace integration' do
   context 'graceful shutdown', :integration do
+    before do
+      # TODO: This test is flaky, and the flakiness affects JRuby really often.
+      # Until we can investigate it, let's skip it as the constant failures impact unrelated development.
+      if PlatformHelpers.jruby?
+        skip('TODO: This test is flaky, and triggers very often on JRuby. Requires further investigation.')
+      end
+    end
+
     subject(:shutdown) { Datadog.shutdown! }
 
     let(:start_tracer) do
@@ -57,7 +65,8 @@ RSpec.describe 'ddtrace integration' do
           .to(
             eq(before_open_file_descriptors.size),
             lambda {
-              "Open fds before: #{before_open_file_descriptors}\nOpen fds after:  #{after_open_file_descriptors}"
+              "Open fds before (#{after_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
+              "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}"
             }
           )
       end
@@ -114,8 +123,6 @@ RSpec.describe 'ddtrace integration' do
 
       context 'with OpenTracer' do
         before do
-          skip 'OpenTracing not supported' unless Datadog::OpenTracer.supported?
-
           OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
         end
 

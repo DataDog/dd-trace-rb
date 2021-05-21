@@ -18,7 +18,7 @@ module Datadog
 
         def patch
           # Add instrumentation patch to Rake task
-          ::Rake::Task.send(:include, Instrumentation)
+          ::Rake::Task.include(Instrumentation)
         end
 
         def get_option(option)

@@ -13,7 +13,6 @@ require 'ddtrace/transport/http/adapters/unix_socket'
 module Datadog
   module Profiling
     module Transport
-      # TODO: Consolidate with Dataog::Transport::HTTP
       # Namespace for HTTP transport components
       module HTTP
         module_function
@@ -25,31 +24,32 @@ module Datadog
 
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
-        def default(options = {})
+        def default(profiling_upload_timeout_seconds:, agent_settings: nil, site: nil, api_key: nil)
           new do |transport|
             transport.headers default_headers
 
             # Configure adapter & API
-            if options[:site] && options[:api_key]
-              configure_for_agentless(transport, options)
+            if site && api_key
+              configure_for_agentless(
+                transport,
+                profiling_upload_timeout_seconds: profiling_upload_timeout_seconds,
+                site: site,
+                api_key: api_key
+              )
             else
-              configure_for_agent(transport, options)
+              unless agent_settings
+                raise(
+                  ArgumentError,
+                  "Missing configuration for #{self}.default: All of `agent_settings`, `site` and `api_key` are nil"
+                )
+              end
+
+              configure_for_agent(
+                transport,
+                profiling_upload_timeout_seconds: profiling_upload_timeout_seconds,
+                agent_settings: agent_settings
+              )
             end
-
-            # Additional options
-            unless options.empty?
-              # Change default API
-              transport.default_api = options[:api_version] if options.key?(:api_version)
-
-              # Add headers
-              transport.headers options[:headers] if options.key?(:headers)
-
-              # Execute on_build callback
-              options[:on_build].call(transport) if options[:on_build].is_a?(Proc)
-            end
-
-            # Call block to apply any customization, if provided.
-            yield(transport) if block_given?
           end
         end
 
@@ -66,56 +66,52 @@ module Datadog
           end
         end
 
-        def default_adapter
+        private_class_method def default_adapter
           :net_http
         end
 
-        def default_hostname
-          ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST, Datadog::Ext::Transport::HTTP::DEFAULT_HOST)
-        end
-
-        def default_port
-          ENV.fetch(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT, Datadog::Ext::Transport::HTTP::DEFAULT_PORT).to_i
-        end
-
-        def configure_for_agent(transport, options = {})
+        private_class_method def configure_for_agent(transport, profiling_upload_timeout_seconds:, agent_settings:)
           apis = API.agent_defaults
 
-          hostname = options[:hostname] || default_hostname
-          port = options[:port] || default_port
+          transport.adapter(
+            default_adapter,
+            agent_settings.hostname,
+            agent_settings.port,
+            # We explictly use profiling_upload_timeout_seconds instead of agent_settings.timeout because profile
+            # uploads are bigger and thus we employ a separate configuration.
+            timeout: profiling_upload_timeout_seconds,
+            ssl: agent_settings.ssl
+          )
+          transport.api(API::V1, apis[API::V1], default: true)
 
-          adapter_options = {}
-          adapter_options[:timeout] = options[:timeout] if options.key?(:timeout)
-          adapter_options[:ssl] = options[:ssl] if options.key?(:ssl)
-
-          transport.adapter default_adapter, hostname, port, adapter_options
-          transport.api API::V1, apis[API::V1], default: true
+          # NOTE: This proc, when it exists, usually overrides the transport specified above
+          if agent_settings.deprecated_for_removal_transport_configuration_proc
+            agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
+          end
         end
 
-        def configure_for_agentless(transport, options = {})
+        private_class_method def configure_for_agentless(transport, profiling_upload_timeout_seconds:, site:, api_key:)
           apis = API.api_defaults
 
-          site_uri = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, options[:site]))
-          hostname = options[:hostname] || site_uri.host
-          port = options[:port] || site_uri.port
+          site_uri = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, site))
+          hostname = site_uri.host
+          port = site_uri.port
 
-          adapter_options = {}
-          adapter_options[:timeout] = options[:timeout] if options.key?(:timeout)
-          adapter_options[:ssl] = options[:ssl] || (site_uri.scheme == 'https'.freeze)
-
-          transport.adapter default_adapter, hostname, port, adapter_options
-          transport.api API::V1, apis[API::V1], default: true
-          transport.headers(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => options[:api_key])
+          transport.adapter(
+            default_adapter,
+            hostname,
+            port,
+            timeout: profiling_upload_timeout_seconds,
+            ssl: site_uri.scheme == 'https'
+          )
+          transport.api(API::V1, apis[API::V1], default: true)
+          transport.headers(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
         end
 
         # Add adapters to registry
         Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net, :net_http)
         Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test, :test)
         Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket, :unix)
-
-        private \
-          :configure_for_agent,
-          :configure_for_agentless
       end
     end
   end

@@ -34,7 +34,7 @@ module Datadog
             ::Faraday.default_connection.use(:ddtrace)
 
             # Patch new connection instances (e.g. +Faraday.new+)
-            ::Faraday::Connection.send(:prepend, Connection)
+            ::Faraday::Connection.prepend(Connection)
           else
             # Patch the default connection (e.g. +Faraday.get+)
             #
@@ -44,7 +44,7 @@ module Datadog
             ::Faraday.default_connection.builder.insert(idx, Middleware)
 
             # Patch new connection instances (e.g. +Faraday.new+)
-            ::Faraday::RackBuilder.send(:prepend, RackBuilder)
+            ::Faraday::RackBuilder.prepend(RackBuilder)
           end
         end
       end

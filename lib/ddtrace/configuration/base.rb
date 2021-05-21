@@ -6,12 +6,12 @@ module Datadog
     # Basic configuration behavior
     module Base
       def self.included(base)
-        base.send(:extend, Datadog::Environment::Helpers)
-        base.send(:include, Datadog::Environment::Helpers)
-        base.send(:include, Options)
+        base.extend(Datadog::Environment::Helpers)
+        base.include(Datadog::Environment::Helpers)
+        base.include(Options)
 
-        base.send(:extend, ClassMethods)
-        base.send(:include, InstanceMethods)
+        base.extend(ClassMethods)
+        base.include(InstanceMethods)
       end
 
       # Class methods for configuration

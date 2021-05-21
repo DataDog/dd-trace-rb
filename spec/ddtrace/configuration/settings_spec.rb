@@ -471,23 +471,6 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     describe '#exporter' do
-      describe '#instances' do
-        subject(:instances) { settings.profiling.exporter.instances }
-
-        it { is_expected.to be nil }
-      end
-
-      describe '#instances=' do
-        let(:instances) { [double('exporter')] }
-
-        it 'updates the #instances setting' do
-          expect { settings.profiling.exporter.instances = instances }
-            .to change { settings.profiling.exporter.instances }
-            .from(nil)
-            .to(instances)
-        end
-      end
-
       describe '#transport' do
         subject(:transport) { settings.profiling.exporter.transport }
 
@@ -508,17 +491,24 @@ RSpec.describe Datadog::Configuration::Settings do
       describe '#transport_options' do
         subject(:transport_options) { settings.profiling.exporter.transport_options }
 
-        it { is_expected.to eq({}) }
+        before do
+          allow(Datadog.logger).to receive(:warn)
+        end
+
+        it { is_expected.to be nil }
+
+        it 'logs a deprecation warning' do
+          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+
+          transport_options
+        end
       end
 
       describe '#transport_options=' do
-        let(:transport_options) { { timeout: 10 } }
+        it 'logs a deprecation warning' do
+          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
 
-        it 'updates the #transport_options setting' do
-          expect { settings.profiling.exporter.transport_options = transport_options }
-            .to change { settings.profiling.exporter.transport_options }
-            .from({})
-            .to(transport_options)
+          settings.profiling.exporter.transport_options = :foo
         end
       end
     end
@@ -572,8 +562,8 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     describe '#upload' do
-      describe '#timeout' do
-        subject(:timeout) { settings.profiling.upload.timeout }
+      describe '#timeout_seconds' do
+        subject(:timeout_seconds) { settings.profiling.upload.timeout_seconds }
 
         context "when #{Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT}" do
           around do |example|
@@ -596,18 +586,18 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
-      describe '#timeout=' do
-        it 'updates the #timeout setting' do
-          expect { settings.profiling.upload.timeout = 10 }
-            .to change { settings.profiling.upload.timeout }
+      describe '#timeout_seconds=' do
+        it 'updates the #timeout_seconds setting' do
+          expect { settings.profiling.upload.timeout_seconds = 10 }
+            .to change { settings.profiling.upload.timeout_seconds }
             .from(30.0)
             .to(10.0)
         end
 
         context 'given nil' do
           it 'uses the default setting' do
-            expect { settings.profiling.upload.timeout = nil }
-              .to_not change { settings.profiling.upload.timeout }
+            expect { settings.profiling.upload.timeout_seconds = nil }
+              .to_not change { settings.profiling.upload.timeout_seconds }
               .from(30.0)
           end
         end

@@ -29,8 +29,16 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'non-containerized environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { nil }
         let(:container_id) { nil }
+        let(:task_uid) { nil }
+      end
+    end
+
+    context 'when in a non-containerized environment with VTE' do
+      include_context 'non-containerized environment with VTE'
+
+      it_behaves_like 'container descriptor' do
+        let(:container_id) { terminal_id }
         let(:task_uid) { nil }
       end
     end
@@ -39,8 +47,15 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'Docker environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'docker' }
         let(:task_uid) { nil }
+      end
+    end
+
+    context 'when in a Kubernetes burstable environment' do
+      include_context 'Kubernetes burstable environment'
+
+      it_behaves_like 'container descriptor' do
+        let(:task_uid) { pod_id }
       end
     end
 
@@ -48,7 +63,6 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'Kubernetes environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'kubepods' }
         let(:task_uid) { pod_id }
       end
     end
@@ -57,7 +71,6 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'ECS environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'ecs' }
         let(:task_uid) { task_arn }
       end
     end
@@ -66,7 +79,6 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'Fargate 1.3- environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'ecs' }
         let(:task_uid) { task_arn }
       end
     end
@@ -75,7 +87,16 @@ RSpec.describe Datadog::Runtime::Container do
       include_context 'Fargate 1.4+ environment'
 
       it_behaves_like 'container descriptor' do
-        let(:platform) { 'ecs' }
+        let(:container_id) { container_id_with_random }
+        let(:task_uid) { nil }
+      end
+    end
+
+    context 'when in a Fargate 1.4+ (2-part) environment' do
+      include_context 'Fargate 1.4+ (2-part) environment'
+
+      it_behaves_like 'container descriptor' do
+        let(:container_id) { container_id_with_random }
         let(:task_uid) { nil }
       end
     end

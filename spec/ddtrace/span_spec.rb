@@ -210,18 +210,14 @@ RSpec.describe Datadog::Span do
       end
 
       it 'uses monotonic time' do
-        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
-          skip('monotonic time not supported')
-        else
-          span.start
-          sleep(0.0002)
-          span.finish
-          expect((subject.to_f * 1e9).to_i).to be > 0
+        span.start
+        sleep(0.0002)
+        span.finish
+        expect((subject.to_f * 1e9).to_i).to be > 0
 
-          expect(span.end_time).to eq static_time
-          expect(span.start_time).to eq static_time
-          expect(span.end_time - span.start_time).to eq 0
-        end
+        expect(span.end_time).to eq static_time
+        expect(span.start_time).to eq static_time
+        expect(span.end_time - span.start_time).to eq 0
       end
     end
 
@@ -663,7 +659,9 @@ RSpec.describe Datadog::Span do
       expect(span).to have_error
       expect(span).to have_error_message('oops')
       expect(span).to have_error_type('RuntimeError')
-      expect(span).to have_error_stack(backtrace.join($RS))
+      backtrace.each do |method|
+        expect(span).to have_error_stack(include(method))
+      end
     end
   end
 

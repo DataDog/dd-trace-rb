@@ -14,9 +14,6 @@ module Datadog
     class Settings
       include Base
 
-      #
-      # Configuration options
-      #
       settings :analytics do
         option :enabled do |o|
           o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
@@ -116,9 +113,22 @@ module Datadog
         end
 
         settings :exporter do
-          option :instances
           option :transport
-          option :transport_options, default: ->(_o) { {} }, lazy: true
+          option :transport_options do |o|
+            o.setter do
+              # NOTE: As of April 2021 there may be a few profiler private beta customers with this setting, but since I'm
+              # marking this as deprecated before public beta, we can remove this for 1.0 without concern.
+              Datadog.logger.warn(
+                'Configuring the profiler c.profiling.exporter.transport_options is no longer needed, as the profiler ' \
+                'will reuse your existing global or tracer configuration. ' \
+                'This setting is deprecated for removal in a future ddtrace version ' \
+                '(1.0 or profiling GA, whichever comes first).'
+              )
+              nil
+            end
+            o.default { nil }
+            o.lazy
+          end
         end
 
         option :max_events, default: 32768
@@ -131,7 +141,7 @@ module Datadog
         end
 
         settings :upload do
-          option :timeout do |o|
+          option :timeout_seconds do |o|
             o.setter { |value| value.nil? ? 30.0 : value.to_f }
             o.default { env_to_float(Ext::Profiling::ENV_UPLOAD_TIMEOUT, 30.0) }
             o.lazy

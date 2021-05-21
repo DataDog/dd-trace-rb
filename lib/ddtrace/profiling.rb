@@ -14,8 +14,7 @@ module Datadog
       # NOTE: Only the first matching reason is returned, so try to keep a nice order on reasons -- e.g. tell users
       # first that they can't use this on JRuby before telling them that they are missing protobuf
 
-      ruby_engine_unsupported? || ruby_version_unsupported? ||
-        protobuf_gem_unavailable? || protobuf_version_unsupported? || protobuf_failed_to_load?
+      ruby_engine_unsupported? || protobuf_gem_unavailable? || protobuf_version_unsupported? || protobuf_failed_to_load?
     end
 
     def self.ruby_engine_unsupported?
@@ -23,20 +22,21 @@ module Datadog
     end
     private_class_method :ruby_engine_unsupported?
 
-    def self.ruby_version_unsupported?
-      'Ruby >= 2.1 is required' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
-    end
-    private_class_method :ruby_version_unsupported?
-
     def self.protobuf_gem_unavailable?
-      if Gem.loaded_specs['google-protobuf'].nil?
+      # NOTE: On environments where protobuf is already loaded, we skip the check. This allows us to support environments
+      # where no Gem.loaded_version is NOT available but customers are able to load protobuf; see for instance
+      # https://github.com/teamcapybara/capybara/commit/caf3bcd7664f4f2691d0ca9ef3be9a2a954fecfb
+      if !defined?(::Google::Protobuf) && Gem.loaded_specs['google-protobuf'].nil?
         "Missing google-protobuf dependency; please add `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
       end
     end
     private_class_method :protobuf_gem_unavailable?
 
     def self.protobuf_version_unsupported?
-      if Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
+      # See above for why we skip the check when protobuf is already loaded; note that when protobuf was already loaded
+      # we skip the version check to avoid the call to Gem.loaded_specs. Unfortunately, protobuf does not seem to
+      # expose the gem version constant elsewhere, so in that setup we are not able to check the version.
+      if !defined?(::Google::Protobuf) && Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
         'Your google-protobuf is too old; ensure that you have google-protobuf >= 3.0 by ' \
         "adding `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
       end

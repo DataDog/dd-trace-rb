@@ -15,7 +15,7 @@ module Datadog
         end
 
         def patch
-          ::Cucumber::Runtime.send(:include, Instrumentation)
+          ::Cucumber::Runtime.include(Instrumentation)
         end
       end
     end

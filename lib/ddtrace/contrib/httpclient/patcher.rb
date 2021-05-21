@@ -26,7 +26,7 @@ module Datadog
         def patch
           PATCH_ONLY_ONCE.run do
             begin
-              ::HTTPClient.send(:include, Instrumentation)
+              ::HTTPClient.include(Instrumentation)
             rescue StandardError => e
               Datadog::Logger.error("Unable to apply httpclient integration: #{e}")
             end

@@ -6,7 +6,7 @@ module Datadog
       # Instrumentation for Cucumber
       module Instrumentation
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Instance methods for configuration
