@@ -98,7 +98,7 @@ step_bundle_install: &step_bundle_install
   run:
     name: Install gem dependencies
     command: |
-      if [ "$CI_BUNDLE_CACHE_HIT" != 'true' ]; then
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
         bundle install
       fi
 step_rubocop: &step_rubocop
@@ -109,7 +109,7 @@ step_appraisal_install: &step_appraisal_install
   run:
     name: Install Appraisal gems
     command: |
-      if [ "$CI_BUNDLE_CACHE_HIT" != 'true' ]; then
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
         bundle exec appraisal install
       fi
 step_appraisal_update: &step_appraisal_update
