@@ -59,7 +59,7 @@ module Datadog
 
       # Removes API request instrumentation from S3 Presign URL creation.
       #
-      # This is necessary because the the S3 SDK invokes the same handler
+      # This is necessary because the S3 SDK invokes the same handler
       # stack for presigning as it does for sending a real requests.
       # But presigning does not perform a network request.
       # There's not information available for our Handler plugin to differentiate
