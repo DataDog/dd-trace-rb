@@ -314,7 +314,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
         it 'each map to a Location on the profile' do
           locations.each do |id|
-            expect(builder.locations.messages[id - 1])
+            expect(builder.locations.values[id - 1])
               .to be_kind_of(Perftools::Profiles::Location)
           end
         end

@@ -60,13 +60,16 @@ class ProfilerSubmission
         run_once
       end
 
-      x.save! 'profiler-submission-results.ipsbench'
+      x.save! 'profiler-submission-results.json'
       x.compare!
     end
   end
 
   def run_forever
-    run_once while true
+    while true
+      run_once
+      print '.'
+    end
   end
 
   def run_once

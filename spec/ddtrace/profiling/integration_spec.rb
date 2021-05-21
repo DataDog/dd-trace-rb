@@ -168,14 +168,7 @@ RSpec.describe 'profiling integration test' do
 
     include_context 'StackSample events' do
       def stack_frame_to_location_id(backtrace_location)
-        template.builder.locations.fetch(
-          # Filename
-          backtrace_location.path,
-          # Line number
-          backtrace_location.lineno,
-          # Function name
-          backtrace_location.base_label
-        ) { raise 'Unknown stack frame!' }.id
+        template.builder.locations.fetch(backtrace_location) { raise 'Unknown stack frame!' }.id
       end
 
       def stack_frame_to_function_id(backtrace_location)

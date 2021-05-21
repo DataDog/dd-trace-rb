@@ -21,14 +21,23 @@ module Datadog
 
         def initialize
           @functions = MessageSet.new(1)
-          @locations = MessageSet.new(1)
+          @locations = initialize_locations_hash
           @mappings = MessageSet.new(1)
           @sample_types = MessageSet.new
           @samples = []
           @string_table = StringTable.new
-          # Cache these procs, since it's pretty expensive to keep recreating them
-          @build_location = method(:build_location).to_proc
+
+          # Cache this proc, since it's pretty expensive to keep recreating it
           @build_function = method(:build_function).to_proc
+        end
+
+        # The locations hash maps unique BacktraceLocation instances to their corresponding pprof Location objects;
+        # there's a 1:1 correspondence, since BacktraceLocations were already deduped
+        def initialize_locations_hash
+          sequence = Utils::Sequence.new(1)
+          Hash.new do |locations_hash, backtrace_location|
+            locations_hash[backtrace_location] = build_location(sequence.next, backtrace_location)
+          end
         end
 
         def encode_profile(profile)
@@ -40,7 +49,7 @@ module Datadog
             sample_type: @sample_types.messages,
             sample: @samples,
             mapping: @mappings.messages,
-            location: @locations.messages,
+            location: @locations.values,
             function: @functions.messages,
             string_table: @string_table.strings
           )
@@ -54,45 +63,29 @@ module Datadog
         end
 
         def build_locations(backtrace_locations, length)
-          locations = backtrace_locations.collect do |backtrace_location|
-            @locations.fetch(
-              # Filename
-              backtrace_location.path,
-              # Line number
-              backtrace_location.lineno,
-              # Function name
-              backtrace_location.base_label,
-              # Build function
-              &@build_location
-            )
-          end
+          locations = backtrace_locations.collect { |backtrace_location| @locations[backtrace_location] }
 
           omitted = length - backtrace_locations.length
 
           # Add placeholder stack frame if frames were truncated
           if omitted > 0
             desc = omitted == 1 ? DESC_FRAME_OMITTED : DESC_FRAMES_OMITTED
-            locations << @locations.fetch(
-              ''.freeze,
-              0,
-              "#{omitted} #{desc}",
-              &@build_location
-            )
+            locations << @locations[Profiling::BacktraceLocation.new(''.freeze, 0, "#{omitted} #{desc}")]
           end
 
           locations
         end
 
-        def build_location(id, filename, line_number, function_name = nil)
+        def build_location(id, backtrace_location)
           Perftools::Profiles::Location.new(
             id: id,
             line: [build_line(
               @functions.fetch(
-                filename,
-                function_name,
+                backtrace_location.path,
+                backtrace_location.base_label,
                 &@build_function
               ).id,
-              line_number
+              backtrace_location.lineno
             )]
           )
         end
