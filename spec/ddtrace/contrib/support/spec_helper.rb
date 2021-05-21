@@ -4,17 +4,19 @@ require_relative 'matchers'
 require_relative 'resolver_helpers'
 require_relative 'tracer_helpers'
 
+require 'ddtrace' # Contrib tests require tracer components to be initialized
 require 'ddtrace/contrib/extensions'
 
 RSpec.configure do |config|
   config.include Contrib::TracerHelpers
 
-  config.before do
-    # The majority of Contrib tests requires the full tracer setup
-    if !defined?(preload_ddtrace) || preload_ddtrace
-      require 'ddtrace'
-    end
-  end
+  # TODO: remove me
+  # config.before do
+  #   The majority of Contrib tests requires the full tracer setup
+    # if !defined?(preload_ddtrace) || preload_ddtrace
+    #   require 'ddtrace'
+    # end
+  # end
 
   # Raise error when patching an integration fails.
   # This can be disabled by unstubbing +CommonMethods#on_patch_error+
