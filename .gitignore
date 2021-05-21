@@ -58,5 +58,3 @@ Gemfile.lock
 
 # bundle config
 gemfiles/.bundle
-# Appraisal artifact file, always empty
-gemfiles/_.gemfile.lock

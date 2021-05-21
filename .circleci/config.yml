@@ -84,15 +84,29 @@ test_containers:
       - DD_API_KEY=invalid_key_but_this_is_fine
   - &agent_port 8126
 
-step_init_bundle_checksum: &step_init_bundle_checksum
+check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
   run:
-    name: Initialize bundle cache key
+    name: Check if we restored an exact cache of gems that this job requires
+    # CircleCI doesn't tell us if we had a perfect cache match or partial match.
+    # To accomplish such check, we save `bundle_checksum` alongside the cached
+    # gems. After gems are restored, we compare the restored `bundle_checksum`'s
+    # content with the current commit's `bundle_checksum`.
     command: |
-      touch .circleci/bundle_checksum
+      ! cmp -s .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
+      echo "export CI_BUNDLE_CACHE_HIT=$?" >> $BASH_ENV
+save_bundle_checksum: &save_bundle_checksum
+  run:
+    name: Save current bundle checksum alongside cached gems
+    command: cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
 step_bundle_install: &step_bundle_install
   run:
     name: Install gem dependencies
-    command: bundle install
+    command: |
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
+        bundle install
+      else
+        echo "All required gems were found in cache."
+      fi
 step_rubocop: &step_rubocop
   run:
     name: Delint with Rubocop
@@ -101,7 +115,11 @@ step_appraisal_install: &step_appraisal_install
   run:
     name: Install Appraisal gems
     command: |
-      bundle exec appraisal install
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
+        bundle exec appraisal install
+      else
+        echo "All required gems were found in cache."
+      fi
 step_appraisal_update: &step_appraisal_update
   run:
     name: Update Appraisal gems
@@ -126,10 +144,8 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
     command: |
-      # JRuby: Ensure files exist when Appraisal generates no output
-      mkdir gemfiles
-      touch gemfiles/_.gemfile.lock
-      cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      bundle lock # Create Gemfile.lock
+      cat Gemfile.lock gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
@@ -167,15 +183,13 @@ orbs:
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - *step_compute_bundle_checksum
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}
-          - *step_init_bundle_checksum
-          - restore_cache:
-              keys:
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+          - *check_exact_bundle_cache_hit
           - *step_bundle_install
           - when:
               condition:
@@ -189,17 +203,13 @@ orbs:
               steps:
                 - *step_appraisal_install # Run on a stable set of gems we integrate with
                 - *ensure_lockfile_committed
-          - *step_compute_bundle_checksum
+          - *save_bundle_checksum
           - save_cache:
               key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
               paths:
                 - /app
           - save_cache:
-              key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
-              paths:
-                - /usr/local/bundle
-          - save_cache:
-              key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum "Gemfile" }}-{{ checksum "Appraisals" }}-{{ checksum "ddtrace.gemspec" }}-{{ checksum ".circleci/bundle_checksum" }}'
+              key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
               paths:
                 - /usr/local/bundle
       build_and_test_integration:
@@ -249,7 +259,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - run:
               name: Set coverage report directory
               command: |
@@ -292,7 +302,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - run:
               name: Run Benchmark
               command: bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
@@ -307,7 +317,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - *step_rubocop
       coverage:
         <<: *test_job_default
@@ -317,7 +327,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - attach_workspace:
               at: /tmp/workspace
           - run:
@@ -340,7 +350,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundle-<<parameters.ruby_version>>-{{ checksum ".circleci/bundle_checksum" }}'
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - attach_workspace:
               at: /tmp/workspace
           - run:
