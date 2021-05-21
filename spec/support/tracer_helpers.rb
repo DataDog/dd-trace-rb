@@ -163,7 +163,7 @@ module TracerHelpers
     end
 
     # Resets the global tracer
-    Datadog.send(:restart!)
+    Datadog.send(:restart!) if Datadog.respond_to?(:restart!, true)
   end
 
   # TODO: remove me
