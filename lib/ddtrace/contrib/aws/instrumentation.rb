@@ -64,6 +64,12 @@ module Datadog
       # But presigning does not perform a network request.
       # There's not information available for our Handler plugin to differentiate
       # these two types of requests.
+      #
+      # DEV: Since aws-sdk-s3 1.94.1, we only need to check if
+      # `context[:presigned_url] == true` in Datadog::Contrib::Aws::Handler#call
+      # and skip the request if that condition is true. Since there's
+      # no strong reason for us not to support older versions of `aws-sdk-s3`,
+      # this {S3Presigner} monkey-patching is still required.
       module S3Presigner
         # Exclude our Handler from the current request's handler stack.
         #
