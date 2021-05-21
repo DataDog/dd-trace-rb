@@ -33,6 +33,10 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
     before do
       allow(Datadog).to receive(:logger).and_return(tracer_logger)
       allow(tracer_logger).to receive(:info)
+
+      # Debug statements are a normal part of tracer initialization.
+      # They are not visible at the default log level.
+      allow(tracer_logger).to receive(:debug)
     end
 
     it 'with a default tracer settings' do
