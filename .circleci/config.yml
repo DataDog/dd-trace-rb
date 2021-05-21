@@ -132,6 +132,7 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
     command: |
+      bundle lock # Create Gemfile.lock
       cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
