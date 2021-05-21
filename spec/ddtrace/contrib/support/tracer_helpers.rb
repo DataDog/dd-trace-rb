@@ -50,6 +50,24 @@ module Contrib
     RSpec.configure do |config|
       # Capture spans from the global tracer
       config.before do
+        # If tracer has already been started, capture the living
+        # instance write calls.
+        if Datadog.respond_to?(:started?, true) && Datadog.send(:started?)
+          instance = Datadog.tracer
+
+          # TODO: extract and reuse this code with block below?
+          # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
+          write_lock = Mutex.new
+          allow(instance).to receive(:write) do |trace|
+            instance.instance_exec do
+              write_lock.synchronize do
+                @spans ||= []
+                @spans << trace
+              end
+            end
+          end
+        end
+
         # DEV `*_any_instance_of` has concurrency issues when running with parallelism (e.g. JRuby).
         # DEV Single object `allow` and `expect` work as intended with parallelism.
         allow(Datadog::Tracer).to receive(:new).and_wrap_original do |method, *args, &block|
@@ -70,17 +88,18 @@ module Contrib
         end
       end
 
+      # TODO: can we remove this?
       # Execute shutdown! after the test has finished
       # teardown and mock verifications.
       #
       # Changing this to `config.after(:each)` would
       # put shutdown! inside the test scope, interfering
       # with mock assertions.
-      config.around do |example|
-        example.run.tap do
-          Datadog.tracer.shutdown!
-        end
-      end
+      # config.around do |example|
+      #   example.run.tap do
+      #     Datadog.tracer.shutdown!
+      #   end
+      # end
     end
 
     # Useful for integration testing.

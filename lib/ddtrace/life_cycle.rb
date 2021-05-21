@@ -29,12 +29,25 @@ module Datadog
     attr_reader :runtime
 
     # Only used internally for testing
-    def restart!
-      shutdown!
-      registry.reset!
+    def started?
+      !@runtime.nil?
+    end
+
+    # Only used internally for testing
+    def tear_down!
+      shutdown! if started?
+
+      # Reset stateful registry data
+      registry.each do |data|
+        data.klass.reset_configuration!
+      end
 
       @runtime = nil
+    end
 
+    # Only used internally for testing
+    def restart!
+      tear_down!
       start!
     end
   end

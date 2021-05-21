@@ -177,6 +177,7 @@ RSpec.describe 'Tracer integration tests' do
 
       around do |example|
         ClimateControl.modify('DD_TRACE_SAMPLE_RATE' => '1.0') do
+          # TODO: Do we need this?
           Datadog.send(:restart!) # Force global configuration to be refreshed
           example.run
         end

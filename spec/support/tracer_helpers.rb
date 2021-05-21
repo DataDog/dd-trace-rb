@@ -153,14 +153,34 @@ module TracerHelpers
     @span = nil
   end
 
-  def tracer_shutdown!
-    if defined?(@use_real_tracer) && @use_real_tracer
-      Datadog.tracer.shutdown!
-    elsif defined?(@tracer) && @tracer
+  # Tears down the tracer, to allow for
+  # clean subsequent test execution.
+  def tracer_reset!
+    # Shut down test tracer instance
+    if defined?(@tracer) && @tracer
       @tracer.shutdown!
       @tracer = nil
     end
 
+    # Resets the global tracer
     Datadog.send(:restart!)
   end
+
+  # TODO: remove me
+  # The tracer is initialized naturally when
+  # `require 'ddtrace'` is invoked.
+  #
+  # This works well for the first test, but
+  # subsequent tests won't reinitialized the tracer,
+  # as it was manually torn down in the method above.
+  #
+  # We initialized the tracer here if it was manually
+  # torn down.
+  # def tracer_start!
+  #   # Check if tracer has been loaded, as first time
+  #   # execution might not have required `ddtrace` yet.
+  #   if Datadog.respond_to?(:start!, true)
+  #     Datadog.send(:start!) unless Datadog.send(:started?)
+  #   end
+  # end
 end

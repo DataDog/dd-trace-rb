@@ -37,13 +37,6 @@ module Datadog
           end
         end
       end
-
-      # Reset all stateful data from entry
-      def reset!
-        each do |data|
-          data.klass.reset_configuration!
-        end
-      end
     end
   end
 end
