@@ -7,7 +7,7 @@ require 'ddtrace/contrib/rails/rails_helper'
 RSpec.describe 'Rails disabled' do
   before(:all) do
     expect(Datadog::Contrib::Rails::Patcher.patched?).to(
-      be_falsey, <<MESSAGE) if defined?(Datadog::Contrib::Rails::Patcher)
+      be_falsey, <<MESSAGE)
       Rails has already been patched.
       This suite tests the behaviour of dd-trace-rb when patching is disabled for Rails.
       Please run this suite before Rails is patched.
@@ -16,10 +16,6 @@ MESSAGE
 
   include Rack::Test::Methods
   include_context 'Rails test application'
-
-  # Avoid eager ddtrace initialization, so we set up
-  # DISABLE_DATADOG_RAILS=1 before initialization
-  let(:preload_ddtrace) { false }
 
   around do |example|
     ClimateControl.modify('DISABLE_DATADOG_RAILS' => '1') do

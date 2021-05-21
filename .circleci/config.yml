@@ -132,9 +132,6 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
     command: |
-      # JRuby: Ensure files exist when Appraisal generates no output
-      mkdir gemfiles
-      touch gemfiles/_.gemfile.lock
       cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
