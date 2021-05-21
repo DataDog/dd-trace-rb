@@ -37,6 +37,10 @@ module Datadog
   at_exit { Datadog.shutdown! }
 end
 
+# Load and extend Contrib by default
+require 'ddtrace/contrib/extensions'
+
+# Load built-in Contrib integrations by default
 require 'ddtrace/contrib/action_cable/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
