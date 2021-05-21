@@ -174,14 +174,6 @@ Performance/StringInclude: # (new in 1.7)
 Performance/Sum: # (new in 1.8)
   Enabled: true
 
-# Requires Ruby 2.1
-Style/HashConversion:
-  Enabled: false
-
-# Requires Ruby 2.1
-Lint/SendWithMixinArgument:
-  Enabled: false
-
 # Requires Ruby 2.2
 Style/HashSyntax:
   Enabled: false
