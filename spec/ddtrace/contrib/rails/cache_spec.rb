@@ -80,7 +80,7 @@ RSpec.describe 'Rails cache' do
       before { write }
     end
 
-    it 'x' do
+    it do
       write
       expect(span.name).to eq('rails.cache')
       expect(span.span_type).to eq('cache')

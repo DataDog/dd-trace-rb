@@ -101,7 +101,7 @@ step_bundle_install: &step_bundle_install
       if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
         bundle install
       else
-        echo "All required gems were found in cache"
+        echo "All required gems were found in cache."
       fi
 step_rubocop: &step_rubocop
   run:
@@ -114,7 +114,7 @@ step_appraisal_install: &step_appraisal_install
       if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
         bundle exec appraisal install
       else
-        echo "All required gems were found in cache"
+        echo "All required gems were found in cache."
       fi
 step_appraisal_update: &step_appraisal_update
   run:

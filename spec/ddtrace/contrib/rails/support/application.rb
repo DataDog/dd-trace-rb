@@ -20,11 +20,6 @@ RSpec.shared_context 'Rails test application' do
       Rails.app_class = nil
       Rails.cache = nil
     end
-
-    # Datadog.configuration.reset!
-    # Datadog.configuration[:rails].reset_options!
-    # Datadog.configuration[:rack].reset_options!
-    # Datadog.configuration[:redis].reset_options!
   end
 
   let(:app) do
