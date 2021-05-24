@@ -45,6 +45,17 @@ module Datadog
             stack_sample.total_frame_count
           )
 
+          if ENV['DD_PROFILING_TRACEHACK'] == 'true'
+            locations +=
+              if (stack_sample.trace_id.nil? || stack_sample.trace_id.zero?) &&
+                (stack_sample.span_id.nil? || stack_sample.span_id.zero?)
+
+                builder.build_locations([Profiling::BacktraceLocation.new("❌ No active trace", 0, "")], 1)
+              else
+                builder.build_locations([Profiling::BacktraceLocation.new("✅ Active trace", 0, "")], 1)
+              end
+          end
+
           Perftools::Profiles::Sample.new(
             location_id: locations.collect(&:id),
             value: values,
