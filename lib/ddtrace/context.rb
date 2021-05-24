@@ -227,6 +227,20 @@ module Datadog
       attach_origin(span) if @origin
     end
 
+    def attach_sampling_priority(span)
+      span.set_metric(
+        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+        @sampling_priority
+      )
+    end
+
+    def attach_origin(span)
+      span.set_tag(
+        Ext::DistributedTracing::ORIGIN_KEY,
+        @origin
+      )
+    end
+
     # Return a string representation of the context.
     def to_s
       @mutex.synchronize do
@@ -280,20 +294,6 @@ module Datadog
     # Low-level internal function, not thread-safe.
     def all_spans_finished?
       @finished_spans > 0 && @trace.length == @finished_spans
-    end
-
-    def attach_sampling_priority(span)
-      span.set_metric(
-        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
-        @sampling_priority
-      )
-    end
-
-    def attach_origin(span)
-      span.set_tag(
-        Ext::DistributedTracing::ORIGIN_KEY,
-        @origin
-      )
     end
 
     # Return the start time of the root span, or nil if there are no spans or this is undefined.

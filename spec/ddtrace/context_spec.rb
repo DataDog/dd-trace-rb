@@ -421,6 +421,56 @@ RSpec.describe Datadog::Context do
     end
   end
 
+  describe '#attach_sampling_priority' do
+    subject(:attach_sampling_priority) { context.attach_sampling_priority(span) }
+    let(:span) { instance_double(Datadog::Span) }
+
+    before { allow(span).to receive(:set_metric) }
+
+    context 'when origin is set' do
+      let(:sampling_priority) { 99 }
+
+      before do
+        context.sampling_priority = sampling_priority
+        attach_sampling_priority
+      end
+
+      it do
+        expect(span)
+          .to have_received(:set_metric)
+          .with(
+            Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+            sampling_priority
+          )
+      end
+    end
+  end
+
+  describe '#attach_origin' do
+    subject(:attach_origin) { context.attach_origin(span) }
+    let(:span) { instance_double(Datadog::Span) }
+
+    before { allow(span).to receive(:set_tag) }
+
+    context 'when origin is set' do
+      let(:origin) { 'my-origin' }
+
+      before do
+        context.origin = origin
+        attach_origin
+      end
+
+      it do
+        expect(span)
+          .to have_received(:set_tag)
+          .with(
+            Datadog::Ext::DistributedTracing::ORIGIN_KEY,
+            origin
+          )
+      end
+    end
+  end
+
   describe '#fork_clone' do
     subject(:fork_clone) { context.fork_clone }
 
