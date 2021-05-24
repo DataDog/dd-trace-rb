@@ -162,7 +162,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
         it 'skips CPU extensions with warning' do
           expect(Datadog::Profiling::Ext::CPU).to_not receive(:apply!)
           expect($stdout).to receive(:puts) do |message|
-            expect(message).to include('CPU profiling skipped')
+            expect(message).to include('CPU time profiling skipped')
           end
 
           activate_cpu_extensions
