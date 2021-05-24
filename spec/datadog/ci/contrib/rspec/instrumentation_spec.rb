@@ -1,9 +1,12 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/ext/integration'
 
+require 'datadog/ci/contrib/support/spec_helper'
 require 'datadog/ci/contrib/rspec/integration'
 
 RSpec.describe 'RSpec hooks' do
+  include_context 'CI mode activated'
+
   let(:configuration_options) { {} }
 
   before do
@@ -97,6 +100,25 @@ RSpec.describe 'RSpec hooks' do
     expect(span.resource).to eq('some nested test 1 2 3 4 5 6 7 8 9 10 foo')
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_NAME)).to eq('some nested test 1 2 3 4 5 6 7 8 9 10 foo')
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE)).to eq(spec.file_path)
+  end
+
+  it 'creates spans for example with instrumentation' do
+    with_new_rspec_environment do
+      RSpec.describe 'some test' do
+        it 'foo' do
+          Datadog.tracer.trace('get_time') do
+            Time.now
+          end
+        end
+      end.tap(&:run)
+    end
+
+    expect(spans).to have(2).items
+
+    spans.each do |span|
+      expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY))
+        .to eq(Datadog::CI::Ext::Test::CONTEXT_ORIGIN)
+    end
   end
 
   context 'catches failures' do
