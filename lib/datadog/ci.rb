@@ -7,5 +7,10 @@ module Datadog
   end
 end
 
+# Integrations
 require 'datadog/ci/contrib/cucumber/integration'
 require 'datadog/ci/contrib/rspec/integration'
+
+# Extensions
+require 'datadog/ci/extensions'
+Datadog::CI::Extensions.activate!
