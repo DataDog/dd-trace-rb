@@ -1,4 +1,4 @@
-FROM flavorjones/truffleruby:21.0.0-buster
+FROM flavorjones/truffleruby:21.1.0-buster
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
