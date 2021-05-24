@@ -293,6 +293,10 @@ RSpec.describe Datadog::Context do
           subject
           expect(context).to have_received(:annotate_for_flush!)
         end
+
+        context 'and a block' do
+          it { expect { |b| context.get(&b) }.to yield_with_args(trace) }
+        end
       end
     end
   end

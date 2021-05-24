@@ -189,6 +189,9 @@ module Datadog
         # Root span is finished at this point, we can configure it
         annotate_for_flush!(@current_root_span)
 
+        # Allow caller to modify trace before context is reset
+        yield(trace) if block_given?
+
         reset
         [trace, sampled]
       end
