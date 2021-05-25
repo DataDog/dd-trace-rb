@@ -547,7 +547,7 @@ Datadog.configure do |c|
   # Symbol matching your database connection in config/database.yml
   # Only available if you are using Rails with ActiveRecord.
   c.use :active_record, describes: :secondary_database, service_name: 'secondary-db'
-  
+
   # Block configuration pattern.
   c.use :active_record, describes: :secondary_database do |second_db|
     second_db.service_name = 'secondary-db'
@@ -585,7 +585,7 @@ Datadog.configure do |c|
 
   # Matches any `mysql2` connection.
   c.use :active_record, describes: { adapter: 'mysql2'}, service_name: 'mysql-db'
-  
+
   # Matches any `mysql2` connection to the `reports` database.
   #
   # In case of multiple matching `describe` configurations, the latest one applies.
@@ -1566,7 +1566,7 @@ Datadog.configure do |c|
   # For network connections, only these fields are considered during matching:
   # scheme, host, port, db
   # Other fields are ignored.
-  
+
   # Network connection string
   c.use :redis, describes: 'redis://127.0.0.1:6379/0', service_name: 'redis-connection-string'
   c.use :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, service_name: 'redis-connection-url'
@@ -1868,7 +1868,7 @@ Datadog.configure do |c|
 
   # Breaks down very large traces into smaller batches
   c.tracer.partial_flush.enabled = false
-  
+
   # You can specify your own tracer
   c.tracer.instance = Datadog::Tracer.new
 
@@ -1955,7 +1955,7 @@ We recommend setting the environment variable `DD_TRACE_SAMPLE_RATE=1.0` in all 
 App Analytics, previously configured with the `analytics_enabled` setting, is deprecated in favor of Tracing without Limits™. Documentation for this [deprecated configuration is still available](https://docs.datadoghq.com/tracing/legacy_app_analytics/).
 
 #### Application-side sampling
- 
+
 While the trace agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead.
 
 This will **reduce visibility and is not recommended**. See [DD_TRACE_SAMPLE_RATE](#environment-variables) for the recommended sampling approach.
