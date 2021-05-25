@@ -7,7 +7,7 @@ if Datadog::Profiling::Ext::CPU.supported?
 
   RSpec.describe Datadog::Profiling::Ext::CThread do
     before do
-      skip "CThread specs cannot run on TruffleRuby because they rely on fork()" if PlatformHelpers.truffleruby?
+      skip 'CThread specs cannot run on TruffleRuby because they rely on fork()' if PlatformHelpers.truffleruby?
     end
 
     subject(:thread) do

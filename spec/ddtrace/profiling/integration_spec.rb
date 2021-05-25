@@ -100,7 +100,7 @@ RSpec.describe 'profiling integration test' do
         include_context 'end-to-end profiler'
 
         before do
-          skip "This test cannot run on TruffleRuby because it relies on fork()" if PlatformHelpers.truffleruby?
+          skip 'This test cannot run on TruffleRuby because it relies on fork()' if PlatformHelpers.truffleruby?
         end
 
         it 'produces a profile' do
