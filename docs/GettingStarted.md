@@ -2488,47 +2488,9 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 
 `ddtrace` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.
 
-**Compatibility**
-
-Profiling requires:
-
-- MRI Ruby 2.1+
-- `google-protobuf` gem installed
-
 **Setup**
 
-1. Add gems to your `Gemfile` and `bundle install`:
-
-    ```ruby
-    gem 'ddtrace'
-    gem 'google-protobuf', '~> 3.0'
-    ```
-
-2. Enable profiling flag:
-
-    Set `DD_PROFILING_ENABLED=true` in your environment, OR enable it using `Datadog.configure`.
-
-    For Rails applications, you can set this in `config/initializers/datadog.rb`:
-
-    ```ruby
-    Datadog.configure do |c|
-      c.profiling.enabled = true
-    end
-    ```
-
-3. Start your application with the preloader:
-
-    ```sh
-    bundle exec ddtracerb exec rails s
-    ```
-
-    Manual alternative: If starting the application via `ddtracerb exec` is not an option (for instance, when using the
-    Phusion Passenger web server), you can alternatively start the profiler by adding the following to your application
-    entry point (such as `config.ru` for a web application):
-
-    ```ruby
-    require 'ddtrace/profiling/preload'
-    ```
+To get started with profiling, follow the [Profiler Getting Started Guide](https://docs.datadoghq.com/tracing/profiler/getting_started/?code-lang=ruby).
 
 #### Profiling Resque jobs
 
