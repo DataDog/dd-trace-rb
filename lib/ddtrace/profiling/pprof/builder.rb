@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'ddtrace/profiling/flush'
 require 'ddtrace/profiling/pprof/message_set'
 require 'ddtrace/profiling/pprof/string_table'
@@ -7,9 +9,9 @@ module Datadog
     module Pprof
       # Accumulates profile data and produces a Perftools::Profiles::Profile
       class Builder
-        DEFAULT_ENCODING = 'UTF-8'.freeze
-        DESC_FRAME_OMITTED = 'frame omitted'.freeze
-        DESC_FRAMES_OMITTED = 'frames omitted'.freeze
+        DEFAULT_ENCODING = 'UTF-8'
+        DESC_FRAME_OMITTED = 'frame omitted'
+        DESC_FRAMES_OMITTED = 'frames omitted'
 
         attr_reader \
           :functions,
@@ -70,7 +72,7 @@ module Datadog
           # Add placeholder stack frame if frames were truncated
           if omitted > 0
             desc = omitted == 1 ? DESC_FRAME_OMITTED : DESC_FRAMES_OMITTED
-            locations << @locations[Profiling::BacktraceLocation.new(''.freeze, 0, "#{omitted} #{desc}")]
+            locations << @locations[Profiling::BacktraceLocation.new('', 0, "#{omitted} #{desc}")]
           end
 
           locations
