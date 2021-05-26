@@ -87,44 +87,55 @@ if Datadog::Profiling::Ext::CPU.supported?
       end
     end
 
-    describe '::new' do
-      it 'has native thread IDs available' do
-        is_expected.to have_attributes(
-          native_thread_id: kind_of(Integer),
-          cpu_time: kind_of(Float)
-        )
-        expect(thread.send(:clock_id)).to be_kind_of(Integer)
+    context 'with a started thread' do
+      before do
+        # There is a brief period where a thread has been started but the native_thread_id and clock_id have not
+        # yet been set. This try_wait_until is here to ensure that we wait for them to be set before running any
+        # expectations, as otherwise this would generate test suite flakiness.
+        # The easiest way to simulate this is to add a  `sleep(1)` to the start of `#update_native_ids`,
+        # triggering the issue every time.
+        try_wait_until { !thread.send(:clock_id).nil? }
       end
 
-      it 'correctly forwards all received arguments to the passed proc' do
-        received_args = nil
-        received_kwargs = nil
+      describe '::new' do
+        it 'has native thread IDs available' do
+          is_expected.to have_attributes(
+            native_thread_id: kind_of(Integer),
+            cpu_time: kind_of(Float)
+          )
+          expect(thread.send(:clock_id)).to be_kind_of(Integer)
+        end
 
-        thread_class.new(1, 2, 3, four: 4, five: 5) do |*args, **kwargs|
-          received_args = args
-          received_kwargs = kwargs
-        end.join
+        it 'correctly forwards all received arguments to the passed proc' do
+          received_args = nil
+          received_kwargs = nil
 
-        expect(received_args).to eq [1, 2, 3]
-        expect(received_kwargs).to eq(four: 4, five: 5)
+          thread_class.new(1, 2, 3, four: 4, five: 5) do |*args, **kwargs|
+            received_args = args
+            received_kwargs = kwargs
+          end.join
+
+          expect(received_args).to eq [1, 2, 3]
+          expect(received_kwargs).to eq(four: 4, five: 5)
+        end
       end
-    end
 
-    describe '#native_thread_id' do
-      subject(:native_thread_id) { thread.native_thread_id }
+      describe '#native_thread_id' do
+        subject(:native_thread_id) { thread.native_thread_id }
 
-      it { is_expected.to be_a_kind_of(Integer) }
+        it { is_expected.to be_a_kind_of(Integer) }
 
-      context 'main thread' do
-        context 'when forked' do
-          it 'returns a new native thread ID' do
-            # Get main thread native ID
-            original_native_thread_id = thread.native_thread_id
+        context 'main thread' do
+          context 'when forked' do
+            it 'returns a new native thread ID' do
+              # Get main thread native ID
+              original_native_thread_id = thread.native_thread_id
 
-            expect_in_fork do
-              # Expect main thread native ID to not change
-              expect(thread.native_thread_id).to be_a_kind_of(Integer)
-              expect(thread.native_thread_id).to eq(original_native_thread_id)
+              expect_in_fork do
+                # Expect main thread native ID to not change
+                expect(thread.native_thread_id).to be_a_kind_of(Integer)
+                expect(thread.native_thread_id).to eq(original_native_thread_id)
+              end
             end
           end
         end
@@ -133,8 +144,6 @@ if Datadog::Profiling::Ext::CPU.supported?
 
     describe '#clock_id' do
       subject(:clock_id) { thread.send(:clock_id) }
-
-      it { is_expected.to be_a_kind_of(Integer) }
 
       context 'main thread' do
         include_context 'with main thread'
