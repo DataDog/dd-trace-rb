@@ -225,7 +225,7 @@ module Datadog
 
         o.setter do |new_value, old_value|
           # Coerce keys to strings
-          string_tags = Hash[new_value.collect { |k, v| [k.to_s, v] }]
+          string_tags = new_value.collect { |k, v| [k.to_s, v] }.to_h
 
           # Cross-populate tag values with other settings
           self.env = string_tags[Ext::Environment::TAG_ENV] if env.nil? && string_tags.key?(Ext::Environment::TAG_ENV)
