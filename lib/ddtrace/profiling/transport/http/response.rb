@@ -11,7 +11,7 @@ module Datadog
           include Datadog::Transport::HTTP::Response
           include Profiling::Transport::Response
 
-          def initialize(http_response, options = {})
+          def initialize(http_response, **options)
             super(http_response)
           end
         end

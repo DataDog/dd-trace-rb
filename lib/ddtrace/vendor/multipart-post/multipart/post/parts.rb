@@ -89,7 +89,7 @@ module Datadog
             # @param type [String]
             # @param content_len [Integer]
             # @param opts [Hash]
-            def build_head(boundary, name, filename, type, content_len, opts = {})
+            def build_head(boundary, name, filename, type, content_len, **opts)
               opts = opts.clone
 
               trans_encoding = opts.delete("Content-Transfer-Encoding") || "binary"

@@ -17,7 +17,7 @@ module Datadog
       :priority_sampler,
       :transport
 
-    def initialize(options = {})
+    def initialize(**options)
       @transport = options.fetch(:transport) do
         transport_options = options.fetch(:transport_options, {})
         transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)

@@ -5,7 +5,7 @@ module Datadog
     module Shoryuken
       # Tracer is a Shoryuken server-side middleware which traces executed jobs
       class Tracer
-        def initialize(options = {})
+        def initialize(**options)
           @tracer = options[:tracer] || configuration[:tracer]
           @shoryuken_service = options[:service_name] || configuration[:service_name]
           @error_handler = options[:error_handler] || configuration[:error_handler]

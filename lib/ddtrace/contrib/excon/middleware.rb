@@ -19,7 +19,7 @@ module Datadog
           Datadog::Ext::HTTP::ERROR_RANGE.cover?(response[:status])
         end
 
-        def initialize(stack, options = {})
+        def initialize(stack, **options)
           super(stack)
           @default_options = datadog_configuration.options_hash.merge(options)
         end
@@ -54,7 +54,7 @@ module Datadog
 
         # Returns a child class of this trace middleware
         # With options given as defaults.
-        def self.with(options = {})
+        def self.with(**options)
           Class.new(self) do
             @options = options
 

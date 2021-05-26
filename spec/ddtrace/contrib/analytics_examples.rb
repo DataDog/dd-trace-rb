@@ -1,6 +1,6 @@
 require 'ddtrace/ext/analytics'
 
-RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_global_flag: true }|
+RSpec.shared_examples_for 'analytics for integration' do |ignore_global_flag: true|
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
     Datadog.configuration.reset!
@@ -25,7 +25,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
       # Most integrations ignore the global flag by default,
       # because they aren't considered "key" integrations.
       # These integrations will not expect it to be set, despite the global flag.
-      if options[:ignore_global_flag]
+      if ignore_global_flag
         it 'is not included in the tags' do
           expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
         end

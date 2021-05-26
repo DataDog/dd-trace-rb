@@ -12,7 +12,7 @@ module Datadog
   class Metrics
     attr_reader :statsd
 
-    def initialize(options = {})
+    def initialize(**options)
       @statsd = options.fetch(:statsd) { default_statsd_client if supported? }
       @enabled = options.fetch(:enabled, true)
     end
@@ -53,7 +53,7 @@ module Datadog
       Datadog::Statsd.new(default_hostname, default_port)
     end
 
-    def configure(options = {})
+    def configure(**options)
       @statsd = options[:statsd] if options.key?(:statsd)
       self.enabled = options[:enabled] if options.key?(:enabled)
     end

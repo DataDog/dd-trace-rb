@@ -27,7 +27,7 @@ module Datadog
     attr_reader :max_length
 
     # Initialize a new thread-safe \Context.
-    def initialize(options = {})
+    def initialize(**options)
       @mutex = Mutex.new
       # max_length is the amount of spans above which, for a given trace,
       # the context will simply drop and ignore spans, avoiding high memory usage.
@@ -269,7 +269,7 @@ module Datadog
 
     private
 
-    def reset(options = {})
+    def reset(**options)
       @trace = []
       @parent_trace_id = options.fetch(:trace_id, nil)
       @parent_span_id = options.fetch(:span_id, nil)

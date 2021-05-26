@@ -46,7 +46,7 @@ module Datadog
 end
 
 # Return a test tracer instance with a faux writer.
-def get_test_tracer(options = {})
+def get_test_tracer(**options)
   writer = FauxWriter.new(
     transport: Datadog::Transport::HTTP.default do |t|
       t.adapter :test
@@ -59,7 +59,7 @@ def get_test_tracer(options = {})
     #       knowledge about the internal workings of the tracer.
     #       It is done to prevent the activation of priority sampling
     #       from wiping out the configured test writer, by replacing it.
-    tracer.define_singleton_method(:configure) do |opts = {}|
+    tracer.define_singleton_method(:configure) do |**opts|
       super(opts)
 
       # Re-configure the tracer with a new test writer
@@ -131,7 +131,7 @@ end
 
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Writer
-  def initialize(options = {})
+  def initialize(**options)
     options[:transport] ||= FauxTransport.new
     super
     @mutex = Mutex.new

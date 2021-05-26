@@ -124,7 +124,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         quantized?(actual_obj, options)
       end
 
-      def quantized?(object, options = {})
+      def quantized?(object, **options)
         with = options[:with] || '?'
         except = options[:except] || {}
 

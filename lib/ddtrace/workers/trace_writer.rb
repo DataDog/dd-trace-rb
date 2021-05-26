@@ -13,7 +13,7 @@ module Datadog
       attr_reader \
         :transport
 
-      def initialize(options = {})
+      def initialize(**options)
         transport_options = options.fetch(:transport_options, {})
 
         transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
@@ -93,7 +93,7 @@ module Datadog
       attr_writer \
         :async
 
-      def initialize(options = {})
+      def initialize(**options)
         # Workers::TraceWriter settings
         super
 

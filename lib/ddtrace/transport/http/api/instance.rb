@@ -9,7 +9,7 @@ module Datadog
             :headers,
             :spec
 
-          def initialize(spec, adapter, options = {})
+          def initialize(spec, adapter, **options)
             @spec = spec
             @adapter = adapter
             @headers = options.fetch(:headers, {})

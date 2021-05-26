@@ -21,7 +21,7 @@ module Datadog
     alias service= service_name=
     alias service service_name
 
-    def initialize(service_name, options = {})
+    def initialize(service_name, **options)
       deprecation_warning unless options[:tracer].is_a?(Proc) || options[:tracer].nil?
 
       @app = options[:app]

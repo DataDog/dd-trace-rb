@@ -44,11 +44,11 @@ module Datadog
 
       # Instance methods for configuration
       module InstanceMethods
-        def initialize(options = {})
+        def initialize(**options)
           configure(options) unless options.empty?
         end
 
-        def configure(opts = {})
+        def configure(**opts)
           # Sort the options in preference of dependency order first
           ordering = self.class.options.dependency_order
           sorted_opts = opts.sort_by do |name, _value|

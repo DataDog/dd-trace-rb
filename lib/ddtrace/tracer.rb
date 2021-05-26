@@ -72,7 +72,7 @@ module Datadog
     #
     # * +enabled+: set if the tracer submits or not spans to the local agent. It's enabled
     #   by default.
-    def initialize(options = {})
+    def initialize(**options)
       # Configurable options
       @context_flush = if options[:context_flush]
                          options[:context_flush]
@@ -109,7 +109,7 @@ module Datadog
     #
     #   tracer.configure(hostname: 'agent.service.consul', port: '8777')
     #
-    def configure(options = {})
+    def configure(**options)
       enabled = options.fetch(:enabled, nil)
 
       # Those are rare "power-user" options.
@@ -192,7 +192,7 @@ module Datadog
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
-    def start_span(name, options = {})
+    def start_span(name, **options)
       start_time = options[:start_time]
       tags = options.fetch(:tags, {})
 
@@ -266,7 +266,7 @@ module Datadog
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     #   If not set, defaults to Tracer.call_context
     # * +tags+: extra tags which should be added to the span.
-    def trace(name, options = {})
+    def trace(name, **options)
       options[:child_of] ||= call_context
 
       # call the finish only if a block is given; this ensures
@@ -395,7 +395,7 @@ module Datadog
 
     # TODO: Move this kind of configuration building out of the tracer.
     #       Tracer should not have this kind of knowledge of writer.
-    def configure_writer(options = {})
+    def configure_writer(**options)
       sampler = options.fetch(:sampler, nil)
       priority_sampling = options.fetch(:priority_sampling, nil)
       writer = options.fetch(:writer, nil)

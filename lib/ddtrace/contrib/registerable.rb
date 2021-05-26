@@ -11,7 +11,7 @@ module Datadog
 
       # Class methods for registerable behavior
       module ClassMethods
-        def register_as(name, options = {})
+        def register_as(name, **options)
           registry = options.fetch(:registry, Datadog.registry)
           auto_patch = options.fetch(:auto_patch, false)
 
@@ -24,7 +24,7 @@ module Datadog
         attr_reader \
           :name
 
-        def initialize(name, options = {})
+        def initialize(name, **options)
           @name = name
         end
       end

@@ -163,7 +163,7 @@ module Datadog
   class RateByServiceSampler < RateByKeySampler
     DEFAULT_KEY = 'service:,env:'.freeze
 
-    def initialize(default_rate = 1.0, options = {})
+    def initialize(default_rate = 1.0, **options)
       super(DEFAULT_KEY, default_rate, &method(:key_for))
       @env = options[:env]
     end
@@ -197,7 +197,7 @@ module Datadog
 
     SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
 
-    def initialize(opts = {})
+    def initialize(**opts)
       @pre_sampler = opts[:base_sampler] || AllSampler.new
       @priority_sampler = opts[:post_sampler] || RateByServiceSampler.new
     end

@@ -59,7 +59,7 @@ module HealthMetricHelpers
     end
 
     METRICS.each_key do |metric|
-      define_method(:"have_received_#{metric}") do |value = kind_of(Numeric), options = {}|
+      define_method(:"have_received_#{metric}") do |value = kind_of(Numeric), **options|
         options = metric_options(options)
         check_options!(options)
         have_received(metric).with(value, options)

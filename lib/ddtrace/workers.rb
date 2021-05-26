@@ -23,7 +23,7 @@ module Datadog
       attr_reader \
         :trace_buffer
 
-      def initialize(options = {})
+      def initialize(**options)
         @transport = options[:transport]
 
         # Callbacks

@@ -8,7 +8,7 @@ module Datadog
       class ClientTracer
         include Tracing
 
-        def initialize(options = {})
+        def initialize(**options)
           super
           @sidekiq_service = options[:client_service_name] || configuration[:client_service_name]
         end

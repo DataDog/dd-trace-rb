@@ -19,7 +19,7 @@ module Datadog
       attr_reader \
         :metrics
 
-      def initialize(options = {})
+      def initialize(**options)
         @metrics = options.fetch(:metrics) { Runtime::Metrics.new }
 
         # Workers::Async::Thread settings

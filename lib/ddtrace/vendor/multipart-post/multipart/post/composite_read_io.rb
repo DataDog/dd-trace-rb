@@ -76,7 +76,7 @@ module Datadog
           # @example
           #     UploadIO.new("file.txt", "text/plain")
           #     UploadIO.new(file_io, "text/plain", "file.txt")
-          def initialize(filename_or_io, content_type, filename = nil, opts = {})
+          def initialize(filename_or_io, content_type, filename = nil, **opts)
             io = filename_or_io
             local_path = ""
             if io.respond_to? :read

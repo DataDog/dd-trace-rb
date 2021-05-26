@@ -13,20 +13,20 @@ module Datadog
 
       module_function
 
-      def format(hash_obj, options = {})
+      def format(hash_obj, **options)
         options ||= {}
         format!(hash_obj, options)
       rescue StandardError
         options[:placeholder] || PLACEHOLDER
       end
 
-      def format!(hash_obj, options = {})
+      def format!(hash_obj, **options)
         options ||= {}
         options = merge_options(DEFAULT_OPTIONS, options)
         format_hash(hash_obj, options)
       end
 
-      def format_hash(hash_obj, options = {})
+      def format_hash(hash_obj, **options)
         case hash_obj
         when ::Hash
           return {} if options[:exclude] == :all
@@ -44,7 +44,7 @@ module Datadog
         end
       end
 
-      def format_value(value, options = {})
+      def format_value(value, **options)
         return value if options[:show] == :all
 
         case value

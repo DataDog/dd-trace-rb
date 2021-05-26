@@ -3,7 +3,7 @@ require 'net/http'
 require 'spec/support/synchronization_helpers'
 
 module HttpHelpers
-  def mock_http_request(options = {})
+  def mock_http_request(**options)
     http_method = options[:method] || :get
     uri = URI.parse('http://localhost:3000/mock_response')
     body = options[:body] || ''

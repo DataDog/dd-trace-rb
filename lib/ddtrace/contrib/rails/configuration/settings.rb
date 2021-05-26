@@ -6,7 +6,7 @@ module Datadog
       module Configuration
         # Custom settings for the Rails integration
         class Settings < Contrib::Configuration::Settings
-          def initialize(options = {})
+          def initialize(**options)
             super(options)
 
             # NOTE: Eager load these

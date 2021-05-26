@@ -18,7 +18,7 @@ module Datadog
         module InstanceMethods
           include Datadog::Contrib::HttpAnnotationHelper
 
-          def http_request(url, action_name, options = {})
+          def http_request(url, action_name, **options)
             load_datadog_configuration_for(url)
             return super unless tracer_enabled?
 

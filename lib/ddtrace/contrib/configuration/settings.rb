@@ -21,7 +21,7 @@ module Datadog
           end
         end
 
-        def configure(options = {})
+        def configure(**options)
           self.class.options.dependency_order.each do |name|
             self[name] = options[name] if options.key?(name)
           end

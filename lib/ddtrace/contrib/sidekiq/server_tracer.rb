@@ -8,7 +8,7 @@ module Datadog
       class ServerTracer
         include Tracing
 
-        def initialize(options = {})
+        def initialize(**options)
           super
           @sidekiq_service = options[:service_name] || configuration[:service_name]
           @error_handler = options[:error_handler] || configuration[:error_handler]

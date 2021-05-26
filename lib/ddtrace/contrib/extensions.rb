@@ -21,7 +21,7 @@ module Datadog
 
       # Configuration methods for Datadog module.
       module Configuration
-        def configure(target = configuration, opts = {})
+        def configure(target = configuration, **opts)
           # Reconfigure core settings
           super
 

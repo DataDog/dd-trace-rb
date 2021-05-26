@@ -41,7 +41,7 @@ module Datadog
       @configuration ||= Settings.new
     end
 
-    def configure(target = configuration, opts = {})
+    def configure(target = configuration, **opts)
       if target.is_a?(Settings)
         yield(target) if block_given?
 

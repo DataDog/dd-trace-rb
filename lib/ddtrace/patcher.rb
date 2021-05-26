@@ -35,7 +35,7 @@ module Datadog
         end
       end
 
-      def do_once(key = nil, options = {})
+      def do_once(key = nil, **options)
         DO_ONCE_USAGE_WARN_ONLY_ONCE.run do
           Datadog.logger.warn('Datadog::Patcher#do_once is deprecated. Use Datadog::Utils::OnlyOnce instead.')
         end
@@ -51,7 +51,7 @@ module Datadog
         end
       end
 
-      def done?(key, options = {})
+      def done?(key, **options)
         DO_ONCE_USAGE_WARN_ONLY_ONCE.run do
           Datadog.logger.warn('Datadog::Patcher#done? is deprecated. Use Datadog::Utils::OnlyOnce instead.')
         end

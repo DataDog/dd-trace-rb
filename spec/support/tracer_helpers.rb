@@ -9,7 +9,7 @@ module TracerHelpers
     @tracer ||= new_tracer
   end
 
-  def new_tracer(options = {})
+  def new_tracer(**options)
     writer = FauxWriter.new(
       transport: Datadog::Transport::HTTP.default do |t|
         t.adapter :test
@@ -22,7 +22,7 @@ module TracerHelpers
       #       knowledge about the internal workings of the tracer.
       #       It is done to prevent the activation of priority sampling
       #       from wiping out the configured test writer, by replacing it.
-      tracer.define_singleton_method(:configure) do |opts = {}|
+      tracer.define_singleton_method(:configure) do |**opts|
         super(opts)
 
         # Re-configure the tracer with a new test writer
@@ -43,7 +43,7 @@ module TracerHelpers
                       )
                     end
 
-          statsd = opts.fetch(:statsd, nil)
+          statsd = opts[:statsd]
           @writer.runtime_metrics.statsd = statsd unless statsd.nil?
         end
       end
@@ -55,14 +55,14 @@ module TracerHelpers
   alias get_test_tracer new_tracer
 
   # Return a test tracer instance with a faux writer.
-  def get_test_tracer_with_old_transport(options = {})
+  def get_test_tracer_with_old_transport(**options)
     options = { writer: FauxWriter.new }.merge(options)
     Datadog::Tracer.new(options).tap do |tracer|
       # TODO: Let's try to get rid of this override, which has too much
       #       knowledge about the internal workings of the tracer.
       #       It is done to prevent the activation of priority sampling
       #       from wiping out the configured test writer, by replacing it.
-      tracer.define_singleton_method(:configure) do |opts = {}|
+      tracer.define_singleton_method(:configure) do |**opts|
         super(opts)
 
         # Re-configure the tracer with a new test writer
@@ -74,14 +74,13 @@ module TracerHelpers
                       FauxWriter.new
                     end
 
-          hostname = opts.fetch(:hostname, nil)
-          port = opts.fetch(:port, nil)
+          hostname = opts[:hostname]
+          port = opts[:port]
 
           @writer.transport.hostname = hostname unless hostname.nil?
           @writer.transport.port = port unless port.nil?
 
-          statsd = opts.fetch(:statsd, nil)
-          unless statsd.nil?
+          unless (statsd = opts[:statsd]).nil?
             @writer.statsd = statsd
             @writer.transport.statsd = statsd
           end
@@ -90,7 +89,7 @@ module TracerHelpers
     end
   end
 
-  def get_test_writer(options = {})
+  def get_test_writer(**options)
     options = {
       transport: Datadog::Transport::HTTP.default do |t|
         t.adapter :test

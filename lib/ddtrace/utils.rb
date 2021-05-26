@@ -43,7 +43,7 @@ module Datadog
       string
     end
 
-    def self.utf8_encode(str, options = {})
+    def self.utf8_encode(str, **options)
       str = str.to_s
 
       if options[:binary]

@@ -14,7 +14,7 @@ module Datadog
           include HTTP::Response
           include Datadog::Transport::Traces::Response
 
-          def initialize(http_response, options = {})
+          def initialize(http_response, **options)
             super(http_response)
             @service_rates = options.fetch(:service_rates, nil)
             @trace_count = options.fetch(:trace_count, 0)
@@ -96,7 +96,7 @@ module Datadog
             attr_reader \
               :encoder
 
-            def initialize(path, encoder, options = {})
+            def initialize(path, encoder, **options)
               super(:post, path)
               @encoder = encoder
               @service_rates = options.fetch(:service_rates, false)

@@ -12,7 +12,7 @@ module Datadog
           :encoder,
           :out
 
-        def initialize(out, encoder, options = {})
+        def initialize(out, encoder, **options)
           @out = out
           @encoder = encoder
 

@@ -56,7 +56,7 @@ module Datadog
     # * +parent_id+: the identifier of the parent span
     # * +trace_id+: the identifier of the root span for this trace
     # * +context+: the context of the span
-    def initialize(tracer, name, options = {})
+    def initialize(tracer, name, **options)
       @tracer = tracer
 
       @name = name

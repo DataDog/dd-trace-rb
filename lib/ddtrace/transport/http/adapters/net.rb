@@ -15,7 +15,7 @@ module Datadog
 
           DEFAULT_TIMEOUT = 30
 
-          def initialize(hostname, port, options = {})
+          def initialize(hostname, port, **options)
             @hostname = hostname
             @port = port
             @timeout = options[:timeout] || DEFAULT_TIMEOUT

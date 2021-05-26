@@ -100,7 +100,7 @@ RSpec.describe 'Sinatra instrumentation' do
     end
   end
 
-  shared_examples 'sinatra examples' do |opts = {}|
+  shared_examples 'sinatra examples' do |matching_app: true|
     let(:nested_span_count) { defined?(mount_nested_app) && mount_nested_app ? 1 : 0 }
 
     context 'when configured' do
@@ -113,7 +113,7 @@ RSpec.describe 'Sinatra instrumentation' do
           # let(:top_span) { defined?(super) ? super() : rack_span }
 
           context 'on matching app' do
-            before { skip if opts[:matching_app] == false }
+            before { skip if matching_app == false }
 
             let(:route_parent) { defined?(mount_nested_app) && mount_nested_app ? nested_span : span }
 
@@ -541,7 +541,7 @@ RSpec.describe 'Sinatra instrumentation' do
               is_expected.to be_ok
               expect(spans).to have(3).items
 
-              expect(top_span).to be_request_span resource: 'GET', app_name: top_app_name, matching_app: false
+              expect(top_span).to be_request_span resource: 'GET', app_name: top_app_name
               expect(span).to be_request_span parent: top_span
               expect(route_span).to be_route_span parent: span
             end
@@ -583,24 +583,26 @@ RSpec.describe 'Sinatra instrumentation' do
     end
   end
 
-  RSpec::Matchers.define :be_request_span do |opts = {}|
+  RSpec::Matchers.define :be_request_span do |app_name: nil, resource: nil, parent: nil, http_tags: false|
     match(notify_expectation_failures: true) do |span|
-      app_name = opts[:app_name] || self.app_name
+      app_name ||= self.app_name
+      resource ||= self.resource
+
       expect(span.service).to eq(Datadog::Contrib::Sinatra::Ext::SERVICE_NAME)
-      expect(span.resource).to eq(opts[:resource] || resource)
-      expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq(http_method) if opts[:http_tags]
-      expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(url) if opts[:http_tags]
-      expect(span.get_tag('http.response.headers.content_type')).to eq('text/html;charset=utf-8') if opts[:http_tags]
+      expect(span.resource).to eq(resource)
+      expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq(http_method) if http_tags
+      expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(url) if http_tags
+      expect(span.get_tag('http.response.headers.content_type')).to eq('text/html;charset=utf-8') if http_tags
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url) if app_name == self.app_name
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to be_nil
       expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
       expect(span).to_not have_error
-      expect(span.parent).to be(opts[:parent])
+      expect(span.parent).to be(parent)
     end
   end
 
-  RSpec::Matchers.define :be_route_span do |opts = {}|
+  RSpec::Matchers.define :be_route_span do |parent: nil|
     match(notify_expectation_failures: true) do |span|
       expect(span.service).to eq(Datadog::Contrib::Sinatra::Ext::SERVICE_NAME)
       expect(span.resource).to eq(resource)
@@ -608,7 +610,7 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)
       expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
       expect(span).to_not have_error
-      expect(span.parent).to be(opts[:parent]) if opts[:parent]
+      expect(span.parent).to be(parent)
     end
   end
 end

@@ -17,7 +17,7 @@ module Datadog
             attr_reader \
               :encoder
 
-            def initialize(path, encoder, options = {})
+            def initialize(path, encoder, **options)
               super(:post, path)
               @encoder = encoder
             end

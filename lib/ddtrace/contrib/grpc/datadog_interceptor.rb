@@ -11,7 +11,7 @@ module Datadog
         class Base < ::GRPC::Interceptor
           attr_accessor :datadog_pin
 
-          def initialize(options = {})
+          def initialize(**options)
             add_datadog_pin! { |c| yield(c) if block_given? }
           end
 

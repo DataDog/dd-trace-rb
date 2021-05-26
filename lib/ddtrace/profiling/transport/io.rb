@@ -9,13 +9,13 @@ module Datadog
         module_function
 
         # Builds a new Profiling::Transport::IO::Client
-        def new(out, encoder, options = {})
+        def new(out, encoder, **options)
           Client.new(out, encoder, options)
         end
 
         # Builds a new Profiling::Transport::IO::Client with default settings
         # Pass options to override any settings.
-        def default(options = {})
+        def default(**options)
           options = options.dup
 
           new(

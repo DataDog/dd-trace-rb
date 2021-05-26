@@ -15,7 +15,7 @@ module Datadog
         include Datadog::Ext::DistributedTracing
         include Datadog::Contrib::HttpAnnotationHelper
 
-        def initialize(app, options = {})
+        def initialize(app, **options)
           super(app)
           @options = options
         end

@@ -53,7 +53,7 @@ module Datadog
         #  - :default
         #  - :fallback
         #  - :headers
-        def api(key, spec, options = {})
+        def api(key, spec, **options)
           options = options.dup
 
           # Copy spec into API map

@@ -20,13 +20,13 @@ module Datadog
             .gsub(/(?:\d+)/, PLACEHOLDER)
         end
 
-        def format_body(body, options = {})
+        def format_body(body, **options)
           format_body!(body, options)
         rescue StandardError
           options[:placeholder] || PLACEHOLDER
         end
 
-        def format_body!(body, options = {})
+        def format_body!(body, **options)
           options = merge_options(DEFAULT_OPTIONS, options)
 
           # Determine if bulk query or not, based on content

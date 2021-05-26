@@ -13,7 +13,7 @@ module Datadog
             :filepath,
             :timeout
 
-          def initialize(filepath, options = {})
+          def initialize(filepath, **options)
             @filepath = filepath
             @timeout = options.fetch(:timeout, DEFAULT_TIMEOUT)
           end
@@ -41,7 +41,7 @@ module Datadog
               :filepath,
               :unix_socket
 
-            def initialize(filepath, options = {})
+            def initialize(filepath, **options)
               super('localhost', 80)
               @filepath = filepath
               @read_timeout = options.fetch(:read_timeout, DEFAULT_TIMEOUT)

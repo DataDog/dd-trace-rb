@@ -8,7 +8,7 @@ module Datadog
     module Sidekiq
       # Common functionality used by both client-side and server-side tracers.
       module Tracing
-        def initialize(options = {})
+        def initialize(**options)
           @tracer = options[:tracer] || Datadog.configuration[:sidekiq][:tracer]
         end
 

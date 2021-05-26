@@ -15,7 +15,7 @@ module Datadog
 
       # Builds a new Transport::IO::Client with default settings
       # Pass options to override any settings.
-      def default(options = {})
+      def default(**options)
         new(
           options.fetch(:out, $stdout),
           options.fetch(:encoder, Encoding::JSONEncoder)

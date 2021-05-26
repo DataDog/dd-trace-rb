@@ -8,7 +8,7 @@ module Datadog
     # Common behavior for CI tests
     module Test
       # Creates a new span for a CI test
-      def self.trace(tracer, span_name, options = {})
+      def self.trace(tracer, span_name, **options)
         span_options = {
           span_type: Ext::AppTypes::TEST
         }.merge(options[:span_options] || {})

@@ -37,7 +37,7 @@ module Datadog
         attr_reader \
           :helpers
 
-        def initialize(name, options = {})
+        def initialize(name, **options)
           @default = nil
           @delegate_to = nil
           @depends_on = []
@@ -88,7 +88,7 @@ module Datadog
         end
 
         # For applying options for OptionDefinition
-        def apply_options!(options = {})
+        def apply_options!(**options)
           return if options.nil? || options.empty?
 
           default(options[:default]) if options.key?(:default)

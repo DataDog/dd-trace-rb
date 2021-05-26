@@ -13,7 +13,7 @@ module Datadog
         :datadog_tracer,
         :configure
 
-      def initialize(options = {})
+      def initialize(**options)
         super()
         @datadog_tracer = Datadog::Tracer.new(options)
       end

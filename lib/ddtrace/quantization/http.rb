@@ -9,13 +9,13 @@ module Datadog
 
       module_function
 
-      def url(url, options = {})
+      def url(url, **options)
         url!(url, options)
       rescue StandardError
         options[:placeholder] || PLACEHOLDER
       end
 
-      def url!(url, options = {})
+      def url!(url, **options)
         options ||= {}
 
         URI.parse(url).tap do |uri|
@@ -30,13 +30,13 @@ module Datadog
         end.to_s
       end
 
-      def query(query, options = {})
+      def query(query, **options)
         query!(query, options)
       rescue StandardError
         options[:placeholder] || PLACEHOLDER
       end
 
-      def query!(query, options = {})
+      def query!(query, **options)
         options ||= {}
         options[:show] = options[:show] || []
         options[:exclude] = options[:exclude] || []
@@ -59,7 +59,7 @@ module Datadog
       # Iterate over each key value pair, yielding to the block given.
       # Accepts :uniq option, which keeps uniq copies of keys without values.
       # e.g. Reduces "foo&bar=bar&bar=bar&foo" to "foo&bar=bar&bar=bar"
-      def collect_query(query, options = {})
+      def collect_query(query, **options)
         return query unless block_given?
 
         uniq = options[:uniq].nil? ? false : options[:uniq]
