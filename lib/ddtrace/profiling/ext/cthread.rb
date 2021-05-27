@@ -91,9 +91,7 @@ module Datadog
         ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
 
         def cpu_time(unit = :float_second)
-          return unless clock_id && ::Process.respond_to?(:clock_gettime)
-
-          ::Process.clock_gettime(clock_id, unit)
+          ::Process.clock_gettime(clock_id, unit) if clock_id
         end
 
         def cpu_time_instrumentation_installed?

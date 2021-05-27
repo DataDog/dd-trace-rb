@@ -187,21 +187,18 @@ if Datadog::Profiling::Ext::CPU.supported?
 
         context 'is available' do
           let(:clock_id) { double('clock ID') }
+          let(:cpu_time_measurement) { double('cpu time measurement') }
 
           before { allow(thread).to receive(:clock_id).and_return(clock_id) }
 
-          if Process.respond_to?(:clock_gettime)
-            let(:cpu_time_measurement) { double('cpu time measurement') }
+          context 'when not given a unit' do
+            it 'gets time in CPU seconds' do
+              expect(Process)
+                .to receive(:clock_gettime)
+                .with(clock_id, :float_second)
+                .and_return(cpu_time_measurement)
 
-            context 'when not given a unit' do
-              it 'gets time in CPU seconds' do
-                expect(Process)
-                  .to receive(:clock_gettime)
-                  .with(clock_id, :float_second)
-                  .and_return(cpu_time_measurement)
-
-                is_expected.to be cpu_time_measurement
-              end
+              is_expected.to be cpu_time_measurement
             end
 
             context 'given a unit' do
@@ -217,10 +214,6 @@ if Datadog::Profiling::Ext::CPU.supported?
 
                 is_expected.to be cpu_time_measurement
               end
-            end
-          else
-            context 'but #clock_gettime is not' do
-              it { is_expected.to be nil }
             end
           end
         end
