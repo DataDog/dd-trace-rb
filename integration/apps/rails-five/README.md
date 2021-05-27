@@ -45,7 +45,7 @@ Within the container, run `bin/dd-demo <process>` where `<process>` is one of th
 
 ##### Features
 
-Set `DD_DEMO_ENV_PROCESS` to a comma-delimited list of any of the following values to activate the feature:
+Set `DD_DEMO_ENV_FEATURES` to a comma-delimited list of any of the following values to activate the feature:
 
  - `tracing`: Tracing instrumentation
  - `profiling`: Profiling (NOTE: Must also set `DD_PROFILING_ENABLED` to match.)
@@ -54,7 +54,7 @@ Set `DD_DEMO_ENV_PROCESS` to a comma-delimited list of any of the following valu
  - `runtime_metrics`: Enable runtime metrics
  - `pprof_to_file`: Dump profiling pprof to file instead of agent.
 
-e.g. `DD_DEMO_ENV_PROCESS=tracing,profiling`
+e.g. `DD_DEMO_ENV_FEATURES=tracing,profiling`
 
 ##### Routes
 
