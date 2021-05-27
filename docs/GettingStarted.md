@@ -85,6 +85,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Metrics](#metrics)
          - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
+     - [Profiling](#profiling)
 
 ## Compatibility
 
@@ -546,7 +547,7 @@ Datadog.configure do |c|
   # Symbol matching your database connection in config/database.yml
   # Only available if you are using Rails with ActiveRecord.
   c.use :active_record, describes: :secondary_database, service_name: 'secondary-db'
-  
+
   # Block configuration pattern.
   c.use :active_record, describes: :secondary_database do |second_db|
     second_db.service_name = 'secondary-db'
@@ -584,7 +585,7 @@ Datadog.configure do |c|
 
   # Matches any `mysql2` connection.
   c.use :active_record, describes: { adapter: 'mysql2'}, service_name: 'mysql-db'
-  
+
   # Matches any `mysql2` connection to the `reports` database.
   #
   # In case of multiple matching `describe` configurations, the latest one applies.
@@ -1565,7 +1566,7 @@ Datadog.configure do |c|
   # For network connections, only these fields are considered during matching:
   # scheme, host, port, db
   # Other fields are ignored.
-  
+
   # Network connection string
   c.use :redis, describes: 'redis://127.0.0.1:6379/0', service_name: 'redis-connection-string'
   c.use :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, service_name: 'redis-connection-url'
@@ -1867,7 +1868,7 @@ Datadog.configure do |c|
 
   # Breaks down very large traces into smaller batches
   c.tracer.partial_flush.enabled = false
-  
+
   # You can specify your own tracer
   c.tracer.instance = Datadog::Tracer.new
 
@@ -1954,7 +1955,7 @@ We recommend setting the environment variable `DD_TRACE_SAMPLE_RATE=1.0` in all 
 App Analytics, previously configured with the `analytics_enabled` setting, is deprecated in favor of Tracing without Limits™. Documentation for this [deprecated configuration is still available](https://docs.datadoghq.com/tracing/legacy_app_analytics/).
 
 #### Application-side sampling
- 
+
 While the trace agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead.
 
 This will **reduce visibility and is not recommended**. See [DD_TRACE_SAMPLE_RATE](#environment-variables) for the recommended sampling approach.
@@ -2480,3 +2481,19 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 | `OpenTracing::FORMAT_TEXT_MAP` | Yes        |                        |
 | `OpenTracing::FORMAT_RACK`     | Yes        | Because of the loss of resolution in the Rack format, please note that baggage items with names containing either upper case characters or `-` will be converted to lower case and `_` in a round-trip respectively. We recommend avoiding these characters or accommodating accordingly on the receiving end. |
 | `OpenTracing::FORMAT_BINARY`   | No         |                        |
+
+### Profiling
+
+*Currently available as BETA feature.*
+
+`ddtrace` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.
+
+**Setup**
+
+To get started with profiling, follow the [Profiler Getting Started Guide](https://docs.datadoghq.com/tracing/profiler/getting_started/?code-lang=ruby).
+
+#### Profiling Resque jobs
+
+When profiling [Resque](https://github.com/resque/resque) jobs, you should set the `RUN_AT_EXIT_HOOKS=1` option described in the [Resque](https://github.com/resque/resque/blob/v2.0.0/docs/HOOKS.md#worker-hooks) documentation.
+
+Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.

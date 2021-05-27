@@ -87,6 +87,10 @@ test_containers:
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
   run:
     name: Check if we restored an exact cache of gems that this job requires
+    # CircleCI doesn't tell us if we had a perfect cache match or partial match.
+    # To accomplish such check, we save `bundle_checksum` alongside the cached
+    # gems. After gems are restored, we compare the restored `bundle_checksum`'s
+    # content with the current commit's `bundle_checksum`.
     command: |
       ! cmp -s .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
       echo "export CI_BUNDLE_CACHE_HIT=$?" >> $BASH_ENV
@@ -141,7 +145,7 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
     name: Compute bundle checksum
     command: |
       bundle lock # Create Gemfile.lock
-      cat Gemfile.lock gemfiles/*.gemfile.lock > .circleci/bundle_checksum
+      cat Gemfile.lock gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests

@@ -53,10 +53,7 @@ module Datadog
           ordering = self.class.options.dependency_order
           sorted_opts = opts.sort_by do |name, _value|
             ordering.index(name) || (ordering.length + 1)
-          end
-
-          # Ruby 2.0 doesn't support Array#to_h
-          sorted_opts = Hash[*sorted_opts.flatten]
+          end.to_h
 
           # Apply options in sort order
           sorted_opts.each do |name, value|

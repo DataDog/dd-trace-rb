@@ -62,5 +62,19 @@ RSpec.describe 'AWS instrumentation' do
         expect(list_buckets.buckets.map(&:name)).to eq(['bucket1'])
       end
     end
+
+    describe 'S3::Presigner' do
+      describe '#presigned_url' do
+        subject!(:presign) { presigner.presigned_url(:get_object, bucket: 'bucket', key: 'key') }
+
+        let(:presigner) { Aws::S3::Presigner.new(client: client) }
+
+        it 'does not instrument presign as an HTTP request' do
+          presign
+
+          expect(spans).to be_empty
+        end
+      end
+    end
   end
 end

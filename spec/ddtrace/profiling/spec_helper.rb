@@ -75,7 +75,9 @@ module ProfileHelpers
 
     Datadog::Profiling::Events::StackSample.new(
       nil,
-      locations,
+      locations.map do |location|
+        Datadog::Profiling::BacktraceLocation.new(location.base_label, location.lineno, location.path)
+      end,
       locations.length,
       thread_id || rand(1e9),
       trace_id || rand(1e9),
