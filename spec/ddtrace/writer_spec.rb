@@ -4,8 +4,6 @@ require 'ddtrace'
 require 'json'
 
 RSpec.describe Datadog::Writer do
-  include HttpHelpers
-
   describe 'instance' do
     subject(:writer) { described_class.new(options) }
 

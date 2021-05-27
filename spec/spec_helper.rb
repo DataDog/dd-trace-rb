@@ -48,7 +48,6 @@ RSpec.configure do |config|
   config.include ConfigurationHelpers
   config.include ContainerHelpers
   config.include HealthMetricHelpers
-  config.include HttpHelpers
   config.include LogHelpers
   config.include MetricHelpers
   config.include NetworkHelpers
