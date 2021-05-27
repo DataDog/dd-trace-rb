@@ -162,7 +162,7 @@ module Datadog
     #
     #   tracer.set_tags('env' => 'prod', 'component' => 'core')
     def set_tags(tags)
-      string_tags = Hash[tags.collect { |k, v| [k.to_s, v] }]
+      string_tags = tags.collect { |k, v| [k.to_s, v] }.to_h
       @tags = @tags.merge(string_tags)
     end
 

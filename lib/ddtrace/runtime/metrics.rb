@@ -58,11 +58,9 @@ module Datadog
       end
 
       def gc_metrics
-        Hash[
-          GC.stat.flat_map do |k, v|
-            nested_gc_metric(Ext::Runtime::Metrics::METRIC_GC_PREFIX, k, v)
-          end
-        ]
+        GC.stat.flat_map do |k, v|
+          nested_gc_metric(Ext::Runtime::Metrics::METRIC_GC_PREFIX, k, v)
+        end.to_h
       end
 
       def try_flush
