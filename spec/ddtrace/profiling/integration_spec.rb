@@ -97,8 +97,11 @@ RSpec.describe 'profiling integration test' do
 
     if Datadog::Profiling::Ext::CPU.supported?
       context 'with CPU profiling' do
-        # include_context 'with profiling extensions'
         include_context 'end-to-end profiler'
+
+        before do
+          skip 'This test cannot run on TruffleRuby because it relies on fork()' if PlatformHelpers.truffleruby?
+        end
 
         it 'produces a profile' do
           with_profiling_extensions_in_fork do

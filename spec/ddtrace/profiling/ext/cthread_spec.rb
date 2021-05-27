@@ -6,6 +6,10 @@ if Datadog::Profiling::Ext::CPU.supported?
   require 'ddtrace/profiling/ext/cthread'
 
   RSpec.describe Datadog::Profiling::Ext::CThread do
+    before do
+      skip 'CThread specs cannot run on TruffleRuby because they rely on fork()' if PlatformHelpers.truffleruby?
+    end
+
     subject(:thread) do
       thread_class.new(&block).tap do
         # Give thread a chance to start,
