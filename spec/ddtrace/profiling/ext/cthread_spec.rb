@@ -174,10 +174,9 @@ if Datadog::Profiling::Ext::CPU.supported?
 
         context 'is available' do
           let(:clock_id) { double('clock ID') }
+          let(:cpu_time_measurement) { double('cpu time measurement') }
 
           before { allow(thread).to receive(:clock_id).and_return(clock_id) }
-
-          let(:cpu_time_measurement) { double('cpu time measurement') }
 
           context 'when not given a unit' do
             it 'gets time in CPU seconds' do
