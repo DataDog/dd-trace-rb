@@ -20,7 +20,8 @@ module Datadog
     def initialize(options = {})
       @transport = options.fetch(:transport) do
         transport_options = options.fetch(:transport_options, {})
-        Transport::HTTP.default(transport_options)
+        transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
+        Transport::HTTP.default(**transport_options)
       end
 
       @priority_sampler = options.fetch(:priority_sampler, nil)

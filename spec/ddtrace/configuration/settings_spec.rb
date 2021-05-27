@@ -1051,6 +1051,141 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#test_mode' do
+    describe '#enabled' do
+      subject(:enabled) { settings.test_mode.enabled }
+
+      it { is_expected.to be false }
+
+      context "when #{Datadog::Ext::Test::ENV_MODE_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Test::ENV_MODE_ENABLED => enable) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:enable) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        context 'is set to true' do
+          let(:enable) { 'true' }
+
+          it { is_expected.to be true }
+        end
+
+        context 'is set to false' do
+          let(:enable) { 'false' }
+
+          it { is_expected.to be false }
+        end
+      end
+    end
+
+    describe '#context_flush' do
+      subject(:context_flush) { settings.test_mode.context_flush }
+
+      context 'default' do
+        it { is_expected.to be nil }
+      end
+    end
+
+    describe '#context_flush=' do
+      let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
+
+      it 'updates the #context_flush setting' do
+        expect { settings.test_mode.context_flush = context_flush }
+          .to change { settings.test_mode.context_flush }
+          .from(nil)
+          .to(context_flush)
+      end
+    end
+
+    describe '#enabled=' do
+      it 'updates the #enabled setting' do
+        expect { settings.test_mode.enabled = true }
+          .to change { settings.test_mode.enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
+    describe '#writer_options' do
+      subject(:writer_options) { settings.test_mode.writer_options }
+
+      it { is_expected.to eq({}) }
+
+      context 'when modified' do
+        it 'does not modify the default by reference' do
+          settings.test_mode.writer_options[:foo] = :bar
+          expect(settings.test_mode.writer_options).to_not be_empty
+          expect(settings.test_mode.options[:writer_options].default_value).to be_empty
+        end
+      end
+    end
+
+    describe '#writer_options=' do
+      let(:options) { { priority_sampling: true } }
+
+      it 'updates the #writer_options setting' do
+        expect { settings.test_mode.writer_options = options }
+          .to change { settings.test_mode.writer_options }
+          .from({})
+          .to(options)
+      end
+    end
+  end
+
+  describe '#time_now_provider=' do
+    subject(:set_time_now_provider) { settings.time_now_provider = time_now_provider }
+
+    after { settings.reset! }
+
+    let(:time_now) { double('time') }
+    let(:time_now_provider) do
+      now = time_now # Capture for closure
+      -> { now }
+    end
+
+    context 'when default' do
+      before { allow(Time).to receive(:now).and_return(time_now) }
+
+      it 'delegates to Time.now' do
+        expect(settings.time_now_provider.call).to be(time_now)
+        expect(Datadog::Utils::Time.now).to be(time_now)
+      end
+    end
+
+    context 'when given a value' do
+      before { set_time_now_provider }
+
+      it 'returns the provided time' do
+        expect(settings.time_now_provider.call).to be(time_now)
+        expect(Datadog::Utils::Time.now).to be(time_now)
+      end
+    end
+
+    context 'then reset' do
+      before { set_time_now_provider }
+
+      let(:original_time_now) { double('original time') }
+
+      before { allow(Time).to receive(:now).and_return(original_time_now) }
+
+      it 'returns the provided time' do
+        expect(settings.time_now_provider.call).to be(time_now)
+        expect(Datadog::Utils::Time.now).to be(time_now)
+
+        settings.reset!
+
+        expect(settings.time_now_provider.call).to be(original_time_now)
+        expect(Datadog::Utils::Time.now).to be(original_time_now)
+      end
+    end
+  end
+
   describe '#tracer' do
     context 'old style' do
       context 'given :debug' do
@@ -1425,54 +1560,6 @@ RSpec.describe Datadog::Configuration::Settings do
       before { set_version }
 
       it { expect(settings.version).to eq(version) }
-    end
-  end
-
-  describe '#time_now_provider=' do
-    subject(:set_time_now_provider) { settings.time_now_provider = time_now_provider }
-
-    after { settings.reset! }
-
-    let(:time_now) { double('time') }
-    let(:time_now_provider) do
-      now = time_now # Capture for closure
-      -> { now }
-    end
-
-    context 'when default' do
-      before { allow(Time).to receive(:now).and_return(time_now) }
-
-      it 'delegates to Time.now' do
-        expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Utils::Time.now).to be(time_now)
-      end
-    end
-
-    context 'when given a value' do
-      before { set_time_now_provider }
-
-      it 'returns the provided time' do
-        expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Utils::Time.now).to be(time_now)
-      end
-    end
-
-    context 'then reset' do
-      before { set_time_now_provider }
-
-      let(:original_time_now) { double('original time') }
-
-      before { allow(Time).to receive(:now).and_return(original_time_now) }
-
-      it 'returns the provided time' do
-        expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Utils::Time.now).to be(time_now)
-
-        settings.reset!
-
-        expect(settings.time_now_provider.call).to be(original_time_now)
-        expect(Datadog::Utils::Time.now).to be(original_time_now)
-      end
     end
   end
 end
