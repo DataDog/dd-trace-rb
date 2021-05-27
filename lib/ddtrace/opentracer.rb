@@ -17,14 +17,5 @@ require 'ddtrace/opentracer/binary_propagator'
 require 'ddtrace/opentracer/rack_propagator'
 require 'ddtrace/opentracer/global_tracer'
 
-module Datadog
-  # Namespace for ddtrace OpenTracing implementation
-  module OpenTracer
-    # Modify the OpenTracing module functions
-    ::OpenTracing.module_eval do
-      class << self
-        prepend Datadog::OpenTracer::GlobalTracer
-      end
-    end
-  end
-end
+# Modify the OpenTracing module functions
+::OpenTracing.singleton_class.prepend(Datadog::OpenTracer::GlobalTracer)
