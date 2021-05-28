@@ -37,6 +37,8 @@ module Datadog
     def tear_down!
       shutdown! if started?
 
+      # TODO: this is actually part of contrib
+      # TODO: should probably be moved to inside contrib/
       # Reset stateful registry data
       registry.each do |data|
         data.klass.reset_configuration!
