@@ -77,7 +77,7 @@ module Datadog
       @context_flush = if options[:context_flush]
                          options[:context_flush]
                        elsif options[:partial_flush]
-                         Datadog::ContextFlush::Partial.new(options)
+                         Datadog::ContextFlush::Partial.new(**options)
                        else
                          Datadog::ContextFlush::Finished.new
                        end
@@ -124,7 +124,7 @@ module Datadog
         @context_flush = if options[:context_flush]
                            options[:context_flush]
                          elsif options[:partial_flush]
-                           Datadog::ContextFlush::Partial.new(options)
+                           Datadog::ContextFlush::Partial.new(**options)
                          else
                            Datadog::ContextFlush::Finished.new
                          end
@@ -278,7 +278,7 @@ module Datadog
 
         begin
           begin
-            span = start_span(name, options)
+            span = start_span(name, **options)
           rescue StandardError => e
             Datadog.logger.debug("Failed to start span: #{e}")
           ensure
@@ -316,7 +316,7 @@ module Datadog
 
         return_value
       else
-        start_span(name, options)
+        start_span(name, **options)
       end
     end
 

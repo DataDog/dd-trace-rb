@@ -261,7 +261,7 @@ If you aren't using a supported framework instrumentation, you may want to manua
 To trace any Ruby code, you can use the `Datadog.tracer.trace` method:
 
 ```ruby
-Datadog.tracer.trace(name, options) do |span|
+Datadog.tracer.trace(name, **options) do |span|
   # Wrap this block around the code you want to instrument
   # Additionally, you can modify the span here.
   # e.g. Change the resource name, set tags, etc...
@@ -718,7 +718,7 @@ Datadog.configure do |c|
 end
 
 # Configure Dalli tracing behavior for single client
-client = Dalli::Client.new('localhost:11211', options)
+client = Dalli::Client.new('localhost:11211', **options)
 client.set('abc', 123)
 ```
 
@@ -878,7 +878,7 @@ end
 
 # In case you want to override the global configuration for a certain client instance
 connection = Faraday.new('https://example.com') do |builder|
-  builder.use(:ddtrace, options)
+  builder.use(:ddtrace, **options)
   builder.adapter Faraday.default_adapter
 end
 
@@ -1154,7 +1154,7 @@ collection = client[:people]
 collection.insert_one({ name: 'Steve' })
 
 # In case you want to override the global configuration for a certain client instance
-Datadog.configure(client, options)
+Datadog.configure(client, **options)
 ```
 
 Where `options` is an optional `Hash` that accepts the following parameters:

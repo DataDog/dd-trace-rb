@@ -15,13 +15,11 @@ module Datadog
           def trace(keywords)
             keywords[:metadata] ||= {}
 
-            options = {
-              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-              service: service_name,
-              resource: format_resource(keywords[:method])
-            }
-
-            tracer.trace(Ext::SPAN_CLIENT, options) do |span|
+            tracer.trace(Ext::SPAN_CLIENT,
+                         span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
+                         service: service_name,
+                         resource: format_resource(keywords[:method])
+            ) do |span|
               annotate!(span, keywords[:metadata])
 
               yield

@@ -15,7 +15,7 @@ module Datadog
           registry = options.fetch(:registry, Datadog.registry)
           auto_patch = options.fetch(:auto_patch, false)
 
-          registry.add(name, new(name, options), auto_patch)
+          registry.add(name, new(name, **options), auto_patch)
         end
       end
 
@@ -24,7 +24,7 @@ module Datadog
         attr_reader \
           :name
 
-        def initialize(name, **options)
+        def initialize(name, **_options)
           @name = name
         end
       end

@@ -15,12 +15,12 @@ module Datadog
 
         if block_given?
           tracer.trace(span_name, span_options) do |span|
-            set_tags!(span, options)
+            set_tags!(span, **options)
             yield(span)
           end
         else
           span = tracer.trace(span_name, span_options)
-          set_tags!(span, options)
+          set_tags!(span, **options)
           span
         end
       end

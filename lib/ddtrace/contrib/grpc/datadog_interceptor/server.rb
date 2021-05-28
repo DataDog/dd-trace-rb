@@ -14,16 +14,15 @@ module Datadog
         # its tracing context with a parent client-side context
         class Server < Base
           def trace(keywords)
-            options = {
-              span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
-              service: service_name,
-              resource: format_resource(keywords[:method])
-            }
             metadata = keywords[:call].metadata
 
             set_distributed_context!(tracer, metadata)
 
-            tracer.trace(Ext::SPAN_SERVICE, options) do |span|
+            tracer.trace(Ext::SPAN_SERVICE,
+                         span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
+                         service: service_name,
+                         resource: format_resource(keywords[:method])
+            ) do |span|
               annotate!(span, metadata)
 
               yield

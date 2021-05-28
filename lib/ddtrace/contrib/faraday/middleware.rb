@@ -26,7 +26,7 @@ module Datadog
           request_options = build_request_options!(env)
 
           request_options[:tracer].trace(Ext::SPAN_REQUEST) do |span|
-            annotate!(span, env, request_options)
+            annotate!(span, env, **request_options)
             propagate!(span, env) if request_options[:distributed_tracing] && request_options[:tracer].enabled
             app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }
           end
@@ -36,9 +36,9 @@ module Datadog
 
         attr_reader :app
 
-        def annotate!(span, env, options)
+        def annotate!(span, env, **options)
           span.resource = resource_name(env)
-          service_name(env[:url].host, options)
+          service_name(env[:url].host, **options)
           span.service = options[:split_by_domain] ? env[:url].host : options[:service_name]
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
@@ -56,7 +56,7 @@ module Datadog
           span.set_tag(Datadog::Ext::NET::TARGET_PORT, env[:url].port)
         end
 
-        def handle_response(span, env, options)
+        def handle_response(span, env, **options)
           span.set_error(["Error #{env[:status]}", env[:body]]) if options.fetch(:error_handler).call(env)
 
           span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, env[:status])
