@@ -42,7 +42,7 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     it 'replaces default service name' do
-      default_client_interceptor.request_response(keywords) {}
+      default_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.first
       expect(span.service).to eq 'rspec'
       expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('rspec')
