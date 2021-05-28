@@ -1,5 +1,4 @@
 require 'ddtrace/contrib/patcher'
-require 'datadog/ci/contrib/rspec/integration'
 require 'datadog/ci/contrib/rspec/example'
 
 module Datadog

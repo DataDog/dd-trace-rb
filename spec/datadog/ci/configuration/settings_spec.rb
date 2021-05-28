@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'datadog/ci/spec_helper'
 require 'datadog/ci/configuration/settings'
 
 RSpec.describe Datadog::CI::Configuration::Settings do

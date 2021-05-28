@@ -1,4 +1,4 @@
-require 'ddtrace'
+require 'datadog/ci'
 
 # Enable CI tracing
 Datadog.configure do |c|
