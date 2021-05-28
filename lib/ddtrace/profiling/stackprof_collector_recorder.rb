@@ -44,8 +44,8 @@ module Datadog
         profile = StackProf.results
         start if was_running
 
-        Datadog.logger.debug "Flushing stackprof profile with"
-        StackProf::Report.new(profile).print_text
+        #Datadog.logger.debug "Flushing stackprof profile with"
+        #StackProf::Report.new(profile).print_text
 
         profile_to_recorder(profile)
         Datadog.logger.debug "Successfully put stackprof results into recorder"
