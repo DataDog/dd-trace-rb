@@ -26,8 +26,12 @@ module Datadog
           stop_loop
           graceful = join(timeout)
 
-          # If timeout and force stop...
-          !graceful && force_stop ? terminate : graceful
+          if !graceful && force_stop
+            Datadog.logger.debug "Timeout while waiting for worker to finish gracefully, forcing termination for: #{self}"
+            terminate
+          else
+            graceful
+          end
         else
           false
         end
