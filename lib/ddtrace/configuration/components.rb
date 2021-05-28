@@ -80,6 +80,16 @@ module Datadog
 
           recorder = build_profiler_recorder(settings)
           collectors = build_profiler_collectors(settings, recorder)
+
+          if ENV['DD_PROFILING_STACKPROFHACK'] == 'true'
+            require 'ddtrace/profiling/stackprof_collector_recorder'
+
+            stackprof = Datadog::Profiling::StackProfCollectorRecorder.new
+
+            recorder = stackprof
+            collectors = [stackprof]
+          end
+
           exporters = build_profiler_exporters(settings, agent_settings)
           scheduler = build_profiler_scheduler(settings, recorder, exporters)
 
