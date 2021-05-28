@@ -9,16 +9,13 @@ RSpec.describe 'ConcurrentRuby integration tests' do
   let(:outer_span) { spans.find { |s| s.name == 'outer_span' } }
   let(:inner_span) { spans.find { |s| s.name == 'inner_span' } }
 
-  # DEV We save an unmodified copy of Concurrent::Future.
-  let!(:unmodified_promises) { ::Concurrent::Promises.dup }
-  let!(:unmodified_future) { ::Concurrent::Future.dup }
+  before do
+    # stub inheritance chain for instrumentation rollback
+    stub_const('Concurrent::Promises', ::Concurrent::Promises.dup)
+    stub_const('Concurrent::Future', ::Concurrent::Future.dup)
+  end
 
-  # DEV We then restore Concurrent::Future, a dangerous game.
   after do
-    ::Concurrent.send(:remove_const, :Promises)
-    ::Concurrent.const_set('Promises', unmodified_promises)
-    ::Concurrent.send(:remove_const, :Future)
-    ::Concurrent.const_set('Future', unmodified_future)
     remove_patch!(:concurrent_ruby)
   end
 
